@@ -2,8 +2,10 @@ package inca.runtime.index.virtual
 
 import inca.runtime.db.Database
 import inca.runtime.index.unary.UnarySetIndex
-import inca.runtime.index.{IndexKey, VirtualKey}
-import truechange.{Type, URI}
+import inca.runtime.index.IndexKey
+import inca.runtime.index.VirtualKey
+import truechange.Type
+import truechange.URI
 
 object NotNodeTypeIndex {
   case class Key(id: Type) extends VirtualKey {
@@ -39,7 +41,7 @@ class NotNodeTypeIndex(ty: Type) extends VirtualUnaryIndex[URI] {
   /** The key of this index */
   override val key: IndexKey[_] = NotNodeTypeIndex.Key(ty)
 
-  private val tyIndex: UnarySetIndex[URI] = database.nodeInstancesEnsure(ty)
+  private lazy val tyIndex: UnarySetIndex[URI] = database.nodeInstancesEnsure(ty)
 
   override def index(v: URI): Int =
     tyIndex.index(v) match {
@@ -47,7 +49,8 @@ class NotNodeTypeIndex(ty: Type) extends VirtualUnaryIndex[URI] {
       case _ => 0
     }
 
-  override def entries: Iterable[URI] = throw new UnsupportedOperationException(s"Cannot enumerate nodes _not_ of type $ty")
+  override def entries: Iterable[URI] = throw new UnsupportedOperationException(
+    s"Cannot enumerate nodes _not_ of type $ty")
 
   override def afterInitialization(): Unit = {
     // do nothing

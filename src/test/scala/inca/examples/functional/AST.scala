@@ -67,7 +67,7 @@ object AST {
         BaseLit(q"7", TScalaInt),
         If(
           BaseApplyInfix(Var("x"), ">", BaseLit(q"0", TScalaInt)),
-          Var("x"),
+          BaseApplyInfix(Var("x"), "*", BaseLit(q"1", TScalaInt)),
           BaseApplyInfix(Var("x"), "*", BaseLit(q"-1", TScalaInt))
         )
       )

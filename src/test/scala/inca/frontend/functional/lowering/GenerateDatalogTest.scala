@@ -164,7 +164,22 @@ class GenerateDatalogTest extends AnyFunSuite {
               )
             ),
             Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.True),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("x"))
+            Datalog.Computed(
+              Datalog.Var("lit$2"),
+              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("eval$1"),
+              Datalog.Evaluation(
+                Seq(
+                  Datalog.Var("x") -> Datalog.base.TScalaInt,
+                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
+                ),
+                Datalog.base.TScalaInt,
+                Scala(q"(left: Int, right: Int) => left * right")
+              )
+            ),
+            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$1"))
           )
         ),
         Datalog.Body(
@@ -191,21 +206,21 @@ class GenerateDatalogTest extends AnyFunSuite {
             ),
             Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.False),
             Datalog.Computed(
-              Datalog.Var("lit$2"),
+              Datalog.Var("lit$3"),
               Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
             ),
             Datalog.Computed(
-              Datalog.Var("eval$1"),
+              Datalog.Var("eval$2"),
               Datalog.Evaluation(
                 Seq(
                   Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
+                  Datalog.Var("lit$3") -> Datalog.base.TScalaInt
                 ),
                 Datalog.base.TScalaInt,
                 Scala(q"(left: Int, right: Int) => left * right")
               )
             ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$1"))
+            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$2"))
           )
         )
       )
@@ -265,7 +280,9 @@ class GenerateDatalogTest extends AnyFunSuite {
             Datalog.Computed(
               Datalog.Var("eval$4"),
               Datalog.Evaluation(
-                Seq(Datalog.Var("x") -> Datalog.base.TScalaInt, Datalog.Var("y") -> Datalog.base.TScalaInt),
+                Seq(
+                  Datalog.Var("x") -> Datalog.base.TScalaInt,
+                  Datalog.Var("y") -> Datalog.base.TScalaInt),
                 Datalog.base.TScalaInt,
                 Scala(q"(left: Int, right: Int) => left + right")
               )
@@ -525,7 +542,9 @@ class GenerateDatalogTest extends AnyFunSuite {
           Datalog.Computed(
             Datalog.Var("eval$0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
+              Seq(
+                Datalog.Var("n") -> Datalog.base.TScalaInt,
+                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
               Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left + right")
             )
@@ -573,7 +592,9 @@ class GenerateDatalogTest extends AnyFunSuite {
           Datalog.Computed(
             Datalog.Var("eval$0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
+              Seq(
+                Datalog.Var("n") -> Datalog.base.TScalaInt,
+                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
               Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
@@ -595,7 +616,9 @@ class GenerateDatalogTest extends AnyFunSuite {
           Datalog.Computed(
             Datalog.Var("eval$0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
+              Seq(
+                Datalog.Var("n") -> Datalog.base.TScalaInt,
+                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
               Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
@@ -608,7 +631,9 @@ class GenerateDatalogTest extends AnyFunSuite {
           Datalog.Computed(
             Datalog.Var("eval$1"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit$2") -> Datalog.base.TScalaInt),
+              Seq(
+                Datalog.Var("n") -> Datalog.base.TScalaInt,
+                Datalog.Var("lit$2") -> Datalog.base.TScalaInt),
               Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left - right")
             )
