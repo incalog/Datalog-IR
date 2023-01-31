@@ -17,7 +17,6 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     "selfcontained_basic_SupertypeOf" -> 13487,
     "selfcontained_VarPointsTo0" -> 34291,
     "selfcontained_VarPointsTo" -> 511391,
-    "selfcontained_VarPointsTo0" -> 34291,
     "selfcontained_Assign" -> 31754,
     "selfcontained_Assign0" -> 19494,
     "selfcontained_InterProc0" -> 190648,

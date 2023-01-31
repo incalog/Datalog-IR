@@ -1,11 +1,16 @@
 package inca.debugger.souffle
 
 import inca.backend.ir.Datalog
+import inca.compiler.source.SourceFile
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Compiler
 import inca.compiler.Options
 import inca.debugger.ExternallyInitializableDebugger
 import inca.debugger.ValueTable
+import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.lowering.SouffleToDatalogIR
+import inca.frontend.souffle.lowering.SouffleToNamedRelations
+import inca.frontend.souffle.parser.Parser
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
@@ -16,6 +21,7 @@ import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import inca.util.FilesUtil
+import java.io.File
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 object Benchmark {
@@ -47,6 +53,7 @@ object Benchmark {
       extends Config {
     def name: String = s"${prog.name}_${entry}"
   }
+
   case class StepIntoVStepOverConfig(
       prog: Datalog.Module,
       dataModel: DataModel,
@@ -60,10 +67,11 @@ object Benchmark {
   }
   implicit val timing: Timing = Timing(0, 0, outliers = 0)
 
-  val bottomUpVTopDownConfigs: Seq[BottomUpVTopDownConfig] = Seq()
-  val stepIntoVStepOverConfigs: Seq[StepIntoVStepOverConfig] = Seq()
+  var bottomUpVTopDownConfigs: Seq[BottomUpVTopDownConfig] = Seq()
+  var stepIntoVStepOverConfigs: Seq[StepIntoVStepOverConfig] = Seq()
 
-  val path: String = "benchmark/debugger/measurements.csv"
+  val timeResultsPath: String = "benchmark-results/debugger/measurements-time.csv"
+  val memResultsPath: String = "benchmark-results/debugger/measurements-mem-old.csv"
 
   def initRuntime(config: Config): (CompiledDatalogModule, DatalogRuntime) = {
     val compiled = Compiler.compileGP(config.prog, config.dataModel, Options())
@@ -75,30 +83,48 @@ object Benchmark {
 
   // returns running time and memory
   def measureBottomUp(config: Config): (Long, Long) = {
-    val (_, runtime) = initRuntime(config)
+    val (compiled, runtime) = initRuntime(config)
     // measure running time
+    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
     val start = System.currentTimeMillis()
-    runtime.db.processDatabaseInput(config.input)
+    runtime.engine.delayUpdatePropagation { () =>
+      runtime.db.processDatabaseInput(config.input)
+    }
     val end = System.currentTimeMillis()
+    println(matcher.countMatches())
+    val endCount = System.currentTimeMillis()
+    println(end - start)
+    println(endCount - start)
     // measure memory
     MemoryUtil.collectGarbage()
     val memoryInBytes = MemoryUtil.usedMemoryInBytes()
 
+    EnginePool.disposeAllEngines()
     (end - start, memoryInBytes)
   }
 
   def measureStepInto(config: Config): (Long, Long) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module)
+    // initialize bottom-up database
+    runtime.engine.delayUpdatePropagation { () =>
+      runtime.db.processDatabaseInput(config.input)
+    }
     debugger.setRuntime(runtime)
     debugger.entry(config.entry, config.args)
     val start = System.currentTimeMillis()
+    var stepIntoCount = 0
     while (!debugger.isFinished) {
+      println(stepIntoCount)
       debugger.stepInto()
+      stepIntoCount += 1
     }
+    println(debugger.queryStack.top)
     val end = System.currentTimeMillis()
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
+
+    EnginePool.disposeAllEngines()
     (end - start, mem)
   }
 
@@ -113,7 +139,7 @@ object Benchmark {
 
   def collectTopDownMeasurements(config: Config): (Measurement, Measurement) = {
     warmup(() => measureStepInto(config), config)
-    val (time, mem) = run(() => measureBottomUp(config), config).unzip
+    val (time, mem) = run(() => measureStepInto(config), config).unzip
     (
       Measurement("topdown_time_" + config.name, time),
       Measurement("topdown_mem_" + config.name, mem)
@@ -130,13 +156,45 @@ object Benchmark {
       run()
     }
 
+  // TODO
   def measureStepIntoVStepOver(config: StepIntoVStepOverConfig): Measurement = {
     null
   }
 
-  def main(args: Array[String]): Unit = {
-    val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
-    FilesUtil.writeFile(path, BenchmarkUtils.measurementsToCSV(buTime ++ buMem))
+  def readSouffleProgram(path: String): CompiledSouffleModule = {
+    val file = new File(path)
+    val analysis = Parser.parse(SourceFile(file.toPath))
+    val compiler = new SouffleToDatalogIR(false)
+    compiler.compile("SouffleModule", analysis)
   }
 
+  def readSouffleInput(compiled: CompiledSouffleModule, path: String): DatabaseInput = {
+    val inputCompiler = new SouffleToNamedRelations(path)
+    inputCompiler.compile(compiled.inputs.values.map(x => x._2 -> x._1).toMap)
+  }
+
+  def main(args: Array[String]): Unit = {
+    val compiledModule = readSouffleProgram("souffle-frontend/benchmark/self-contained.dl")
+    val input = readSouffleInput(compiledModule, "souffle-frontend/benchmark/minijavac")
+    val entry = "VarPointsTo"
+    val args = ValueTable.unit()
+    bottomUpVTopDownConfigs = Seq(
+      BottomUpVTopDownConfig(
+        compiledModule.ir,
+        compiledModule.dataModel,
+        input,
+        entry,
+        args,
+        0,
+        1
+      ))
+//    val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
+    val (buTime, buMem) = (Seq(), Seq())
+//    val (tdTime, tdMem) = (Seq(), Seq())
+    val (tdTime, tdMem) = bottomUpVTopDownConfigs.map(collectTopDownMeasurements).unzip
+    val allTime = buTime ++ tdTime
+    val allMem = buMem ++ tdMem
+    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
+    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
+  }
 }
