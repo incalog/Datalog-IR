@@ -1,12 +1,12 @@
-package inca.frontend.functional.measurements.itypes
+package inca.frontend.functional.itypes
 
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor
-import inca.util.measurement.BenchmarkUtils.measurementsToCSV
-import inca.util.measurement.BenchmarkUtils.writeFile
-import inca.util.measurement.BenchmarkUtils.Measurement
-import inca.util.measurement.BenchmarkUtils.Timing
-import inca.util.measurement.MemoryUtil
+import inca.measurements.util.BenchmarkUtils.measurementsToCSV
+import inca.measurements.util.BenchmarkUtils.Measurement
+import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.MemoryUtil
+import inca.util.FilesUtil.writeFile
 import scala.collection.mutable
 import scala.meta.XtensionParseInputLike
 import scala.meta.XtensionQuasiquoteTerm
@@ -167,7 +167,7 @@ object PerformMeasurements extends scala.App {
   }
   val allMeasurements = initMeasurements ++ incrementalMeasurements
   println(measurementsToCSV(allMeasurements))
-  writeFile("benchmark/itypes/measurements.csv", measurementsToCSV(allMeasurements))
+  writeFile("benchmark-results/itypes/measurements.csv", measurementsToCSV(allMeasurements))
 
   def toScalaMeta(exp: Exp): meta.Term = {
     exp.toString.parse[meta.Term].get

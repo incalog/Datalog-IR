@@ -1,4 +1,4 @@
-package inca.frontend.functional.measurements.itypes
+package inca.frontend.functional.itypes
 
 trait GenerateProg {
   def generate(depth: Int): Exp

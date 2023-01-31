@@ -1,4 +1,4 @@
-package inca.frontend.functional.measurements.itypes
+package inca.frontend.functional.itypes
 
 object Util {
   def time[A](f: => A): Long = {

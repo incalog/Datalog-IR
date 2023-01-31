@@ -1,4 +1,4 @@
-/benchmark/python/*/
+/benchmark-results/python/*/
 /souffle-frontend/benchmark/generated
 
 # sbt

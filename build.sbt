@@ -63,3 +63,19 @@ lazy val souffle_importer = (project in file("souffle-frontend"))
       "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test"
     )
   )
+
+lazy val benchmark_importer = (project in file("benchmark-code"))
+  .dependsOn(inca % "compile->compile;test->test")
+  .dependsOn(souffle_importer % "compile -> compile;test -> test")
+  .settings(
+    name := "benchmark-code",
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "fastparse" % "2.1.3",
+      "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+      "de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion,
+      "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
+      "de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion % "test",
+      "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test"
+    )
+  )

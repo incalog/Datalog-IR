@@ -1,4 +1,4 @@
-package inca.util.measurement
+package inca.measurements.util
 
 object CSVUtil {
   type CSV = IndexedSeq[CSVRow]

@@ -4,7 +4,7 @@ import inca.examples.functional.Code
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.souffle.Syntax.cleanRuleName
 import inca.frontend.souffle.Syntax.Name
-import inca.util.measurement.BenchmarkUtils.writeFile
+import inca.util.FilesUtil.writeFile
 import org.scalatest.funsuite.AnyFunSuite
 
 class TestGenerateSouffle extends AnyFunSuite {

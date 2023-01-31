@@ -1,4 +1,5 @@
-package inca.frontend.functional.measurements.dataflow
+package inca.frontend.functional.dataflow
+
 trait Exp {
   // toString prints case class rep
   def toSouffle: String

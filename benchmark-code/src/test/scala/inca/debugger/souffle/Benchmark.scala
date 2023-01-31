@@ -1,22 +1,21 @@
-package inca.debugger.measurements
+package inca.debugger.souffle
 
 import inca.backend.ir.Datalog
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Compiler
 import inca.compiler.Options
 import inca.debugger.ExternallyInitializableDebugger
-import inca.debugger.IRBreakpoint
-import inca.debugger.IRDebugger
 import inca.debugger.ValueTable
+import inca.measurements.util.BenchmarkUtils
+import inca.measurements.util.BenchmarkUtils.Measurement
+import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.MemoryUtil
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
-import inca.util.measurement.BenchmarkUtils
-import inca.util.measurement.BenchmarkUtils.Measurement
-import inca.util.measurement.BenchmarkUtils.Timing
-import inca.util.measurement.MemoryUtil
+import inca.util.FilesUtil
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 object Benchmark {
@@ -137,7 +136,7 @@ object Benchmark {
 
   def main(args: Array[String]): Unit = {
     val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
-    BenchmarkUtils.writeFile(path, BenchmarkUtils.measurementsToCSV(buTime ++ buMem))
+    FilesUtil.writeFile(path, BenchmarkUtils.measurementsToCSV(buTime ++ buMem))
   }
 
 }

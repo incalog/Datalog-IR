@@ -1,4 +1,4 @@
-package inca.frontend.functional.measurements.itypes
+package inca.frontend.functional.itypes
 
 trait Exp
 case class Num(v: Int) extends Exp

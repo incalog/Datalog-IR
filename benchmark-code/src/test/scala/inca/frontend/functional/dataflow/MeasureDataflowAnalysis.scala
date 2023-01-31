@@ -1,13 +1,13 @@
-package inca.frontend.functional.measurements.dataflow
+package inca.frontend.functional.dataflow
 
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor.compileFunction
 import inca.frontend.functional.executor.FunctionalExecutor.loadFunction
-import inca.util.measurement.BenchmarkUtils.measurementsToCSV
-import inca.util.measurement.BenchmarkUtils.writeFile
-import inca.util.measurement.BenchmarkUtils.Measurement
-import inca.util.measurement.BenchmarkUtils.Timing
-import inca.util.measurement.MemoryUtil
+import inca.measurements.util.BenchmarkUtils.measurementsToCSV
+import inca.measurements.util.BenchmarkUtils.Measurement
+import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.MemoryUtil
+import inca.util.FilesUtil
 
 object MeasureDataflowAnalysis extends App {
   val warmup = 0
@@ -31,5 +31,5 @@ object MeasureDataflowAnalysis extends App {
   val measurements = Seq(Measurement("Powerset Dataflow Analysis", times))
   val csv = measurementsToCSV(measurements)
   println(csv)
-  writeFile("benchmark/functional/powdataflow/measurements.csv", csv)
+  FilesUtil.writeFile("benchmark-results/functional/powdataflow/measurements.csv", csv)
 }

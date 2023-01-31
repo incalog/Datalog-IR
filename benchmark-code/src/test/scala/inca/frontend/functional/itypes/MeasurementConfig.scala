@@ -1,4 +1,4 @@
-package inca.frontend.functional.measurements.itypes
+package inca.frontend.functional.itypes
 
 case class MeasurementConfig(
     depth: Int,
