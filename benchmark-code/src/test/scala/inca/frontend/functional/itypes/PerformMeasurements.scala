@@ -110,7 +110,7 @@ object PerformMeasurements extends scala.App {
     val prog = config.gen.generate(config.depth)
     val emptyCtx = q"Empty()"
 
-    val initialTimes = (0 until config.warmupMeasurements + config.numMeasurements).map { _ =>
+    val initialTimes = (0 until config.warmup + config.runs).map { _ =>
       // load analysis
       val analysis = FunctionalExecutor.loadFunction(code)
 
@@ -152,7 +152,7 @@ object PerformMeasurements extends scala.App {
     val editTimes = mutable.ListBuffer[(Long, Long, Long)]()
     val undoTimes = mutable.ListBuffer[(Long, Long, Long)]()
     // do measurements
-    (0 until config.warmupMeasurements + config.numMeasurements).foreach { _ =>
+    (0 until config.warmup + config.runs).foreach { _ =>
       val editTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
       editTimes += ((editTime._1, editTime._2, editTime._3))
       val undoTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(prog)))

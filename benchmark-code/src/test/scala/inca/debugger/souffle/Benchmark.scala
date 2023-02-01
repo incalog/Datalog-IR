@@ -14,6 +14,7 @@ import inca.frontend.souffle.parser.Parser
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.Config
 import inca.measurements.util.MemoryUtil
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
@@ -31,16 +32,13 @@ object Benchmark {
 
   // TODO What are the programs?
   // TODO What are the scenarios?
-  trait Config {
+  trait BaseConfig extends Config {
     val prog: Datalog.Module
     val dataModel: DataModel
     val input: DatabaseInput
     val entry: String
     val args: ValueTable
-    val warmup: Int
-    val runs: Int
 
-    def name: String
   }
   case class BottomUpVTopDownConfig(
       prog: Datalog.Module,
@@ -50,7 +48,7 @@ object Benchmark {
       args: ValueTable,
       warmup: Int,
       runs: Int)
-      extends Config {
+      extends BaseConfig {
     def name: String = s"${prog.name}_${entry}"
   }
 
@@ -62,7 +60,7 @@ object Benchmark {
       args: ValueTable,
       warmup: Int,
       runs: Int)
-      extends Config {
+      extends BaseConfig {
     def name: String = s"${prog.name}"
   }
   implicit val timing: Timing = Timing(0, 0, outliers = 0)
@@ -73,7 +71,7 @@ object Benchmark {
   val timeResultsPath: String = "benchmark-results/debugger/measurements-time.csv"
   val memResultsPath: String = "benchmark-results/debugger/measurements-mem-old.csv"
 
-  def initRuntime(config: Config): (CompiledDatalogModule, DatalogRuntime) = {
+  def initRuntime(config: BaseConfig): (CompiledDatalogModule, DatalogRuntime) = {
     val compiled = Compiler.compileGP(config.prog, config.dataModel, Options())
     val scope = new QueryScope(config.dataModel)
     val (_engine, _database) =
@@ -82,7 +80,7 @@ object Benchmark {
   }
 
   // returns running time and memory
-  def measureBottomUp(config: Config): (Long, Long) = {
+  def measureBottomUp(config: BaseConfig): (Long, Long) = {
     val (compiled, runtime) = initRuntime(config)
     // measure running time
     val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
@@ -103,7 +101,7 @@ object Benchmark {
     (end - start, memoryInBytes)
   }
 
-  def measureStepInto(config: Config): (Long, Long) = {
+  def measureStepInto(config: BaseConfig): (Long, Long) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module)
     // initialize bottom-up database
@@ -113,14 +111,11 @@ object Benchmark {
     debugger.setRuntime(runtime)
     debugger.entry(config.entry, config.args)
     val start = System.currentTimeMillis()
-    var stepIntoCount = 0
     while (!debugger.isFinished) {
-      println(stepIntoCount)
       debugger.stepInto()
-      stepIntoCount += 1
     }
-    println(debugger.queryStack.top)
     val end = System.currentTimeMillis()
+    println(debugger.queryStack.top)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
 
@@ -128,7 +123,7 @@ object Benchmark {
     (end - start, mem)
   }
 
-  def collectBottomUpMeasurements(config: Config): (Measurement, Measurement) = {
+  def collectBottomUpMeasurements(config: BaseConfig): (Measurement, Measurement) = {
     warmup(() => measureBottomUp(config), config)
     val (time, mem) = run(() => measureBottomUp(config), config).unzip
     (
@@ -137,7 +132,7 @@ object Benchmark {
     )
   }
 
-  def collectTopDownMeasurements(config: Config): (Measurement, Measurement) = {
+  def collectTopDownMeasurements(config: BaseConfig): (Measurement, Measurement) = {
     warmup(() => measureStepInto(config), config)
     val (time, mem) = run(() => measureStepInto(config), config).unzip
     (
