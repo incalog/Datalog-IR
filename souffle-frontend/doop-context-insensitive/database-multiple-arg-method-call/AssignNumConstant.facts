@@ -1,0 +1,4 @@
+<Main: void main(java.lang.String[])>/fresh-null-assign/0	3	1	<Main: void main(java.lang.String[])>/$numconstant0	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/fresh-null-assign/1	4	2	<Main: void main(java.lang.String[])>/$numconstant1	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/assign/3	6	10	<Main: void main(java.lang.String[])>/l2#_5	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/assign/4	7	12	<Main: void main(java.lang.String[])>/l3#_6	<Main: void main(java.lang.String[])>

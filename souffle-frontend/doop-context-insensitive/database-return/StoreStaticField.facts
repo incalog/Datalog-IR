@@ -1,0 +1,2 @@
+<Main: void main(java.lang.String[])>/write-field-TY/0	1	<Main: void main(java.lang.String[])>/$stringconstant0	<Point: java.lang.String TY>	<Main: void main(java.lang.String[])>
+<Point: void <clinit>()>/write-field-TY/0	0	<Point: void <clinit>()>/$stringconstant0	<Point: java.lang.String TY>	<Point: void <clinit>()>

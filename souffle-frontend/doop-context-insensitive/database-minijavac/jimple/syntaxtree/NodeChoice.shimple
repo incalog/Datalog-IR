@@ -1,0 +1,115 @@
+public class syntaxtree.NodeChoice extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.Node choice;
+    public int which;
+
+    public void <init>(syntaxtree.Node)
+    {
+        syntaxtree.NodeChoice this#_0;
+        syntaxtree.Node node#_0;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        node#_0 := @parameter0: syntaxtree.Node;
+
+        specialinvoke this#_0.<syntaxtree.NodeChoice: void <init>(syntaxtree.Node,int)>(node#_0, -1);
+
+        return;
+    }
+
+    public void <init>(syntaxtree.Node, int)
+    {
+        syntaxtree.NodeChoice this#_0;
+        syntaxtree.Node node#_0;
+        int whichChoice#_0;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        node#_0 := @parameter0: syntaxtree.Node;
+
+        whichChoice#_0 := @parameter1: int;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.NodeChoice: syntaxtree.Node choice> = node#_0;
+
+        this#_0.<syntaxtree.NodeChoice: int which> = whichChoice#_0;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        syntaxtree.NodeChoice this#_0;
+        visitor.Visitor v#_0;
+        syntaxtree.Node $stack2;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        $stack2 = this#_0.<syntaxtree.NodeChoice: syntaxtree.Node choice>;
+
+        interfaceinvoke $stack2.<syntaxtree.Node: void accept(visitor.Visitor)>(v#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        syntaxtree.NodeChoice this#_0;
+        visitor.GJVisitor v#_0;
+        java.lang.Object argu#_0, $stack4;
+        syntaxtree.Node $stack3;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = this#_0.<syntaxtree.NodeChoice: syntaxtree.Node choice>;
+
+        $stack4 = interfaceinvoke $stack3.<syntaxtree.Node: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>(v#_0, argu#_0);
+
+        return $stack4;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        syntaxtree.NodeChoice this#_0;
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.Node $stack2;
+        java.lang.Object $stack3;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = this#_0.<syntaxtree.NodeChoice: syntaxtree.Node choice>;
+
+        $stack3 = interfaceinvoke $stack2.<syntaxtree.Node: java.lang.Object accept(visitor.GJNoArguVisitor)>(v#_0);
+
+        return $stack3;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        syntaxtree.NodeChoice this#_0;
+        visitor.GJVoidVisitor v#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Node $stack3;
+
+        this#_0 := @this: syntaxtree.NodeChoice;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = this#_0.<syntaxtree.NodeChoice: syntaxtree.Node choice>;
+
+        interfaceinvoke $stack3.<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>(v#_0, argu#_0);
+
+        return;
+    }
+}

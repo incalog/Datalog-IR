@@ -1,0 +1,1536 @@
+public class visitor.GJVoidDepthFirst extends java.lang.Object implements visitor.GJVoidVisitor
+{
+
+    public void <init>()
+    {
+        visitor.GJVoidDepthFirst this#_0;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public void visit(syntaxtree.NodeList, java.lang.Object)
+    {
+        syntaxtree.NodeList n#_0;
+        java.util.Enumeration e#_19;
+        boolean $stack6;
+        java.lang.Object $stack7, argu#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        syntaxtree.Node $stack8;
+        int _count#_18, _count_$$A_1#_20, _count_$$A_2#_21;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NodeList;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        _count#_18 = 0;
+
+(0)     e#_19 = virtualinvoke n#_0.<syntaxtree.NodeList: java.util.Enumeration elements()>();
+
+     label1:
+        _count_$$A_1#_20 = Phi(_count#_18 #0, _count_$$A_2#_21 #1);
+
+        $stack6 = interfaceinvoke e#_19.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack6 == 0 goto label2;
+
+        $stack7 = interfaceinvoke e#_19.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack8 = (syntaxtree.Node) $stack7;
+
+        interfaceinvoke $stack8.<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        _count_$$A_2#_21 = _count_$$A_1#_20 + 1;
+
+(1)     goto label1;
+
+     label2:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeListOptional, java.lang.Object)
+    {
+        syntaxtree.NodeListOptional n#_0;
+        boolean $stack5, $stack7;
+        java.util.Enumeration e#_28;
+        java.lang.Object $stack8, argu#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        syntaxtree.Node $stack9;
+        int _count#_27, _count_$$A_1#_29, _count_$$A_2#_30, _count_$$A_3#_31;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NodeListOptional;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack5 = virtualinvoke n#_0.<syntaxtree.NodeListOptional: boolean present()>();
+
+(0)     if $stack5 == 0 goto label2;
+
+        _count#_27 = 0;
+
+(1)     e#_28 = virtualinvoke n#_0.<syntaxtree.NodeListOptional: java.util.Enumeration elements()>();
+
+     label1:
+        _count_$$A_1#_29 = Phi(_count#_27 #1, _count_$$A_2#_30 #3);
+
+        $stack7 = interfaceinvoke e#_28.<java.util.Enumeration: boolean hasMoreElements()>();
+
+(2)     if $stack7 == 0 goto label2;
+
+        $stack8 = interfaceinvoke e#_28.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack9 = (syntaxtree.Node) $stack8;
+
+        interfaceinvoke $stack9.<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        _count_$$A_2#_30 = _count_$$A_1#_29 + 1;
+
+(3)     goto label1;
+
+     label2:
+        _count_$$A_3#_31 = Phi(_count#_27 #0, _count_$$A_1#_29 #2);
+
+        return;
+    }
+
+    public void visit(syntaxtree.NodeOptional, java.lang.Object)
+    {
+        syntaxtree.NodeOptional n#_0;
+        boolean $stack3;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Node $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NodeOptional;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = virtualinvoke n#_0.<syntaxtree.NodeOptional: boolean present()>();
+
+        if $stack3 == 0 goto label1;
+
+        $stack4 = n#_0.<syntaxtree.NodeOptional: syntaxtree.Node node>;
+
+        interfaceinvoke $stack4.<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+     label1:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeSequence, java.lang.Object)
+    {
+        syntaxtree.NodeSequence n#_0;
+        java.util.Enumeration e#_42;
+        boolean $stack6;
+        java.lang.Object $stack7, argu#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        syntaxtree.Node $stack8;
+        int _count#_41, _count_$$A_1#_43, _count_$$A_2#_44;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NodeSequence;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        _count#_41 = 0;
+
+(0)     e#_42 = virtualinvoke n#_0.<syntaxtree.NodeSequence: java.util.Enumeration elements()>();
+
+     label1:
+        _count_$$A_1#_43 = Phi(_count#_41 #0, _count_$$A_2#_44 #1);
+
+        $stack6 = interfaceinvoke e#_42.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack6 == 0 goto label2;
+
+        $stack7 = interfaceinvoke e#_42.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack8 = (syntaxtree.Node) $stack7;
+
+        interfaceinvoke $stack8.<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        _count_$$A_2#_44 = _count_$$A_1#_43 + 1;
+
+(1)     goto label1;
+
+     label2:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeToken, java.lang.Object)
+    {
+        visitor.GJVoidDepthFirst this#_0;
+        syntaxtree.NodeToken n#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NodeToken;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        return;
+    }
+
+    public void visit(syntaxtree.Goal, java.lang.Object)
+    {
+        syntaxtree.Goal n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.MainClass $stack3;
+        syntaxtree.NodeListOptional $stack4;
+        syntaxtree.NodeToken $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Goal;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Goal: syntaxtree.MainClass f0>;
+
+        virtualinvoke $stack3.<syntaxtree.MainClass: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.Goal: syntaxtree.NodeListOptional f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.Goal: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MainClass, java.lang.Object)
+    {
+        syntaxtree.MainClass n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack13, $stack15, $stack16, $stack19, $stack20;
+        syntaxtree.Identifier $stack4, $stack14;
+        syntaxtree.NodeListOptional $stack17, $stack18;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.MainClass;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.MainClass: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack9 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack10 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f7>;
+
+        virtualinvoke $stack10.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack11 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f8>;
+
+        virtualinvoke $stack11.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack12 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f9>;
+
+        virtualinvoke $stack12.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack13 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f10>;
+
+        virtualinvoke $stack13.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack14 = n#_0.<syntaxtree.MainClass: syntaxtree.Identifier f11>;
+
+        virtualinvoke $stack14.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack15 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f12>;
+
+        virtualinvoke $stack15.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack16 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f13>;
+
+        virtualinvoke $stack16.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack17 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeListOptional f14>;
+
+        virtualinvoke $stack17.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack18 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeListOptional f15>;
+
+        virtualinvoke $stack18.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack19 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f16>;
+
+        virtualinvoke $stack19.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack20 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f17>;
+
+        virtualinvoke $stack20.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TypeDeclaration, java.lang.Object)
+    {
+        syntaxtree.TypeDeclaration n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeChoice $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.TypeDeclaration;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.TypeDeclaration: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ClassDeclaration, java.lang.Object)
+    {
+        syntaxtree.ClassDeclaration n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5, $stack8;
+        syntaxtree.Identifier $stack4;
+        syntaxtree.NodeListOptional $stack6, $stack7;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ClassDeclaration;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeListOptional f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeListOptional f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ClassExtendsDeclaration, java.lang.Object)
+    {
+        syntaxtree.ClassExtendsDeclaration n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5, $stack7, $stack10;
+        syntaxtree.Identifier $stack4, $stack6;
+        syntaxtree.NodeListOptional $stack8, $stack9;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ClassExtendsDeclaration;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.Identifier f3>;
+
+        virtualinvoke $stack6.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeListOptional f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack9 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeListOptional f6>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack10 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f7>;
+
+        virtualinvoke $stack10.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.VarDeclaration, java.lang.Object)
+    {
+        syntaxtree.VarDeclaration n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Type $stack3;
+        syntaxtree.Identifier $stack4;
+        syntaxtree.NodeToken $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.VarDeclaration;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.Type f0>;
+
+        virtualinvoke $stack3.<syntaxtree.Type: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MethodDeclaration, java.lang.Object)
+    {
+        syntaxtree.MethodDeclaration n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack6, $stack8, $stack9, $stack12, $stack14, $stack15;
+        syntaxtree.Type $stack4;
+        syntaxtree.Identifier $stack5;
+        syntaxtree.NodeOptional $stack7;
+        syntaxtree.NodeListOptional $stack10, $stack11;
+        syntaxtree.Expression $stack13;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.MethodDeclaration;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Type f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Type: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Identifier f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeOptional f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack9 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack10 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f7>;
+
+        virtualinvoke $stack10.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack11 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f8>;
+
+        virtualinvoke $stack11.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack12 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f9>;
+
+        virtualinvoke $stack12.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack13 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Expression f10>;
+
+        virtualinvoke $stack13.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack14 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f11>;
+
+        virtualinvoke $stack14.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack15 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f12>;
+
+        virtualinvoke $stack15.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterList, java.lang.Object)
+    {
+        syntaxtree.FormalParameterList n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.FormalParameter $stack3;
+        syntaxtree.FormalParameterTail $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterList;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameter f0>;
+
+        virtualinvoke $stack3.<syntaxtree.FormalParameter: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameterTail f1>;
+
+        virtualinvoke $stack4.<syntaxtree.FormalParameterTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameter, java.lang.Object)
+    {
+        syntaxtree.FormalParameter n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Type $stack3;
+        syntaxtree.Identifier $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameter;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.FormalParameter: syntaxtree.Type f0>;
+
+        virtualinvoke $stack3.<syntaxtree.Type: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.FormalParameter: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterTail, java.lang.Object)
+    {
+        syntaxtree.FormalParameterTail n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeListOptional $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterTail;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.FormalParameterTail: syntaxtree.NodeListOptional f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterTerm, java.lang.Object)
+    {
+        syntaxtree.FormalParameterTerm n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+        syntaxtree.FormalParameter $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterTerm;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.FormalParameterTerm: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.FormalParameterTerm: syntaxtree.FormalParameter f1>;
+
+        virtualinvoke $stack4.<syntaxtree.FormalParameter: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Type, java.lang.Object)
+    {
+        syntaxtree.Type n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeChoice $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Type;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Type: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayType, java.lang.Object)
+    {
+        syntaxtree.ArrayType n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack4, $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ArrayType;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.BooleanType, java.lang.Object)
+    {
+        syntaxtree.BooleanType n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.BooleanType;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.BooleanType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IntegerType, java.lang.Object)
+    {
+        syntaxtree.IntegerType n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.IntegerType;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.IntegerType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Statement, java.lang.Object)
+    {
+        syntaxtree.Statement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeChoice $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Statement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Statement: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Block, java.lang.Object)
+    {
+        syntaxtree.Block n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5;
+        syntaxtree.NodeListOptional $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Block;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Block: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.Block: syntaxtree.NodeListOptional f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.Block: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AssignmentStatement, java.lang.Object)
+    {
+        syntaxtree.AssignmentStatement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Identifier $stack3;
+        syntaxtree.NodeToken $stack4, $stack6;
+        syntaxtree.Expression $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.AssignmentStatement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.Identifier f0>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayAssignmentStatement, java.lang.Object)
+    {
+        syntaxtree.ArrayAssignmentStatement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Identifier $stack3;
+        syntaxtree.NodeToken $stack4, $stack6, $stack7, $stack9;
+        syntaxtree.Expression $stack5, $stack8;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ArrayAssignmentStatement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Identifier f0>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Expression f5>;
+
+        virtualinvoke $stack8.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack9 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IfStatement, java.lang.Object)
+    {
+        syntaxtree.IfStatement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack4, $stack6, $stack8;
+        syntaxtree.Expression $stack5;
+        syntaxtree.Statement $stack7, $stack9;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.IfStatement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.IfStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.IfStatement: syntaxtree.Statement f4>;
+
+        virtualinvoke $stack7.<syntaxtree.Statement: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack9 = n#_0.<syntaxtree.IfStatement: syntaxtree.Statement f6>;
+
+        virtualinvoke $stack9.<syntaxtree.Statement: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.WhileStatement, java.lang.Object)
+    {
+        syntaxtree.WhileStatement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack4, $stack6;
+        syntaxtree.Expression $stack5;
+        syntaxtree.Statement $stack7;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.WhileStatement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.WhileStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.WhileStatement: syntaxtree.Statement f4>;
+
+        virtualinvoke $stack7.<syntaxtree.Statement: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PrintStatement, java.lang.Object)
+    {
+        syntaxtree.PrintStatement n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack4, $stack6, $stack7;
+        syntaxtree.Expression $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.PrintStatement;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.PrintStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Expression, java.lang.Object)
+    {
+        syntaxtree.Expression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeChoice $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Expression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Expression: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AndExpression, java.lang.Object)
+    {
+        syntaxtree.AndExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.AndExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.AndExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.AndExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.AndExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.CompareExpression, java.lang.Object)
+    {
+        syntaxtree.CompareExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.CompareExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.CompareExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.CompareExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.CompareExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PlusExpression, java.lang.Object)
+    {
+        syntaxtree.PlusExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.PlusExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.PlusExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.PlusExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.PlusExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MinusExpression, java.lang.Object)
+    {
+        syntaxtree.MinusExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.MinusExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.MinusExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.MinusExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.MinusExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TimesExpression, java.lang.Object)
+    {
+        syntaxtree.TimesExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.TimesExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.TimesExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.TimesExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.TimesExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayLookup, java.lang.Object)
+    {
+        syntaxtree.ArrayLookup n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3, $stack5;
+        syntaxtree.NodeToken $stack4, $stack6;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ArrayLookup;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack5.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayLength, java.lang.Object)
+    {
+        syntaxtree.ArrayLength n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3;
+        syntaxtree.NodeToken $stack4, $stack5;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ArrayLength;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ArrayLength: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayLength: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayLength: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MessageSend, java.lang.Object)
+    {
+        syntaxtree.MessageSend n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.PrimaryExpression $stack3;
+        syntaxtree.NodeToken $stack4, $stack6, $stack8;
+        syntaxtree.Identifier $stack5;
+        syntaxtree.NodeOptional $stack7;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.MessageSend;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.MessageSend: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.MessageSend: syntaxtree.Identifier f2>;
+
+        virtualinvoke $stack5.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeOptional f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack8 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionList, java.lang.Object)
+    {
+        syntaxtree.ExpressionList n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.Expression $stack3;
+        syntaxtree.ExpressionTail $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionList;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ExpressionList: syntaxtree.Expression f0>;
+
+        virtualinvoke $stack3.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ExpressionList: syntaxtree.ExpressionTail f1>;
+
+        virtualinvoke $stack4.<syntaxtree.ExpressionTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionTail, java.lang.Object)
+    {
+        syntaxtree.ExpressionTail n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeListOptional $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionTail;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ExpressionTail: syntaxtree.NodeListOptional f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionTerm, java.lang.Object)
+    {
+        syntaxtree.ExpressionTerm n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+        syntaxtree.Expression $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionTerm;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ExpressionTerm: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ExpressionTerm: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PrimaryExpression, java.lang.Object)
+    {
+        syntaxtree.PrimaryExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeChoice $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.PrimaryExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.PrimaryExpression: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IntegerLiteral, java.lang.Object)
+    {
+        syntaxtree.IntegerLiteral n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.IntegerLiteral;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.IntegerLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TrueLiteral, java.lang.Object)
+    {
+        syntaxtree.TrueLiteral n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.TrueLiteral;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.TrueLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FalseLiteral, java.lang.Object)
+    {
+        syntaxtree.FalseLiteral n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.FalseLiteral;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.FalseLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Identifier, java.lang.Object)
+    {
+        syntaxtree.Identifier n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.Identifier;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.Identifier: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ThisExpression, java.lang.Object)
+    {
+        syntaxtree.ThisExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ThisExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ThisExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayAllocationExpression, java.lang.Object)
+    {
+        syntaxtree.ArrayAllocationExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack4, $stack5, $stack7;
+        syntaxtree.Expression $stack6;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.ArrayAllocationExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.Expression f3>;
+
+        virtualinvoke $stack6.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack7 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AllocationExpression, java.lang.Object)
+    {
+        syntaxtree.AllocationExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5, $stack6;
+        syntaxtree.Identifier $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.AllocationExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack6 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.NotExpression, java.lang.Object)
+    {
+        syntaxtree.NotExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3;
+        syntaxtree.Expression $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.NotExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.NotExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.NotExpression: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.BracketExpression, java.lang.Object)
+    {
+        syntaxtree.BracketExpression n#_0;
+        visitor.GJVoidDepthFirst this#_0;
+        java.lang.Object argu#_0;
+        syntaxtree.NodeToken $stack3, $stack5;
+        syntaxtree.Expression $stack4;
+
+        this#_0 := @this: visitor.GJVoidDepthFirst;
+
+        n#_0 := @parameter0: syntaxtree.BracketExpression;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = n#_0.<syntaxtree.BracketExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack4 = n#_0.<syntaxtree.BracketExpression: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        $stack5 = n#_0.<syntaxtree.BracketExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

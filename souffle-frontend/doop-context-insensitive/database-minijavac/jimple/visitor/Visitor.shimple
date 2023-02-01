@@ -1,0 +1,101 @@
+public interface  visitor.Visitor extends java.lang.Object
+{
+
+    public abstract void visit(syntaxtree.NodeList);
+
+    public abstract void visit(syntaxtree.NodeListOptional);
+
+    public abstract void visit(syntaxtree.NodeOptional);
+
+    public abstract void visit(syntaxtree.NodeSequence);
+
+    public abstract void visit(syntaxtree.NodeToken);
+
+    public abstract void visit(syntaxtree.Goal);
+
+    public abstract void visit(syntaxtree.MainClass);
+
+    public abstract void visit(syntaxtree.TypeDeclaration);
+
+    public abstract void visit(syntaxtree.ClassDeclaration);
+
+    public abstract void visit(syntaxtree.ClassExtendsDeclaration);
+
+    public abstract void visit(syntaxtree.VarDeclaration);
+
+    public abstract void visit(syntaxtree.MethodDeclaration);
+
+    public abstract void visit(syntaxtree.FormalParameterList);
+
+    public abstract void visit(syntaxtree.FormalParameter);
+
+    public abstract void visit(syntaxtree.FormalParameterTail);
+
+    public abstract void visit(syntaxtree.FormalParameterTerm);
+
+    public abstract void visit(syntaxtree.Type);
+
+    public abstract void visit(syntaxtree.ArrayType);
+
+    public abstract void visit(syntaxtree.BooleanType);
+
+    public abstract void visit(syntaxtree.IntegerType);
+
+    public abstract void visit(syntaxtree.Statement);
+
+    public abstract void visit(syntaxtree.Block);
+
+    public abstract void visit(syntaxtree.AssignmentStatement);
+
+    public abstract void visit(syntaxtree.ArrayAssignmentStatement);
+
+    public abstract void visit(syntaxtree.IfStatement);
+
+    public abstract void visit(syntaxtree.WhileStatement);
+
+    public abstract void visit(syntaxtree.PrintStatement);
+
+    public abstract void visit(syntaxtree.Expression);
+
+    public abstract void visit(syntaxtree.AndExpression);
+
+    public abstract void visit(syntaxtree.CompareExpression);
+
+    public abstract void visit(syntaxtree.PlusExpression);
+
+    public abstract void visit(syntaxtree.MinusExpression);
+
+    public abstract void visit(syntaxtree.TimesExpression);
+
+    public abstract void visit(syntaxtree.ArrayLookup);
+
+    public abstract void visit(syntaxtree.ArrayLength);
+
+    public abstract void visit(syntaxtree.MessageSend);
+
+    public abstract void visit(syntaxtree.ExpressionList);
+
+    public abstract void visit(syntaxtree.ExpressionTail);
+
+    public abstract void visit(syntaxtree.ExpressionTerm);
+
+    public abstract void visit(syntaxtree.PrimaryExpression);
+
+    public abstract void visit(syntaxtree.IntegerLiteral);
+
+    public abstract void visit(syntaxtree.TrueLiteral);
+
+    public abstract void visit(syntaxtree.FalseLiteral);
+
+    public abstract void visit(syntaxtree.Identifier);
+
+    public abstract void visit(syntaxtree.ThisExpression);
+
+    public abstract void visit(syntaxtree.ArrayAllocationExpression);
+
+    public abstract void visit(syntaxtree.AllocationExpression);
+
+    public abstract void visit(syntaxtree.NotExpression);
+
+    public abstract void visit(syntaxtree.BracketExpression);
+}

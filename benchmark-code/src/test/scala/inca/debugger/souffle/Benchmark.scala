@@ -168,21 +168,40 @@ object Benchmark {
     inputCompiler.compile(compiled.inputs.values.map(x => x._2 -> x._1).toMap)
   }
 
-  def main(args: Array[String]): Unit = {
+  def varPointsToConfig(
+      inputPath: String,
+      entry: String,
+      args: ValueTable,
+      warmup: Int,
+      runs: Int
+    ): BottomUpVTopDownConfig = {
     val compiledModule = readSouffleProgram("souffle-frontend/benchmark/self-contained.dl")
-    val input = readSouffleInput(compiledModule, "souffle-frontend/benchmark/minijavac")
-    val entry = "VarPointsTo"
-    val args = ValueTable.unit()
+    val input = readSouffleInput(compiledModule, inputPath)
+    BottomUpVTopDownConfig(
+      compiledModule.ir,
+      compiledModule.dataModel,
+      input,
+      entry,
+      args,
+      warmup,
+      runs)
+  }
+
+  def main(args: Array[String]): Unit = {
+//    bottomUpVTopDownConfigs = Seq(
+//      varPointsToConfig(
+//        "souffle-frontend/doop-context-insensitive/database-minijavac",
+//        "VarPointsTo",
+//        ValueTable.unit(),
+//        0,
+//        1))
     bottomUpVTopDownConfigs = Seq(
-      BottomUpVTopDownConfig(
-        compiledModule.ir,
-        compiledModule.dataModel,
-        input,
-        entry,
-        args,
+      varPointsToConfig(
+        "souffle-frontend/doop-context-insensitive/database-method-call",
+        "VarPointsTo",
+        ValueTable.unit(),
         0,
-        1
-      ))
+        1))
 //    val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
     val (buTime, buMem) = (Seq(), Seq())
 //    val (tdTime, tdMem) = (Seq(), Seq())

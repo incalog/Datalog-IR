@@ -1,0 +1,10 @@
+<Point: Point genPoint(int,int)>	genPoint	int,int	Point	Point	(II)LPoint;	2
+<Point: void print()>	print		Point	void	()V	0
+<Point: int maxX()>	maxX		Point	int	()I	0
+<Point: void <init>(int,int)>	<init>	int,int	Point	void	(II)V	2
+<Point: int getX()>	getX		Point	int	()I	0
+<Point: Point add(Point)>	add	Point	Point	Point	(LPoint;)LPoint;	1
+<Point: Point add(int,int)>	add	int,int	Point	Point	(II)LPoint;	2
+<Point: void <clinit>()>	<clinit>		Point	void	()V	0
+<Main: void <init>()>	<init>		Main	void	()V	0
+<Main: void main(java.lang.String[])>	main	java.lang.String[]	Main	void	([Ljava/lang/String;)V	1

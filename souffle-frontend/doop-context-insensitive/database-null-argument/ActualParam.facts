@@ -1,0 +1,9 @@
+0	<Main: void main(java.lang.String[])>/Point.genPoint/0	<Main: void main(java.lang.String[])>/$numconstant0
+1	<Main: void main(java.lang.String[])>/Point.genPoint/0	<Main: void main(java.lang.String[])>/$numconstant1
+0	<Main: void main(java.lang.String[])>/Point.add/0	<Main: void main(java.lang.String[])>/$null0
+0	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l0#_0
+1	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l1#_0
+0	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack9
+1	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack8
+0	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack8
+1	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack7

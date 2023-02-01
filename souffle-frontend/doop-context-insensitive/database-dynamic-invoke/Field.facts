@@ -1,0 +1,13 @@
+<java.lang.System: java.io.PrintStream out>	java.lang.System	out	java.io.PrintStream
+<Point: java.lang.String TY>	Point	TY	java.lang.String
+<Point: int x>	Point	x	int
+<Point: int y>	Point	y	int
+<Point: int x>	Point	x	int
+<Point: int y>	Point	y	int
+<Point: int x>	Point	x	int
+<Point: int x>	Point	x	int
+<Point: int y>	Point	y	int
+<Point: int y>	Point	y	int
+<Point: int x>	Point	x	int
+<Point: int y>	Point	y	int
+<Point: java.lang.String TY>	Point	TY	java.lang.String

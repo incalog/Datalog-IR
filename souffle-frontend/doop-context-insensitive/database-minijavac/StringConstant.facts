@@ -1,0 +1,418 @@
+<<\\"Type Checking failed: \\">>
+while
+(
+)
+false
+<<\\"Invalid escape character at line \\">>
+<<\\" column \\">>
+.
+System.out.println
+(
+)
+;
+[module: \u001b[34mMiniJavac\u001b[0m]\n
+/
+\\.
+Minijava program parsed successfully.
+Minijava program type checked successfully - no errors found
+Encountered errors during parse.
+File not found
+!
+line.separator
+\n
+line.separator
+\n
+line.separator
+\n
+line.separator
+\n
+...
+<<\\"    \\">>
+Encountered \\\"
+<<\\" \\">>
+<<\\" \\">>
+<<\\" \\\"\\">>
+<<\\" \\\"\\">>
+<<\\"\\\" at line \\">>
+<<\\", column \\">>
+.
+Was expecting:
+<<\\"    \\">>
+Was expecting one of:
+<<\\"    \\">>
+\\b
+\\t
+\\n
+\\f
+\\r
+\\\\\"
+\\\'
+\\\\
+0000
+\\u
+,
+*
+new
+(
+)
+Resolved:
+:
+int
+int[]
+boolean
+int
+int[]
+boolean
+this
+Class:
+:
+.
+length
+class
+extends
+{
+}
+-
+if
+(
+)
+else
+new
+int
+[
+]
+[
+]
+=
+;
+&&
+Attempt to set optional node twice
+<<\\"\\">>
+int
+No specials in token
+<
+this
+[
+]
+=
+;
+\\b
+\\t
+\\n
+\\f
+\\r
+\\\\\"
+\\\'
+\\\\
+0000
+\\u
+<<\\"Lexical error at line \\">>
+<<\\", column \\">>
+<<\\".  Encountered: \\">>
+<<\\"<EOF> \\">>
+\\\"
+\\\"
+<<\\" (\\">>
+<<\\"), \\">>
+after : \\\"
+\\\"
+(
+)
+<<\\"\\">>
+<<\\"\\">>
+<<\\"Error - Parent class does not exist: \\">>
+:main
+<<\\"Error duplicate local variable found: \\">>
+:
+:
+:
+:
+:
+int
+int[]
+boolean
+int
+int[]
+boolean
+Error in method declaration - incompatible return types
+<<\\"Error in method declaration, declared return type: \\">>
+<<\\" returned type: \\">>
+<<\\"Error in method declaration, declared return type: \\">>
+<<\\" returned type: \\">>
+<<\\" \\">>
+,
+int[]
+boolean
+int
+:
+<<\\"Undefined identifier in Assignment: \\">>
+<<\\" = \\">>
+int
+int[]
+boolean
+int
+int[]
+boolean
+Incompatible types in assignment
+<<\\"Incompatible types in assignment: \\">>
+<<\\" = \\">>
+<<\\"Incompatible types in assignment \\">>
+<<\\" = \\">>
+:
+Undefined identifier in Array Assignment
+int[]
+int
+int
+Error in array assignment
+boolean
+<<\\"Invalid if expression in if statement - expected boolean, found: \\">>
+boolean
+<<\\"Invalid expression type in while statement - expected boolean, found: \\">>
+:
+int
+<<\\"Error in System.out.println expected int expression, found: \\">>
+:
+:
+Error in && - Term type could not be resolved
+boolean
+boolean
+boolean
+<<\\"Error in comparison - Incompatible types: \\">>
+<<\\" && \\">>
+:
+Error in comparison - Term type could not be resolved
+int
+int
+boolean
+<<\\"Error in comparison - Incompatible types: \\">>
+<<\\" < \\">>
+:
+Error in addition - Term type could not be resolved
+int
+int
+int
+<<\\"Error in addition - Incompatible types: \\">>
+<<\\" + \\">>
+:
+Error in substraction - Term type could not be resolved
+int
+int
+int
+<<\\"Error in substraction - Incompatible types: \\">>
+<<\\" - \\">>
+:
+Error in multiplication - Term type could not be resolved
+int
+int
+int
+<<\\"Error in multiplication - Incompatible types: \\">>
+<<\\" * \\">>
+:
+Error in array lookup - Term type could not be resolved
+int[]
+int
+int
+<<\\"Incompatible types in array Lookup: \\">>
+<<\\"[ \\">>
+<<\\" ]\\">>
+:
+Error in array length - Term type could not be resolved
+int[]
+int
+<<\\"Error in array length: \\">>
+.length
+:
+<<\\"Error in Message Send - Type could not be resolved \\">>
+<<\\"Error in Message Send - Invalid receiver \\">>
+<<\\"Method not declared: \\">>
+.
+,
+<<\\"Error in argument for call of method: \\">>
+.
+int
+int[]
+boolean
+Resolved:
+<<\\"\\">>
+,
+int
+boolean
+boolean
+this
+:
+Error in array allocation - Incompatible type
+int
+<<\\"Incompatible type in array allocation: \\">>
+int[]
+Resolved:
+:
+boolean
+Invalid boolean expression
+boolean
+Resolved:
+;
+boolean
+class
+{
+}
+,
+int
+[
+]
+public
+(
+)
+{
+return
+;
+}
+<<\\"\\">>
+<<\\"\\">>
+String[]
+args
+main
+void
+main
+:main
+<<\\"Duplicate class: \\">>
+<<\\"Duplicate class: \\">>
+:
+:
+<<\\"Duplicate local variable: \\">>
+<<\\" in method: \\">>
+<<\\"Duplicate member variable: \\">>
+<<\\" in class: \\">>
+,
+<<\\" \\">>
+Duplicate method or method overloading attempt
+<<\\"Error in method overriding - overriding method: \\">>
+<<\\" for class: \\">>
+<<\\" extending: \\">>
+<<\\"Error in method overriding - overriden method: \\">>
+<<\\" for class: \\">>
+<<\\" extending: \\">>
+:
+<<\\"\\">>
+<<\\" \\">>
+,
+int[]
+boolean
+int
+<EOF>
+\\\" \\\"
+\\\"\\t\\\"
+\\\"\\n\\\"
+\\\"\\r\\\"
+\\\"\\f\\\"
+<SINGLE_LINE_COMMENT>
+<FORMAL_COMMENT>
+<MULTI_LINE_COMMENT>
+\\\"(\\\"
+\\\")\\\"
+\\\"[\\\"
+\\\"]\\\"
+\\\"{\\\"
+\\\"}\\\"
+\\\";\\\"
+\\\".\\\"
+\\\"=\\\"
+\\\"<\\\"
+\\\"+\\\"
+\\\"-\\\"
+\\\"&&\\\"
+\\\"!\\\"
+\\\"boolean\\\"
+\\\"class\\\"
+\\\"interface\\\"
+\\\"else\\\"
+\\\"extends\\\"
+\\\"false\\\"
+\\\"if\\\"
+\\\"while\\\"
+\\\"int\\\"
+\\\"length\\\"
+\\\"main\\\"
+\\\"new\\\"
+\\\"public\\\"
+\\\"return\\\"
+\\\"static\\\"
+\\\"String\\\"
+\\\"this\\\"
+\\\"true\\\"
+\\\"System.out.println\\\"
+\\\"void\\\"
+<INTEGER_LITERAL>
+<IDENTIFIER>
+<LETTER>
+<DIGIT>
+\\\",\\\"
+\\\"*\\\"
+true
+.
+(
+)
+class
+{
+public
+static
+void
+main
+(
+String
+[
+]
+)
+{
+}
+}
+{
+}
+<<\\"Error: Ignoring invalid lexical state : \\">>
+. State unchanged.
+<<\\"\\">>
+<<\\"\\">>
+<<\\"\\">>
+(
+)
+[
+]
+{
+}
+;
+.
+=
+<
++
+-
+&&
+!
+boolean
+class
+interface
+else
+extends
+false
+if
+while
+int
+length
+main
+new
+public
+return
+static
+String
+this
+true
+System.out.println
+void
+,
+*
+DEFAULT
+int
+int[]
+boolean
+int
+int[]
+boolean
++

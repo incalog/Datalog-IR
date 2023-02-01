@@ -1,0 +1,101 @@
+public interface  visitor.GJVoidVisitor extends java.lang.Object
+{
+
+    public abstract void visit(syntaxtree.NodeList, java.lang.Object);
+
+    public abstract void visit(syntaxtree.NodeListOptional, java.lang.Object);
+
+    public abstract void visit(syntaxtree.NodeOptional, java.lang.Object);
+
+    public abstract void visit(syntaxtree.NodeSequence, java.lang.Object);
+
+    public abstract void visit(syntaxtree.NodeToken, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Goal, java.lang.Object);
+
+    public abstract void visit(syntaxtree.MainClass, java.lang.Object);
+
+    public abstract void visit(syntaxtree.TypeDeclaration, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ClassDeclaration, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ClassExtendsDeclaration, java.lang.Object);
+
+    public abstract void visit(syntaxtree.VarDeclaration, java.lang.Object);
+
+    public abstract void visit(syntaxtree.MethodDeclaration, java.lang.Object);
+
+    public abstract void visit(syntaxtree.FormalParameterList, java.lang.Object);
+
+    public abstract void visit(syntaxtree.FormalParameter, java.lang.Object);
+
+    public abstract void visit(syntaxtree.FormalParameterTail, java.lang.Object);
+
+    public abstract void visit(syntaxtree.FormalParameterTerm, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Type, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ArrayType, java.lang.Object);
+
+    public abstract void visit(syntaxtree.BooleanType, java.lang.Object);
+
+    public abstract void visit(syntaxtree.IntegerType, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Statement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Block, java.lang.Object);
+
+    public abstract void visit(syntaxtree.AssignmentStatement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ArrayAssignmentStatement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.IfStatement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.WhileStatement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.PrintStatement, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Expression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.AndExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.CompareExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.PlusExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.MinusExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.TimesExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ArrayLookup, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ArrayLength, java.lang.Object);
+
+    public abstract void visit(syntaxtree.MessageSend, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ExpressionList, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ExpressionTail, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ExpressionTerm, java.lang.Object);
+
+    public abstract void visit(syntaxtree.PrimaryExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.IntegerLiteral, java.lang.Object);
+
+    public abstract void visit(syntaxtree.TrueLiteral, java.lang.Object);
+
+    public abstract void visit(syntaxtree.FalseLiteral, java.lang.Object);
+
+    public abstract void visit(syntaxtree.Identifier, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ThisExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.ArrayAllocationExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.AllocationExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.NotExpression, java.lang.Object);
+
+    public abstract void visit(syntaxtree.BracketExpression, java.lang.Object);
+}

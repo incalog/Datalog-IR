@@ -1,0 +1,231 @@
+public class syntaxtree.MethodDeclaration extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.NodeToken f0;
+    public syntaxtree.Type f1;
+    public syntaxtree.Identifier f2;
+    public syntaxtree.NodeToken f3;
+    public syntaxtree.NodeOptional f4;
+    public syntaxtree.NodeToken f5;
+    public syntaxtree.NodeToken f6;
+    public syntaxtree.NodeListOptional f7;
+    public syntaxtree.NodeListOptional f8;
+    public syntaxtree.NodeToken f9;
+    public syntaxtree.Expression f10;
+    public syntaxtree.NodeToken f11;
+    public syntaxtree.NodeToken f12;
+
+    public void <init>(syntaxtree.NodeToken, syntaxtree.Type, syntaxtree.Identifier, syntaxtree.NodeToken, syntaxtree.NodeOptional, syntaxtree.NodeToken, syntaxtree.NodeToken, syntaxtree.NodeListOptional, syntaxtree.NodeListOptional, syntaxtree.NodeToken, syntaxtree.Expression, syntaxtree.NodeToken, syntaxtree.NodeToken)
+    {
+        syntaxtree.MethodDeclaration this#_0;
+        syntaxtree.NodeToken n0#_0, n3#_0, n5#_0, n6#_0, n9#_0, n11#_0, n12#_0;
+        syntaxtree.Type n1#_0;
+        syntaxtree.Identifier n2#_0;
+        syntaxtree.NodeOptional n4#_0;
+        syntaxtree.NodeListOptional n7#_0, n8#_0;
+        syntaxtree.Expression n10#_0;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        n0#_0 := @parameter0: syntaxtree.NodeToken;
+
+        n1#_0 := @parameter1: syntaxtree.Type;
+
+        n2#_0 := @parameter2: syntaxtree.Identifier;
+
+        n3#_0 := @parameter3: syntaxtree.NodeToken;
+
+        n4#_0 := @parameter4: syntaxtree.NodeOptional;
+
+        n5#_0 := @parameter5: syntaxtree.NodeToken;
+
+        n6#_0 := @parameter6: syntaxtree.NodeToken;
+
+        n7#_0 := @parameter7: syntaxtree.NodeListOptional;
+
+        n8#_0 := @parameter8: syntaxtree.NodeListOptional;
+
+        n9#_0 := @parameter9: syntaxtree.NodeToken;
+
+        n10#_0 := @parameter10: syntaxtree.Expression;
+
+        n11#_0 := @parameter11: syntaxtree.NodeToken;
+
+        n12#_0 := @parameter12: syntaxtree.NodeToken;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f0> = n0#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Type f1> = n1#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Identifier f2> = n2#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f3> = n3#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeOptional f4> = n4#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f5> = n5#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f6> = n6#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f7> = n7#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f8> = n8#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f9> = n9#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Expression f10> = n10#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f11> = n11#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f12> = n12#_0;
+
+        return;
+    }
+
+    public void <init>(syntaxtree.Type, syntaxtree.Identifier, syntaxtree.NodeOptional, syntaxtree.NodeListOptional, syntaxtree.NodeListOptional, syntaxtree.Expression)
+    {
+        syntaxtree.MethodDeclaration this#_0;
+        syntaxtree.NodeToken $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack13;
+        syntaxtree.Type n0#_0;
+        syntaxtree.Identifier n1#_0;
+        syntaxtree.NodeOptional n2#_0;
+        syntaxtree.NodeListOptional n3#_0, n4#_0;
+        syntaxtree.Expression n5#_0;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        n0#_0 := @parameter0: syntaxtree.Type;
+
+        n1#_0 := @parameter1: syntaxtree.Identifier;
+
+        n2#_0 := @parameter2: syntaxtree.NodeOptional;
+
+        n3#_0 := @parameter3: syntaxtree.NodeListOptional;
+
+        n4#_0 := @parameter4: syntaxtree.NodeListOptional;
+
+        n5#_0 := @parameter5: syntaxtree.Expression;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack7 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack7.<syntaxtree.NodeToken: void <init>(java.lang.String)>("public");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f0> = $stack7;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Type f1> = n0#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Identifier f2> = n1#_0;
+
+        $stack8 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack8.<syntaxtree.NodeToken: void <init>(java.lang.String)>("(");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f3> = $stack8;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeOptional f4> = n2#_0;
+
+        $stack9 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack9.<syntaxtree.NodeToken: void <init>(java.lang.String)>(")");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f5> = $stack9;
+
+        $stack10 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack10.<syntaxtree.NodeToken: void <init>(java.lang.String)>("{");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f6> = $stack10;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f7> = n3#_0;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f8> = n4#_0;
+
+        $stack11 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack11.<syntaxtree.NodeToken: void <init>(java.lang.String)>("return");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f9> = $stack11;
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.Expression f10> = n5#_0;
+
+        $stack12 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack12.<syntaxtree.NodeToken: void <init>(java.lang.String)>(";");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f11> = $stack12;
+
+        $stack13 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack13.<syntaxtree.NodeToken: void <init>(java.lang.String)>("}");
+
+        this#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f12> = $stack13;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.MethodDeclaration this#_0;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.MethodDeclaration)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.MethodDeclaration this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.MethodDeclaration this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.MethodDeclaration this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.MethodDeclaration;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.MethodDeclaration,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

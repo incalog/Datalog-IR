@@ -1,0 +1,156 @@
+public interface  MiniJavaParserConstants extends java.lang.Object
+{
+    public static final int EOF;
+    public static final int SINGLE_LINE_COMMENT;
+    public static final int FORMAL_COMMENT;
+    public static final int MULTI_LINE_COMMENT;
+    public static final int LPAREN;
+    public static final int RPAREN;
+    public static final int LSQPAREN;
+    public static final int RSQPAREN;
+    public static final int LBRACE;
+    public static final int RBRACE;
+    public static final int SEMICOLON;
+    public static final int DOT;
+    public static final int ASSIGN;
+    public static final int LT;
+    public static final int PLUS;
+    public static final int MINUS;
+    public static final int AND;
+    public static final int NOT;
+    public static final int BOOLEAN;
+    public static final int CLASS;
+    public static final int INTERFACE;
+    public static final int ELSE;
+    public static final int EXTENDS;
+    public static final int FALSE;
+    public static final int IF;
+    public static final int WHILE;
+    public static final int INTEGER;
+    public static final int LENGTH;
+    public static final int MAIN;
+    public static final int NEW;
+    public static final int PUBLIC;
+    public static final int RETURN;
+    public static final int STATIC;
+    public static final int STRING;
+    public static final int THIS;
+    public static final int TRUE;
+    public static final int PRINT;
+    public static final int VOID;
+    public static final int INTEGER_LITERAL;
+    public static final int IDENTIFIER;
+    public static final int LETTER;
+    public static final int DIGIT;
+    public static final int DEFAULT;
+    public static final java.lang.String[] tokenImage;
+
+    static void <clinit>()
+    {
+        java.lang.String[] $stack0;
+
+        $stack0 = newarray (java.lang.String)[49];
+
+        $stack0[0] = "<EOF>";
+
+        $stack0[1] = "\" \"";
+
+        $stack0[2] = "\"\\t\"";
+
+        $stack0[3] = "\"\\n\"";
+
+        $stack0[4] = "\"\\r\"";
+
+        $stack0[5] = "\"\\f\"";
+
+        $stack0[6] = "<SINGLE_LINE_COMMENT>";
+
+        $stack0[7] = "<FORMAL_COMMENT>";
+
+        $stack0[8] = "<MULTI_LINE_COMMENT>";
+
+        $stack0[9] = "\"(\"";
+
+        $stack0[10] = "\")\"";
+
+        $stack0[11] = "\"[\"";
+
+        $stack0[12] = "\"]\"";
+
+        $stack0[13] = "\"{\"";
+
+        $stack0[14] = "\"}\"";
+
+        $stack0[15] = "\";\"";
+
+        $stack0[16] = "\".\"";
+
+        $stack0[17] = "\"=\"";
+
+        $stack0[18] = "\"<\"";
+
+        $stack0[19] = "\"+\"";
+
+        $stack0[20] = "\"-\"";
+
+        $stack0[21] = "\"&&\"";
+
+        $stack0[22] = "\"!\"";
+
+        $stack0[23] = "\"boolean\"";
+
+        $stack0[24] = "\"class\"";
+
+        $stack0[25] = "\"interface\"";
+
+        $stack0[26] = "\"else\"";
+
+        $stack0[27] = "\"extends\"";
+
+        $stack0[28] = "\"false\"";
+
+        $stack0[29] = "\"if\"";
+
+        $stack0[30] = "\"while\"";
+
+        $stack0[31] = "\"int\"";
+
+        $stack0[32] = "\"length\"";
+
+        $stack0[33] = "\"main\"";
+
+        $stack0[34] = "\"new\"";
+
+        $stack0[35] = "\"public\"";
+
+        $stack0[36] = "\"return\"";
+
+        $stack0[37] = "\"static\"";
+
+        $stack0[38] = "\"String\"";
+
+        $stack0[39] = "\"this\"";
+
+        $stack0[40] = "\"true\"";
+
+        $stack0[41] = "\"System.out.println\"";
+
+        $stack0[42] = "\"void\"";
+
+        $stack0[43] = "<INTEGER_LITERAL>";
+
+        $stack0[44] = "<IDENTIFIER>";
+
+        $stack0[45] = "<LETTER>";
+
+        $stack0[46] = "<DIGIT>";
+
+        $stack0[47] = "\",\"";
+
+        $stack0[48] = "\"*\"";
+
+        <MiniJavaParserConstants: java.lang.String[] tokenImage> = $stack0;
+
+        return;
+    }
+}

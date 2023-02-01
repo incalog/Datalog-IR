@@ -1,0 +1,4 @@
+<Point: Point add(Point)>/assign/3	+
+<Point: Point add(Point)>/assign/4	+
+<Point: Point add(int,int)>/assign/4	+
+<Point: Point add(int,int)>/assign/5	+

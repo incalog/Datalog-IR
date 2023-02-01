@@ -1,0 +1,13 @@
+0	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l0#_0
+1	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l1#_0
+0	<Point: void print()>/java.io.PrintStream.println/0	<Point: void print()>/$stack4
+0	<Point: Point add(Point)>/Point.abs/0	<Point: Point add(Point)>/$stack6
+0	<Point: Point add(Point)>/Point.abs/1	<Point: Point add(Point)>/$stack10
+0	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack7
+1	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack11
+0	<Point: Point increaseXTill(int)>/Point.<init>/0	<Point: Point increaseXTill(int)>/$stack5
+1	<Point: Point increaseXTill(int)>/Point.<init>/0	<Point: Point increaseXTill(int)>/$stack4
+0	<Point: Point increaseXTill2(int)>/Point.<init>/0	<Point: Point increaseXTill2(int)>/$stack5
+1	<Point: Point increaseXTill2(int)>/Point.<init>/0	<Point: Point increaseXTill2(int)>/$stack4
+0	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack8
+1	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack7

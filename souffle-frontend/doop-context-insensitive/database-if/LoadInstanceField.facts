@@ -1,0 +1,9 @@
+<Point: void print()>/read-field-x/0	2	<Point: void print()>/$stack2	<Point: void print()>/l0#_0	<Point: int x>	<Point: void print()>
+<Point: void print()>/read-field-y/0	3	<Point: void print()>/$stack1	<Point: void print()>/l0#_0	<Point: int y>	<Point: void print()>
+<Point: int getX()>/read-field-x/0	1	<Point: int getX()>/$stack1	<Point: int getX()>/l0#_0	<Point: int x>	<Point: int getX()>
+<Point: Point add(Point)>/read-field-x/0	3	<Point: Point add(Point)>/$stack5	<Point: Point add(Point)>/l0#_0	<Point: int x>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-x/1	4	<Point: Point add(Point)>/$stack4	<Point: Point add(Point)>/l1#_0	<Point: int x>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-y/0	6	<Point: Point add(Point)>/$stack7	<Point: Point add(Point)>/l0#_0	<Point: int y>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-y/1	7	<Point: Point add(Point)>/$stack6	<Point: Point add(Point)>/l1#_0	<Point: int y>	<Point: Point add(Point)>
+<Point: Point add(int,int)>/read-field-x/0	4	<Point: Point add(int,int)>/$stack5	<Point: Point add(int,int)>/l0#_0	<Point: int x>	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/read-field-y/0	6	<Point: Point add(int,int)>/$stack6	<Point: Point add(int,int)>/l0#_0	<Point: int y>	<Point: Point add(int,int)>

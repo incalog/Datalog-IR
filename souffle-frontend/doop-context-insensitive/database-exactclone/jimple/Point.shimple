@@ -1,0 +1,243 @@
+class Point extends java.lang.Object
+{
+    public static java.lang.String TY;
+    int x;
+    int y;
+
+    public static Point genPoint(int, int)
+    {
+        Point $stack3, l2#_6;
+        int l0#_0, l1#_0;
+
+        l0#_0 := @parameter0: int;
+
+        l1#_0 := @parameter1: int;
+
+        $stack3 = new Point;
+
+        specialinvoke $stack3.<Point: void <init>(int,int)>(l0#_0, l1#_0);
+
+        l2#_6 = $stack3;
+
+        return l2#_6;
+    }
+
+    public void print()
+    {
+        Point l0#_0;
+        int $stack1, $stack2;
+        java.io.PrintStream $stack3;
+        java.lang.String $stack4;
+
+        l0#_0 := @this: Point;
+
+        $stack3 = <java.lang.System: java.io.PrintStream out>;
+
+        $stack2 = l0#_0.<Point: int x>;
+
+        $stack1 = l0#_0.<Point: int y>;
+
+        $stack4 = dynamicinvoke "makeConcatWithConstants" <java.lang.String (int,int)>($stack2, $stack1) <java.lang.invoke.StringConcatFactory: java.lang.invoke.CallSite makeConcatWithConstants(java.lang.invoke.MethodHandles$Lookup,java.lang.String,java.lang.invoke.MethodType,java.lang.String,java.lang.Object[])>("Point x: \u0001, y: \u0001");
+
+        virtualinvoke $stack3.<java.io.PrintStream: void println(java.lang.String)>($stack4);
+
+        return;
+    }
+
+    public static int maxX()
+    {
+        return 10;
+    }
+
+    public void <init>(int, int)
+    {
+        Point l0#_0;
+        int l1#_0, l2#_0;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: int;
+
+        l2#_0 := @parameter1: int;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        l0#_0.<Point: int x> = l1#_0;
+
+        l0#_0.<Point: int y> = l2#_0;
+
+        return;
+    }
+
+    public int getX()
+    {
+        Point l0#_0;
+        int $stack1;
+
+        l0#_0 := @this: Point;
+
+        $stack1 = l0#_0.<Point: int x>;
+
+        return $stack1;
+    }
+
+    public Point add(Point)
+    {
+        Point $stack3, l0#_0, l1#_0, l2#_28;
+        int $stack4, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: Point;
+
+        $stack3 = new Point;
+
+        $stack5 = l0#_0.<Point: int x>;
+
+        $stack4 = l1#_0.<Point: int x>;
+
+        $stack6 = $stack5 + $stack4;
+
+        $stack7 = virtualinvoke l0#_0.<Point: int abs(int)>($stack6);
+
+        $stack9 = l0#_0.<Point: int y>;
+
+        $stack8 = l1#_0.<Point: int y>;
+
+        $stack10 = $stack9 + $stack8;
+
+        $stack11 = virtualinvoke l0#_0.<Point: int abs(int)>($stack10);
+
+        specialinvoke $stack3.<Point: void <init>(int,int)>($stack7, $stack11);
+
+        l2#_28 = $stack3;
+
+        return l2#_28;
+    }
+
+    public Point increaseXTill(int)
+    {
+        Point $stack3, l0#_0, l2#_33;
+        int $stack4, $stack5, $stack6, l1#_0, $stack7, $stack8;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: int;
+
+        $stack3 = new Point;
+
+        $stack5 = l0#_0.<Point: int x>;
+
+        $stack4 = l0#_0.<Point: int y>;
+
+        specialinvoke $stack3.<Point: void <init>(int,int)>($stack5, $stack4);
+
+        l2#_33 = $stack3;
+
+     label1:
+        $stack6 = virtualinvoke l2#_33.<Point: int getX()>();
+
+        if $stack6 >= l1#_0 goto label2;
+
+        $stack7 = l2#_33.<Point: int x>;
+
+        $stack8 = $stack7 + 1;
+
+        l2#_33.<Point: int x> = $stack8;
+
+        goto label1;
+
+     label2:
+        return l2#_33;
+    }
+
+    public Point increaseXTill2(int)
+    {
+        Point $stack3, l0#_0, l2#_41;
+        int $stack4, $stack5, $stack6, l1#_0, $stack7, $stack8;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: int;
+
+        $stack3 = new Point;
+
+        $stack5 = l0#_0.<Point: int x>;
+
+        $stack4 = l0#_0.<Point: int y>;
+
+        specialinvoke $stack3.<Point: void <init>(int,int)>($stack5, $stack4);
+
+        l2#_41 = $stack3;
+
+     label1:
+        $stack6 = virtualinvoke l2#_41.<Point: int getX()>();
+
+        if $stack6 >= l1#_0 goto label2;
+
+        $stack7 = l2#_41.<Point: int x>;
+
+        $stack8 = $stack7 + 1;
+
+        l2#_41.<Point: int x> = $stack8;
+
+        goto label1;
+
+     label2:
+        return l2#_41;
+    }
+
+    public Point add(int, int)
+    {
+        Point $stack4, l0#_0, l3#_49;
+        int l1#_0, $stack5, l2#_0, $stack6, $stack7, $stack8;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: int;
+
+        l2#_0 := @parameter1: int;
+
+        $stack4 = new Point;
+
+        $stack5 = l0#_0.<Point: int x>;
+
+        $stack8 = $stack5 + l1#_0;
+
+        $stack6 = l0#_0.<Point: int y>;
+
+        $stack7 = $stack6 + l2#_0;
+
+        specialinvoke $stack4.<Point: void <init>(int,int)>($stack8, $stack7);
+
+        l3#_49 = $stack4;
+
+        return l3#_49;
+    }
+
+    private int abs(int)
+    {
+        int l1#_0, $stack2;
+        Point l0#_0;
+
+        l0#_0 := @this: Point;
+
+        l1#_0 := @parameter0: int;
+
+        if l1#_0 >= 0 goto label1;
+
+        $stack2 = neg l1#_0;
+
+        return $stack2;
+
+     label1:
+        return l1#_0;
+    }
+
+    static void <clinit>()
+    {
+        <Point: java.lang.String TY> = "POINT";
+
+        return;
+    }
+}

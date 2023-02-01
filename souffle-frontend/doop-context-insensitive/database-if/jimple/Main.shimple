@@ -1,0 +1,42 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        byte l1#_4, l2#_5, l3#_6, l3_$$A_1#_8, l3_$$A_2#_10, l3_$$A_3#_11;
+        java.lang.String[] l0#_0;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        l1#_4 = 1;
+
+        l2#_5 = 2;
+
+        l3#_6 = -1;
+
+        if l1#_4 <= l2#_5 goto label1;
+
+        l3_$$A_1#_8 = l1#_4;
+
+(0)     goto label2;
+
+     label1:
+(1)     l3_$$A_2#_10 = l2#_5;
+
+     label2:
+        l3_$$A_3#_11 = Phi(l3_$$A_1#_8 #0, l3_$$A_2#_10 #1);
+
+        return;
+    }
+}

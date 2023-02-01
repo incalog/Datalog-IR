@@ -1,0 +1,44 @@
+class JTBToolkit extends java.lang.Object
+{
+
+    void <init>()
+    {
+        JTBToolkit this#_0;
+
+        this#_0 := @this: JTBToolkit;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    static syntaxtree.NodeToken makeNodeToken(Token)
+    {
+        syntaxtree.NodeToken $stack1;
+        Token t#_0;
+        java.lang.String $stack2, $stack3;
+        int $stack4, $stack5, $stack6, $stack7, $stack8;
+
+        t#_0 := @parameter0: Token;
+
+        $stack1 = new syntaxtree.NodeToken;
+
+        $stack2 = t#_0.<Token: java.lang.String image>;
+
+        $stack3 = virtualinvoke $stack2.<java.lang.String: java.lang.String intern()>();
+
+        $stack8 = t#_0.<Token: int kind>;
+
+        $stack7 = t#_0.<Token: int beginLine>;
+
+        $stack6 = t#_0.<Token: int beginColumn>;
+
+        $stack5 = t#_0.<Token: int endLine>;
+
+        $stack4 = t#_0.<Token: int endColumn>;
+
+        specialinvoke $stack1.<syntaxtree.NodeToken: void <init>(java.lang.String,int,int,int,int,int)>($stack3, $stack8, $stack7, $stack6, $stack5, $stack4);
+
+        return $stack1;
+    }
+}

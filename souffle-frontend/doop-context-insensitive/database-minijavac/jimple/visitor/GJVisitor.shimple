@@ -1,0 +1,101 @@
+public interface  visitor.GJVisitor extends java.lang.Object
+{
+
+    public abstract java.lang.Object visit(syntaxtree.NodeList, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeListOptional, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeOptional, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeSequence, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeToken, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Goal, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.MainClass, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.TypeDeclaration, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ClassDeclaration, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ClassExtendsDeclaration, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.VarDeclaration, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.MethodDeclaration, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterList, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameter, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterTail, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterTerm, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Type, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayType, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.BooleanType, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.IntegerType, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Statement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Block, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.AssignmentStatement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayAssignmentStatement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.IfStatement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.WhileStatement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.PrintStatement, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Expression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.AndExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.CompareExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.PlusExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.MinusExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.TimesExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayLookup, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayLength, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.MessageSend, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionList, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionTail, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionTerm, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.PrimaryExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.IntegerLiteral, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.TrueLiteral, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.FalseLiteral, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.Identifier, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ThisExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayAllocationExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.AllocationExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.NotExpression, java.lang.Object);
+
+    public abstract java.lang.Object visit(syntaxtree.BracketExpression, java.lang.Object);
+}

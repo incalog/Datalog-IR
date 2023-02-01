@@ -1,0 +1,296 @@
+public class syntaxtree.NodeToken extends java.lang.Object implements syntaxtree.Node
+{
+    public java.lang.String tokenImage;
+    public java.util.Vector specialTokens;
+    public int beginLine;
+    public int beginColumn;
+    public int endLine;
+    public int endColumn;
+    public int kind;
+
+    public void <init>(java.lang.String)
+    {
+        syntaxtree.NodeToken this#_0;
+        java.lang.String s#_0;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        s#_0 := @parameter0: java.lang.String;
+
+        specialinvoke this#_0.<syntaxtree.NodeToken: void <init>(java.lang.String,int,int,int,int,int)>(s#_0, -1, -1, -1, -1, -1);
+
+        return;
+    }
+
+    public void <init>(java.lang.String, int, int, int, int, int)
+    {
+        syntaxtree.NodeToken this#_0;
+        java.lang.String s#_0;
+        int kind#_0, beginLine#_0, beginColumn#_0, endLine#_0, endColumn#_0;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        s#_0 := @parameter0: java.lang.String;
+
+        kind#_0 := @parameter1: int;
+
+        beginLine#_0 := @parameter2: int;
+
+        beginColumn#_0 := @parameter3: int;
+
+        endLine#_0 := @parameter4: int;
+
+        endColumn#_0 := @parameter5: int;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.NodeToken: java.lang.String tokenImage> = s#_0;
+
+        this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens> = null;
+
+        this#_0.<syntaxtree.NodeToken: int kind> = kind#_0;
+
+        this#_0.<syntaxtree.NodeToken: int beginLine> = beginLine#_0;
+
+        this#_0.<syntaxtree.NodeToken: int beginColumn> = beginColumn#_0;
+
+        this#_0.<syntaxtree.NodeToken: int endLine> = endLine#_0;
+
+        this#_0.<syntaxtree.NodeToken: int endColumn> = endColumn#_0;
+
+        return;
+    }
+
+    public syntaxtree.NodeToken getSpecialAt(int)
+    {
+        syntaxtree.NodeToken this#_0, $stack5;
+        java.util.Vector $stack2, $stack3;
+        int i#_0;
+        java.lang.Object $stack4;
+        java.util.NoSuchElementException $stack6;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        i#_0 := @parameter0: int;
+
+        $stack2 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        if $stack2 != null goto label1;
+
+        $stack6 = new java.util.NoSuchElementException;
+
+        specialinvoke $stack6.<java.util.NoSuchElementException: void <init>(java.lang.String)>("No specials in token");
+
+        throw $stack6;
+
+     label1:
+        $stack3 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        $stack4 = virtualinvoke $stack3.<java.util.Vector: java.lang.Object elementAt(int)>(i#_0);
+
+        $stack5 = (syntaxtree.NodeToken) $stack4;
+
+        return $stack5;
+    }
+
+    public int numSpecials()
+    {
+        syntaxtree.NodeToken this#_0;
+        java.util.Vector $stack1, $stack2;
+        int $stack3;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        $stack1 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        if $stack1 != null goto label1;
+
+        return 0;
+
+     label1:
+        $stack2 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        $stack3 = virtualinvoke $stack2.<java.util.Vector: int size()>();
+
+        return $stack3;
+    }
+
+    public void addSpecial(syntaxtree.NodeToken)
+    {
+        syntaxtree.NodeToken this#_0, s#_0;
+        java.util.Vector $stack2, $stack3, $stack4;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        s#_0 := @parameter0: syntaxtree.NodeToken;
+
+        $stack2 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        if $stack2 != null goto label1;
+
+        $stack4 = new java.util.Vector;
+
+        specialinvoke $stack4.<java.util.Vector: void <init>()>();
+
+        this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens> = $stack4;
+
+     label1:
+        $stack3 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        virtualinvoke $stack3.<java.util.Vector: void addElement(java.lang.Object)>(s#_0);
+
+        return;
+    }
+
+    public void trimSpecials()
+    {
+        syntaxtree.NodeToken this#_0;
+        java.util.Vector $stack1, $stack2;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        $stack1 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        if $stack1 != null goto label1;
+
+        return;
+
+     label1:
+        $stack2 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        virtualinvoke $stack2.<java.util.Vector: void trimToSize()>();
+
+        return;
+    }
+
+    public java.lang.String toString()
+    {
+        syntaxtree.NodeToken this#_0;
+        java.lang.String $stack1;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        $stack1 = this#_0.<syntaxtree.NodeToken: java.lang.String tokenImage>;
+
+        return $stack1;
+    }
+
+    public java.lang.String withSpecials()
+    {
+        syntaxtree.NodeToken this#_0, $stack12;
+        java.util.Vector $stack3, $stack5;
+        java.lang.StringBuffer $stack4, buf#_53;
+        java.util.Enumeration e#_55;
+        boolean $stack7;
+        java.lang.String $stack8, $stack10, $stack13, $stack16;
+        java.lang.Object $stack11;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        $stack3 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        if $stack3 != null goto label1;
+
+        $stack16 = this#_0.<syntaxtree.NodeToken: java.lang.String tokenImage>;
+
+        return $stack16;
+
+     label1:
+        $stack4 = new java.lang.StringBuffer;
+
+        specialinvoke $stack4.<java.lang.StringBuffer: void <init>()>();
+
+        buf#_53 = $stack4;
+
+        $stack5 = this#_0.<syntaxtree.NodeToken: java.util.Vector specialTokens>;
+
+        e#_55 = virtualinvoke $stack5.<java.util.Vector: java.util.Enumeration elements()>();
+
+     label2:
+        $stack7 = interfaceinvoke e#_55.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack7 == 0 goto label3;
+
+        $stack11 = interfaceinvoke e#_55.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack12 = (syntaxtree.NodeToken) $stack11;
+
+        $stack13 = virtualinvoke $stack12.<syntaxtree.NodeToken: java.lang.String toString()>();
+
+        virtualinvoke buf#_53.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>($stack13);
+
+        goto label2;
+
+     label3:
+        $stack8 = this#_0.<syntaxtree.NodeToken: java.lang.String tokenImage>;
+
+        virtualinvoke buf#_53.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>($stack8);
+
+        $stack10 = virtualinvoke buf#_53.<java.lang.StringBuffer: java.lang.String toString()>();
+
+        return $stack10;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.NodeToken this#_0;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.NodeToken)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.NodeToken this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.NodeToken this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeToken)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.NodeToken this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.NodeToken;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.NodeToken,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

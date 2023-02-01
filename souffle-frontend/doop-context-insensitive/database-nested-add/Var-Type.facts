@@ -1,0 +1,7 @@
+<Main: void <init>()>/@this	Main
+<Main: void <init>()>/this#_0	Main
+<Main: void main(java.lang.String[])>/@parameter0	java.lang.String[]
+<Main: void main(java.lang.String[])>/x#_3	byte
+<Main: void main(java.lang.String[])>/y#_4	int
+<Main: void main(java.lang.String[])>/z#_5	int
+<Main: void main(java.lang.String[])>/args#_0	java.lang.String[]
