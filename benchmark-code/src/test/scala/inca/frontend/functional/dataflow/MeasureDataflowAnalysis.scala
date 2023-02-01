@@ -7,6 +7,7 @@ import inca.measurements.util.BenchmarkUtils.measurementsToCSV
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
 import inca.measurements.util.MemoryUtil
+import inca.measurements.util.Units
 import inca.util.FilesUtil
 
 object MeasureDataflowAnalysis extends App {
@@ -28,7 +29,7 @@ object MeasureDataflowAnalysis extends App {
     time
   }
 
-  val measurements = Seq(Measurement("Powerset Dataflow Analysis", times))
+  val measurements = Seq(Measurement("Powerset Dataflow Analysis", Units.Nanoseconds, times))
   val csv = measurementsToCSV(measurements)
   println(csv)
   FilesUtil.writeFile("benchmark-results/functional/powdataflow/measurements.csv", csv)

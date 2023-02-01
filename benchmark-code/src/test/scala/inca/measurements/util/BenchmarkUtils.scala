@@ -2,6 +2,7 @@ package inca.measurements.util
 
 import inca.measurements.util.CSVUtil.csvRowToString
 import inca.measurements.util.CSVUtil.CSVRow
+import inca.measurements.util.Units.MeasurementUnit
 import java.io.File
 import java.io.PrintWriter
 import scala.io.Source
@@ -11,29 +12,33 @@ object BenchmarkUtils {
   object Measurement {
     def apply(
         name: String,
+        unit: MeasurementUnit,
         vals: Seq[Long],
         extra: Map[String, Any] = Map()
       )(implicit timing: Timing
       ): Measurement = {
       val outliers = timing.outliers
       val measurementVals = vals.drop(timing.discard)
-      Measurement(name, measurementVals, outliers, extra)
+      Measurement(name, unit, measurementVals, outliers, extra)
     }
   }
 
-  case class Measurement(name: String, vals: Seq[Long], outliers: Int, extra: Map[String, Any]) {
+  case class Measurement(
+      name: String,
+      unit: MeasurementUnit,
+      vals: Seq[Long],
+      outliers: Int,
+      extra: Map[String, Any]) {
     val valsWithoutOutliers: Seq[Long] = {
       val ordered = vals.sorted
       ordered.dropRight(outliers)
     }
 
     override def toString: String = {
-      val diffTime = avg(valsWithoutOutliers)
-      // edit size
-      // diff time
+      val avgTime = avg(valsWithoutOutliers)
       val text = s"""
         |Measurement $name
-        |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
+        |  ${unit.toString}: ${avgTime}""".stripMargin
       if (extra.isEmpty)
         text
       else
@@ -41,21 +46,31 @@ object BenchmarkUtils {
     }
 
     def combine(name: String, other: Measurement): Measurement = {
-      Measurement(name, vals ++ other.vals, outliers = 0, Map())
+      if (unit.isConvertible(other.unit)) {
+        Measurement(
+          name,
+          unit,
+          vals ++ other.vals.map(other.unit.convert(_, unit).toLong),
+          outliers = 0,
+          Map())
+      } else {
+        throw new IllegalArgumentException("Cannot combine measurements of uncompatible units")
+      }
     }
 
     def extend(newExtras: Map[String, Any]): Measurement = {
-      Measurement(name, vals, outliers, extra ++ newExtras)
+      Measurement(name, unit, vals, outliers, extra ++ newExtras)
     }
 
-    val csvHeader: String =
-      s"Name, AVG time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
+    val csvHeader: String = {
+      s"Name, AVG ${unit.toString} ${if (extra.isEmpty) ","
+        else extra.keys.mkString(",", ",", ",")}raw data ${unit.toString}"
+    }
 
     val csv: CSVRow = {
-
-      val diffTime = ms(avg(valsWithoutOutliers))
+      val avgTime = avg(valsWithoutOutliers)
       //      s"$name, $srcSize, $destSize, ${editScript.size}, $diffTime${if (extra.isEmpty) ", " else extra.values.mkString(", ", ", ", ", ")}${BenchmarkUtils.toCSVRow(vals)}"
-      IndexedSeq(name, diffTime) ++ extra.values ++ valsWithoutOutliers
+      IndexedSeq(name, avgTime) ++ extra.values ++ valsWithoutOutliers
     }
   }
 
@@ -65,8 +80,6 @@ object BenchmarkUtils {
       measurements.head.csvHeader + "\n" + measurements.map { m => csvRowToString(m.csv) }.mkString(
         "\n"
       )
-
-  def ms(l: Double): Double = l / 1000 / 1000
 
   def time[R](block: => R): (R, Long) = {
     val t0 = System.nanoTime()

@@ -7,6 +7,7 @@ import inca.debugger._
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.Config
+import inca.measurements.util.Units
 import inca.runtime.context.DataModel
 import inca.runtime.db.DatabaseInput
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
@@ -87,7 +88,7 @@ object PathBenchmark {
       debugger.queryStack.clear()
       measurement
     }
-    Measurement(s"${config.numCycleNodes}", measurements)(
+    Measurement(s"${config.numCycleNodes}", Units.Milliseconds, measurements)(
       BenchmarkUtils.Timing(config.warmup, config.runs))
     // Map("init (ns)" -> measurementInit))(
   }

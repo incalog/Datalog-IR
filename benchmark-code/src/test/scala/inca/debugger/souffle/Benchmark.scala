@@ -16,6 +16,7 @@ import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
 import inca.measurements.util.Config
 import inca.measurements.util.MemoryUtil
+import inca.measurements.util.Units
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
@@ -127,8 +128,8 @@ object Benchmark {
     warmup(() => measureBottomUp(config), config)
     val (time, mem) = run(() => measureBottomUp(config), config).unzip
     (
-      Measurement("bottomup_time_" + config.name, time),
-      Measurement("bottomup_mem_" + config.name, mem)
+      Measurement("bottomup_time_" + config.name, Units.Milliseconds, time),
+      Measurement("bottomup_mem_" + config.name, Units.MegaBytes, mem)
     )
   }
 
@@ -136,8 +137,8 @@ object Benchmark {
     warmup(() => measureStepInto(config), config)
     val (time, mem) = run(() => measureStepInto(config), config).unzip
     (
-      Measurement("topdown_time_" + config.name, time),
-      Measurement("topdown_mem_" + config.name, mem)
+      Measurement("topdown_time_" + config.name, Units.Milliseconds, time),
+      Measurement("topdown_mem_" + config.name, Units.MegaBytes, mem)
     )
   }
 
@@ -195,10 +196,12 @@ object Benchmark {
 //        ValueTable.unit(),
 //        0,
 //        1))
+    // IT think this program does not terminate (ran for 10 minutes but it is a really small example)
+    // TODO figure out why it does not terminate
     bottomUpVTopDownConfigs = Seq(
       varPointsToConfig(
         "souffle-frontend/doop-context-insensitive/database-method-call",
-        "VarPointsTo",
+        "basic_SupertypeOf",
         ValueTable.unit(),
         0,
         1))
@@ -208,7 +211,9 @@ object Benchmark {
     val (tdTime, tdMem) = bottomUpVTopDownConfigs.map(collectTopDownMeasurements).unzip
     val allTime = buTime ++ tdTime
     val allMem = buMem ++ tdMem
-    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
-    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
+    println(tdTime)
+    println(tdMem)
+//    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
+//    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
   }
 }

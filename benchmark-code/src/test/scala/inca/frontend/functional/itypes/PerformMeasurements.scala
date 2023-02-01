@@ -6,6 +6,7 @@ import inca.measurements.util.BenchmarkUtils.measurementsToCSV
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
 import inca.measurements.util.MemoryUtil
+import inca.measurements.util.Units
 import inca.util.FilesUtil.writeFile
 import scala.collection.mutable
 import scala.meta.XtensionParseInputLike
@@ -124,7 +125,7 @@ object PerformMeasurements extends scala.App {
     }
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " Initial"
-    Measurement(baseConfigName, initialTimes)
+    Measurement(baseConfigName, Units.Nanoseconds, initialTimes)
   }
 
   // measure incremental update times
@@ -159,8 +160,10 @@ object PerformMeasurements extends scala.App {
       undoTimes += ((undoTime._1, undoTime._2, undoTime._3))
     }
 
-    val editMeasurement = Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq)
-    val undoMeasurement = Measurement(baseConfigName + " Undo", undoTimes.map(_._2).toSeq)
+    val editMeasurement =
+      Measurement(baseConfigName + " Edit", Units.Nanoseconds, editTimes.map(_._2).toSeq)
+    val undoMeasurement =
+      Measurement(baseConfigName + " Undo", Units.Nanoseconds, undoTimes.map(_._2).toSeq)
     val combinedMeasurement =
       editMeasurement.combine(baseConfigName + " Edit + Undo", undoMeasurement)
     Seq(editMeasurement, undoMeasurement, combinedMeasurement)
