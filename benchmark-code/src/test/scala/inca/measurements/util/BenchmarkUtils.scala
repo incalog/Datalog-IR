@@ -3,9 +3,6 @@ package inca.measurements.util
 import inca.measurements.util.CSVUtil.csvRowToString
 import inca.measurements.util.CSVUtil.CSVRow
 import inca.measurements.util.Units.MeasurementUnit
-import java.io.File
-import java.io.PrintWriter
-import scala.io.Source
 
 object BenchmarkUtils {
 
@@ -69,7 +66,6 @@ object BenchmarkUtils {
 
     val csv: CSVRow = {
       val avgTime = avg(valsWithoutOutliers)
-      //      s"$name, $srcSize, $destSize, ${editScript.size}, $diffTime${if (extra.isEmpty) ", " else extra.values.mkString(", ", ", ", ", ")}${BenchmarkUtils.toCSVRow(vals)}"
       IndexedSeq(name, avgTime) ++ extra.values ++ valsWithoutOutliers
     }
   }
