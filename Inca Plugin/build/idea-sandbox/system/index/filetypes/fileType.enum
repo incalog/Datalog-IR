@@ -1,13 +1,14 @@
-JSON
-PLAIN_TEXT
 Functional IncA File
+XML
+GitIgnore file
 IDEA_MODULE
 JAVA
 DTD
-XML
 RNG Compact
 PATCH
 textmate
+PLAIN_TEXT
+JSON
 Shell Script
 XHTML
 CLASS
@@ -20,4 +21,3 @@ JavaScript
 gdsl
 Kotlin
 script-definition-marker
-GitIgnore file

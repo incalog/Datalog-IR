@@ -78,7 +78,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | type_name
+  // tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | primitive_type | type_name
   public static boolean atomic_type(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "atomic_type")) return false;
     boolean r;
@@ -91,6 +91,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     if (!r) r = set(b, l + 1);
     if (!r) r = consumeToken(b, SCALA_TERM);
     if (!r) r = constr(b, l + 1);
+    if (!r) r = primitive_type(b, l + 1);
     if (!r) r = type_name(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -252,12 +253,14 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // numeric_lit | boolean_lit | string_lit | scala_term
+  // integer_lit | long_lit | double_lit | boolean_lit | string_lit | scala_term
   public static boolean base_lit_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "base_lit_exp")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, BASE_LIT_EXP, "<base lit exp>");
-    r = numeric_lit(b, l + 1);
+    r = integer_lit(b, l + 1);
+    if (!r) r = long_lit(b, l + 1);
+    if (!r) r = double_lit(b, l + 1);
     if (!r) r = boolean_lit(b, l + 1);
     if (!r) r = string_lit(b, l + 1);
     if (!r) r = consumeToken(b, SCALA_TERM);
@@ -275,6 +278,18 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, BOOLEAN_TRUE);
     if (!r) r = consumeToken(b, BOOLEAN_FALSE);
     exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'Boolean'
+  public static boolean boolean_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "boolean_type")) return false;
+    if (!nextTokenIs(b, KEYWORD_BOOLEAN)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_BOOLEAN);
+    exit_section_(b, m, BOOLEAN_TYPE, r);
     return r;
   }
 
@@ -499,13 +514,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // cons_id '[' type_annotation (',' type_annotation)* ']'
+  // var '[' type_annotation (',' type_annotation)* ']'
   public static boolean constr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constr")) return false;
     if (!nextTokenIs(b, ID)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = cons_id(b, l + 1);
+    r = var(b, l + 1);
     r = r && consumeToken(b, SQUARE_BRACKET_OPEN);
     r = r && type_annotation(b, l + 1);
     r = r && constr_3(b, l + 1);
@@ -600,51 +615,60 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id '(' (type_annotation (',' type_annotation)*)? ')'
+  // id param_types? '(' (type_annotation (',' type_annotation)*)? ')'
   public static boolean data_constructor(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "data_constructor")) return false;
     if (!nextTokenIs(b, ID)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, ID, PARENS_OPEN);
-    r = r && data_constructor_2(b, l + 1);
+    r = consumeToken(b, ID);
+    r = r && data_constructor_1(b, l + 1);
+    r = r && consumeToken(b, PARENS_OPEN);
+    r = r && data_constructor_3(b, l + 1);
     r = r && consumeToken(b, PARENS_CLOSE);
     exit_section_(b, m, DATA_CONSTRUCTOR, r);
     return r;
   }
 
+  // param_types?
+  private static boolean data_constructor_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_1")) return false;
+    param_types(b, l + 1);
+    return true;
+  }
+
   // (type_annotation (',' type_annotation)*)?
-  private static boolean data_constructor_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "data_constructor_2")) return false;
-    data_constructor_2_0(b, l + 1);
+  private static boolean data_constructor_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_3")) return false;
+    data_constructor_3_0(b, l + 1);
     return true;
   }
 
   // type_annotation (',' type_annotation)*
-  private static boolean data_constructor_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "data_constructor_2_0")) return false;
+  private static boolean data_constructor_3_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_3_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = type_annotation(b, l + 1);
-    r = r && data_constructor_2_0_1(b, l + 1);
+    r = r && data_constructor_3_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
   // (',' type_annotation)*
-  private static boolean data_constructor_2_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "data_constructor_2_0_1")) return false;
+  private static boolean data_constructor_3_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_3_0_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!data_constructor_2_0_1_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "data_constructor_2_0_1", c)) break;
+      if (!data_constructor_3_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "data_constructor_3_0_1", c)) break;
     }
     return true;
   }
 
   // ',' type_annotation
-  private static boolean data_constructor_2_0_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "data_constructor_2_0_1_0")) return false;
+  private static boolean data_constructor_3_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_3_0_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);
@@ -715,6 +739,30 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, BAR);
     r = r && data_constructor(b, l + 1);
     exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // double
+  public static boolean double_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "double_lit")) return false;
+    if (!nextTokenIs(b, DOUBLE)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DOUBLE);
+    exit_section_(b, m, DOUBLE_LIT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'Double'
+  public static boolean double_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "double_type")) return false;
+    if (!nextTokenIs(b, KEYWORD_DOUBLE)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_DOUBLE);
+    exit_section_(b, m, DOUBLE_TYPE, r);
     return r;
   }
 
@@ -897,6 +945,30 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // integer
+  public static boolean integer_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "integer_lit")) return false;
+    if (!nextTokenIs(b, INTEGER)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, INTEGER);
+    exit_section_(b, m, INTEGER_LIT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // "Int"
+  public static boolean integer_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "integer_type")) return false;
+    if (!nextTokenIs(b, KEYWORD_INTEGER)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_INTEGER);
+    exit_section_(b, m, INTEGER_TYPE, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // '(' param_list ')' '=>' exp
   public static boolean lambda_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "lambda_exp")) return false;
@@ -932,6 +1004,30 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     boolean r;
     r = single_let(b, l + 1);
     if (!r) r = multiple_let(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // long
+  public static boolean long_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "long_lit")) return false;
+    if (!nextTokenIs(b, LONG)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LONG);
+    exit_section_(b, m, LONG_LIT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'Long'
+  public static boolean long_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "long_type")) return false;
+    if (!nextTokenIs(b, KEYWORD_LONG)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_LONG);
+    exit_section_(b, m, LONG_TYPE, r);
     return r;
   }
 
@@ -1121,19 +1217,6 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, COLON);
     r = r && type_annotation(b, l + 1);
     exit_section_(b, m, null, r);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // integer| long | double
-  public static boolean numeric_lit(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "numeric_lit")) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, NUMERIC_LIT, "<numeric lit>");
-    r = consumeToken(b, INTEGER);
-    if (!r) r = consumeToken(b, LONG);
-    if (!r) r = consumeToken(b, DOUBLE);
-    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -1440,6 +1523,21 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // integer_type | double_type | long_type | boolean_type | string_type
+  public static boolean primitive_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "primitive_type")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, PRIMITIVE_TYPE, "<primitive type>");
+    r = integer_type(b, l + 1);
+    if (!r) r = double_type(b, l + 1);
+    if (!r) r = long_type(b, l + 1);
+    if (!r) r = boolean_type(b, l + 1);
+    if (!r) r = string_type(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // keyword_Set '[' type_annotation ']'
   public static boolean set(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "set")) return false;
@@ -1498,6 +1596,18 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b);
     r = consumeToken(b, STRING);
     exit_section_(b, m, STRING_LIT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'String'
+  public static boolean string_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "string_type")) return false;
+    if (!nextTokenIs(b, KEYWORD_STRING)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_STRING);
+    exit_section_(b, m, STRING_TYPE, r);
     return r;
   }
 

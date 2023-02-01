@@ -55,6 +55,11 @@ COMMENT=("//".*)|("/"\*(.|\n)*\*"/")
   "not"              { return KEYWORD_NOT; }
   "data"             { return KEYWORD_DATA; }
   "def"              { return KEYWORD_DEF; }
+  "Int"              { return KEYWORD_INTEGER; }
+  "Double"           { return KEYWORD_DOUBLE; }
+  "Long"             { return KEYWORD_LONG; }
+  "Boolean"          { return KEYWORD_BOOLEAN; }
+  "String"           { return KEYWORD_STRING; }
   "true"             { return BOOLEAN_TRUE; }
   "false"            { return BOOLEAN_FALSE; }
   "Nothing"          { return TYPE_NOTHING; }

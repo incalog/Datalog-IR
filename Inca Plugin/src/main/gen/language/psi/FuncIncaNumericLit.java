@@ -8,12 +8,12 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaNumericLit extends PsiElement {
 
   @Nullable
-  PsiElement getDouble();
+  FuncIncaDoubleLit getDoubleLit();
 
   @Nullable
-  PsiElement getInteger();
+  FuncIncaIntegerLit getIntegerLit();
 
   @Nullable
-  PsiElement getLong();
+  FuncIncaLongLit getLongLit();
 
 }

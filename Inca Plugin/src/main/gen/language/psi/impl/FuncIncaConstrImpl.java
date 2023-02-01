@@ -29,14 +29,14 @@ public class FuncIncaConstrImpl extends ASTWrapperPsiElement implements FuncInca
 
   @Override
   @NotNull
-  public FuncIncaConsId getConsId() {
-    return findNotNullChildByClass(FuncIncaConsId.class);
+  public List<FuncIncaTypeAnnotation> getTypeAnnotationList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTypeAnnotation.class);
   }
 
   @Override
   @NotNull
-  public List<FuncIncaTypeAnnotation> getTypeAnnotationList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTypeAnnotation.class);
+  public FuncIncaVar getVar() {
+    return findNotNullChildByClass(FuncIncaVar.class);
   }
 
 }

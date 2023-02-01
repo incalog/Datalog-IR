@@ -35,8 +35,20 @@ public class FuncIncaBaseLitExpImpl extends FuncIncaExpImpl implements FuncIncaB
 
   @Override
   @Nullable
-  public FuncIncaNumericLit getNumericLit() {
-    return findChildByClass(FuncIncaNumericLit.class);
+  public FuncIncaDoubleLit getDoubleLit() {
+    return findChildByClass(FuncIncaDoubleLit.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaIntegerLit getIntegerLit() {
+    return findChildByClass(FuncIncaIntegerLit.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaLongLit getLongLit() {
+    return findChildByClass(FuncIncaLongLit.class);
   }
 
   @Override

@@ -32,6 +32,11 @@
     keyword_not = "not"
     keyword_data = "data"
     keyword_def = "def"
+    keyword_integer = "Int"
+    keyword_double = "Double"
+    keyword_long = "Long"
+    keyword_boolean = "Boolean"
+    keyword_string = "String"
 
     boolean_true = "true"
     boolean_false = "false"
@@ -124,7 +129,7 @@ visibility ::= 'private'
 
 // definition of datatypes
 data_def ::= annotation* visibility? keyword_data id param_types? '=' data_constructor ('|' data_constructor)* {pin = 3}
-data_constructor ::= id '(' (type_annotation (',' type_annotation)*)? ')'
+data_constructor ::= id param_types? '(' (type_annotation (',' type_annotation)*)? ')'
 
 // expressions
 exp ::= if_exp | let_exp | member_exp | infix_exp
@@ -173,15 +178,23 @@ unary_op ::= '-' | '!'
 // type definitions
 type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
-atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | type_name
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | primitive_type | type_name
 constr ::= var '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
 option ::= keyword_Option '[' type_annotation ']' {pin = 1}
 set ::= keyword_Set '[' type_annotation ']' {pin = 1}
 type_name ::= id
+primitive_type ::= integer_type | double_type | long_type | boolean_type | string_type
+integer_type ::= "Int"
+double_type ::= 'Double'
+long_type ::= 'Long'
+boolean_type ::= 'Boolean'
+string_type ::= 'String'
 
 // literals
-base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term
-numeric_lit ::= integer| long | double
+base_lit_exp ::= integer_lit | long_lit | double_lit | boolean_lit | string_lit | scala_term
+integer_lit ::= integer
+long_lit ::= long
+double_lit ::= double
 boolean_lit ::= 'true' | 'false'
 string_lit ::= string

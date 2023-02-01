@@ -18,7 +18,7 @@ public class FuncIncaNumericLitImpl extends ASTWrapperPsiElement implements Func
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitNumericLit(this);
+//    visitor.visitNumericLit(this);
   }
 
   @Override
@@ -29,20 +29,20 @@ public class FuncIncaNumericLitImpl extends ASTWrapperPsiElement implements Func
 
   @Override
   @Nullable
-  public PsiElement getDouble() {
-    return findChildByType(DOUBLE);
+  public FuncIncaDoubleLit getDoubleLit() {
+    return findChildByClass(FuncIncaDoubleLit.class);
   }
 
   @Override
   @Nullable
-  public PsiElement getInteger() {
-    return findChildByType(INTEGER);
+  public FuncIncaIntegerLit getIntegerLit() {
+    return findChildByClass(FuncIncaIntegerLit.class);
   }
 
   @Override
   @Nullable
-  public PsiElement getLong() {
-    return findChildByType(LONG);
+  public FuncIncaLongLit getLongLit() {
+    return findChildByClass(FuncIncaLongLit.class);
   }
 
 }

@@ -11,7 +11,7 @@
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
     <depends>
-        com.intellij.modules.java
+        com.intellij.java
     </depends>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -30,9 +30,10 @@
         <colorSettingsPage
                 implementation="language.FuncIncaColorSettingsPage"/>
         <annotator
+                language="Functional IncA"
                 implementationClass="language.FuncIncaAnnotator"/>
         <psi.referenceContributor
-                language="JAVA"
+                language="Functional IncA"
                 implementation="language.FuncIncaReferenceContributor"/>
     </extensions>
 

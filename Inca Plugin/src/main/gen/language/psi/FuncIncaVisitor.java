@@ -43,6 +43,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitBooleanType(@NotNull FuncIncaBooleanType o) {
+    visitPsiElement(o);
+  }
+
   public void visitCallExp(@NotNull FuncIncaCallExp o) {
     visitExp(o);
   }
@@ -83,6 +87,14 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitDecl(o);
   }
 
+  public void visitDoubleLit(@NotNull FuncIncaDoubleLit o) {
+    visitPsiElement(o);
+  }
+
+  public void visitDoubleType(@NotNull FuncIncaDoubleType o) {
+    visitPsiElement(o);
+  }
+
   public void visitExp(@NotNull FuncIncaExp o) {
     visitPsiElement(o);
   }
@@ -111,12 +123,28 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitExp(o);
   }
 
+  public void visitIntegerLit(@NotNull FuncIncaIntegerLit o) {
+    visitPsiElement(o);
+  }
+
+  public void visitIntegerType(@NotNull FuncIncaIntegerType o) {
+    visitPsiElement(o);
+  }
+
   public void visitLambdaExp(@NotNull FuncIncaLambdaExp o) {
     visitExp(o);
   }
 
   public void visitLetExp(@NotNull FuncIncaLetExp o) {
     visitExp(o);
+  }
+
+  public void visitLongLit(@NotNull FuncIncaLongLit o) {
+    visitPsiElement(o);
+  }
+
+  public void visitLongType(@NotNull FuncIncaLongType o) {
+    visitPsiElement(o);
   }
 
   public void visitMatchCase(@NotNull FuncIncaMatchCase o) {
@@ -132,10 +160,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitMultipleLet(@NotNull FuncIncaMultipleLet o) {
-    visitPsiElement(o);
-  }
-
-  public void visitNumericLit(@NotNull FuncIncaNumericLit o) {
     visitPsiElement(o);
   }
 
@@ -179,6 +203,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitPrimitiveType(@NotNull FuncIncaPrimitiveType o) {
+    visitPsiElement(o);
+  }
+
   public void visitSet(@NotNull FuncIncaSet o) {
     visitPsiElement(o);
   }
@@ -188,6 +216,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitStringLit(@NotNull FuncIncaStringLit o) {
+    visitPsiElement(o);
+  }
+
+  public void visitStringType(@NotNull FuncIncaStringType o) {
     visitPsiElement(o);
   }
 

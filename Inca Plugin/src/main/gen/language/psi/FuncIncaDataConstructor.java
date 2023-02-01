@@ -7,6 +7,9 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaDataConstructor extends FuncIncaDecl {
 
+  @Nullable
+  FuncIncaParamTypes getParamTypes();
+
   @NotNull
   List<FuncIncaTypeAnnotation> getTypeAnnotationList();
 

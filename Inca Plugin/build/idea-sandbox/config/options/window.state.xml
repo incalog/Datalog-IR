@@ -3,7 +3,7 @@
     <size key="#com.intellij.internal.psiView.PsiViewerDialog.0.0.1920.1080@120dpi" width="1000" height="750" />
   </component>
   <component name="WindowManager">
-    <frame x="85" y="25" width="1750" height="980" />
+    <frame x="90" y="83" width="1750" height="905" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.25" />
       <window_info anchor="bottom" id="Version Control" order="0" />

@@ -1,28 +1,43 @@
 <application>
   <component name="ActionsLocalSummary">
+    <e n="ConfigureKotlinInProject">
+      <i c="1" l="1675272745064" />
+    </e>
     <e n="DisablePCE">
       <i c="1" l="1667240593988" />
     </e>
     <e n="EditorBackSpace">
-      <i c="78" l="1668074233480" />
+      <i c="269" l="1675274318050" />
     </e>
     <e n="EditorCopy">
       <i c="2" l="1662985815192" />
     </e>
     <e n="EditorDelete">
-      <i c="2" l="1665654759009" />
+      <i c="8" l="1675273866414" />
     </e>
     <e n="EditorEnter">
-      <i c="28" l="1668074309710" />
+      <i c="34" l="1675103718948" />
     </e>
     <e n="EditorLeft">
-      <i c="6" l="1663172876012" />
+      <i c="25" l="1675105114935" />
+    </e>
+    <e n="EditorLineEnd">
+      <i c="4" l="1675273868719" />
     </e>
     <e n="EditorPageDown">
       <i c="1" l="1663172885972" />
     </e>
     <e n="EditorPaste">
       <i c="5" l="1668074311552" />
+    </e>
+    <e n="EditorPreviousWord">
+      <i c="1" l="1675273865380" />
+    </e>
+    <e n="EditorRight">
+      <i c="4" l="1675103737441" />
+    </e>
+    <e n="EditorTab">
+      <i c="1" l="1675101073513" />
     </e>
     <e n="EditorTextStart">
       <i c="1" l="1662985843181" />
@@ -43,7 +58,7 @@
       <i c="5" l="1666806076783" />
     </e>
     <e n="PsiViewerForContext">
-      <i c="19" l="1668614205132" />
+      <i c="21" l="1675273322900" />
     </e>
     <e n="WelcomeScreen.CreateNewProject">
       <i c="1" l="1662131904886" />
@@ -51,14 +66,20 @@
     <e n="WelcomeScreen.OpenProject">
       <i c="2" l="1662131941024" />
     </e>
+    <e n="com.intellij.diagnostic.IdeMessagePanel$4">
+      <i c="6" l="1675265248080" />
+    </e>
+    <e n="com.intellij.openapi.editor.impl.EditorMarkupModelImpl$StatusAction">
+      <i c="1" l="1674738548860" />
+    </e>
     <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
-      <i c="9" l="1663172917698" />
+      <i c="10" l="1674732035561" />
     </e>
     <e n="com.intellij.openapi.ui.DialogWrapper$4">
-      <i c="16" l="1668614237523" />
+      <i c="27" l="1675274322177" />
     </e>
     <e n="com.intellij.openapi.wm.impl.ToolWindowHeader$HideAction">
-      <i c="1" l="1667240614716" />
+      <i c="2" l="1674738576665" />
     </e>
     <e n="org.intellij.plugins.markdown.ui.actions.ConfigurePandocAction">
       <i c="1" l="1668614190498" />

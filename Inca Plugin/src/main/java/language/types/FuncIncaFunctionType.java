@@ -1,23 +1,27 @@
 package language.types;
 
-import java.util.List;
-
-public class FuncIncaFunctionType {
-    private List<FuncIncaType> args;
+public class FuncIncaFunctionType implements FuncIncaType {
+    private FuncIncaType arg;
     private FuncIncaType res;
-    
-    FuncIncaFunctionType(){}
-    
-    FuncIncaFunctionType(FuncIncaType r, List<FuncIncaType> a){
-        args = a;
+
+    FuncIncaFunctionType() {
+    }
+
+    FuncIncaFunctionType(FuncIncaType a, FuncIncaType r) {
+        arg = a;
         res = r;
     }
-    
-    public List<FuncIncaType> getArgs(){
-        return args;
+
+    public FuncIncaType getArg() {
+        return arg;
     }
-    
-    public FuncIncaType getRes(){
+
+    public FuncIncaType getRes() {
         return res;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + arg + ") -> " + res;
     }
 }
