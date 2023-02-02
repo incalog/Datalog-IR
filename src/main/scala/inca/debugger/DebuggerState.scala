@@ -58,9 +58,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
       case Some(spec) => spec()
       case None => return 0
     }
-    TimeTracker.begin()
     val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
-    TimeTracker.stop()
     val unboundCols = predicates(pred).map(_.name).diff(args.columns)
     args.entries.map { row =>
       val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)

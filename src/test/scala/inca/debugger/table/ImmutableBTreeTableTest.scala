@@ -3,7 +3,10 @@ package inca.debugger.table
 import inca.debugger.table.indexing.IndexCover
 import inca.debugger.ScalaValue
 import inca.debugger.Value
+import inca.util.FilesUtil
+import inca.util.TimeTracker
 import org.scalatest.funsuite.AnyFunSuite
+import scala.collection.mutable
 
 class ImmutableBTreeTableTest extends AnyFunSuite {
   def tuple(args: Any*): Seq[Value] = args.map(ScalaValue.apply)
@@ -351,5 +354,39 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val expectedEntries = Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5))
     assertResult(Seq("x", "y"))(joined.columns)
     assertResult(expectedEntries)(joined.entries)
+  }
+
+  def buildTable(path: String, indexCover: Set[IndexCover] = Set()): ImmutableTable[Value] = {
+    val entries: mutable.ListBuffer[Seq[Value]] = mutable.ListBuffer()
+    FilesUtil.foreachFileLine(path) { line =>
+      val elements = line.split("""\t\s?""")
+      entries += elements.map(ScalaValue)
+    }
+    val cols = entries.head.map { case ScalaValue(s: String) => s }
+    constructTable(cols, entries.tail.toSeq, indexCover)
+  }
+
+  test("real world anti-join") {
+    // lhs has no index cover
+    // right has index cover simplename, descriptor, type
+    val t1 = buildTable("src/test/resources/table/antijoin-table1.txt")
+    val t2 = buildTable(
+      "src/test/resources/table/antijoin-table2.txt",
+      Set(IndexCover(Seq("simplename", "descriptor", "type"))))
+    val res = t1.antiJoin(t2)
+    assert(true)
+  }
+
+  test("real world join") {
+    // IC1: Set(IndexCover(List(type, simplename, descriptor)))
+//  IC2: Set(IndexCover(List(method, descriptor)))
+    val t1 = buildTable(
+      "src/test/resources/table/merge-table1.txt",
+      Set(IndexCover(Seq("type", "simplename", "descriptor"))))
+    val t2 = buildTable(
+      "src/test/resources/table/merge-table2.txt",
+      Set(IndexCover(Seq("method", "descriptor"))))
+    val res = t1.join(t2)
+    assert(true)
   }
 }

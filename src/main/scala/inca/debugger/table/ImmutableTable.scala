@@ -186,7 +186,7 @@ class ImmutableBTreeTable[V: ClassTag](
   }
   override def contains(t: Tuple, indexOrder: IndexCover): Boolean = indices(indexOrder).contains(t)
   override def contains(t: NamedTuple): Boolean = {
-    val tuple = columns.map(t.toMap)
+    val tuple = columns.flatMap(t.toMap.get)
     indices(indexCovers.head).contains(tuple)
   }
 
@@ -305,7 +305,7 @@ class ImmutableBTreeTable[V: ClassTag](
         otherNamedEntry = namedEntry.filter { case (k, _) => sameCols.contains(k) }
         // use lexical search to efficiently query inner table
         // this is only efficient as long as there is an appropriate index
-        if !other.contains(otherNamedEntry)
+        if other.entries(otherNamedEntry).isEmpty
       } yield {
         entry
       }
@@ -358,7 +358,7 @@ class ImmutableBTreeTable[V: ClassTag](
   override def toString: String = {
     s"""ImmutableTable(
       |  ${columns.mkString(", ")}
-      |  ${entries.map(_.mkString(", ")).mkString("\n  ")}
+      |  ${entries.map(_.mkString("\t")).mkString("\n  ")}
       |)
       |""".stripMargin
   }

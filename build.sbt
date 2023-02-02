@@ -17,7 +17,7 @@ lazy val inca = (project in file(".")).settings(
     "-J-Xss10m",
     "–encoding",
     "UTF8",
-    "-target:jvm-1.8",
+    "-target:jvm-1.11",
     "-deprecation",
     "-unchecked",
     "-feature",
