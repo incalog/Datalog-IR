@@ -149,19 +149,19 @@ final class BTreeNode[T: ClassTag](
 
   def isLeafNode: Boolean = _isLeafNode
   def numberOfKeys: Int = _numberOfKeys
-  def size: Int = numberOfKeys + children.map(c => if (c != null) c.size else 0).sum
+  def size: Int = numberOfKeys + _children.map(c => if (c != null) c.size else 0).sum
 
   @tailrec
   def contains(k: T): Boolean = {
     var idx = 0
-    while (idx < numberOfKeys && ord.gt(k, keys(idx)))
+    while (idx < numberOfKeys && ord.gt(k, _keys(idx)))
       idx = idx + 1
-    if (idx < numberOfKeys && k == keys(idx))
+    if (idx < numberOfKeys && k == _keys(idx))
       true
     else if (isLeafNode)
       false
     else
-      children(idx).contains(k)
+      _children(idx).contains(k)
   }
 
   def insert(k: T): Unit = {
@@ -213,7 +213,7 @@ final class BTreeNode[T: ClassTag](
     newNode._isLeafNode = nodeToSplit.isLeafNode
     newNode._numberOfKeys = tree.minDegree - 1
     for (j <- 0 until tree.minDegree - 1) {
-      newNode._keys(j) = nodeToSplit.keys(j + tree.minDegree)
+      newNode._keys(j) = nodeToSplit._keys(j + tree.minDegree)
     }
     if (!nodeToSplit.isLeafNode) {
       for (j <- 0 until tree.minDegree) {
@@ -274,14 +274,11 @@ final class BTreeNode[T: ClassTag](
   }
 
   def deepCopy(tree: BTree[T]): BTreeNode[T] = {
-    val childrenCopies = children.map { child =>
-      child.deepCopy(tree)
-    }.toSeq
-    new BTreeNode[T](tree, keys, childrenCopies)
+    new BTreeNode[T](tree, keys, children.map(_.deepCopy(tree)))
   }
 
   override def toString: String = {
-    s"({${keys.mkString(", ")}} -> {${children.mkString(", ")}})"
+    s"({${_keys.mkString(", ")}} -> {${_children.mkString(", ")}})"
   }
 }
 
