@@ -377,7 +377,8 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     assert(true)
   }
 
-  test("real world join") {
+  // only for performance testing
+  ignore("real world join") {
     val t1 = buildTable(
       "src/test/resources/table/join1-table1.txt",
       Set(IndexCover(Seq("type", "simplename", "descriptor"))))
@@ -387,7 +388,7 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     assert(true)
   }
 
-  test("real world join 2") {
+  ignore("real world join 2") {
     val t1 =
       buildTable("src/test/resources/table/join2-table1.txt", Set(IndexCover(Seq("inmethod"))))
     val t2 =
