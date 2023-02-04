@@ -384,7 +384,8 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
       Set(IndexCover(Seq("type", "simplename", "descriptor"))))
     val t2 = buildTable(
       "src/test/resources/table/join1-table2.txt",
-      Set(IndexCover(Seq("method", "descriptor")))) = TimeTracker.measure("JOIN", () => t1.join(t2))
+      Set(IndexCover(Seq("method", "descriptor"))))
+    TimeTracker.measure("JOIN", () => t1.join(t2))
     assert(true)
   }
 
@@ -393,7 +394,6 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
       buildTable("src/test/resources/table/join2-table1.txt", Set(IndexCover(Seq("inmethod"))))
     val t2 =
       buildTable("src/test/resources/table/join2-table2.txt", Set(IndexCover(Seq("inmethod"))))
-    val sameCols = t2.columns.filter(t1.columns.contains)
     TimeTracker.measure("JOIN", () => t1.join(t2))
     assert(true)
   }
