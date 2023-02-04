@@ -313,21 +313,19 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         argsTable.join(constantTable)
     }
 
-    val extCallRows = argsTable.entries.flatMap { row =>
-      val seed = Tuples.flatTupleOf(row.map(_.unwrap): _*)
-      runtime.db.enumerateTuples(key, mask, seed).asScala.map { tuple =>
-        tuple.getElements.toSeq.map(Value.apply)
-      }.toSeq
-    }
+    val extEntries =
+      runtime.db.enumerateTuples(key, TupleMask.empty(atom.args.size), null).asScala.map(
+        _.getElements.toSeq.map(Value.apply)).toSeq
     val extCallColumns = atom.args.map {
       case Datalog.Var(name) => name
       case Datalog.Constant(_) => gensym.fresh("const")
     }
     // TODO maybe we need to construct a good index for this already to have good projection performance
-    val extCallTable = ValueTable(extCallColumns, extCallRows)
+    val extCallTable = ValueTable(extCallColumns, extEntries)
 
     val extVarArgs = atom.args.collect { case Datalog.Var(name) => name }
-    val indexCovers = indexedTableFactory.constructIndexCovers(extCallTable, extVarArgs)
+    val sameCols = extVarArgs.filter(t.columns.contains)
+    val indexCovers = indexedTableFactory.constructIndexCovers(extCallTable, sameCols)
     val projectedExtCallTable = extCallTable.project(extVarArgs, indexCovers)
     t.join(projectedExtCallTable)
   }
