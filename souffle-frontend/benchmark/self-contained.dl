@@ -413,9 +413,9 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
     //     ?t = "java.lang.Object".
     // SubtypeOf(?s, ?s) :-
     //     isInterfaceType(?s).
-    SubtypeOf(?s, ?t) :-
-        isInterfaceType(?s),
-        Superinterface(?t, ?s).
+    // SubtypeOf(?s, ?t) :-
+    //     isInterfaceType(?s),
+    //     Superinterface(?t, ?s).
     // to here
     // SubtypeOf(?s, ?t) :-
     //     isArrayType(?s),
