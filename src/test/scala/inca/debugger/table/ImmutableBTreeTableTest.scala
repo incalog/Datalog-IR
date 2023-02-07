@@ -129,6 +129,37 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     assertResult(table1.entries)(union.entries)
   }
 
+  test("union with swapped column order") {
+    val indexCovers = Seq(
+      IndexCover(Seq("name", "age", "m")),
+      IndexCover(Seq("age", "name", "m")),
+      IndexCover(Seq("m", "age", "name"))
+    )
+    val table1 = constructTable(
+      Seq("name", "age", "m"),
+      Seq(
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
+      ),
+      indexCovers.toSet)
+
+    val table2 = constructTable(
+      Seq("name", "m", "age"),
+      Seq(
+        tuple("lukas", true, 27),
+        tuple("fabio", true, 26)
+      ),
+      indexCovers.toSet)
+
+    val union = table1.union(table2)
+
+    assertResult(Seq("name", "age", "m"))(union.columns)
+    assertResult(tuple("andre", "andre", "fabio", "isa", "lukas", "patrick"))(
+      union.entries(indexCovers.head).map(_.head))
+  }
+
   test("simple diff") {
     val indexCovers = Seq(
       IndexCover(Seq("name", "age", "m")),

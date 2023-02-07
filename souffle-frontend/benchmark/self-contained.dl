@@ -53,7 +53,7 @@
 .decl isInterfaceType(?t:InterfaceType)
 .decl DirectSuperclass(?class:ClassType, ?superclass:ClassType)
 .input DirectSuperclass(IO="file", filename="DirectSuperclass.facts", delimiter="\t")
-.decl DirectSuperinterface(?ref:ReferenceType, ?interface:InterfaceType)
+.decl DirectSuperinterface(?type:ReferenceType, ?supertype:InterfaceType)
 .input DirectSuperinterface(IO="file", filename="DirectSuperinterface.facts", delimiter="\t")
 .decl ApplicationClass(?ref:ReferenceType)
 .decl MainClass(?class:ClassType)
@@ -356,7 +356,7 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
     .decl DirectSubclass(?a:Type, ?c:Type)
     .decl Subclass(?c:Type, ?a:Type)
     .decl Superclass(?c:Type, ?a:Type)
-    .decl Superinterface(?k:Type, ?c:Type)
+    .decl Superinterface(?supertype:Type, ?type:Type)
     .decl SubtypeOf(?subtype:Type, ?type:Type)
     .output SubtypeOf
     .printsize SubtypeOf

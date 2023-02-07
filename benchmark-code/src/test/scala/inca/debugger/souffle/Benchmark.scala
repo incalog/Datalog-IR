@@ -127,14 +127,14 @@ object Benchmark {
     val topdown = debugger.state.readTopDown(config.entry, config.args)
 
     println("RESULT")
-    // println(result)
+    println(result.size)
     val expected = debugger.state.readBottomUp(config.entry, config.args)
     println("EXPECTED")
     println(expected.size)
     println(s"RESULT CORRECT? ${result == expected}")
     println(expected)
-    // val missing = expected.entries.diff(result.entries)
-    // println(missing)
+    val missing = expected.entries.diff(result.entries)
+    println(missing)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
     println(s"STEPS: ${debugger.irControlTrace.size}")
@@ -208,43 +208,11 @@ object Benchmark {
   }
 
   def main(args: Array[String]): Unit = {
-//    bottomUpVTopDownConfigs = Seq(
-//      varPointsToConfig(
-//        "souffle-frontend/doop-context-insensitive/database-minijavac",
-//        "VarPointsTo",
-//        ValueTable.unit(),
-//        0,
-//        1))
     // Why empty result?
-
-    // TODO MISSING tuples for subtype relation  when using unit rel as input
-    // sun.reflect.generics.tree.BaseType, sun.reflect.generics.tree.Tree                    derived
-    // sun.reflect.generics.tree.BaseType, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.BooleanSignature, sun.reflect.generics.tree.Tree            derived
-    // sun.reflect.generics.tree.BooleanSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.ByteSignature, sun.reflect.generics.tree.Tree               derived
-    // sun.reflect.generics.tree.ByteSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.CharSignature, sun.reflect.generics.tree.Tree               derived
-    // sun.reflect.generics.tree.CharSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.DoubleSignature, sun.reflect.generics.tree.Tree             derived
-    // sun.reflect.generics.tree.DoubleSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.FloatSignature, sun.reflect.generics.tree.Tree              derived
-    // sun.reflect.generics.tree.FloatSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.IntSignature, sun.reflect.generics.tree.Tree                derived
-    // sun.reflect.generics.tree.IntSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.LongSignature, sun.reflect.generics.tree.Tree               derived
-    // sun.reflect.generics.tree.LongSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.ShortSignature, sun.reflect.generics.tree.Tree              derived
-    // sun.reflect.generics.tree.ShortSignature, sun.reflect.generics.tree.TypeTree
-    // sun.reflect.generics.tree.TypeSignature, sun.reflect.generics.tree.Tree               derived
-    // sun.reflect.generics.tree.TypeSignature, sun.reflect.generics.tree.TypeTree
     bottomUpVTopDownConfigs = Seq(
       varPointsToConfig(
         "souffle-frontend/benchmark/minijavac-slim",
-//        "souffle-frontend/doop-context-insensitive/database-method-call",
-//        "VarPointsTo",
         "basic_SubtypeOf",
-        // ValueTable(Seq("subtype"), Seq(Seq(ScalaValue("sun.reflect.generics.tree.TypeSignature")))),
         ValueTable.unit(),
         0,
         1

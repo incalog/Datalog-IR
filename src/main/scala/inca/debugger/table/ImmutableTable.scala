@@ -196,7 +196,16 @@ class ImmutableBTreeTable[V: ClassTag](
     ): ImmutableBTreeTable[V] = {
     if (columns.size != other.columns.size)
       throw new IllegalArgumentException("Not possible to union")
-    val newEntries = entries ++ other.entries
+    val newEntries =
+      if (columns == other.columns) {
+        entries ++ other.entries
+      } else {
+        val indexMap = columns.map(other.columns.indexOf)
+        def rearrange(entry: Seq[V]): Seq[V] = {
+          indexMap.map(entry)
+        }
+        entries ++ other.entries.map(rearrange)
+      }
     val newIndexCovers = selectResultIndices(resultIndices)
     ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
   }
@@ -216,7 +225,16 @@ class ImmutableBTreeTable[V: ClassTag](
     if (columns.size != other.columns.size)
       throw new IllegalArgumentException("Not possible to diff")
     val newIndexCovers = selectResultIndices(resultIndices)
-    val newEntries = entries.diff(other.entries)
+    val newEntries =
+      if (columns == other.columns) {
+        entries.diff(other.entries)
+      } else {
+        val indexMap = columns.map(other.columns.indexOf)
+        def rearrange(entry: Seq[V]): Seq[V] = {
+          indexMap.map(entry)
+        }
+        entries.diff(other.entries.map(rearrange))
+      }
     ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
   }
 
@@ -356,11 +374,17 @@ class ImmutableBTreeTable[V: ClassTag](
   }
 
   override def toString: String = {
-    s"""ImmutableTable(
-      |  ${columns.mkString(", ")}
-      |  ${entries.map(_.mkString("\t")).mkString("\n  ")}
-      |)
-      |""".stripMargin
+    if (size == 0) {
+      s"EmptyTable(${columns.mkString(", ")})"
+    } else if (columns.isEmpty && size == 1) {
+      s"UnitTable"
+    } else {
+      s"""ImmutableTable(
+        |  ${columns.mkString(", ")}
+        |  ${entries.map(_.mkString("\t")).mkString("\n  ")}
+        |)
+        |""".stripMargin
+    }
   }
 
   // TODO is there a better way?

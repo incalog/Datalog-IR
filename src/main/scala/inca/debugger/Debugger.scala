@@ -148,8 +148,8 @@ trait Debugger extends DebuggerAPI {
       case _ =>
         // this design is following the formal semantics but is inefficient
         // TODO we want to avoid unnecessary joins and directly process and change the supplementary
-        val nextSup = atomOps.atom(sup, atom)
-        AtomResult(nextSup, PositiveTable)
+        val result = atomOps.atom(sup, atom)
+        AtomResult(result, PositiveTable)
     }
   }
 
@@ -198,6 +198,7 @@ trait Debugger extends DebuggerAPI {
           // Q-Iterate will only be called for non-cyclic predicates
           // hence we only store top-down derived tuples for cyclic predicates
           state.insertTopDown(pred, result)
+          // TODO this is different to the formalization
           Subquery(pred, args, result, args, ruleEvals)
         }
       } else {
