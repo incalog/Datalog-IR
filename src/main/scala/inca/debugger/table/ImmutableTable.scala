@@ -378,9 +378,10 @@ class ImmutableBTreeTable[V: ClassTag](
   }
 
   override def subset(other: NewTable[V]): Boolean = {
-    this.size == other.size && this.entries.forall { tuple =>
-      val named = this.columns.zip(tuple)
-      other.contains(named)
+    this.columns.forall(other.columns.contains) && this.size <= other.size && this.entries.forall {
+      tuple =>
+        val named = this.columns.zip(tuple)
+        other.contains(named)
     }
   }
 }

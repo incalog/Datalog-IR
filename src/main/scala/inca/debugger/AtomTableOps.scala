@@ -1,10 +1,12 @@
 package inca.debugger
 
+import inca.backend.ir.CollectVarNames
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.AtomTableOps.transLiteral
 import inca.debugger.AtomTableOps.transType
+import inca.embedded.Datalog
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
 import inca.runtime.index.virtual.NotNodeTypeIndex
@@ -283,21 +285,12 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         ValueTable.empty(t.columns)
     }
 
+  // TODO improve performance
   private def extensionalCall(t: ValueTable, atom: Datalog.ExtensionalCall): ValueTable = {
     val key = NamedRelationKey(atom.name, atom.args.size)
-
-    val gensym = new Gensym(Set())
-    val selectedIndices = atom.args.zipWithIndex.flatMap {
-      case (Datalog.Var(name), idx) =>
-        gensym.register(name)
-        if (t.isBound(name)) Some(idx)
-        else None
-      case (Datalog.Constant(_), idx) => Some(idx)
-    }
-    val mask = TupleMask.fromSelectedIndices(atom.args.size, selectedIndices.toArray)
+    val gensym = new Gensym(Datalog.collectVarNames.transAtom(atom))
 
     var argsTable: ValueTable = ValueTable.unit()
-
     atom.args.foreach {
       case Datalog.Var(name) if t.isBound(name) =>
         val indexCovers =
@@ -306,19 +299,18 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         argsTable = argsTable.join(lhsTable)
       case Datalog.Var(_) => // do nothing
       case Datalog.Constant(l) =>
-        val newCol = gensym.fresh("const")
+        val newCol = gensym.fresh("generated$$const$$")
         val indexCovers = indexedTableFactory.constructIndexCovers(argsTable, Seq(newCol))
         val constantTable =
           ValueTable(Seq(newCol), Seq(Seq(transLiteral(l))), indexCovers = indexCovers)
         argsTable.join(constantTable)
     }
-
-    val extEntries =
-      runtime.db.enumerateTuples(key, TupleMask.empty(atom.args.size), null).asScala.map(
-        _.getElements.toSeq.map(Value.apply)).toSeq
+    val mask = TupleMask.empty(atom.args.size)
+    val extEntries = runtime.db.enumerateTuples(key, mask, null).asScala.map(
+      _.getElements.toSeq.map(Value.apply)).toSeq
     val extCallColumns = atom.args.map {
       case Datalog.Var(name) => name
-      case Datalog.Constant(_) => gensym.fresh("const")
+      case Datalog.Constant(_) => gensym.fresh("read$$const$$")
     }
     // TODO maybe we need to construct a good index for this already to have good projection performance
     val extCallTable = ValueTable(extCallColumns, extEntries)

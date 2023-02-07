@@ -397,4 +397,13 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     TimeTracker.measure("JOIN", () => t1.join(t2))
     assert(true)
   }
+
+  ignore("real world join 3 (no common columns)") {
+    val t1 =
+      buildTable("src/test/resources/table/join3-table1.txt", Set())
+    val t2 =
+      buildTable("src/test/resources/table/join3-table2.txt", Set())
+    TimeTracker.measure("JOIN", () => t1.join(t2))
+    assert(true)
+  }
 }

@@ -399,44 +399,46 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
         Superinterface(?k, ?super).
     SupertypeOf(?s, ?t) :-
         SubtypeOf(?t, ?s).
-    SubtypeOf(?s, ?s) :-
-        isClassType(?s).
-    SubtypeOf(?s, ?t) :-
-        Subclass(?t, ?s).
+    // SubtypeOf(?s, ?s) :-
+    //     isClassType(?s).
+    // SubtypeOf(?s, ?t) :-
+    //     Subclass(?t, ?s).
+    // from here
     SubtypeOf(?s, ?t) :-
         isClassType(?s),
         Superinterface(?t, ?s).
-    SubtypeOf(?s, ?t) :-
-        isInterfaceType(?s),
-        isType(?t),
-        ?t = "java.lang.Object".
-    SubtypeOf(?s, ?s) :-
-        isInterfaceType(?s).
+    // SubtypeOf(?s, ?t) :-
+    //     isInterfaceType(?s),
+    //     isType(?t),
+    //     ?t = "java.lang.Object".
+    // SubtypeOf(?s, ?s) :-
+    //     isInterfaceType(?s).
     SubtypeOf(?s, ?t) :-
         isInterfaceType(?s),
         Superinterface(?t, ?s).
-    SubtypeOf(?s, ?t) :-
-        isArrayType(?s),
-        isType(?t),
-        ?t = "java.lang.Object".
-    SubtypeOf(?s, ?t) :-
-        ComponentType(?s, ?sc),
-        ComponentType(?t, ?tc),
-        isReferenceType(?sc),
-        isReferenceType(?tc),
-        SubtypeOf(?sc, ?tc).
-    SubtypeOf(?s, ?t) :-
-        isArrayType(?s),
-        isInterfaceType(?t),
-        isType(?t),
-        ?t = "java.lang.Cloneable".
-    SubtypeOf(?s, ?t) :-
-        isArrayType(?s),
-        isInterfaceType(?t),
-        isType(?t),
-        ?t = "java.io.Serializable".
-    SubtypeOf(?t, ?t) :-
-        isType(?t).
+    // to here
+    // SubtypeOf(?s, ?t) :-
+    //     isArrayType(?s),
+    //     ?t = "java.lang.Object",
+    //     isType(?t).
+    // SubtypeOf(?s, ?t) :-
+    //     ComponentType(?s, ?sc),
+    //     ComponentType(?t, ?tc),
+    //     isReferenceType(?sc),
+    //     isReferenceType(?tc),
+    //     SubtypeOf(?sc, ?tc).
+    // SubtypeOf(?s, ?t) :-
+    //     isArrayType(?s),
+    //     ?t = "java.lang.Cloneable",
+    //     isInterfaceType(?t),
+    //     isType(?t).
+    // SubtypeOf(?s, ?t) :-
+    //     isArrayType(?s),
+    //     ?t = "java.io.Serializable",
+    //     isInterfaceType(?t),
+    //     isType(?t).
+    // SubtypeOf(?t, ?t) :-
+    //     isType(?t).
     SubtypeOfDifferent(?s, ?t) :-
         SubtypeOf(?s, ?t),
         ?s != ?t.

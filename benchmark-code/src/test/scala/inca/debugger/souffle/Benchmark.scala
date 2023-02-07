@@ -6,7 +6,10 @@ import inca.compiler.CompiledDatalogModule
 import inca.compiler.Compiler
 import inca.compiler.Options
 import inca.debugger.ExternallyInitializableDebugger
+import inca.debugger.QueryResult
+import inca.debugger.ScalaValue
 import inca.debugger.ValueTable
+import inca.frontend.constraint.core.ValDef
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.lowering.SouffleToNamedRelations
@@ -24,6 +27,7 @@ import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import inca.util.FilesUtil
 import java.io.File
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 object Benchmark {
@@ -73,10 +77,12 @@ object Benchmark {
   val memResultsPath: String = "benchmark-results/debugger/measurements-mem-old.csv"
 
   def initRuntime(config: BaseConfig): (CompiledDatalogModule, DatalogRuntime) = {
-    val compiled = Compiler.compileGP(config.prog, config.dataModel, Options())
+    val compiled =
+      Compiler.compileGP(config.prog, config.dataModel, Options())
     val scope = new QueryScope(config.dataModel)
     val (_engine, _database) =
-      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+      // EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+      EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     (compiled, DatalogRuntime(_engine, _database, compiled))
   }
 
@@ -116,10 +122,23 @@ object Benchmark {
       debugger.stepInto()
     }
     val end = System.currentTimeMillis()
-    println(debugger.queryStack.top)
+    println(debugger.queryStack.top.asInstanceOf[QueryResult].t.size)
+    val result = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    val topdown = debugger.state.readTopDown(config.entry, config.args)
+
+    println("RESULT")
+    // println(result)
+    val expected = debugger.state.readBottomUp(config.entry, config.args)
+    println("EXPECTED")
+    println(expected.size)
+    println(s"RESULT CORRECT? ${result == expected}")
+    println(expected)
+    // val missing = expected.entries.diff(result.entries)
+    // println(missing)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
-
+    println(s"STEPS: ${debugger.irControlTrace.size}")
+    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
     EnginePool.disposeAllEngines()
     (end - start, mem)
   }
@@ -196,15 +215,40 @@ object Benchmark {
 //        ValueTable.unit(),
 //        0,
 //        1))
-    // IT think this program does not terminate (ran for 10 minutes but it is a really small example)
-    // TODO figure out why it does not terminate
+    // Why empty result?
+
+    // TODO MISSING tuples for subtype relation  when using unit rel as input
+    // sun.reflect.generics.tree.BaseType, sun.reflect.generics.tree.Tree                    derived
+    // sun.reflect.generics.tree.BaseType, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.BooleanSignature, sun.reflect.generics.tree.Tree            derived
+    // sun.reflect.generics.tree.BooleanSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.ByteSignature, sun.reflect.generics.tree.Tree               derived
+    // sun.reflect.generics.tree.ByteSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.CharSignature, sun.reflect.generics.tree.Tree               derived
+    // sun.reflect.generics.tree.CharSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.DoubleSignature, sun.reflect.generics.tree.Tree             derived
+    // sun.reflect.generics.tree.DoubleSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.FloatSignature, sun.reflect.generics.tree.Tree              derived
+    // sun.reflect.generics.tree.FloatSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.IntSignature, sun.reflect.generics.tree.Tree                derived
+    // sun.reflect.generics.tree.IntSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.LongSignature, sun.reflect.generics.tree.Tree               derived
+    // sun.reflect.generics.tree.LongSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.ShortSignature, sun.reflect.generics.tree.Tree              derived
+    // sun.reflect.generics.tree.ShortSignature, sun.reflect.generics.tree.TypeTree
+    // sun.reflect.generics.tree.TypeSignature, sun.reflect.generics.tree.Tree               derived
+    // sun.reflect.generics.tree.TypeSignature, sun.reflect.generics.tree.TypeTree
     bottomUpVTopDownConfigs = Seq(
       varPointsToConfig(
-        "souffle-frontend/doop-context-insensitive/database-method-call",
-        "basic_SupertypeOf",
+        "souffle-frontend/benchmark/minijavac-slim",
+//        "souffle-frontend/doop-context-insensitive/database-method-call",
+//        "VarPointsTo",
+        "basic_SubtypeOf",
+        // ValueTable(Seq("subtype"), Seq(Seq(ScalaValue("sun.reflect.generics.tree.TypeSignature")))),
         ValueTable.unit(),
         0,
-        1))
+        1
+      ))
 //    val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
     val (buTime, buMem) = (Seq(), Seq())
 //    val (tdTime, tdMem) = (Seq(), Seq())

@@ -100,8 +100,8 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   }
 
   def storeExpectedFixpointSize(pred: Predicate, args: ValueTable, stackHeight: Int): Unit = {
-    val bottomUpSize = readBlacklistedBottomUp(pred, args).size
-    fixpointSize += (pred, args, stackHeight) -> bottomUpSize
+//    val bottomUpSize = readBlacklistedBottomUp(pred, args).size
+//    fixpointSize += (pred, args, stackHeight) -> bottomUpSize
   }
 
   def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
@@ -182,10 +182,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   }
 
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable, stackHeight: Int): Boolean = {
-    val topDown = readTopDown(pred, args)
-    val current = topDown.union(result)
-    val currentSize = current.size
-    val expectedSize = fixpointSize((pred, args, stackHeight))
-    currentSize >= expectedSize
+    val topdown = readTopDown(pred, args)
+    result.subset(topdown)
   }
 }

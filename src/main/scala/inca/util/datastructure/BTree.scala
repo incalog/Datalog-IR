@@ -62,10 +62,11 @@ object BTree {
       minDegree: Int = GlobalMinDegree
     )(implicit ord: Ordering[T]
     ): BTree[T] = {
-    bulkLoad(entries.distinct.sorted, minDegree)
+    val sorted = entries.sorted
+    bulkLoad(sorted, minDegree)
   }
 
-  // we assume sorted entries
+  // we assume distinct and sorted entries
   def bulkLoad[T: ClassTag](
       entries: Seq[T],
       minDegree: Int = GlobalMinDegree
