@@ -55,16 +55,16 @@ COMMENT=("//".*)|("/"\*(.|\n)*\*"/")
   "not"              { return KEYWORD_NOT; }
   "data"             { return KEYWORD_DATA; }
   "def"              { return KEYWORD_DEF; }
-  "Int"              { return KEYWORD_INTEGER; }
-  "Double"           { return KEYWORD_DOUBLE; }
-  "Long"             { return KEYWORD_LONG; }
-  "Boolean"          { return KEYWORD_BOOLEAN; }
-  "String"           { return KEYWORD_STRING; }
   "true"             { return BOOLEAN_TRUE; }
   "false"            { return BOOLEAN_FALSE; }
   "Nothing"          { return TYPE_NOTHING; }
   "Any"              { return TYPE_ANY; }
   "Unit"             { return TYPE_UNIT; }
+  "Int"              { return TYPE_INT; }
+  "Double"           { return TYPE_DOUBLE; }
+  "Long"             { return TYPE_LONG; }
+  "Boolean"          { return TYPE_BOOLEAN; }
+  "String"           { return TYPE_STRING; }
   "("                { return PARENS_OPEN; }
   ")"                { return PARENS_CLOSE; }
   "{"                { return BRACES_OPEN; }

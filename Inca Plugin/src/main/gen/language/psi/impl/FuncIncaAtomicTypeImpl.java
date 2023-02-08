@@ -35,12 +35,6 @@ public class FuncIncaAtomicTypeImpl extends ASTWrapperPsiElement implements Func
 
   @Override
   @Nullable
-  public FuncIncaOption getOption() {
-    return findChildByClass(FuncIncaOption.class);
-  }
-
-  @Override
-  @Nullable
   public FuncIncaPrimitiveType getPrimitiveType() {
     return findChildByClass(FuncIncaPrimitiveType.class);
   }

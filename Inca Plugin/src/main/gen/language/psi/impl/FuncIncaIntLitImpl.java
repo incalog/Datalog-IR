@@ -11,20 +11,26 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaDoubleTypeImpl extends ASTWrapperPsiElement implements FuncIncaDoubleType {
+public class FuncIncaIntLitImpl extends ASTWrapperPsiElement implements FuncIncaIntLit {
 
-  public FuncIncaDoubleTypeImpl(@NotNull ASTNode node) {
+  public FuncIncaIntLitImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitDoubleType(this);
+    visitor.visitIntLit(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
+  }
+
+  @Override
+  @NotNull
+  public PsiElement getInteger() {
+    return findNotNullChildByType(INTEGER);
   }
 
 }

@@ -27,34 +27,4 @@ public class FuncIncaPrimitiveTypeImpl extends ASTWrapperPsiElement implements F
     else super.accept(visitor);
   }
 
-  @Override
-  @Nullable
-  public FuncIncaBooleanType getBooleanType() {
-    return findChildByClass(FuncIncaBooleanType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaDoubleType getDoubleType() {
-    return findChildByClass(FuncIncaDoubleType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaIntegerType getIntegerType() {
-    return findChildByClass(FuncIncaIntegerType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaLongType getLongType() {
-    return findChildByClass(FuncIncaLongType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaStringType getStringType() {
-    return findChildByClass(FuncIncaStringType.class);
-  }
-
 }

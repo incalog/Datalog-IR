@@ -22,6 +22,7 @@
     keyword_match = "match"
     keyword_case = "case"
     keyword_fail = "fail"
+
     keyword_Option = "Option"
     keyword_None = "None"
     keyword_Some = "Some"
@@ -32,17 +33,17 @@
     keyword_not = "not"
     keyword_data = "data"
     keyword_def = "def"
-    keyword_integer = "Int"
-    keyword_double = "Double"
-    keyword_long = "Long"
-    keyword_boolean = "Boolean"
-    keyword_string = "String"
 
     boolean_true = "true"
     boolean_false = "false"
     type_nothing = "Nothing"
     type_any = "Any"
     type_unit = "Unit"
+    type_int = "Int"
+    type_double = "Double"
+    type_long = "Long"
+    type_boolean = "Boolean"
+    type_string = "String"
 
     parens_open = "("
     parens_close = ")"
@@ -176,24 +177,19 @@ base_apply_unary_exp ::= unary_op infix_exp {pin = 1}
 unary_op ::= '-' | '!'
 
 // type definitions
-type_annotation ::= fun_type | atomic_type
+type_annotation ::= atomic_type | fun_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
-atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | primitive_type | type_name
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | primitive_type | set | constr | scala_term |type_name
 constr ::= var '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
 option ::= keyword_Option '[' type_annotation ']' {pin = 1}
 set ::= keyword_Set '[' type_annotation ']' {pin = 1}
 type_name ::= id
-primitive_type ::= integer_type | double_type | long_type | boolean_type | string_type
-integer_type ::= "Int"
-double_type ::= 'Double'
-long_type ::= 'Long'
-boolean_type ::= 'Boolean'
-string_type ::= 'String'
+primitive_type ::= type_int | type_long | type_double | type_boolean | type_string
 
 // literals
-base_lit_exp ::= integer_lit | long_lit | double_lit | boolean_lit | string_lit | scala_term
-integer_lit ::= integer
+base_lit_exp ::= int_lit | long_lit | double_lit | boolean_lit | string_lit | scala_term
+int_lit ::= integer
 long_lit ::= long
 double_lit ::= double
 boolean_lit ::= 'true' | 'false'

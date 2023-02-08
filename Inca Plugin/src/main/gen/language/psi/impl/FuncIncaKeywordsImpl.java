@@ -11,38 +11,20 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaNumericLitImpl extends ASTWrapperPsiElement implements FuncIncaNumericLit {
+public class FuncIncaKeywordsImpl extends ASTWrapperPsiElement implements FuncIncaKeywords {
 
-  public FuncIncaNumericLitImpl(@NotNull ASTNode node) {
+  public FuncIncaKeywordsImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-//    visitor.visitNumericLit(this);
+    visitor.visitKeywords(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaDoubleLit getDoubleLit() {
-    return findChildByClass(FuncIncaDoubleLit.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaIntegerLit getIntegerLit() {
-    return findChildByClass(FuncIncaIntegerLit.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaLongLit getLongLit() {
-    return findChildByClass(FuncIncaLongLit.class);
   }
 
 }

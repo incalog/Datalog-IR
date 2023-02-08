@@ -1,22 +1,18 @@
 package language.types;
 
-import com.google.protobuf.MapEntry;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import language.psi.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class FuncIncaTypechecker {
+import static language.types.TypeContext.bindVar;
+import static language.types.TypeContext.scopedTypeContext;
 
-    public static FuncIncaType checkType(@NotNull PsiElement element) {
-        // TODO
-        return new FuncIncaAnyType();
-    }
+public class FuncIncaTypechecker {
 
     public static FuncIncaType typecheck(@NotNull PsiElement exp, @NotNull AnnotationHolder holder) {
         return typecheckCore(exp, holder);
@@ -26,7 +22,44 @@ public class FuncIncaTypechecker {
         if (exp instanceof FuncIncaVar) {
 
         } else if (exp instanceof FuncIncaLetExp) {
-
+            FuncIncaSingleLet singleLet = ((FuncIncaLetExp) exp).getSingleLet();
+            FuncIncaMultipleLet multLet = ((FuncIncaLetExp) exp).getMultipleLet();
+            // single Let Expression
+            if (singleLet != null) {
+                FuncIncaDecl decl = singleLet.getVarId();
+                String nameText = singleLet.getVarId().getText();
+                FuncIncaTypeAnnotation typeAnno = singleLet.getTypeAnnotation();
+                PsiElement bound = singleLet.getExpList().get(0);
+                FuncIncaType boundType = typecheckCore(bound, holder);
+                PsiElement body = singleLet.getExpList().get(1);
+                if (typeAnno != null) {
+                    FuncIncaType expectedType = FuncIncaTypeUtil.psiToFuncIncaType(typeAnno);
+                    if (!expectedType.equals(boundType)) {
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + expectedType + ", but got " + boundType)
+                                .range(bound)
+                                .create();
+                    }
+                }
+                if (boundType.equals(new FuncIncaUnitType())) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot assign expression of Type Unit to " + nameText)
+                            .range(exp)
+                            .create();
+                    boundType = new FuncIncaAnyType();
+                }
+                FuncIncaType finalBoundType = boundType;
+                scopedTypeContext(new Runnable() {
+                    @Override
+                    public void run() {
+                        bindVar(nameText, decl, finalBoundType, holder);
+                        typecheckCore(body, holder);
+                    }
+                });
+            }
+            if (multLet != null) {
+                // TODO
+            }
         } else if (exp instanceof FuncIncaCastExp) {
             PsiElement ex = ((FuncIncaCastExp) exp).getExp();
             PsiElement ct = ((FuncIncaCastExp) exp).getTypeName();
@@ -89,7 +122,7 @@ public class FuncIncaTypechecker {
             // FuncIncaOptionType?
         } else if (exp instanceof FuncIncaBaseLitExp) {
             PsiElement e = exp.getFirstChild();
-            if (e instanceof FuncIncaIntegerLit) {
+            if (e instanceof FuncIncaIntLit) {
                 return new FuncIncaIntegerType();
             } else if (e instanceof FuncIncaLongLit) {
                 return new FuncIncaLongType();
@@ -183,7 +216,7 @@ public class FuncIncaTypechecker {
             }
 
         } else if (exp instanceof FuncIncaConstSetExp) {
-            List<FuncIncaExp> items = ((FuncIncaConstSetExp) exp).getExpList();
+            List<FuncIncaExp> items = ((FuncIncaConstSetExp) exp).getExpList(); // TODO join ItemTypes to determine SetType
             boolean homogen = true;
             FuncIncaType setType;
             if (items.size() == 1) {
@@ -192,7 +225,7 @@ public class FuncIncaTypechecker {
                 setType = typecheckCore(items.remove(0), holder);
                 for (FuncIncaExp item : items) {
                     FuncIncaType itemType = typecheckCore(item, holder);
-                    if (!itemType.equals(setType)) {
+                    if (!subtype(itemType, setType)) {
                         holder.newAnnotation(HighlightSeverity.ERROR, "Expected type " + setType + ", but got " +
                                         itemType)
                                 .range(item)
@@ -202,7 +235,7 @@ public class FuncIncaTypechecker {
                 }
             }
             if (homogen) return new FuncIncaSetType(setType);
-            else return new FuncIncaSetType(new FuncIncaAnyType()); // TODO join types, not any type
+            else return new FuncIncaSetType(new FuncIncaAnyType());
         } else if (exp instanceof FuncIncaMemberExp) {
             
         } else if (exp instanceof FuncIncaComprehensionExp) {
@@ -214,8 +247,8 @@ public class FuncIncaTypechecker {
         return new FuncIncaAnyType();
     }
     
-    private static Boolean subtype(FuncIncaType subType, FuncIncaType superType) {
-        return (meet(subType, superType).toString()).equals(subType.toString());
+    public static Boolean subtype(FuncIncaType subType, FuncIncaType superType) {
+        return (meet(subType, superType)).equals(subType);
     }
 
     private static FuncIncaType meet(List<FuncIncaType> types) {
@@ -223,7 +256,7 @@ public class FuncIncaTypechecker {
     }
 
     private static FuncIncaType meet(FuncIncaType type1, FuncIncaType type2){
-        if ((type1.toString()).equals(type2.toString())) {
+        if (type1.equals(type2)) {
             return type1;
         } else if(type1 instanceof FuncIncaAnyType){
             return type2;
@@ -236,17 +269,38 @@ public class FuncIncaTypechecker {
             if(((FuncIncaConstructorType) type1).getName().equals(((FuncIncaTypeNameType) type2).getName()))
                 return type1;
         } else if (type1 instanceof FuncIncaTupleType && type2 instanceof FuncIncaTupleType) {
-            if(((FuncIncaTupleType) type1).getTypes().size() == ((FuncIncaTupleType) type2).getTypes().size()){
-                int n = ((FuncIncaTupleType) type1).getTypes().size();
+            List<FuncIncaType> tupleTypes1 = ((FuncIncaTupleType) type1).getTypes();
+            List<FuncIncaType> tupleTypes2 = ((FuncIncaTupleType) type2).getTypes();
+            if(tupleTypes1.size() == tupleTypes2.size()){
+                int n = tupleTypes1.size();
                 List<FuncIncaType> tupTys = new ArrayList<>(n);
                 for (int i = 0; i < n; i++)
-                    tupTys.add(meet(((FuncIncaTupleType) type1).getTypes().get(i), ((FuncIncaTupleType) type2).getTypes().get(i)));
+                    tupTys.add(meet(tupleTypes1.get(i), tupleTypes2.get(i)));
                 return new FuncIncaTupleType(tupTys);
             }
         } else if (type1 instanceof FuncIncaSetType && type2 instanceof FuncIncaSetType) {
-            return new FuncIncaSetType(meet(((FuncIncaSetType) type1).getSetType(), ((FuncIncaSetType) type2).getSetType()));
+            FuncIncaType setType1 = ((FuncIncaSetType) type1).getSetType();
+            FuncIncaType setType2 = ((FuncIncaSetType) type2).getSetType();
+            return new FuncIncaSetType(meet(setType1, setType2));
+        } else if (type1 instanceof FuncIncaBooleanType) { // meet of primitive types
+            // case of type2 is Any or Boolean already covered, Nothing Type is returned further down
+        } else if (type1 instanceof FuncIncaDoubleType) {
+            if (type2 instanceof FuncIncaLongType || type2 instanceof FuncIncaIntegerType) {
+                return type2;
+            }
+        } else if (type1 instanceof FuncIncaIntegerType) {
+            if (type2 instanceof FuncIncaDoubleType || type2 instanceof FuncIncaLongType) {
+                return new FuncIncaIntegerType();
+            }
+        } else if (type1 instanceof FuncIncaLongType) {
+            if (type2 instanceof FuncIncaDoubleType) {
+                return new FuncIncaLongType();
+            } else if (type2 instanceof FuncIncaIntegerType) {
+                return new FuncIncaIntegerType();
+            }
+        } else if (type1 instanceof FuncIncaStringType) {
+
         }
-        // TODO scalatypes (int double long usw)
         return new FuncIncaNothingType();
     }
 
@@ -255,24 +309,45 @@ public class FuncIncaTypechecker {
     }
 
     private static FuncIncaType join(FuncIncaType type1, FuncIncaType type2) {
-        if(type1.toString().equals(type2.toString())){
+        if(type1.equals(type2)){
             return type1;
         } else if (type1 instanceof FuncIncaNothingType){
             return type2;
         } else if (type2 instanceof FuncIncaNothingType) {
             return type1;
         } else if (type1 instanceof FuncIncaTupleType && type2 instanceof FuncIncaTupleType) {
-            if(((FuncIncaTupleType) type1).getTypes().size() == ((FuncIncaTupleType) type2).getTypes().size()){
-                int n = ((FuncIncaTupleType) type1).getTypes().size();
+            List<FuncIncaType> tupleTypes1 = ((FuncIncaTupleType) type1).getTypes();
+            List<FuncIncaType> tupleTypes2 = ((FuncIncaTupleType) type2).getTypes();
+            if(tupleTypes1.size() == tupleTypes2.size()){
+                int n = tupleTypes1.size();
                 List<FuncIncaType> tupTys = new ArrayList<>(n);
                 for (int i = 0; i < n; i++)
-                    tupTys.add(join(((FuncIncaTupleType) type1).getTypes().get(i), ((FuncIncaTupleType) type2).getTypes().get(i)));
+                    tupTys.add(join(tupleTypes1.get(i), tupleTypes2.get(i)));
                 return new FuncIncaTupleType(tupTys);
             }
         } else if (type1 instanceof FuncIncaSetType && type2 instanceof FuncIncaSetType) {
-            return new FuncIncaSetType(join(((FuncIncaSetType) type1).getSetType(), ((FuncIncaSetType) type2).getSetType()));
+            FuncIncaType setType1 = ((FuncIncaSetType) type1).getSetType();
+            FuncIncaType setType2 = ((FuncIncaSetType) type2).getSetType();
+            return new FuncIncaSetType(join(setType1, setType2));
+        } else if (type1 instanceof FuncIncaBooleanType) { // join of primitive scalatypes
+            // case type2 is Nothing or Boolean is already covered, return of Any is down below
+        } else if (type1 instanceof FuncIncaDoubleType) {
+            if (type2 instanceof FuncIncaLongType || type2 instanceof FuncIncaIntegerType) {
+                return new FuncIncaDoubleType();
+            }
+        } else if (type1 instanceof FuncIncaIntegerType) {
+            if (type2 instanceof FuncIncaLongType || type2 instanceof FuncIncaDoubleType) {
+                return type2;
+            }
+        } else if (type1 instanceof FuncIncaLongType) {
+            if (type2 instanceof FuncIncaIntegerType) {
+                return type1;
+            } else if (type2 instanceof FuncIncaDoubleType) {
+                return type2;
+            }
+        } else if (type1 instanceof FuncIncaStringType) {
+
         }
-        // TODO check scalatypes
         return new FuncIncaAnyType();
     }
 

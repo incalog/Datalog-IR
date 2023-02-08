@@ -8,6 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FuncIncaTypeUtil {
+    /**
+     * Takes a list of parameters as PSI Elements and returns their types as FuncIncaTypes
+     * @param params
+     * @return
+     */
     public static List<FuncIncaType> paramTypeToFuncIncaType(List<FuncIncaParamType> params) {
         List<FuncIncaType> res = new ArrayList<>();
         for (FuncIncaParamType param : params)
@@ -15,8 +20,16 @@ public class FuncIncaTypeUtil {
         return res;
     }
 
+    /**
+     * Takes one Type Annotation as a PSI element and returns it as a FuncIncaType
+     * @param element
+     * @return
+     */
     public static FuncIncaType psiToFuncIncaType(FuncIncaTypeAnnotation element) {
-        PsiElement e = element.getFirstChild();
+        PsiElement e;
+        if (element.getFirstChild() != null)
+            e = element.getFirstChild();
+        else return new FuncIncaAnyType();
         if (e instanceof FuncIncaFunType) {
             return new FuncIncaFunctionType(
                     atomicTypeToFuncIncaType(((FuncIncaFunType) e).getAtomicType()),
@@ -54,15 +67,15 @@ public class FuncIncaTypeUtil {
         } else if (e instanceof FuncIncaConstr) {
             List<FuncIncaTypeAnnotation> annos = ((FuncIncaConstr) e).getTypeAnnotationList();
             return new FuncIncaConstructorType(((FuncIncaConstr) e).getVar().getText(), psiToFuncIncaType(annos));
-        } else if (e instanceof FuncIncaBooleanType) {
+        } else if (eText.equals("Boolean")) {
             return new FuncIncaBooleanType();
-        } else if (e instanceof FuncIncaDoubleType) {
+        } else if (eText.equals("Double")) {
             return new FuncIncaDoubleType();
-        } else if (e instanceof FuncIncaIntegerType) {
+        } else if (eText.equals("Int")) {
             return new FuncIncaIntegerType();
-        } else if (e instanceof FuncIncaLongType) {
-            return new FuncIncaIntegerType();
-        } else if (e instanceof FuncIncaStringType) {
+        } else if (eText.equals("Long")) {
+            return new FuncIncaLongType();
+        } else if (eText.equals("String")) {
             return new FuncIncaStringType();
         } else { // e is instance of FuncIncaTypeName
             return new FuncIncaTypeNameType(eText);

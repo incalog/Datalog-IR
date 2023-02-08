@@ -14,7 +14,7 @@ public interface FuncIncaBaseLitExp extends FuncIncaExp {
   FuncIncaDoubleLit getDoubleLit();
 
   @Nullable
-  FuncIncaIntegerLit getIntegerLit();
+  FuncIncaIntLit getIntLit();
 
   @Nullable
   FuncIncaLongLit getLongLit();

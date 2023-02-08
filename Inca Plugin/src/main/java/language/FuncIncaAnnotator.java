@@ -21,7 +21,7 @@ public class FuncIncaAnnotator implements Annotator {
             FuncIncaType resolvedType = FuncIncaTypechecker.typecheckCore(body, holder);
             FuncIncaTypeAnnotation expected = ((FuncIncaFunDef) element).getTypeAnnotation();
             FuncIncaType expectedType = FuncIncaTypeUtil.psiToFuncIncaType(expected);
-            if (!resolvedType.equals(expectedType)) {
+            if (!FuncIncaTypechecker.subtype(resolvedType, expectedType)) {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Expected return Type " + expectedType +
                         " but got " + resolvedType)
                         .range(expected)

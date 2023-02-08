@@ -17,7 +17,6 @@ public interface FuncIncaTypes {
   IElementType BASE_APPLY_UNARY_EXP = new FuncIncaElementType("BASE_APPLY_UNARY_EXP");
   IElementType BASE_LIT_EXP = new FuncIncaElementType("BASE_LIT_EXP");
   IElementType BOOLEAN_LIT = new FuncIncaElementType("BOOLEAN_LIT");
-  IElementType BOOLEAN_TYPE = new FuncIncaElementType("BOOLEAN_TYPE");
   IElementType CALL_EXP = new FuncIncaElementType("CALL_EXP");
   IElementType CAST_EXP = new FuncIncaElementType("CAST_EXP");
   IElementType COMPREHENSION_EXP = new FuncIncaElementType("COMPREHENSION_EXP");
@@ -29,7 +28,6 @@ public interface FuncIncaTypes {
   IElementType DATA_CONSTRUCTOR = new FuncIncaElementType("DATA_CONSTRUCTOR");
   IElementType DATA_DEF = new FuncIncaElementType("DATA_DEF");
   IElementType DOUBLE_LIT = new FuncIncaElementType("DOUBLE_LIT");
-  IElementType DOUBLE_TYPE = new FuncIncaElementType("DOUBLE_TYPE");
   IElementType EXP = new FuncIncaElementType("EXP");
   IElementType FOLD_EXP = new FuncIncaElementType("FOLD_EXP");
   IElementType FUN_DEF = new FuncIncaElementType("FUN_DEF");
@@ -37,12 +35,11 @@ public interface FuncIncaTypes {
   IElementType IF_EXP = new FuncIncaElementType("IF_EXP");
   IElementType IMPORT = new FuncIncaElementType("IMPORT");
   IElementType INFIX_EXP = new FuncIncaElementType("INFIX_EXP");
-  IElementType INTEGER_LIT = new FuncIncaElementType("INTEGER_LIT");
-  IElementType INTEGER_TYPE = new FuncIncaElementType("INTEGER_TYPE");
+  IElementType INT_LIT = new FuncIncaElementType("INT_LIT");
+  IElementType KEYWORDS = new FuncIncaElementType("KEYWORDS");
   IElementType LAMBDA_EXP = new FuncIncaElementType("LAMBDA_EXP");
   IElementType LET_EXP = new FuncIncaElementType("LET_EXP");
   IElementType LONG_LIT = new FuncIncaElementType("LONG_LIT");
-  IElementType LONG_TYPE = new FuncIncaElementType("LONG_TYPE");
   IElementType MATCH_CASE = new FuncIncaElementType("MATCH_CASE");
   IElementType MATCH_EXP = new FuncIncaElementType("MATCH_EXP");
   IElementType MEMBER_EXP = new FuncIncaElementType("MEMBER_EXP");
@@ -61,7 +58,6 @@ public interface FuncIncaTypes {
   IElementType SET = new FuncIncaElementType("SET");
   IElementType SINGLE_LET = new FuncIncaElementType("SINGLE_LET");
   IElementType STRING_LIT = new FuncIncaElementType("STRING_LIT");
-  IElementType STRING_TYPE = new FuncIncaElementType("STRING_TYPE");
   IElementType SUBINFIX_EXP = new FuncIncaElementType("SUBINFIX_EXP");
   IElementType TUPLE = new FuncIncaElementType("TUPLE");
   IElementType TUPLE_EXP = new FuncIncaElementType("TUPLE_EXP");
@@ -93,20 +89,16 @@ public interface FuncIncaTypes {
   IElementType GT = new FuncIncaTokenType(">");
   IElementType ID = new FuncIncaTokenType("id");
   IElementType INTEGER = new FuncIncaTokenType("integer");
-  IElementType KEYWORD_BOOLEAN = new FuncIncaTokenType("Boolean");
   IElementType KEYWORD_CASE = new FuncIncaTokenType("case");
   IElementType KEYWORD_DATA = new FuncIncaTokenType("data");
   IElementType KEYWORD_DEF = new FuncIncaTokenType("def");
-  IElementType KEYWORD_DOUBLE = new FuncIncaTokenType("Double");
   IElementType KEYWORD_ELSE = new FuncIncaTokenType("else");
   IElementType KEYWORD_FAIL = new FuncIncaTokenType("fail");
   IElementType KEYWORD_FOLD = new FuncIncaTokenType("fold");
   IElementType KEYWORD_IF = new FuncIncaTokenType("if");
   IElementType KEYWORD_IMPORT = new FuncIncaTokenType("import");
   IElementType KEYWORD_IN = new FuncIncaTokenType("in");
-  IElementType KEYWORD_INTEGER = new FuncIncaTokenType("Int");
   IElementType KEYWORD_LET = new FuncIncaTokenType("let");
-  IElementType KEYWORD_LONG = new FuncIncaTokenType("Long");
   IElementType KEYWORD_MATCH = new FuncIncaTokenType("match");
   IElementType KEYWORD_MODULE = new FuncIncaTokenType("module");
   IElementType KEYWORD_NONE = new FuncIncaTokenType("None");
@@ -114,7 +106,6 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_OPTION = new FuncIncaTokenType("Option");
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
-  IElementType KEYWORD_STRING = new FuncIncaTokenType("String");
   IElementType LEQ = new FuncIncaTokenType("<=");
   IElementType LONG = new FuncIncaTokenType("long");
   IElementType LT = new FuncIncaTokenType("<");
@@ -136,7 +127,12 @@ public interface FuncIncaTypes {
   IElementType STAR = new FuncIncaTokenType("*");
   IElementType STRING = new FuncIncaTokenType("string");
   IElementType TYPE_ANY = new FuncIncaTokenType("Any");
+  IElementType TYPE_BOOLEAN = new FuncIncaTokenType("Boolean");
+  IElementType TYPE_DOUBLE = new FuncIncaTokenType("Double");
+  IElementType TYPE_INT = new FuncIncaTokenType("Int");
+  IElementType TYPE_LONG = new FuncIncaTokenType("Long");
   IElementType TYPE_NOTHING = new FuncIncaTokenType("Nothing");
+  IElementType TYPE_STRING = new FuncIncaTokenType("String");
   IElementType TYPE_UNIT = new FuncIncaTokenType("Unit");
   IElementType VISIBILITY_PRIVATE = new FuncIncaTokenType("private");
 
@@ -169,9 +165,6 @@ public interface FuncIncaTypes {
       }
       else if (type == BOOLEAN_LIT) {
         return new FuncIncaBooleanLitImpl(node);
-      }
-      else if (type == BOOLEAN_TYPE) {
-        return new FuncIncaBooleanTypeImpl(node);
       }
       else if (type == CALL_EXP) {
         return new FuncIncaCallExpImpl(node);
@@ -206,9 +199,6 @@ public interface FuncIncaTypes {
       else if (type == DOUBLE_LIT) {
         return new FuncIncaDoubleLitImpl(node);
       }
-      else if (type == DOUBLE_TYPE) {
-        return new FuncIncaDoubleTypeImpl(node);
-      }
       else if (type == FOLD_EXP) {
         return new FuncIncaFoldExpImpl(node);
       }
@@ -224,11 +214,11 @@ public interface FuncIncaTypes {
       else if (type == IMPORT) {
         return new FuncIncaImportImpl(node);
       }
-      else if (type == INTEGER_LIT) {
-        return new FuncIncaIntegerLitImpl(node);
+      else if (type == INT_LIT) {
+        return new FuncIncaIntLitImpl(node);
       }
-      else if (type == INTEGER_TYPE) {
-        return new FuncIncaIntegerTypeImpl(node);
+      else if (type == KEYWORDS) {
+        return new FuncIncaKeywordsImpl(node);
       }
       else if (type == LAMBDA_EXP) {
         return new FuncIncaLambdaExpImpl(node);
@@ -238,9 +228,6 @@ public interface FuncIncaTypes {
       }
       else if (type == LONG_LIT) {
         return new FuncIncaLongLitImpl(node);
-      }
-      else if (type == LONG_TYPE) {
-        return new FuncIncaLongTypeImpl(node);
       }
       else if (type == MATCH_CASE) {
         return new FuncIncaMatchCaseImpl(node);
@@ -295,9 +282,6 @@ public interface FuncIncaTypes {
       }
       else if (type == STRING_LIT) {
         return new FuncIncaStringLitImpl(node);
-      }
-      else if (type == STRING_TYPE) {
-        return new FuncIncaStringTypeImpl(node);
       }
       else if (type == TUPLE) {
         return new FuncIncaTupleImpl(node);
