@@ -44,6 +44,11 @@ case class Subquery(
     supplementary: ValueTable,
     bodies: Seq[RuleEval])
     extends Query {
+  override def toString: Predicate =
+    s"""Subquery($pred,
+       |  sup = $supplementary,
+       |  pos = ${if(bodies.isEmpty) "eps" else bodies.head.toString})""".stripMargin
+
   override def state: QueryState =
     if (bodies.isEmpty)
       QueryState.QueryEnd
@@ -66,9 +71,15 @@ case class QueryResult(pred: Predicate, args: ValueTable, result: ValueTable) ex
 }
 
 sealed trait RuleEval
-case class Rule(pred: Predicate, params: Seq[Datalog.Name], atoms: Seq[AtomEval]) extends RuleEval
+case class Rule(pred: Predicate, params: Seq[Datalog.Name], atoms: Seq[AtomEval]) extends RuleEval {
+  override def toString: Predicate = s"$pred(${params.mkString(", ")}) :- ${atoms.mkString(", ")}."
+}
 case class RuleResult(t: ValueTable) extends RuleEval
 
 sealed trait AtomEval
-case class Atom(a: Datalog.Atom) extends AtomEval
-case class AtomResult(t: ValueTable, sign: TableSign = PositiveTable) extends AtomEval
+case class Atom(a: Datalog.Atom) extends AtomEval {
+  override def toString: Predicate = a.toString
+}
+case class AtomResult(t: ValueTable, sign: TableSign = PositiveTable) extends AtomEval {
+  override def toString: Predicate = if (sign == PositiveTable) t.toString else s"neg $t"
+}

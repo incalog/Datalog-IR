@@ -624,8 +624,11 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(3))))
     debugger.entry("path", args)
-    while (!debugger.isFinished)
+    println(debugger.queryStack.top)
+    while (!debugger.isFinished) {
       debugger.stepInto()
+      println(debugger.queryStack.top)
+    }
     assert(debugger.isFinished)
 
     assertExpectedTable(debugger, "path", args)

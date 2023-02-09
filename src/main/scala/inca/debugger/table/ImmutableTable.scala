@@ -382,8 +382,7 @@ class ImmutableBTreeTable[V: ClassTag](
       s"""ImmutableTable(
         |  ${columns.mkString(", ")}
         |  ${entries.map(_.mkString("\t")).mkString("\n  ")}
-        |)
-        |""".stripMargin
+        |)""".stripMargin
     }
   }
 
