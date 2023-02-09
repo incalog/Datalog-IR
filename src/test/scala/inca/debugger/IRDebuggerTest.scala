@@ -60,6 +60,8 @@ class IRDebuggerTest extends AnyFunSuite {
   def assertExpectedTable(debugger: Debugger, name: String, args: ValueTable): Assertion = {
     val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
     val expected = debugger.state.readBottomUp(name, args)
+    println(s"Derived  $derived")
+    println(s"Expected $expected")
     assertResult(expected)(derived)
   }
 
@@ -614,6 +616,18 @@ class IRDebuggerTest extends AnyFunSuite {
     )
     stepTillFinish(debugger)
     assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("unbalanced transitive path") {
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5))
+    val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
+    val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(3))))
+    debugger.entry("path", args)
+    while (!debugger.isFinished)
+      debugger.stepInto()
+    assert(debugger.isFinished)
+
     assertExpectedTable(debugger, "path", args)
   }
 }
