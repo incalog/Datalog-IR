@@ -79,7 +79,7 @@ trait Debugger extends DebuggerAPI {
   def varsIR: ValueTable = queryStack.top match {
     case Subquery(_, _, _, _, RuleResult(res) +: _) => res
     case Subquery(_, _, _, sup, _) => sup
-    case QueryResult(_, result) => result
+    case QueryResult(_, _, result) => result
   }
 
   /*
@@ -185,6 +185,10 @@ trait Debugger extends DebuggerAPI {
       Subquery(pred, args, result, nextSup, nextRule +: rules.tail)
 
     case Subquery(pred, args, result, _, rules @ RuleResult(ruleResult) +: _) => // Q-Union
+      // TODO QSQR adds tuples to global state after rule has been processed
+      if (isCyclic(pred)) {
+        state.insertTopDown(pred, ruleResult)
+      }
       Subquery(pred, args, result.union(ruleResult), args, rules.tail)
 
     case Subquery(pred, args, result, _, Nil) =>
@@ -206,12 +210,12 @@ trait Debugger extends DebuggerAPI {
         // this optimization is not present in the formal semantics
         queryStable(query)
       }
-    case QueryResult(pred, result) =>
+    case QueryResult(pred, args, result) =>
       // This rule is not present in the formal semantics
       // It is required because we use a querystack instead of nested subqueries
       popSubqueryHook(pred, result)
       queryStack.pop()
-      replaceCallWithAtomResult(queryStack.top, result)
+      replaceCallWithAtomResult(queryStack.top, args, result)
   }
 
   private def queryStable(q: Query): Query = {
@@ -221,7 +225,7 @@ trait Debugger extends DebuggerAPI {
       state.insertTopDown(pred, result)
     }
     state.deleteBlacklist(pred, args)
-    QueryResult(pred, result)
+    QueryResult(pred, args, result)
   }
 
   /*
@@ -261,11 +265,20 @@ trait Debugger extends DebuggerAPI {
     varTable.join(constTable, resultIndices)
   }
 
-  protected def replaceCallWithAtomResult(query: Query, calleeResult: ValueTable): Query = {
+  protected def replaceCallWithAtomResult(
+      query: Query,
+      calleeArgs: ValueTable,
+      calleeResult: ValueTable
+    ): Query = {
     val Subquery(pred, args, result, sup, rules) = query
     val Rule(_, params, atoms) = rules.head
     val Atom(Datalog.Call(callee, calleeTerms, _, neg)) = atoms.head
-    val atomTable = fitToSupplementary(callee, calleeTerms, calleeResult, sup)
+    val wholeCalleeResult =
+      if (isCyclic(callee))
+        calleeResult.union(state.readTopDown(pred, calleeArgs))
+      else
+        calleeResult
+    val atomTable = fitToSupplementary(callee, calleeTerms, wholeCalleeResult, sup)
     val tableSign = if (neg) NegativeTable else PositiveTable
     val rule = Rule(pred, params, AtomResult(atomTable, tableSign) +: atoms.tail)
     Subquery(pred, args, result, sup, rule +: rules.tail)
@@ -331,9 +344,9 @@ trait Debugger extends DebuggerAPI {
       case Subquery(pred, args, _, _, _) =>
         state.deleteBlacklist(pred, args)
         val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
-        queryStack.update(QueryResult(pred, bottomUpResult))
+        queryStack.update(QueryResult(pred, args, bottomUpResult))
         true
-      case QueryResult(_, _) =>
+      case QueryResult(_, _, _) =>
         // do nothing
         false
     }

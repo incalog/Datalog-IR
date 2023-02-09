@@ -49,7 +49,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
   override type Breakpoint = SouffleBreakPoint
 
   protected def lowerBreakpoint(bp: SouffleBreakPoint): IRBreakpoint = bp match {
-    case PatternEndBreakPoint(pred) => IRBreakpoint(QueryResult(pred, null))
+    case PatternEndBreakPoint(pred) => IRBreakpoint(QueryResult(pred, null, null))
     case InputBreakPoint(pred, before) =>
       val pattern = preds(pred)
       val rule = pattern.bodies.head

@@ -1,7 +1,7 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.debugger.table.ImmutableTable
+import inca.debugger.ValueTable
 
 sealed trait QueryState
 object QueryState {
@@ -25,16 +25,16 @@ object Query {
   def toTableless(q: Query): Query = q match {
     case Subquery(p, _, _, _, bodies) =>
       val tablelessRules = bodies.map {
-        case RuleResult(_) => RuleResult(ImmutableTable.empty(Seq()))
+        case RuleResult(_) => RuleResult(ValueTable.empty(Seq()))
         case b => b
       }
       Subquery(
         p,
-        ImmutableTable.empty(Seq()),
-        ImmutableTable.empty(Seq()),
-        ImmutableTable.empty(Seq()),
+        ValueTable.empty(Seq()),
+        ValueTable.empty(Seq()),
+        ValueTable.empty(Seq()),
         tablelessRules)
-    case QueryResult(p, _) => QueryResult(p, ImmutableTable.empty(Seq()))
+    case QueryResult(p, _, _) => QueryResult(p, ValueTable.empty(Seq()), ValueTable.empty(Seq()))
   }
 }
 case class Subquery(
@@ -61,7 +61,7 @@ case class Subquery(
       }
 }
 
-case class QueryResult(pred: Predicate, t: ValueTable) extends Query {
+case class QueryResult(pred: Predicate, args: ValueTable, result: ValueTable) extends Query {
   override val state: QueryState = QueryState.QueryResult
 }
 

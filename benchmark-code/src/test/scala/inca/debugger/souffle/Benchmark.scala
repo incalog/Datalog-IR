@@ -122,12 +122,15 @@ object Benchmark {
       debugger.stepInto()
     }
     val end = System.currentTimeMillis()
-    println(debugger.queryStack.top.asInstanceOf[QueryResult].t.size)
-    val result = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    println(debugger.queryStack.top.asInstanceOf[QueryResult].result.size)
+    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
+    val topdownSuperinteface = debugger.state.readTopDown("basic_Superinterface", ValueTable.unit())
+    println(s"TOPDOWN SUPERINTERFACE size ${topdownSuperinteface.size} $topdownSuperinteface")
     val topdown = debugger.state.readTopDown(config.entry, config.args)
 
     println("RESULT")
     println(result.size)
+    println(result)
     val expected = debugger.state.readBottomUp(config.entry, config.args)
     println("EXPECTED")
     println(expected.size)

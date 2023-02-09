@@ -31,7 +31,7 @@ object FunctionalBreakpoint {
     ): Seq[IRBreakpoint] = {
     val queries: Seq[Query] = fbp.pos match {
       case FunctionExit(f) =>
-        Seq(QueryResult(f, null))
+        Seq(QueryResult(f, null, null))
       case InFunction(so) =>
         // collects atoms to stop at
         val options = patterns.values.flatMap { pat =>

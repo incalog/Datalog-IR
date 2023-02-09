@@ -22,7 +22,7 @@ import truechange.EditScript
 
 class IRDebuggerTest extends AnyFunSuite {
 
-  def constructInput(edges: Seq[(Int, Int)]): DatabaseInput = {
+  def constructInput(edges: Seq[(Any, Any)]): DatabaseInput = {
     val inserts = edges.map { case (from, to) =>
       Tuples.staticArityFlatTupleOf(from, to)
     }.toSet
@@ -58,7 +58,7 @@ class IRDebuggerTest extends AnyFunSuite {
   }
 
   def assertExpectedTable(debugger: Debugger, name: String, args: ValueTable): Assertion = {
-    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].result
     val expected = debugger.state.readBottomUp(name, args)
     println(s"Derived  $derived")
     println(s"Expected $expected")
@@ -88,7 +88,7 @@ class IRDebuggerTest extends AnyFunSuite {
       name: String,
       expected: ValueTable
     ): Assertion = {
-    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].result
     assertResult(expected)(derived)
   }
 
@@ -621,6 +621,18 @@ class IRDebuggerTest extends AnyFunSuite {
 
   test("unbalanced transitive path") {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5))
+    val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
+    val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(3))))
+    debugger.entry("path", args)
+    while (!debugger.isFinished)
+      debugger.stepInto()
+    assert(debugger.isFinished)
+
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("unbalanced transitive path 2") {
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5, 5 -> 6))
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(3))))
     debugger.entry("path", args)

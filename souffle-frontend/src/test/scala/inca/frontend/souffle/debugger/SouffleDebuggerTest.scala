@@ -81,7 +81,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
   }
 
   def assertExpectedTable(debugger: SouffleDebugger, name: String, args: ValueTable): Assertion = {
-    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].result
     val expected = debugger.state.readBottomUp(name, args)
     assertResult(expected)(derived)
   }

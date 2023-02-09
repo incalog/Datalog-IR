@@ -136,7 +136,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
                 determineSkips(table)
                 None
             }
-          case QueryResult(_, _) =>
+          case QueryResult(_, _, _) =>
             Some(FunctionPoint(fun, fun.sourceObject, query))
           case _ => None
         }
