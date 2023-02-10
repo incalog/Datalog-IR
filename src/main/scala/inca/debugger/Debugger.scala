@@ -77,8 +77,8 @@ trait Debugger extends DebuggerAPI {
     breakpointHandler.isAtBreakpoint(queryStack.top)
 
   def varsIR: ValueTable = queryStack.top match {
-    case Subquery(_, _, _, _, RuleResult(res) +: _) => res
-    case Subquery(_, _, _, sup, _) => sup
+    case Subquery(_, _, _, _, _, RuleResult(res) +: _) => res
+    case Subquery(_, _, _, _, sup, _) => sup
     case QueryResult(_, _, result) => result
   }
 
@@ -90,8 +90,9 @@ trait Debugger extends DebuggerAPI {
   def entry(pred: Predicate, args: ValueTable): Unit = {
     val params = predParams(pred)
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
-    val result = ValueTable.empty(params)
-    val query = Subquery(pred, args, result, args, rules)
+    val empty = ValueTable.empty(params)
+    val query = Subquery(pred, args, empty, empty, args, rules)
+    state.addNewQuery(pred, args)
     state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
     state.insertBlacklist(pred, args)
     pushSubqueryHook(pred, args)
@@ -140,7 +141,7 @@ trait Debugger extends DebuggerAPI {
           // A-Into or A-Skip
           val unseenQueries = state.addNewQuery(callee, calleeArgs)
           if (unseenQueries.nonEmpty) { // A-Into
-            atomInto(atom, unseenQueries)
+            atomInto(atom, unseenQueries, calleeArgs)
           } else { // A-Skip
             atomSkip(sup, calleeArgs, call)
           }
@@ -154,7 +155,7 @@ trait Debugger extends DebuggerAPI {
   }
 
   // has a side-effect as it pushes a new subquery onto the query stack
-  protected def atomInto(atom: Datalog.Atom, args: ValueTable): AtomEval = {
+  protected def atomInto(atom: Datalog.Atom, args: ValueTable, calleeArgs: ValueTable): AtomEval = {
     val Datalog.Call(pred, _, _, _) = atom
     val params = predParams(pred)
     val rules = preds(pred).bodies
@@ -163,8 +164,9 @@ trait Debugger extends DebuggerAPI {
       state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
       state.insertBlacklist(pred, args)
     }
+    val oldResult = state.readTopDown(pred, calleeArgs)
     val emptyResult = ValueTable.empty(params)
-    val newSubquery = Subquery(pred, args, emptyResult, args, ruleEvals)
+    val newSubquery = Subquery(pred, args, oldResult, emptyResult, args, ruleEvals)
     pushSubqueryHook(pred, args)
     queryStack.push(newSubquery)
     Atom(atom)
@@ -180,18 +182,14 @@ trait Debugger extends DebuggerAPI {
   }
 
   private def queryReduction(query: Query, stepOver: Boolean): Query = query match {
-    case Subquery(pred, args, result, sup, rules @ Rule(_, _, _) +: _) => // Q-Step
+    case Subquery(pred, args, oldResult, result, sup, rules @ Rule(_, _, _) +: _) => // Q-Step
       val (nextRule, nextSup) = ruleReduction(sup, rules.head, stepOver)
-      Subquery(pred, args, result, nextSup, nextRule +: rules.tail)
+      Subquery(pred, args, oldResult, result, nextSup, nextRule +: rules.tail)
 
-    case Subquery(pred, args, result, _, rules @ RuleResult(ruleResult) +: _) => // Q-Union
-      // TODO QSQR adds tuples to global state after rule has been processed
-      if (isCyclic(pred)) {
-        state.insertTopDown(pred, ruleResult)
-      }
-      Subquery(pred, args, result.union(ruleResult), args, rules.tail)
+    case Subquery(pred, args, oldResult, result, _, rules @ RuleResult(ruleResult) +: _) => // Q-Union
+      Subquery(pred, args, oldResult, result.union(ruleResult), args, rules.tail)
 
-    case Subquery(pred, args, result, _, Nil) =>
+    case Subquery(pred, args, oldResult, result, _, Nil) =>
       if (isCyclic(pred)) {
         if (isStable(query)) { // Q-Stable
           queryStable(query)
@@ -199,11 +197,10 @@ trait Debugger extends DebuggerAPI {
           val params = predParams(pred)
           val rules = preds(pred).bodies
           val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
-          // Q-Iterate will only be called for non-cyclic predicates
+          // Q-Iterate will only be called for cyclic predicates
           // hence we only store top-down derived tuples for cyclic predicates
           state.insertTopDown(pred, result)
-          // TODO this is different to the formalization
-          Subquery(pred, args, result, args, ruleEvals)
+          Subquery(pred, args, oldResult, ValueTable.empty(params), args, ruleEvals)
         }
       } else {
         // non-cyclic predicates are always stable after a single iteration => Q-Stable
@@ -219,13 +216,19 @@ trait Debugger extends DebuggerAPI {
   }
 
   private def queryStable(q: Query): Query = {
-    val Subquery(pred, args, result, _, Seq()) = q
+    val Subquery(pred, args, oldResult, newResult, _, Seq()) = q
+    val fullResult = oldResult.union(newResult)
+
     // we insert when the query is stable because we avoid a non-producing iteration
     if (isCyclic(pred)) {
-      state.insertTopDown(pred, result)
+      state.removeNewQuery(pred, args)
+      state.insertTopDown(pred, newResult)
+      state.deleteBlacklist(pred, args)
+      QueryResult(pred, args, fullResult)
     }
-    state.deleteBlacklist(pred, args)
-    QueryResult(pred, args, result)
+    else {
+      QueryResult(pred, args, fullResult)
+    }
   }
 
   /*
@@ -238,7 +241,7 @@ trait Debugger extends DebuggerAPI {
     }
 
   private def isStable(query: Query): Boolean = query match {
-    case Subquery(p, args, result, _, Nil) => state.isStable(p, args, result, queryStack.size)
+    case Subquery(p, args, _, result, _, Nil) => state.isStable(p, args, result, queryStack.size)
     case _ => false
   }
 
@@ -270,7 +273,7 @@ trait Debugger extends DebuggerAPI {
       calleeArgs: ValueTable,
       calleeResult: ValueTable
     ): Query = {
-    val Subquery(pred, args, result, sup, rules) = query
+    val Subquery(pred, args, oldResult, result, sup, rules) = query
     val Rule(_, params, atoms) = rules.head
     val Atom(Datalog.Call(callee, calleeTerms, _, neg)) = atoms.head
     val wholeCalleeResult =
@@ -281,7 +284,7 @@ trait Debugger extends DebuggerAPI {
     val atomTable = fitToSupplementary(callee, calleeTerms, wholeCalleeResult, sup)
     val tableSign = if (neg) NegativeTable else PositiveTable
     val rule = Rule(pred, params, AtomResult(atomTable, tableSign) +: atoms.tail)
-    Subquery(pred, args, result, sup, rule +: rules.tail)
+    Subquery(pred, args, oldResult, result, sup, rule +: rules.tail)
   }
 
   protected def fitToSupplementary(
@@ -321,10 +324,10 @@ trait Debugger extends DebuggerAPI {
   }
 
   private def shortCircuitIfPossible(query: Query): Query = query match {
-    case Subquery(pred, args, result, sup, _ :: rules) =>
+    case Subquery(pred, args, oldResult, result, sup, _ :: rules) =>
       val params = predParams(pred)
       val ruleResult = ValueTable.empty(params)
-      Subquery(pred, args, result, sup, RuleResult(ruleResult) +: rules)
+      Subquery(pred, args, oldResult, result, sup, RuleResult(ruleResult) +: rules)
     case _ => query
   }
 
@@ -341,7 +344,7 @@ trait Debugger extends DebuggerAPI {
       return false
     }
     queryStack.top match {
-      case Subquery(pred, args, _, _, _) =>
+      case Subquery(pred, args, _, _, _, _) =>
         state.deleteBlacklist(pred, args)
         val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
         queryStack.update(QueryResult(pred, args, bottomUpResult))

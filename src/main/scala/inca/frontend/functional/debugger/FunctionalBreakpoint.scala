@@ -67,7 +67,7 @@ object FunctionalBreakpoint {
           val remRules = pat.bodies.drop(bodyIdx + 1).map { r =>
             Rule(f, params, r.atoms.map(Atom))
           }
-          Subquery(pat.name, null, null, null, rule +: remRules)
+          Subquery(pat.name, null, null, null, null, rule +: remRules)
         }
     }
     queries.map(IRBreakpoint.apply)

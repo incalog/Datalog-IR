@@ -297,7 +297,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       stepInto()
   }
 
-  override protected def atomInto(atom: Datalog.Atom, args: ValueTable): AtomEval = {
+  override protected def atomInto(atom: Datalog.Atom, args: ValueTable, calleeArgs: ValueTable): AtomEval = {
     val Subquery(_, _, _, sup, _) = queryStack.top
     val Datalog.Call(pred, argTerms, _, _) = atom
     val pat = preds(pred)
@@ -308,7 +308,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       val calleeResult = state.readBottomUp(pred, argsTable)
       val table = fitToSupplementary(pred, argTerms, calleeResult, sup)
       AtomResult(table, PositiveTable)
-    } else super.atomInto(atom, args)
+    } else super.atomInto(atom, args, calleeArgs)
   }
 
   override def pushSubqueryHook(pred: Predicate, args: ValueTable): Unit = {

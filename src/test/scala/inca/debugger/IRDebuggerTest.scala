@@ -627,7 +627,13 @@ class IRDebuggerTest extends AnyFunSuite {
     println(debugger.queryStack.top)
     while (!debugger.isFinished) {
       debugger.stepInto()
-      println(debugger.queryStack.top)
+      val q = debugger.queryStack.top
+      q match {
+        case Subquery(_, _, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
+          println(debugger.queryStack.top)
+        case _ =>
+          println(debugger.queryStack.top)
+      }
     }
     assert(debugger.isFinished)
 
@@ -639,8 +645,17 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(3))))
     debugger.entry("path", args)
-    while (!debugger.isFinished)
+    println(debugger.queryStack.top)
+    while (!debugger.isFinished) {
       debugger.stepInto()
+      val q = debugger.queryStack.top
+      q match {
+        case Subquery(_, _, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
+          println(debugger.queryStack.top)
+        case _ => // nothing
+          println(debugger.queryStack.top)
+      }
+    }
     assert(debugger.isFinished)
 
     assertExpectedTable(debugger, "path", args)

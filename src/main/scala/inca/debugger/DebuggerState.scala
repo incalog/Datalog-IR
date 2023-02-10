@@ -181,6 +181,19 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
+  def removeNewQuery(pred: Predicate, args: ValueTable): Unit = {
+    val adornment = adorn(pred, args)
+    // We don't need to reset this at any point
+    // If we have already seen this all of this query already and see it again, we will already have derived the fixpoint
+    seenQueries.get(pred -> adornment) match {
+      case Some(seen) =>
+        val remaining = seen.diff(args)
+        seenQueries += (pred -> adornment) -> remaining
+      case None =>
+        throw IllegalDebugStateException(s"Remove query failed, query does not exist: $pred $args")
+    }
+  }
+
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable, stackHeight: Int): Boolean = {
     val topdown = readTopDown(pred, args)
     result.subset(topdown)
