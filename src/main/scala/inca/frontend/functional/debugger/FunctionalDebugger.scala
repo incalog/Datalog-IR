@@ -121,7 +121,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     getFunction(query.pred) match {
       case Some(fun) =>
         query match {
-          case Subquery(_, _, _, sup, Rule(_, _, atoms) +: _) if sup.nonEmpty =>
+          case Subquery(_, _, _, _, sup, Rule(_, _, atoms) +: _) if sup.nonEmpty =>
             atoms match {
               case Nil => None
               case Atom(atom) :: _ =>
@@ -145,7 +145,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   }
 
   private def skipRule(query: Query): Boolean = query match {
-    case Subquery(_, _, _, _, Rule(_, _, atoms) +: _) =>
+    case Subquery(_, _, _, _, _, Rule(_, _, atoms) +: _) =>
       val skipElses = skipElseBranches.head
       val skipMatches = skipAlternativePatterns.head
       if (skipElses.isEmpty && skipMatches.isEmpty)
@@ -219,7 +219,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   }
 
   private def liftAtAtom(query: Query): Option[FunctionalControlPoint] = {
-    val Subquery(pred, _, _, sup, rules @ Rule(_, _, Atom(atom) +: _) +: _) = query
+    val Subquery(pred, _, _, _, sup, rules @ Rule(_, _, Atom(atom) +: _) +: _) = query
     val fun = getFunction(pred).get
     atom.getHint(SourceConstruct.key) match {
       case Some(SourceConstruct(constr: Expression)) =>
@@ -297,8 +297,12 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       stepInto()
   }
 
-  override protected def atomInto(atom: Datalog.Atom, args: ValueTable, calleeArgs: ValueTable): AtomEval = {
-    val Subquery(_, _, _, sup, _) = queryStack.top
+  override protected def atomInto(
+      atom: Datalog.Atom,
+      args: ValueTable,
+      calleeArgs: ValueTable
+    ): AtomEval = {
+    val Subquery(_, _, _, _, sup, _) = queryStack.top
     val Datalog.Call(pred, argTerms, _, _) = atom
     val pat = preds(pred)
     val isConstr = pat.hasHint(DataHints.ConstructorKey)

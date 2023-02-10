@@ -184,7 +184,14 @@ trait Debugger extends DebuggerAPI {
       val (nextRule, nextSup) = ruleReduction(sup, rules.head, stepOver)
       Subquery(pred, args, oldResult, result, nextSup, nextRule +: rules.tail)
 
-    case Subquery(pred, args, oldResult, result, _, rules @ RuleResult(ruleResult) +: _) => // Q-Union
+    case Subquery(
+          pred,
+          args,
+          oldResult,
+          result,
+          _,
+          rules @ RuleResult(ruleResult) +: _
+        ) => // Q-Union
       Subquery(pred, args, oldResult, result.union(ruleResult), args, rules.tail)
 
     case Subquery(pred, args, oldResult, result, _, Nil) =>
@@ -223,8 +230,7 @@ trait Debugger extends DebuggerAPI {
       state.insertTopDown(pred, newResult)
       state.deleteBlacklist(pred, args)
       QueryResult(pred, args, fullResult)
-    }
-    else {
+    } else {
       QueryResult(pred, args, fullResult)
     }
   }
