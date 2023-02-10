@@ -23,13 +23,11 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
   val topDownResults: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   val seenQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
-  val fixpointSize: mutable.Map[(Predicate, ValueTable, Int), Int] = mutable.Map.empty
 
   def clear(): Unit = {
     blacklist.clear()
     topDownResults.clear()
     seenQueries.clear()
-    fixpointSize.clear()
   }
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
@@ -99,11 +97,6 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-  def storeExpectedFixpointSize(pred: Predicate, args: ValueTable, stackHeight: Int): Unit = {
-//    val bottomUpSize = readBlacklistedBottomUp(pred, args).size
-//    fixpointSize += (pred, args, stackHeight) -> bottomUpSize
-  }
-
   def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
     val adornment = adorn(pred, args)
     blacklist.get(pred -> adornment) match {
@@ -168,8 +161,6 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
 
   def addNewQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
-    // We don't need to reset this at any point
-    // If we have already seen this all of this query already and see it again, we will already have derived the fixpoint
     seenQueries.get(pred -> adornment) match {
       case Some(seen) =>
         val remaining = args.diff(seen)
@@ -183,8 +174,6 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
 
   def removeNewQuery(pred: Predicate, args: ValueTable): Unit = {
     val adornment = adorn(pred, args)
-    // We don't need to reset this at any point
-    // If we have already seen this all of this query already and see it again, we will already have derived the fixpoint
     seenQueries.get(pred -> adornment) match {
       case Some(seen) =>
         val remaining = seen.diff(args)

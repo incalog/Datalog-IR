@@ -93,7 +93,6 @@ trait Debugger extends DebuggerAPI {
     val empty = ValueTable.empty(params)
     val query = Subquery(pred, args, empty, empty, args, rules)
     state.addNewQuery(pred, args)
-    state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
     state.insertBlacklist(pred, args)
     pushSubqueryHook(pred, args)
     queryStack.push(query)
@@ -161,7 +160,6 @@ trait Debugger extends DebuggerAPI {
     val rules = preds(pred).bodies
     val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     if (isCyclic(pred)) {
-      state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
       state.insertBlacklist(pred, args)
     }
     val oldResult = state.readTopDown(pred, calleeArgs)
