@@ -10,7 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
 
-public class FuncIncaAtomicExpImpl extends FuncIncaExpImpl implements FuncIncaAtomicExp {
+public abstract class FuncIncaAtomicExpImpl extends FuncIncaExpImpl implements FuncIncaAtomicExp {
 
   public FuncIncaAtomicExpImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,12 +25,6 @@ public class FuncIncaAtomicExpImpl extends FuncIncaExpImpl implements FuncIncaAt
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaVar getVar() {
-    return findChildByClass(FuncIncaVar.class);
   }
 
 }

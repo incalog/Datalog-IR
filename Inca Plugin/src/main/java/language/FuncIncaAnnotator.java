@@ -35,8 +35,6 @@ public class FuncIncaAnnotator implements Annotator {
                     .create();
         }
 
-        FuncIncaType elType = FuncIncaTypechecker.typecheckCore(element, holder);
-
     }
 
 }

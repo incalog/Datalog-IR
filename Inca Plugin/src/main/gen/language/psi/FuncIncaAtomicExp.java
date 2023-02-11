@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaAtomicExp extends FuncIncaExp {
 
-  @Nullable
-  FuncIncaVar getVar();
-
 }

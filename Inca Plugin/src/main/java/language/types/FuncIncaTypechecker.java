@@ -4,13 +4,15 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
+import language.FuncIncaUtil;
 import language.psi.*;
+import language.util.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static language.types.TypeContext.bindVar;
-import static language.types.TypeContext.scopedTypeContext;
+import static language.types.TypeContext.*;
 
 public class FuncIncaTypechecker {
 
@@ -19,21 +21,35 @@ public class FuncIncaTypechecker {
     }
     
     public static FuncIncaType typecheckCore(PsiElement exp, @NotNull AnnotationHolder holder) {
+        // System.out.println("AST TYPE " + exp.getClass().getCanonicalName());
         if (exp instanceof FuncIncaVar) {
+                String name = exp.getText();
+                Pair<FuncIncaDecl, FuncIncaType> var = lookupVar(name, (FuncIncaVar) exp, holder);
+                FuncIncaDecl decl = var.getFirst();
+                FuncIncaType type = var.getSecond();
+                return type;
 
         } else if (exp instanceof FuncIncaLetExp) {
             FuncIncaSingleLet singleLet = ((FuncIncaLetExp) exp).getSingleLet();
             FuncIncaMultipleLet multLet = ((FuncIncaLetExp) exp).getMultipleLet();
+            final FuncIncaType[] bodyType = new FuncIncaType[1];
+
             // single Let Expression
             if (singleLet != null) {
                 FuncIncaDecl decl = singleLet.getVarId();
-                String nameText = singleLet.getVarId().getText();
+                String nameText = decl.getText();
                 FuncIncaTypeAnnotation typeAnno = singleLet.getTypeAnnotation();
                 PsiElement bound = singleLet.getExpList().get(0);
                 FuncIncaType boundType = typecheckCore(bound, holder);
                 PsiElement body = singleLet.getExpList().get(1);
                 if (typeAnno != null) {
                     FuncIncaType expectedType = FuncIncaTypeUtil.psiToFuncIncaType(typeAnno);
+                    if (expectedType instanceof FuncIncaUnitType) {
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                        "Cannot assign Type Unit to " + nameText)
+                                .range(typeAnno)
+                                .create();
+                    }
                     if (!expectedType.equals(boundType)) {
                         holder.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + expectedType + ", but got " + boundType)
@@ -44,27 +60,72 @@ public class FuncIncaTypechecker {
                 if (boundType.equals(new FuncIncaUnitType())) {
                     holder.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot assign expression of Type Unit to " + nameText)
-                            .range(exp)
+                            .range(typeAnno)
                             .create();
-                    boundType = new FuncIncaAnyType();
+                    //boundType = new FuncIncaAnyType(); // TODO whyyy is this happppeningggg (build ordner löschen? rewrite with bool außerhalb if
                 }
                 FuncIncaType finalBoundType = boundType;
                 scopedTypeContext(new Runnable() {
                     @Override
                     public void run() {
                         bindVar(nameText, decl, finalBoundType, holder);
-                        typecheckCore(body, holder);
+                        bodyType[0] = typecheckCore(body, holder);
                     }
                 });
+                return bodyType[0];
             }
+
             if (multLet != null) {
-                // TODO
+                List<FuncIncaVarId> decls = multLet.getVarIdList();
+                int n = decls.size();
+                List<String> nameText = decls.stream().map(e -> e.getText()).collect(Collectors.toList());
+                List<FuncIncaTypeAnnotation> typeAnnos = multLet.getTypeAnnotationList();
+                PsiElement bound = multLet.getExpList().get(0);
+                FuncIncaType boundType = typecheckCore(bound, holder);
+                PsiElement body = multLet.getExpList().get(1);
+                if (typeAnnos != null) {
+                    // TODO
+                }
+                if (!(boundType instanceof FuncIncaTupleType)) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Expected Tuple type, but got " + boundType)
+                            .range(bound)
+                            .create();
+                    // boundType = new FuncIncaTupleType(Collections.nCopies(n, new FuncIncaAnyType()));
+                } else {
+                    List<FuncIncaType> tupleTypes = ((FuncIncaTupleType) boundType).getTypes();
+                    int m = tupleTypes.size();
+                    if (n != m) {
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Cannot assign " + m + "-ary tuple to " + n + " variables")
+                                .range(bound)
+                                .create();
+                        if (n < m) { // more types than variables
+                            // boundType = new FuncIncaTupleType(tupleTypes.subList(0, n));
+                        } else { // n > m, more variables than types
+                            List<FuncIncaType> additionalTypes = Collections.nCopies(n-m, new FuncIncaAnyType());
+                            tupleTypes.addAll(additionalTypes);
+                            // boundType = new FuncIncaTupleType(tupleTypes);
+                        }
+                    }
+                }
+                List<FuncIncaType> tupleTypes = ((FuncIncaTupleType) boundType).getTypes();
+                scopedTypeContext(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < n; i++) {
+                            bindVar(nameText.get(i), decls.get(i), tupleTypes.get(i), holder);
+                        }
+                        bodyType[0] = typecheckCore(body, holder);
+                    }
+                });
+                return bodyType[0];
             }
         } else if (exp instanceof FuncIncaCastExp) {
             PsiElement ex = ((FuncIncaCastExp) exp).getExp();
             PsiElement ct = ((FuncIncaCastExp) exp).getTypeName();
             FuncIncaType castType = new FuncIncaTypeNameType(ct.getText());
-            FuncIncaType exType = typecheck(ex, holder);
+            FuncIncaType exType = typecheckCore(ex, holder);
             if (meet(exType, castType).equals(new FuncIncaNothingType()))
                 holder.newAnnotation(HighlightSeverity.ERROR,
                         "Type cast of " + castType + " is not compatible with inferred type " + exType + " of e " + exp).
@@ -75,20 +136,39 @@ public class FuncIncaTypechecker {
             FuncIncaType condType = typecheck(cond, holder);
             if (!(condType instanceof FuncIncaBooleanType)) {
                 holder.newAnnotation(HighlightSeverity.ERROR,
-                        "Expected Boolean condition, but got " + condType).range(cond).create();
+                        "Expected Boolean condition, but got " + condType)
+                        .range(cond)
+                        .create();
             }
             FuncIncaType thenType = typecheck(((FuncIncaIfExp) exp).getExpList().get(1), holder);
             FuncIncaType elseType = typecheck(((FuncIncaIfExp) exp).getExpList().get(2), holder);
             return join(thenType, elseType);
+        } else if (exp instanceof FuncIncaParensExp) {
+            return typecheckCore(((FuncIncaParensExp) exp).getExp(), holder);
         } else if (exp instanceof FuncIncaTupleExp) {
             List<FuncIncaType> tupleTypes = new ArrayList<>();
             for (PsiElement e : ((FuncIncaTupleExp) exp).getExpList())
                 tupleTypes.add(typecheck(e, holder));
             return new FuncIncaTupleType(tupleTypes);
         } else if (exp instanceof FuncIncaLambdaExp) {
-            // TODO scopedTypeContext(...)
+            List<FuncIncaParam> params = ((FuncIncaLambdaExp) exp).getParamList().getParamList();
+            FuncIncaExp body = ((FuncIncaLambdaExp) exp).getExp();
+            final FuncIncaType[] returnType = new FuncIncaType[1];
+            scopedTypeContext(new Runnable() {
+                @Override
+                public void run() {
+                    for (FuncIncaParam param : params) {
+                        String name = param.getText();
+                        FuncIncaType type = FuncIncaTypeUtil.psiToFuncIncaType(param.getTypeAnnotation());
+                        bindVar(name, param, type, holder);
+                    }
+                    returnType[0] = typecheckCore(body, holder);
+                }
+            });
+            return returnType[0];
+
         } else if (exp instanceof FuncIncaCallExp) {
-            // TODO
+
         } else if (exp instanceof FuncIncaMatchExp) {
             FuncIncaExp matchee = ((FuncIncaMatchExp) exp).getExp();
             List<FuncIncaMatchCase> cases = ((FuncIncaMatchExp) exp).getMatchCaseList();
@@ -119,7 +199,6 @@ public class FuncIncaTypechecker {
                     caseTypes.add(typecheck(matchCase.getExp(), holder));
                 return join(caseTypes);
             }
-            // FuncIncaOptionType?
         } else if (exp instanceof FuncIncaBaseLitExp) {
             PsiElement e = exp.getFirstChild();
             if (e instanceof FuncIncaIntLit) {
@@ -135,8 +214,9 @@ public class FuncIncaTypechecker {
             } else {
                 // type scalaterm
             }
-        } else if (exp instanceof FuncIncaBaseApplyExp) {
-            
+        } else
+            if (exp instanceof FuncIncaBaseApplyExp) {
+
         } else if (exp instanceof FuncIncaBaseApplyUnaryExp) {
             String op = ((FuncIncaBaseApplyUnaryExp) exp).getUnaryOp().getText();
             FuncIncaType eType = typecheckCore(((FuncIncaBaseApplyUnaryExp) exp).getExp(), holder);
@@ -168,9 +248,11 @@ public class FuncIncaTypechecker {
                     return new FuncIncaAnyType();
 
             }
-        } else if (exp instanceof FuncIncaBaseApplyMethodExp) {
-            
-        } else if (exp instanceof FuncIncaBaseApplyInfixExp) {
+        } else
+            if (exp instanceof FuncIncaBaseApplyMethodExp) {
+
+        } else
+            if (exp instanceof FuncIncaBaseApplyInfixExp) {
             List<FuncIncaExp> children = ((FuncIncaBaseApplyInfixExp) exp).getExpList();
             String op = ((FuncIncaBaseApplyInfixExp) exp).getOp().getText();
             FuncIncaType lhsType = typecheckCore(children.get(0), holder);
@@ -217,31 +299,22 @@ public class FuncIncaTypechecker {
 
         } else if (exp instanceof FuncIncaConstSetExp) {
             List<FuncIncaExp> items = ((FuncIncaConstSetExp) exp).getExpList(); // TODO join ItemTypes to determine SetType
-            boolean homogen = true;
-            FuncIncaType setType;
-            if (items.size() == 1) {
-                setType = typecheckCore(items.get(0), holder);
-            } else {
-                setType = typecheckCore(items.remove(0), holder);
+            List<FuncIncaType> setTypes = new ArrayList<>();
+            FuncIncaType setType = new FuncIncaNothingType();
+            if (items.size() != 0) {
                 for (FuncIncaExp item : items) {
                     FuncIncaType itemType = typecheckCore(item, holder);
-                    if (!subtype(itemType, setType)) {
-                        holder.newAnnotation(HighlightSeverity.ERROR, "Expected type " + setType + ", but got " +
-                                        itemType)
-                                .range(item)
-                                .create();
-                        homogen = false;
-                    }
+                    setTypes.add(itemType);
                 }
+                setType = join(setTypes);
             }
-            if (homogen) return new FuncIncaSetType(setType);
-            else return new FuncIncaSetType(new FuncIncaAnyType());
+            return new FuncIncaSetType(setType);
         } else if (exp instanceof FuncIncaMemberExp) {
-            
+
         } else if (exp instanceof FuncIncaComprehensionExp) {
-            
+
         } else if (exp instanceof FuncIncaFoldExp) {
-            
+
         }
         // TODO
         return new FuncIncaAnyType();

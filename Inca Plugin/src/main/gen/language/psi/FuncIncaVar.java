@@ -6,7 +6,7 @@ import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 
-public interface FuncIncaVar extends FuncIncaNamedVariable {
+public interface FuncIncaVar extends FuncIncaExp, FuncIncaNamedVariable {
 
   @NotNull
   PsiElement getId();

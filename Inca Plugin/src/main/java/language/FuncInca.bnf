@@ -100,6 +100,7 @@
   data_def : name of new data type
   cons_pattern_id : name of variables introduced during pattern matching with constructors
   cons_id : name of constructor in constructor pattern
+  type_cons_id : name of a type constructor
   var_id : name of new variable introduced with let construct
    */
   implements("var")="language.psi.FuncIncaNamedVariable"
@@ -107,11 +108,11 @@
   methods("var")=[getName setName getNameIdentifier]
   methods("var|type_name|cons_id")=[getReference]
 
-  extends(".*exp") = exp
+  extends(".*exp|var") = exp
 }
 
-module ::= keyword_module id import* module_content* {pin = 1}
-import ::= keyword_import id {pin = 1}
+module ::= 'module' id import* module_content* {pin = 1}
+import ::= 'import' id {pin = 1}
 private module_content ::= fun_def | data_def
 /*
 private parens_recover ::= !('{' | '}' | '(' | ')' | '[' | '[')
@@ -120,7 +121,7 @@ private keywords_recover ::= !('module' | 'data' | 'def' | 'if' | 'else' | 'let'
 */
 
 // definition of functions
-fun_def ::= annotation* visibility? keyword_def id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
+fun_def ::= annotation* visibility? 'def' id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
 param_types ::= '[' param_type (',' param_type)* ']'
 param_type ::= id
 param_list ::= (param (',' param)*)?
@@ -129,17 +130,17 @@ annotation ::= '@main'
 visibility ::= 'private'
 
 // definition of datatypes
-data_def ::= annotation* visibility? keyword_data id param_types? '=' data_constructor ('|' data_constructor)* {pin = 3}
+data_def ::= annotation* visibility? 'data' id param_types? '=' data_constructor ('|' data_constructor)* {pin = 3}
 data_constructor ::= id param_types? '(' (type_annotation (',' type_annotation)*)? ')'
 
 // expressions
 exp ::= if_exp | let_exp | member_exp | infix_exp
-if_exp ::= keyword_if '(' exp ')' exp keyword_else exp {pin = 1}
-let_exp ::= keyword_let (single_let | multiple_let) {pin = 1}
+if_exp ::= 'if' '(' exp ')' exp 'else' exp {pin = 1}
+let_exp ::= 'let' (single_let | multiple_let) {pin = 1}
 single_let ::= var_id (':' type_annotation)? '=' infix_exp keyword_in exp
-multiple_let ::= '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
+multiple_let ::= '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)+ ')' '=' infix_exp keyword_in exp
 var_id ::= id
-member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
+member_exp ::= atomic_exp 'not'? 'in' infix_exp {pin = 3}
 
 //infix expressions
 infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
@@ -149,8 +150,8 @@ base_apply_infix_exp ::= subinfix_exp op infix_exp {pin = op}
 op ::= '+' | '-' | '*' | '/' | '%' // arithmetic
         | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
         | '++' | '&' // sets
-match_exp ::=  subinfix_exp keyword_match '{' match_case* '}' {pin = 2}
-match_case ::= keyword_case pattern '=>' exp {pin = 1}
+match_exp ::=  subinfix_exp 'match' '{' match_case* '}' {pin = 2}
+match_case ::= 'case' pattern '=>' exp {pin = 1}
 pattern ::= option_pattern | constructor_pattern
 option_pattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
 constructor_pattern ::= cons_id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
@@ -169,8 +170,8 @@ parens_exp ::= '(' exp ')'
 option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
 comprehension_exp ::= '{' subinfix_exp '|' exp (',' exp)* '}' {pin = 3}
 const_set_exp ::= '{' (exp (',' exp)*)? '}'
-tuple_exp ::= '(' exp ',' exp ')'
-fold_exp ::= keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')' {pin = 1}
+tuple_exp ::= '(' exp (',' exp)+ ')'
+fold_exp ::= 'fold' ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')' {pin = 1}
 base_apply_exp ::= scala_term '(' (exp (',' exp)*)? ')'
 var ::= id
 base_apply_unary_exp ::= unary_op infix_exp {pin = 1}
@@ -182,8 +183,8 @@ fun_type ::= atomic_type '=>' type_annotation {pin = 2}
 atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | primitive_type | set | constr | scala_term |type_name
 constr ::= var '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
-option ::= keyword_Option '[' type_annotation ']' {pin = 1}
-set ::= keyword_Set '[' type_annotation ']' {pin = 1}
+option ::= 'Option' '[' type_annotation ']' {pin = 1}
+set ::= 'Set' '[' type_annotation ']' {pin = 1}
 type_name ::= id
 primitive_type ::= type_int | type_long | type_double | type_boolean | type_string
 

@@ -36,7 +36,6 @@ public interface FuncIncaTypes {
   IElementType IMPORT = new FuncIncaElementType("IMPORT");
   IElementType INFIX_EXP = new FuncIncaElementType("INFIX_EXP");
   IElementType INT_LIT = new FuncIncaElementType("INT_LIT");
-  IElementType KEYWORDS = new FuncIncaElementType("KEYWORDS");
   IElementType LAMBDA_EXP = new FuncIncaElementType("LAMBDA_EXP");
   IElementType LET_EXP = new FuncIncaElementType("LET_EXP");
   IElementType LONG_LIT = new FuncIncaElementType("LONG_LIT");
@@ -142,9 +141,6 @@ public interface FuncIncaTypes {
       if (type == ANNOTATION) {
         return new FuncIncaAnnotationImpl(node);
       }
-      else if (type == ATOMIC_EXP) {
-        return new FuncIncaAtomicExpImpl(node);
-      }
       else if (type == ATOMIC_TYPE) {
         return new FuncIncaAtomicTypeImpl(node);
       }
@@ -216,9 +212,6 @@ public interface FuncIncaTypes {
       }
       else if (type == INT_LIT) {
         return new FuncIncaIntLitImpl(node);
-      }
-      else if (type == KEYWORDS) {
-        return new FuncIncaKeywordsImpl(node);
       }
       else if (type == LAMBDA_EXP) {
         return new FuncIncaLambdaExpImpl(node);

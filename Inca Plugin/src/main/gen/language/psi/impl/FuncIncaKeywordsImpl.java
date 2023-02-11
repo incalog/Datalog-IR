@@ -18,7 +18,7 @@ public class FuncIncaKeywordsImpl extends ASTWrapperPsiElement implements FuncIn
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitKeywords(this);
+    // visitor.visitKeywords(this);
   }
 
   @Override

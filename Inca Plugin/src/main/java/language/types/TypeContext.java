@@ -5,11 +5,8 @@ import com.google.gson.reflect.TypeToken;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
-import kotlin.Pair;
-import language.psi.FuncIncaDataDef;
-import language.psi.FuncIncaDecl;
-import language.psi.FuncIncaParamType;
-import language.psi.FuncIncaVar;
+import language.psi.*;
+import language.util.*;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -19,7 +16,9 @@ public class TypeContext {
     private static TypeContext instance = new TypeContext();
     private static Map<String, Pair<FuncIncaDecl, FuncIncaType>> vars; // name -> (declaration, type)
     private static Map<String, FuncIncaParamType> tyVars; // name -> declaration
-    private static Map<String, FuncIncaType> funDefs; //
+    // MultiDict K V = Dict K List V
+
+    private static Map<String, Pair<FuncIncaDecl, FuncIncaType>> funDefs; //
     private static Map<String, FuncIncaDataDef> dataDefs; // name -> declaration
 
     private TypeContext() {
@@ -45,20 +44,10 @@ public class TypeContext {
     public static void scopedTypeContext(Runnable runnable) {
         Map<String, Pair<FuncIncaDecl, FuncIncaType>> varsSaved = copyMap(vars);
         Map<String, FuncIncaParamType> tyVarsSaved = copyMap(tyVars);
-        Map<String, FuncIncaType> funDefsSaved = copyMap(funDefs);
+        Map<String, Pair<FuncIncaDecl, FuncIncaType>> funDefsSaved = copyMap(funDefs);
         Map<String, FuncIncaDataDef> dataDefsSaved = dataDefs;
 
         runnable.run();
-
-        /*
-
-
-action(new Runnable(){
-    void run(){
-        System.out.println("Hello");
-    }
-});
-        * */
 
         vars = varsSaved;
         tyVars = tyVarsSaved;
@@ -82,23 +71,24 @@ action(new Runnable(){
 
     public static Pair<FuncIncaDecl, FuncIncaType> lookupVar(String name, FuncIncaVar var, AnnotationHolder holder) {
         Pair<FuncIncaDecl, FuncIncaType> v = vars.get(name);
-        if (var == null) {
-            // TODO case None =>
-            //        funs.get(name) match {
-            //          case set if set.size == 1 =>
-            //            Some(set.head._2)
-            //          case set if set.size >= 2 =>
-            //            val modules = set.toSeq.map(_._1)
-            //            val modulesStr = modules.map(_.name).mkString(", ")
-            //            error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
-            //            None
-            //          case _ =>
-            //            error(s"Unbound variable $name", name)
-            //            None
-            holder.newAnnotation(HighlightSeverity.ERROR,
-                            "Unbound variable " + name)
-                    .range(var)
-                    .create();
+        if (v == null) { // name not found in vars
+            v = funDefs.get(name);
+            if (v == null) { // name not found in funDefs
+                holder.newAnnotation(HighlightSeverity.ERROR,"Unbound variable " + name)
+                        .range(var)
+                        .create();
+                // TODO return / error
+            } else { // name found in funDefs
+                // TODO case None =>
+                //        funs.get(name) match {
+                //          case set if set.size == 1 =>
+                //            Some(set.head._2)
+                //          case set if set.size >= 2 =>
+                //            val modules = set.toSeq.map(_._1)
+                //            val modulesStr = modules.map(_.name).mkString(", ")
+                //            error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+                //            None
+            }
         }
         return v;
     }
