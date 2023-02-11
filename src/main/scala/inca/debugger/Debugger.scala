@@ -205,19 +205,19 @@ trait Debugger extends DebuggerAPI {
           // Q-Iterate will only be called for cyclic predicates
           // hence we only store top-down derived tuples for cyclic predicates
           state.insertTopDown(pred, result)
-          Subquery(pred, args, oldResult, ValueTable.empty(params), args, ruleEvals)
+          Subquery(pred, args, oldResult.union(result), ValueTable.empty(params), args, ruleEvals)
         }
       } else {
         // non-cyclic predicates are always stable after a single iteration => Q-Stable
         // this optimization is not present in the formal semantics
         queryStable(query)
       }
-    case QueryResult(pred, args, result) =>
+    case QueryResult(pred, _, result) =>
       // This rule is not present in the formal semantics
       // It is required because we use a querystack instead of nested subqueries
       popSubqueryHook(pred, result)
       queryStack.pop()
-      replaceCallWithAtomResult(queryStack.top, args, result)
+      replaceCallWithAtomResult(queryStack.top, result)
   }
 
   private def queryStable(q: Query): Query = {
@@ -245,7 +245,7 @@ trait Debugger extends DebuggerAPI {
     }
 
   private def isStable(query: Query): Boolean = query match {
-    case Subquery(p, args, _, result, _, Nil) => state.isStable(p, args, result, queryStack.size)
+    case Subquery(p, args, _, result, _, Nil) => state.isStable(p, args, result)
     case _ => false
   }
 
@@ -274,18 +274,12 @@ trait Debugger extends DebuggerAPI {
 
   protected def replaceCallWithAtomResult(
       query: Query,
-      calleeArgs: ValueTable,
       calleeResult: ValueTable
     ): Query = {
     val Subquery(pred, args, oldResult, result, sup, rules) = query
     val Rule(_, params, atoms) = rules.head
     val Atom(Datalog.Call(callee, calleeTerms, _, neg)) = atoms.head
-    val wholeCalleeResult =
-      if (isCyclic(callee))
-        calleeResult.union(state.readTopDown(pred, calleeArgs))
-      else
-        calleeResult
-    val atomTable = fitToSupplementary(callee, calleeTerms, wholeCalleeResult, sup)
+    val atomTable = fitToSupplementary(callee, calleeTerms, calleeResult, sup)
     val tableSign = if (neg) NegativeTable else PositiveTable
     val rule = Rule(pred, params, AtomResult(atomTable, tableSign) +: atoms.tail)
     Subquery(pred, args, oldResult, result, sup, rule +: rules.tail)

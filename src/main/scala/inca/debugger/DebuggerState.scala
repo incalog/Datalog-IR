@@ -183,7 +183,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
-  def isStable(pred: Predicate, args: ValueTable, result: ValueTable, stackHeight: Int): Boolean = {
+  def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
     val topdown = readTopDown(pred, args)
     result.subset(topdown)
   }
