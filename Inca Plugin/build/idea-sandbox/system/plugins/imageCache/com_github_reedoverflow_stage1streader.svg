@@ -1,9 +1,0 @@
-<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
-	<title>pluginIcon-svg</title>
-	<style>
-		.s0 { fill: #000000;stroke: #cccc66;stroke-width: .1 } 
-		.s1 { fill: #cccc66;stroke: #000000;stroke-width: .1 } 
-	</style>
-	<path id="Layer" class="s0" d="m19.9 37c-9.4 0-17-7.6-17-17.1 0-9.4 7.6-17 17.1-17 9.4 0 17 7.6 17 17.1 0 9.4-7.6 17-17.1 17z"/>
-	<path id="Layer" class="s1" d="m17.7 1.2h4.5v38.1h-4.5z"/>
-</svg>
