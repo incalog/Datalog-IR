@@ -32,7 +32,6 @@ To execute a program of the constraint-based frontend we provide a `ConstraintEx
 - `inca.frontend.examples.constraint.BinaryTreeExamples`
 - `inca.frontend.examples.constraint.GraphExamples`.
 
-
 ### Backend
 The backend consists of the following:
 - a Datalog dialect used as a intermediate representation (`inca.backend.ir`)
