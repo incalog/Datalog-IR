@@ -1,0 +1,7 @@
+module Apply
+
+def apply(f: Int => Int, x: Int): Int = f(x)
+
+def inc(n: Int): Int = n + 1
+
+@main def main(): Int = apply(inc, 5)

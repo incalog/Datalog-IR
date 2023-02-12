@@ -1,6 +1,6 @@
 package inca.runtime.index
 
-import inca.runtime.index.MetaElements.Link
+import inca.runtime.context.DataModel.Link
 import inca.runtime.index.virtual.VirtualIndexFactory
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import truechange.{LitType, Type}
@@ -10,6 +10,12 @@ sealed trait IndexKey[T] extends IInputKey {
   override def getPrettyPrintableName: String = getStringID
   /** See isStateless in [[org.eclipse.viatra.query.runtime.matchers.context.IQueryMetaContext]]. */
   def isStateless: Boolean = false
+}
+
+case class NamedRelationKey(name: String, arity: Int) extends IndexKey[String] {
+  override def getStringID: String = s"namedRelation#$name($arity)"
+  override def getArity: Int = arity
+  override def isEnumerable: Boolean = true
 }
 
 case class NodeTypeKey(id: Type) extends IndexKey[Type] {

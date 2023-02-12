@@ -1,6 +1,6 @@
 package inca.runtime.context
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IEngineContext}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext
 

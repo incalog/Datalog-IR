@@ -1,0 +1,6 @@
+$Assign("x", $Num(10))	"x"
+$Assign("y", $Num(1))	"y"
+$Assign("x", $Add($Var("x"), $Num(1)))	"x"
+$Assign("y", $Add($Var("x"), $Var("y")))	"y"
+$Assign("y", $Add($Var("y"), $Var("y")))	"y"
+$Assign("x", $Add($Var("x"), $Num(1)))	"x"

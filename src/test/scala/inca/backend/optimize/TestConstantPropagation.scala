@@ -1,22 +1,22 @@
 package inca.backend.optimize
 
-import inca.IncaMatchers
-import inca.backend.ir.GP._
-import inca.compiler.Options
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.util.Meta.Scala
+import inca.backend.ir.Datalog._
+import inca.frontend.constraint.compiler.ConstraintOptions
+import inca.runtime.context.{DataModel, QueryScope}
+import inca.util.Scala
+import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.meta._
 
-class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
+class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
 
-  val langMeta = new LanguageMetaInfo()
-  val scope = new QueryScope(langMeta)
-  val options = Options(langMeta, optimizations = Seq(ConstantPropagation))
+  val dataModel = new DataModel()
+  val scope = new QueryScope(dataModel)
+  val options = ConstraintOptions(optimizations = Seq(ConstantPropagation))
 
   def optimize(module: Module): Module =
-    ConstantPropagation.optimizer(langMeta).optimizeModule(module)
+    ConstantPropagation.optimizer(dataModel).optimizeModule(module)
 
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))
@@ -34,7 +34,6 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
-          Compare(EqComparator, one, one)
         ))
       ))
     ), Seq())
@@ -53,8 +52,6 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
-          Compare(EqComparator, one, one),
-          Compare(EqComparator, two, two)
         ))
       ))
     ), Seq())
@@ -74,8 +71,6 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
-          Compare(EqComparator, one, one),
-          Compare(EqComparator, two, two),
           Compare(EqComparator, one, two)
         ))
       ))
@@ -86,22 +81,19 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
 
   "ConstantPropagation" must "propagate constants to Eval" in {
     val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(1))
 
-    val code = Scala(q"(x: Int) => x > 1")
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), one),
-          Computed(Var("c"), Evaluation(Seq(Var("b") -> TScalaInt), TScalaBoolean, code))
+          Computed(Var("c"), Evaluation(Seq(Var("b") -> TScalaInt), TScalaBoolean, Scala(q"(x: Int) => x > 1")))
         ))
       ))
     ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Compare(EqComparator, one, one),
-          Computed(Var("c"), Evaluation(Seq(one -> TScalaInt), TScalaBoolean, code))
+          Computed(Var("c"), Evaluation(Seq(), TScalaBoolean, Scala(q"() => 1 > 1")))
         ))
       ))
     ), Seq())

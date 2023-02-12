@@ -1,19 +1,18 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
-import inca.backend.ir.TypeOps
-import inca.frontend.core.CompileToGP.BodyMustFail
-import inca.runtime.context.LanguageMetaInfo
-import inca.util.Meta.Scala
+import inca.backend.ir.Datalog._
+import inca.backend.ir.util.TypeOps
+import inca.runtime.context.DataModel
+import inca.util.Scala
 
 import scala.collection.immutable.MultiDict
 
 /**
  * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
-object InferVarTypes extends Optimization with TypeOps {
+object InferVarTypes extends Optimization {
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer with TypeOps {
 
     private var funs: Map[Name, Seq[Param]] = _
 
@@ -39,9 +38,9 @@ object InferVarTypes extends Optimization with TypeOps {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>
-          val meetType = meet(lit.typ, ty, languageMetaInfo)
+          val meetType = meet(lit.typ, ty, dataModel)
           if (meetType.isEmpty)
-            throw BodyMustFail
+            throwBodyMustFail()
       }
 
       def addPatArgTypes(name: Name, args: Seq[Term]): Unit = {
@@ -55,7 +54,7 @@ object InferVarTypes extends Optimization with TypeOps {
 
       pat.params.foreach(param => addType(Var(param.name), param.typ))
 
-      body.constraints.foreach {
+      body.atoms.foreach {
         case Compare(_, t1, t2) =>
           types(t1).foreach(ty => addType(t2, ty))
           types(t2).foreach(ty => addType(t1, ty))
@@ -71,6 +70,10 @@ object InferVarTypes extends Optimization with TypeOps {
         case Call(name, args, transitive, neg) =>
           if (!neg)
             addPatArgTypes(name, args)
+        case ExtensionalCall(name, args, neg) =>
+          // nothing
+        case Undef(t) =>
+          // nothing
         case Computed(lhs, computation) =>
           computation match {
             case CountAggregation(patName, args) =>
@@ -79,7 +82,7 @@ object InferVarTypes extends Optimization with TypeOps {
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)
-            case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+            case CustomAggregation(typ, _, _, patName, args, aggregatedColumn) =>
               addPatArgTypes(patName, args)
               addType(lhs, typ)
           }
@@ -88,10 +91,10 @@ object InferVarTypes extends Optimization with TypeOps {
       try {
         mostSpecificVarTypes = Map()
         vars.sets.foreach { case (v, tys) =>
-          val meetType = meet(tys, languageMetaInfo)
+          val meetType = meet(tys, dataModel)
           meetType match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
-            case None => throw BodyMustFail
+            case None => throwBodyMustFail()
           }
         }
         super.optimizeBody(body, pat)

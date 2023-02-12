@@ -1,0 +1,2 @@
+module M
+@main def main(n: String): Boolean = n.`contains`("bcd")

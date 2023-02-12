@@ -1,19 +1,22 @@
 package inca.runtime
 
-import java.util
-
+import inca.runtime.data.MockURI
+import inca.runtime.db.{DBValue, DatabaseInspector}
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch, BaseQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import truechange.EditScript
+import truechange.{EditScript, URI}
 
+import java.util
 import scala.jdk.CollectionConverters._
 
 object Query {
   trait ChangeFeed {
     def processEditScript(edits: EditScript)
+    def insert(relName: String, tuple: Tuple)
+    def delete(relName: String, tuple: Tuple)
   }
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query) {
@@ -82,6 +85,15 @@ object Query {
       for (i <- 0 until values.length) {
         if (i != 0) builder.append(", ")
         builder.append("\"" + parameterNames.get(i) + "\"=" + BasePatternMatch.prettyPrintValue(values(i)))
+      }
+      builder.toString
+    }
+
+    def deepPrettyPrint(db: DatabaseInspector): String = {
+      val builder = new StringBuilder
+      for (i <- 0 until values.length) {
+        if (i != 0) builder.append(", ")
+        builder.append("\"" + parameterNames.get(i) + "\"=" + DBValue.prettyPrint(values(i), db))
       }
       builder.toString
     }

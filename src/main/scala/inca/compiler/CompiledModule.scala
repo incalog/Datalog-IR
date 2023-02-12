@@ -1,8 +1,10 @@
 package inca.compiler
 
-import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.frontend.parser.SourceLocation
-import inca.util.Meta
+import inca.backend.analyze.StratificationAnalysis
+import inca.backend.ir.Datalog
+import inca.backend.lowering.{GeneratePSystem, PSystem}
+import inca.runtime.context.DataModel
+import inca.util.Scala
 import inca.util.TupleOps.transClosure
 
 import scala.collection.immutable.MultiDict
@@ -10,29 +12,29 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
-
-  def name: GP.Name
-
+  def name: Datalog.Name
   def sourceLocation: SourceLocation
 
-  def ir: GP.Module
+  def ir: Datalog.Module
+  def dataModel: DataModel
 
-  lazy val patternDependencies: MultiDict[GP.Name, GP.Name] = {
-    var deps = MultiDict[GP.Name, GP.Name]()
+  lazy val patternDependencies: MultiDict[Datalog.Name, Datalog.Name] = {
+    var deps = MultiDict[Datalog.Name, Datalog.Name]()
     for (pat <- ir.pats;
          body <- pat.bodies;
-         con <- body.constraints) con match {
-      case GP.Call(trg, _, _, _) => deps += pat.name -> trg
+         atom <- body.atoms) atom match {
+      case Datalog.Call(trg, _, _, _) => deps += pat.name -> trg
       case _ => // nothing
     }
     deps
   }
 
-  lazy val patternDependenciesTrans: MultiDict[GP.Name, GP.Name] = transClosure(patternDependencies)
+  lazy val patternDependenciesTrans: MultiDict[Datalog.Name, Datalog.Name] = transClosure(patternDependencies)
 
   def printStatistics(): Unit = {
-    println(s"GP relations: ${ir.pats.size}")
-    println(s"GP bodies: ${ir.pats.map(_.bodies.size).sum}")
+    val pats = optimized.pats.filter(!_.name.contains("oalesced"))
+    println(s"GP relations: ${pats.size}")
+    println(s"GP bodies: ${pats.map(_.bodies.size).sum}")
     val recs = patternDependenciesTrans.sets.filter(p => p._2.contains(p._1))
     println(s"Recursive GP relations: ${recs.size}")
   }
@@ -51,26 +53,58 @@ trait CompiledModule {
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val optimized: GP.Module = {
+  lazy val transformed: Datalog.Module = {
     var module = ir
-    // println(module)
-    for (op <- options.optimizations) {
-      module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
+    for (trans <- options.transformations) {
+      val before = module
+      module = trans.transformer(dataModel).transformModule(module)
+      if (CompilerFlags.DEBUGMODE_STEPS && before != module) {
+        println(s"\nTransformation: ${trans.getClass.getName}")
+        println(module)
+      }
     }
-//    println(module)
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DEBUGMODE_STEPS) {
+      println(s"\nTransformed")
+      println(module)
+    }
+    module
+  }
+
+  lazy val analyzed: Datalog.Module = {
+    StratificationAnalysis.analyze(transformed)
+    transformed
+  }
+
+  lazy val optimized: Datalog.Module = {
+    var module = analyzed
+    for (op <- options.optimizations) {
+      val before = module
+      module = op.optimizer(dataModel).optimizeModule(module)
+      if (CompilerFlags.DEBUGMODE_STEPS && before != module) {
+        println(s"\nOptimization: ${op.getClass.getName}")
+        println(module)
+      }
+    }
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DEBUGMODE_STEPS) {
+      println(s"\nOptimized")
+      println(module)
+    }
     module
   }
 
   lazy val psystemSource: meta.Source = {
-    val source = CompileToPSystem.compileModule(optimized)(Map())
-    println(source)
+    val source = GeneratePSystem.compileModule(optimized)(Map())
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"\nPSystem")
+      println(source.syntax)
+    }
     source
   }
 
   lazy val psystemModule: PSystem.Module = {
     import scala.meta._
     val loadSource = source"..${psystemSource.stats}; ${Term.Name(name)}"
-    Meta.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
+    Scala.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 }
 

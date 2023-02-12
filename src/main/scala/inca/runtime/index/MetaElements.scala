@@ -4,7 +4,7 @@ object MetaElements {
   type PrimitiveValue = Any
 
   /** A link consists of the name of the node's tag and the name of the link */
-  type Link = (String, String)
+//  type Link = (String, String)
 
 //  case class Link(tag: truechange.Tag, link: truechange.Link) {
 //    override def toString: String = "$tag.$link"

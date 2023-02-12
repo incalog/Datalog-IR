@@ -1,0 +1,249 @@
+module AvailableExpressions
+
+data Exp = Var(String) |
+           Num(Int) |
+           GreaterThan(Exp, Exp) |
+           Mul(Exp, Exp) |
+           Add(Exp, Exp) |
+           Sub(Exp, Exp)
+data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
+
+def init(stm: Stm): Stm = stm match {
+  case Assign(x, a) => stm
+  case Skip() => stm
+  case Sequence(s1, s2) => init(s1)
+  case If(b, s1, s2) => stm
+  case While(b, s) => stm
+}
+
+def final(stm: Stm): Set[Stm] = stm match {
+  case Assign(x, a) => {stm}
+  case Skip() => {stm}
+  case Sequence(s1, s2) => final(s2)
+  case If(b, s1, s2) => final(s1) ++ final(s2)
+  case While(b, s) => {stm}
+}
+
+@main def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
+  case Assign(x, a) => {}
+  case Skip() => {}
+  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
+  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
+  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
+}
+
+def transitive(cfg: () => Set[(Stm, Stm)]): Set[(Stm, Stm)] =
+  cfg() ++ {(s1,s3) | (s1,s2) in cfg(), (s2,s3) in transitive(cfg)}
+
+@main def transitiveFlow(prog: Stm): Set[(Stm, Stm)] =
+  let cfg = () => flow(prog)
+  in transitive(cfg)
+
+def findExps(exp: Exp, f: Exp => `Boolean`): Set[Exp] = (exp match {
+  case Var(s) => {}
+  case Num(i) => {}
+  case GreaterThan(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Mul(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Add(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Sub(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+}) ++ (if (f(exp)) {exp} else {})
+
+def isVar(exp: Exp): `Boolean` = exp match {
+  case Var(s) => true
+  case Num(i) => false
+  case GreaterThan(e1, e2) => false
+  case Mul(e1, e2) => false
+  case Add(e1, e2) => false
+  case Sub(e1, e2) => false
+}
+
+def varName(exp: Exp): String = exp match {
+  case Var(s) => s
+  case Num(i) => ""
+  case GreaterThan(e1, e2) => ""
+  case Mul(e1, e2) => ""
+  case Add(e1, e2) => ""
+  case Sub(e1, e2) => ""
+}
+
+def freevars(exp: Exp): Set[String] =
+  {varName(e) | e in findExps(exp, isVar)}
+
+def notFreeIn(x: String, exp: Exp): `Boolean` = exp match {
+  case Var(s) => x != s
+  case Num(i) => true
+  case GreaterThan(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
+  case Mul(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
+  case Add(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
+  case Sub(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
+}
+@main def freevarsStm(stm: Stm): Set[String] = stm match {
+  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
+  case Skip() => {}
+  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
+  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
+  case While(c, s) => freevars(c) ++ freevarsStm(s)
+}
+
+
+data Interval = IV(Int, Int) | TopInterval()
+data Bool = True() | False() | TopBool()
+data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+
+def joinVal(v1: Val, v2: Val): Val = v1 match {
+  case BotVal() => v2
+  case IntervalVal(iv1) => v2 match {
+    case BotVal() => v1
+    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
+    case BoolVal(b2) => TopVal()
+    case TopVal() => TopVal()
+  }
+  case BoolVal(b1) => v2 match {
+    case BotVal() => v1
+    case IntervalVal(iv2) => TopVal()
+    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+    case TopVal() => TopVal()
+  }
+  case TopVal() => TopVal()
+}
+def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+  case TopInterval() => TopInterval()
+  case IV(l1, h1) => iv2 match {
+    case TopInterval() => TopInterval()
+    case IV(l2, h2) => widenInterval(IV(`Math.min`(l1, l2), `Math.max`(h1, h2)))
+  }
+}
+def widenInterval(iv: Interval): Interval = iv match {
+  case TopInterval() => TopInterval()
+  case IV(l, h) =>
+    if (`Math.abs`(h - l) <= 10)
+      iv
+    else
+      TopInterval()
+}
+def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
+  case True() => b2 match {
+    case True() => True()
+    case False() => TopBool()
+    case TopBool() => TopBool()
+  }
+  case False() => b2 match {
+    case True() => TopBool()
+    case False() => False()
+    case TopBool() => TopBool()
+  }
+  case TopBool() => TopBool()
+}
+
+def entry_var(stm: Stm, prog: Stm, x: String): Val =
+  fold(BotVal(), joinVal,
+    {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
+
+def exit_var(stm: Stm, prog: Stm, x: String): Val = stm match {
+  case Assign(y, exp) =>
+    if (x == y)
+      aeval(exp, stm, prog)
+    else
+      entry_var(stm, prog, x)
+  case Skip() => entry_var(stm, prog, x)
+  case Sequence(s1, s2) => entry_var(stm, prog, x)
+  case If(c, s1, s2) => entry_var(stm, prog, x)
+  case While(c, s) => entry_var(stm, prog, x)
+}
+
+def exit_var_external(stm: Stm, prog: Stm, x: String): Val =
+  fold(BotVal(), joinVal, {exit_var(stm, prog, x)})
+@main def final_var(prog: Stm): Set[(String,Val)] =
+  {(x, exit_var_external(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
+
+def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
+  case Var(x) => entry_var(node, prog, x)
+  case Num(i) => IntervalVal(IV(i, i))
+  case GreaterThan(e1, e2) => greaterThan(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Add(e1, e2) => add(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Sub(e1, e2) => sub(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Mul(e1, e2) => mul(aeval(e1, node, prog), aeval(e2, node, prog))
+}
+
+def greaterThan(v1: Val, v2: Val): Val = v1 match {
+  case BotVal() => BotVal()
+  case BoolVal(b1) => BotVal()
+  case TopVal() => BoolVal(TopBool())
+  case IntervalVal(iv1) => v2 match {
+    case BotVal() => BotVal()
+    case BoolVal(b2) => BotVal()
+    case TopVal() => BoolVal(TopBool())
+    case IntervalVal(iv2) => BoolVal(greaterThanInterval(iv1, iv2))
+  }
+}
+def greaterThanInterval(iv1: Interval, iv2: Interval): Bool = iv1 match {
+  case TopInterval() => TopBool()
+  case IV(l1, h1) => iv2 match {
+    case TopInterval() => TopBool()
+    case IV(l2, h2) =>
+      if (l1 > h2) True()
+      else if (l2 > h1) False()
+      else TopBool()
+  }
+}
+def add(v1: Val, v2: Val): Val = v1 match {
+  case BotVal() => BotVal()
+  case BoolVal(b1) => BotVal()
+  case TopVal() => IntervalVal(TopInterval())
+  case IntervalVal(iv1) => v2 match {
+    case BotVal() => BotVal()
+    case BoolVal(b2) => BotVal()
+    case TopVal() => IntervalVal(TopInterval())
+    case IntervalVal(iv2) => IntervalVal(addInterval(iv1, iv2))
+  }
+}
+def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+  case TopInterval() => TopInterval()
+  case IV(l1, h1) => iv2 match {
+    case TopInterval() => TopInterval()
+    case IV(l2, h2) => IV(l1 + l2, h1 + h2)
+  }
+}
+def sub(v1: Val, v2: Val): Val = v1 match {
+  case BotVal() => BotVal()
+  case BoolVal(b1) => BotVal()
+  case TopVal() => IntervalVal(TopInterval())
+  case IntervalVal(iv1) => v2 match {
+    case BotVal() => BotVal()
+    case BoolVal(b2) => BotVal()
+    case TopVal() => IntervalVal(TopInterval())
+    case IntervalVal(iv2) => IntervalVal(subInterval(iv1, iv2))
+  }
+}
+def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+  case TopInterval() => TopInterval()
+  case IV(l1, h1) => iv2 match {
+    case TopInterval() => TopInterval()
+    case IV(l2, h2) => IV(l1 - h2, h1 - l2)
+  }
+}
+def mul(v1: Val, v2: Val): Val = v1 match {
+  case BotVal() => BotVal()
+  case BoolVal(b1) => BotVal()
+  case TopVal() => IntervalVal(TopInterval())
+  case IntervalVal(iv1) => v2 match {
+    case BotVal() => BotVal()
+    case BoolVal(b2) => BotVal()
+    case TopVal() => IntervalVal(TopInterval())
+    case IntervalVal(iv2) => IntervalVal(mulInterval(iv1, iv2))
+  }
+}
+def mulInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+  case TopInterval() => TopInterval()
+  case IV(l1, h1) => iv2 match {
+    case TopInterval() => TopInterval()
+    case IV(l2, h2) =>
+      let v1 = l1 * l2 in
+      let v2 = l1 * h2 in
+      let v3 = h1 * l2 in
+      let v4 = h1 * h2 in
+      let low = `Math.min`(v1, `Math.min`(v2, `Math.min`(v3, v4))) in
+      let high = `Math.max`(v1, `Math.max`(v2, `Math.max`(v3, v4))) in
+      IV(low, high)
+  }
+}

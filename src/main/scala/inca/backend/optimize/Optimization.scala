@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 trait Optimization {
-  def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer
+  def optimizer(dataModel: DataModel): Optimizer
 }

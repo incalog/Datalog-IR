@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.frontend.core.tree._
+import inca.frontend.constraint.core._
 
 import scala.language.implicitConversions
 
@@ -12,6 +12,7 @@ object ExpLangTestAnalyses {
   implicit def name(s: String): Name = Name(s)
 
   val idFun: PatternFunction = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "id",
     Seq(Param("add", addType)),
@@ -24,6 +25,7 @@ object ExpLangTestAnalyses {
   val lhsLink: Link = addType("lhs")
   val rhsLink: Link = addType("rhs")
   val childrenFun: PatternFunction = PatternFunction(
+    Seq(),
     None,
     "children",
     Seq(Param("add", addType)),
@@ -37,6 +39,7 @@ object ExpLangTestAnalyses {
           Yield(PathAccess(Var("add"), rhsLink))))))
 
   val lhChildFun: PatternFunction = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "lhChild",
     Seq(Param("add", addType)),
@@ -47,6 +50,7 @@ object ExpLangTestAnalyses {
           Yield(PathAccess(Var("add"), lhsLink))))))
 
   val callLhChildFun = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "callLhChild",
     Seq(Param("add", addType)),
@@ -58,6 +62,7 @@ object ExpLangTestAnalyses {
           Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "instanceAdd",
     Seq(Param("add", addType)),
@@ -70,6 +75,7 @@ object ExpLangTestAnalyses {
           Yield(Var("lhschild"))))))
 
   val noParamTypeFun = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "noParamType",
     Seq(Param("add", TAny)),
@@ -80,6 +86,7 @@ object ExpLangTestAnalyses {
           Assert(InstanceOf(Var("add"), addType))))))
 
   val isBooleanFun = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "isBoolean",
     Seq(Param("in", boolType)),
@@ -90,6 +97,7 @@ object ExpLangTestAnalyses {
           Yield(Constant(BooleanLiteral(false)))))))
 
   val primitiveParamFun = PatternFunction(
+    Seq(MainFunctionAnno),
     None,
     "idBool",
     Seq(Param("in", TLiteral.Bool)),

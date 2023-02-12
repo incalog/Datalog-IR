@@ -1,0 +1,18 @@
+module FoldADT
+
+data Num = V(Int)
+
+def add(n1: Num, n2: Num): Num = n1 match {
+  case V(i1) => n2 match {
+    case V(i2) => V(i1 + i2)
+  }
+}
+
+def fromTo(start: Int, end: Int): Set[Num] =
+  if (start > end)
+    {}
+  else
+    {V(start)} ++ fromTo(start + 1, end)
+
+@main def sum(start: Int, end: Int): Num =
+  fold(V(0), add, fromTo(start, end))

@@ -1,7 +1,6 @@
 package inca.runtime.index.virtual
 
-import inca.runtime.Database
-import inca.runtime.index.unary.UnaryIndex
+import inca.runtime.db.Database
 import inca.runtime.index.{IndexKey, VirtualKey}
 import truechange.{Type, URI}
 
@@ -32,7 +31,7 @@ object NotNodeTypeIndex {
   }
 }
 
-class NotNodeTypeIndex(ty: Type) extends UnaryIndex[URI] with VirtualIndex {
+class NotNodeTypeIndex(ty: Type) extends VirtualUnaryIndex[URI] {
 
   /** The key of this index */
   override val key: IndexKey[_] = NotNodeTypeIndex.Key(ty)

@@ -1,26 +1,31 @@
 package inca.compiler
 
 import inca.backend.optimize._
-import inca.compiler.Options.{defaultFrontend, defaultOptimizations}
-import inca.frontend.core.Frontend
-import inca.runtime.context.LanguageMetaInfo
+import inca.backend.transform.Transformation
 
-case class Options(languageMetaInfo: LanguageMetaInfo,
-                   frontendFactory: LanguageMetaInfo => Frontend = defaultFrontend,
-                   optimizations: Seq[Optimization] = defaultOptimizations,
-                   stopOnError: Boolean = true,
-                   stopOnWarning: Boolean = false) {
-  def frontend: Frontend = frontendFactory(languageMetaInfo)
+trait Options {
+  def optimizations: Seq[Optimization]
+
+  def transformations: Seq[Transformation]
+
+  def stopOnError: Boolean
+
+  def stopOnWarning: Boolean
+
+  def withOptimizations(opts: Seq[Optimization]): Options
+  def withTransformations(trans: Seq[Transformation]): Options
 }
 
 object Options {
-  val defaultFrontend: LanguageMetaInfo => Frontend =
-    Frontend.Inca
 
   val defaultOptimizations: Seq[Optimization] = Seq(
+    EliminateNonproductiveRelations,
+    InlineSimpleRelations,
     ConstantPropagation,
     EliminateAliases,
+    EvalFusion,
     InferVarTypes,
-    FoldConstantConstraints
+    FoldConstantAtoms,
+    EliminateNonproductiveRelations
   )
 }

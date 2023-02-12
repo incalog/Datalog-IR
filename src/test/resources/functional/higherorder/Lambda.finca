@@ -1,0 +1,3 @@
+module Lambda
+
+@main def main(): Int = ((x: Int) => x * 3)(7)

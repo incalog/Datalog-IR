@@ -1,0 +1,1 @@
+$While($GreaterThan($Var("x"), $Num(1)), $Sequence($Assign("y", $Add($Var("x"), $Var("y"))), $Sequence($Skip, $Assign("x", $Add($Var("x"), $Num(2))))))	$Sequence($Assign("y", $Add($Var("x"), $Var("y"))), $Sequence($Skip, $Assign("x", $Add($Var("x"), $Num(2)))))

@@ -12,7 +12,7 @@ class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
   override def entries: Iterable[V] = index.keySet().asScala
   override def index(v: V): Int = Option(index.get(v)).getOrElse(0)
 
-  def insert(v: V): Unit = {
+  override def insert(v: V): Unit = {
     val old = index.get(v)
     if (old == 0) {
       index.put(v, 1)
@@ -22,7 +22,7 @@ class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
     }
   }
 
-  def delete(v: V): Unit = {
+  override def delete(v: V): Unit = {
     val old = index.getIfAbsent(v, -1)
     if (old == 1) {
       index.remove(v)

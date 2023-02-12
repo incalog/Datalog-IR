@@ -5,8 +5,9 @@ stages:
 
 before_script:
   - sbt sbtVersion
+  - sbt update
 
 test:
   stage: test
   script:
-    - sbt clean coverage test coverageReport
+    - sbt clean test

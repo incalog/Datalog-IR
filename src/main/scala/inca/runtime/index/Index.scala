@@ -3,6 +3,7 @@ package inca.runtime.index
 import inca.runtime.index.dynamic.ParentIndex
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
+import truechange.{Link, Tag, URI}
 
 
 /**
@@ -31,3 +32,5 @@ trait Index {
 object Index {
   val allDynamicIndices = Seq(ParentIndex.Factory)
 }
+
+case class IndexDeletion(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag)

@@ -22,6 +22,7 @@ case class PublicVisibility() extends Visibility
 case class ProtectedVisibility() extends Visibility
 
 @diffable case class PrivateVisibility() extends Visibility
+
 //trait Primitive {
 //  val value: Any
 //}
