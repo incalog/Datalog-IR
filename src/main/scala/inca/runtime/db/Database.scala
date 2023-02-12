@@ -133,12 +133,19 @@ class Database(
     updater.endProcessEditScript()
   }
 
-  override def insert(relName: String, tuple: Tuple): Unit =
+  override def insertExtensionalTuple(relName: String, tuple: Tuple): Unit =
     namedRelationInstancesEnsure(relName, tuple.getSize).insert(tuple)
 
-  override def delete(relName: String, tuple: Tuple): Unit =
+  override def deleteExtensionalTuple(relName: String, tuple: Tuple): Unit =
     namedRelationInstancesEnsure(relName, tuple.getSize).delete(tuple)
 
+
+  override def loadPrimitive(a: Any): Unit =
+    primitiveInstancesEnsure(JavaLitType(a.getClass)).insert(a)
+
+  override def unloadPrimitive(a: Any): Unit =
+    primitiveInstancesEnsure(JavaLitType(a.getClass)).delete(a)
+    
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index
     f(from)

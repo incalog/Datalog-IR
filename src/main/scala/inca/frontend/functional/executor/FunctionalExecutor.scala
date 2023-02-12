@@ -263,10 +263,10 @@ object FunctionalExecutor {
     def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
       val (es, tuple) = input
       feed.processEditScript(es)
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       val results = output(main, tuple)
       if (deleteInput)
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       results
     }
 
@@ -285,7 +285,7 @@ object FunctionalExecutor {
       val loadingTime = endLoadDB - startLoadDB
 
       val startInsertQuery = System.nanoTime()
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
 
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")

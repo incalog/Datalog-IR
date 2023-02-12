@@ -40,7 +40,7 @@ object ConstraintExecutor {
       lastInput = input
       feed.processEditScript(es)
       if (input != null)
-        feed.insert(demandPatternExtensionalPrefix + pat, input)
+        feed.insertExtensionalTuple(demandPatternExtensionalPrefix + pat, input)
       output(pat, input)
     }
 
@@ -51,9 +51,9 @@ object ConstraintExecutor {
       feed.processEditScript(es)
 
       if (lastInput != null)
-        feed.delete(demandPatternExtensionalPrefix + pat, input)
+        feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + pat, input)
       if (input != null)
-        feed.insert(demandPatternExtensionalPrefix + pat, input)
+        feed.insertExtensionalTuple(demandPatternExtensionalPrefix + pat, input)
       lastInput = input
 
       output(pat, input)

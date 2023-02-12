@@ -87,7 +87,7 @@ object GPPrinter {
       case Datalog.IntLiteral(v) => v.toString
       case Datalog.LongLiteral(v) => v.toString
       case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => v
+      case Datalog.StringLiteral(v) => "\"" + v + "\""
       case Datalog.BooleanLiteral(v) => v.toString
     }
   }
