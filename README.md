@@ -49,6 +49,9 @@ program based on an analysis written in the functional frontend.
 
 ## Publications
 IncA is a research project, and its various features have been documented in the following publications:
+* **Incremental Processing of Structured Data in Datalog**, André Pacak, Tamás Szabó, and Sebastian Erdweg.
+In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/11/incremental-structured-data.pdf)
+
 * **Functional Programming with Datalog**, André Pacak and Sebastian Erdweg.
 In *Proceedings of European Conference on Object-Oriented Programming (ECOOP)*. 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/06/functional-datalog.pdf)
 
