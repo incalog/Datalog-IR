@@ -86,10 +86,10 @@ object IncrementalFunctionalExecutor {
     def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[Any] = {
       val (es, tuple) = input
       feed.processEditScript(es)
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       val results = output(main, tuple)
       if (deleteInput)
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       results
     }
 
@@ -112,7 +112,7 @@ object IncrementalFunctionalExecutor {
       val loadingTime = endLoadDB - startLoadDB
 
       val startInsertQuery = System.nanoTime()
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
       lastMainExtRel = Some(tuple)
 
@@ -139,13 +139,13 @@ object IncrementalFunctionalExecutor {
         lastMainExtRel match {
           case Some(lastTuple) =>
             if (lastTuple != tuple) {
-              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-              feed.delete(demandPatternExtensionalPrefix + main, lastTuple)
+              feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
+              feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, lastTuple)
             } else {
               // do nothing
             }
           case None =>
-            feed.insert(main, tuple)
+            feed.insertExtensionalTuple(main, tuple)
         }
         feed.processEditScript(edits)
       }

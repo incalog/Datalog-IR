@@ -65,10 +65,10 @@ trait IncaMatchers extends Matchers {
 
     feed.processEditScript(dbInput.es)
     dbInput.insertions.foreach { case (rel, tuples) =>
-      tuples.foreach(feed.insert(rel, _))
+      tuples.foreach(feed.insertExtensionalTuple(rel, _))
     }
     dbInput.deletions.foreach { case (rel, tuples) =>
-      tuples.foreach(feed.delete(rel, _))
+      tuples.foreach(feed.deleteExtensionalTuple(rel, _))
     }
 
     try {

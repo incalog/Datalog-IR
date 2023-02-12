@@ -17,16 +17,17 @@ object Query {
     def processDatabaseInput(input: DatabaseInput): Unit = {
       processEditScript(input.es)
       input.insertions.foreach { case (rel, tuples) =>
-        tuples.foreach(insert(rel, _))
+        tuples.foreach(insertExtensionalTuple(rel, _))
       }
       input.deletions.foreach { case (rel, tuples) =>
-        tuples.foreach(delete(rel, _))
+        tuples.foreach(deleteExtensionalTuple(rel, _))
       }
     }
-
     def processEditScript(edits: EditScript): Unit
-    def insert(relName: String, tuple: Tuple): Unit
-    def delete(relName: String, tuple: Tuple): Unit
+    def insertExtensionalTuple(relName: String, tuple: Tuple): Unit
+    def deleteExtensionalTuple(relName: String, tuple: Tuple): Unit
+    def loadPrimitive(a: Any): Unit
+    def unloadPrimitive(a: Any): Unit
   }
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query) {

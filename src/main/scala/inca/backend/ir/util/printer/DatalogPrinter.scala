@@ -97,13 +97,14 @@ class DatalogPrinter[D <: DatalogGeneric](val datalog: D) {
 
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
-    case Constant(lit) => lit match {
-      case datalog.base.IntLiteral(v) => v.toString
-      case datalog.base.LongLiteral(v) => v.toString
-      case datalog.base.DoubleLiteral(v) => v.toString
-      case datalog.base.StringLiteral(v) => s""""$v""""
-      case datalog.base.BooleanLiteral(v) => v.toString
-    }
+    case Constant(lit) =>
+      lit match {
+        case datalog.base.IntLiteral(v) => v.toString
+        case datalog.base.LongLiteral(v) => v.toString
+        case datalog.base.DoubleLiteral(v) => v.toString
+        case datalog.base.StringLiteral(v) => "\"" + v + "\""
+        case datalog.base.BooleanLiteral(v) => v.toString
+      }
   }
 
   def prettyComparator(comp: Comparator): String = comp match {

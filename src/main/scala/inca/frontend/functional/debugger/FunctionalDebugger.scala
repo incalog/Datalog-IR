@@ -284,7 +284,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
           (v, ScalaValue(v))
       }
     }.unzip
-    atomOps.runtime.db.insert(
+    atomOps.runtime.db.insertExtensionalTuple(
       demandPatternExtensionalPrefix + mainFun,
       Tuples.flatTupleOf(vals: _*))
 

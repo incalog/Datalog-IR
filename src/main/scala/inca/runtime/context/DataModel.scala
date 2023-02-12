@@ -97,6 +97,9 @@ class DataModel(
           res
       }
     }
+
+  def isSubtype(sub: SortType, sup: SortType): Boolean =
+    nodeSupertypes.containsEntry(sub -> sup)
 }
 
 object DataModel {
