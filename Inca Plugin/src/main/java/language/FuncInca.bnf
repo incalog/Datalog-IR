@@ -178,7 +178,7 @@ base_apply_unary_exp ::= unary_op infix_exp {pin = 1}
 unary_op ::= '-' | '!'
 
 // type definitions
-type_annotation ::= atomic_type | fun_type
+type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
 atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | primitive_type | set | constr | scala_term |type_name
 constr ::= var '[' type_annotation (',' type_annotation)* ']'

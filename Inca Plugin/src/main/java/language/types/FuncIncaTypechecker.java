@@ -4,9 +4,9 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
+import kotlin.Pair;
 import language.FuncIncaUtil;
 import language.psi.*;
-import language.util.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -25,7 +25,6 @@ public class FuncIncaTypechecker {
         if (exp instanceof FuncIncaVar) {
                 String name = exp.getText();
                 Pair<FuncIncaDecl, FuncIncaType> var = lookupVar(name, (FuncIncaVar) exp, holder);
-                FuncIncaDecl decl = var.getFirst();
                 FuncIncaType type = var.getSecond();
                 return type;
 
@@ -60,9 +59,9 @@ public class FuncIncaTypechecker {
                 if (boundType.equals(new FuncIncaUnitType())) {
                     holder.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot assign expression of Type Unit to " + nameText)
-                            .range(typeAnno)
+                            .range(body)
                             .create();
-                    //boundType = new FuncIncaAnyType(); // TODO whyyy is this happppeningggg (build ordner löschen? rewrite with bool außerhalb if
+                    boundType = new FuncIncaAnyType();
                 }
                 FuncIncaType finalBoundType = boundType;
                 scopedTypeContext(new Runnable() {
@@ -91,7 +90,7 @@ public class FuncIncaTypechecker {
                                     "Expected Tuple type, but got " + boundType)
                             .range(bound)
                             .create();
-                    // boundType = new FuncIncaTupleType(Collections.nCopies(n, new FuncIncaAnyType()));
+                    boundType = new FuncIncaTupleType(Collections.nCopies(n, new FuncIncaAnyType()));
                 } else {
                     List<FuncIncaType> tupleTypes = ((FuncIncaTupleType) boundType).getTypes();
                     int m = tupleTypes.size();
@@ -101,11 +100,11 @@ public class FuncIncaTypechecker {
                                 .range(bound)
                                 .create();
                         if (n < m) { // more types than variables
-                            // boundType = new FuncIncaTupleType(tupleTypes.subList(0, n));
+                            boundType = new FuncIncaTupleType(tupleTypes.subList(0, n));
                         } else { // n > m, more variables than types
                             List<FuncIncaType> additionalTypes = Collections.nCopies(n-m, new FuncIncaAnyType());
                             tupleTypes.addAll(additionalTypes);
-                            // boundType = new FuncIncaTupleType(tupleTypes);
+                            boundType = new FuncIncaTupleType(tupleTypes);
                         }
                     }
                 }
@@ -153,19 +152,22 @@ public class FuncIncaTypechecker {
         } else if (exp instanceof FuncIncaLambdaExp) {
             List<FuncIncaParam> params = ((FuncIncaLambdaExp) exp).getParamList().getParamList();
             FuncIncaExp body = ((FuncIncaLambdaExp) exp).getExp();
+            List<FuncIncaType> types = new ArrayList<>();
             final FuncIncaType[] returnType = new FuncIncaType[1];
             scopedTypeContext(new Runnable() {
                 @Override
                 public void run() {
                     for (FuncIncaParam param : params) {
-                        String name = param.getText();
+                        String name = param.getId().getText();
                         FuncIncaType type = FuncIncaTypeUtil.psiToFuncIncaType(param.getTypeAnnotation());
+                        types.add(type);
                         bindVar(name, param, type, holder);
                     }
                     returnType[0] = typecheckCore(body, holder);
                 }
             });
-            return returnType[0];
+            FuncIncaType args = new FuncIncaTupleType(types);
+            return new FuncIncaFunctionType(args, returnType[0]); // TODO lambda is a Function Type, return new FuncIncaFunctionType(types, returnType[0]);
 
         } else if (exp instanceof FuncIncaCallExp) {
 
@@ -298,7 +300,7 @@ public class FuncIncaTypechecker {
             }
 
         } else if (exp instanceof FuncIncaConstSetExp) {
-            List<FuncIncaExp> items = ((FuncIncaConstSetExp) exp).getExpList(); // TODO join ItemTypes to determine SetType
+            List<FuncIncaExp> items = ((FuncIncaConstSetExp) exp).getExpList();
             List<FuncIncaType> setTypes = new ArrayList<>();
             FuncIncaType setType = new FuncIncaNothingType();
             if (items.size() != 0) {

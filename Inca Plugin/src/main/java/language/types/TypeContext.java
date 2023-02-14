@@ -1,14 +1,11 @@
 package language.types;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
+import kotlin.Pair;
 import language.psi.*;
-import language.util.*;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,31 +32,26 @@ public class TypeContext {
     // ------------------------------------- context stuff ------------------------------------
 
     private static <A, B> Map<A, B> copyMap(Map<A, B> map) {
-        Gson gson = new Gson();
-        String jsonString = gson.toJson(map);
-        Type type = new TypeToken<HashMap<A, B>>(){}.getType();
-        return gson.fromJson(jsonString, type);
+        return new HashMap<>(map);
     }
 
     public static void scopedTypeContext(Runnable runnable) {
         Map<String, Pair<FuncIncaDecl, FuncIncaType>> varsSaved = copyMap(vars);
         Map<String, FuncIncaParamType> tyVarsSaved = copyMap(tyVars);
         Map<String, Pair<FuncIncaDecl, FuncIncaType>> funDefsSaved = copyMap(funDefs);
-        Map<String, FuncIncaDataDef> dataDefsSaved = dataDefs;
 
         runnable.run();
 
         vars = varsSaved;
         tyVars = tyVarsSaved;
         funDefs = funDefsSaved;
-        dataDefs = dataDefsSaved;
     }
 
     public static void bindVar(String name, FuncIncaDecl decl, FuncIncaType type, AnnotationHolder holder) {
         Pair<FuncIncaDecl, FuncIncaType> prevDecl = vars.put(name, new Pair<>(decl, type));
         if (prevDecl != null) {
             holder.newAnnotation(HighlightSeverity.ERROR,
-                            "Type Variable " + name + " shadows previously defined variable")
+                            "Variable " + name + " shadows previously defined variable")
                     .range(decl)
                     .create();
             holder.newAnnotation(HighlightSeverity.ERROR,
@@ -77,7 +69,7 @@ public class TypeContext {
                 holder.newAnnotation(HighlightSeverity.ERROR,"Unbound variable " + name)
                         .range(var)
                         .create();
-                // TODO return / error
+                v = new Pair<>((FuncIncaDecl) var, new FuncIncaAnyType());
             } else { // name found in funDefs
                 // TODO case None =>
                 //        funs.get(name) match {

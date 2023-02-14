@@ -31,9 +31,9 @@ public class FuncIncaTypeUtil {
             e = element.getFirstChild();
         else return new FuncIncaAnyType();
         if (e instanceof FuncIncaFunType) {
-            return new FuncIncaFunctionType(
-                    atomicTypeToFuncIncaType(((FuncIncaFunType) e).getAtomicType()),
-                    psiToFuncIncaType(((FuncIncaFunType) e).getTypeAnnotation()));
+            FuncIncaType argType = atomicTypeToFuncIncaType(((FuncIncaFunType) e).getAtomicType());
+            FuncIncaType returnType = psiToFuncIncaType(((FuncIncaFunType) e).getTypeAnnotation());
+            return new FuncIncaFunctionType(argType, returnType);
         } else { // e is instance of FuncIncaAtomicType
             return atomicTypeToFuncIncaType((FuncIncaAtomicType) e);
         }
@@ -60,8 +60,6 @@ public class FuncIncaTypeUtil {
             return new FuncIncaNothingType();
         } else if (eText.equals("Unit")) {
             return new FuncIncaUnitType();
-        } else if (e instanceof FuncIncaOption) {
-            return new FuncIncaOptionType(psiToFuncIncaType(((FuncIncaOption) e).getTypeAnnotation()));
         } else if (e instanceof FuncIncaSet) {
             return new FuncIncaSetType(psiToFuncIncaType(((FuncIncaSet) e).getTypeAnnotation()));
         } else if (e instanceof FuncIncaConstr) {
@@ -77,8 +75,10 @@ public class FuncIncaTypeUtil {
             return new FuncIncaLongType();
         } else if (eText.equals("String")) {
             return new FuncIncaStringType();
-        } else { // e is instance of FuncIncaTypeName
+        } else if (e instanceof FuncIncaTypeNameType){
             return new FuncIncaTypeNameType(eText);
+        } else {
+            return new FuncIncaAnyType();
         }
     }
 }

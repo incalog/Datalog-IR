@@ -1663,13 +1663,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // atomic_type | fun_type
+  // fun_type | atomic_type
   public static boolean type_annotation(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "type_annotation")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, TYPE_ANNOTATION, "<type annotation>");
-    r = atomic_type(b, l + 1);
-    if (!r) r = fun_type(b, l + 1);
+    r = fun_type(b, l + 1);
+    if (!r) r = atomic_type(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }

@@ -22,7 +22,7 @@ public class FuncIncaTupleType implements FuncIncaType {
     public String toString() {
         String str = "(";
         for (FuncIncaType ty : types)
-            str += ty.toString() + ",";
-        return "Tuple" + str.substring(0, str.length() - 1) + ")";
+            str += ty.toString() + ", ";
+        return str.substring(0, str.length() - 2) + ")";
     }
 }

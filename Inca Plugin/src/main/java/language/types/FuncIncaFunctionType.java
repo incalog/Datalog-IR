@@ -22,6 +22,6 @@ public class FuncIncaFunctionType implements FuncIncaType {
 
     @Override
     public String toString() {
-        return "(" + arg + ") -> " + res;
+        return arg + " -> " + res;
     }
 }
