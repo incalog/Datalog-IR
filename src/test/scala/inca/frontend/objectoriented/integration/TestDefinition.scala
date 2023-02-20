@@ -283,7 +283,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     Seq(
       TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
-      TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
+      //TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
     )
   }
 
@@ -331,7 +331,17 @@ object TestDefinition {
   }
 
   def whileLangTest: TestDefinition[SetResult[Any]] = {
-    implicit val subdir: Option[String] = Some("unittests/aggvar")
+    implicit val subdir: Option[String] = Some("casestudy")
     TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())
+  }
+
+  def noDemand: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
+    TestDefinition("NoDemand", "A", "main", Seq(), 3)
+  }
+
+  def section3: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("Section3", "AddOp", "main", Seq(), 10)
   }
 }

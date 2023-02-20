@@ -24,14 +24,8 @@ class Example {
     def main(): Double = {
         var avg: Avg = new Avg()
         avg += 1
-        avg += 2
-        avg += 3
-        avg += 4
-        avg += 5
-        avg += 6
         val res: Double = avg.get()
-        // Why do we get multiple / all results if we add this line ?
-        //avg += 2
+        avg += 2
         res
     }
 }

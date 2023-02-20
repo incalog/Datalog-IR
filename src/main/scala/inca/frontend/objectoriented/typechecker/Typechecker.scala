@@ -413,7 +413,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         error("Empty set requires an explicit type", expression)
         TSet(TAny)
       } else
-        TSet(tty.getOrElse(upperTypeBound(typs)))
+        TSet(tty.getOrElse(join(typs)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
       typecheck(target).asSet match {

@@ -59,7 +59,7 @@ trait TypeContext extends TypeIO {
             case _ => false
           }.map(_._2.typ)
         }
-        // use the resolved type tp find the supertype
+        // use the resolved type to find the supertype
         parentTypes.find(pTy => subtype(ty2, pTy)).getOrElse(TAny)
       }
     case (_, _) =>
@@ -71,7 +71,7 @@ trait TypeContext extends TypeIO {
         TAny
   }
 
-  def upperTypeBound(types: Seq[Type]): Type = types.reduce[Type] {
+  def join(types: Seq[Type]): Type = types.reduce[Type] {
     case (ty1, ty2) => join(ty1, ty2)
   }
 

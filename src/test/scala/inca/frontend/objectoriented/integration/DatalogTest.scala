@@ -1,5 +1,7 @@
 package inca.frontend.objectoriented.integration
 
+import inca.backend.optimize.EliminateNonproductiveRelations
+import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
@@ -9,7 +11,7 @@ import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions()
+  def options: ObjectOptions = ObjectOptions()//Seq(EliminateNonproductiveRelations), Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -188,5 +190,13 @@ class DatalogTest extends AnyFunSuite {
 
   test("Transitive closure") {
     performTests(transitiveClosureTest)
+  }
+
+  test("No Demand") {
+    performTests(noDemand)
+  }
+
+  test("Section 3") {
+    performTests(section3)
   }
 }

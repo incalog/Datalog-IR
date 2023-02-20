@@ -398,16 +398,18 @@ trait Parser {
     }
 
   protected[frontend] val baseLitExpr: P[BaseLitExpr] = {
-    (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('('))).mapWithLoc(BaseLitExpr) |
+    (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('(') | P.char('['))).mapWithLoc(BaseLitExpr) |
       spaced(numericLiteral) |
       spaced(stringLiteral) |
       spaced(booleanLiteral)
   }
 
-  protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] =
-    (encloseBetween(scalaTerm, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr)))).mapWithLoc {
-      case (funTerm, args) => BaseApplyExpr(funTerm, args)
+  protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] = {
+    // TODO: Fix the parser
+    (encloseBetween(scalaTerm, scalaQuoteChar).soft ~ inBrackets(seq0(P.defer(expr))).? ~  inParentheses(seq0(P.defer(expr)))).mapWithLoc {
+      case ((funTerm, tyArgs), args) => BaseApplyExpr(funTerm, args)
     }
+  }
 
   protected[frontend] val subinfixExpr: P[Expression] =
     nestedAccessExpr |

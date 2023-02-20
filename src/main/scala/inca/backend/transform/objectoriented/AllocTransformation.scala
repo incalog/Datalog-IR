@@ -12,7 +12,7 @@ import scala.meta.XtensionQuasiquoteTerm
 /**
  * This transformation does the following things:
  * 1. Introduce an allocation counter in the AllocationRoot with the name `alloc` and initialize it with 0.
- * 2. Modify all affected methods that are neither an Allocation (leaf), nor a root to take an `allocIn` and `allcOut`
+ * 2. Modify all affected methods that are neither an Allocation (leaf), nor a root to take an `allocIn` and `allocOut`
  *    parameter.
  * 3. Modify the embedded Computed with the hint `AllocationInit` inside the Allocation (leafs) to use the `allocIn`
  *    argument as second parameter for the ObjectID creation. Increase the `allocIn` argument by one and assign the

@@ -2,7 +2,6 @@ package inca.frontend.objectoriented.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
