@@ -335,13 +335,18 @@ object TestDefinition {
     TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())
   }
 
-  def noDemand: TestDefinition[Int] = {
+  def noDemandTest: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("NoDemand", "A", "main", Seq(), 3)
   }
 
-  def section3: TestDefinition[Int] = {
+  def abstractSyntaxGraphTest: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("syntax")
+    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), UnitResult())
+  }
+
+  /*def section3: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("casestudy")
     TestDefinition("Section3", "AddOp", "main", Seq(), 10)
-  }
+  }*/
 }

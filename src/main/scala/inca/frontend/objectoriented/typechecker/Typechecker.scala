@@ -506,7 +506,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val recvString = q"val ${Pat.Var(Term.Name(recv.prettyprint("")))}: ${recvTy.asScala} = Predef.???".syntax
 
       val codeSource =
-        if (args.isEmpty) s"{$recvString;\n${recv.prettyprint("")}.$method}" else {
+        if (args.isEmpty)
+          s"{$recvString;\n${recv.prettyprint("")}.$method}"
+        else {
           val argTys = args.getOrElse(Seq()).zipWithIndex.map { case (a, ix) =>
             ("param$_" + ix, typecheck(a))
           }

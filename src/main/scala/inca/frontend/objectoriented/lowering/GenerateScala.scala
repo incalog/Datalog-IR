@@ -359,8 +359,12 @@ class GenerateScala {
 
     case BaseApplyMethodExpr(recv, method, args) =>
       val term = Term.Select(transExpression(recv), Term.Name(method.raw))
-      val tArgs = args.getOrElse(Seq()).map(transExpression).toList
-      Term.Apply(term, tArgs)
+      if (args.isDefined) {
+        val tArgs = args.get.map(transExpression).toList
+        Term.Apply(term, tArgs)
+      } else {
+        term
+      }
     case BaseApplyUnaryExpr(op, exp) =>
       Term.ApplyUnary(op.tree, transExpression(exp))
     case NullExpr() =>

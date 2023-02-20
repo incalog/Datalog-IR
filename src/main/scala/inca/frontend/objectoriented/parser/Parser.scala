@@ -250,8 +250,9 @@ trait Parser {
   private val tupleIndex: P[Index] =
     spaced(P.string("_") *> digit.rep0(min = 1).string).mapWithLoc(s => Index(s.toInt))
 
-  private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] =
+  private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] = {
     (encloseBetween(identifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?)
+  }
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
     variable.mapWithLoc(VarReadExpr.apply)
@@ -398,6 +399,7 @@ trait Parser {
     }
 
   protected[frontend] val baseLitExpr: P[BaseLitExpr] = {
+    // ~ inBrackets(seq0(P.defer(expr))).? ??
     (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('(') | P.char('['))).mapWithLoc(BaseLitExpr) |
       spaced(numericLiteral) |
       spaced(stringLiteral) |
@@ -405,9 +407,8 @@ trait Parser {
   }
 
   protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] = {
-    // TODO: Fix the parser
-    (encloseBetween(scalaTerm, scalaQuoteChar).soft ~ inBrackets(seq0(P.defer(expr))).? ~  inParentheses(seq0(P.defer(expr)))).mapWithLoc {
-      case ((funTerm, tyArgs), args) => BaseApplyExpr(funTerm, args)
+    (encloseBetween(scalaTerm, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr)))).mapWithLoc {
+      case (funTerm, args) => BaseApplyExpr(funTerm, args)
     }
   }
 

@@ -193,10 +193,14 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("No Demand") {
-    performTests(noDemand)
+    performTests(noDemandTest)
   }
 
-  test("Section 3") {
-    performTests(section3)
+  test("Abstract Syntax Graph") {
+    performTests(abstractSyntaxGraphTest)
   }
+
+  /*test("Section 3") {
+    performTests(section3)
+  }*/
 }

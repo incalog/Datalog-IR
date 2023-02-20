@@ -33,7 +33,12 @@ case class TTuple(ts: Seq[Type]) extends Type {
     case _ => ts.map(_.prettyprint).mkString("(", ", ", ")")
   }
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
-  override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
+  override def asScala: meta.Type = {
+    if (ts.isEmpty)
+      t"Unit"
+    else
+      t"(..${ts.map(_.asScala).toList})"
+  }
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {

@@ -782,6 +782,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
     }
 
+    println("The methodDef is: ", methodDef, methodDef.isMain)
+
     if (methodDef.isStatic) {
       val pat = Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
       if (methodDef.isMain)

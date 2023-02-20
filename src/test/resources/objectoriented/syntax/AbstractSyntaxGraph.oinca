@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.asg
+module ASG
 
 class Visitor {
   def visitProg(n: Prog): Unit = { }
@@ -7,10 +7,17 @@ class Visitor {
   def visitVar(v: Var): Unit = { }
 }
 
-class Prog(val defs: List[Def]) {
+class Prog(val defs: `List[Any]`) {
+  def forEach(list: `List[Any]`, v: Visitor, i: Int, size: Int): Unit = {
+    if (i >= size) return
+    val ele: Def = list.`apply`(i).asInstanceOf[Def]
+    ele.accept(v)
+    this.forEach(list, v, i+1, size)
+  }
+
   def accept(v: Visitor): Unit = {
-    for (d <- this.defs)
-      d.accept(v)
+    val defs: `List[Any]` = this.defs
+    this.forEach(defs, v, 0, defs.`size`)
     v.visitProg(this)
   }
 }
@@ -22,63 +29,92 @@ class Def(val name: String, val exp: Exp) {
   }
 }
 
-abstract class Exp {
-  def accept(v: Visitor): Unit
+class Exp {
+  def accept(v: Visitor): Unit = {}
 }
 class Num(val value: Int) extends Exp {
-  def accept(v: Visitor): Unit = {
+  @override def accept(v: Visitor): Unit = {
     v.visitNum(this)
   }
 }
 class Var(val name: String) extends Exp {
-  var target: Option[Def] = None
-  def accept(v: Visitor): Unit = {
+  var target: Def = null
+  @override def accept(v: Visitor): Unit = {
     v.visitVar(this)
   }
 }
 
-class ResolveVisitor(prog: Prog) extends Visitor {
-  override def visitVar(v: Var): Unit = {
-    for (d <- this.prog.defs.find(_.name == v.name))
-      v.target = Some(d)
+class ResolveVisitor(val prog: Prog) extends Visitor {
+  def findByName(list: `List[Any]`, name: String, i: Int, size: Int): Def = {
+    if (i >= size) return null
+    val ele: Def = list.`apply`(i).asInstanceOf[Def]
+    if (ele.name == name) return ele
+    this.findByName(list, name, i+1, size)
+  }
+
+  @override def visitVar(v: Var): Unit = {
+    val defs: `List[Any]` = this.prog.defs
+    v.target = this.findByName(defs, v.name, 0, defs.`size`)
   }
 }
+
+
+class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
+    def init(): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`()
+    }
+
+    def join(m1: `scala.collection.immutable.Set[Any]`, m2: `scala.collection.immutable.Set[Any]`): `scala.collection.immutable.Set[Any]` = {
+        m1 ++ m2
+    }
+
+    def lift(element: Any): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`(element)
+    }
+
+    def get(): `scala.collection.immutable.Set[Any]` = {
+        this.result
+    }
+}
+
 
 class ReachVisitor extends Visitor {
-  var reachable: Set[Def] = Set.empty
+  var reachable: MonotoneSet = new MonotoneSet()
 
-  override def visitDef(d: Def): Unit = {
-    this.reachable = this.reachable + d
+  @override def visitDef(d: Def): Unit = {
+    this.reachable += d
   }
-  override def visitVar(v: Var): Unit = {
-    for (d <- v.target)
-      d.accept(this)
+
+  @override def visitVar(v: Var): Unit = {
+    val d: Def = v.target
+    if (d != null)
+        d.accept(this)
   }
 }
 
-
-
-object Main {
+class Main {
   @main
-  def main(args: Array[String]): Unit = {
-    val d1 = new Def("a", new Num(1))
-    val d2 = new Def("b", new Num(2))
-    val d3 = new Def("c", new Var("a"))
-    val d4 = new Def("d", new Var("b"))
-    val main = new Def("main", new Var("c"))
-    val prog = new Prog(List(d1, d2, d3, d4, main))
+  def main(): `scala.collection.immutable.Set[Any]` = {
+    val d1: Def = new Def("a", new Var("c"))
+    val d2: Def = new Def("b", new Num(2))
+    val d3: Def = new Def("c", new Var("a"))
+    val d4: Def = new Def("d", new Var("b"))
+    val main: Def = new Def("main", new Var("c"))
+    val prog: Prog = new Prog(`List[Any]`(d1, d2, d3, d4, main))
 
-    val resolving = new ResolveVisitor(prog)
+    val resolving: ResolveVisitor = new ResolveVisitor(prog)
     prog.accept(resolving)
     // Var.target is now defined for all Var objects
 
     // this loops in Scala when prog is recursive, but always computes in Datalog
-    val reaching = new ReachVisitor()
+    val reaching: ReachVisitor = new ReachVisitor()
     main.accept(reaching)
     // reaching.reachable contains three definitions: d1, d3, main
 
     // these results remain the same in OODL even after changing d1
     //   val d1 = new Def("a", new Var("c"))
     // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
+
+    return reaching.reachable.get()
   }
 }

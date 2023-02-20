@@ -137,7 +137,12 @@ trait ModuleLowering {
     case BaseApplyInfixExpr(left, op, right) =>
       BaseApplyInfixExpr(transExpression(left).head, op, transExpression(right).head)
     case BaseApplyMethodExpr(recv, method, args) =>
-      BaseApplyMethodExpr(transExpression(recv).head, method, Some(transExpressions(args.getOrElse(Seq()))))
+      val argsOptions =
+        if (args.isEmpty)
+          None
+        else
+          Some(transExpressions(args.get))
+      BaseApplyMethodExpr(transExpression(recv).head, method, argsOptions)
     case BaseApplyUnaryExpr(op, exp) =>
       BaseApplyUnaryExpr(op, transExpression(exp).head)
     case NullExpr() =>

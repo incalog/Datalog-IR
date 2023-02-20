@@ -61,7 +61,7 @@ class ReachVisitor extends Visitor {
 object Main {
 //  @main
   def main(args: Array[String]): Unit = {
-    val d1 = new Def("a", new Num(1))
+    val d1 = new Def("a", new Num(1)) // new Var("c")
     val d2 = new Def("b", new Num(2))
     val d3 = new Def("c", new Var("a"))
     val d4 = new Def("d", new Var("b"))
