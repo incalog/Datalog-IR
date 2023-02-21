@@ -151,10 +151,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitOption(@NotNull FuncIncaOption o) {
-    visitPsiElement(o);
-  }
-
   public void visitOptionExp(@NotNull FuncIncaOptionExp o) {
     visitExp(o);
   }
@@ -168,14 +164,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitParamList(@NotNull FuncIncaParamList o) {
-    visitPsiElement(o);
-  }
-
-  public void visitParamType(@NotNull FuncIncaParamType o) {
-    visitDecl(o);
-  }
-
-  public void visitParamTypes(@NotNull FuncIncaParamTypes o) {
     visitPsiElement(o);
   }
 
@@ -220,6 +208,14 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitTypeName(@NotNull FuncIncaTypeName o) {
+    visitPsiElement(o);
+  }
+
+  public void visitTypeVariable(@NotNull FuncIncaTypeVariable o) {
+    visitDecl(o);
+  }
+
+  public void visitTypeVariables(@NotNull FuncIncaTypeVariables o) {
     visitPsiElement(o);
   }
 

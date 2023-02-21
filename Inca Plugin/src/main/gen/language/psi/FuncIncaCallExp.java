@@ -11,6 +11,6 @@ public interface FuncIncaCallExp extends FuncIncaExp {
   List<FuncIncaExp> getExpList();
 
   @Nullable
-  FuncIncaParamTypes getParamTypes();
+  FuncIncaTypeVariables getTypeVariables();
 
 }

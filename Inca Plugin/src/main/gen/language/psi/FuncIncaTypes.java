@@ -44,13 +44,10 @@ public interface FuncIncaTypes {
   IElementType MEMBER_EXP = new FuncIncaElementType("MEMBER_EXP");
   IElementType MULTIPLE_LET = new FuncIncaElementType("MULTIPLE_LET");
   IElementType OP = new FuncIncaElementType("OP");
-  IElementType OPTION = new FuncIncaElementType("OPTION");
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
   IElementType OPTION_PATTERN = new FuncIncaElementType("OPTION_PATTERN");
   IElementType PARAM = new FuncIncaElementType("PARAM");
   IElementType PARAM_LIST = new FuncIncaElementType("PARAM_LIST");
-  IElementType PARAM_TYPE = new FuncIncaElementType("PARAM_TYPE");
-  IElementType PARAM_TYPES = new FuncIncaElementType("PARAM_TYPES");
   IElementType PARENS_EXP = new FuncIncaElementType("PARENS_EXP");
   IElementType PATTERN = new FuncIncaElementType("PATTERN");
   IElementType PRIMITIVE_TYPE = new FuncIncaElementType("PRIMITIVE_TYPE");
@@ -62,6 +59,8 @@ public interface FuncIncaTypes {
   IElementType TUPLE_EXP = new FuncIncaElementType("TUPLE_EXP");
   IElementType TYPE_ANNOTATION = new FuncIncaElementType("TYPE_ANNOTATION");
   IElementType TYPE_NAME = new FuncIncaElementType("TYPE_NAME");
+  IElementType TYPE_VARIABLE = new FuncIncaElementType("TYPE_VARIABLE");
+  IElementType TYPE_VARIABLES = new FuncIncaElementType("TYPE_VARIABLES");
   IElementType UNARY_OP = new FuncIncaElementType("UNARY_OP");
   IElementType VAR = new FuncIncaElementType("VAR");
   IElementType VAR_ID = new FuncIncaElementType("VAR_ID");
@@ -237,9 +236,6 @@ public interface FuncIncaTypes {
       else if (type == OP) {
         return new FuncIncaOpImpl(node);
       }
-      else if (type == OPTION) {
-        return new FuncIncaOptionImpl(node);
-      }
       else if (type == OPTION_EXP) {
         return new FuncIncaOptionExpImpl(node);
       }
@@ -251,12 +247,6 @@ public interface FuncIncaTypes {
       }
       else if (type == PARAM_LIST) {
         return new FuncIncaParamListImpl(node);
-      }
-      else if (type == PARAM_TYPE) {
-        return new FuncIncaParamTypeImpl(node);
-      }
-      else if (type == PARAM_TYPES) {
-        return new FuncIncaParamTypesImpl(node);
       }
       else if (type == PARENS_EXP) {
         return new FuncIncaParensExpImpl(node);
@@ -287,6 +277,12 @@ public interface FuncIncaTypes {
       }
       else if (type == TYPE_NAME) {
         return new FuncIncaTypeNameImpl(node);
+      }
+      else if (type == TYPE_VARIABLE) {
+        return new FuncIncaTypeVariableImpl(node);
+      }
+      else if (type == TYPE_VARIABLES) {
+        return new FuncIncaTypeVariablesImpl(node);
       }
       else if (type == UNARY_OP) {
         return new FuncIncaUnaryOpImpl(node);

@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaOption extends PsiElement {
+public interface FuncIncaTypeVariables extends PsiElement {
 
-  @Nullable
-  FuncIncaTypeAnnotation getTypeAnnotation();
+  @NotNull
+  List<FuncIncaTypeVariable> getTypeVariableList();
 
 }

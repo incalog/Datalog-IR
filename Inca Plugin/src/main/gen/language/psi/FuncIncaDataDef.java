@@ -14,7 +14,7 @@ public interface FuncIncaDataDef extends FuncIncaDecl {
   List<FuncIncaDataConstructor> getDataConstructorList();
 
   @Nullable
-  FuncIncaParamTypes getParamTypes();
+  FuncIncaTypeVariables getTypeVariables();
 
   @Nullable
   FuncIncaVisibility getVisibility();

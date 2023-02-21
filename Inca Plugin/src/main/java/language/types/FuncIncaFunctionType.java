@@ -1,27 +1,31 @@
 package language.types;
 
+import java.util.List;
+
 public class FuncIncaFunctionType implements FuncIncaType {
-    private FuncIncaType arg;
-    private FuncIncaType res;
 
-    FuncIncaFunctionType() {
-    }
+    public final List<FuncIncaType> typeVars;
+    public final List<FuncIncaType> paramTypes;
+    public final FuncIncaType returnType;
 
-    FuncIncaFunctionType(FuncIncaType a, FuncIncaType r) {
-        arg = a;
-        res = r;
-    }
-
-    public FuncIncaType getArg() {
-        return arg;
-    }
-
-    public FuncIncaType getRes() {
-        return res;
+    FuncIncaFunctionType(List<FuncIncaType> typeVars, List<FuncIncaType> paramTypes, FuncIncaType returnType) {
+        this.typeVars = typeVars;
+        this.paramTypes = paramTypes;
+        this.returnType = returnType;
     }
 
     @Override
     public String toString() {
-        return arg + " -> " + res;
+        if (paramTypes.isEmpty())
+            return "() => " + returnType;
+        String args = "";
+        for (FuncIncaType param : paramTypes) {
+            if (param instanceof FuncIncaFunctionType)
+                args += "(" + param + "), ";
+            else
+                args += param + ", ";
+        }
+
+        return "(" + args.substring(0, args.length() - 2) + ") => " + returnType;
     }
 }

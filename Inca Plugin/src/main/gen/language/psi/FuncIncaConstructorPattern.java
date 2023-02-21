@@ -14,6 +14,6 @@ public interface FuncIncaConstructorPattern extends PsiElement {
   List<FuncIncaConsPatternId> getConsPatternIdList();
 
   @Nullable
-  FuncIncaParamTypes getParamTypes();
+  FuncIncaTypeVariables getTypeVariables();
 
 }

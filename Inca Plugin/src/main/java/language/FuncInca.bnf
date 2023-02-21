@@ -92,9 +92,9 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
-  implements("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
-  mixin("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
+  methods("param|import|fun_def|type_variable|data_def|data_constructor|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
+  implements("param|import|fun_def|type_variable|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
+  mixin("param|import|fun_def|type_variable|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
 /*
   data_constructor : name of constructors
   data_def : name of new data type
@@ -121,24 +121,24 @@ private keywords_recover ::= !('module' | 'data' | 'def' | 'if' | 'else' | 'let'
 */
 
 // definition of functions
-fun_def ::= annotation* visibility? 'def' id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
-param_types ::= '[' param_type (',' param_type)* ']'
-param_type ::= id
+fun_def ::= annotation* visibility? 'def' id type_variables? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
+type_variables ::= '[' type_variable (',' type_variable)* ']'
+type_variable ::= id
 param_list ::= (param (',' param)*)?
 param ::= id ':' type_annotation
 annotation ::= '@main'
 visibility ::= 'private'
 
 // definition of datatypes
-data_def ::= annotation* visibility? 'data' id param_types? '=' data_constructor ('|' data_constructor)* {pin = 3}
-data_constructor ::= id param_types? '(' (type_annotation (',' type_annotation)*)? ')'
+data_def ::= annotation* visibility? 'data' id type_variables? '=' data_constructor ('|' data_constructor)* {pin = 3}
+data_constructor ::= id type_variables? '(' (type_annotation (',' type_annotation)*)? ')'
 
 // expressions
 exp ::= if_exp | let_exp | member_exp | infix_exp
 if_exp ::= 'if' '(' exp ')' exp 'else' exp {pin = 1}
 let_exp ::= 'let' (single_let | multiple_let) {pin = 1}
-single_let ::= var_id (':' type_annotation)? '=' infix_exp keyword_in exp
-multiple_let ::= '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)+ ')' '=' infix_exp keyword_in exp
+single_let ::= var_id (':' type_annotation)? '=' infix_exp 'in' exp
+multiple_let ::= '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)+ ')' '=' infix_exp 'in' exp
 var_id ::= id
 member_exp ::= atomic_exp 'not'? 'in' infix_exp {pin = 3}
 
@@ -154,13 +154,13 @@ match_exp ::=  subinfix_exp 'match' '{' match_case* '}' {pin = 2}
 match_case ::= 'case' pattern '=>' exp {pin = 1}
 pattern ::= option_pattern | constructor_pattern
 option_pattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
-constructor_pattern ::= cons_id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+constructor_pattern ::= cons_id type_variables? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
 cons_id ::= id
 cons_pattern_id ::= id
 
 // subinfix expressions
 subinfix_exp ::= call_exp | lambda_exp | atomic_exp
-call_exp ::= atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+ {pin = 3} // + to allow composition of functions
+call_exp ::= atomic_exp type_variables? ('(' (exp (',' exp)*)? ')')+ {pin = 3} // + to allow composition of functions
 lambda_exp ::= '(' param_list ')' '=>' exp {pin = 4}
 
 // atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)
@@ -183,7 +183,7 @@ fun_type ::= atomic_type '=>' type_annotation {pin = 2}
 atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | primitive_type | set | constr | scala_term |type_name
 constr ::= var '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
-option ::= 'Option' '[' type_annotation ']' {pin = 1}
+// option ::= 'Option' '[' type_annotation ']' {pin = 1}
 set ::= 'Set' '[' type_annotation ']' {pin = 1}
 type_name ::= id
 primitive_type ::= type_int | type_long | type_double | type_boolean | type_string

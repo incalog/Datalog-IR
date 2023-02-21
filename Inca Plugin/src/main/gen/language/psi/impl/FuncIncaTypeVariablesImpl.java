@@ -11,14 +11,14 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaParamTypesImpl extends ASTWrapperPsiElement implements FuncIncaParamTypes {
+public class FuncIncaTypeVariablesImpl extends ASTWrapperPsiElement implements FuncIncaTypeVariables {
 
-  public FuncIncaParamTypesImpl(@NotNull ASTNode node) {
+  public FuncIncaTypeVariablesImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitParamTypes(this);
+    visitor.visitTypeVariables(this);
   }
 
   @Override
@@ -29,8 +29,8 @@ public class FuncIncaParamTypesImpl extends ASTWrapperPsiElement implements Func
 
   @Override
   @NotNull
-  public List<FuncIncaParamType> getParamTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaParamType.class);
+  public List<FuncIncaTypeVariable> getTypeVariableList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTypeVariable.class);
   }
 
 }

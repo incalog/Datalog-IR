@@ -17,10 +17,10 @@ public interface FuncIncaFunDef extends FuncIncaDecl {
   FuncIncaParamList getParamList();
 
   @Nullable
-  FuncIncaParamTypes getParamTypes();
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
   @Nullable
-  FuncIncaTypeAnnotation getTypeAnnotation();
+  FuncIncaTypeVariables getTypeVariables();
 
   @Nullable
   FuncIncaVisibility getVisibility();

@@ -40,8 +40,8 @@ public class FuncIncaDataDefImpl extends FuncIncaDeclImpl implements FuncIncaDat
 
   @Override
   @Nullable
-  public FuncIncaParamTypes getParamTypes() {
-    return findChildByClass(FuncIncaParamTypes.class);
+  public FuncIncaTypeVariables getTypeVariables() {
+    return findChildByClass(FuncIncaTypeVariables.class);
   }
 
   @Override

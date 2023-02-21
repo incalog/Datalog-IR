@@ -27,15 +27,15 @@ public class FuncIncaDataConstructorImpl extends FuncIncaDeclImpl implements Fun
   }
 
   @Override
-  @Nullable
-  public FuncIncaParamTypes getParamTypes() {
-    return findChildByClass(FuncIncaParamTypes.class);
-  }
-
-  @Override
   @NotNull
   public List<FuncIncaTypeAnnotation> getTypeAnnotationList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTypeAnnotation.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaTypeVariables getTypeVariables() {
+    return findChildByClass(FuncIncaTypeVariables.class);
   }
 
   @Override

@@ -4,9 +4,8 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
-import kotlin.Pair;
-import language.FuncIncaUtil;
 import language.psi.*;
+import language.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -166,8 +165,7 @@ public class FuncIncaTypechecker {
                     returnType[0] = typecheckCore(body, holder);
                 }
             });
-            FuncIncaType args = new FuncIncaTupleType(types);
-            return new FuncIncaFunctionType(args, returnType[0]); // TODO lambda is a Function Type, return new FuncIncaFunctionType(types, returnType[0]);
+            return new FuncIncaFunctionType(new ArrayList<>(), types, returnType[0]);
 
         } else if (exp instanceof FuncIncaCallExp) {
 
@@ -227,7 +225,7 @@ public class FuncIncaTypechecker {
                     if (eType.isIntType() || eType.isDoubleType() || eType.isLongType()) {
                         return eType;
                     } else {
-                        holder.newAnnotation(HighlightSeverity.ERROR, "Arithetic operator - cannot be used" +
+                        holder.newAnnotation(HighlightSeverity.ERROR, "Arithmetic operator - cannot be used" +
                                         " with type " + eType + ".")
                                 .range(exp)
                                 .create();
@@ -509,13 +507,13 @@ public class FuncIncaTypechecker {
 
         for (int i = 0; i < ((FuncIncaConstructorType) matcheeType).getTypes().size(); i++) {
             FuncIncaType ty = ((FuncIncaConstructorType) matcheeType).getTypes().get(i);
-            String param = ((FuncIncaDataDef) consName).getParamTypes().getParamTypeList().get(i).getText();
+            String param = ((FuncIncaDataDef) consName).getTypeVariables().getTypeVariableList().get(i).getText();
             subst.put(param, ty);
         }
 
         for (FuncIncaDataConstructor c : ((FuncIncaDataDef) data).getDataConstructorList()) {
             List<FuncIncaType> tyVars = new ArrayList<>();
-            for (FuncIncaParamType paramTy : c.getParamTypes().getParamTypeList())
+            for (FuncIncaTypeVariable paramTy : c.getTypeVariables().getTypeVariableList())
                 tyVars.add(subst.get(paramTy.getText()));
             availableConstr.put(c.getId().getText(),
                     new DataConstructor(c.getId().getText(),
@@ -535,7 +533,7 @@ public class FuncIncaTypechecker {
                             range(consId.getTextRange()).create();
                 else
                     seenConstr.put(consId.getText(), new DataConstructor(consId.getText(),
-                            FuncIncaTypeUtil.paramTypeToFuncIncaType(((FuncIncaConstructorPattern) pattern).getParamTypes().getParamTypeList()),
+                            FuncIncaTypeUtil.typeVariablesToFuncIncaType(((FuncIncaConstructorPattern) pattern).getTypeVariables().getTypeVariableList()),
                             Collections.nCopies(params, new FuncIncaAnyType())));
 
                 // TODO line 466
@@ -606,8 +604,7 @@ public class FuncIncaTypechecker {
             if (rhs.isIntType() || rhs.isDoubleType()) {
                 return lhs;
             } else if (rhs.isLongType()) {
-                // TODO double + long = ???
-                return new FuncIncaAnyType();
+                return new FuncIncaDoubleType();
             } else { // rhs not a numeric type
                 holder.newAnnotation(HighlightSeverity.ERROR, "Cannot use arithmetic operator " + op +
                                 " with types " + lhs + " and " + rhs)
@@ -619,8 +616,7 @@ public class FuncIncaTypechecker {
             if (rhs.isIntType() || rhs.isLongType()) {
                 return lhs;
             } else if (rhs.isDoubleType()) {
-                // TODO long + double = ???
-                return new FuncIncaAnyType();
+                return new FuncIncaDoubleType();
             } else { // rhs is not a numeric type
                 holder.newAnnotation(HighlightSeverity.ERROR, "Cannot use arithmetic operator " + op +
                                 " with types " + lhs + " and " + rhs)

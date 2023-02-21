@@ -3,14 +3,8 @@ package language.psi.impl;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry;
-import com.intellij.util.ArrayUtil;
 import language.FuncIncaReference;
 import language.psi.*;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class FuncIncaPsiImplUtil {
@@ -121,24 +115,24 @@ public class FuncIncaPsiImplUtil {
         return getNameIdentifier(idNode);
     }
 
-    // --------------------------------- param_type ---------------------------------
+    // --------------------------------- type_variables ---------------------------------
 
-    public static String getName(FuncIncaParamType element){
+    public static String getName(FuncIncaTypeVariable element){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
         return getName(idNode);
     }
 
-    public static PsiElement setName(FuncIncaParamType element, String newName){
+    public static PsiElement setName(FuncIncaTypeVariable element, String newName){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
         if(idNode != null){
-            FuncIncaParamType paramType = FuncIncaElementFactory.createParamType(element.getProject(), newName);
+            FuncIncaTypeVariable paramType = FuncIncaElementFactory.createTypeVariable(element.getProject(), newName);
             ASTNode newNode = paramType.getFirstChild().getNode();
             element.getNode().replaceChild(idNode, newNode);
         }
         return element;
     }
 
-    public static PsiElement getNameIdentifier(FuncIncaParamType element){
+    public static PsiElement getNameIdentifier(FuncIncaTypeVariable element){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
         return getNameIdentifier(idNode);
     }

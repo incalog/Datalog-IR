@@ -281,7 +281,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+
+  // atomic_exp type_variables? ('(' (exp (',' exp)*)? ')')+
   public static boolean call_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "call_exp")) return false;
     boolean r;
@@ -293,10 +293,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // param_types?
+  // type_variables?
   private static boolean call_exp_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "call_exp_1")) return false;
-    param_types(b, l + 1);
+    type_variables(b, l + 1);
     return true;
   }
 
@@ -539,7 +539,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // cons_id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+  // cons_id type_variables? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
   public static boolean constructor_pattern(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern")) return false;
     if (!nextTokenIs(b, ID)) return false;
@@ -554,10 +554,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // param_types?
+  // type_variables?
   private static boolean constructor_pattern_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern_1")) return false;
-    param_types(b, l + 1);
+    type_variables(b, l + 1);
     return true;
   }
 
@@ -602,7 +602,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id param_types? '(' (type_annotation (',' type_annotation)*)? ')'
+  // id type_variables? '(' (type_annotation (',' type_annotation)*)? ')'
   public static boolean data_constructor(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "data_constructor")) return false;
     if (!nextTokenIs(b, ID)) return false;
@@ -617,10 +617,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // param_types?
+  // type_variables?
   private static boolean data_constructor_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "data_constructor_1")) return false;
-    param_types(b, l + 1);
+    type_variables(b, l + 1);
     return true;
   }
 
@@ -665,7 +665,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // annotation* visibility? 'data' id param_types? '=' data_constructor ('|' data_constructor)*
+  // annotation* visibility? 'data' id type_variables? '=' data_constructor ('|' data_constructor)*
   public static boolean data_def(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "data_def")) return false;
     boolean r, p;
@@ -700,10 +700,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // param_types?
+  // type_variables?
   private static boolean data_def_4(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "data_def_4")) return false;
-    param_types(b, l + 1);
+    type_variables(b, l + 1);
     return true;
   }
 
@@ -796,7 +796,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // annotation* visibility? 'def' id param_types? ('(' param_list ')')? ':' type_annotation '=' exp
+  // annotation* visibility? 'def' id type_variables? ('(' param_list ')')? ':' type_annotation '=' exp
   public static boolean fun_def(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "fun_def")) return false;
     boolean r, p;
@@ -833,10 +833,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // param_types?
+  // type_variables?
   private static boolean fun_def_4(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "fun_def_4")) return false;
-    param_types(b, l + 1);
+    type_variables(b, l + 1);
     return true;
   }
 
@@ -1094,7 +1094,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)+ ')' '=' infix_exp keyword_in exp
+  // '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)+ ')' '=' infix_exp 'in' exp
   public static boolean multiple_let(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "multiple_let")) return false;
     if (!nextTokenIs(b, PARENS_OPEN)) return false;
@@ -1200,21 +1200,6 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, SET_INTERSECTION);
     exit_section_(b, l, m, r, false, null);
     return r;
-  }
-
-  /* ********************************************************** */
-  // 'Option' '[' type_annotation ']'
-  public static boolean option(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "option")) return false;
-    if (!nextTokenIs(b, KEYWORD_OPTION)) return false;
-    boolean r, p;
-    Marker m = enter_section_(b, l, _NONE_, OPTION, null);
-    r = consumeTokens(b, 1, KEYWORD_OPTION, SQUARE_BRACKET_OPEN);
-    p = r; // pin = 1
-    r = r && report_error_(b, type_annotation(b, l + 1));
-    r = p && consumeToken(b, SQUARE_BRACKET_CLOSE) && r;
-    exit_section_(b, l, m, r, p, null);
-    return r || p;
   }
 
   /* ********************************************************** */
@@ -1403,55 +1388,6 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id
-  public static boolean param_type(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "param_type")) return false;
-    if (!nextTokenIs(b, ID)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ID);
-    exit_section_(b, m, PARAM_TYPE, r);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // '[' param_type (',' param_type)* ']'
-  public static boolean param_types(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "param_types")) return false;
-    if (!nextTokenIs(b, SQUARE_BRACKET_OPEN)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, SQUARE_BRACKET_OPEN);
-    r = r && param_type(b, l + 1);
-    r = r && param_types_2(b, l + 1);
-    r = r && consumeToken(b, SQUARE_BRACKET_CLOSE);
-    exit_section_(b, m, PARAM_TYPES, r);
-    return r;
-  }
-
-  // (',' param_type)*
-  private static boolean param_types_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "param_types_2")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!param_types_2_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "param_types_2", c)) break;
-    }
-    return true;
-  }
-
-  // ',' param_type
-  private static boolean param_types_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "param_types_2_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, COMMA);
-    r = r && param_type(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  /* ********************************************************** */
   // '(' exp ')'
   public static boolean parens_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "parens_exp")) return false;
@@ -1508,7 +1444,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // var_id (':' type_annotation)? '=' infix_exp keyword_in exp
+  // var_id (':' type_annotation)? '=' infix_exp 'in' exp
   public static boolean single_let(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "single_let")) return false;
     if (!nextTokenIs(b, ID)) return false;
@@ -1683,6 +1619,55 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b);
     r = consumeToken(b, ID);
     exit_section_(b, m, TYPE_NAME, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id
+  public static boolean type_variable(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "type_variable")) return false;
+    if (!nextTokenIs(b, ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ID);
+    exit_section_(b, m, TYPE_VARIABLE, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '[' type_variable (',' type_variable)* ']'
+  public static boolean type_variables(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "type_variables")) return false;
+    if (!nextTokenIs(b, SQUARE_BRACKET_OPEN)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, SQUARE_BRACKET_OPEN);
+    r = r && type_variable(b, l + 1);
+    r = r && type_variables_2(b, l + 1);
+    r = r && consumeToken(b, SQUARE_BRACKET_CLOSE);
+    exit_section_(b, m, TYPE_VARIABLES, r);
+    return r;
+  }
+
+  // (',' type_variable)*
+  private static boolean type_variables_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "type_variables_2")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!type_variables_2_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "type_variables_2", c)) break;
+    }
+    return true;
+  }
+
+  // ',' type_variable
+  private static boolean type_variables_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "type_variables_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && type_variable(b, l + 1);
+    exit_section_(b, m, null, r);
     return r;
   }
 

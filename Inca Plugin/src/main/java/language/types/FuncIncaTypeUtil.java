@@ -2,21 +2,29 @@ package language.types;
 
 import com.intellij.psi.PsiElement;
 import language.psi.*;
+import org.apache.commons.compress.utils.Lists;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FuncIncaTypeUtil {
     /**
      * Takes a list of parameters as PSI Elements and returns their types as FuncIncaTypes
-     * @param params
+     * @param tyVars
      * @return
      */
-    public static List<FuncIncaType> paramTypeToFuncIncaType(List<FuncIncaParamType> params) {
+    public static List<FuncIncaType> typeVariablesToFuncIncaType(List<FuncIncaTypeVariable> tyVars) {
         List<FuncIncaType> res = new ArrayList<>();
-        for (FuncIncaParamType param : params)
-            res.add(new FuncIncaParameterizedType(param.getText()));
+        if (tyVars == null || tyVars.isEmpty()) {
+            return res;
+        }
+        // TODO leere liste oder null.
+        // TODO wie soll eine leere parametermenge gewertet werden? () Unit, Nothing wohl nicht, oder einfach Liste leer lassen in Typdefinition?
+
+        for (FuncIncaTypeVariable tyVar : tyVars)
+            res.add(new FuncIncaParameterizedType(tyVar.getText()));
         return res;
     }
 
@@ -27,22 +35,29 @@ public class FuncIncaTypeUtil {
      */
     public static FuncIncaType psiToFuncIncaType(FuncIncaTypeAnnotation element) {
         PsiElement e;
-        if (element.getFirstChild() != null)
+        try {
             e = element.getFirstChild();
-        else return new FuncIncaAnyType();
+        }
+        catch (NullPointerException np) {
+            return new FuncIncaAnyType();
+        }
         if (e instanceof FuncIncaFunType) {
             FuncIncaType argType = atomicTypeToFuncIncaType(((FuncIncaFunType) e).getAtomicType());
             FuncIncaType returnType = psiToFuncIncaType(((FuncIncaFunType) e).getTypeAnnotation());
-            return new FuncIncaFunctionType(argType, returnType);
+            if (argType instanceof FuncIncaTupleType) {
+                return new FuncIncaFunctionType(new ArrayList<>(), ((FuncIncaTupleType) argType).getTypes(), returnType);
+            } else {
+                return new FuncIncaFunctionType(new ArrayList<>(), Arrays.asList(argType), returnType);
+            }
         } else { // e is instance of FuncIncaAtomicType
             return atomicTypeToFuncIncaType((FuncIncaAtomicType) e);
         }
     }
 
     public static List<FuncIncaType> psiToFuncIncaType(@Nullable List<FuncIncaTypeAnnotation> elements) {
-        if (null == elements)
-            return null;
         List<FuncIncaType> types = new ArrayList<>();
+        if (null == elements || elements.isEmpty())
+            return types;
         for (FuncIncaTypeAnnotation e : elements)
             types.add(psiToFuncIncaType(e));
         return types;

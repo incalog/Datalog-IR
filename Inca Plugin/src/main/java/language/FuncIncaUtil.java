@@ -109,7 +109,7 @@ public class FuncIncaUtil {
                         if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FuncIncaParamType) {
+                    } else if (namedElement instanceof FuncIncaTypeVariable) {
                         if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }

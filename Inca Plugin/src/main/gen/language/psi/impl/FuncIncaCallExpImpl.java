@@ -35,8 +35,8 @@ public class FuncIncaCallExpImpl extends FuncIncaExpImpl implements FuncIncaCall
 
   @Override
   @Nullable
-  public FuncIncaParamTypes getParamTypes() {
-    return findChildByClass(FuncIncaParamTypes.class);
+  public FuncIncaTypeVariables getTypeVariables() {
+    return findChildByClass(FuncIncaTypeVariables.class);
   }
 
 }

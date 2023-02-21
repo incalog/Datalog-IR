@@ -41,8 +41,8 @@ public class FuncIncaConstructorPatternImpl extends ASTWrapperPsiElement impleme
 
   @Override
   @Nullable
-  public FuncIncaParamTypes getParamTypes() {
-    return findChildByClass(FuncIncaParamTypes.class);
+  public FuncIncaTypeVariables getTypeVariables() {
+    return findChildByClass(FuncIncaTypeVariables.class);
   }
 
 }

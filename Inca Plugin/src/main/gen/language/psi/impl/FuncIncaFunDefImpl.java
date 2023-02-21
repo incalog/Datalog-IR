@@ -46,14 +46,14 @@ public class FuncIncaFunDefImpl extends FuncIncaDeclImpl implements FuncIncaFunD
 
   @Override
   @Nullable
-  public FuncIncaParamTypes getParamTypes() {
-    return findChildByClass(FuncIncaParamTypes.class);
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
   @Override
   @Nullable
-  public FuncIncaTypeAnnotation getTypeAnnotation() {
-    return findChildByClass(FuncIncaTypeAnnotation.class);
+  public FuncIncaTypeVariables getTypeVariables() {
+    return findChildByClass(FuncIncaTypeVariables.class);
   }
 
   @Override

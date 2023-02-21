@@ -8,23 +8,43 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaKeywordsImpl extends ASTWrapperPsiElement implements FuncIncaKeywords {
+public class FuncIncaTypeVariableImpl extends FuncIncaDeclImpl implements FuncIncaTypeVariable {
 
-  public FuncIncaKeywordsImpl(@NotNull ASTNode node) {
+  public FuncIncaTypeVariableImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    // visitor.visitKeywords(this);
+    visitor.visitTypeVariable(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
+  }
+
+  @Override
+  @NotNull
+  public PsiElement getId() {
+    return findNotNullChildByType(ID);
+  }
+
+  @Override
+  public String getName() {
+    return FuncIncaPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public PsiElement setName(String newName) {
+    return FuncIncaPsiImplUtil.setName(this, newName);
+  }
+
+  @Override
+  public PsiElement getNameIdentifier() {
+    return FuncIncaPsiImplUtil.getNameIdentifier(this);
   }
 
 }

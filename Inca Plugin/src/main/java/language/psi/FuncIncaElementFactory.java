@@ -24,8 +24,8 @@ public class FuncIncaElementFactory {
         return ((FuncIncaFunDef) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
-    public static FuncIncaParamType createParamType(Project project, String name){
-        return ((FuncIncaParamType) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    public static FuncIncaTypeVariable createTypeVariable(Project project, String name){
+        return ((FuncIncaTypeVariable) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
     public static FuncIncaDataDef createDataDef(Project project, String name){
