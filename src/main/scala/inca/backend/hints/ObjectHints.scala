@@ -44,7 +44,7 @@ object ObjectHints {
   /**
    * Pattern stores the values of a field.
    */
-  object Field extends Hint {
+  case class Field(immutable: Boolean) extends Hint {
     override def key: Key = FieldKey
   }
 

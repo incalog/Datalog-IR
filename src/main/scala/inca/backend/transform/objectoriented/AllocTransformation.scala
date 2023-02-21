@@ -20,8 +20,8 @@ import scala.meta.XtensionQuasiquoteTerm
  */
 object AllocTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
-    ObjectHints.AllocationRoot,
-    ObjectHints.Allocation,
+    ObjectHints.AllocationRootKey,
+    ObjectHints.AllocationKey,
     "alloc", "allocIn", "allocOut"
   ) {
 

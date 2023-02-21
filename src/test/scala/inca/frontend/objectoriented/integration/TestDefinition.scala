@@ -342,7 +342,7 @@ object TestDefinition {
 
   def abstractSyntaxGraphTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("syntax")
-    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), UnitResult())
+    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("main", "a", "c"))
   }
 
   /*def section3: TestDefinition[Int] = {

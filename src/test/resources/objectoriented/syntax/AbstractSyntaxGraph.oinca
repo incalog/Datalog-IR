@@ -24,8 +24,8 @@ class Prog(val defs: `List[Any]`) {
 
 class Def(val name: String, val exp: Exp) {
   def accept(v: Visitor): Unit = {
-    this.exp.accept(v)
     v.visitDef(this)
+    this.exp.accept(v)
   }
 }
 
@@ -79,7 +79,7 @@ class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[
 
 
 class ReachVisitor extends Visitor {
-  var reachable: MonotoneSet = new MonotoneSet()
+  val reachable: MonotoneSet = new MonotoneSet()
 
   @override def visitDef(d: Def): Unit = {
     this.reachable += d
@@ -88,13 +88,24 @@ class ReachVisitor extends Visitor {
   @override def visitVar(v: Var): Unit = {
     val d: Def = v.target
     if (d != null)
-        d.accept(this)
+        fix d.accept(this)
+  }
+}
+
+class Mapper {
+  def mapName(s: `Seq[Any]`, i: Int, size: Int): Set[String] = {
+    val ele: Def = s.`apply`(i).asInstanceOf[Def]
+    if (i == size-1) {
+        return Set(ele.name)
+    } else {
+        return Set(ele.name) ++ this.mapName(s, i+1, size)
+    }
   }
 }
 
 class Main {
   @main
-  def main(): `scala.collection.immutable.Set[Any]` = {
+  def main(): Set[String] = {
     val d1: Def = new Def("a", new Var("c"))
     val d2: Def = new Def("b", new Num(2))
     val d3: Def = new Def("c", new Var("a"))
@@ -115,6 +126,8 @@ class Main {
     //   val d1 = new Def("a", new Var("c"))
     // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
 
-    return reaching.reachable.get()
+    val result: `scala.collection.immutable.Set[Any]` = reaching.reachable.get()
+    val mapper: Mapper = new Mapper()
+    mapper.mapName(result.`toSeq`, 0, result.`size`)
   }
 }

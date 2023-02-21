@@ -692,7 +692,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val params = Datalog.Param("this", transType(classDef.typ)) +:
       flattenParam(fieldDef.name.raw, fieldDef.typ, genFresh = false)
     val pat = Datalog.Pattern(None, qualifiedName, params, Seq())
-    pat.addHint(ObjectHints.Field)
+    pat.addHint(ObjectHints.Field(fieldDef.immutable))
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -752,7 +752,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     else
       transStatements(methodDef.body, None, methodDef)
 
-    val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
+    var bodies = for ((optReturn, cons, _) <- bodyRes) yield {
       val returnTerms = optReturn.getOrElse(Seq())
 
       // return a real scala tuple, not a flattened one
@@ -782,8 +782,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
     }
 
-    println("The methodDef is: ", methodDef, methodDef.isMain)
-
     if (methodDef.isStatic) {
       val pat = Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
       if (methodDef.isMain)
@@ -791,8 +789,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           .addHint(ObjectHints.AllocationRoot)
           .addHint(ObjectHints.FieldRoot)
       pat
-    } else
+    } else {
       Datalog.Pattern(transVis(methodDef.vis), qualifiedName, thisParam +: (argParams ++ returnParams), bodies)
+    }
   }
 
   type Constraints = Seq[Datalog.Atom]
@@ -970,7 +969,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         (Seq(), argCons.flatten ++ Seq(Datalog.Call(constrName, Datalog.Var("this") +: argTerms.flatten)))
       }
 
-    case methodCallExp@MethodCallExpr(recv, fun, args) =>
+    case methodCallExp@MethodCallExpr(recv, fun, args, isFix) =>
       val argRes = args.map(e => transExpression(e))
 
       val (classDef, methodDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
@@ -982,15 +981,27 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.signature)
 
-      val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
+      val Seq((terms, atoms)) = (for ((terms, cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)
           return Seq((outVars, cons :+ Datalog.Call(qualifiedName, terms ++ outVars)))
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
           val (argTerms, argCons) = tups.unzip
           (outVars, cons ++ argCons.flatten ++ Seq(Datalog.Call(qualifiedName, terms ++ argTerms.flatten ++ outVars)))
         }
-      }
-      transRecv.flatten
+      }).flatten
+
+      // TODO: Does only work for Unit return types for now. Otherwise the return argument is not bound
+      //  We might need some encoding for empty set to support none unit methods
+      //  For unit methods we do not need to change anything on the call side
+      //  For none unit methods we would need to filter / aggregate the result of the enclosing method
+      //  For the Abstract syntax graph we would need to aggreagte the visitVar method calls
+      if (isFix) {
+        if (methodDef.returnsUnit)
+          Seq((Seq(), Seq()), (terms, atoms))
+        else
+          throw new RuntimeException("Fixpoint iterations for none unit method are currently not supported.")
+      } else
+        Seq((terms, atoms))
 
     case TypeCastExpr(recv, toTyp) =>
       for ((Seq(term), cons) <- transExpression(recv)) yield {
@@ -1248,8 +1259,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val leftRes = transExpression(left)
       val rightRes = transExpression(right)
       val evalOut = Datalog.Var(gensym.fresh("eval"))
-
-      println("BaseInfix:", left, op, right)
 
       for ((Seq(leftTerm), leftCons) <- leftRes;
            (Seq(rightTerm), rightCons) <- rightRes) yield {

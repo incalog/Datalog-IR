@@ -316,7 +316,7 @@ class GenerateScala {
         case None => throw new IllegalArgumentException(s"Untyped expression $expr!")
       }
 
-    case MethodCallExpr(recv, fun, args) =>
+    case MethodCallExpr(recv, fun, args, _) =>
       val tArgs = args.map(transExpression).toList
       val tRecv = transExpression(recv)
       val tFun = Term.Select(tRecv, Term.Name(fun.raw))

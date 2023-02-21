@@ -355,7 +355,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               clazz.typ
           }
       }
-    case methodCallExpr@MethodCallExpr(recv, fun, args) =>
+    case methodCallExpr@MethodCallExpr(recv, fun, args, _) =>
       val ty = typecheck(recv) match {
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved

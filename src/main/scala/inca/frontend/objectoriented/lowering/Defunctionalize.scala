@@ -262,8 +262,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
     case SuperExpr(args) =>
       SuperExpr(args.map(sanitize(_)))
-    case MethodCallExpr(recv, fun, args) =>
-      unapply(MethodCallExpr(sanitize(recv), fun, args.map(sanitize(_))), requiresTrueSet, expression.typ)
+    case MethodCallExpr(recv, fun, args, isFix) =>
+      unapply(MethodCallExpr(sanitize(recv), fun, args.map(sanitize(_)), isFix), requiresTrueSet, expression.typ)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(sanitize(recv), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>

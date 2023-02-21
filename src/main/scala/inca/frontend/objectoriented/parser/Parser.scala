@@ -9,7 +9,6 @@ import inca.util.Scala
 import scalaparse.syntax.Basic.isOpChar
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 
-import java.util.Objects.hash
 import scala.language.{existentials, implicitConversions}
 import scala.meta.parsers.Parsed
 import scala.meta.{Term, XtensionParseInputLike}
@@ -78,6 +77,7 @@ trait Parser {
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
     val CASE: Value       = Value("case")
+    val FIX: Value        = Value("fix")
   }
 
   import Keyword._
@@ -292,33 +292,44 @@ trait Parser {
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
     // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
-    val nestedPath = indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | variable | call | tupleIndex | baseApplyMethod)).rep0
-    val nestedStart = ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
+    val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | variable | call | tupleIndex | baseApplyMethod)).rep0
+    val nestedStart =  ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
 
+    // TODO: This does only allow nested expressions with a fix at the start
+    //  fix method1().method2() => would lead to both method being fix
+    //  method1(fix method2()) => Is currently not possible but would be nice
     // separating the first path identifier allows us to disallow method calls or field access on tuples, but at the
     // same time we allow tuple reads by index on nested structures which might contain tuples
-    ((tupStart | nestedStart) ~ nestedPath).mapWithLoc { case ((startExpr, firstIdentifier), pathIdentifiers) =>
-      (firstIdentifier ++ pathIdentifiers).foldLeft(startExpr) { case (prev, indexedCurrent) =>
-        // we need to track the start and end index manually
-        val ((startIndex, current), endIndex) = indexedCurrent
-        val nextExpr = current match {
-          case index: Index => TupleReadExpr(prev, index)
-          case name: Name => FieldReadExpr(prev, name)
-          case (Name("asInstanceOf"), ty: Type) => TypeCastExpr(prev, ty)
-          case (Name("isInstanceOf"), ty: Type) => InstanceOfExpr(prev, ty)
-          case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
-            val projection = args.headOption match {
-              case Some(TupleExpr(proj: Seq[Expression])) => proj
-              case None => Seq(VarReadExpr(Name("#")))
+    ((keyword(FIX).?.with1 ~ (tupStart | nestedStart)) ~ nestedPath).mapWithLoc {
+      case ((fix, (startExpr, firstIdentifier)), pathIdentifiers) =>
+        (firstIdentifier ++ pathIdentifiers).foldLeft(startExpr) {
+          case (prev, indexedCurrent) =>
+            // we need to track the start and end index manually
+            val ((startIndex, current), endIndex) = indexedCurrent
+            val nextExpr = current match {
+              case index: Index =>
+                TupleReadExpr(prev, index)
+              case name: Name =>
+                FieldReadExpr(prev, name)
+              case (Name("asInstanceOf"), ty: Type) =>
+                TypeCastExpr(prev, ty)
+              case (Name("isInstanceOf"), ty: Type) =>
+                InstanceOfExpr(prev, ty)
+              case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
+                val projection = args.headOption match {
+                  case Some(TupleExpr(proj: Seq[Expression])) => proj
+                  case None => Seq(VarReadExpr(Name("#")))
+                }
+                SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
+              case (name: Name, argList: Seq[Expression]) =>
+                MethodCallExpr(prev, name, argList, isFix = fix.isDefined)
+              case (name: Name, argList: Option[Seq[Expression]]) =>
+                BaseApplyMethodExpr(prev, name, argList)
             }
-            SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-          case (name: Name, argList: Seq[Expression]) => MethodCallExpr(prev, name, argList)
-          case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
+            nextExpr.startIndex = startIndex
+            nextExpr.endIndex = endIndex
+            nextExpr
         }
-        nextExpr.startIndex = startIndex
-        nextExpr.endIndex = endIndex
-        nextExpr
-      }
     }
   }
 

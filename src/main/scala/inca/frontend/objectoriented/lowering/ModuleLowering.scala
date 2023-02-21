@@ -113,8 +113,8 @@ trait ModuleLowering {
       ConstructorExpr(ClassRef(name), transExpressions(args))
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
-    case MethodCallExpr(recv, fun, args) =>
-      MethodCallExpr(transExpression(recv).head, fun, transExpressions(args))
+    case MethodCallExpr(recv, fun, args, isFix) =>
+      MethodCallExpr(transExpression(recv).head, fun, transExpressions(args), isFix)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(transExpression(recv).head, transType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>

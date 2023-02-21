@@ -26,8 +26,8 @@ import scala.meta.XtensionQuasiquoteTerm
  * The leaf pattern is modified based on behaviour defined by a concrete implementation of this class
  * [transformChildPattern].
  */
-abstract class CountTransformer(val rootPatternHint: Hint,
-                                val leafPatternHint: Hint,
+abstract class CountTransformer(val rootPatternHint: String,
+                                val leafPatternHint: String,
                                 val rootParamName: String,
                                 val inParamName: String,
                                 val outParamName: String) extends Transformer {
@@ -272,8 +272,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * @return The modified pattern.
    */
     private[objectoriented] def insertCounter(pattern: Seq[Pattern]): Seq[Pattern] = {
-      val leafPats = pattern.filter(_.hasHint(leafPatternHint.key)).toSet
-      val rootPats = pattern.filter(_.hasHint(rootPatternHint.key)).toSet
+      val leafPats = pattern.filter(_.hasHint(leafPatternHint)).toSet
+      val rootPats = pattern.filter(_.hasHint(rootPatternHint)).toSet
 
       if (leafPats.nonEmpty && rootPats.isEmpty)
         throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Missing root annotation!")
@@ -291,11 +291,11 @@ abstract class CountTransformer(val rootPatternHint: Hint,
 
       val additionalPattern = generateAdditionalPattern(leafPats.toSeq, rootPats, affectedPattern, unchangedPattern)
       val transRootPats = rootPats.map(transformRootPattern(_, allAffectedPattern))
-      val transFieldPats = leafPats.map(transformLeafPattern(_, allAffectedPattern))
+      val transLeafPats = leafPats.map(transformLeafPattern(_, allAffectedPattern))
       val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
       val transUnaffectedPats = unchangedPattern.map(transformUnaffectedPattern(_, allAffectedPattern))
 
-      transRootPats.toSeq ++ transFieldPats ++ transAffectedPats ++ additionalPattern ++ transUnaffectedPats
+      transRootPats.toSeq ++ transLeafPats ++ transAffectedPats ++ additionalPattern ++ transUnaffectedPats
     }
 
     /**

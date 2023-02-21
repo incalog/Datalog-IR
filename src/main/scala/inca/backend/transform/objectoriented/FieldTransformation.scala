@@ -43,10 +43,18 @@ case class MaxAgg() extends Aggregation[Int] {
  */
 object FieldTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
-    ObjectHints.FieldRoot,
-    ObjectHints.Field,
+    ObjectHints.FieldRootKey,
+    ObjectHints.FieldKey,
     "ts", "tsIn", "tsOut"
   ) {
+
+    private var immutableFieldPattern: Seq[Name] = Seq()
+
+    private def isImmutableField(pattern: Pattern): Boolean =
+      pattern.hints.get(ObjectHints.FieldKey) match {
+        case Some(ObjectHints.Field(true)) => true
+        case _ => false
+      }
 
     private def isFieldGetCall(call: Call): Boolean =
       call.hasHint(ObjectHints.FieldGetKey)
@@ -114,8 +122,16 @@ object FieldTransformation extends Transformation {
       leafPattern.map(generateFilterPattern)
     }
 
+    override def insertCounter(pattern: Seq[Pattern]): Seq[Pattern] = {
+      immutableFieldPattern = pattern.filter(isImmutableField).map(_.name)
+      super.insertCounter(pattern)
+    }
+
     override def transformLeafPattern(leafPat: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(leafPat))
+
+      // Do nothing for immutable fields
+      if (isImmutableField(leafPat)) return leafPat
 
       /*if (leafPat.params.size != 2) {
         throw new IllegalArgumentException(s"Field pattern ${leafPat.name} requires exactly two parameters!")
@@ -132,11 +148,16 @@ object FieldTransformation extends Transformation {
     }
 
     override def transformCall(call: Call, tsInVar: Var): (Var, Seq[Atom]) = {
-      val Call(name, args, trans , neg) = call
+      val Call(name, args, trans, neg) = call
 
-      // If the call targets a field we want to either insert an aggregation in case of a Get or tsIn to the call in
-      // case of a set.
-      if (isFieldGetCall(call)) {
+      // If the call targets a mutable field we want to either insert an aggregation in case of a Get or tsIn to the
+      // call in case of a field set.
+      if (immutableFieldPattern.contains(name)) {
+        if (isFieldGetCall(call))
+          (tsInVar, Seq(call.addHint(MagicSetHints.IgnoreCall)))
+        else
+          (tsInVar, Seq(call))
+      } else if (isFieldGetCall(call)) {
         val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true))
         val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
         (tsInVar, Seq(

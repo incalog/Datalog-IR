@@ -24,8 +24,13 @@ class Example {
     def main(): Double = {
         var avg: Avg = new Avg()
         avg += 1
-        val res: Double = avg.get()
         avg += 2
+        avg += 3
+        avg += 4
+        avg += 5
+        avg += 6
+        val res: Double = avg.get()
+        //avg += 2
         res
     }
 }
