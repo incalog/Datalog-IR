@@ -238,6 +238,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case Some((clazz, field)) =>
             if (!allowImmutableFieldAssignment && field.immutable)
               error(s"Cannot assign to immutable field '${field.name}'", statement)
+            if (field.immutable && !uninitializedFields.contains(field.name))
+              error(s"Field '${field.name}' is already initialied.", statement)
             resolveTarget(fieldAssignStmt)((clazz, field))
             assertSubtype(typ, field.typ, expression)
             uninitializedFields -= field.name

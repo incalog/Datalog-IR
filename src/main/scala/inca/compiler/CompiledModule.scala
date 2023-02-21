@@ -68,8 +68,8 @@ trait CompiledModule {
 
     if (CompilerFlags.DEBUGMODE && !CompilerFlags.DebugConfig.TRANSFORMATION_STEPS) {
       println("\nTransformed")
-      //println(module)
-      print(DatalogPrinter.prettyModule(module)(false))
+      println(module)
+      //print(DatalogPrinter.prettyModule(module)(false))
     }
     module
   }

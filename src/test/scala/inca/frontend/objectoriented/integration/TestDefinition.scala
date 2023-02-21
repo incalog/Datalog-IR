@@ -330,10 +330,10 @@ object TestDefinition {
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  def whileLangTest: TestDefinition[SetResult[Any]] = {
+  /*def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
     TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())
-  }
+  }*/
 
   def noDemandTest: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("unittests")

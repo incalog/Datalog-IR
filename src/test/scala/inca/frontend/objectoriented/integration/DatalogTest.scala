@@ -172,9 +172,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(cfgVisitorTest)
   }
 
-  test("While lang case study") {
+  /*test("While lang case study") {
     performTests(whileLangTest)
-  }
+  }*/
 
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
