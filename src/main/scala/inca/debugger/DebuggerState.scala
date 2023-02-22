@@ -1,14 +1,9 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.debugger.IllegalDebugStateException
-import inca.debugger.ScalaValue
-import inca.debugger.URIValue
-import inca.debugger.Value
 import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.Query
-import inca.util.TimeTracker
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -18,16 +13,12 @@ import truechange.URI
 // This class captures the state of the debugger
 class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
 
-  // we dont use a table but a bag instead
-  type Bag = Map[Seq[Value], Int]
-  val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
-  val topDownResults: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
-  val seenQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
+  val topDownDatabase: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
+  val activeQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
 
   def clear(): Unit = {
-    blacklist.clear()
-    topDownResults.clear()
-    seenQueries.clear()
+    topDownDatabase.clear()
+    activeQueries.clear()
   }
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
@@ -75,9 +66,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
       f: (Predicate, ValueTable) => A
     ): A = {
 
-    val blacklistMap = blacklist.map { case ((pred, adornment), bag) =>
+    val blacklistMap = activeQueries.map { case ((pred, adornment), table) =>
       val blacklistName = BlacklistTransformation.extBlacklistName(pred, adornment)
-      val tuples = bag.filter(_._2 > 0).map { case (row, _) =>
+      val tuples = table.entries.map { row =>
         val unwrapped = row.map(_.unwrap)
         Tuples.flatTupleOf(unwrapped: _*)
       }.toSet
@@ -97,36 +88,6 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-  def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
-    val adornment = adorn(pred, args)
-    blacklist.get(pred -> adornment) match {
-      case Some(old) =>
-        var newBag = old
-        args.entries.foreach { row =>
-          val oldValue = old.getOrElse(row, 0)
-          newBag = newBag + (row -> (oldValue + 1))
-        }
-        blacklist += (pred -> adornment) -> newBag
-      case None =>
-        blacklist += (pred -> adornment) -> args.entries.map(_ -> 1).toMap
-    }
-  }
-
-  def deleteBlacklist(pred: Predicate, args: ValueTable): Unit = {
-    val adornment = adorn(pred, args)
-    blacklist.get(pred -> adornment) match {
-      case Some(old) =>
-        var newBag = old
-        args.entries.foreach { row =>
-          val oldValue = if (old.getOrElse(row, 0) == 0) 1 else old(row)
-          newBag = newBag + (row -> (oldValue - 1))
-        }
-        blacklist += (pred -> adornment) -> newBag
-      case None =>
-        blacklist += (pred -> adornment) -> args.entries.map(_ -> 0).toMap
-    }
-  }
-
   private def adorn(pred: Predicate, args: ValueTable): Adornment =
     predicates.get(pred) match {
       case Some(params) =>
@@ -142,16 +103,16 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
 
   def insertTopDown(pred: Predicate, table: ValueTable): Unit = {
-    topDownResults.get(pred) match {
+    topDownDatabase.get(pred) match {
       case Some(old) =>
-        topDownResults += pred -> old.union(table)
+        topDownDatabase += pred -> old.union(table)
       case None =>
-        topDownResults += pred -> table
+        topDownDatabase += pred -> table
     }
   }
 
   def readTopDown(pred: Predicate, args: ValueTable): ValueTable = {
-    topDownResults.get(pred) match {
+    topDownDatabase.get(pred) match {
       case Some(t) =>
         t.join(args)
       case None =>
@@ -161,23 +122,23 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
 
   def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
-    seenQueries.get(pred -> adornment) match {
+    activeQueries.get(pred -> adornment) match {
       case Some(seen) =>
         val remaining = args.diff(seen)
-        seenQueries += (pred -> adornment) -> seen.union(remaining)
+        activeQueries += (pred -> adornment) -> seen.union(remaining)
         remaining
       case None =>
-        seenQueries += (pred -> adornment) -> args
+        activeQueries += (pred -> adornment) -> args
         args
     }
   }
 
   def popQuery(pred: Predicate, args: ValueTable): Unit = {
     val adornment = adorn(pred, args)
-    seenQueries.get(pred -> adornment) match {
+    activeQueries.get(pred -> adornment) match {
       case Some(seen) =>
         val remaining = seen.diff(args)
-        seenQueries += (pred -> adornment) -> remaining
+        activeQueries += (pred -> adornment) -> remaining
       case None =>
         throw IllegalDebugStateException(s"Remove query failed, query does not exist: $pred $args")
     }

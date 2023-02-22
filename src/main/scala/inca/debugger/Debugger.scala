@@ -93,7 +93,6 @@ trait Debugger extends DebuggerAPI {
     val empty = ValueTable.empty(params)
     val query = Subquery(pred, args, empty, empty, args, rules)
     state.pushQuery(pred, args)
-    state.insertBlacklist(pred, args)
     pushSubqueryHook(pred, args)
     queryStack.push(query)
     stepped()
@@ -159,9 +158,9 @@ trait Debugger extends DebuggerAPI {
     val params = predParams(pred)
     val rules = preds(pred).bodies
     val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
-    if (isCyclic(pred)) {
-      state.insertBlacklist(pred, args)
-    }
+//    if (isCyclic(pred)) {
+//      state.insertBlacklist(pred, args)
+//    }
     val oldResult = state.readTopDown(pred, calleeArgs)
     val emptyResult = ValueTable.empty(params)
     val newSubquery = Subquery(pred, args, oldResult, emptyResult, args, ruleEvals)
@@ -221,7 +220,6 @@ trait Debugger extends DebuggerAPI {
     if (isCyclic(pred)) {
       state.popQuery(pred, args)
       state.insertTopDown(pred, newResult)
-      state.deleteBlacklist(pred, args)
       QueryResult(pred, args, fullResult)
     } else {
       QueryResult(pred, args, fullResult)
@@ -336,7 +334,7 @@ trait Debugger extends DebuggerAPI {
     }
     queryStack.top match {
       case Subquery(pred, args, _, _, _, _) =>
-        state.deleteBlacklist(pred, args)
+        state.popQuery(pred, args)
         val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
         queryStack.update(QueryResult(pred, args, bottomUpResult))
         true
