@@ -92,7 +92,7 @@ trait Debugger extends DebuggerAPI {
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     val empty = ValueTable.empty(params)
     val query = Subquery(pred, args, empty, empty, args, rules)
-    state.addNewQuery(pred, args)
+    state.pushQuery(pred, args)
     state.insertBlacklist(pred, args)
     pushSubqueryHook(pred, args)
     queryStack.push(query)
@@ -138,7 +138,7 @@ trait Debugger extends DebuggerAPI {
           AtomResult(table, sign)
         } else {
           // A-Into or A-Skip
-          val unseenQueries = state.addNewQuery(callee, calleeArgs)
+          val unseenQueries = state.pushQuery(callee, calleeArgs)
           if (unseenQueries.nonEmpty) { // A-Into
             atomInto(atom, unseenQueries, calleeArgs)
           } else { // A-Skip
@@ -184,15 +184,8 @@ trait Debugger extends DebuggerAPI {
       val (nextRule, nextSup) = ruleReduction(sup, rules.head, stepOver)
       Subquery(pred, args, oldResult, result, nextSup, nextRule +: rules.tail)
 
-    case Subquery(
-          pred,
-          args,
-          oldResult,
-          result,
-          _,
-          rules @ RuleResult(ruleResult) +: _
-        ) => // Q-Union
-      Subquery(pred, args, oldResult, result.union(ruleResult), args, rules.tail)
+    case Subquery(pred, args, oldRes, res, _, rules @ RuleResult(ruleResult) +: _) => // Q-Union
+      Subquery(pred, args, oldRes, res.union(ruleResult), args, rules.tail)
 
     case Subquery(pred, args, oldResult, result, _, Nil) =>
       if (isCyclic(pred)) {
@@ -226,7 +219,7 @@ trait Debugger extends DebuggerAPI {
 
     // we insert when the query is stable because we avoid a non-producing iteration
     if (isCyclic(pred)) {
-      state.removeNewQuery(pred, args)
+      state.popQuery(pred, args)
       state.insertTopDown(pred, newResult)
       state.deleteBlacklist(pred, args)
       QueryResult(pred, args, fullResult)

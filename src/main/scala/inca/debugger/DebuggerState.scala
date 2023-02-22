@@ -159,7 +159,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
-  def addNewQuery(pred: Predicate, args: ValueTable): ValueTable = {
+  def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
     seenQueries.get(pred -> adornment) match {
       case Some(seen) =>
@@ -172,7 +172,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
-  def removeNewQuery(pred: Predicate, args: ValueTable): Unit = {
+  def popQuery(pred: Predicate, args: ValueTable): Unit = {
     val adornment = adorn(pred, args)
     seenQueries.get(pred -> adornment) match {
       case Some(seen) =>

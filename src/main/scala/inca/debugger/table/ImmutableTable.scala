@@ -4,7 +4,7 @@ import inca.debugger.table.indexing.IndexCover
 import inca.util.datastructure.BTree
 import scala.reflect.ClassTag
 
-trait ImmutableTable[V] extends NewTable[V] {
+trait ImmutableTable[V] extends Table[V] {
 
   def insert(t: Tuple, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
 
@@ -401,7 +401,7 @@ class ImmutableBTreeTable[V: ClassTag](
     case _ => false
   }
 
-  override def subset(other: NewTable[V]): Boolean = {
+  override def subset(other: Table[V]): Boolean = {
     this.columns.forall(other.columns.contains) && this.size <= other.size && this.entries.forall {
       tuple =>
         val named = this.columns.zip(tuple)
