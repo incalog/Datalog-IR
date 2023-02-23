@@ -23,14 +23,13 @@ sealed trait Query {
 }
 object Query {
   def toTableless(q: Query): Query = q match {
-    case Subquery(p, _, _, _, _, bodies) =>
+    case Subquery(p, _, _, _, bodies) =>
       val tablelessRules = bodies.map {
         case RuleResult(_) => RuleResult(ValueTable.empty(Seq()))
         case b => b
       }
       Subquery(
         p,
-        ValueTable.empty(Seq()),
         ValueTable.empty(Seq()),
         ValueTable.empty(Seq()),
         ValueTable.empty(Seq()),
@@ -41,15 +40,14 @@ object Query {
 case class Subquery(
     pred: Predicate,
     args: ValueTable,
-    oldResult: ValueTable,
     result: ValueTable,
     supplementary: ValueTable,
     bodies: Seq[RuleEval])
     extends Query {
   override def toString: Predicate =
     s"""Subquery($pred,
-       |  sup = $supplementary,
-       |  pos = ${if(bodies.isEmpty) "eps" else bodies.head.toString})""".stripMargin
+      |  sup = $supplementary,
+      |  pos = ${if (bodies.isEmpty) "eps" else bodies.head.toString})""".stripMargin
 
   override def state: QueryState =
     if (bodies.isEmpty)

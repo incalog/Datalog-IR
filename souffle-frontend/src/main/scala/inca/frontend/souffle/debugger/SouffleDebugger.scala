@@ -56,10 +56,10 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
       val params = predParams(pred)
       if (before) {
         IRBreakpoint(
-          Subquery(pred, null, null, null, null, Seq(Rule(pred, params, rule.atoms.map(Atom)))))
+          Subquery(pred, null, null, null, Seq(Rule(pred, params, rule.atoms.map(Atom)))))
       } else {
         IRBreakpoint(
-          debugger.Subquery(pred, null, null, null, null, Seq(debugger.Rule(pred, params, Nil))))
+          debugger.Subquery(pred, null, null, null, Seq(debugger.Rule(pred, params, Nil))))
       }
     case InRuleBreakPoint(pred, ruleIdx, stm) =>
       val pattern = preds(pred)
@@ -75,7 +75,6 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
             null,
             null,
             null,
-            null,
             debugger.Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
       } else {
         val atoms = rule.atoms.dropWhile(at =>
@@ -88,7 +87,6 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
         IRBreakpoint(
           debugger.Subquery(
             pred,
-            null,
             null,
             null,
             null,
@@ -120,7 +118,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
       )
     )
     query match {
-      case Subquery(_, _, _, _, sup, Rule(_, _, atoms) +: rules) if !sup.isEmpty =>
+      case Subquery(_, _, _, sup, Rule(_, _, atoms) +: rules) if !sup.isEmpty =>
         val body = pattern.bodies(pattern.bodies.size - rules.size - 1)
         body.getHint(SourceConstruct.key) match {
           case Some(SourceConstruct((_: RuleHead, rule: RuleDefinition))) =>
@@ -157,14 +155,14 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
             }
           case _ => None
         }
-      case Subquery(_, _, _, _, sup, RuleResult(_) +: rules) =>
+      case Subquery(_, _, _, sup, RuleResult(_) +: rules) =>
         val body = pattern.bodies(pattern.bodies.size - rules.size - 1)
         getRuleDefinition(body) match {
           case Some((_, rule)) =>
             Some(InRulePoint(rel, rule, SourceLocationList(Seq(rule)).sourceObject, query))
           case None => None
         }
-      case Subquery(_, _, _, _, _, Nil) =>
+      case Subquery(_, _, _, _, Nil) =>
         compiled.inputs.get(rel.name.name) match {
           case Some(_) => None
           case None =>

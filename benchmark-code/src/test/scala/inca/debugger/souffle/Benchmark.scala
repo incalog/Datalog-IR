@@ -96,10 +96,7 @@ object Benchmark {
       runtime.db.processDatabaseInput(config.input)
     }
     val end = System.currentTimeMillis()
-    println(matcher.countMatches())
     val endCount = System.currentTimeMillis()
-    println(end - start)
-    println(endCount - start)
     // measure memory
     MemoryUtil.collectGarbage()
     val memoryInBytes = MemoryUtil.usedMemoryInBytes()
@@ -116,28 +113,24 @@ object Benchmark {
       runtime.db.processDatabaseInput(config.input)
     }
     debugger.setRuntime(runtime)
+    val expected = debugger.state.readBottomUp(config.entry, config.args)
     debugger.entry(config.entry, config.args)
     val start = System.currentTimeMillis()
     while (!debugger.isFinished) {
       debugger.stepInto()
     }
     val end = System.currentTimeMillis()
-    println(debugger.queryStack.top.asInstanceOf[QueryResult].result.size)
     val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-    val topdownSuperinteface = debugger.state.readTopDown("basic_Superinterface", ValueTable.unit())
-    println(s"TOPDOWN SUPERINTERFACE size ${topdownSuperinteface.size} $topdownSuperinteface")
-    val topdown = debugger.state.readTopDown(config.entry, config.args)
 
-    println("RESULT")
     println(result.size)
     println(result)
-    val expected = debugger.state.readBottomUp(config.entry, config.args)
-    println("EXPECTED")
     println(expected.size)
-    println(s"RESULT CORRECT? ${result == expected}")
     println(expected)
+    val tooMuch = result.entries.diff(expected.entries)
     val missing = expected.entries.diff(result.entries)
+    println(tooMuch)
     println(missing)
+    assert(result == expected)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
     println(s"STEPS: ${debugger.irControlTrace.size}")
@@ -210,25 +203,101 @@ object Benchmark {
       runs)
   }
 
+  // step-into produces result in reasonable amount of time
+  // find all methods with the name accept and signature java.lang.Object(visitor.GJVisitor,java.lang.Object)
+  // will produce 50 tuples complete MethodLookup will have 86005 tuples
+  def measureScenario1(): (Measurement, Measurement) = {
+    val config = varPointsToConfig(
+      "souffle-frontend/benchmark/minijavac",
+      "basic_MethodLookup",
+      ValueTable(
+        Seq("simplename", "descriptor"),
+        Seq(
+          Seq(
+            ScalaValue("accept"),
+            ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))),
+      0,
+      1
+    )
+    collectTopDownMeasurements(config)
+  }
+
+  // step-into produces result in reasonable amount of time
+  // find all methods with the name accept
+  // will produce 239 tuples complete MethodLookup will have 86005 tuples
+  def measureScenario1v2(): (Measurement, Measurement) = {
+    val config = varPointsToConfig(
+      "souffle-frontend/benchmark/minijavac",
+      "basic_MethodLookup",
+//      ValueTable(
+//        Seq("simplename", "method"),
+//        Seq(
+//          Seq(
+//            ScalaValue("accept"),
+//            ScalaValue("<java.net.ServerSocket: java.net.Socket accept()>")))),
+      ValueTable(Seq("simplename"), Seq(Seq(ScalaValue("accept")))),
+      0,
+      1
+    )
+    collectTopDownMeasurements(config)
+  }
+
+  // ground tuple as entry
+  def measureScenario1v3(): (Measurement, Measurement) = {
+    val config = varPointsToConfig(
+      "souffle-frontend/benchmark/minijavac",
+      "basic_MethodLookup",
+      ValueTable(
+        Seq("simplename", "descriptor", "type", "method"),
+        Seq(
+          Seq(
+            ScalaValue("accept"),
+            ScalaValue("boolean(java.lang.Object"),
+            ScalaValue("java.nio.file.File#1"),
+            ScalaValue("<sun.misc.JarFilter: boolean accept(java.io.File,java.lang.String)>")
+          ))
+      ),
+      0,
+      1
+    )
+    collectTopDownMeasurements(config)
+  }
+
+  // step-into does not produce result in reasonable amount of time
+  // hence, step-over over non-rec pattern is required
+  def measureScenario2(): Measurement = {
+    ???
+    // scenario 2: something that call var points to
+    //      varPointsToConfig(
+    //        "souffle-frontend/benchmark/minijavac",
+    //        "basic_MethodLookup",
+    //        ValueTable(
+    //          Seq("simplename", "descriptor"),
+    //          Seq(
+    //            Seq(
+    //              ScalaValue("accept"),
+    //              ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))),
+    //        0,
+    //        1
+    //      )
+  }
+
+  // step-into does not produce result in reasonable amount of time
+  // hence, step-over over rec pattern is required
+  def measureScenario3(): Measurement = {
+    // scenario 3: point var points to for static fields
+    ???
+  }
+
   def main(args: Array[String]): Unit = {
-    // Why empty result?
-    bottomUpVTopDownConfigs = Seq(
-      varPointsToConfig(
-        "souffle-frontend/benchmark/minijavac-slim",
-        "basic_SubtypeOf",
-        ValueTable.unit(),
-        0,
-        1
-      ))
-//    val (buTime, buMem) = bottomUpVTopDownConfigs.map(collectBottomUpMeasurements).unzip
-    val (buTime, buMem) = (Seq(), Seq())
-//    val (tdTime, tdMem) = (Seq(), Seq())
-    val (tdTime, tdMem) = bottomUpVTopDownConfigs.map(collectTopDownMeasurements).unzip
-    val allTime = buTime ++ tdTime
-    val allMem = buMem ++ tdMem
-    println(tdTime)
-    println(tdMem)
-//    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
-//    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
+    val (sc1tdTime, sc1tdMem) = measureScenario1v2()
+    // TODO scenario 2
+    // TODO scenario 3
+    val allTime = Seq(sc1tdTime)
+    val allMem = Seq(sc1tdMem)
+    println(sc1tdTime)
+    println(sc1tdMem)
+    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
+    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
   }
 }

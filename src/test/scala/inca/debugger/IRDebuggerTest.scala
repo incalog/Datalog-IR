@@ -7,8 +7,6 @@ import inca.compiler.CompiledModule
 import inca.compiler.Compiler
 import inca.compiler.Options
 import inca.debugger.ExamplePrograms._
-import inca.debugger.ScalaValue
-import inca.debugger.URIValue
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
@@ -629,7 +627,7 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.stepInto()
       val q = debugger.queryStack.top
       q match {
-        case Subquery(_, _, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
+        case Subquery(_, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
           println(debugger.queryStack.top)
         case _ =>
           println(debugger.queryStack.top)
@@ -650,7 +648,7 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.stepInto()
       val q = debugger.queryStack.top
       q match {
-        case Subquery(_, _, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
+        case Subquery(_, _, _, _, Rule(_, _, Atom(_: Datalog.Call) :: _) :: _) =>
           println(debugger.queryStack.top)
         case _ => // nothing
           println(debugger.queryStack.top)

@@ -14,24 +14,25 @@ import truechange.URI
 class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
 
   val topDownDatabase: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
-  val activeQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
+  val activeQueries: mutable.Map[(Predicate, Adornment), List[ValueTable]] = mutable.Map.empty
 
   def clear(): Unit = {
     topDownDatabase.clear()
     activeQueries.clear()
+    poppedSinceLastBURead.clear()
   }
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
-    val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
+    val spec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
       case Some(spec) => spec()
       case None => return ValueTable.empty(Seq())
     }
-    val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
+    val matcher = bottomUpRuntime.engine.getMatcher(spec)
     val unboundCols = predicates(pred).map(_.name).diff(args.columns)
     val rows = args.entries.flatMap { row =>
       val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
-      val input = Query.Match(mainSpec, inputMap, isMutable = false)
-      val matches = mainMatcher.getAllMatches(input)
+      val input = Query.Match(spec, inputMap, isMutable = false)
+      val matches = matcher.getAllMatches(input)
       matches.asScala.map { m =>
         m.toArray.map {
           case uri: URI => URIValue(uri)
@@ -39,7 +40,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
         }.toSeq
       }
     }
-    ValueTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
+    ValueTable(matcher.getParameterNames.asScala.toSeq, rows)
   }
 
   def countBottomUp(pred: Predicate, args: ValueTable): Int = {
@@ -66,9 +67,10 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
       f: (Predicate, ValueTable) => A
     ): A = {
 
-    val blacklistMap = activeQueries.map { case ((pred, adornment), table) =>
+    val blacklistMap = activeQueries.map { case ((pred, adornment), _) =>
       val blacklistName = BlacklistTransformation.extBlacklistName(pred, adornment)
-      val tuples = table.entries.map { row =>
+      val seen = unionOfStack(pred, adornment)
+      val tuples = seen.entries.map { row =>
         val unwrapped = row.map(_.unwrap)
         Tuples.flatTupleOf(unwrapped: _*)
       }.toSet
@@ -120,25 +122,41 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
+  def unionOfStack(pred: Predicate, adornment: Adornment): ValueTable = {
+    val allColumns = predicates(pred).map(_.name)
+    val columns = adornment.zipWithIndex.flatMap { case (a, i) =>
+      if (a) Some(allColumns(i))
+      else None
+    }
+    activeQueries.get(pred -> adornment) match {
+      case Some(stack) =>
+        stack.foldLeft(ValueTable.empty(columns)) { case (res, v) => res.union(v) }
+      case None => ValueTable.empty(columns)
+    }
+  }
+
   def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
     activeQueries.get(pred -> adornment) match {
-      case Some(seen) =>
+      case Some(stack) =>
+        val seen = unionOfStack(pred, adornment)
         val remaining = args.diff(seen)
-        activeQueries += (pred -> adornment) -> seen.union(remaining)
+        if (remaining.nonEmpty) {
+          activeQueries += (pred -> adornment) -> (args :: stack)
+        }
         remaining
       case None =>
-        activeQueries += (pred -> adornment) -> args
+        activeQueries += (pred -> adornment) -> List(args)
         args
     }
   }
 
-  def popQuery(pred: Predicate, args: ValueTable): Unit = {
+  def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
     activeQueries.get(pred -> adornment) match {
-      case Some(seen) =>
-        val remaining = seen.diff(args)
-        activeQueries += (pred -> adornment) -> remaining
+      case Some(stack) =>
+        activeQueries += (pred -> adornment) -> stack.tail
+        stack.head
       case None =>
         throw IllegalDebugStateException(s"Remove query failed, query does not exist: $pred $args")
     }
