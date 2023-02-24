@@ -132,7 +132,7 @@ object PathBenchmark {
     while (!pathRecDepthQueryFound) {
       debugger.stepInto()
       debugger.queryStack.top match {
-        case Subquery(_, _, _, _, sup, Rule(_, _, Atom(Datalog.Call(p, _, _, _)) +: _) +: _) =>
+        case Subquery(_, _, _, sup, Rule(_, _, Atom(Datalog.Call(p, _, _, _)) +: _) +: _) =>
           if (p == predicateToStopAt && sup.join(tableToStopAt).nonEmpty) {
             pathRecDepthQueryFound = true
           }

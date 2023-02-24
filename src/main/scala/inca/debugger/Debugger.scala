@@ -211,13 +211,16 @@ trait Debugger extends DebuggerAPI {
   private def queryStable(q: Query): Query = {
     val Subquery(pred, args, newResult, _, Seq()) = q
     // we insert when the query is stable because we avoid a non-producing iteration
-    val originalArgs = state.popQuery(pred, args)
-    val fullResult = state.readTopDown(pred, originalArgs).union(newResult)
 
     if (isCyclic(pred)) {
+      val originalArgs = state.popQuery(pred, args)
+      val fullResult = state.readTopDown(pred, originalArgs).union(newResult)
       state.insertTopDown(pred, newResult)
       QueryResult(pred, args, fullResult)
     } else {
+      // optimization to avoid revisiting non-cyclic predicates by NOT popping from the active queries stack.
+      val completeArgs = state.topActive(pred, args)
+      val fullResult = state.readBottomUp(pred, completeArgs)
       QueryResult(pred, args, fullResult)
     }
   }

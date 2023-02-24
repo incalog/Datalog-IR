@@ -19,7 +19,6 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   def clear(): Unit = {
     topDownDatabase.clear()
     activeQueries.clear()
-    poppedSinceLastBURead.clear()
   }
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
@@ -133,6 +132,11 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
         stack.foldLeft(ValueTable.empty(columns)) { case (res, v) => res.union(v) }
       case None => ValueTable.empty(columns)
     }
+  }
+
+  def topActive(pred: Predicate, args: ValueTable): ValueTable = {
+    val adornment = adorn(pred, args)
+    activeQueries(pred -> adornment).head
   }
 
   def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
