@@ -6,7 +6,7 @@ import com.intellij.testFramework.ParsingTestCase;
 public class FuncIncaParsingTest extends ParsingTestCase {
 
     protected FuncIncaParsingTest() {
-        super("", "finca", new FuncIncaParserDefinition());
+        super("", "finca", new FunIncAParserDefinition());
     }
 
     public void testParsingTestData() {
