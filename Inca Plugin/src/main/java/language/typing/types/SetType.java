@@ -1,16 +1,16 @@
-package language.types;
+package language.typing.types;
 
-public class FuncIncaSetType implements FuncIncaType {
-    private FuncIncaType setType;
+public class SetType implements Type {
+    private Type setType;
 
-    FuncIncaSetType() {
+    SetType() {
     }
 
-    FuncIncaSetType(FuncIncaType ty) {
+    public SetType(Type ty) {
         setType = ty;
     }
 
-    public FuncIncaType getSetType() {
+    public Type getSetType() {
         return setType;
     }
 

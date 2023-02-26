@@ -1,12 +1,11 @@
-package language.types;
+package language.typing.types;
 
-import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
 
-public interface FuncIncaType {
+public interface Type {
     String toString();
     
-    default boolean equals(@NotNull FuncIncaType type) {
+    default boolean equals(@NotNull Type type) {
         return (this.toString().equals(type.toString()) && this.getClass().equals(type.getClass()));
     }
 

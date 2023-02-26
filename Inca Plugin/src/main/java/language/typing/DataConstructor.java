@@ -1,13 +1,14 @@
-package language.types;
+package language.typing;
 
+import language.typing.types.Type;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public class DataConstructor {
     private String name;
-    private List<FuncIncaType> tyVars;
-    private List<FuncIncaType> types;
+    private List<Type> tyVars;
+    private List<Type> types;
 
     DataConstructor() {}
     
@@ -15,12 +16,12 @@ public class DataConstructor {
         name = newName;
     }
 
-    DataConstructor(String newName, List<FuncIncaType> newTypes) {
+    DataConstructor(String newName, List<Type> newTypes) {
         name = newName;
         types = newTypes;
     }
 
-    DataConstructor(String newName, List<FuncIncaType> newTyVars, @Nullable List<FuncIncaType> newTypes) {
+    DataConstructor(String newName, List<Type> newTyVars, @Nullable List<Type> newTypes) {
         name = newName;
         tyVars = newTyVars;
         types = newTypes;
@@ -30,19 +31,19 @@ public class DataConstructor {
         return name;
     }
 
-    public List<FuncIncaType> getTyVars() {
+    public List<Type> getTyVars() {
         return tyVars;
     }
 
-    public List<FuncIncaType> getTypes() {
+    public List<Type> getTypes() {
         return types;
     }
 
-    public void setTyVars(List<FuncIncaType> tyVars) {
+    public void setTyVars(List<Type> tyVars) {
         this.tyVars = tyVars;
     }
 
-    public void setTypes(List<FuncIncaType> types) {
+    public void setTypes(List<Type> types) {
         this.types = types;
     }
 

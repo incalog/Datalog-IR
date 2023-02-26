@@ -1,19 +1,19 @@
-package language.types;
+package language.typing.types;
 
 import java.util.List;
 
-public class FuncIncaTypeNameType implements FuncIncaType {
+public class TypeRef implements Type {
     private String name;
-    private List<FuncIncaType> paramTypes;
+    private List<Type> paramTypes;
 
-    FuncIncaTypeNameType() {
+    TypeRef() {
     }
 
-    FuncIncaTypeNameType(String newName) {
+    public TypeRef(String newName) {
         name = newName;
     }
     
-    FuncIncaTypeNameType(String newName, List<FuncIncaType> newTys) {
+    TypeRef(String newName, List<Type> newTys) {
         name = newName;
         paramTypes = newTys;
     }
@@ -27,7 +27,7 @@ public class FuncIncaTypeNameType implements FuncIncaType {
         return name;
     }
 
-    public List<FuncIncaType> getParamTypes() {
+    public List<Type> getParamTypes() {
         return paramTypes;
     }
 }

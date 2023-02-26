@@ -1,6 +1,6 @@
-package language.types;
+package language.typing.types;
 
-public class FuncIncaLongType implements FuncIncaType {
+public class LongType implements Type {
     @Override
     public String toString() {
         return "Long";

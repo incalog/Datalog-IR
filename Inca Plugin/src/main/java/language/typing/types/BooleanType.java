@@ -1,6 +1,6 @@
-package language.types;
+package language.typing.types;
 
-public class FuncIncaBooleanType implements FuncIncaType {
+public class BooleanType implements Type {
     @Override
     public String toString() {
         return "Boolean";

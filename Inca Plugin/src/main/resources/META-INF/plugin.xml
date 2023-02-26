@@ -29,9 +29,9 @@
                 implementationClass="language.FunIncASyntaxHighlighterFactory"/>
         <colorSettingsPage
                 implementation="language.FunIncAColorSettingsPage"/>
-        <!-- <annotator
+        <annotator
                 language="Functional IncA"
-                implementationClass="language.FunIncAAnnotator"/> -->
+                implementationClass="language.FunIncAAnnotator"/>
         <psi.referenceContributor
                 language="Functional IncA"
                 implementation="language.FunIncAReferenceContributor"/>

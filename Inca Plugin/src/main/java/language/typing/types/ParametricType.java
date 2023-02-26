@@ -1,12 +1,12 @@
-package language.types;
+package language.typing.types;
 
-public class FuncIncaParameterizedType implements FuncIncaType {
+public class ParametricType implements Type {
     private String name;
 
-    FuncIncaParameterizedType() {
+    ParametricType() {
     }
 
-    FuncIncaParameterizedType(String param) {
+    public ParametricType(String param) {
         name = param;
     }
 

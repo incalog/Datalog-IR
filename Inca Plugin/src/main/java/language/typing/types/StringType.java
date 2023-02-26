@@ -1,6 +1,6 @@
-package language.types;
+package language.typing.types;
 
-public class FuncIncaStringType implements FuncIncaType {
+public class StringType implements Type {
     @Override
     public String toString() {
         return "String";

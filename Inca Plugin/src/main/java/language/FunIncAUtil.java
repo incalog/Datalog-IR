@@ -31,6 +31,7 @@ public class FunIncAUtil {
         return res;
     }
 
+    // TODO fix set comprehensions
     /*
      * finds all Psi Definition nodes named "name" in one file*/
     public static List<PsiNamedElement> findDefinitionNode(@Nullable FunIncAFile file, @Nullable String name, @Nullable PsiElement e) {
