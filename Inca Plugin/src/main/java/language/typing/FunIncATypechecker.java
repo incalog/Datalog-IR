@@ -10,6 +10,7 @@ import language.typing.types.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 // jimport static language.typing.TypeContext;
 
@@ -17,7 +18,13 @@ public class FunIncATypechecker {
 
     public static Type typecheck(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
         if (element instanceof FunIncAFunDef) {
+            // TODO need to validate types as well. E.G. when Nat is type of parameter but Nat is not a defined ADT
             FunIncAFunDef funDef = (FunIncAFunDef) element;
+            Type returnType = PsiToTypeConverter.convert(funDef.getType());
+            List<Type> paramTypes = funDef.getParamDefList().stream().map(p -> PsiToTypeConverter.convert(p.getType())).collect(Collectors.toList());
+            // TODO
+            List<Type> typeVars = new ArrayList<>();
+            return new FunType(typeVars, paramTypes,  returnType);
         } else if (element instanceof FunIncATypeVarDef){
             // fundef or datadef
         } else if (element instanceof FunIncAParamDef) {
@@ -60,6 +67,7 @@ public class FunIncATypechecker {
         return null;
     }
 
+    @NotNull
     public static Type typecheckCore(FunIncAExp exp, @NotNull AnnotationHolder holder) {
         if (exp instanceof FunIncAVarRefExp) {
             FunIncAVarRefExp varExp = (FunIncAVarRefExp)  exp;
@@ -192,8 +200,40 @@ public class FunIncATypechecker {
 //            return new FuncIncaFunctionType(new ArrayList<>(), types, returnType[0]);
 //
         } else if (exp instanceof FunIncACallExp) {
-            // TODO?
-
+            FunIncACallExp callExp = (FunIncACallExp) exp;
+            FunIncAExp funExp = callExp.getExpList().get(0);
+            List<FunIncAExp> argExps = callExp.getExpList().subList(1, callExp.getExpList().size());
+            Type funExpType = typecheckCore(funExp, holder);
+            if (funExpType == null) {
+                // TODO quick fix
+                return new AnyType();
+            }
+            if (funExpType instanceof FunType) {
+                FunType funType = (FunType) funExpType;
+                List<Type> argTypes = argExps.stream().map(e -> typecheckCore(e, holder)).collect(Collectors.toList());
+                if (funType.paramTypes.size() != argTypes.size()) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Expected " + funType.paramTypes.size() + " arguments, but got " + argTypes.size())
+                            .range(exp)
+                            .create();
+                } else {
+                    for (int i = 0; i < funType.paramTypes.size(); i++) {
+                        if (!FunIncATypeUtil.subtype(argTypes.get(i), funType.paramTypes.get(i))) {
+                            holder.newAnnotation(HighlightSeverity.ERROR,
+                                            "Expected argument of type " + funType.paramTypes.get(i) + ", but got argument of type" + argTypes.get(i))
+                                    .range(argExps.get(i))
+                                    .create();
+                        }
+                    }
+                }
+                return funType.returnType;
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected function type at function position of call, but got " + funExpType.toString())
+                        .range(funExp)
+                        .create();
+                return new AnyType();
+            }
         } else if (exp instanceof FunIncAMatchExp) {
 //            FuncIncaExp matchee = ((FuncIncaMatchExp) exp).getExp();
 //            List<FuncIncaMatchCase> cases = ((FuncIncaMatchExp) exp).getMatchCaseList();
