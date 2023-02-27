@@ -35,7 +35,7 @@ object PathBenchmark {
       1,
       "path",
       ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
-      100)
+      200)
     val stepIntoMeasurements = measure(config, (debugger, _, _) => measureStepInto(debugger))
     val stepOverMeasurements =
       measure(config, (debugger, pred, t) => measureStepOver(debugger, pred, t))

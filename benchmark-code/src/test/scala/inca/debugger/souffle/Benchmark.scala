@@ -15,6 +15,7 @@ import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.lowering.SouffleToNamedRelations
 import inca.frontend.souffle.parser.Parser
 import inca.measurements.util.BenchmarkUtils
+import inca.measurements.util.BenchmarkUtils.measure
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
 import inca.measurements.util.Config
@@ -29,6 +30,7 @@ import inca.util.FilesUtil
 import java.io.File
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import scala.collection.mutable
 
 object Benchmark {
 
@@ -54,7 +56,7 @@ object Benchmark {
       warmup: Int,
       runs: Int)
       extends BaseConfig {
-    def name: String = s"${prog.name}_${entry}"
+    def name: String = s"${prog.name}_${entry}_${args.columns.mkString(";")}"
   }
 
   case class StepIntoVStepOverConfig(
@@ -73,8 +75,7 @@ object Benchmark {
   var bottomUpVTopDownConfigs: Seq[BottomUpVTopDownConfig] = Seq()
   var stepIntoVStepOverConfigs: Seq[StepIntoVStepOverConfig] = Seq()
 
-  val timeResultsPath: String = "benchmark-results/debugger/measurements-time.csv"
-  val memResultsPath: String = "benchmark-results/debugger/measurements-mem-old.csv"
+  val resultsPath: String = "benchmark-results/debugger/"
 
   def initRuntime(config: BaseConfig): (CompiledDatalogModule, DatalogRuntime) = {
     val compiled =
@@ -105,7 +106,7 @@ object Benchmark {
     (end - start, memoryInBytes)
   }
 
-  def measureStepInto(config: BaseConfig): (Long, Long) = {
+  def measureStepInto(config: BaseConfig): (Seq[Long], Long, Long, Option[Long]) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module)
     // initialize bottom-up database
@@ -113,63 +114,72 @@ object Benchmark {
       runtime.db.processDatabaseInput(config.input)
     }
     debugger.setRuntime(runtime)
-    val expected = debugger.state.readBottomUp(config.entry, config.args)
+    // val expected = debugger.state.readBottomUp(config.entry, config.args)
     debugger.entry(config.entry, config.args)
-    val start = System.currentTimeMillis()
+    val measurements: mutable.ListBuffer[Long] = mutable.ListBuffer()
     while (!debugger.isFinished) {
+      val start = System.nanoTime()
       debugger.stepInto()
+      val end = System.nanoTime()
+      measurements += end - start
     }
-    val end = System.currentTimeMillis()
-    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
 
-    println(result.size)
-    println(result)
-    println(expected.size)
-    println(expected)
-    val tooMuch = result.entries.diff(expected.entries)
-    val missing = expected.entries.diff(result.entries)
-    println(tooMuch)
-    println(missing)
-    assert(result == expected)
+//    println(result.size)
+//    println(result)
+//    println(expected.size)
+//    println(expected)
+//    val tooMuch = result.entries.diff(expected.entries)
+//    val missing = expected.entries.diff(result.entries)
+//    println(tooMuch)
+//    println(missing)
+//    assert(result == expected)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInBytes()
-    println(s"STEPS: ${debugger.irControlTrace.size}")
-    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
+//    println(s"STEPS: ${debugger.irControlTrace.size}")
+//    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
     EnginePool.disposeAllEngines()
-    (end - start, mem)
+    (measurements.toSeq, mem, debugger.irControlTrace.size, None)
   }
 
-  def collectBottomUpMeasurements(config: BaseConfig): (Measurement, Measurement) = {
-    warmup(() => measureBottomUp(config), config)
-    val (time, mem) = run(() => measureBottomUp(config), config).unzip
-    (
-      Measurement("bottomup_time_" + config.name, Units.Milliseconds, time),
-      Measurement("bottomup_mem_" + config.name, Units.MegaBytes, mem)
-    )
-  }
-
-  def collectTopDownMeasurements(config: BaseConfig): (Measurement, Measurement) = {
-    warmup(() => measureStepInto(config), config)
-    val (time, mem) = run(() => measureStepInto(config), config).unzip
-    (
-      Measurement("topdown_time_" + config.name, Units.Milliseconds, time),
-      Measurement("topdown_mem_" + config.name, Units.MegaBytes, mem)
-    )
-  }
-
-  def warmup(run: () => Unit, config: Config): Unit =
-    for (_ <- 0 until config.warmup) {
-      run()
+  def measureStepOut(config: BaseConfig): (Seq[Long], Long, Long, Option[Long]) = {
+    val (module, runtime) = initRuntime(config)
+    val debugger = new ExternallyInitializableDebugger(module)
+    // initialize bottom-up database
+    runtime.engine.delayUpdatePropagation { () =>
+      runtime.db.processDatabaseInput(config.input)
     }
+    debugger.setRuntime(runtime)
+    // val expected = debugger.state.readBottomUp(config.entry, config.args)
+    debugger.entry(config.entry, config.args)
+    val start = System.currentTimeMillis()
+    debugger.stepOut()
+    val end = System.currentTimeMillis()
+    // val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
 
-  def run[T](run: () => T, config: Config): Seq[T] =
-    for (_ <- 0 until config.runs) yield {
-      run()
-    }
+//    println(result.size)
+//    println(result)
+//    println(expected.size)
+//    println(expected)
+//    val tooMuch = result.entries.diff(expected.entries)
+//    val missing = expected.entries.diff(result.entries)
+//    println(tooMuch)
+//    println(missing)
+//    assert(result == expected)
+    MemoryUtil.collectGarbage()
+    val mem = MemoryUtil.usedMemoryInBytes()
+    EnginePool.disposeAllEngines()
+    (Seq(end - start), mem, debugger.irControlTrace.size, Some(end - start))
+  }
 
-  // TODO
-  def measureStepIntoVStepOver(config: StepIntoVStepOverConfig): Measurement = {
-    null
+  def collectMeasurements(
+      config: BaseConfig,
+      f: BaseConfig => (Seq[Long], Long, Long, Option[Long])
+    ): Measurement = {
+    val (time, mem, steps, over) = f(config)
+    val extra = Map("NumberOfSteps" -> steps, "TotalTime (ns)" -> time.sum, "Memory (MB)" -> mem) ++
+      (if (over.isEmpty) Map()
+       else Map("StepOver (ns)" -> over.get))
+    Measurement(config.name, Units.Nanoseconds, time, extra = extra)
   }
 
   def readSouffleProgram(path: String): CompiledSouffleModule = {
@@ -184,7 +194,7 @@ object Benchmark {
     inputCompiler.compile(compiled.inputs.values.map(x => x._2 -> x._1).toMap)
   }
 
-  def varPointsToConfig(
+  def souffleVarPointsToConfig(
       inputPath: String,
       entry: String,
       args: ValueTable,
@@ -203,101 +213,106 @@ object Benchmark {
       runs)
   }
 
+  def baseConfig(entry: String, t: ValueTable): BaseConfig =
+    souffleVarPointsToConfig("souffle-frontend/benchmark/minijavac", entry, t, 0, 1)
+
+  // scenario 1
+  def methodLookupConfig(t: ValueTable): BaseConfig =
+    baseConfig("basic_MethodLookup", t)
+
+  // scenario 2
+  def varPointsToConfig(t: ValueTable): BaseConfig =
+    baseConfig("basic_MethodLookup", t)
+
   // step-into produces result in reasonable amount of time
   // find all methods with the name accept and signature java.lang.Object(visitor.GJVisitor,java.lang.Object)
   // will produce 50 tuples complete MethodLookup will have 86005 tuples
-  def measureScenario1(): (Measurement, Measurement) = {
-    val config = varPointsToConfig(
-      "souffle-frontend/benchmark/minijavac",
-      "basic_MethodLookup",
+  def measureScenario1(): (Seq[Measurement], Seq[Measurement]) = {
+    val config = methodLookupConfig(
       ValueTable(
         Seq("simplename", "descriptor"),
         Seq(
           Seq(
             ScalaValue("accept"),
-            ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))),
-      0,
-      1
+            ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)"))))
     )
-    collectTopDownMeasurements(config)
+    measureIntoAndOver(config)
   }
 
   // step-into produces result in reasonable amount of time
   // find all methods with the name accept
   // will produce 239 tuples complete MethodLookup will have 86005 tuples
-  def measureScenario1v2(): (Measurement, Measurement) = {
-    val config = varPointsToConfig(
-      "souffle-frontend/benchmark/minijavac",
-      "basic_MethodLookup",
-//      ValueTable(
-//        Seq("simplename", "method"),
-//        Seq(
-//          Seq(
-//            ScalaValue("accept"),
-//            ScalaValue("<java.net.ServerSocket: java.net.Socket accept()>")))),
-      ValueTable(Seq("simplename"), Seq(Seq(ScalaValue("accept")))),
-      0,
-      1
-    )
-    collectTopDownMeasurements(config)
+
+  def measureIntoAndOver(config: BaseConfig): (Seq[Measurement], Seq[Measurement]) = {
+    val intoMeasurements =
+      BenchmarkUtils.measure(() => collectMeasurements(config, measureStepInto), config)
+    val overMeasurements =
+      BenchmarkUtils.measure(() => collectMeasurements(config, measureStepOut), config)
+    (intoMeasurements, overMeasurements)
+  }
+  def measureScenario1v2(): (Seq[Measurement], Seq[Measurement]) = {
+    val config = methodLookupConfig(ValueTable(Seq("simplename"), Seq(Seq(ScalaValue("accept")))))
+    measureIntoAndOver(config)
   }
 
   // ground tuple as entry
-  def measureScenario1v3(): (Measurement, Measurement) = {
-    val config = varPointsToConfig(
-      "souffle-frontend/benchmark/minijavac",
-      "basic_MethodLookup",
+  def measureScenario1v3(): (Seq[Measurement], Seq[Measurement]) = {
+    val config = methodLookupConfig(
       ValueTable(
         Seq("simplename", "descriptor", "type", "method"),
-        Seq(
-          Seq(
-            ScalaValue("accept"),
-            ScalaValue("boolean(java.lang.Object"),
-            ScalaValue("java.nio.file.File#1"),
-            ScalaValue("<sun.misc.JarFilter: boolean accept(java.io.File,java.lang.String)>")
-          ))
-      ),
-      0,
-      1
-    )
-    collectTopDownMeasurements(config)
+        Seq(Seq(
+          ScalaValue("accept"),
+          ScalaValue("boolean(java.lang.Object"),
+          ScalaValue("java.nio.file.File#1"),
+          ScalaValue("<sun.misc.JarFilter: boolean accept(java.io.File,java.lang.String)>")
+        ))
+      ))
+    measureIntoAndOver(config)
   }
 
   // step-into does not produce result in reasonable amount of time
   // hence, step-over over non-rec pattern is required
-  def measureScenario2(): Measurement = {
-    ???
+  def measureScenario2(): (Seq[Measurement], Seq[Measurement]) = {
     // scenario 2: something that call var points to
-    //      varPointsToConfig(
-    //        "souffle-frontend/benchmark/minijavac",
-    //        "basic_MethodLookup",
-    //        ValueTable(
-    //          Seq("simplename", "descriptor"),
-    //          Seq(
-    //            Seq(
-    //              ScalaValue("accept"),
-    //              ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))),
-    //        0,
-    //        1
-    //      )
+    val config = varPointsToConfig(
+      ValueTable(
+        Seq("var", "heap"),
+        Seq(
+          Seq(
+            ScalaValue(
+              "<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>/$r1"),
+            ScalaValue("<<HASH:1808431609>>")))
+      )
+    )
+    measureIntoAndOver(config)
+  }
+  def measureScenario2v2(): (Seq[Measurement], Seq[Measurement]) = {
+    // scenario 2: something that call var points to
+    val config = varPointsToConfig(
+      ValueTable(
+        Seq("var"),
+        Seq(Seq(ScalaValue(
+          "<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>/$r1"))))
+    )
+    measureIntoAndOver(config)
   }
 
   // step-into does not produce result in reasonable amount of time
   // hence, step-over over rec pattern is required
-  def measureScenario3(): Measurement = {
+  def measureScenario3(): (Seq[Measurement], Seq[Measurement]) = {
     // scenario 3: point var points to for static fields
     ???
   }
 
   def main(args: Array[String]): Unit = {
-    val (sc1tdTime, sc1tdMem) = measureScenario1v2()
+    val (sc1Into, sc1Over) = measureScenario1()
     // TODO scenario 2
     // TODO scenario 3
-    val allTime = Seq(sc1tdTime)
-    val allMem = Seq(sc1tdMem)
-    println(sc1tdTime)
-    println(sc1tdMem)
-    FilesUtil.writeFile(timeResultsPath, BenchmarkUtils.measurementsToCSV(allTime))
-    FilesUtil.writeFile(memResultsPath, BenchmarkUtils.measurementsToCSV(allMem))
+    FilesUtil.writeFile(
+      s"$resultsPath/${sc1Into.head.name}-StepInto.csv",
+      BenchmarkUtils.measurementsToCSV(sc1Into))
+    FilesUtil.writeFile(
+      s"$resultsPath/${sc1Over.head.name}-StepOver.csv",
+      BenchmarkUtils.measurementsToCSV(sc1Over))
   }
 }
