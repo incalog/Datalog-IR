@@ -17,6 +17,9 @@ trait IRDebugger extends Debugger {
 
   private val _irControlTrace: ListBuffer[Query] = ListBuffer.empty
   def irControlTrace: Seq[Query] = _irControlTrace.toSeq
+  def clearIRControlTrace(): Unit = {
+    _irControlTrace.clear()
+  }
   def stepped(): Unit = _irControlTrace += queryStack.top
 }
 final class InitializingIRDebugger(

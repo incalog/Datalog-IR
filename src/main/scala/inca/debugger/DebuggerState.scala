@@ -16,6 +16,8 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val topDownDatabase: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   val activeQueries: mutable.Map[(Predicate, Adornment), List[ValueTable]] = mutable.Map.empty
 
+  val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] = mutable.Map.empty
+
   def clear(): Unit = {
     topDownDatabase.clear()
     activeQueries.clear()
@@ -155,6 +157,14 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
+  def storeExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
+    expectedFixpoint += (pred -> args) -> readBlacklistedBottomUp(pred, args)
+  }
+
+  def clearExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
+    expectedFixpoint.remove(pred -> args)
+  }
+
   def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
     activeQueries.get(pred -> adornment) match {
@@ -167,7 +177,11 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   }
 
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
-    val topdown = readTopDown(pred, args)
-    result.subset(topdown)
+    expectedFixpoint.get(pred -> args) match {
+      case Some(expected) =>
+        expected.size <= result.size
+      case None =>
+        throw new IllegalStateException("")
+    }
   }
 }
