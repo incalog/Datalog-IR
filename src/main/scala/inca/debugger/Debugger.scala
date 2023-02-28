@@ -59,7 +59,7 @@ trait Debugger extends DebuggerAPI {
       _database.processDatabaseInput(input)
     })
     val rt = DatalogRuntime(_engine, _database, module)
-    state = new DebuggerState(rt)
+    state = new AccumulatingDebuggerState(rt)
     // TODO we do this to initialize db before starting debugging session
     // state.countBottomUp("path", ImmutableTable.unit())
   }
@@ -127,7 +127,7 @@ trait Debugger extends DebuggerAPI {
       case call @ Datalog.Call(callee, calleeTerms, _, neg) =>
         val calleeArgs = prepareArgTable(sup, callee, calleeTerms)
         if (stepOver) { // A-Over and A-OverRecursive
-          val bottomUpTable = state.readBlacklistedBottomUp(callee, calleeArgs)
+          val bottomUpTable = state.readBottomUp(callee, calleeArgs)
           val result =
             if (isCyclic(callee)) bottomUpTable.union(state.readTopDown(callee, calleeArgs))
             else bottomUpTable
@@ -336,7 +336,7 @@ trait Debugger extends DebuggerAPI {
       case Subquery(pred, args, _, _, _) =>
         state.clearExpectedFixpoint(pred, args)
         state.popQuery(pred, args)
-        val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
+        val bottomUpResult = state.readBottomUp(pred, args)
         queryStack.update(QueryResult(pred, args, bottomUpResult))
         true
       case QueryResult(_, _, _) =>

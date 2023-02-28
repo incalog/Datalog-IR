@@ -34,6 +34,6 @@ final class ExternallyInitializableDebugger(module: CompiledDatalogModule) exten
   super.initialize(module)
 
   def setRuntime(runtime: DatalogRuntime): Unit = {
-    state = new DebuggerState(runtime)
+    state = new AccumulatingDebuggerState(runtime)
   }
 }
