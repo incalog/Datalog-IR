@@ -2,9 +2,9 @@ module ASG
 
 class Visitor {
   def visitProg(n: Prog): Unit = { }
-  def visitDef(n: Def): Unit = { }
-  def visitNum(n: Num): Unit = { }
-  def visitVar(v: Var): Unit = { }
+  def visitDef(d: Def): Unit = { }
+  def visitNum(n: Num, d: Def): Unit = { }
+  def visitVar(v: Var, d: Def): Unit = { }
 }
 
 class Prog(val defs: `List[Any]`) {
@@ -25,22 +25,22 @@ class Prog(val defs: `List[Any]`) {
 class Def(val name: String, val exp: Exp) {
   def accept(v: Visitor): Unit = {
     v.visitDef(this)
-    this.exp.accept(v)
+    this.exp.accept(v, this)
   }
 }
 
 class Exp {
-  def accept(v: Visitor): Unit = {}
+  def accept(v: Visitor, d: Def): Unit = {}
 }
 class Num(val value: Int) extends Exp {
-  @override def accept(v: Visitor): Unit = {
-    v.visitNum(this)
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitNum(this, d)
   }
 }
 class Var(val name: String) extends Exp {
   var target: Def = null
-  @override def accept(v: Visitor): Unit = {
-    v.visitVar(this)
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitVar(this, d)
   }
 }
 
@@ -52,12 +52,27 @@ class ResolveVisitor(val prog: Prog) extends Visitor {
     this.findByName(list, name, i+1, size)
   }
 
-  @override def visitVar(v: Var): Unit = {
+  @override def visitVar(v: Var, d: Def): Unit = {
     val defs: `List[Any]` = this.prog.defs
     v.target = this.findByName(defs, v.name, 0, defs.`size`)
   }
 }
 
+case class Edge(val from: Def, val to: Def) { }
+class FlowVisitor extends Visitor {
+  // Set[Edge]
+  val edges: MonotoneSet = new MonotoneSet()
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null) {
+      this.edges += new Edge(d, trg)
+      fix trg.accept(this)
+    }
+  }
+
+  // mono.Map[Def, mono.Set[Def]]
+  val nonDominators: MonotoneMap = new MonotoneMap()
+}
 
 class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
     def init(): `scala.collection.immutable.Set[Any]` = {
@@ -77,6 +92,33 @@ class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[
     }
 }
 
+class MonotoneMap extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`] {
+    def init(): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
+        `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`()
+    }
+
+    def join(m1: `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`, m2: `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
+        `{ (vs1,vs2) =>
+            var joined = vs1
+            for ((x, v2) <- vs2)
+              joined.get(x) match {
+                case None =>
+                  joined += x -> v2
+                case Some(v1) =>
+                  joined += x -> (v1 ++ v2)
+              }
+            joined
+        }`(m1, m2)
+    }
+
+    def lift(element: (Any, Any)): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
+        `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`(element._1 -> `scala.collection.immutable.Set[Any]`(element._2))
+    }
+
+    def get(): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
+        this.result
+    }
+}
 
 class ReachVisitor extends Visitor {
   val reachable: MonotoneSet = new MonotoneSet()
@@ -85,10 +127,10 @@ class ReachVisitor extends Visitor {
     this.reachable += d
   }
 
-  @override def visitVar(v: Var): Unit = {
-    val d: Def = v.target
-    if (d != null)
-        fix d.accept(this)
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null)
+        fix trg.accept(this)
   }
 }
 
@@ -125,6 +167,9 @@ class Main {
     // these results remain the same in OODL even after changing d1
     //   val d1 = new Def("a", new Var("c"))
     // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
+
+    val flowing: FlowVisitor = new FlowVisitor()
+    main.accept(flowing)
 
     val result: `scala.collection.immutable.Set[Any]` = reaching.reachable.get()
     val mapper: Mapper = new Mapper()
