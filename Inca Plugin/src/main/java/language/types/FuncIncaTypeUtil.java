@@ -90,7 +90,7 @@ public class FuncIncaTypeUtil {
             return new FuncIncaLongType();
         } else if (eText.equals("String")) {
             return new FuncIncaStringType();
-        } else if (e instanceof FuncIncaTypeNameType){
+        } else if (e instanceof FuncIncaTypeName){
             return new FuncIncaTypeNameType(eText);
         } else {
             return new FuncIncaAnyType();

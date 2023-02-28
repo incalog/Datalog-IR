@@ -25,6 +25,14 @@ public class TypeContext {
         dataDefs = new HashMap<>();
     }
 
+    public static void clear() {
+        vars.clear();
+        tyVars.clear();
+        funDefs.clear();
+        dataDefs.clear();
+    }
+
+
     public TypeContext getInstance() {
         return instance;
     }
@@ -105,7 +113,10 @@ public class TypeContext {
     }
 
     public static void bindFun(FuncIncaFunDef funDef) {
-        String name = funDef.getId().getText();
+        String name = funDef.getName();
+        if (name == null) {
+            return;
+        }
         List<FuncIncaParam> params;
         List<FuncIncaTypeVariable> tVars;
         try {
@@ -177,6 +188,10 @@ public class TypeContext {
     public static void bindData(FuncIncaDataDef data) {
         // add new data definition
         String dataName = data.getName();
+        if (dataName == null) {
+            return;
+        }
+        // check if this DataDef was already stored for this name
         dataDefs.put(dataName, data);
         // add constructors to function definitions
         List<FuncIncaType> dataTyVars;
@@ -188,7 +203,7 @@ public class TypeContext {
         FuncIncaType d = new FuncIncaTypeNameType(dataName, dataTyVars);
         List<FuncIncaDataConstructor> cs = data.getDataConstructorList();
         for (FuncIncaDataConstructor c : cs) {
-            String cName = c.getName(); // TODO: catch nullpointer, annotations für missing type variables
+            String cName = c.getName();
             List<FuncIncaType> tvs = new ArrayList<>();
             List<FuncIncaType> vs = new ArrayList<>();
             if (c.getTypeVariables() != null) // does this DataConstructor c have type variables
@@ -199,7 +214,6 @@ public class TypeContext {
             addFunDef(cName, new Pair<>(c, constr));
         }
     }
-    // data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
 
     public static boolean isData(String name) {
         return dataDefs.containsKey(name);

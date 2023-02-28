@@ -2,6 +2,7 @@ package language.types;
 
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import language.psi.*;
@@ -15,6 +16,8 @@ import static language.types.TypeContext.*;
 
 public class FuncIncaTypechecker {
 
+
+
     public static FuncIncaType typecheck(@NotNull PsiElement exp, @NotNull AnnotationHolder holder) {
         return typecheckCore(exp, holder);
     }
@@ -24,7 +27,11 @@ public class FuncIncaTypechecker {
         if (exp instanceof FuncIncaVar) {
                 String name = exp.getText();
                 Pair<FuncIncaDecl, FuncIncaType> var = lookupVar(name, (FuncIncaVar) exp, holder);
-                FuncIncaType type = var.getSecond();
+                FuncIncaType type;
+                if (var == null) // variable was not found
+                    type = new FuncIncaAnyType();
+                else // variable was found
+                    type = var.getSecond();
                 return type;
 
         } else if (exp instanceof FuncIncaLetExp) {
@@ -82,7 +89,15 @@ public class FuncIncaTypechecker {
                 FuncIncaType boundType = typecheckCore(bound, holder);
                 PsiElement body = multLet.getExpList().get(1);
                 if (typeAnnos != null) {
-                    // TODO
+                    FuncIncaTypeAnnotation firstTyAnno = typeAnnos.get(0);
+                    FuncIncaTypeAnnotation lastTyAnno = typeAnnos.get(typeAnnos.size()-1);
+                    if (typeAnnos.size() != nameText.size()) {
+                        holder.newAnnotation(HighlightSeverity.ERROR, "Wrong amount of type annotations." +
+                                        " Expected " + nameText.size() + ", but got " + typeAnnos.size())
+                                .range(new TextRange(firstTyAnno.getTextOffset(), lastTyAnno.getTextOffset()))
+                                .create();
+                    }
+                    // TODO : vergleichen mit zugewiesenen typen
                 }
                 if (!(boundType instanceof FuncIncaTupleType)) {
                     holder.newAnnotation(HighlightSeverity.ERROR,
@@ -119,6 +134,7 @@ public class FuncIncaTypechecker {
                 });
                 return bodyType[0];
             }
+
         } else if (exp instanceof FuncIncaCastExp) {
             PsiElement ex = ((FuncIncaCastExp) exp).getExp();
             PsiElement ct = ((FuncIncaCastExp) exp).getTypeName();
@@ -141,13 +157,16 @@ public class FuncIncaTypechecker {
             FuncIncaType thenType = typecheck(((FuncIncaIfExp) exp).getExpList().get(1), holder);
             FuncIncaType elseType = typecheck(((FuncIncaIfExp) exp).getExpList().get(2), holder);
             return join(thenType, elseType);
+
         } else if (exp instanceof FuncIncaParensExp) {
             return typecheckCore(((FuncIncaParensExp) exp).getExp(), holder);
+
         } else if (exp instanceof FuncIncaTupleExp) {
             List<FuncIncaType> tupleTypes = new ArrayList<>();
             for (PsiElement e : ((FuncIncaTupleExp) exp).getExpList())
                 tupleTypes.add(typecheck(e, holder));
             return new FuncIncaTupleType(tupleTypes);
+
         } else if (exp instanceof FuncIncaLambdaExp) {
             List<FuncIncaParam> params = ((FuncIncaLambdaExp) exp).getParamList().getParamList();
             FuncIncaExp body = ((FuncIncaLambdaExp) exp).getExp();
@@ -168,9 +187,31 @@ public class FuncIncaTypechecker {
             return new FuncIncaFunctionType(new ArrayList<>(), types, returnType[0]);
 
         } else if (exp instanceof FuncIncaCallExp) {
+            FuncIncaCallExp callExp = (FuncIncaCallExp) exp;
+            List<FuncIncaExp> expList = callExp.getExpList();
+            FuncIncaExp fun = expList.get(0);
+            FuncIncaType funType = typecheck(fun, holder);
+            List<FuncIncaTypeVariable> typeVariables = new ArrayList<>();
+            List<FuncIncaExp> args = new ArrayList<>();
+            if (callExp.getTypeVariables() != null)
+                typeVariables = callExp.getTypeVariables().getTypeVariableList();
+            if (expList.size() > 1)
+                args = expList.subList(1, expList.size());
+
+
+            if (funType instanceof FuncIncaFunctionType) {
+                List<FuncIncaType> tyVarAsTypes = FuncIncaTypeUtil.typeVariablesToFuncIncaType(typeVariables);
+                return typecheckFunDefCall(fun, (FuncIncaFunctionType) funType, tyVarAsTypes, args, exp, holder);
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR, "Expression has type " + funType + ", but" +
+                        " requires function type")
+                        .range(fun)
+                        .create();
+                return funType;
+            }
 
         } else if (exp instanceof FuncIncaMatchExp) {
-            FuncIncaExp matchee = ((FuncIncaMatchExp) exp).getExp();
+           /* FuncIncaExp matchee = ((FuncIncaMatchExp) exp).getExp();
             List<FuncIncaMatchCase> cases = ((FuncIncaMatchExp) exp).getMatchCaseList();
             FuncIncaType matcheeType = typecheck(matchee, holder);
             if (matcheeType instanceof FuncIncaTypeNameType) {
@@ -187,6 +228,7 @@ public class FuncIncaTypechecker {
                     }
                     return tNameType;
                 }
+
             } else if (matcheeType instanceof FuncIncaConstructorType) {
                 PsiElement constrName = PsiTreeUtil.findChildOfType(matchee, FuncIncaVar.class); // TODO find correct definition of the datatype
                 if (constrName.getReference() != null)
@@ -199,6 +241,7 @@ public class FuncIncaTypechecker {
                     caseTypes.add(typecheck(matchCase.getExp(), holder));
                 return join(caseTypes);
             }
+*/
         } else if (exp instanceof FuncIncaBaseLitExp) {
             PsiElement e = exp.getFirstChild();
             if (e instanceof FuncIncaIntLit) {
@@ -214,8 +257,8 @@ public class FuncIncaTypechecker {
             } else {
                 // type scalaterm
             }
-        } else
-            if (exp instanceof FuncIncaBaseApplyExp) {
+
+        } else if (exp instanceof FuncIncaBaseApplyExp) {
 
         } else if (exp instanceof FuncIncaBaseApplyUnaryExp) {
             String op = ((FuncIncaBaseApplyUnaryExp) exp).getUnaryOp().getText();
@@ -246,13 +289,11 @@ public class FuncIncaTypechecker {
                             .range(exp)
                             .create();
                     return new FuncIncaAnyType();
-
             }
-        } else
-            if (exp instanceof FuncIncaBaseApplyMethodExp) {
 
-        } else
-            if (exp instanceof FuncIncaBaseApplyInfixExp) {
+        } else if (exp instanceof FuncIncaBaseApplyMethodExp) {
+
+        } else if (exp instanceof FuncIncaBaseApplyInfixExp) {
             List<FuncIncaExp> children = ((FuncIncaBaseApplyInfixExp) exp).getExpList();
             String op = ((FuncIncaBaseApplyInfixExp) exp).getOp().getText();
             FuncIncaType lhsType = typecheckCore(children.get(0), holder);
@@ -309,6 +350,7 @@ public class FuncIncaTypechecker {
                 setType = join(setTypes);
             }
             return new FuncIncaSetType(setType);
+
         } else if (exp instanceof FuncIncaMemberExp) {
 
         } else if (exp instanceof FuncIncaComprehensionExp) {
@@ -584,6 +626,46 @@ public class FuncIncaTypechecker {
         return join(caseTypes);
     }
 
+
+    private static FuncIncaType typecheckFunDefCall(FuncIncaExp fun,
+                                                    FuncIncaFunctionType funType,
+                                                    List<FuncIncaType> typeVariables,
+                                                    List<FuncIncaExp> args,
+                                                    PsiElement exp,
+                                                    AnnotationHolder holder) {
+        int argsSize = args.size();
+        int paramSize = funType.paramTypes.size();
+        if (argsSize != paramSize) {
+            holder.newAnnotation(HighlightSeverity.ERROR, "Function " + fun.getText() + " expects " +
+                            paramSize + " arguments, but found " + argsSize + " arguments in call")
+                    .range(exp)
+                    .create();
+        }
+        FuncIncaFunctionType substFun;
+        if (typeVariables.isEmpty()) {
+            substFun = funType;
+        } else {
+            // TODO substitute type variables
+            substFun = funType;
+        }
+        for (int i = 0; i < Math.max(argsSize, paramSize); i++) {
+            if (i > argsSize-1)
+                break;
+            if (i > paramSize-1) {
+                FuncIncaType argTy = typecheckCore(args.get(i), holder);
+                continue;
+            }
+            FuncIncaType argTy = typecheckCore(args.get(i), holder);
+            FuncIncaType paramTy = substFun.paramTypes.get(i);
+            FuncIncaType meetTy = meet(argTy, paramTy);
+            if (meetTy instanceof FuncIncaNothingType)
+                holder.newAnnotation(HighlightSeverity.ERROR, "Invalid Argument of type " + argTy + "for " +
+                        "parameter of type " + paramTy)
+                        .range(args.get(i))
+                        .create();
+        }
+        return substFun.returnType;
+    }
 
     private static FuncIncaType checkBinArithmeticOp(FuncIncaType lhs,
                                                   FuncIncaType rhs,
