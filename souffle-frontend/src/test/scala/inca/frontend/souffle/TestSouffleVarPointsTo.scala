@@ -36,7 +36,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val compiler = new SouffleToDatalogIR(false)
     val compiledModule = compiler.compile("selfcontained", analysis)
     val psModule = compiledModule.psystemModule
-    val inputCompiler = new SouffleToNamedRelations(s"$benchmarkPath/minijavac")
+    val inputCompiler = new SouffleToNamedRelations(s"$benchmarkPath/facts/minijavac")
     val dbInput = inputCompiler.compile(compiledModule.inputs.values.map(x => x._2 -> x._1).toMap)
 
     val queryScope = new QueryScope(compiledModule.dataModel, Seq())

@@ -230,6 +230,9 @@ class ParserTest extends AnyFunSuite {
   test("lambda") {
     testSuccessAny(parser.module(_))(HigherOrder.lambda)
   }
+  test("currying") {
+    testSuccessAny(parser.module(_))(HigherOrder.currying)
+  }
 
   test("lambdaHigherOrder") {
     testSuccessAny(parser.module(_))(HigherOrder.lambdaHigherOrder)
@@ -281,8 +284,8 @@ class ParserTest extends AnyFunSuite {
       }
     }
 
-  private def testSuccessAny[T](parser: P[_] => P[Any]): String => Assertion =
-    (input: String) => {
+  private def testSuccessAny[T](parser: P[_] => P[Any]): String => Assertion = { (input: String) =>
+    {
       parse(input, parser) match {
         case Success(value, index) =>
           println(value)
@@ -290,4 +293,5 @@ class ParserTest extends AnyFunSuite {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
     }
+  }
 }

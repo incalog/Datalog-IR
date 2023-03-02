@@ -22,6 +22,13 @@ object HigherOrder {
       |@main def main(): Int = ((x: Int) => x * 3)(7)
       |""".stripMargin
 
+  val currying: String =
+    s"""module Foo
+      |
+      |def curry(): Int => Int => Int = (x: Int) => (y: Int) => x + y
+      |@main def main(): Int = curry()(12)(14)
+      |""".stripMargin
+
   val lambdaHigherOrder: String =
     s"""module Foo
       |
