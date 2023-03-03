@@ -57,7 +57,7 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
   }
 
   def stepOverReachesBreakpoint(query: Query): Boolean = query match {
-    case Subquery(_, _, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
+    case Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
       atom.asCall match {
         case Some((callee, _)) =>
           val transitivelyReachable = dependencyGraph.transitvelyReachable(callee)
@@ -69,7 +69,7 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
 
   // need to consider the breakpoints in the current remaing rule and in the following potential iteration
   def stepOutReachesBreakpoint(query: Query, consideredCyclic: Boolean): Boolean = query match {
-    case Subquery(pred, _, _, _, _, rules @ Rule(_, _, atoms @ Atom(atom) +: _) +: _) =>
+    case Subquery(pred, _, _, _, rules @ Rule(_, _, atoms @ Atom(atom) +: _) +: _) =>
       val reachablePreds = mutable.Set() ++ dependencyGraph.transitvelyReachable(pred)
       if (consideredCyclic) { // need to consider that predicate will be executed again
         reachablePreds += pred
@@ -83,7 +83,7 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
 
       val samePredBreakpoints = breakpoints.filter(_.stopAt.pred == pred)
       samePredBreakpoints.foreach {
-        case IRBreakpoint(Subquery(_, _, _, _, _, currentBreak +: remainingBreak), _) =>
+        case IRBreakpoint(Subquery(_, _, _, _, currentBreak +: remainingBreak), _) =>
           if (remainingBreak.size < rules.tail.size) {
             // means breakpoint is in a rule that has not been processed
             return true
