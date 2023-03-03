@@ -44,7 +44,7 @@ class Var(val name: String) extends Exp {
   }
 }
 
-class ResolveVisitor(val prog: Prog) extends Visitor {
+class NameAnalysis(val prog: Prog) extends Visitor {
   def findByName(list: `List[Any]`, name: String, i: Int, size: Int): Def = {
     if (i >= size) return null
     val ele: Def = list.`apply`(i).asInstanceOf[Def]
@@ -59,9 +59,25 @@ class ResolveVisitor(val prog: Prog) extends Visitor {
 }
 
 case class Edge(val from: Def, val to: Def) { }
-class FlowVisitor extends Visitor {
-  // Set[Edge]
+class DependencyAnalysis extends Visitor {
+  // mono.Set[Edge]
   val edges: MonotoneSet = new MonotoneSet()
+
+  // hack to retrieve a Datalog set from this.edges
+  def edgeSet(): Set[Edge] = {
+    val set: `scala.collection.immutable.Set[Any]` = this.edges.get()
+    val list: `scala.collection.immutable.Vector[Any]` = set.`toVector`
+    this.edgeSetIter(list, 0)
+  }
+  def edgeSetIter(list: `scala.collection.immutable.Vector[Any]`, ix: Int): Set[Edge] = {
+    val e: Edge = list.`apply`(ix).asInstanceOf[Edge]
+    if (ix == list.`size` - 1) {
+      Set(e)
+    } else {
+      Set(e) ++ this.edgeSetIter(list, ix + 1)
+    }
+  }
+
   @override def visitVar(v: Var, d: Def): Unit = {
     val trg: Def = v.target
     if (trg != null) {
@@ -70,8 +86,17 @@ class FlowVisitor extends Visitor {
     }
   }
 
-  // mono.Map[Def, mono.Set[Def]]
-  val nonDominators: MonotoneMap = new MonotoneMap()
+  def directDependencies(d: Def): Set[Def] = {
+    for (e <- this.edgeSet() if e.from == d) yield e.to
+  }
+
+  def dependencies(d: Def): Set[Def] = {
+    this.directDependencies(d) ++
+    for (d2 <- this.directDependencies(d);
+         d3 <- this.dependencies(d2))
+      yield d3
+  }
+
 }
 
 class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
@@ -98,17 +123,18 @@ class MonotoneMap extends BalancedMonotone[(Any, Any), `scala.collection.immutab
     }
 
     def join(m1: `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`, m2: `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
-        `{ (vs1,vs2) =>
+        `((vs1: scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]],vs2: scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]) => {
             var joined = vs1
-            for ((x, v2) <- vs2)
+            for ((x, v2) <- vs2) {
               joined.get(x) match {
                 case None =>
                   joined += x -> v2
                 case Some(v1) =>
                   joined += x -> (v1 ++ v2)
               }
+            }
             joined
-        }`(m1, m2)
+        })`(m1, m2)
     }
 
     def lift(element: (Any, Any)): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
@@ -143,6 +169,10 @@ class Mapper {
         return Set(ele.name) ++ this.mapName(s, i+1, size)
     }
   }
+
+  def mapNameSet(s: Set[Def]): Set[String] = {
+    for (d <- s) yield d.name
+  }
 }
 
 class Main {
@@ -155,7 +185,7 @@ class Main {
     val main: Def = new Def("main", new Var("c"))
     val prog: Prog = new Prog(`List[Any]`(d1, d2, d3, d4, main))
 
-    val resolving: ResolveVisitor = new ResolveVisitor(prog)
+    val resolving: NameAnalysis = new NameAnalysis(prog)
     prog.accept(resolving)
     // Var.target is now defined for all Var objects
 
@@ -168,11 +198,13 @@ class Main {
     //   val d1 = new Def("a", new Var("c"))
     // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
 
-    val flowing: FlowVisitor = new FlowVisitor()
-    main.accept(flowing)
-
     val result: `scala.collection.immutable.Set[Any]` = reaching.reachable.get()
     val mapper: Mapper = new Mapper()
     mapper.mapName(result.`toSeq`, 0, result.`size`)
+
+    val depending: DependencyAnalysis = new DependencyAnalysis()
+    main.accept(depending)
+    val depResult: Set[Def] = depending.dependencies(main)
+    mapper.mapNameSet(depResult)
   }
 }

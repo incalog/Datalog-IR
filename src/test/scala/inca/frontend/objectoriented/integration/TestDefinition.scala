@@ -229,6 +229,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("SetIntersection", "A", "main", Seq(), SetResult(1, 3)),
+      TestDefinition("SetIntersection2", "A", "main", Seq(), SetResult(1, 3)),
       TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetUnionIntersection", "A", "main", Seq(), SetResult(1, 2, 3, 4))
@@ -342,7 +343,7 @@ object TestDefinition {
 
   def abstractSyntaxGraphTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("syntax")
-    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("main", "a", "c"))
+    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("a", "c"))
   }
 
   /*def section3: TestDefinition[Int] = {
