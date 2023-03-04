@@ -3,9 +3,9 @@ package language;
 import com.intellij.testFramework.ParsingTestCase;
 
 
-public class FuncIncaParsingTest extends ParsingTestCase {
+public class FunIncAParsingTest extends ParsingTestCase {
 
-    protected FuncIncaParsingTest() {
+    protected FunIncAParsingTest() {
         super("", "finca", new FunIncAParserDefinition());
     }
 

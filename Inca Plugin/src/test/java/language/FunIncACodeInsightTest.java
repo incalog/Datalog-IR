@@ -14,18 +14,18 @@ import org.jetbrains.annotations.NonNls;
 import java.io.File;
 import java.io.IOException;
 
-public class FuncIncaCodeInsightTest extends LightJavaCodeInsightFixtureTestCase {
+public class FunIncACodeInsightTest extends LightJavaCodeInsightFixtureTestCase {
 
     private String srcPath;
     private String expectPath;
 
-    protected FuncIncaCodeInsightTest(String srcName, String expectName) {
+    protected FunIncACodeInsightTest(String srcName, String expectName) {
         super();
         srcPath = getDirPath() + '/' + srcName;
         expectPath = getDirPath() + '/' + expectName;
     }
 
-    protected FuncIncaCodeInsightTest(String name) {
+    protected FunIncACodeInsightTest(String name) {
         this(name, name);
     }
 

@@ -7,7 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
-import language.FuncIncaCodeInsightTest;
+import language.FunIncACodeInsightTest;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
@@ -15,15 +15,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class FuncIncaResolveTestCase extends FuncIncaCodeInsightTest {
+public class FunIncAResolveTestCase extends FunIncACodeInsightTest {
     protected PsiReference refElement;
     protected PsiElement resolvedElement;
 
-    public FuncIncaResolveTestCase(String srcName) {
+    public FunIncAResolveTestCase(String srcName) {
         super(srcName, srcName);
     }
 
-    public FuncIncaResolveTestCase() {
+    public FunIncAResolveTestCase() {
         this("resolve");
     }
 

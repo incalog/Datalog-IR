@@ -1,7 +1,7 @@
 package language.resolve;
 
 
-public class FuncIncaResolveTest extends FuncIncaResolveTestCase{
+public class FunIncAResolveTest extends FunIncAResolveTestCase {
 
     public void testConstructor(){doTest();}
     public void testDatatypes(){doTest();}
