@@ -1,0 +1,11 @@
+Name, AVG time (ns) ,NumberOfSteps,TotalTime (ns),Memory (MB),StepOver (ns),raw data time (ns)
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1503142.0,2,1503142,586,1503142,1503142
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1307748.0,2,1307748,585,1307748,1307748
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1216749.0,2,1216749,585,1216749,1216749
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1318978.0,2,1318978,586,1318978,1318978
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1303799.0,2,1303799,586,1303799,1303799
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1364845.0,2,1364845,586,1364845,1364845
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1141049.0,2,1141049,586,1141049,1141049
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1057456.0,2,1057456,585,1057456,1057456
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1239990.0,2,1239990,586,1239990,1239990
+VarPointsTo_minijavac_basic_MethodLookup_simplename,1189077.0,2,1189077,586,1189077,1189077
