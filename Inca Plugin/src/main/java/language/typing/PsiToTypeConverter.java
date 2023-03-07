@@ -1,5 +1,10 @@
 package language.typing;
 
+import com.intellij.lang.annotation.AnnotationHolder;
+import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.psi.PsiReference;
+import com.intellij.psi.ResolveResult;
+import language.FunIncAReference;
 import language.psi.*;
 import com.intellij.psi.PsiElement;
 import language.psi.FunIncASetType;
@@ -35,7 +40,7 @@ public class PsiToTypeConverter {
      * @param element
      * @return
      */
-    public static Type convert(FunIncAType element) {
+    public static Type convert(FunIncAType element, AnnotationHolder holder) {
         PsiElement e;
         try {
             e = element.getFirstChild();
@@ -44,33 +49,47 @@ public class PsiToTypeConverter {
             return new AnyType();
         }
         if (e instanceof FunIncAFunType) {
-            Type argType = convert(((FunIncAFunType) e).getAtomicType());
-            Type returnType = convert(((FunIncAFunType) e).getType());
+            Type argType = convert(((FunIncAFunType) e).getAtomicType(), holder);
+            Type returnType = convert(((FunIncAFunType) e).getType(), holder);
             if (argType instanceof TupleType) {
                 return new FunType(new ArrayList<>(), ((TupleType) argType).getTypes(), returnType);
             } else {
                 return new FunType(new ArrayList<>(), List.of(argType), returnType);
             }
         } else { // e is instance of FuncIncaAtomicType
-            return convert((FunIncAAtomicType) e);
+            return convert((FunIncAAtomicType) e, holder);
         }
     }
 
-    public static List<Type> convert(@Nullable List<FunIncAType> elements) {
+    public static List<Type> convert(@Nullable List<FunIncAType> elements, AnnotationHolder holder) {
         List<Type> types = new ArrayList<>();
         if (null == elements || elements.isEmpty())
             return types;
         for (FunIncAType e : elements)
-            types.add(convert(e));
+            types.add(convert(e, holder));
         return types;
     }
 
+    public static List<Type> convertParameters(@Nullable List<FunIncAParamDef> elements, AnnotationHolder holder) {
+        List<Type> types = new ArrayList<>();
+        if (elements == null || elements.isEmpty())
+            return types;
+        for (FunIncAParamDef e : elements) {
+            FunIncAType type = e.getType();
+            if (type == null) {
+                types.add(new AnyType());
+            } else {
+                types.add(convert(type, holder));
+            }
+        }
+        return types;
+    }
 
-    private static Type convert(FunIncAAtomicType element){
+    private static Type convert(FunIncAAtomicType element, AnnotationHolder holder){
         PsiElement e = element.getFirstChild();
         String eText = e.getText();
         if (e instanceof FunIncATupleType) {
-            return new TupleType(convert(((FunIncATupleType) e).getTypeList()));
+            return new TupleType(convert(((FunIncATupleType) e).getTypeList(), holder));
         } else if (eText.equals("Any")) {
             return new AnyType();
         } else if (eText.equals("Nothing")) {
@@ -78,11 +97,27 @@ public class PsiToTypeConverter {
         } else if (eText.equals("Unit")) {
             return new UnitType();
         } else if (e instanceof FunIncASetType) {
-            return new SetType(convert(((FunIncASetType) e).getType()));
+            return new SetType(convert(((FunIncASetType) e).getType(), holder));
         } else if (e instanceof FunIncAConstructorType) {
-            FunIncAConstructorType constrType = (FunIncAConstructorType) e;
-            String name = constrType.getTypeNameRef().getText();
-            return new ConstructorType(name, convert(constrType.getTypeList()));
+            FunIncAReference ref = (FunIncAReference) e.getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            if (result.length == 0) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Type " + eText + " is not defined")
+                        .range(e)
+                        .create();
+                return new AnyType();
+            } else if (result.length == 1) {
+                FunIncAConstructorType constrType = (FunIncAConstructorType) e;
+                String name = constrType.getTypeNameRef().getText();
+                return new ConstructorType(name, convert(constrType.getTypeList(), holder));
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Ambiguos reference name " + eText)
+                        .range(e)
+                        .create();
+                return new AnyType();
+            }
         } else if (eText.equals("Boolean")) {
             return new BooleanType();
         } else if (eText.equals("Double")) {
@@ -94,8 +129,28 @@ public class PsiToTypeConverter {
         } else if (eText.equals("String")) {
             return new StringType();
         } else if (e instanceof FunIncATypeNameRef){
-            return new TypeRef(eText);
+            FunIncAReference ref = (FunIncAReference) e.getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            if (result.length == 0) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Type " + eText + " is not defined")
+                        .range(e)
+                        .create();
+                return new AnyType();
+            } else if (result.length == 1) {
+                return new TypeRef(eText);
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Ambiguos reference name " + eText)
+                        .range(e)
+                        .create();
+                return new AnyType();
+            }
         } else {
+            holder.newAnnotation(HighlightSeverity.ERROR,
+                    "Unknown type " + eText)
+                    .range(e)
+                    .create();
             return new AnyType();
         }
     }

@@ -47,6 +47,10 @@ public class FunIncAVisitor extends PsiElementVisitor {
     visitExp(o);
   }
 
+  public void visitCallExpList(@NotNull FunIncACallExpList o) {
+    visitPsiElement(o);
+  }
+
   public void visitCastExp(@NotNull FunIncACastExp o) {
     visitExp(o);
   }

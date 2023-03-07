@@ -23,31 +23,18 @@ public class FunIncAAnnotator implements Annotator {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);
             FunIncAExp body = funDef.getExp();
             FunIncAType expected = funDef.getType();
-            Type expectedType = PsiToTypeConverter.convert(expected);
-            //bindFun(funDef); // TODO move to another point
+            Type expectedType = PsiToTypeConverter.convert(expected, holder);
             if (body == null) { // do not annotate if function has no body
                 return;
             }
-            final Type[] resolvedType = new Type[1];
-            resolvedType[0] = FunIncATypechecker.typecheck(body, holder);
-//            TypeContext.scopedTypeContext(new Runnable() {
-//                @Override
-//                public void run() {
-//                    for (FunIncAParamDef param : funDef.getParamDefList()) {
-//                        String name = param.getId().getText();
-//                        Type type = PsiToTypeConverter.convert(param.getType());
-//                        // TypeContext.bindVar(name, param, type, holder);
-//                    }
-//                    resolvedType[0] = FunIncATypechecker.typecheck(body, holder);
-//                }
-//            });
+            Type resolvedType = FunIncATypechecker.typecheck(body, holder);
             if (expected == null) {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Missing return type")
                         .range(funDef)
                         .create();
-            } else if (!FunIncATypeUtil.subtype(resolvedType[0], expectedType)) {
+            } else if (!FunIncATypeUtil.subtype(resolvedType, expectedType)) {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Expected return type " + expectedType +
-                        ", but got " + resolvedType[0])
+                        ", but got " + resolvedType)
                         .range(expected)
                         .create();
             }
@@ -55,7 +42,7 @@ public class FunIncAAnnotator implements Annotator {
 
         if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
-            // bindData(dataDef);
+            // check if parametric types are correctly used
             holder.newAnnotation(HighlightSeverity.INFORMATION, "Typecheck not yet implemented")
                     .range(element)
                     .create();

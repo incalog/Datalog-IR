@@ -33,7 +33,9 @@ public class FunIncAUtil {
 
     // TODO fix set comprehensions
     /*
-     * finds all Psi Definition nodes named "name" in one file*/
+     * finds all Psi Definition nodes named "name" in one file
+     * if name = null return all found definition nodes
+     * */
     public static List<PsiNamedElement> findDefinitionNode(@Nullable FunIncAFile file, @Nullable String name, @Nullable PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
         if (file == null)
@@ -42,10 +44,10 @@ public class FunIncAUtil {
         final boolean isSetComprehension = setParent != null;
         // We only want to look for classes that match the element e we are resolving
         final Class<? extends PsiNamedElement> elementClass;
-        if (e instanceof FunIncAConstructorRef)
+        if (e instanceof FunIncAConstructorRef) // if e is a constructor reference, only definitions of consructors are important
             elementClass = FunIncADataConstructorDef.class;
-        else if (isSetComprehension)
-            elementClass = FunIncaNamedElement.class;
+        else if (isSetComprehension) // in a set comprehension everything can be a definition of e
+            elementClass = FunIncANamedElement.class;
         else
             elementClass = FunIncADecl.class;
 
@@ -83,37 +85,54 @@ public class FunIncAUtil {
             }
 
 
-        } else { // if e is not in a set comprehension proceed as normal
-            PsiNamedElement funDefParentOfNamedElement;
-            PsiNamedElement funDefParentOfE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
-
+        } else { // if e is not in a set comprehension proceed as normal and check all found named elements
             for (PsiNamedElement namedElement : namedElements) {
+
                 if (name == null) {
                     res.add(namedElement);
                     continue;
                 }
+
+                PsiNamedElement funDefParentOfNamedElement;
+                PsiNamedElement funDefParentOfE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
                 funDefParentOfNamedElement =
                         PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+                boolean isFunCall = false;
+                FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
+                if (funCall != null) { // is e part of a function call?
+                    PsiElement fun = funCall.getFirstChild();
+                    if (PsiTreeUtil.isAncestor(fun, e, false)) {
+                        isFunCall = true;
+                    }
+                }
+
                 if (name.equals(namedElement.getName())) {
-                    if (namedElement instanceof FunIncAVarDef) {// Decl in Let-exp
+                    if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
                         if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true) &&
                                 funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FunIncAPatternVarDef) {
-                        if (PsiTreeUtil.getParentOfType(namedElement, FunIncAMatchCase.class) ==
-                                PsiTreeUtil.getParentOfType(e, FunIncAMatchCase.class)) {
+                    } else if (namedElement instanceof FunIncAPatternVarDef) { // declaration is in pattern match case
+                        FunIncAMatchCase matchParentOfNamedElement =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncAMatchCase.class);
+                        FunIncAMatchCase matchParentOfE =
+                                PsiTreeUtil.getParentOfType(e, FunIncAMatchCase.class);
+                        if (PsiTreeUtil.isAncestor(matchParentOfNamedElement, matchParentOfE, false)) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FunIncAParamDef) {
+                    } else if (namedElement instanceof FunIncAParamDef && !isFunCall) { // declaration is a parameter
                         if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FunIncATypeVarDef) {
+                    } else if (namedElement instanceof FunIncATypeVarDef && !isFunCall) { // declaration is a type variable
                         if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }
-                    } else { // adding data or function definitions
+                    } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
+                        res.add(namedElement);
+                    } else if (namedElement instanceof FunIncADataDef && !isFunCall) { // declaration is a type name
+                        res.add(namedElement);
+                    } else if (namedElement instanceof FunIncADataConstructorDef) { // declaration is a constructor
                         res.add(namedElement);
                     }
                 }

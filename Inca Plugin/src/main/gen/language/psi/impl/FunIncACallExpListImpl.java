@@ -8,17 +8,17 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FunIncATypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FunIncACallExpImpl extends FunIncAExpImpl implements FunIncACallExp {
+public class FunIncACallExpListImpl extends ASTWrapperPsiElement implements FunIncACallExpList {
 
-  public FunIncACallExpImpl(@NotNull ASTNode node) {
+  public FunIncACallExpListImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull FunIncAVisitor visitor) {
-    visitor.visitCallExp(this);
+    visitor.visitCallExpList(this);
   }
 
   @Override
@@ -29,20 +29,8 @@ public class FunIncACallExpImpl extends FunIncAExpImpl implements FunIncACallExp
 
   @Override
   @NotNull
-  public List<FunIncACallExpList> getCallExpListList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncACallExpList.class);
-  }
-
-  @Override
-  @NotNull
-  public FunIncAExp getExp() {
-    return findNotNullChildByClass(FunIncAExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FunIncAType> getTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncAType.class);
+  public List<FunIncAExp> getExpList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncAExp.class);
   }
 
 }

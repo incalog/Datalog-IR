@@ -11,6 +11,7 @@ public class FunIncAResolveTest extends FunIncAResolveTestCase {
     public void testMethod1(){doTest();}
     public void testMethod2(){doTest(false);}
     public void testMethod3(){doTest();}
+    public void testMethod4(){doTest();}
     public void testMultLet1(){doTest();}
     public void testMultLet2(){doTest();}
     public void testParameter(){doTest();}

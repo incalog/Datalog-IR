@@ -149,7 +149,8 @@ PatternVarDef ::= id
 
 // subinfix expressions
 SubinfixExp ::= CallExp | LambdaExp | AtomicExp
-CallExp ::= AtomicExp ('[' TypeList ']')? ('(' (Exp (',' Exp)*)? ')')+ {pin = 3} // + to allow composition of functions
+CallExp ::= AtomicExp ('[' TypeList ']')? ('(' CallExpList ')')+ {pin = 3} // + to allow composition of functions
+CallExpList ::= (Exp (',' Exp)*)?
 LambdaExp ::= '(' ParamList ')' '=>' Exp {pin = 4}
 
 // atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)

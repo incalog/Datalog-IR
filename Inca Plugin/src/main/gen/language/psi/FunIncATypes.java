@@ -18,6 +18,7 @@ public interface FunIncATypes {
   IElementType BINARY_OP = new FunIncAElementType("BINARY_OP");
   IElementType BOOLEAN_LIT = new FunIncAElementType("BOOLEAN_LIT");
   IElementType CALL_EXP = new FunIncAElementType("CALL_EXP");
+  IElementType CALL_EXP_LIST = new FunIncAElementType("CALL_EXP_LIST");
   IElementType CAST_EXP = new FunIncAElementType("CAST_EXP");
   IElementType CONSTRUCTOR_PAT = new FunIncAElementType("CONSTRUCTOR_PAT");
   IElementType CONSTRUCTOR_REF = new FunIncAElementType("CONSTRUCTOR_REF");
@@ -161,6 +162,9 @@ public interface FunIncATypes {
       }
       else if (type == CALL_EXP) {
         return new FunIncACallExpImpl(node);
+      }
+      else if (type == CALL_EXP_LIST) {
+        return new FunIncACallExpListImpl(node);
       }
       else if (type == CAST_EXP) {
         return new FunIncACastExpImpl(node);

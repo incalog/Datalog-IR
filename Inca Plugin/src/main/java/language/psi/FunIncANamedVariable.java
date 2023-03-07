@@ -1,4 +1,4 @@
 package language.psi;
 
-public interface FunIncANamedVariable extends FunIncaNamedElement {
+public interface FunIncANamedVariable extends FunIncANamedElement {
 }

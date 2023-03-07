@@ -5,15 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FunIncACallExp extends FunIncAExp {
+public interface FunIncACallExpList extends PsiElement {
 
   @NotNull
-  List<FunIncACallExpList> getCallExpListList();
-
-  @NotNull
-  FunIncAExp getExp();
-
-  @NotNull
-  List<FunIncAType> getTypeList();
+  List<FunIncAExp> getExpList();
 
 }
