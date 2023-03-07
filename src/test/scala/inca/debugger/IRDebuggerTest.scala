@@ -33,7 +33,8 @@ class IRDebuggerTest extends AnyFunSuite {
       dbInput: DatabaseInput
     ): Debugger = {
     val compiled = Compiler.compileGP(_module, dm, Options())
-    val debugger = new InitializingIRDebugger(compiled, dbInput)
+    val debugger =
+      new InitializingIRDebugger(compiled, dbInput, rt => new AccumulatingDebuggerState(rt))
     debugger
   }
 

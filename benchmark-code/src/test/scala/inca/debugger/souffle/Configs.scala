@@ -61,9 +61,10 @@ object Configs {
     case object PureIntoSemantics extends DebuggingSemantics {
       override def name: String = "PureInto"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new DebuggerState {
-          override def bottomUpRuntime: DatalogRuntime = rt
-        }
+//        new DebuggerState {
+//          override def bottomUpRuntime: DatalogRuntime = rt
+//        }
+        new AccumulatingDebuggerState(rt)
     }
     case object HybridSemantics extends DebuggingSemantics {
       override def name: String = "HybridSemantics"

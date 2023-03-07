@@ -16,6 +16,7 @@ import inca.debugger.Predicate
 import inca.debugger.Query
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.CSVUtil.csvToString
 import inca.measurements.util.CSVUtil.CSV
 import inca.measurements.util.CSVUtil.CSVRow
 import inca.measurements.util.MemoryUtil
@@ -79,7 +80,7 @@ object VarPointsToBenchmark {
 
   def measureStepInto(config: BaseConfig): (Seq[Long], Long, Long) = {
     val (module, runtime) = initRuntime(config)
-    val debugger = new ExternallyInitializableDebugger(module)
+    val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
     // initialize bottom-up database
     initBottomUp(module, runtime, config)
     debugger.setRuntime(runtime)
@@ -115,7 +116,7 @@ object VarPointsToBenchmark {
 
   def measureStepOut(config: BaseConfig): (Seq[Long], Long, Long) = {
     val (module, runtime) = initRuntime(config)
-    val debugger = new ExternallyInitializableDebugger(module)
+    val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
     // initialize bottom-up database
     initBottomUp(module, runtime, config)
     debugger.setRuntime(runtime)
@@ -146,7 +147,7 @@ object VarPointsToBenchmark {
       shouldStepInto: Query => (Boolean, Predicate)
     ): (Seq[Long], Map[Predicate, Seq[Long]], Long) = {
     val (module, runtime) = initRuntime(config)
-    val debugger = new ExternallyInitializableDebugger(module)
+    val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
     // initialize bottom-up database
     initBottomUp(module, runtime, config)
     debugger.setRuntime(runtime)
@@ -216,21 +217,25 @@ object VarPointsToBenchmark {
       filePostFix: String = "StepInto"
     ): Unit = {
     val measurements: CSV = BenchmarkUtils.measure(() => collectMeasurements(config, f), config)
-    FilesUtil.writeFile(
-      s"$resultsPath/${config.name}_${filePostFix}.csv",
-      addCSVHeader(measurements).toString)
+    val csv = addCSVHeader(measurements)
+    FilesUtil.writeFile(s"$resultsPath/${config.name}_${filePostFix}.csv", csvToString(csv))
   }
 
   def main(args: Array[String]): Unit = {
-    val intoAndOverConfigs = Seq(
+    val intoConfigs = Seq(
       scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
       scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
     )
-    for (c <- intoAndOverConfigs) {
+    val overConfigs = Seq(
+      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
+      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
+    )
+    for (c <- intoConfigs) {
       measureAndWrite(c, measureStepInto, "StepInto")
+    }
+    for (c <- overConfigs) {
       measureAndWrite(c, measureStepOut, "StepOver")
     }
-
 //    val interactiveConfigs = Seq(
 //      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1
 //    )

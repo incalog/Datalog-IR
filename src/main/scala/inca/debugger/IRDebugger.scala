@@ -24,21 +24,20 @@ trait IRDebugger extends Debugger {
 }
 final class InitializingIRDebugger(
     module: CompiledDatalogModule,
-    input: DatabaseInput)
+    input: DatabaseInput,
+    val debuggingState: DatalogRuntime => DebuggerState)
     extends IRDebugger {
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
-  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-    new ResettingDebuggerState(rt)
-
 }
 
-final class ExternallyInitializableDebugger(module: CompiledDatalogModule) extends IRDebugger {
+final class ExternallyInitializableDebugger(
+    module: CompiledDatalogModule,
+    val debuggingState: DatalogRuntime => DebuggerState)
+    extends IRDebugger {
   super.initialize(module)
 
-  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-    new AccumulatingDebuggerState(rt)
   def setRuntime(runtime: DatalogRuntime): Unit = {
-    state = new AccumulatingDebuggerState(runtime)
+    state = debuggingState(runtime)
   }
 }

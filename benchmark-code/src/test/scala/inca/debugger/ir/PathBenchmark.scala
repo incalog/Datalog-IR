@@ -101,7 +101,8 @@ object PathBenchmark {
       Tuples.staticArityFlatTupleOf(f, t)
     }.toSet)
     val dbInput = DatabaseInput(EditScript(Seq()), insertions, Map())
-    val debugger = new InitializingIRDebugger(compiled, dbInput)
+    val debugger =
+      new InitializingIRDebugger(compiled, dbInput, rt => new AccumulatingDebuggerState(rt))
     debugger
   }
 
