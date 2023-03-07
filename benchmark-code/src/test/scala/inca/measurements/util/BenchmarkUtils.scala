@@ -121,7 +121,7 @@ object BenchmarkUtils {
     (input, result, setuptimes, times)
   }
 
-  def measure[T](run: () => T, config: Config): IndexedSeq[T] =
+  def measure[T](run: () => T, config: Config): Seq[T] =
     (for (i <- 0 until config.warmup + config.runs) yield {
       val v = run()
       println(s"Run $i")

@@ -240,13 +240,22 @@ object Configs {
     )
 
   def constructSimpleOracle(intoPreds: Set[Predicate]): (Query) => (Boolean, Predicate) = {
-    case Subquery(pred, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
-      (intoPreds.contains(callee), pred)
+    case Subquery(_, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
+      if (intoPreds.contains(callee)) {
+        println(s"INTO $callee")
+      } else {
+        println(s"SKIP $callee")
+      }
+      (intoPreds.contains(callee), callee)
     case Subquery(pred, _, _, _, _) => (true, pred)
     case QueryResult(pred, args, result) => (true, pred)
   }
 
   def scenario3Orcale1: Query => (Boolean, Predicate) = constructSimpleOracle(Set("VarPointsTo"))
   def scenario3Orcale2: Query => (Boolean, Predicate) = constructSimpleOracle(
+    Set("VarPointsTo", "StaticFieldPointsTo"))
+  def scenario3Orcale3: Query => (Boolean, Predicate) = constructSimpleOracle(
+    Set("VarPointsTo", "Reachable"))
+  def scenario3Orcale4: Query => (Boolean, Predicate) = constructSimpleOracle(
     Set("VarPointsTo", "InstanceFieldPointsTo"))
 }

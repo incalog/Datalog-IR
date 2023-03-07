@@ -6,6 +6,9 @@ import inca.compiler.Options
 import inca.debugger.souffle.Configs.scenario1v2
 import inca.debugger.souffle.Configs.scenario2v1
 import inca.debugger.souffle.Configs.scenario3Orcale1
+import inca.debugger.souffle.Configs.scenario3Orcale2
+import inca.debugger.souffle.Configs.scenario3Orcale3
+import inca.debugger.souffle.Configs.scenario3Orcale4
 import inca.debugger.souffle.Configs.scenario3v1
 import inca.debugger.souffle.Configs.BaseConfig
 import inca.debugger.souffle.Configs.DebuggingSemantics
@@ -25,6 +28,8 @@ import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import inca.util.FilesUtil
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.ReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import scala.collection.mutable
 
 // TODO measure how long it takes evaluating subquery using step into
@@ -42,7 +47,7 @@ object VarPointsToBenchmark {
       Compiler.compileGP(config.compiled.ir, config.compiled.dataModel, Options())
     val scope = new QueryScope(config.compiled.dataModel)
     val (_engine, _database) =
-      // EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+      // EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
       EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     (compiled, DatalogRuntime(_engine, _database, compiled))
   }
@@ -216,37 +221,70 @@ object VarPointsToBenchmark {
       f: BaseConfig => (Seq[Long], Long, Long),
       filePostFix: String = "StepInto"
     ): Unit = {
-    val measurements: CSV = BenchmarkUtils.measure(() => collectMeasurements(config, f), config)
+    val measurements: CSV =
+      BenchmarkUtils.measure(() => collectMeasurements(config, f), config).toIndexedSeq
     val csv = addCSVHeader(measurements)
     FilesUtil.writeFile(s"$resultsPath/${config.name}_${filePostFix}.csv", csvToString(csv))
   }
 
-  def main(args: Array[String]): Unit = {
-    val intoConfigs = Seq(
-      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
-      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
-    )
-    val overConfigs = Seq(
-      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
-      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
-    )
-    for (c <- intoConfigs) {
-      measureAndWrite(c, measureStepInto, "StepInto")
+  def measureInteractiveAndWrite(
+      config: BaseConfig,
+      oracle: Query => (Boolean, Predicate)
+    ): Unit = {
+    val measurements = BenchmarkUtils.measure(() => measureInteractive(config, oracle), config)
+    measurements.foreach { case (into, over, mem) =>
+      println("RUN")
+      println(into.size)
+      val intoMs = into.map(_.toDouble / 1000000)
+      println(intoMs)
+      println(intoMs.sum)
+      over.foreach { case (p, vs) =>
+        println(p)
+        println(s"  size ${vs.size}")
+        println("  " + vs.map(_.toDouble / 1000000).mkString(", "))
+      }
+      // println(into.size + over.map(_._2.size).sum)
+      println(mem)
+      val total = intoMs.sum + over.map(_._2.map(_.toDouble / 1000000).sum).sum
+      println(s"TOTALTIME: $total")
     }
-    for (c <- overConfigs) {
-      measureAndWrite(c, measureStepOut, "StepOver")
-    }
-//    val interactiveConfigs = Seq(
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1
-//    )
-//
-//    for ((c, oracle) <- interactiveConfigs) {
-//      val (into, over, mem) = measureInteractive(c, oracle)
-//      println(into)
-//      println(over)
-//      println(into.size + over.map(_._2.size).sum)
-//      println(mem)
+//    // intoSteps, memory, OverStepsX, OverStepsY, OverStepsZ,
+//    val numIntoSteps = measurements.head._1.size
+//    val numOverPred = measurements.head._2.keys.size
+//    val overPredHeader = measurements.head._2.keys.toSeq.map("NumberOfOverSteps" + _)
+//    val intoStepsHeader = (1 to numIntoSteps).map("intoStep" + _)
+//    val columnHeader = IndexedSeq("NumberOfIntoSteps", "Memory (MB)", "NumberOfOverPreds") ++ intoStepsHeader ++
+//    val rows = measurements.map { case (intoSteps, overSteps, mem) =>
+//      (intoSteps.)
 //    }
+//    columnHeader +: rows
+//
+  }
+
+  def main(args: Array[String]): Unit = {
+//    val intoConfigs = Seq(
+//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
+//    )
+//    val overConfigs = Seq(
+//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
+//    )
+//    for (c <- intoConfigs) {
+//      measureAndWrite(c, measureStepInto, "StepInto")
+//    }
+//    for (c <- overConfigs) {
+//      measureAndWrite(c, measureStepOut, "StepOver")
+//    }
+    val interactiveConfigs = Seq(
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1,
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale2,
+      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale3
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale4
+    )
+    for ((c, oracle) <- interactiveConfigs) {
+      measureInteractiveAndWrite(c, oracle)
+    }
   }
 
 }
