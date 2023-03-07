@@ -2,8 +2,29 @@
 wd <- getwd()
 path <- paste(wd, "benchmark-results/debugger", sep="/")
 
-methodLookupIntoCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_StepInto.csv", sep="/"), sep = ",", dec = ".")
-subtypeOfCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv", sep="/"), sep = ",", dec = ".")
+preprocessCSV <- function(fileName) {
+  csv <- read.csv2(paste(path, fileName, sep="/"), sep = ",", dec = ".")
+  memory <- csv$Memory..MB.
+  numberOfSteps <- csv$NumberOfSteps[1]
+  lowerStepsIndex <- 3
+  upperStepsIndex <- numberOfSteps + 2
+  steps <- csv[,c(lowerStepsIndex:upperStepsIndex)]
+  totalTime <- rowSums(steps)
+  print(totalTime)
+  print(paste(fileName, "AVG Total (ms):"))
+  print(nsToMs(mean(totalTime)))
+  stepsTransposed <- t(steps)
+  stepsMean <- rowMeans(stepsTransposed)
+  stepsInMs <- nsToMs(stepsMean)
+  return(list(memory, stepsTransposed, stepsInMs))
+}
+
+nsToMs <- function(ns) {
+  ns / 1000000
+}
+
+methodLookupRes <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_StepInto.csv")
+subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
 
 typeCol <- rgb(127/256, 205/256, 187/256)
 constantCol <- rgb(44/256, 127/256, 184/256)
@@ -12,11 +33,9 @@ taintCol <- rgb(237/256, 248/256, 177/256)
 durationColors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 
-methodLookupMemory <- methodLookupIntoCsv$Memory..MB.
-subtypeOfMemory <- subtypeOfCsv$Memory..MB.
-
 pdf(file = paste(path, "StepInto-Memory.pdf", sep="/"))
-boxplot(methodLookupMemory, subtypeOfMemory,
+# mlmem <- methodLookupRes[[1]]
+boxplot(methodLookupRes[[1]], subtypeOfRes[[1]],
         # main = "Multiple boxplots for comparision",
         xlab = "Post-run memory in MB",
         names = c("Method Lookup Into", "Subtype Of Into"),
@@ -30,22 +49,10 @@ boxplot(methodLookupMemory, subtypeOfMemory,
 dev.off()
 
 
-methodLookupNumberOfSteps <- methodLookupIntoCsv$NumberOfSteps[1]
-methodLookupUpperRange <- methodLookupNumberOfSteps + 2
-methodLookupSteps <- t(methodLookupIntoCsv[,c(3:methodLookupUpperRange)])
-methodLookupStep <- rowMeans(methodLookupSteps)
-methodLookupStepMs <- methodLookupStep / 1000000
-
-subtypeOfNumberOfSteps <- subtypeOfCsv$NumberOfSteps[1]
-subtypeOfUpperRange <- subtypeOfNumberOfSteps + 2
-subtypeOfSteps <- t(subtypeOfCsv[,c(3:subtypeOfUpperRange)])
-subtypeOfStep <- rowMeans(subtypeOfSteps)
-subtypeOfStepMs <- subtypeOfStep / 1000000
-
-
 # step into performance
 pdf(file = paste(path, "StepInto-Time.pdf", sep="/"))
-boxplot(methodLookupStepMs, subtypeOfStepMs,
+mlsts <- methodLookupRes[[3]]
+boxplot(methodLookupRes[[3]], subtypeOfRes[[3]],
         # main = "Multiple boxplots for comparision",
         xlab = "Time per step in milliseconds",
         names = c("Method Lookup Into", "Subtype Of Into"),
@@ -54,9 +61,9 @@ boxplot(methodLookupStepMs, subtypeOfStepMs,
         #ylim = c(0, 1024)
         col = durationColors
 )
-means <- c(mean(methodLookupMemory))
-points(means, pch = 'x', col = "red" )
-text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
+# means <- c(mean(methodLookupRes[1]))
+# points(means, pch = 'x', col = "red" )
+# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
 dev.off()
 
 # step over performance
