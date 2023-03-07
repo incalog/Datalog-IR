@@ -28,11 +28,16 @@ final class InitializingIRDebugger(
     extends IRDebugger {
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
+  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+    new ResettingDebuggerState(rt)
+
 }
 
 final class ExternallyInitializableDebugger(module: CompiledDatalogModule) extends IRDebugger {
   super.initialize(module)
 
+  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+    new AccumulatingDebuggerState(rt)
   def setRuntime(runtime: DatalogRuntime): Unit = {
     state = new AccumulatingDebuggerState(runtime)
   }

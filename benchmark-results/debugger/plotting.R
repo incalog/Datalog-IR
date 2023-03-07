@@ -2,8 +2,8 @@
 wd <- getwd()
 path <- paste(wd, "benchmark-results/debugger", sep="/")
 
-methodLookupIntoCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_MethodLookup_simplename-StepInto.csv", sep="/"), sep = ",", dec = ".")
-subtypeOfCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_SubtypeOf_subtype-StepInto.csv", sep="/"), sep = ",", dec = ".")
+methodLookupIntoCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_StepInto.csv", sep="/"), sep = ",", dec = ".")
+subtypeOfCsv <- read.csv2(paste(path, "VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv", sep="/"), sep = ",", dec = ".")
 
 typeCol <- rgb(127/256, 205/256, 187/256)
 constantCol <- rgb(44/256, 127/256, 184/256)
@@ -30,11 +30,15 @@ boxplot(methodLookupMemory, subtypeOfMemory,
 dev.off()
 
 
-methodLookupSteps <- t(methodLookupIntoCsv[,c(6:535)])
+methodLookupNumberOfSteps <- methodLookupIntoCsv$NumberOfSteps[1]
+methodLookupUpperRange <- methodLookupNumberOfSteps + 2
+methodLookupSteps <- t(methodLookupIntoCsv[,c(3:methodLookupUpperRange)])
 methodLookupStep <- rowMeans(methodLookupSteps)
 methodLookupStepMs <- methodLookupStep / 1000000
 
-subtypeOfSteps <- t(subtypeOfCsv[,c(6:397)])
+subtypeOfNumberOfSteps <- subtypeOfCsv$NumberOfSteps[1]
+subtypeOfUpperRange <- subtypeOfNumberOfSteps + 2
+subtypeOfSteps <- t(subtypeOfCsv[,c(3:subtypeOfUpperRange)])
 subtypeOfStep <- rowMeans(subtypeOfSteps)
 subtypeOfStepMs <- subtypeOfStep / 1000000
 

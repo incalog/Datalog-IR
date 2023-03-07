@@ -1,12 +1,10 @@
 package inca.debugger
 
-import inca.backend.ir.CollectVarNames
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.AtomTableOps.transLiteral
 import inca.debugger.AtomTableOps.transType
-import inca.embedded.Datalog
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
 import inca.runtime.index.virtual.NotNodeTypeIndex

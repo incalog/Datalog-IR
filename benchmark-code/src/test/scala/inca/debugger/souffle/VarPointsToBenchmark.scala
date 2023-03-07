@@ -3,15 +3,22 @@ package inca.debugger.souffle
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Compiler
 import inca.compiler.Options
+import inca.debugger.souffle.Configs.scenario1v2
 import inca.debugger.souffle.Configs.scenario2v1
+import inca.debugger.souffle.Configs.scenario3Orcale1
+import inca.debugger.souffle.Configs.scenario3v1
 import inca.debugger.souffle.Configs.BaseConfig
+import inca.debugger.souffle.Configs.DebuggingSemantics
+import inca.debugger.souffle.Configs.DebuggingSemantics.HybridSemantics
 import inca.debugger.souffle.Configs.DoopProgram
 import inca.debugger.ExternallyInitializableDebugger
+import inca.debugger.Predicate
+import inca.debugger.Query
 import inca.measurements.util.BenchmarkUtils
-import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.BenchmarkUtils.Timing
+import inca.measurements.util.CSVUtil.CSV
+import inca.measurements.util.CSVUtil.CSVRow
 import inca.measurements.util.MemoryUtil
-import inca.measurements.util.Units
 import inca.runtime.context.QueryScope
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
@@ -26,8 +33,6 @@ import scala.collection.mutable
 // TODO What are the scenarios?
 object VarPointsToBenchmark {
   implicit val timing: Timing = Timing(0, 0, outliers = 0)
-//  var stepIntoAndOver: Seq[BottomUpVTopDownConfig] = Seq()
-//  var onlyStepOver: Seq[StepIntoVStepOverConfig] = Seq()
 
   val resultsPath: String = "benchmark-results/debugger/"
 
@@ -42,23 +47,23 @@ object VarPointsToBenchmark {
   }
 
   // returns running time and memory
-  def measureBottomUp(config: BaseConfig): (Long, Long) = {
-    val (compiled, runtime) = initRuntime(config)
-    // measure running time
-    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
-    val start = System.currentTimeMillis()
-    runtime.engine.delayUpdatePropagation { () =>
-      runtime.db.processDatabaseInput(config.input)
-    }
-    val end = System.currentTimeMillis()
-    val endCount = System.currentTimeMillis()
-    // measure memory
-    MemoryUtil.collectGarbage()
-    val mem = MemoryUtil.usedMemoryInMBytes()
-
-    EnginePool.disposeAllEngines()
-    (end - start, mem)
-  }
+//  def measureBottomUp(config: BaseConfig): (Long, Long) = {
+//    val (compiled, runtime) = initRuntime(config)
+//    // measure running time
+//    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
+//    val start = System.currentTimeMillis()
+//    runtime.engine.delayUpdatePropagation { () =>
+//      runtime.db.processDatabaseInput(config.input)
+//    }
+//    val end = System.currentTimeMillis()
+//    val endCount = System.currentTimeMillis()
+//    // measure memory
+//    MemoryUtil.collectGarbage()
+//    val mem = MemoryUtil.usedMemoryInMBytes()
+//
+//    EnginePool.disposeAllEngines()
+//    (end - start, mem)
+//  }
 
   def initBottomUp(
       compiled: CompiledDatalogModule,
@@ -72,13 +77,12 @@ object VarPointsToBenchmark {
     matcher.getAllMatches
   }
 
-  def measureStepInto(config: BaseConfig): (Seq[Long], Long, Long, Option[Long]) = {
+  def measureStepInto(config: BaseConfig): (Seq[Long], Long, Long) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module)
     // initialize bottom-up database
     initBottomUp(module, runtime, config)
     debugger.setRuntime(runtime)
-    println("START")
     debugger.entry(config.entry, config.args)
     val measurements: mutable.ListBuffer[Long] = mutable.ListBuffer()
     while (!debugger.isFinished) {
@@ -106,10 +110,10 @@ object VarPointsToBenchmark {
 //    println(s"STEPS: ${debugger.irControlTrace.size}")
 //    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
     EnginePool.disposeAllEngines()
-    (measurements.toSeq, mem, debugger.irControlTrace.size, None)
+    (measurements.toSeq, mem, debugger.irControlTrace.size - 1)
   }
 
-  def measureStepOut(config: BaseConfig): (Seq[Long], Long, Long, Option[Long]) = {
+  def measureStepOut(config: BaseConfig): (Seq[Long], Long, Long) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module)
     // initialize bottom-up database
@@ -134,35 +138,110 @@ object VarPointsToBenchmark {
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInMBytes()
     EnginePool.disposeAllEngines()
-    (Seq(end - start), mem, debugger.irControlTrace.size, Some(end - start))
+    (Seq(end - start), mem, debugger.irControlTrace.size - 1)
+  }
+
+  def measureInteractive(
+      config: BaseConfig,
+      shouldStepInto: Query => (Boolean, Predicate)
+    ): (Seq[Long], Map[Predicate, Seq[Long]], Long) = {
+    val (module, runtime) = initRuntime(config)
+    val debugger = new ExternallyInitializableDebugger(module)
+    // initialize bottom-up database
+    initBottomUp(module, runtime, config)
+    debugger.setRuntime(runtime)
+    debugger.entry(config.entry, config.args)
+    val intoMeasurements: mutable.ListBuffer[Long] = mutable.ListBuffer()
+    val overMeasurements: mutable.Map[String, Seq[Long]] = mutable.Map()
+    def extendOver(pred: Predicate, time: Long): Unit = {
+      overMeasurements.get(pred) match {
+        case Some(value) =>
+          overMeasurements(pred) = value ++ Seq(time)
+        case None =>
+          overMeasurements(pred) = Seq(time)
+      }
+    }
+    while (!debugger.isFinished) {
+      val top = debugger.queryStack.top
+      val (into, callee) = shouldStepInto(top)
+      if (into) {
+        val start = System.nanoTime()
+        debugger.stepInto()
+        val end = System.nanoTime()
+        intoMeasurements += end - start
+      } else {
+        val start = System.nanoTime()
+        debugger.stepOver()
+        val end = System.nanoTime()
+        extendOver(callee, end - start)
+      }
+    }
+
+    //    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
+    //    val expected = debugger.state.readBottomUp(config.entry, config.args)
+
+    //    println(result.size)
+    //    println(result)
+    //    println(expected.size)
+    //    println(expected)
+    //    val tooMuch = result.entries.diff(expected.entries)
+    //    val missing = expected.entries.diff(result.entries)
+    //    println(tooMuch)
+    //    println(missing)
+    //    assert(result == expected)
+    MemoryUtil.collectGarbage()
+    val mem = MemoryUtil.usedMemoryInMBytes()
+    EnginePool.disposeAllEngines()
+    (intoMeasurements.toSeq, overMeasurements.toMap, mem)
   }
 
   def collectMeasurements(
       config: BaseConfig,
-      f: BaseConfig => (Seq[Long], Long, Long, Option[Long])
-    ): Measurement = {
-    val (time, mem, steps, over) = f(config)
-    val extra = Map("NumberOfSteps" -> steps, "TotalTime (ns)" -> time.sum, "Memory (MB)" -> mem) ++
-      (if (over.isEmpty) Map()
-       else Map("StepOver (ns)" -> over.get))
-    Measurement(config.name, Units.Nanoseconds, time, extra = extra)
+      f: BaseConfig => (Seq[Long], Long, Long)
+    ): CSVRow = {
+    val (time, mem, steps) = f(config)
+    IndexedSeq[Any](steps, mem) ++ time
   }
 
-  def measureIntoAndOver(config: BaseConfig): (Seq[Measurement], Seq[Measurement]) = {
-    val intoMeasurements =
-      BenchmarkUtils.measure(() => collectMeasurements(config, measureStepInto), config)
-    val overMeasurements =
-      BenchmarkUtils.measure(() => collectMeasurements(config, measureStepOut), config)
-    (intoMeasurements, overMeasurements)
+  def addCSVHeader(rows: CSV): CSV = {
+    val numberOfStepsInto = rows.head(0).asInstanceOf[Long].toInt
+    val stepColumns = (1 to numberOfStepsInto).map(i => s"step$i")
+    val columnHeader: CSVRow = IndexedSeq("NumberOfSteps", "Memory (MB)") ++ stepColumns
+    columnHeader +: rows
+  }
+
+  def measureAndWrite(
+      config: BaseConfig,
+      f: BaseConfig => (Seq[Long], Long, Long),
+      filePostFix: String = "StepInto"
+    ): Unit = {
+    val measurements: CSV = BenchmarkUtils.measure(() => collectMeasurements(config, f), config)
+    FilesUtil.writeFile(
+      s"$resultsPath/${config.name}_${filePostFix}.csv",
+      addCSVHeader(measurements).toString)
   }
 
   def main(args: Array[String]): Unit = {
-    val (sc1Into, sc1Over) = measureIntoAndOver(scenario2v1(DoopProgram.MiniJavac))
-    FilesUtil.writeFile(
-      s"$resultsPath/${sc1Into.head.name}-StepInto.csv",
-      BenchmarkUtils.measurementsToCSV(sc1Into))
-    FilesUtil.writeFile(
-      s"$resultsPath/${sc1Over.head.name}-StepOver.csv",
-      BenchmarkUtils.measurementsToCSV(sc1Over))
+    val intoAndOverConfigs = Seq(
+      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
+      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
+    )
+    for (c <- intoAndOverConfigs) {
+      measureAndWrite(c, measureStepInto, "StepInto")
+      measureAndWrite(c, measureStepOut, "StepOver")
+    }
+
+//    val interactiveConfigs = Seq(
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1
+//    )
+//
+//    for ((c, oracle) <- interactiveConfigs) {
+//      val (into, over, mem) = measureInteractive(c, oracle)
+//      println(into)
+//      println(over)
+//      println(into.size + over.map(_._2.size).sum)
+//      println(mem)
+//    }
   }
+
 }

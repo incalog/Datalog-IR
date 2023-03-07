@@ -14,42 +14,26 @@ import truechange.URI
 // This class captures the state of the debugger
 trait DebuggerState {
   def bottomUpRuntime: DatalogRuntime
+  lazy val program: Datalog.Module = bottomUpRuntime.compiled.ir
+
+  def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
+    throw new IllegalStateException("Reading bottom-up database not supported")
+  }
 
   protected val topDownDatabase: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   protected val activeQueries: mutable.Map[(Predicate, Adornment), List[ValueTable]] =
     mutable.Map.empty
-  protected val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] =
-    mutable.Map.empty
+//  protected val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] =
+//    mutable.Map.empty
   protected lazy val predicates: Map[Predicate, Seq[Datalog.Param]] =
-    bottomUpRuntime.compiled.ir.patternMap.map { case (pred, pat) =>
+    program.patternMap.map { case (pred, pat) =>
       pred -> pat.params
     }
-
-  def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
-    val spec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
-      case Some(spec) => spec()
-      case None => return ValueTable.empty(Seq())
-    }
-    val matcher = bottomUpRuntime.engine.getMatcher(spec)
-    val unboundCols = predicates(pred).map(_.name).diff(args.columns)
-    val rows = args.entries.flatMap { row =>
-      val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
-      val input = Query.Match(spec, inputMap, isMutable = false)
-      val matches = matcher.getAllMatches(input)
-      matches.asScala.map { m =>
-        m.toArray.map {
-          case uri: URI => URIValue(uri)
-          case v: Any => ScalaValue(v)
-        }.toSeq
-      }
-    }
-    ValueTable(matcher.getParameterNames.asScala.toSeq, rows)
-  }
 
   def clear(): Unit = {
     topDownDatabase.clear()
     activeQueries.clear()
-    expectedFixpoint.clear()
+//    expectedFixpoint.clear()
   }
 
   def insertTopDown(pred: Predicate, table: ValueTable): Unit = {
@@ -64,6 +48,7 @@ trait DebuggerState {
   def readTopDown(pred: Predicate, args: ValueTable): ValueTable = {
     topDownDatabase.get(pred) match {
       case Some(t) =>
+        // println(s"read topdown $pred of ${t.columns} with args ${args.columns}")
         t.join(args)
       case None =>
         ValueTable.empty(predicates(pred).map(_.name))
@@ -91,13 +76,13 @@ trait DebuggerState {
     }
   }
 
-  def storeExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
-    expectedFixpoint += (pred -> args) -> readBottomUp(pred, args)
-  }
-
-  def clearExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
-    expectedFixpoint.remove(pred -> args)
-  }
+//  def storeExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
+  // expectedFixpoint += (pred -> args) -> readBottomUp(pred, args)
+//  }
+//
+//  def clearExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
+  // expectedFixpoint.remove(pred -> args)
+//  }
 
   def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
@@ -111,12 +96,14 @@ trait DebuggerState {
   }
 
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
-    expectedFixpoint.get(pred -> args) match {
-      case Some(expected) =>
-        expected.size <= result.size
-      case None =>
-        throw new IllegalStateException("")
-    }
+    val td = readTopDown(pred, args)
+    result.subset(td)
+//    expectedFixpoint.get(pred -> args) match {
+//      case Some(expected) =>
+//        expected.size <= result.size
+//      case None =>
+//        throw new IllegalStateException("")
+//    }
   }
 
   protected def unionOfStack(pred: Predicate, adornment: Adornment): ValueTable = {
@@ -153,8 +140,63 @@ trait DebuggerState {
 
 }
 
+class BottomUpDebuggerState(val bottomUpRuntime: DatalogRuntime) extends DebuggerState {
+  override def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
+    val spec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
+      case Some(spec) => spec()
+      case None => return ValueTable.empty(Seq())
+    }
+    val matcher = bottomUpRuntime.engine.getMatcher(spec)
+    val unboundCols = predicates(pred).map(_.name).diff(args.columns)
+    val rows = args.entries.flatMap { row =>
+      val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
+      val input = Query.Match(spec, inputMap, isMutable = false)
+      val matches = matcher.getAllMatches(input)
+      matches.asScala.map { m =>
+        m.toArray.map {
+          case uri: URI => URIValue(uri)
+          case v: Any => ScalaValue(v)
+        }.toSeq
+      }
+    }
+    ValueTable(matcher.getParameterNames.asScala.toSeq, rows)
+  }
+}
+
+// TODO
+trait AvoidNonProducingIterationDebuggerState extends BottomUpDebuggerState {
+  protected val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] =
+    mutable.Map.empty
+
+  override def clear(): Unit = {
+    super.clear()
+    expectedFixpoint.clear()
+  }
+
+  override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
+    val unseen = super.pushQuery(pred, args)
+    expectedFixpoint += (pred -> unseen) -> readBottomUp(pred, unseen)
+    unseen
+  }
+
+  override def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
+    expectedFixpoint.remove(pred -> args)
+    super.popQuery(pred, args)
+  }
+
+  override def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
+    expectedFixpoint.get(pred -> args) match {
+      case Some(expected) =>
+        expected.size <= result.size
+      case None =>
+        throw new IllegalStateException("")
+    }
+  }
+}
+
 // blacklist will be filled before reading bottom up and then will be reset immediately
-class ResettingDebuggerState(val bottomUpRuntime: DatalogRuntime) extends DebuggerState {
+class ResettingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
+    extends BottomUpDebuggerState(bottomUpRuntime) {
   override def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
     val blacklistMap = activeQueries.map { case ((pred, adornment), _) =>
       val seen = unionOfStack(pred, adornment)
@@ -175,7 +217,8 @@ class ResettingDebuggerState(val bottomUpRuntime: DatalogRuntime) extends Debugg
   }
 }
 
-class AccumulatingDebuggerState(val bottomUpRuntime: DatalogRuntime) extends DebuggerState {
+class AccumulatingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
+    extends BottomUpDebuggerState(bottomUpRuntime) {
 
   override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val unseen = super.pushQuery(pred, args)

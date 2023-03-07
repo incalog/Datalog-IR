@@ -59,10 +59,10 @@ trait Debugger extends DebuggerAPI {
       _database.processDatabaseInput(input)
     })
     val rt = DatalogRuntime(_engine, _database, module)
-    state = new AccumulatingDebuggerState(rt)
-    // TODO we do this to initialize db before starting debugging session
-    // state.countBottomUp("path", ImmutableTable.unit())
+    state = debuggingState(rt)
   }
+
+  def debuggingState: DatalogRuntime => DebuggerState
 
   /*
    * Functions reading the debugging state
@@ -90,7 +90,7 @@ trait Debugger extends DebuggerAPI {
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     val empty = ValueTable.empty(params)
     val query = Subquery(pred, args, empty, args, rules)
-    state.storeExpectedFixpoint(pred, args)
+    // state.storeExpectedFixpoint(pred, args)
     state.pushQuery(pred, args)
     pushSubqueryHook(pred, args)
     queryStack.push(query)
@@ -138,7 +138,7 @@ trait Debugger extends DebuggerAPI {
           // A-Into or A-Skip
           val unseenQueries = state.pushQuery(callee, calleeArgs)
           if (unseenQueries.nonEmpty) { // A-Into
-            state.storeExpectedFixpoint(callee, unseenQueries)
+            // state.storeExpectedFixpoint(callee, unseenQueries)
             atomInto(atom, unseenQueries, calleeArgs)
           } else { // A-Skip
             atomSkip(sup, calleeArgs, call)
@@ -213,7 +213,7 @@ trait Debugger extends DebuggerAPI {
     // we insert when the query is stable because we avoid a non-producing iteration
 
     if (isCyclic(pred)) {
-      state.clearExpectedFixpoint(pred, args)
+      // state.clearExpectedFixpoint(pred, args)
       val originalArgs = state.popQuery(pred, args)
       val fullResult = state.readTopDown(pred, originalArgs).union(newResult)
       state.insertTopDown(pred, newResult)
@@ -334,7 +334,7 @@ trait Debugger extends DebuggerAPI {
     }
     queryStack.top match {
       case Subquery(pred, args, _, _, _) =>
-        state.clearExpectedFixpoint(pred, args)
+        // state.clearExpectedFixpoint(pred, args)
         state.popQuery(pred, args)
         val bottomUpResult = state.readBottomUp(pred, args)
         queryStack.update(QueryResult(pred, args, bottomUpResult))

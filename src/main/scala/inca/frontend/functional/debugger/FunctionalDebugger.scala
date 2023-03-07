@@ -30,6 +30,7 @@ import inca.frontend.functional.core.Var
 import inca.runtime.data.MockURI
 import inca.runtime.data.WrappedURI
 import inca.runtime.db.DatabaseInput
+import inca.runtime.DatalogRuntime
 import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.annotation.tailrec
@@ -423,4 +424,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       case None => "Nil"
     }
   }
+
+  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+    new AccumulatingDebuggerState(rt)
 }

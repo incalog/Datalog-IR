@@ -11,6 +11,7 @@ import inca.debugger._
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax._
 import inca.runtime.db.DatabaseInput
+import inca.runtime.DatalogRuntime
 import inca.util.Derivative
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -232,4 +233,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
       case Some(SourceConstruct((rh: RuleHead, rd: RuleDefinition))) => Some(rh -> rd)
       case _ => None
     }
+
+  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+    new AccumulatingDebuggerState(rt)
 }

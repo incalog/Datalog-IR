@@ -121,9 +121,11 @@ object BenchmarkUtils {
     (input, result, setuptimes, times)
   }
 
-  def measure[T](run: () => T, config: Config): Seq[T] =
-    (for (_ <- 0 until config.warmup + config.runs) yield {
-      run()
+  def measure[T](run: () => T, config: Config): IndexedSeq[T] =
+    (for (i <- 0 until config.warmup + config.runs) yield {
+      val v = run()
+      println(s"Run $i")
+      v
     }).drop(config.warmup)
 
   def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double =

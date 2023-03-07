@@ -1,7 +1,16 @@
 package inca.debugger.souffle
 
+import inca.backend.ir.Datalog
 import inca.compiler.source.SourceFile
+import inca.debugger.AccumulatingDebuggerState
+import inca.debugger.Atom
+import inca.debugger.DebuggerState
+import inca.debugger.Predicate
+import inca.debugger.Query
+import inca.debugger.QueryResult
+import inca.debugger.Rule
 import inca.debugger.ScalaValue
+import inca.debugger.Subquery
 import inca.debugger.ValueTable
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
@@ -9,11 +18,12 @@ import inca.frontend.souffle.lowering.SouffleToNamedRelations
 import inca.frontend.souffle.parser.Parser
 import inca.measurements.util.Config
 import inca.runtime.db.DatabaseInput
+import inca.runtime.DatalogRuntime
 import java.io.File
 
 object Configs {
-  val warmup: Int = 0
-  val runs: Int = 1
+  val warmup: Int = 5
+  val runs: Int = 10
   val varPointsToPath = "souffle-frontend/benchmark/self-contained.dl"
   val factsPath = "souffle-frontend/benchmark/facts/"
 
@@ -43,33 +53,68 @@ object Configs {
     }
   }
 
+  sealed trait DebuggingSemantics {
+    def name: String
+    def debuggingState: DatalogRuntime => DebuggerState
+  }
+  object DebuggingSemantics {
+    case object PureIntoSemantics extends DebuggingSemantics {
+      override def name: String = "PureInto"
+      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+        new DebuggerState {
+          override def bottomUpRuntime: DatalogRuntime = rt
+        }
+    }
+    case object HybridSemantics extends DebuggingSemantics {
+      override def name: String = "HybridSemantics"
+      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+        new AccumulatingDebuggerState(rt)
+    }
+    //    case object AvoidNonProducingIterationSemantics extends DebuggingSemantics {
+    //      override def name: String = "AvoidNonProducingIterationIteration"
+    //    }
+  }
+
   trait BaseConfig extends Config {
     val doopProg: DoopProgram
     val entry: String
     val args: ValueTable
+    val semantics: DebuggingSemantics
     lazy val compiled: CompiledSouffleModule = readSouffleProgram(varPointsToPath)
     lazy val input: DatabaseInput = readSouffleInput(compiled, doopProg.fullPath)
   }
 
-  case class BottomUpVTopDownConfig(
+  case class SimpleConfig(
       doopProg: DoopProgram,
       entry: String,
       args: ValueTable,
+      semantics: DebuggingSemantics,
       warmup: Int,
       runs: Int)
       extends BaseConfig {
-    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
+    def name: String =
+      s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}_${semantics.name}"
   }
 
-  case class StepIntoVStepOverConfig(
-      doopProg: DoopProgram,
-      entry: String,
-      args: ValueTable,
-      warmup: Int,
-      runs: Int)
-      extends BaseConfig {
-    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
-  }
+//  case class BottomUpVTopDownConfig(
+//      doopProg: DoopProgram,
+//      entry: String,
+//      args: ValueTable,
+//      warmup: Int,
+//      runs: Int)
+//      extends BaseConfig {
+//    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
+//  }
+//
+//  case class StepIntoVStepOverConfig(
+//      doopProg: DoopProgram,
+//      entry: String,
+//      args: ValueTable,
+//      warmup: Int,
+//      runs: Int)
+//      extends BaseConfig {
+//    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
+//  }
 
   def readSouffleProgram(path: String): CompiledSouffleModule = {
     val file = new File(path)
@@ -87,28 +132,42 @@ object Configs {
       doopProg: DoopProgram,
       entry: String,
       args: ValueTable,
+      semantics: DebuggingSemantics,
       warmup: Int,
       runs: Int
-    ): BottomUpVTopDownConfig = {
-    BottomUpVTopDownConfig(doopProg, entry, args, warmup, runs)
+    ): SimpleConfig = {
+    SimpleConfig(doopProg, entry, args, semantics, warmup, runs)
   }
 
-  def baseConfig(doopProg: DoopProgram, entry: String, t: ValueTable): BaseConfig =
-    souffleVarPointsToConfig(doopProg, entry, t, warmup, runs)
+  def baseConfig(
+      doopProg: DoopProgram,
+      entry: String,
+      t: ValueTable,
+      semantics: DebuggingSemantics
+    ): BaseConfig =
+    souffleVarPointsToConfig(doopProg, entry, t, semantics, warmup, runs)
 
-  def methodLookupConfig(doopProg: DoopProgram, t: ValueTable): BaseConfig =
-    baseConfig(doopProg, "basic_MethodLookup", t)
+  def methodLookupConfig(
+      doopProg: DoopProgram,
+      t: ValueTable,
+      semantics: DebuggingSemantics
+    ): BaseConfig =
+    baseConfig(doopProg, "basic_MethodLookup", t, semantics)
 
-  def subtypeOf(doopProg: DoopProgram, t: ValueTable): BaseConfig =
-    baseConfig(doopProg, "basic_SubtypeOf", t)
+  def subtypeOf(doopProg: DoopProgram, t: ValueTable, semantics: DebuggingSemantics): BaseConfig =
+    baseConfig(doopProg, "basic_SubtypeOf", t, semantics)
 
-  def varPointsToConfig(doopProg: DoopProgram, t: ValueTable): BaseConfig =
-    baseConfig(doopProg, "basic_MethodLookup", t)
+  def varPointsToConfig(
+      doopProg: DoopProgram,
+      t: ValueTable,
+      semantics: DebuggingSemantics
+    ): BaseConfig =
+    baseConfig(doopProg, "VarPointsTo", t, semantics)
 
   // step-into produces result in reasonable amount of time
   // find all methods with the name accept and signature java.lang.Object(visitor.GJVisitor,java.lang.Object)
   // will produce 50 tuples complete MethodLookup will have 86005 tuples
-  def scenario1v1(doopProg: DoopProgram): BaseConfig =
+  def scenario1v1(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
     methodLookupConfig(
       doopProg,
       ValueTable(
@@ -116,39 +175,47 @@ object Configs {
         Seq(
           Seq(
             ScalaValue("accept"),
-            ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))))
+            ScalaValue("java.lang.Object(visitor.GJVisitor,java.lang.Object)")))),
+      semantics
+    )
   // step-into produces result in reasonable amount of time
   // find all methods with the name accept
   // will produce 239 tuples complete MethodLookup will have 86005 tuples
-  def scenario1v2(doopProg: DoopProgram): BaseConfig =
-    methodLookupConfig(doopProg, ValueTable(Seq("simplename"), Seq(Seq(ScalaValue("accept")))))
+  def scenario1v2(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
+    methodLookupConfig(
+      doopProg,
+      ValueTable(Seq("simplename"), Seq(Seq(ScalaValue("accept")))),
+      semantics)
   // ground tuple as entry
-  def scenario1v3(doopProg: DoopProgram): BaseConfig = methodLookupConfig(
-    doopProg,
-    ValueTable(
-      Seq("simplename", "descriptor", "type", "method"),
-      Seq(
+  def scenario1v3(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
+    methodLookupConfig(
+      doopProg,
+      ValueTable(
+        Seq("simplename", "descriptor", "type", "method"),
         Seq(
-          ScalaValue("accept"),
-          ScalaValue("boolean(java.lang.Object"),
-          ScalaValue("java.nio.file.File#1"),
-          ScalaValue("<sun.misc.JarFilter: boolean accept(java.io.File,java.lang.String)>")
-        ))
+          Seq(
+            ScalaValue("accept"),
+            ScalaValue("boolean(java.lang.Object"),
+            ScalaValue("java.nio.file.File#1"),
+            ScalaValue("<sun.misc.JarFilter: boolean accept(java.io.File,java.lang.String)>")
+          ))
+      ),
+      semantics
     )
-  )
-  def scenario1v4(doopProg: DoopProgram): BaseConfig =
-    methodLookupConfig(doopProg, ValueTable.unit())
+  def scenario1v4(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
+    methodLookupConfig(doopProg, ValueTable.unit(), semantics)
 
-  def scenario2v1(doopProg: DoopProgram): BaseConfig = subtypeOf(
+  def scenario2v1(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig = subtypeOf(
     doopProg,
     ValueTable(
       Seq("subtype"),
       Seq(
         Seq(ScalaValue("sun.reflect.generics.tree.BooleanSignature")),
-        Seq(ScalaValue("sun.reflect.generics.tree.ClassTypeSignature"))))
+        Seq(ScalaValue("sun.reflect.generics.tree.ClassTypeSignature")))),
+    semantics
   )
 
-  def scenario3v1(doopProg: DoopProgram): BaseConfig =
+  def scenario3v1(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
     varPointsToConfig(
       doopProg,
       ValueTable(
@@ -158,12 +225,27 @@ object Configs {
             ScalaValue(
               "<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>/$r1"),
             ScalaValue("<<HASH:1808431609>>")))
-      )
+      ),
+      semantics
     )
-  def scenario3v2(doopProg: DoopProgram): BaseConfig = varPointsToConfig(
-    doopProg,
-    ValueTable(
-      Seq("var"),
-      Seq(Seq(ScalaValue(
-        "<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>/$r1")))))
+  def scenario3v2(doopProg: DoopProgram, semantics: DebuggingSemantics): BaseConfig =
+    varPointsToConfig(
+      doopProg,
+      ValueTable(
+        Seq("var"),
+        Seq(Seq(ScalaValue(
+          "<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>/$r1")))),
+      semantics
+    )
+
+  def constructSimpleOracle(intoPreds: Set[Predicate]): (Query) => (Boolean, Predicate) = {
+    case Subquery(pred, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
+      (intoPreds.contains(callee), pred)
+    case Subquery(pred, _, _, _, _) => (true, pred)
+    case QueryResult(pred, args, result) => (true, pred)
+  }
+
+  def scenario3Orcale1: Query => (Boolean, Predicate) = constructSimpleOracle(Set("VarPointsTo"))
+  def scenario3Orcale2: Query => (Boolean, Predicate) = constructSimpleOracle(
+    Set("VarPointsTo", "InstanceFieldPointsTo"))
 }
