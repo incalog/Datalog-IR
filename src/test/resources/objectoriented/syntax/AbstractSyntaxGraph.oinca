@@ -59,8 +59,10 @@ class NameAnalysis(val prog: Prog) extends Visitor {
 }
 
 case class Edge(val from: Def, val to: Def) { }
+
 class DependencyAnalysis extends Visitor {
   // mono.Set[Edge]
+  // var edges: Set[Edge]
   val edges: MonotoneSet = new MonotoneSet()
 
   // hack to retrieve a Datalog set from this.edges
@@ -90,14 +92,24 @@ class DependencyAnalysis extends Visitor {
     for (e <- this.edgeSet() if e.from == d) yield e.to
   }
 
-  def dependencies(d: Def): Set[Def] = {
-    this.directDependencies(d) ++
-    for (d2 <- this.directDependencies(d);
+  def dependencies(d1: Def): Set[Def] = {
+    this.directDependencies(d1) ++
+    for (d2 <- this.directDependencies(d1);
          d3 <- this.dependencies(d2))
       yield d3
   }
-
 }
+
+// mono.Set[A] ~> Relation[A]
+// mono.Map[A,B] ~> Relation[A,B]
+// mono.List[A] ~> Relation[Int,A], Int->A
+
+// mono.Avg
+
+// Map[A,Set[B]]
+// ~> Relation[A, Set[B]], A->Set[B]
+// ~> Relation[A, Relation[B]], A->Relation[B]
+// ~> Relation[A, B]
 
 class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
     def init(): `scala.collection.immutable.Set[Any]` = {
