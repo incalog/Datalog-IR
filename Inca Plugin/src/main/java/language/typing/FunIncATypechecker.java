@@ -26,12 +26,10 @@ public class FunIncATypechecker {
             FunIncAFunDef funDef = (FunIncAFunDef) element;
             Type returnType = new AnyType();
             if (funDef.getType() != null) {
-                validateType(funDef.getType(), holder);
                 returnType = PsiToTypeConverter.convert(funDef.getType());
             }
             List<FunIncAType> paramTypesPsi = new ArrayList<>();
             for (FunIncAParamDef paramDef : funDef.getParamDefList()) {
-                validateType(paramDef.getType(), holder);
                 paramTypesPsi.add(paramDef.getType());
             }
             List<Type> paramTypes = PsiToTypeConverter.convert(paramTypesPsi);
@@ -47,12 +45,10 @@ public class FunIncATypechecker {
                         .create();
                 return new AnyType();
             }
-            validateType(paramDef.getType(), holder);
             return PsiToTypeConverter.convert(paramDef.getType());
         } else if (element instanceof FunIncADataConstructorDef) {
             FunIncADataConstructorDef constructorDef = (FunIncADataConstructorDef) element;
             List<Type> typeVariables = new ArrayList<>(); // TODO type variables
-            validateTypes(constructorDef.getTypeList(), holder);
             List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
             Type returnType = typeOfTypeDef(constructorDef.getParent(), holder);
             return new FunType(typeVariables, paramTypes, returnType);
@@ -65,13 +61,13 @@ public class FunIncATypechecker {
                 if (binding.getType() == null) {
                     return inferredType;
                 } else {
-                    validateType(binding.getType(), holder);
                     Type expectedType = PsiToTypeConverter.convert(binding.getType());
                     if (expectedType instanceof UnitType) {
                         holder.newAnnotation(HighlightSeverity.ERROR,
                                         "Cannot assign Type Unit to " + binding.getVarDef().getName())
                                 .range(binding.getType())
                                 .create();
+                        expectedType = new AnyType();
                     }
                     if (!FunIncATypeUtil.subtype(inferredType, expectedType)) {
                         holder.newAnnotation(HighlightSeverity.ERROR,
@@ -94,17 +90,53 @@ public class FunIncATypechecker {
                             .create();
                     return new AnyType();
                 }
-                int index = binding.getVarDefList().indexOf(element);
+                int index = binding.getVarDefList().indexOf(element); // position of the VarDef in question
                 TupleType inferredTupleType = (TupleType) inferredType;
-                if (index < inferredTupleType.getTypes().size()) {
-                    return inferredTupleType.getTypes().get(index);
-                } else {
-                    // TODO
-                    holder.newAnnotation(HighlightSeverity.ERROR,
-                                    "Expected Tuple type, but got ")
-                            .range(binding.getExpList().get(0))
-                            .create();
-                    return new AnyType();
+                if (binding.getType() == null) { // no expected types
+                    if (index < inferredTupleType.getTypes().size())
+                        return inferredTupleType.getTypes().get(index);
+                    else
+                        return new AnyType(); // nothing bound to that VarDef
+                } else { // expected types are given
+                    Type expectedType = PsiToTypeConverter.convert(binding.getType());
+                    if (expectedType instanceof TupleType) {
+                        TupleType expectedTupleType = (TupleType) expectedType;
+                        if (index < expectedTupleType.getTypes().size()) { // this VarDef has an expected type
+                            Type expectedTypeIndex = expectedTupleType.getTypes().get(index);
+                            if (expectedTypeIndex instanceof UnitType) {
+                                holder.newAnnotation(HighlightSeverity.ERROR,
+                                                "Cannot assign Type Unit to "
+                                                        + varDef.getName())
+                                        .range(binding.getType().getAtomicType().getTupleType().getTypeList().get(index))
+                                        .create();
+                            }
+                            if (index < inferredTupleType.getTypes().size()) {
+                                Type inferredTypeIndex = inferredTupleType.getTypes().get(index);
+                                if (!expectedTypeIndex.equals(inferredTypeIndex)) {
+                                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                            "Expected " + expectedTypeIndex + ", but got " + inferredTypeIndex)
+                                            .range(binding.getType().getAtomicType().getTupleType().getTypeList().get(index))
+                                            .create();
+                                }
+                            } else { // VarDef has no inferred Type, but an expected type
+                                holder.newAnnotation(HighlightSeverity.ERROR,
+                                        "Cannot infer type of " + varDef.getName())
+                                        .range(varDef)
+                                        .create();
+                            }
+                            return expectedTypeIndex;
+                        } else { // this VarDef has no expected type despite given expected types, index > expectedType size
+                            if (index < inferredTupleType.getTypes().size())
+                                return inferredTupleType.getTypes().get(index);
+                            else
+                                return new AnyType();
+                        }
+                    } else { // expected type is not a tuple
+                        if (index < inferredTupleType.getTypes().size())
+                            return inferredTupleType.getTypes().get(index);
+                        else
+                            return new AnyType();
+                    }
                 }
             }
         }
@@ -143,8 +175,8 @@ public class FunIncATypechecker {
             FunIncAFunType funType = (FunIncAFunType) ty;
             validateAtomicType(funType.getAtomicType(), holder);
             validateType(funType.getType(), holder);
-        } else {
-            validateAtomicType((FunIncAAtomicType) type, holder);
+        } else { // ty is instance of AtomicType
+            validateAtomicType((FunIncAAtomicType) ty, holder);
         }
     }
 
@@ -228,13 +260,15 @@ public class FunIncATypechecker {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Ambiguous reference name " + varExp.getName())
                         .range(varExp)
                         .create();
-                return new AnyType(); // TODO shadowing
+                return new AnyType();
             }
 
         } else if (exp instanceof FunIncALetExp) {
             FunIncALetExp letExp = (FunIncALetExp) exp;
             if (letExp.getSingleBinding() != null) {
                 FunIncASingleBinding single = letExp.getSingleBinding();
+                if (single.getType() != null)
+                    validateType(single.getType(), holder);
                 if (single.getExpList() == null || single.getExpList().size() == 1) { // if letExp doesn't have a body return Any
                     return new AnyType();
                 } else {
@@ -243,6 +277,24 @@ public class FunIncATypechecker {
                 }
             } else if (letExp.getMultipleBindings() != null) {
                 FunIncAMultipleBindings multiple = letExp.getMultipleBindings();
+                if (multiple.getType() != null) {
+                    validateType(multiple.getType(), holder);
+                    Type type = PsiToTypeConverter.convert(multiple.getType());
+                    if (type instanceof TupleType) {
+                        int n = ((TupleType) type).getTypes().size();
+                        int m = multiple.getVarDefList().size();
+                        if (n != m)
+                            holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Cannot assign " + n + "-ary tuple to " + m + " variables")
+                                    .range(multiple.getType())
+                                    .create();
+                    } else {
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Cannot assign expression of type " + type + " to ")
+                                .range(multiple.getType())
+                                .create();
+                    }
+                }
                 if (multiple.getExpList() == null || multiple.getExpList().size() == 1) { // if letExp doesn't have a body return Any
                     return new AnyType();
                 } else {
@@ -252,52 +304,7 @@ public class FunIncATypechecker {
             } else {
                 return new AnyType();
             }
-//            if (multLet != null) {
-//                List<FuncIncaVarId> decls = multLet.getVarIdList();
-//                int n = decls.size();
-//                List<String> nameText = decls.stream().map(e -> e.getText()).collect(Collectors.toList());
-//                List<FuncIncaTypeAnnotation> typeAnnos = multLet.getTypeAnnotationList();
-//                PsiElement bound = multLet.getExpList().get(0);
-//                FuncIncaType boundType = typecheckExp(bound, holder);
-//                PsiElement body = multLet.getExpList().get(1);
-//                if (typeAnnos != null) {
-//                    // TODO
-//                }
-//                if (!(boundType instanceof FuncIncaTupleType)) {
-//                    holder.newAnnotation(HighlightSeverity.ERROR,
-//                                    "Expected Tuple type, but got " + boundType)
-//                            .range(bound)
-//                            .create();
-//                    boundType = new FuncIncaTupleType(Collections.nCopies(n, new FuncIncaAnyType()));
-//                } else {
-//                    List<FuncIncaType> tupleTypes = ((FuncIncaTupleType) boundType).getTypes();
-//                    int m = tupleTypes.size();
-//                    if (n != m) {
-//                        holder.newAnnotation(HighlightSeverity.ERROR,
-//                                "Cannot assign " + m + "-ary tuple to " + n + " variables")
-//                                .range(bound)
-//                                .create();
-//                        if (n < m) { // more types than variables
-//                            boundType = new FuncIncaTupleType(tupleTypes.subList(0, n));
-//                        } else { // n > m, more variables than types
-//                            List<FuncIncaType> additionalTypes = Collections.nCopies(n-m, new FuncIncaAnyType());
-//                            tupleTypes.addAll(additionalTypes);
-//                            boundType = new FuncIncaTupleType(tupleTypes);
-//                        }
-//                    }
-//                }
-//                List<FuncIncaType> tupleTypes = ((FuncIncaTupleType) boundType).getTypes();
-//                scopedTypeContext(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        for (int i = 0; i < n; i++) {
-//                            bindVar(nameText.get(i), decls.get(i), tupleTypes.get(i), holder);
-//                        }
-//                        bodyType[0] = typecheckExp(body, holder);
-//                    }
-//                });
-//                return bodyType[0];
-//            }
+
         } else if (exp instanceof FunIncACastExp) {
             FunIncACastExp cast = (FunIncACastExp) exp;
             FunIncAExp ex = cast.getExp();
@@ -308,6 +315,7 @@ public class FunIncATypechecker {
                         "Type cast of " + expectedType + " is not compatible with inferred type " + inferredType + " of e " + exp).
                         range(exp.getTextRange()).create();
             return expectedType;
+
         } else if (exp instanceof FunIncAIfExp) {
             FunIncAIfExp ifExp = (FunIncAIfExp) exp;
             FunIncAExp cond = ifExp.getExpList().get(0);
@@ -345,15 +353,7 @@ public class FunIncATypechecker {
         } else if (exp instanceof FunIncACallExp) {
             FunIncACallExp callExp = (FunIncACallExp) exp;
             FunIncAExp funExp = callExp.getExp();
-            List<FunIncAExp> argExps = new ArrayList<>();
-            if (callExp.getCallExpListList() != null) {
-                argExps = callExp.getCallExpListList().get(0).getExpList();
-            } else {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                        "No expressions for function call")
-                        .range(funExp)
-                        .create();
-            }
+            List<FunIncAExp> argExps = callExp.getCallExpListList().get(0).getExpList();
             if (funExp == null) {
                 // TODO quick fix
                 holder.newAnnotation(HighlightSeverity.ERROR,
