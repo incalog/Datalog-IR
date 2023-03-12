@@ -23,11 +23,11 @@ public class FunIncAAnnotator implements Annotator {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);
             FunIncAExp body = funDef.getExp();
             FunIncAType expected = funDef.getType();
-            Type expectedType = PsiToTypeConverter.convert(expected, holder);
+            Type expectedType = PsiToTypeConverter.convert(expected);
             if (body == null) { // do not annotate if function has no body
                 return;
             }
-            Type resolvedType = FunIncATypechecker.typecheck(body, holder);
+            Type resolvedType = FunIncATypechecker.typecheckExp(body, holder);
             if (expected == null) {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Missing return type")
                         .range(funDef)

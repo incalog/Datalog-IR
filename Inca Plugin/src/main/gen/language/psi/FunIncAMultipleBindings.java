@@ -10,8 +10,8 @@ public interface FunIncAMultipleBindings extends PsiElement {
   @NotNull
   List<FunIncAExp> getExpList();
 
-  @NotNull
-  List<FunIncAType> getTypeList();
+  @Nullable
+  FunIncAType getType();
 
   @NotNull
   List<FunIncAVarDef> getVarDefList();

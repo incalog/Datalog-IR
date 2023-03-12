@@ -17,30 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PsiToTypeConverter {
-    /**
-     * Takes a list of parameters as PSI Elements and returns their types as FuncIncaTypes
-     * @param tyVars
-     * @return
-     */
-//    public static List<language.typing.types.FunIncAType> convert(List<FunIncATypeNameRef> tyVars) {
-//        List<language.typing.types.FunIncAType> res = new ArrayList<>();
-//        if (tyVars == null || tyVars.isEmpty()) {
-//            return res;
-//        }
-//        // TODO leere liste oder null.
-//        // TODO wie soll eine leere parametermenge gewertet werden? () Unit, Nothing wohl nicht, oder einfach Liste leer lassen in Typdefinition?
-//
-//        for (FunIncATypeNameRef tyVar : tyVars)
-//            res.add(new language.typing.types.FunIncAParametricType(tyVar.getText()));
-//        return res;
-//    }
 
     /**
      * Takes one Type Annotation as a PSI element and returns it as a FuncIncaType
      * @param element
      * @return
      */
-    public static Type convert(FunIncAType element, AnnotationHolder holder) {
+    public static Type convert(FunIncAType element) {
         PsiElement e;
         try {
             e = element.getFirstChild();
@@ -49,47 +32,33 @@ public class PsiToTypeConverter {
             return new AnyType();
         }
         if (e instanceof FunIncAFunType) {
-            Type argType = convert(((FunIncAFunType) e).getAtomicType(), holder);
-            Type returnType = convert(((FunIncAFunType) e).getType(), holder);
+            Type argType = convert(((FunIncAFunType) e).getAtomicType());
+            Type returnType = convert(((FunIncAFunType) e).getType());
             if (argType instanceof TupleType) {
                 return new FunType(new ArrayList<>(), ((TupleType) argType).getTypes(), returnType);
             } else {
                 return new FunType(new ArrayList<>(), List.of(argType), returnType);
             }
         } else { // e is instance of FuncIncaAtomicType
-            return convert((FunIncAAtomicType) e, holder);
+            return convert((FunIncAAtomicType) e);
         }
     }
 
-    public static List<Type> convert(@Nullable List<FunIncAType> elements, AnnotationHolder holder) {
+    public static List<Type> convert(@Nullable List<FunIncAType> elements) {
         List<Type> types = new ArrayList<>();
         if (null == elements || elements.isEmpty())
             return types;
         for (FunIncAType e : elements)
-            types.add(convert(e, holder));
+            types.add(convert(e));
         return types;
     }
 
-    public static List<Type> convertParameters(@Nullable List<FunIncAParamDef> elements, AnnotationHolder holder) {
-        List<Type> types = new ArrayList<>();
-        if (elements == null || elements.isEmpty())
-            return types;
-        for (FunIncAParamDef e : elements) {
-            FunIncAType type = e.getType();
-            if (type == null) {
-                types.add(new AnyType());
-            } else {
-                types.add(convert(type, holder));
-            }
-        }
-        return types;
-    }
-
-    private static Type convert(FunIncAAtomicType element, AnnotationHolder holder){
+    private static Type convert(FunIncAAtomicType element){
         PsiElement e = element.getFirstChild();
         String eText = e.getText();
         if (e instanceof FunIncATupleType) {
-            return new TupleType(convert(((FunIncATupleType) e).getTypeList(), holder));
+            List<FunIncAType> types = ((FunIncATupleType) e).getTypeList();
+            return new TupleType(convert(types));
         } else if (eText.equals("Any")) {
             return new AnyType();
         } else if (eText.equals("Nothing")) {
@@ -97,27 +66,12 @@ public class PsiToTypeConverter {
         } else if (eText.equals("Unit")) {
             return new UnitType();
         } else if (e instanceof FunIncASetType) {
-            return new SetType(convert(((FunIncASetType) e).getType(), holder));
+            return new SetType(convert(((FunIncASetType) e).getType()));
         } else if (e instanceof FunIncAConstructorType) {
-            FunIncAReference ref = (FunIncAReference) e.getReference();
-            ResolveResult[] result = ref.multiResolve(true);
-            if (result.length == 0) {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Type " + eText + " is not defined")
-                        .range(e)
-                        .create();
-                return new AnyType();
-            } else if (result.length == 1) {
-                FunIncAConstructorType constrType = (FunIncAConstructorType) e;
-                String name = constrType.getTypeNameRef().getText();
-                return new ConstructorType(name, convert(constrType.getTypeList(), holder));
-            } else {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Ambiguos reference name " + eText)
-                        .range(e)
-                        .create();
-                return new AnyType();
-            }
+            FunIncAConstructorType constructorType = (FunIncAConstructorType) e;
+            String name = constructorType.getTypeNameRef().getId().getText();
+            List<Type> types = convert(constructorType.getTypeList());
+            return new ConstructorType(name, types);
         } else if (eText.equals("Boolean")) {
             return new BooleanType();
         } else if (eText.equals("Double")) {
@@ -129,28 +83,9 @@ public class PsiToTypeConverter {
         } else if (eText.equals("String")) {
             return new StringType();
         } else if (e instanceof FunIncATypeNameRef){
-            FunIncAReference ref = (FunIncAReference) e.getReference();
-            ResolveResult[] result = ref.multiResolve(true);
-            if (result.length == 0) {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                        "Type " + eText + " is not defined")
-                        .range(e)
-                        .create();
-                return new AnyType();
-            } else if (result.length == 1) {
-                return new TypeRef(eText);
-            } else {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                        "Ambiguos reference name " + eText)
-                        .range(e)
-                        .create();
-                return new AnyType();
-            }
+           String name = ((FunIncATypeNameRef) e).getId().getText();
+           return new TypeRef(name);
         } else {
-            holder.newAnnotation(HighlightSeverity.ERROR,
-                    "Unknown type " + eText)
-                    .range(e)
-                    .create();
             return new AnyType();
         }
     }

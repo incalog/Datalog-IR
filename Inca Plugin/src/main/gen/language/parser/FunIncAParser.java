@@ -1038,7 +1038,7 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '(' VarDef (':' Type)? (',' VarDef (':' Type)?)+ ')' '=' InfixExp 'in' Exp
+  // '(' VarDef  (',' VarDef )+ ')' (':' Type)? '=' InfixExp 'in' Exp
   public static boolean MultipleBindings(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultipleBindings")) return false;
     if (!nextTokenIs(b, PARENS_OPEN)) return false;
@@ -1047,8 +1047,9 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, PARENS_OPEN);
     r = r && VarDef(b, l + 1);
     r = r && MultipleBindings_2(b, l + 1);
-    r = r && MultipleBindings_3(b, l + 1);
-    r = r && consumeTokens(b, 0, PARENS_CLOSE, EQUAL_SIGN);
+    r = r && consumeToken(b, PARENS_CLOSE);
+    r = r && MultipleBindings_4(b, l + 1);
+    r = r && consumeToken(b, EQUAL_SIGN);
     r = r && InfixExp(b, l + 1);
     r = r && consumeToken(b, KEYWORD_IN);
     r = r && Exp(b, l + 1);
@@ -1056,61 +1057,42 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (':' Type)?
+  // (',' VarDef )+
   private static boolean MultipleBindings_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultipleBindings_2")) return false;
-    MultipleBindings_2_0(b, l + 1);
-    return true;
-  }
-
-  // ':' Type
-  private static boolean MultipleBindings_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "MultipleBindings_2_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, COLON);
-    r = r && Type(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // (',' VarDef (':' Type)?)+
-  private static boolean MultipleBindings_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "MultipleBindings_3")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = MultipleBindings_3_0(b, l + 1);
+    r = MultipleBindings_2_0(b, l + 1);
     while (r) {
       int c = current_position_(b);
-      if (!MultipleBindings_3_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "MultipleBindings_3", c)) break;
+      if (!MultipleBindings_2_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "MultipleBindings_2", c)) break;
     }
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // ',' VarDef (':' Type)?
-  private static boolean MultipleBindings_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "MultipleBindings_3_0")) return false;
+  // ',' VarDef
+  private static boolean MultipleBindings_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MultipleBindings_2_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);
     r = r && VarDef(b, l + 1);
-    r = r && MultipleBindings_3_0_2(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
   // (':' Type)?
-  private static boolean MultipleBindings_3_0_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "MultipleBindings_3_0_2")) return false;
-    MultipleBindings_3_0_2_0(b, l + 1);
+  private static boolean MultipleBindings_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MultipleBindings_4")) return false;
+    MultipleBindings_4_0(b, l + 1);
     return true;
   }
 
   // ':' Type
-  private static boolean MultipleBindings_3_0_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "MultipleBindings_3_0_2_0")) return false;
+  private static boolean MultipleBindings_4_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MultipleBindings_4_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COLON);

@@ -34,9 +34,9 @@ public class FunIncAMultipleBindingsImpl extends ASTWrapperPsiElement implements
   }
 
   @Override
-  @NotNull
-  public List<FunIncAType> getTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncAType.class);
+  @Nullable
+  public FunIncAType getType() {
+    return findChildByClass(FunIncAType.class);
   }
 
   @Override
