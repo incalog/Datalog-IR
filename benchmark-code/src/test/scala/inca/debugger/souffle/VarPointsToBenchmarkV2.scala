@@ -272,7 +272,10 @@ object VarPointsToBenchmarkV2 {
     //
   }
 
-  def measureEachSemanticsRule(config: BaseConfig): Map[String, Seq[Long]] = {
+  def measureEachSemanticsRule(
+      config: BaseConfig,
+      timeout: Option[Long] = None
+    ): Map[String, Seq[Long]] = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
     // initialize bottom-up database
@@ -290,7 +293,16 @@ object VarPointsToBenchmarkV2 {
           ruleMeasurements(rule) = Seq(time)
       }
     }
-    while (!debugger.isFinished) {
+
+    def timeoutReached(vals: Map[String, Seq[Long]]): Boolean = {
+      timeout match {
+        case Some(till) =>
+          till - vals.flatMap(_._2).sum < 0
+        case None => false
+      }
+    }
+
+    while (!timeoutReached(ruleMeasurements.toMap) && !debugger.isFinished) {
       // prepare to decide which rule will be measured
       val top = debugger.queryStack.top
       var ruleName: String = ""
@@ -346,19 +358,24 @@ object VarPointsToBenchmarkV2 {
   }
 
   def main(args: Array[String]): Unit = {
-    val intoConfigs = Seq(
-      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
-      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
-    )
     //    val overConfigs = Seq(
     //      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
     //      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
     //    )
+    val intoConfigs = Seq(
+//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
+      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
+    )
+    val warmupInNano: Long = 2L * 60L * 1000L * 1000000L
+    val tenMinutesInNano: Long = 10L * 60L * 1000L * 1000000L
     for (c <- intoConfigs) {
-      for (_ <- 0 until c.warmup) {
-        measureEachSemanticsRule(c)
+      for (i <- 0 until c.warmup) {
+        println(s"WARMUP $i")
+        measureEachSemanticsRule(c, Some(warmupInNano))
       }
-      val measurements = measureEachSemanticsRule(c)
+      println("WARMUP COMPLETE")
+      val measurements = measureEachSemanticsRule(c, Some(tenMinutesInNano))
       measurements.foreach { case (rule, vals) =>
         val rows = vals.map(v => IndexedSeq(v)).toIndexedSeq
         val csv = IndexedSeq("measurement") +: rows

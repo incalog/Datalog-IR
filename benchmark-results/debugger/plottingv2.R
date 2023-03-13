@@ -26,16 +26,30 @@ methodLookupQueryStable <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLook
 methodLookupQueryResult <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryResult.csv")
 
 subtypeOfAll <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_ALL.csv")
-subtypeOfAllAtomEDB <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEDB.csv")
-subtypeOfAllAtomInto <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomInto.csv")
-subtypeOfAllAtomSkip <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomSkip.csv")
-subtypeOfAllAtomEq <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEq.csv")
-subtypeOfAllRuleMerge <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleMerge.csv")
-subtypeOfAllRuleResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleResult.csv")
-subtypeOfAllQueryUnion <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryUnion.csv")
-subtypeOfAllQueryIterate <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryIterate.csv")
-subtypeOfAllQueryStable <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryStable.csv")
-subtypeOfAllQueryResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryResult.csv")
+subtypeOfAtomEDB <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEDB.csv")
+subtypeOfAtomInto <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomInto.csv")
+subtypeOfAtomSkip <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomSkip.csv")
+subtypeOfAtomEq <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEq.csv")
+subtypeOfRuleMerge <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleMerge.csv")
+subtypeOfRuleResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleResult.csv")
+subtypeOfQueryUnion <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryUnion.csv")
+subtypeOfQueryIterate <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryIterate.csv")
+subtypeOfQueryStable <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryStable.csv")
+subtypeOfQueryResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryResult.csv")
+
+varPointsToAll <-             preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_ALL.csv")
+varPointsToAtomEDB <-      preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEDB.csv")
+varPointsToAtomInto <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomInto.csv")
+varPointsToAtomSkip <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomSkip.csv")
+varPointsToAtomEq <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEq.csv")
+varPointsToAtomNeq <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomNeq.csv")
+varPointsToAtomPrim <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomPrimitive.csv")
+varPointsToRuleMerge <-    preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleMerge.csv")
+varPointsToRuleResult <-   preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleResult.csv")
+varPointsToQueryUnion <-   preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryUnion.csv")
+varPointsToQueryIterate <- preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryIterate.csv")
+varPointsToQueryStable <-  preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryStable.csv")
+varPointsToQueryResult <-  preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryResult.csv")
 
 # subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
 
@@ -62,7 +76,7 @@ methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodL
 dev.off()
 
 pdf(file = paste(path, "SubtypeOf-IntoV2.pdf", sep="/"))
-methodIntoPlot <- boxplot(subtypeOfAllRuleMerge, subtypeOfAllRuleResult, subtypeOfAllAtomEDB, subtypeOfAllAtomEq, subtypeOfAllAtomInto, subtypeOfAllAtomSkip, subtypeOfAllQueryUnion, subtypeOfAllQueryStable, subtypeOfAllQueryIterate, subtypeOfAllQueryResult, subtypeOfAll,
+subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
                           # main = "Multiple boxplots for comparision",
                           xlab = "Time per step in milliseconds",
                           names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
@@ -73,6 +87,20 @@ methodIntoPlot <- boxplot(subtypeOfAllRuleMerge, subtypeOfAllRuleResult, subtype
                           col = durationColors
 )
 # TODO rotate x axis 45 degrees
+dev.off()
+
+pdf(file = paste(path, "VarPointsTo-IntoV2.pdf", sep="/"))
+varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
+                          # main = "Multiple boxplots for comparision",
+                          xlab = "Time per step in milliseconds",
+                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+                          # xaxt = "n",
+                          # las = 2,
+                          log = "y",
+                          # ylim = c(0.001, 350),
+                          outline = FALSE,
+                          col = durationColors
+)
 dev.off()
 
 # step over performance
