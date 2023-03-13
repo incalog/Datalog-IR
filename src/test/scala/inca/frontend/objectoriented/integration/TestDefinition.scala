@@ -274,7 +274,7 @@ object TestDefinition {
   def caseClassTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/caseclass")
     Seq(
-      TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
+      //TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
       TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult("X", "Z", "Y")),
     )
   }

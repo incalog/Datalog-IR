@@ -24,8 +24,8 @@ class Prog(val defs: `List[Any]`) {
 
 class Def(val name: String, val exp: Exp) {
   def accept(v: Visitor): Unit = {
-    v.visitDef(this)
     this.exp.accept(v)
+    v.visitDef(this)
   }
 }
 
