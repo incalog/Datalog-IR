@@ -25,7 +25,11 @@ trait Debugger extends DebuggerAPI {
   protected lazy val predParams: Map[Predicate, Seq[Datalog.Name]] = preds.map { case (name, pat) =>
     name -> pat.params.map(_.name)
   }
-  protected lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
+  protected lazy val atomOps: AtomTableOps = {
+    val atomOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
+    atomOps.initScalaCompiler()
+    atomOps
+  }
   implicit private lazy val tableFactory: IndexedTableFactory[Value] = {
     implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
     new IndexedTableFactory[Value](predParams)

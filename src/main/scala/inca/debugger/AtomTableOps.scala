@@ -1,7 +1,10 @@
 package inca.debugger
 
+import inca.backend.ir.Collect
+import inca.backend.ir.CollectEvaluations
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
+import inca.compiler.CompiledModule
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.AtomTableOps.transLiteral
 import inca.debugger.AtomTableOps.transType
@@ -34,7 +37,36 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
   }
 
   def getDefinitionObjSym: String = definitionObjSym
-  def compileAndLoadScala[A](source: String): A = scalaCompiler.compileAndLoadScala(source)
+
+  def initScalaCompiler(): Unit = {
+    val evalCollector = new CollectEvaluations[Datalog.type] {
+      override val datalog: Datalog.type = Datalog
+    }
+    val computations = evalCollector(runtime.compiled.ir).toSet
+    computations.foreach { eval =>
+      val argTerms = eval.evalArgs.map {
+        case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${base.typeAsScala(ty).syntax}]"""
+        case (Datalog.Constant(lit), _) =>
+          lit match {
+            case Datalog.base.IntLiteral(v) => v.toString
+            case Datalog.base.LongLiteral(v) => v.toString
+            case Datalog.base.DoubleLiteral(v) => v.toString
+            case Datalog.base.StringLiteral(v) => v
+            case Datalog.base.BooleanLiteral(v) => v.toString
+          }
+      }
+      val funCode =
+        s"""{ ($$env: Map[String, Any]) =>
+          |  import $getDefinitionObjSym.${runtime.compiled.name}._
+          |  (${eval.code.syntax})(${argTerms.mkString(", ")})
+          |}""".stripMargin
+      scalaCompiler.compileAndLoadScala[Map[String, Any] => Any](funCode)
+    }
+  }
+
+  def compileAndLoadScala[A](source: String): A = {
+    scalaCompiler.compileAndLoadScala[A](source)
+  }
 
   def atom(t: ValueTable, atom: Datalog.Atom): ValueTable = atom match {
     case c @ Datalog.Compare(Datalog.EqComparator, _, _) => eq(t, c)
@@ -375,12 +407,11 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
 
     val funCode =
       s"""{ ($$env: Map[String, Any]) =>
-        |  import $definitionObjSym.${runtime.compiled.name}._
+        |  import $getDefinitionObjSym.${runtime.compiled.name}._
         |  (${eval.code.syntax})(${argTerms.mkString(", ")})
         |}""".stripMargin
 
-    val fun: Map[String, Any] => Any =
-      scalaCompiler.compileAndLoadScala[Map[String, Any] => Any](funCode)
+    val fun: Map[String, Any] => Any = compileAndLoadScala[Map[String, Any] => Any](funCode)
     ScalaValue(fun(argsMap))
   }
 

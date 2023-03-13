@@ -25,6 +25,15 @@ trait CollectConstantEvaluation[D <: DatalogGeneric] extends Collect[D] {
   }
 }
 
+trait CollectEvaluations[D <: DatalogGeneric] extends Collect[D] {
+  import datalog._
+  override type R = Evaluation
+  override def transComputation(computation: Computation): Seq[Evaluation] = computation match {
+    case eval: Evaluation => Seq(eval)
+    case _ => super.transComputation(computation)
+  }
+}
+
 trait Collect[D <: DatalogGeneric] {
   type R
 

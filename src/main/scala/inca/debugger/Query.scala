@@ -5,9 +5,16 @@ import inca.debugger.ValueTable
 
 sealed trait QueryState
 object QueryState {
-  case object RuleResult extends QueryState
   case object RuleMerge extends QueryState
-  case object NextAtom extends QueryState
+  case object RuleResult extends QueryState
+  case object AtomEq extends QueryState
+  case object AtomNeq extends QueryState
+  // case object AtomEqL extends QueryState
+  // case object AtomEqR extends QueryState
+  case object AtomEDB extends QueryState
+  case object AtomPrimitive extends QueryState
+  case object AtomShouldNotInterest extends QueryState
+  case object AtomIntoOrSkip extends QueryState
   case object QueryUnion extends QueryState
   case object QueryEnd extends QueryState
   case object QueryResult extends QueryState
@@ -26,7 +33,12 @@ object Query {
     case Subquery(p, _, _, _, bodies) =>
       val tablelessRules = bodies.map {
         case RuleResult(_) => RuleResult(ValueTable.empty(Seq()))
-        case b => b
+        case Rule(pred, params, atoms) =>
+          val tablelessAtoms = atoms.map {
+            case AtomResult(_, sign) => AtomResult(ValueTable.empty(Seq()), sign)
+            case a => a
+          }
+          Rule(pred, params, tablelessAtoms)
       }
       Subquery(
         p,
@@ -59,7 +71,20 @@ case class Subquery(
             QueryState.RuleResult
           else
             atoms.head match {
-              case Atom(_) => QueryState.NextAtom
+              case Atom(atom) =>
+                atom match {
+                  case Datalog.Call(name, args, transitive, neg) => QueryState.AtomIntoOrSkip
+                  case Datalog.ExtensionalCall(name, args, neg) => QueryState.AtomEDB
+                  case Datalog.Compare(Datalog.EqComparator, lhs, rhs) => QueryState.AtomEq
+                  case Datalog.Compare(Datalog.NeqComparator, lhs, rhs) => QueryState.AtomNeq
+                  case Datalog.HasType(t, typ) => QueryState.AtomShouldNotInterest
+                  case Datalog.NotHasType(t, typ) => QueryState.AtomShouldNotInterest
+                  case Datalog.Path(src, srcTy, link, trg, trgTy) =>
+                    QueryState.AtomShouldNotInterest
+                  case Datalog.NoPath(t, ty, link, termIsSource) => QueryState.AtomShouldNotInterest
+                  case Datalog.Undef(t) => QueryState.AtomShouldNotInterest
+                  case Datalog.Computed(lhs, computation) => QueryState.AtomPrimitive
+                }
               case AtomResult(_, _) => QueryState.RuleMerge
             }
         case RuleResult(_) => QueryState.QueryUnion
