@@ -40,6 +40,8 @@ public class FunIncATypeUtil {
         } else if (type1 instanceof SetType && type2 instanceof SetType) {
             Type setType1 = ((SetType) type1).getSetType();
             Type setType2 = ((SetType) type2).getSetType();
+            if (setType1 == null || setType2 == null)
+                return new SetType(new NothingType());
             return new SetType(meet(setType1, setType2));
         } else if (type1 instanceof BooleanType) { // meet of primitive types
             // case of type2 is Any or Boolean already covered, Nothing Type is returned further down

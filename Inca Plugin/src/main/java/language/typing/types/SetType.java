@@ -16,6 +16,8 @@ public class SetType implements Type {
 
     @Override
     public String toString() {
+        if (setType == null)
+            return "Set[]";
         return "Set[" + setType.toString() + "]";
     }
 

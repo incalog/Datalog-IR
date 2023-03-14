@@ -22,12 +22,14 @@ public class FunIncAUtil {
         List<PsiNamedElement> res = new ArrayList<>();
         final PsiFile psiFile = e.getContainingFile().getOriginalFile();
         // this would be the place for getting the imported modules
-        // following for loop gets definition from every file in the directory, expand for supported import
+        // following for loop gets every file in the directory, expand for supported import
+        /*
         Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(FunIncAFileType.INSTANCE, GlobalSearchScope.projectScope(project));
         for (VirtualFile virtualFile : virtualFiles) {
             FunIncAFile f = (FunIncAFile) PsiManager.getInstance(project).findFile(virtualFile);
             res.addAll(findDefinitionNode(f, name, e));
-        }
+        }*/
+        res.addAll(findDefinitionNode((FunIncAFile) psiFile, name, e));
         return res;
     }
 
@@ -44,9 +46,11 @@ public class FunIncAUtil {
         final boolean isSetComprehension = setParent != null;
         // We only want to look for classes that match the element e we are resolving
         final Class<? extends PsiNamedElement> elementClass;
-        if (e instanceof FunIncAConstructorRef) // if e is a constructor reference, only definitions of consructors are important
+        if (e instanceof FunIncATypeNameRef) // if e is type constructor of TypeNameRef, only DataDef are important
+            elementClass = FunIncADataDef.class;
+        else if (e instanceof FunIncAConstructorRef) { // if e is a pattern in a match case, only constructor definitions are important
             elementClass = FunIncADataConstructorDef.class;
-        else if (isSetComprehension) // in a set comprehension everything can be a definition of e
+        } else if (isSetComprehension) // in a set comprehension everything can be a definition of e
             elementClass = FunIncANamedElement.class;
         else
             elementClass = FunIncADecl.class;
@@ -130,7 +134,7 @@ public class FunIncAUtil {
                         }
                     } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
                         res.add(namedElement);
-                    } else if (namedElement instanceof FunIncADataDef && !isFunCall) { // declaration is a type name
+                    } else if (namedElement instanceof FunIncADataDef) { // declaration is a type name
                         res.add(namedElement);
                     } else if (namedElement instanceof FunIncADataConstructorDef) { // declaration is a constructor
                         res.add(namedElement);

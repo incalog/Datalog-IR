@@ -18,6 +18,8 @@ public class TupleType implements Type {
 
     @Override
     public String toString() {
+        if (types == null)
+            return "()";
         String str = "(";
         for (Type ty : types)
             str += ty.toString() + ", ";

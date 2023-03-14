@@ -5,17 +5,15 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.ResolveResult;
+import com.intellij.psi.util.PsiTreeUtil;
 import language.FunIncAReference;
 import language.psi.*;
-import language.psi.impl.FunIncAAtomicTypeImpl;
 import language.typing.types.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-// jimport static language.typing.TypeContext;
 
 public class FunIncATypechecker {
 
@@ -482,7 +480,7 @@ public class FunIncATypechecker {
                     return new AnyType();
             }
         } else if (exp instanceof FunIncABaseApplyMethodExp) {
-
+            // TODO
         } else if (exp instanceof FunIncABaseApplyInfixExp) {
             FunIncABaseApplyInfixExp infixExp = (FunIncABaseApplyInfixExp) exp;
             List<FunIncAExp> children = infixExp.getExpList();
@@ -542,12 +540,53 @@ public class FunIncATypechecker {
             }
             return new SetType(setType);
         } else if (exp instanceof FunIncASetMemberExp) {
+            FunIncASetMemberExp memberExp = (FunIncASetMemberExp) exp;
+            FunIncAExp tuple = memberExp.getExpList().get(0);
+            FunIncAExp set = memberExp.getExpList().get(1);
+            Type setType = typecheckExp(set, holder);
+            Type setContentType;
+            if (!(setType instanceof SetType)) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Required set type, but got " + setType)
+                        .range(set)
+                        .create();
+                setContentType = new AnyType();
+            } else {
+                setContentType = ((SetType) setType).getSetType();
+            }
+
+            Type typeTuple = typecheckExp(tuple, holder);
+            if (typeTuple instanceof TupleType && setContentType instanceof TupleType) {
+                int n = ((TupleType) typeTuple).getTypes().size();
+                int m = ((TupleType) setContentType).getTypes().size();
+                List<FunIncAExp> tupleExp = ((FunIncATupleExp) tuple).getExpList();
+                if (n != m)
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Set contains " + m + "-ary tuples, but test expression is " + n + "-ary")
+                            .range(memberExp)
+                            .create();
+                for (int i = 0; i < Math.min(n,m); i++) {
+                    Type expType = ((TupleType) typeTuple).getTypes().get(i);
+                    Type setTupleType = ((TupleType) setContentType).getTypes().get(i);
+                    if (! FunIncATypeUtil.subtype(expType, setTupleType))
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + setTupleType + ", but got " + expType)
+                                .range(tupleExp.get(i))
+                                .create();
+                }
+            }
+            if (! FunIncATypeUtil.subtype(typeTuple, setContentType))
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + setContentType + ", but got " + typeTuple)
+                        .range(tuple)
+                        .create();
+            return new BooleanType();
 
         } else if (exp instanceof FunIncASetComprehensionExp) {
-
+            // TODO
         } else if (exp instanceof FunIncAFoldExp) {
+            // TODO
         }
-        // TODO
         return new AnyType();
     }
 

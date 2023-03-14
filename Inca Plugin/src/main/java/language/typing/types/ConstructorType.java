@@ -13,6 +13,8 @@ public class ConstructorType implements Type {
 
     @Override
     public String toString(){
+        if (types == null)
+            return name + "[]";
         StringBuilder str = new StringBuilder(name + "[");
         for (Type type : types){
             str.append(type.toString()).append(",");
