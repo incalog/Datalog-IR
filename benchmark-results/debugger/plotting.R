@@ -4,27 +4,68 @@ path <- paste(wd, "benchmark-results/debugger", sep="/")
 
 preprocessCSV <- function(fileName) {
   csv <- read.csv2(paste(path, fileName, sep="/"), sep = ",", dec = ".")
-  memory <- csv$Memory..MB.
-  numberOfSteps <- csv$NumberOfSteps[1]
-  lowerStepsIndex <- 3
-  upperStepsIndex <- numberOfSteps + 2
-  steps <- csv[,c(lowerStepsIndex:upperStepsIndex)]
-  totalTime <- rowSums(steps)
-  print(totalTime)
-  print(paste(fileName, "AVG Total (ms):"))
-  print(nsToMs(mean(totalTime)))
-  stepsTransposed <- t(steps)
-  stepsMean <- rowMeans(stepsTransposed)
-  stepsInMs <- nsToMs(stepsMean)
-  return(list(memory, stepsTransposed, stepsInMs))
+  vals <- csv$measurement
+  valsInMs <- nsToMs(vals)
+  return(valsInMs)
 }
 
 nsToMs <- function(ns) {
   ns / 1000000
 }
 
-methodLookupRes <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_StepInto.csv")
-subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
+methodLookupAll <-           preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_ALL.csv")
+methodLookupAtomEDB <-       preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomEDB.csv")
+methodLookupAtomInto <-      preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomInto.csv")
+methodLookupAtomSkip <-      preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomSkip.csv")
+methodLookupAtomPrimitive <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomPrimitive.csv")
+methodLookupRuleMerge <-     preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_RuleMerge.csv")
+methodLookupRuleResult <-    preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_RuleResult.csv")
+methodLookupQueryUnion <-    preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryUnion.csv")
+methodLookupQueryIterate <-  preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryIterate.csv")
+methodLookupQueryStable <-   preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryStable.csv")
+methodLookupQueryResult <-   preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryResult.csv")
+
+subtypeOfAll <-              preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_ALL.csv")
+subtypeOfAtomEDB <-          preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEDB.csv")
+subtypeOfAtomInto <-         preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomInto.csv")
+subtypeOfAtomSkip <-         preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomSkip.csv")
+subtypeOfAtomEq <-           preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEq.csv")
+subtypeOfRuleMerge <-        preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleMerge.csv")
+subtypeOfRuleResult <-       preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleResult.csv")
+subtypeOfQueryUnion <-       preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryUnion.csv")
+subtypeOfQueryIterate <-     preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryIterate.csv")
+subtypeOfQueryStable <-      preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryStable.csv")
+subtypeOfQueryResult <-      preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryResult.csv")
+
+varPointsToAll <-            preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_ALL.csv")
+varPointsToAtomEDB <-        preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEDB.csv")
+varPointsToAtomInto <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomInto.csv")
+varPointsToAtomSkip <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomSkip.csv")
+varPointsToAtomEq <-         preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEq.csv")
+varPointsToAtomNeq <-        preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomNeq.csv")
+varPointsToAtomPrim <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomPrimitive.csv")
+varPointsToRuleMerge <-      preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleMerge.csv")
+varPointsToRuleResult <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleResult.csv")
+varPointsToQueryUnion <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryUnion.csv")
+varPointsToQueryIterate <-   preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryIterate.csv")
+varPointsToQueryStable <-    preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryStable.csv")
+varPointsToQueryResult <-    preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryResult.csv")
+
+combinedAll <-               c(varPointsToAll, subtypeOfAll, methodLookupAll)
+combinedAtomEDB <-           c(varPointsToAtomEDB , subtypeOfAtomEDB, methodLookupAtomEDB)
+combinedAtomInto <-          c(varPointsToAtomInto , subtypeOfAtomInto, methodLookupAtomInto)
+combinedAtomSkip <-          c(varPointsToAtomSkip, subtypeOfAtomSkip, methodLookupAtomSkip)
+combinedAtomEq <-            c(varPointsToAtomEq, subtypeOfAtomEq)
+combinedAtomNeq <-           c(varPointsToAtomNeq)
+combinedAtomPrim <-          c(varPointsToAtomPrim, methodLookupAtomPrimitive)
+combinedRuleMerge <-         c(varPointsToRuleMerge, subtypeOfRuleMerge, methodLookupRuleMerge)
+combinedRuleResult <-        c(varPointsToRuleResult, subtypeOfRuleResult, methodLookupRuleResult)
+combinedQueryUnion <-        c(varPointsToQueryUnion, subtypeOfQueryUnion, methodLookupQueryUnion)
+combinedQueryIterate <-      c(varPointsToQueryIterate, subtypeOfQueryIterate, methodLookupQueryIterate)
+combinedQueryStable <-       c(varPointsToQueryStable, subtypeOfQueryStable, methodLookupQueryStable)
+combinedQueryResult <-       c(varPointsToQueryResult, subtypeOfQueryResult, methodLookupQueryResult)
+
+# subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
 
 typeCol <- rgb(127/256, 205/256, 187/256)
 constantCol <- rgb(44/256, 127/256, 184/256)
@@ -32,171 +73,59 @@ taintCol <- rgb(237/256, 248/256, 177/256)
 
 durationColors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
+options(scipen=999)
 
-pdf(file = paste(path, "StepInto-Memory.pdf", sep="/"))
-# mlmem <- methodLookupRes[[1]]
-boxplot(methodLookupRes[[1]], subtypeOfRes[[1]],
-        # main = "Multiple boxplots for comparision",
-        xlab = "Post-run memory in MB",
-        names = c("Method Lookup Into", "Subtype Of Into"),
-        # las = 2,
-        ylim = c(0, 1024),
-        col = durationColors
-)
-# means <- c(mean(methodLookupMemory))
-# points(means, pch = 'x', col = "red" )
-# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
-dev.off()
-
-
-# step into performance
-pdf(file = paste(path, "StepInto-Time.pdf", sep="/"))
-mlsts <- methodLookupRes[[3]]
-boxplot(methodLookupRes[[3]], subtypeOfRes[[3]],
-        # main = "Multiple boxplots for comparision",
-        xlab = "Time per step in milliseconds",
-        names = c("Method Lookup Into", "Subtype Of Into"),
+pdf(file = paste(path, "MethodLookup-Into.pdf", sep="/"))
+methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, methodLookupAtomPrimitive, methodLookupAtomInto, methodLookupAtomSkip, methodLookupQueryUnion, methodLookupQueryStable, methodLookupQueryIterate, methodLookupQueryResult, methodLookupAll,
+        main = "MethodLookup",
+        ylab = "Time per step in milliseconds",
+        names = c("R-Merge", "R-Result", "A-EDB", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+        las = 2,
+        log = "y",
         outline = FALSE,
-        # las = 2,
-        #ylim = c(0, 1024)
+        # ylim = c(0.001, 350),
         col = durationColors
 )
-# means <- c(mean(methodLookupRes[1]))
-# points(means, pch = 'x', col = "red" )
-# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
+# TODO rotate x axis 45 degrees
 dev.off()
 
-# step over performance
-# pdf(file = paste(path, "VarPointsTo_minijavac_basic_MethodLookup_simplename-StepOver.pdf", sep="/"))
-# boxplot(methodLookupStepMs,
-#         # main = "Multiple boxplots for comparision",
-#         xlab = "Time per step in milliseconds",
-#         names = c("MethodLookup"),
-#         outline = FALSE
-#         # las = 2,
-#         #ylim = c(0, 1024)
-#         #col = durationColors
-# )
-# # means <- c(mean(methodLookupMemory))
-# # points(means, pch = 'x', col = "red" )
-# # text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
-# dev.off()
+pdf(file = paste(path, "SubtypeOf-Into.pdf", sep="/"))
+subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
+                          main = "SubtypeOf",
+                          ylab = "Time per step in milliseconds",
+                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+                          las = 2,
+                          log = "y",
+                          outline = FALSE,
+                          col = durationColors
+                          # ylim = c(0.001, 350),
+)
+# TODO rotate x axis 45 degrees
+dev.off()
+
+pdf(file = paste(path, "VarPointsTo-Into.pdf", sep="/"))
+varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
+                          main = "VarPointsTo",
+                          ylab = "Time per step in milliseconds",
+                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+                          las = 2,
+                          log = "y",
+                          outline = FALSE,
+                          col = durationColors
+                          # ylim = c(0.001, 350),
+)
+dev.off()
 
 
-#
-# typeDuration <- typeCsv$duration / 1000
-# constantDuration <- constantCsv$duration / 1000
-# taintDuration <- taintCsv$duration / 1000
-# binaryenDuration <- binaryenCsv$duration / 1000
-#
-# pdf(file = paste(path, "wasmbench-mgc-duration.pdf", sep="/"))
-# boxplot(typeDuration, constantDuration, taintDuration,
-#         # main = "Multiple boxplots for comparision",
-#         ylab = "Running times in seconds",
-#         names = c("type analysis", "constant analysis", "taint analysis"),
-#         # las = 2,
-#         ylim = c(0, 45),
-#         col = durationColors
-# )
-# means <- c(mean(typeDuration), mean(constantDuration), mean(taintDuration))
-# points(means, pch = 'x', col = "red" )
-# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
-# dev.off()
-#
-#
-#
-# typeDead <- typeCsv$deadInstructionPercent
-# typeDeadMedian <- median(typeDead)
-# constantDead <- constantCsv$deadInstructionPercent
-# constantDeadMedian <- median(constantDead)
-# constantConstant <- constantCsv$constantInstructionPercent
-# constantConstantMedian <- median(constantConstant)
-# constantElim <- constantCsv$eliminatablePercent
-# constantElimMedian <- median(constantElim)
-# constantElimMean <- mean(constantElim)
-# safeMem <- 100 - taintCsv$taintedAccessesPercent
-# safeMemMedian <- median(safeMem)
-# binaryenDead <- binaryenCsv$deadInstructionPercent
-# binaryenDeadMedian <- median(binaryenDead)
-# binaryenDeadMean <- mean(binaryenDead)
-#
-# constantDurationMean <- mean(constantDuration)
-# constantDurationMedian <- median(constantDuration)
-#
-# binaryenDurationMean <- mean(binaryenDuration)
-# binaryenDurationMedian <- median(binaryenDuration)
-#
-# pdf(file = paste(path, "wasmbench-mgc-results.pdf", sep="/"))
-# b <- boxplot(typeDead, constantDead, constantConstant, safeMem,
-#         # main = "Multiple boxplots for comparision",
-#         names = c("dead code\n(type values)", "dead code\n(constant values)", "constant\ninstructions", "safe memory\ninstructions"),
-#         # las = 2,
-#         # ylim = c(0, 45000),
-#         ylab = "Percentage (%) of instructions",
-# #        pars=list(outcol=c(typeCol, typeCol, constantCol, taintCol)),
-#              # xlab = "Analysis",
-#         col = c(typeCol, typeCol, constantCol, taintCol)
-# )
-# means <- c(mean(typeDead), mean(constantDead), mean(constantConstant), mean(safeMem))
-# points(means, pch = 'x', col = "red" )
-# text(means, labels = paste(round(means), '%'), col = "red", pos = 4, offset = 2.5)
-# dev.off()
-#
-# typeSuccessRuns <- length(typeCsv$duration)
-# typeSuccessRuns10s <- length(typeDuration[typeDuration <= 10]) / typeSuccessRuns
-# typeErrorMsgs <- typeErrorsCsv$exceptionMsg
-# typeTimeouts <- length(typeErrorMsgs[typeErrorMsgs=="java.lang.InterruptedException"])
-# typeInvalidImport <- length(typeErrorMsgs[grepl("No module with name", typeErrorMsgs)])
-# typeInvalidMemory <- length(typeErrorMsgs[grepl("swam.validation.ValidationException: memory size may not exceed 1024 pages", typeErrorMsgs)])
-# typeInvalidHostFunction <- length(typeErrorMsgs[grepl("host", typeErrorMsgs)])
-# typeParseError <- length(typeErrorMsgs[grepl("WasmParseError", typeErrorMsgs)])
-# typeOtherErrors <- length(typeErrorMsgs) - typeTimeouts - typeInvalidImport - typeInvalidMemory - typeInvalidHostFunction - typeParseError
-#
-# constantSuccessRuns <- length(constantCsv$duration)
-# constantSuccessRuns10s <- length(constantDuration[constantDuration <= 10]) / constantSuccessRuns
-# constantErrorMsgs <- constantErrorsCsv$exceptionMsg
-# constantTimeouts <- length(constantErrorMsgs[constantErrorMsgs=="java.lang.InterruptedException"])
-# constantInvalidImport <- length(constantErrorMsgs[grepl("No module with name", constantErrorMsgs)])
-# constantInvalidMemory <- length(constantErrorMsgs[grepl("swam.validation.ValidationException: memory size may not exceed 1024 pages", constantErrorMsgs)])
-# constantInvalidHostFunction <- length(constantErrorMsgs[grepl("host", constantErrorMsgs)])
-# constantParseError <- length(constantErrorMsgs[grepl("WasmParseError", constantErrorMsgs)])
-# constantOtherErrors <- length(constantErrorMsgs) - constantTimeouts - constantInvalidImport - constantInvalidMemory - constantInvalidHostFunction - constantParseError
-#
-# taintSuccessRuns <- length(taintCsv$duration)
-# taintSuccessRuns10s <- length(taintDuration[taintDuration <= 10]) / taintSuccessRuns
-# taintErrorMsgs <- taintErrorsCsv$exceptionMsg
-# taintTimeouts <- length(taintErrorMsgs[constantErrorMsgs=="java.lang.InterruptedException"])
-# taintInvalidImport <- length(taintErrorMsgs[grepl("No module with name", constantErrorMsgs)])
-# taintInvalidMemory <- length(taintErrorMsgs[grepl("swam.validation.ValidationException: memory size may not exceed 1024 pages", constantErrorMsgs)])
-# taintInvalidHostFunction <- length(taintErrorMsgs[grepl("host", constantErrorMsgs)])
-# taintParseError <- length(taintErrorMsgs[grepl("WasmParseError", constantErrorMsgs)])
-# taintOtherErrors <- length(taintErrorMsgs) - constantTimeouts - constantInvalidImport - constantInvalidMemory - constantInvalidHostFunction - constantParseError
-#
-#
-# memsafeInstPercent <- 100 - taintCsv$taintedAccessesPercent
-# memsafeBinaries <- length(which(memsafeInstPercent == 100)) / length(memsafeInstPercent)
-# memsafeInstMean <- mean(memsafeInstPercent)
-#
-#
-#
-#
-# pdf(file = paste(path, "wasmbench-binaryen-compare.pdf", sep="/"))
-# b <- boxplot(constantElim, binaryenDead,
-#              # main = "Multiple boxplots for comparision",
-#              names = c("eliminated by us", "eliminated by binaryen"),
-#              # las = 2,
-#              ylim = c(0, 100),
-#              ylab = "Percentage (%) of instructions",
-#              #        pars=list(outcol=c(typeCol, typeCol, constantCol, taintCol)),
-#              # xlab = "Analysis",
-#              col = c(constantCol, taintCol)
-# )
-# means <- c(mean(constantElim), mean(binaryenDead))
-# points(means, pch = 'x', col = "red" )
-# text(means, labels = paste(round(means), '%'), col = "red", pos = 4, offset = 2.5)
-# dev.off()
-#
-#
-# # pdf(file = paste(path, "wasmbench-mgc-memsafe.pdf", sep="/"))
-# # hist(memsafeYesNo)
-# # dev.off()
+pdf(file = paste(path, "All-Into.pdf", sep="/"))
+varPointsToPlot <- boxplot(combinedRuleMerge, combinedRuleResult, combinedAtomEDB, combinedAtomEq, combinedAtomNeq, combinedAtomPrim, combinedAtomInto, combinedAtomSkip, combinedQueryUnion, combinedQueryStable, combinedQueryIterate, combinedQueryResult, combinedAll,
+                           main = "SubtypeOf + MethodLookup + VarPointsTo",
+                           ylab = "Time per step in milliseconds",
+                           names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+                           las = 2,
+                           log = "y",
+                           outline = FALSE,
+                           col = durationColors
+                           # ylim = c(0.001, 350),
+)
+dev.off()

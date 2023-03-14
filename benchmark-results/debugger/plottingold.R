@@ -4,54 +4,27 @@ path <- paste(wd, "benchmark-results/debugger", sep="/")
 
 preprocessCSV <- function(fileName) {
   csv <- read.csv2(paste(path, fileName, sep="/"), sep = ",", dec = ".")
-  vals <- csv$measurement
-  valsInMs <- nsToMs(vals)
-  return(valsInMs)
+  memory <- csv$Memory..MB.
+  numberOfSteps <- csv$NumberOfSteps[1]
+  lowerStepsIndex <- 3
+  upperStepsIndex <- numberOfSteps + 2
+  steps <- csv[,c(lowerStepsIndex:upperStepsIndex)]
+  totalTime <- rowSums(steps)
+  print(totalTime)
+  print(paste(fileName, "AVG Total (ms):"))
+  print(nsToMs(mean(totalTime)))
+  stepsTransposed <- t(steps)
+  stepsMean <- rowMeans(stepsTransposed)
+  stepsInMs <- nsToMs(stepsMean)
+  return(list(memory, stepsTransposed, stepsInMs))
 }
 
 nsToMs <- function(ns) {
   ns / 1000000
 }
 
-methodLookupAll <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_ALL.csv")
-methodLookupAtomEDB <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomEDB.csv")
-methodLookupAtomInto <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomInto.csv")
-methodLookupAtomSkip <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomSkip.csv")
-methodLookupAtomPrimitive <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomPrimitive.csv")
-methodLookupRuleMerge <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_RuleMerge.csv")
-methodLookupRuleResult <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_RuleResult.csv")
-methodLookupQueryUnion <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryUnion.csv")
-methodLookupQueryIterate <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryIterate.csv")
-methodLookupQueryStable <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryStable.csv")
-methodLookupQueryResult <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_QueryResult.csv")
-
-subtypeOfAll <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_ALL.csv")
-subtypeOfAtomEDB <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEDB.csv")
-subtypeOfAtomInto <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomInto.csv")
-subtypeOfAtomSkip <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomSkip.csv")
-subtypeOfAtomEq <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_AtomEq.csv")
-subtypeOfRuleMerge <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleMerge.csv")
-subtypeOfRuleResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_RuleResult.csv")
-subtypeOfQueryUnion <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryUnion.csv")
-subtypeOfQueryIterate <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryIterate.csv")
-subtypeOfQueryStable <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryStable.csv")
-subtypeOfQueryResult <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_QueryResult.csv")
-
-varPointsToAll <-             preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_ALL.csv")
-varPointsToAtomEDB <-      preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEDB.csv")
-varPointsToAtomInto <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomInto.csv")
-varPointsToAtomSkip <-     preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomSkip.csv")
-varPointsToAtomEq <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomEq.csv")
-varPointsToAtomNeq <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomNeq.csv")
-varPointsToAtomPrim <-       preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_AtomPrimitive.csv")
-varPointsToRuleMerge <-    preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleMerge.csv")
-varPointsToRuleResult <-   preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_RuleResult.csv")
-varPointsToQueryUnion <-   preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryUnion.csv")
-varPointsToQueryIterate <- preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryIterate.csv")
-varPointsToQueryStable <-  preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryStable.csv")
-varPointsToQueryResult <-  preprocessCSV("VarPointsTo_minijavac_VarPointsTo_var;heap_PureInto_QueryResult.csv")
-
-# subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
+methodLookupRes <- preprocessCSV("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_StepInto.csv")
+subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
 
 typeCol <- rgb(127/256, 205/256, 187/256)
 constantCol <- rgb(44/256, 127/256, 184/256)
@@ -59,48 +32,38 @@ taintCol <- rgb(237/256, 248/256, 177/256)
 
 durationColors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
-options(scipen=999)
 
-pdf(file = paste(path, "MethodLookup-IntoV2.pdf", sep="/"))
-methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, methodLookupAtomPrimitive, methodLookupAtomInto, methodLookupAtomSkip, methodLookupQueryUnion, methodLookupQueryStable, methodLookupQueryIterate, methodLookupQueryResult, methodLookupAll,
+pdf(file = paste(path, "StepInto-Memory.pdf", sep="/"))
+# mlmem <- methodLookupRes[[1]]
+boxplot(methodLookupRes[[1]], subtypeOfRes[[1]],
         # main = "Multiple boxplots for comparision",
-        xlab = "Time per step in milliseconds",
-        names = c("R-Merge", "R-Result", "A-EDB", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+        xlab = "Post-run memory in MB",
+        names = c("Method Lookup Into", "Subtype Of Into"),
         # las = 2,
-        log = "y",
-        # ylim = c(0.001, 350),
-        outline = FALSE,
+        ylim = c(0, 1024),
         col = durationColors
 )
-# TODO rotate x axis 45 degrees
+# means <- c(mean(methodLookupMemory))
+# points(means, pch = 'x', col = "red" )
+# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
 dev.off()
 
-pdf(file = paste(path, "SubtypeOf-IntoV2.pdf", sep="/"))
-subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
-                          # main = "Multiple boxplots for comparision",
-                          xlab = "Time per step in milliseconds",
-                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
-                          # las = 2,
-                          log = "y",
-                          # ylim = c(0.001, 350),
-                          outline = FALSE,
-                          col = durationColors
-)
-# TODO rotate x axis 45 degrees
-dev.off()
 
-pdf(file = paste(path, "VarPointsTo-IntoV2.pdf", sep="/"))
-varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
-                          # main = "Multiple boxplots for comparision",
-                          xlab = "Time per step in milliseconds",
-                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
-                          # xaxt = "n",
-                          # las = 2,
-                          log = "y",
-                          # ylim = c(0.001, 350),
-                          outline = FALSE,
-                          col = durationColors
+# step into performance
+pdf(file = paste(path, "StepInto-Time.pdf", sep="/"))
+mlsts <- methodLookupRes[[3]]
+boxplot(methodLookupRes[[3]], subtypeOfRes[[3]],
+        # main = "Multiple boxplots for comparision",
+        xlab = "Time per step in milliseconds",
+        names = c("Method Lookup Into", "Subtype Of Into"),
+        outline = FALSE,
+        # las = 2,
+        #ylim = c(0, 1024)
+        col = durationColors
 )
+# means <- c(mean(methodLookupRes[1]))
+# points(means, pch = 'x', col = "red" )
+# text(means, labels = paste(round(means), "s"), col = "red", pos = 4, offset = 2.5)
 dev.off()
 
 # step over performance
