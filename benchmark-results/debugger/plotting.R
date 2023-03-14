@@ -1,9 +1,10 @@
 
 wd <- getwd()
-path <- paste(wd, "benchmark-results/debugger", sep="/")
+datapath <- paste(wd, "benchmark-results/debugger/data", sep="/")
+graphpath <- paste(wd, "benchmark-results/debugger/graphs", sep="/")
 
 preprocessCSV <- function(fileName) {
-  csv <- read.csv2(paste(path, fileName, sep="/"), sep = ",", dec = ".")
+  csv <- read.csv2(paste(datapath, fileName, sep="/"), sep = ",", dec = ".")
   vals <- csv$measurement
   valsInMs <- nsToMs(vals)
   return(valsInMs)
@@ -65,17 +66,15 @@ combinedQueryIterate <-      c(varPointsToQueryIterate, subtypeOfQueryIterate, m
 combinedQueryStable <-       c(varPointsToQueryStable, subtypeOfQueryStable, methodLookupQueryStable)
 combinedQueryResult <-       c(varPointsToQueryResult, subtypeOfQueryResult, methodLookupQueryResult)
 
-# subtypeOfRes <- preprocessCSV("VarPointsTo_minijavac_basic_SubtypeOf_subtype_PureInto_StepInto.csv")
-
 typeCol <- rgb(127/256, 205/256, 187/256)
 constantCol <- rgb(44/256, 127/256, 184/256)
 taintCol <- rgb(237/256, 248/256, 177/256)
 
 durationColors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
-options(scipen=999)
 
-pdf(file = paste(path, "MethodLookup-Into.pdf", sep="/"))
+options(scipen=999)
+pdf(file = paste(graphpath, "MethodLookup-Into.pdf", sep="/"))
 methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, methodLookupAtomPrimitive, methodLookupAtomInto, methodLookupAtomSkip, methodLookupQueryUnion, methodLookupQueryStable, methodLookupQueryIterate, methodLookupQueryResult, methodLookupAll,
         main = "MethodLookup",
         ylab = "Time per step in milliseconds",
@@ -86,10 +85,9 @@ methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodL
         # ylim = c(0.001, 350),
         col = durationColors
 )
-# TODO rotate x axis 45 degrees
 dev.off()
 
-pdf(file = paste(path, "SubtypeOf-Into.pdf", sep="/"))
+pdf(file = paste(graphpath, "SubtypeOf-Into.pdf", sep="/"))
 subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
                           main = "SubtypeOf",
                           ylab = "Time per step in milliseconds",
@@ -100,10 +98,9 @@ subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomE
                           col = durationColors
                           # ylim = c(0.001, 350),
 )
-# TODO rotate x axis 45 degrees
 dev.off()
 
-pdf(file = paste(path, "VarPointsTo-Into.pdf", sep="/"))
+pdf(file = paste(graphpath, "VarPointsTo-Into.pdf", sep="/"))
 varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
                           main = "VarPointsTo",
                           ylab = "Time per step in milliseconds",
@@ -116,8 +113,7 @@ varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPoint
 )
 dev.off()
 
-
-pdf(file = paste(path, "All-Into.pdf", sep="/"))
+pdf(file = paste(graphpath, "All-Into.pdf", sep="/"))
 varPointsToPlot <- boxplot(combinedRuleMerge, combinedRuleResult, combinedAtomEDB, combinedAtomEq, combinedAtomNeq, combinedAtomPrim, combinedAtomInto, combinedAtomSkip, combinedQueryUnion, combinedQueryStable, combinedQueryIterate, combinedQueryResult, combinedAll,
                            main = "SubtypeOf + MethodLookup + VarPointsTo",
                            ylab = "Time per step in milliseconds",
