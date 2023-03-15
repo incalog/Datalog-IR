@@ -61,16 +61,36 @@ public class FunIncAUtil {
             // finding candidates for resolving references
             List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
-                if (name.equals(namedElement.getName()) && namedElement != e) { // excludes e from resolved candidates
+                if (name.equals(namedElement.getName()) && (namedElement != e)) { // excludes e from resolved candidates
                     if (namedElement instanceof FunIncAVarRefExp) {
                         if (PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class) == setParent &&
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class) != null) {
                             resCandidates.add(namedElement); // declarations with FuncIncaVar in rhs can only be member-expressions
                         }
                     }
-                    if (namedElement instanceof FunIncADecl) { // possible let-expressions in rhs are excluded
-                        if (e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset())
-                            resCandidates.add(namedElement);
+                    if (namedElement instanceof FunIncADecl) { // every other possible variable definition
+                        FunIncAFunDef funParentNamedElement = PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+                        FunIncAFunDef funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
+                        if (funParentNamedElement == funParentE) { // declaration of e must be within the same function definition
+                            if (namedElement instanceof FunIncAVarDef) { // declaration in let expressions
+                                if (e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset()) // possible let-expressions in rhs are excluded
+                                    resCandidates.add(namedElement);
+                            } else if (namedElement instanceof FunIncAParamDef) {
+                                resCandidates.add(namedElement);
+                            } else if (namedElement instanceof FunIncAPatternVarDef) {
+                                FunIncAConstructorPat patternParentNamedElement = PsiTreeUtil.getParentOfType(
+                                        namedElement, FunIncAConstructorPat.class);
+                                FunIncAConstructorPat patternParentE = PsiTreeUtil.getParentOfType(e,
+                                        FunIncAConstructorPat.class);
+                                if ((patternParentE != null) && (patternParentE == patternParentNamedElement))
+                                    resCandidates.add(namedElement);
+                            } else if (namedElement instanceof FunIncAFunDef) {
+                                resCandidates.add(namedElement);
+                            } else if (namedElement instanceof FunIncADataConstructorDef) {
+                                resCandidates.add(namedElement);
+                            }
+                        }
+
                     }
                 }
             }

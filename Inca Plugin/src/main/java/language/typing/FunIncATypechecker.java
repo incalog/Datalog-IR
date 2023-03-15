@@ -137,6 +137,32 @@ public class FunIncATypechecker {
                     }
                 }
             }
+        } else if (element instanceof FunIncAVarRefExp) { // only in set member exp in set comprehension
+            FunIncAVarRefExp varRef = (FunIncAVarRefExp) element;
+            FunIncASetMemberExp setMemberExp = PsiTreeUtil.getParentOfType(varRef, FunIncASetMemberExp.class);
+            FunIncAExp exp = setMemberExp.getExpList().get(0);
+            FunIncAExp set = setMemberExp.getExpList().get(1);
+            boolean isTupleExp = exp.getFirstChild() instanceof FunIncATupleExp;
+            Type type = typecheckExp(set, holder);
+            if (!(type instanceof SetType))
+                return new AnyType();
+            SetType setType = (SetType) type;
+            if (isTupleExp) {
+                if (!(setType.getSetType() instanceof TupleType)) {
+                    return new AnyType();
+                }
+                int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
+                if (index < ((TupleType) setType.getSetType()).getTypes().size()) {
+                    return ((TupleType) setType.getSetType()).getTypes().get(index);
+                } else {
+                    return new AnyType();
+                }
+            } else {
+                return setType.getSetType();
+            }
+        } else if (element instanceof FunIncAPatternVarDef) {
+            FunIncAPatternVarDef patternVarDef = (FunIncAPatternVarDef) element;
+            FunIncAConstructorPat pattern = (FunIncAConstructorPat) element.getParent();
         }
         return new AnyType();
     }
@@ -243,10 +269,16 @@ public class FunIncATypechecker {
             FunIncAReference reference = (FunIncAReference) varExp.getReference();
             ResolveResult[] result = reference.multiResolve(true);
             if (result.length == 0) {
-                holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved name " + varExp.getName())
-                        .range(varExp)
-                        .create();
-                return new AnyType();
+                if ((PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class) != null) &&
+                        (PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class) != null)) {
+                    // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
+                    return typeOfVarDef(varExp, holder);
+                } else {
+                    holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved name " + varExp.getName())
+                            .range(varExp)
+                            .create();
+                    return new AnyType();
+                }
             } else if (result.length == 1){
                 if (result[0].isValidResult()) {
                     Type resolvedType = typeOfVarDef(result[0].getElement(), holder);
@@ -491,33 +523,22 @@ public class FunIncATypechecker {
             Type rhsType = typecheckExp(children.get(1), holder);
             switch (op) {
                 case "+":
-                    return checkBinArithmeticOp(lhsType, rhsType, op, exp, holder);
+                case "%":
+                case "/":
+                case "*":
                 case "-":
                     return checkBinArithmeticOp(lhsType, rhsType, op, exp, holder);
-                case "*":
-                    return checkBinArithmeticOp(lhsType, rhsType, op, exp, holder);
-                case "/":
-                    return checkBinArithmeticOp(lhsType, rhsType, op, exp, holder);
-                case "%":
-                    return checkBinArithmeticOp(lhsType, rhsType, op, exp, holder);
                 case "&&":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
+                case ">=":
+                case "<=":
+                case ">":
+                case "<":
                 case "||":
                     return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
-                case "<":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
-                case ">":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
                 case "==":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
                 case "!=":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
-                case "<=":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
-                case ">=":
-                    return checkBinLogicOp(lhsType, rhsType, op, exp, holder);
+                    return new BooleanType();
                 case "++":
-                    return checkBinSetOp(lhsType, rhsType, op, exp, holder);
                 case "&":
                     return checkBinSetOp(lhsType, rhsType, op, exp, holder);
                 default:
@@ -583,7 +604,36 @@ public class FunIncATypechecker {
             return new BooleanType();
 
         } else if (exp instanceof FunIncASetComprehensionExp) {
-            // TODO
+            FunIncASetComprehensionExp setComprehensionExp = (FunIncASetComprehensionExp) exp;
+            int n = setComprehensionExp.getExpList().size();
+            if (n == 0) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Incomplete set comprehension")
+                        .range(setComprehensionExp)
+                        .create();
+                return new SetType(new NothingType());
+            }
+            FunIncAExp build = setComprehensionExp.getExpList().get(0);
+            Type buildType = typecheckExp(build, holder);
+            if (n == 1) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing predicates")
+                        .range(setComprehensionExp)
+                        .create();
+                return new SetType(new NothingType());
+            }
+            List<FunIncAExp> preds = setComprehensionExp.getExpList().subList(1, setComprehensionExp.getExpList().size());
+            for (FunIncAExp pred : preds) {
+                Type type = typecheckExp(pred, holder);
+                if (! FunIncATypeUtil.subtype(type, new BooleanType())) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Comprehension predicate must have Boolean type, but got " + type)
+                            .range(pred)
+                            .create();
+                }
+            }
+            return new SetType(buildType);
+
         } else if (exp instanceof FunIncAFoldExp) {
             // TODO
         }
@@ -795,16 +845,19 @@ public class FunIncATypechecker {
         }
     }
 
-    private static Type checkBinLogicOp(Type lhs, Type rhs, String op, PsiElement exp, AnnotationHolder holder) {
-        if (lhs.isBooleanType() && rhs.isBooleanType())
-            return lhs;
-        else {
-            holder.newAnnotation(HighlightSeverity.ERROR, "Cannot use logic operator " + op +
-                            " with types " + lhs + " and " + rhs)
-                    .range(exp)
-                    .create();
-            return new AnyType();
+    private static Type checkBinLogicOp(Type lhs, Type rhs, String op, PsiElement exp, AnnotationHolder holder) { // >,>=,usw.
+        if (op.equals("&&") || op.equals("||")) { // these operators can only be used with Boolean types
+            if (lhs.isBooleanType() && rhs.isBooleanType())
+                return lhs;
+        } else if (op.equals("<") || op.equals(">") || op.equals("<=") || op.equals(">=")){ // these comparators can only compare numeric values
+            if (FunIncATypeUtil.subtype(lhs, new DoubleType()) && FunIncATypeUtil.subtype(rhs, new DoubleType()))
+                return new BooleanType();
         }
+        holder.newAnnotation(HighlightSeverity.ERROR, "Cannot use logic operator " + op +
+                        " with types " + lhs + " and " + rhs)
+                .range(exp)
+                .create();
+        return new BooleanType();
     }
 
     private static Type checkBinSetOp(Type lhs, Type rhs, String op, PsiElement exp, AnnotationHolder holder) {
