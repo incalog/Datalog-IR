@@ -17,9 +17,6 @@ import inca.debugger.souffle.Configs.DoopProgram
 import inca.debugger.ExternallyInitializableDebugger
 import inca.debugger.Predicate
 import inca.debugger.Query
-import inca.debugger.Query.toTableless
-import inca.debugger.QueryResult
-import inca.debugger.QueryState
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Timing
 import inca.measurements.util.CSVUtil.csvToString
@@ -40,7 +37,7 @@ import scala.collection.mutable
 
 // TODO What are the programs?
 // TODO What are the scenarios?
-object VarPointsToBenchmarkV2 {
+object VarPointsToBenchmarkOld {
   implicit val timing: Timing = Timing(0, 0, outliers = 0)
 
   val resultsPath: String = "benchmark-results/debugger/"
@@ -56,23 +53,23 @@ object VarPointsToBenchmarkV2 {
   }
 
   // returns running time and memory
-  //  def measureBottomUp(config: BaseConfig): (Long, Long) = {
-  //    val (compiled, runtime) = initRuntime(config)
-  //    // measure running time
-  //    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
-  //    val start = System.currentTimeMillis()
-  //    runtime.engine.delayUpdatePropagation { () =>
-  //      runtime.db.processDatabaseInput(config.input)
-  //    }
-  //    val end = System.currentTimeMillis()
-  //    val endCount = System.currentTimeMillis()
-  //    // measure memory
-  //    MemoryUtil.collectGarbage()
-  //    val mem = MemoryUtil.usedMemoryInMBytes()
-  //
-  //    EnginePool.disposeAllEngines()
-  //    (end - start, mem)
-  //  }
+//  def measureBottomUp(config: BaseConfig): (Long, Long) = {
+//    val (compiled, runtime) = initRuntime(config)
+//    // measure running time
+//    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
+//    val start = System.currentTimeMillis()
+//    runtime.engine.delayUpdatePropagation { () =>
+//      runtime.db.processDatabaseInput(config.input)
+//    }
+//    val end = System.currentTimeMillis()
+//    val endCount = System.currentTimeMillis()
+//    // measure memory
+//    MemoryUtil.collectGarbage()
+//    val mem = MemoryUtil.usedMemoryInMBytes()
+//
+//    EnginePool.disposeAllEngines()
+//    (end - start, mem)
+//  }
 
   def initBottomUp(
       compiled: CompiledDatalogModule,
@@ -102,22 +99,22 @@ object VarPointsToBenchmarkV2 {
       measurements += end - start
     }
 
-    //    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-    //    val expected = debugger.state.readBottomUp(config.entry, config.args)
+//    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
+//    val expected = debugger.state.readBottomUp(config.entry, config.args)
 
-    //    println(result.size)
-    //    println(result)
-    //    println(expected.size)
-    //    println(expected)
-    //    val tooMuch = result.entries.diff(expected.entries)
-    //    val missing = expected.entries.diff(result.entries)
-    //    println(tooMuch)
-    //    println(missing)
-    //    assert(result == expected)
+//    println(result.size)
+//    println(result)
+//    println(expected.size)
+//    println(expected)
+//    val tooMuch = result.entries.diff(expected.entries)
+//    val missing = expected.entries.diff(result.entries)
+//    println(tooMuch)
+//    println(missing)
+//    assert(result == expected)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInMBytes()
-    //    println(s"STEPS: ${debugger.irControlTrace.size}")
-    //    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
+//    println(s"STEPS: ${debugger.irControlTrace.size}")
+//    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
     EnginePool.disposeAllEngines()
     (measurements.toSeq, mem, debugger.irControlTrace.size - 1)
   }
@@ -135,15 +132,15 @@ object VarPointsToBenchmarkV2 {
     val end = System.currentTimeMillis()
     // val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
 
-    //    println(result.size)
-    //    println(result)
-    //    println(expected.size)
-    //    println(expected)
-    //    val tooMuch = result.entries.diff(expected.entries)
-    //    val missing = expected.entries.diff(result.entries)
-    //    println(tooMuch)
-    //    println(missing)
-    //    assert(result == expected)
+//    println(result.size)
+//    println(result)
+//    println(expected.size)
+//    println(expected)
+//    val tooMuch = result.entries.diff(expected.entries)
+//    val missing = expected.entries.diff(result.entries)
+//    println(tooMuch)
+//    println(missing)
+//    assert(result == expected)
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInMBytes()
     EnginePool.disposeAllEngines()
@@ -259,133 +256,43 @@ object VarPointsToBenchmarkV2 {
       val total = intoMs.sum + over.map(_._2.map(_.toDouble / 1000000).sum).sum
       println(s"TOTALTIME: $total")
     }
-    //    // intoSteps, memory, OverStepsX, OverStepsY, OverStepsZ,
-    //    val numIntoSteps = measurements.head._1.size
-    //    val numOverPred = measurements.head._2.keys.size
-    //    val overPredHeader = measurements.head._2.keys.toSeq.map("NumberOfOverSteps" + _)
-    //    val intoStepsHeader = (1 to numIntoSteps).map("intoStep" + _)
-    //    val columnHeader = IndexedSeq("NumberOfIntoSteps", "Memory (MB)", "NumberOfOverPreds") ++ intoStepsHeader ++
-    //    val rows = measurements.map { case (intoSteps, overSteps, mem) =>
-    //      (intoSteps.)
-    //    }
-    //    columnHeader +: rows
-    //
-  }
-
-  def measureEachSemanticsRule(
-      config: BaseConfig,
-      timeout: Option[Long] = None
-    ): Map[String, Seq[Long]] = {
-    val (module, runtime) = initRuntime(config)
-    val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
-    // initialize bottom-up database
-    initBottomUp(module, runtime, config)
-    debugger.setRuntime(runtime)
-    debugger.entry(config.entry, config.args)
-
-    // rule measurement util
-    val ruleMeasurements: mutable.Map[String, Seq[Long]] = mutable.Map()
-    def extendRuleSemantics(rule: String, time: Long): Unit = {
-      ruleMeasurements.get(rule) match {
-        case Some(value) =>
-          ruleMeasurements(rule) = value ++ Seq(time)
-        case None =>
-          ruleMeasurements(rule) = Seq(time)
-      }
-    }
-
-    def timeoutReached(vals: Map[String, Seq[Long]]): Boolean = {
-      timeout match {
-        case Some(till) =>
-          till - vals.flatMap(_._2).sum < 0
-        case None => false
-      }
-    }
-
-    while (!timeoutReached(ruleMeasurements.toMap) && !debugger.isFinished) {
-      // prepare to decide which rule will be measured
-      val top = debugger.queryStack.top
-      var ruleName: String = ""
-      var stackHeight: Option[Int] = None
-      var queryStableOrIterate = false
-      top.state match {
-        case QueryState.AtomIntoOrSkip => stackHeight = Some(debugger.queryStack.size)
-        case QueryState.QueryEnd => queryStableOrIterate = true
-        case s => ruleName = s.toString
-      }
-
-      // measure
-      val start = System.nanoTime()
-      debugger.stepInto()
-      val end = System.nanoTime()
-
-      // decide which rule will be measured finally (Skip vs Into, Stable vs Iterate)
-      if (stackHeight.nonEmpty) {
-        if (debugger.queryStack.size > stackHeight.get) {
-          ruleName = "AtomInto"
-        } else {
-          ruleName = "AtomSkip"
-        }
-      }
-      if (queryStableOrIterate) {
-        if (debugger.queryStack.top.isInstanceOf[QueryResult]) {
-          ruleName = "QueryStable"
-        } else {
-          ruleName = "QueryIterate"
-        }
-      }
-      extendRuleSemantics(ruleName, end - start)
-    }
-
-    //    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-    //    val expected = debugger.state.readBottomUp(config.entry, config.args)
-
-    //    println(result.size)
-    //    println(result)
-    //    println(expected.size)
-    //    println(expected)
-    //    val tooMuch = result.entries.diff(expected.entries)
-    //    val missing = expected.entries.diff(result.entries)
-    //    println(tooMuch)
-    //    println(missing)
-    //    assert(result == expected)
-//    MemoryUtil.collectGarbage()
-//    val mem = MemoryUtil.usedMemoryInMBytes()
-//    println(s"ATOMINTOS ${debugger.numerOfAtomInto}")
-//    println(s"RECORDED INTOS: ${ruleMeasurements("AtomInto").size}")
-    EnginePool.disposeAllEngines()
-    ruleMeasurements.toMap
+//    // intoSteps, memory, OverStepsX, OverStepsY, OverStepsZ,
+//    val numIntoSteps = measurements.head._1.size
+//    val numOverPred = measurements.head._2.keys.size
+//    val overPredHeader = measurements.head._2.keys.toSeq.map("NumberOfOverSteps" + _)
+//    val intoStepsHeader = (1 to numIntoSteps).map("intoStep" + _)
+//    val columnHeader = IndexedSeq("NumberOfIntoSteps", "Memory (MB)", "NumberOfOverPreds") ++ intoStepsHeader ++
+//    val rows = measurements.map { case (intoSteps, overSteps, mem) =>
+//      (intoSteps.)
+//    }
+//    columnHeader +: rows
+//
   }
 
   def main(args: Array[String]): Unit = {
-    //    val overConfigs = Seq(
-    //      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
-    //      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
-    //    )
-    val intoConfigs = Seq(
+//    val intoConfigs = Seq(
 //      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
-//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
-      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
+//    )
+//    val overConfigs = Seq(
+//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics),
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics)
+//    )
+//    for (c <- intoConfigs) {
+//      measureAndWrite(c, measureStepInto, "StepInto")
+//    }
+//    for (c <- overConfigs) {
+//      measureAndWrite(c, measureStepOut, "StepOver")
+//    }
+    val interactiveConfigs = Seq(
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1,
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale2,
+      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale3
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale4
     )
-    val warmupInNano: Long = 2L * 60L * 1000L * 1000000L
-    val tenMinutesInNano: Long = 10L * 60L * 1000L * 1000000L
-    for (c <- intoConfigs) {
-      for (i <- 0 until c.warmup) {
-        println(s"WARMUP $i")
-        measureEachSemanticsRule(c, Some(warmupInNano))
-      }
-      println("WARMUP COMPLETE")
-      val measurements = measureEachSemanticsRule(c, Some(tenMinutesInNano))
-      measurements.foreach { case (rule, vals) =>
-        val rows = vals.map(v => IndexedSeq(v)).toIndexedSeq
-        val csv = IndexedSeq("measurement") +: rows
-        FilesUtil.writeFile(s"$resultsPath/${c.name}_$rule.csv", csvToString(csv))
-      }
-
-      val all = measurements.flatMap(_._2).toIndexedSeq
-      val allRows = all.map(v => IndexedSeq(v))
-      val allCSV = IndexedSeq("measurement") +: allRows
-      FilesUtil.writeFile(s"$resultsPath/${c.name}_ALL.csv", csvToString(allCSV))
+    for ((c, oracle) <- interactiveConfigs) {
+      measureInteractiveAndWrite(c, oracle)
     }
   }
+
 }

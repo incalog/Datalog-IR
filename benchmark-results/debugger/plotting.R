@@ -75,7 +75,7 @@ colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(4
 
 options(scipen=999)
 pdf(file = paste(graphpath, "MethodLookup-Into.pdf", sep="/"))
-methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, methodLookupAtomPrimitive, methodLookupAtomInto, methodLookupAtomSkip, methodLookupQueryUnion, methodLookupQueryStable, methodLookupQueryIterate, methodLookupQueryResult, methodLookupAll,
+boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, methodLookupAtomPrimitive, methodLookupAtomInto, methodLookupAtomSkip, methodLookupQueryUnion, methodLookupQueryStable, methodLookupQueryIterate, methodLookupQueryResult, methodLookupAll,
         main = "MethodLookup",
         ylab = "Time per step in milliseconds",
         names = c("R-Merge", "R-Result", "A-EDB", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
@@ -88,40 +88,170 @@ methodIntoPlot <- boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodL
 dev.off()
 
 pdf(file = paste(graphpath, "SubtypeOf-Into.pdf", sep="/"))
-subtypeOfPlot <- boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
-                          main = "SubtypeOf",
-                          ylab = "Time per step in milliseconds",
-                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
-                          las = 2,
-                          log = "y",
-                          outline = FALSE,
-                          col = durationColors
-                          # ylim = c(0.001, 350),
+boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtomEq, subtypeOfAtomInto, subtypeOfAtomSkip, subtypeOfQueryUnion, subtypeOfQueryStable, subtypeOfQueryIterate, subtypeOfQueryResult, subtypeOfAll,
+        main = "SubtypeOf",
+        ylab = "Time per step in milliseconds",
+        names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+        las = 2,
+        log = "y",
+        outline = FALSE,
+        col = durationColors
+        # ylim = c(0.001, 350),
 )
 dev.off()
 
 pdf(file = paste(graphpath, "VarPointsTo-Into.pdf", sep="/"))
-varPointsToPlot <- boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
-                          main = "VarPointsTo",
-                          ylab = "Time per step in milliseconds",
-                          names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
-                          las = 2,
-                          log = "y",
-                          outline = FALSE,
-                          col = durationColors
-                          # ylim = c(0.001, 350),
+boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPointsToAtomEq, varPointsToAtomNeq, varPointsToAtomPrim, varPointsToAtomInto, varPointsToAtomSkip, varPointsToQueryUnion, varPointsToQueryStable, varPointsToQueryIterate, varPointsToQueryResult, varPointsToAll,
+        main = "VarPointsTo",
+        ylab = "Time per step in milliseconds",
+        names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+        las = 2,
+        log = "y",
+        outline = FALSE,
+        col = durationColors
+        # ylim = c(0.001, 350),
 )
 dev.off()
 
 pdf(file = paste(graphpath, "All-Into.pdf", sep="/"))
-varPointsToPlot <- boxplot(combinedRuleMerge, combinedRuleResult, combinedAtomEDB, combinedAtomEq, combinedAtomNeq, combinedAtomPrim, combinedAtomInto, combinedAtomSkip, combinedQueryUnion, combinedQueryStable, combinedQueryIterate, combinedQueryResult, combinedAll,
-                           main = "SubtypeOf + MethodLookup + VarPointsTo",
-                           ylab = "Time per step in milliseconds",
-                           names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
-                           las = 2,
-                           log = "y",
-                           outline = FALSE,
-                           col = durationColors
-                           # ylim = c(0.001, 350),
+boxplot(combinedRuleMerge, combinedRuleResult, combinedAtomEDB, combinedAtomEq, combinedAtomNeq, combinedAtomPrim, combinedAtomInto, combinedAtomSkip, combinedQueryUnion, combinedQueryStable, combinedQueryIterate, combinedQueryResult, combinedAll,
+        main = "SubtypeOf + MethodLookup + VarPointsTo",
+        ylab = "Time per step in milliseconds",
+        names = c("R-Merge", "R-Result", "A-EDB", "A-Eq", "A-Neq", "A-Prim", "A-Into", "A-Skip", "Q-Union", "Q-Stable", "Q-Iterate", "Q-Result", "All"),
+        las = 2,
+        log = "y",
+        outline = FALSE,
+        col = durationColors
+        # ylim = c(0.001, 350),
 )
+dev.off()
+
+pathInto10  <- preprocessCSV("Path-StepInto10.csv")
+pathInto20  <- preprocessCSV("Path-StepInto20.csv")
+pathInto30  <- preprocessCSV("Path-StepInto30.csv")
+pathInto40  <- preprocessCSV("Path-StepInto40.csv")
+pathInto50  <- preprocessCSV("Path-StepInto50.csv")
+pathInto60  <- preprocessCSV("Path-StepInto60.csv")
+pathInto70  <- preprocessCSV("Path-StepInto70.csv")
+pathInto80  <- preprocessCSV("Path-StepInto80.csv")
+pathInto90  <- preprocessCSV("Path-StepInto90.csv")
+pathInto100 <- preprocessCSV("Path-StepInto100.csv")
+pathIntoAll <- c(pathInto10, pathInto20, pathInto30, pathInto40, pathInto50, pathInto60, pathInto70, pathInto80, pathInto90, pathInto100)
+
+pathOver10  <- preprocessCSV("Path-StepOver10.csv")
+pathOver20  <- preprocessCSV("Path-StepOver20.csv")
+pathOver30  <- preprocessCSV("Path-StepOver30.csv")
+pathOver40  <- preprocessCSV("Path-StepOver40.csv")
+pathOver50  <- preprocessCSV("Path-StepOver50.csv")
+pathOver60  <- preprocessCSV("Path-StepOver60.csv")
+pathOver70  <- preprocessCSV("Path-StepOver70.csv")
+pathOver80  <- preprocessCSV("Path-StepOver80.csv")
+pathOver90  <- preprocessCSV("Path-StepOver90.csv")
+pathOver100 <- preprocessCSV("Path-StepOver100.csv")
+pathOver110 <- preprocessCSV("Path-StepOver110.csv")
+pathOver120 <- preprocessCSV("Path-StepOver120.csv")
+pathOver130 <- preprocessCSV("Path-StepOver130.csv")
+pathOver140 <- preprocessCSV("Path-StepOver140.csv")
+pathOver150 <- preprocessCSV("Path-StepOver150.csv")
+pathOver160 <- preprocessCSV("Path-StepOver160.csv")
+pathOver170 <- preprocessCSV("Path-StepOver170.csv")
+pathOver180 <- preprocessCSV("Path-StepOver180.csv")
+pathOver190 <- preprocessCSV("Path-StepOver190.csv")
+pathOver200 <- preprocessCSV("Path-StepOver200.csv")
+pathOver210 <- preprocessCSV("Path-StepOver210.csv")
+pathOver220 <- preprocessCSV("Path-StepOver220.csv")
+pathOver230 <- preprocessCSV("Path-StepOver230.csv")
+pathOver240 <- preprocessCSV("Path-StepOver240.csv")
+pathOver250 <- preprocessCSV("Path-StepOver250.csv")
+pathOver260 <- preprocessCSV("Path-StepOver260.csv")
+pathOver270 <- preprocessCSV("Path-StepOver270.csv")
+pathOver280 <- preprocessCSV("Path-StepOver280.csv")
+pathOver290 <- preprocessCSV("Path-StepOver290.csv")
+pathOver300 <- preprocessCSV("Path-StepOver300.csv")
+pathOver310 <- preprocessCSV("Path-StepOver310.csv")
+pathOver320 <- preprocessCSV("Path-StepOver320.csv")
+pathOver330 <- preprocessCSV("Path-StepOver330.csv")
+pathOver340 <- preprocessCSV("Path-StepOver340.csv")
+pathOver350 <- preprocessCSV("Path-StepOver350.csv")
+pathOver360 <- preprocessCSV("Path-StepOver360.csv")
+pathOver370 <- preprocessCSV("Path-StepOver370.csv")
+pathOver380 <- preprocessCSV("Path-StepOver380.csv")
+pathOver390 <- preprocessCSV("Path-StepOver390.csv")
+pathOver400 <- preprocessCSV("Path-StepOver400.csv")
+pathOver410 <- preprocessCSV("Path-StepOver410.csv")
+pathOver420 <- preprocessCSV("Path-StepOver420.csv")
+pathOver430 <- preprocessCSV("Path-StepOver430.csv")
+pathOver440 <- preprocessCSV("Path-StepOver440.csv")
+pathOver450 <- preprocessCSV("Path-StepOver450.csv")
+pathOver460 <- preprocessCSV("Path-StepOver460.csv")
+pathOver470 <- preprocessCSV("Path-StepOver470.csv")
+pathOver480 <- preprocessCSV("Path-StepOver480.csv")
+pathOver490 <- preprocessCSV("Path-StepOver490.csv")
+pathOver500 <- preprocessCSV("Path-StepOver500.csv")
+pathOverAll <- c(
+  pathOver10,
+  pathOver20,
+  pathOver30,
+  pathOver40,
+  pathOver50,
+  pathOver60,
+  pathOver70,
+  pathOver80,
+  pathOver90,
+  pathOver100,
+  pathOver110,
+  pathOver120,
+  pathOver130,
+  pathOver140,
+  pathOver150,
+  pathOver160,
+  pathOver170,
+  pathOver180,
+  pathOver190,
+  pathOver200,
+  pathOver210,
+  pathOver220,
+  pathOver230,
+  pathOver240,
+  pathOver250,
+  pathOver260,
+  pathOver270,
+  pathOver280,
+  pathOver290,
+  pathOver300,
+  pathOver310,
+  pathOver320,
+  pathOver330,
+  pathOver340,
+  pathOver350,
+  pathOver360,
+  pathOver370,
+  pathOver380,
+  pathOver390,
+  pathOver400,
+  pathOver410,
+  pathOver420,
+  pathOver430,
+  pathOver440,
+  pathOver450,
+  pathOver460,
+  pathOver470,
+  pathOver480,
+  pathOver490,
+  pathOver500
+  )
+pdf(file = paste(graphpath, "Path.pdf", sep="/"))
+plot(pathOverAll,
+     type = "o",
+     col = durationColors[1],
+     ylab = "Total Time in milliseconds",
+     # names = seq(10, 500, by = 10),
+     # col = durationColors
+     xaxt='n',
+     ylim = c(0, 80000),
+)
+lines(pathIntoAll, type = "o", col = durationColors[2])
+axis(1,at=c(1:50),labels=seq(10, 500, by = 10))
+legend("topright", legend=c("step-over", "step-into"),
+       col=c(durationColors[1], durationColors[2]), lty=1:1)
 dev.off()
