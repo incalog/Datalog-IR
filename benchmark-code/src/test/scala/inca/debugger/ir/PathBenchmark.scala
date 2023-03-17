@@ -12,6 +12,7 @@ import inca.measurements.util.Config
 import inca.measurements.util.Units
 import inca.runtime.context.DataModel
 import inca.runtime.db.DatabaseInput
+import inca.runtime.EnginePool
 import inca.util.FilesUtil
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable
@@ -31,43 +32,41 @@ object PathBenchmark {
 
   val resultPath = "benchmark-results/debugger/data"
 
+  val intoConfigs: Seq[PathConfig] =
+    for (i <- 10 to 100 by 10) yield {
+      PathConfig(
+        5,
+        10,
+        "path",
+        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
+        i)
+    }
+  val overConfigs: Seq[PathConfig] =
+    for (i <- 10 to 700 by 10) yield {
+      PathConfig(
+        5,
+        10,
+        "path",
+        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
+        i)
+    }
+
   def main(args: Array[String]): Unit = {
-    val configs =
-      for (i <- 500 to 500 by 10) yield {
-        PathConfig(
-          5,
-          1,
-          "path",
-          ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
-          i)
-      }
-    for (config <- configs) {
-      // measure time and number of steps (step-into)
-//      val stepIntoMeasurements = measure(config, (debugger, _, _) => measureStepInto(debugger))
-//      println(s"Nodes ${config.numCycleNodes}")
-//      println(s"STEPINTO")
-//      println(csvToString(stepIntoMeasurements))
-//      FilesUtil.writeFile(
-//        s"$resultPath/Path-StepInto${config.numCycleNodes}.csv",
-//        csvToString(stepIntoMeasurements))
-//      // measure time and number of steps (step-over)
-      val stepOverMeasurements = measure(
-        config,
-        (debugger, _, _) => measureStepOver(debugger, config.predToStopAt, config.tableToStopAt))
-      println(s"STEPOVER")
-      println(csvToString(stepOverMeasurements))
+    // measure time and number of steps (step-into)
+    for (c <- intoConfigs) {
+      val stepIntoMeasurements = measure(c, (debugger, _, _) => measureStepInto(debugger))
       FilesUtil.writeFile(
-        s"$resultPath/Path-StepOver${config.numCycleNodes}.csv",
+        s"$resultPath/Path-StepInto${c.numCycleNodes}.csv",
+        csvToString(stepIntoMeasurements))
+    }
+    // measure time and number of steps (step-over)
+    for (c <- overConfigs) {
+      val stepOverMeasurements =
+        measure(c, (debugger, _, _) => measureStepOver(debugger, c.predToStopAt, c.tableToStopAt))
+      FilesUtil.writeFile(
+        s"$resultPath/Path-StepOver${c.numCycleNodes}.csv",
         csvToString(stepOverMeasurements))
     }
-//    val stepOverMeasurements =
-//      measure(config, (debugger, pred, t) => measureStepOver(debugger, pred, t))
-//    FilesUtil.writeFile(
-//      s"$resultPath/Path-StepInto${config.numCycleNodes}.csv",
-//      BenchmarkUtils.measurementsToCSV(stepIntoMeasurements))
-//    FilesUtil.writeFile(
-//      s"$resultPath/Path-StepOver${config.numCycleNodes}.csv",
-//      BenchmarkUtils.measurementsToCSV(stepOverMeasurements))
   }
 
   type Edge = (Int, Int)
@@ -105,6 +104,8 @@ object PathBenchmark {
       debugger.clearIRControlTrace()
       IndexedSeq[Any](steps, vals.sum + over.getOrElse(0L))
     }
+    EnginePool.disposeAllEngines()
+    System.gc()
     header +: rows
   }
 
@@ -165,14 +166,6 @@ object PathBenchmark {
           measurements += end - start
       }
     }
-//    val stepOverMeasurement = end - start
-//    measurements += stepOverMeasurement
-//    while (!debugger.isFinished) {
-//      val start = System.nanoTime()
-//      debugger.stepInto()
-//      val end = System.nanoTime()
-//      measurements += end - start
-//    }
     (measurements.toSeq, debugger.irControlTrace.size - 1, None)
   }
 }
