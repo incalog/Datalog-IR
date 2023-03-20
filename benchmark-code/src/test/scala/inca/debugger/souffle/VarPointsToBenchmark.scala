@@ -14,6 +14,7 @@ import inca.debugger.souffle.Configs.BaseConfig
 import inca.debugger.souffle.Configs.DebuggingSemantics
 import inca.debugger.souffle.Configs.DebuggingSemantics.HybridSemantics
 import inca.debugger.souffle.Configs.DoopProgram
+import inca.debugger.souffle.Configs.Oracle
 import inca.debugger.ExternallyInitializableDebugger
 import inca.debugger.Predicate
 import inca.debugger.Query
@@ -43,7 +44,7 @@ import scala.collection.mutable
 object VarPointsToBenchmark {
   implicit val timing: Timing = Timing(0, 0, outliers = 0)
 
-  val resultsPath: String = "benchmark-results/debugger/"
+  val resultsPath: String = "benchmark-results/debugger/data"
 
   def initRuntime(config: BaseConfig): (CompiledDatalogModule, DatalogRuntime) = {
     val compiled =
@@ -152,7 +153,8 @@ object VarPointsToBenchmark {
 
   def measureInteractive(
       config: BaseConfig,
-      shouldStepInto: Query => (Boolean, Predicate)
+      oracle: Oracle,
+      timeout: Option[Long] = None
     ): (Seq[Long], Map[Predicate, Seq[Long]], Long) = {
     val (module, runtime) = initRuntime(config)
     val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
@@ -170,9 +172,23 @@ object VarPointsToBenchmark {
           overMeasurements(pred) = Seq(time)
       }
     }
-    while (!debugger.isFinished) {
+    def timeoutReached(vals: Map[String, Seq[Long]]): Boolean = {
+      timeout match {
+        case Some(till) =>
+          val reached = till - vals.flatMap(_._2).sum < 0
+          if (reached) {
+            println(s"TIMEOUTREACHED = $reached")
+          }
+          reached
+        case None => false
+      }
+    }
+    while (
+      !timeoutReached(
+        overMeasurements.toMap + ("IntoMeasurement" -> intoMeasurements.toSeq)) && !debugger.isFinished
+    ) {
       val top = debugger.queryStack.top
-      val (into, callee) = shouldStepInto(top)
+      val (into, callee) = oracle.shouldStepInto(top)
       if (into) {
         val start = System.nanoTime()
         debugger.stepInto()
@@ -232,7 +248,7 @@ object VarPointsToBenchmark {
 
   def measureInteractiveAndWrite(
       config: BaseConfig,
-      oracle: Query => (Boolean, Predicate)
+      oracle: Oracle
     ): Unit = {
     val measurements = BenchmarkUtils.measure(() => measureInteractive(config, oracle), config)
     measurements.foreach { case (into, over, mem) =>
@@ -369,21 +385,40 @@ object VarPointsToBenchmark {
       scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
       // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
     )
-    for (c <- intoConfigs) {
-      for (i <- 0 until c.warmup) {
-        measureEachSemanticsRule(c, Some(warmupInNano))
-      }
-      val measurements = measureEachSemanticsRule(c, Some(tenMinutesInNano))
-      measurements.foreach { case (rule, vals) =>
-        val rows = vals.map(v => IndexedSeq(v)).toIndexedSeq
-        val csv = IndexedSeq("measurement") +: rows
-        FilesUtil.writeFile(s"$resultsPath/${c.name}_$rule.csv", csvToString(csv))
-      }
+    val overConfigs = Seq(
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale2
+      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale3
+      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale4
+    )
 
-      val all = measurements.flatMap(_._2).toIndexedSeq
+//    for (c <- intoConfigs) {
+//      for (i <- 0 until c.warmup) {
+//        measureEachSemanticsRule(c, Some(warmupInNano))
+//      }
+//      val measurements = measureEachSemanticsRule(c, Some(tenMinutesInNano))
+//      measurements.foreach { case (rule, vals) =>
+//        val rows = vals.map(v => IndexedSeq(v)).toIndexedSeq
+//        val csv = IndexedSeq("measurement") +: rows
+//        FilesUtil.writeFile(s"$resultsPath/${c.name}_$rule.csv", csvToString(csv))
+//      }
+//
+//      val all = measurements.flatMap(_._2).toIndexedSeq
+//      val allRows = all.map(v => IndexedSeq(v))
+//      val allCSV = IndexedSeq("measurement") +: allRows
+//      FilesUtil.writeFile(s"$resultsPath/${c.name}_ALL.csv", csvToString(allCSV))
+//    }
+
+    for ((c, o) <- overConfigs) {
+      for (i <- 0 until c.warmup) {
+        // do warmup
+        measureInteractive(c, o, Some(warmupInNano))
+      }
+      val (into, over, mem) = measureInteractive(c, o, Some(tenMinutesInNano))
+      val all = over.flatMap(_._2).toIndexedSeq
       val allRows = all.map(v => IndexedSeq(v))
       val allCSV = IndexedSeq("measurement") +: allRows
-      FilesUtil.writeFile(s"$resultsPath/${c.name}_ALL.csv", csvToString(allCSV))
+      FilesUtil.writeFile(s"$resultsPath/${c.name}_${o.name}_Over.csv", csvToString(allCSV))
     }
   }
 }

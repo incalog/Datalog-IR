@@ -20,6 +20,8 @@ nsToMs <- function(ns) {
   ns / 1000000
 }
 
+### VarPointsTo Step Into
+
 methodLookupAll <-           readMeasurement("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_ALL.csv")
 methodLookupAtomEDB <-       readMeasurement("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomEDB.csv")
 methodLookupAtomInto <-      readMeasurement("VarPointsTo_minijavac_basic_MethodLookup_simplename_PureInto_AtomInto.csv")
@@ -72,12 +74,14 @@ combinedQueryIterate <-      c(varPointsToQueryIterate, subtypeOfQueryIterate, m
 combinedQueryStable <-       c(varPointsToQueryStable, subtypeOfQueryStable, methodLookupQueryStable)
 combinedQueryResult <-       c(varPointsToQueryResult, subtypeOfQueryResult, methodLookupQueryResult)
 
-typeCol <- rgb(127/256, 205/256, 187/256)
-constantCol <- rgb(44/256, 127/256, 184/256)
-taintCol <- rgb(237/256, 248/256, 177/256)
+# color1 <- rgb(127/256, 205/256, 187/256)
+# color2 <- rgb(44/256, 127/256, 184/256)
+# color3 <- rgb(237/256, 248/256, 177/256)
+color1 <- rgb(255/256, 255/256, 204/256)
+color2 <- rgb(161/256, 218/256, 180/256)
+color3 <- rgb(65/256, 182/256, 196/256)
+color4 <- rgb(34/256, 94/256, 168/256)
 
-durationColors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
-colors <- c(rgb(127/256, 205/256, 187/256), rgb(44/256, 127/256, 184/256), rgb(44/256, 127/256, 184/256), rgb(237/256, 248/256, 177/256))
 
 options(scipen=999)
 pdf(file = paste(graphpath, "MethodLookup-Into.pdf", sep="/"))
@@ -89,7 +93,7 @@ boxplot(methodLookupRuleMerge, methodLookupRuleResult, methodLookupAtomEDB, meth
         log = "y",
         outline = FALSE,
         # ylim = c(0.001, 350),
-        col = durationColors
+        col = color1
 )
 dev.off()
 
@@ -101,7 +105,7 @@ boxplot(subtypeOfRuleMerge, subtypeOfRuleResult, subtypeOfAtomEDB, subtypeOfAtom
         las = 2,
         log = "y",
         outline = FALSE,
-        col = durationColors
+        col = color1
         # ylim = c(0.001, 350),
 )
 dev.off()
@@ -114,7 +118,7 @@ boxplot(varPointsToRuleMerge, varPointsToRuleResult, varPointsToAtomEDB, varPoin
         las = 2,
         log = "y",
         outline = FALSE,
-        col = durationColors
+        col = color1
         # ylim = c(0.001, 350),
 )
 dev.off()
@@ -127,10 +131,36 @@ boxplot(combinedRuleMerge, combinedRuleResult, combinedAtomEDB, combinedAtomEq, 
         las = 2,
         log = "y",
         outline = FALSE,
-        col = durationColors
+        col = c(rep(color1, times = 12), color4)
         # ylim = c(0.001, 350),
 )
 dev.off()
+
+
+### VarPointsTo Step Over
+
+scenario1Over <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsTo_Over.csv")
+scenario2Over <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndStaticFieldPointsTo_Over.csv")
+scenario3Over <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndInstanceFieldPointsTo_Over.csv")
+scenario4Over <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndReachable_Over.csv")
+pdf(file = paste(graphpath, "VarPointsTo-Over.pdf", sep="/"))
+boxplot(scenario1Over, scenario2Over, scenario3Over, scenario4Over,
+        main = "VarPointsTo StepOver",
+        ylab = "Time per step in milliseconds",
+        names = c("Scenario 1", "Scenario 2", "Scenario 3", "Scenario 4"),
+        # las = 2,
+        # log = "y",
+        outline = FALSE,
+        col = c(color1, color2, color3, color4)
+        # ylim = c(0.001, 350),
+)
+dev.off()
+
+### VarPointsTo Memory?
+
+
+### Path Step Into/Over
+
 
 pathInto10  <- mean(readMeasurement("Path-StepInto10.csv"))
 pathInto20  <- mean(readMeasurement("Path-StepInto20.csv"))
@@ -457,6 +487,23 @@ axis(1,at=c(1:70),labels=seq(10, 700, by = 10))
 legend("topright", legend=c("step-over", "step-into"),
        col=c(durationColors[1], durationColors[2]), lty=1:1)
 dev.off()
+
+pdf(file = paste(graphpath, "Path-1-50.pdf", sep="/"))
+plot(c(pathOver10, pathOver20, pathOver30, pathOver40, pathOver50),
+     type = "o",
+     col = durationColors[1],
+     ylab = "Total Time in milliseconds",
+     # names = seq(10, 500, by = 10),
+     # col = durationColors
+     xaxt='n',
+     ylim = c(0, 2000),
+)
+lines(c(pathInto10, pathInto20, pathInto30, pathInto40, pathInto50), type = "o", col = durationColors[2])
+axis(1,at=c(1:5),labels=seq(10, 50, by = 10))
+legend("topright", legend=c("step-over", "step-into"),
+       col=c(durationColors[1], durationColors[2]), lty=1:1)
+dev.off()
+
 # exponential regression for path-step-into
 pathintotime.data <- data.frame(time=pathIntoAll, size=seq(10, 100, by = 10))
 pathintotime.reg <- lm(log(time)~size, data= pathintotime.data)

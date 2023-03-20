@@ -239,23 +239,36 @@ object Configs {
       semantics
     )
 
-  def constructSimpleOracle(intoPreds: Set[Predicate]): (Query) => (Boolean, Predicate) = {
-    case Subquery(_, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
-      if (intoPreds.contains(callee)) {
-        println(s"INTO $callee")
-      } else {
-        println(s"SKIP $callee")
-      }
-      (intoPreds.contains(callee), callee)
-    case Subquery(pred, _, _, _, _) => (true, pred)
-    case QueryResult(pred, args, result) => (true, pred)
+  def constructIntoPredsOracle(intoPreds: Set[Predicate]): Oracle = {
+    val f: Query => (Boolean, Predicate) = {
+      case Subquery(_, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
+        (intoPreds.contains(callee), callee)
+      case Subquery(pred, _, _, _, _) => (true, pred)
+      case QueryResult(pred, _, _) => (true, pred)
+    }
+    Oracle(f, s"Into${intoPreds.mkString("And")}")
   }
 
-  def scenario3Orcale1: Query => (Boolean, Predicate) = constructSimpleOracle(Set("VarPointsTo"))
-  def scenario3Orcale2: Query => (Boolean, Predicate) = constructSimpleOracle(
-    Set("VarPointsTo", "StaticFieldPointsTo"))
-  def scenario3Orcale3: Query => (Boolean, Predicate) = constructSimpleOracle(
-    Set("VarPointsTo", "Reachable"))
-  def scenario3Orcale4: Query => (Boolean, Predicate) = constructSimpleOracle(
+  def constructOverPredsOracle(overPreds: Set[Predicate]): Oracle = {
+    val f: Query => (Boolean, Predicate) = {
+      case Subquery(_, _, _, _, Rule(_, _, Atom(Datalog.Call(callee, _, _, _)) +: _) +: _) =>
+        (!overPreds.contains(callee), callee)
+      case Subquery(pred, _, _, _, _) => (true, pred)
+      case QueryResult(pred, _, _) => (true, pred)
+    }
+    Oracle(f, s"Over${overPreds.mkString("And")}")
+  }
+
+  case class Oracle(f: Query => (Boolean, Predicate), name: String) {
+    def shouldStepInto: Query => (Boolean, Predicate) = f
+  }
+
+  // into pred scenarios
+  val scenario3Orcale1: Oracle = constructIntoPredsOracle(Set("VarPointsTo"))
+  val scenario3Orcale2: Oracle = constructIntoPredsOracle(Set("VarPointsTo", "StaticFieldPointsTo"))
+  val scenario3Orcale3: Oracle = constructIntoPredsOracle(
     Set("VarPointsTo", "InstanceFieldPointsTo"))
+  val scenario3Orcale4: Oracle = constructIntoPredsOracle(Set("VarPointsTo", "Reachable"))
+
+  // over pred scenarios
 }
