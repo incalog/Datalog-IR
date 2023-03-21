@@ -24,8 +24,6 @@ trait DebuggerState {
   protected val topDownDatabase: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   protected val activeQueries: mutable.Map[(Predicate, Adornment), List[ValueTable]] =
     mutable.Map.empty
-//  protected val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] =
-//    mutable.Map.empty
   protected lazy val predicates: Map[Predicate, Seq[Datalog.Param]] =
     program.patternMap.map { case (pred, pat) =>
       pred -> pat.params
@@ -34,7 +32,6 @@ trait DebuggerState {
   def clear(): Unit = {
     topDownDatabase.clear()
     activeQueries.clear()
-//    expectedFixpoint.clear()
   }
 
   def insertTopDown(pred: Predicate, table: ValueTable): Unit = {
@@ -49,7 +46,6 @@ trait DebuggerState {
   def readTopDown(pred: Predicate, args: ValueTable): ValueTable = {
     topDownDatabase.get(pred) match {
       case Some(t) =>
-        // println(s"read topdown $pred of ${t.columns} with args ${args.columns}")
         t.join(args)
       case None =>
         ValueTable.empty(predicates(pred).map(_.name))
@@ -62,28 +58,24 @@ trait DebuggerState {
   }
 
   def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
-    val adornment = adorn(pred, args)
-    activeQueries.get(pred -> adornment) match {
-      case Some(stack) =>
-        val seen = unionOfStack(pred, adornment)
-        val remaining = args.diff(seen)
-        if (remaining.nonEmpty) {
-          activeQueries += (pred -> adornment) -> (args :: stack)
-        }
-        remaining
-      case None =>
-        activeQueries += (pred -> adornment) -> List(args)
-        args
+    val unseen = determineUnseen(pred, args)
+    if (unseen.nonEmpty) {
+      val adornment = adorn(pred, args)
+      val newStack = args :: activeQueries.getOrElse(pred -> adornment, Nil)
+      activeQueries += (pred -> adornment) -> newStack
     }
+    unseen
   }
 
-//  def storeExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
-  // expectedFixpoint += (pred -> args) -> readBottomUp(pred, args)
-//  }
-//
-//  def clearExpectedFixpoint(pred: Predicate, args: ValueTable): Unit = {
-  // expectedFixpoint.remove(pred -> args)
-//  }
+  protected def determineUnseen(pred: Predicate, args: ValueTable): ValueTable = {
+    val adornment = adorn(pred, args)
+    if (activeQueries.isDefinedAt(pred -> adornment)) {
+      val seen = unionOfStack(pred, adornment)
+      args.diff(seen)
+    } else {
+      args
+    }
+  }
 
   def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val adornment = adorn(pred, args)
@@ -99,12 +91,6 @@ trait DebuggerState {
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
     val td = readTopDown(pred, args)
     result.subset(td)
-//    expectedFixpoint.get(pred -> args) match {
-//      case Some(expected) =>
-//        expected.size <= result.size
-//      case None =>
-//        throw new IllegalStateException("")
-//    }
   }
 
   protected def unionOfStack(pred: Predicate, adornment: Adornment): ValueTable = {
@@ -164,7 +150,6 @@ class BottomUpDebuggerState(val bottomUpRuntime: DatalogRuntime) extends Debugge
   }
 }
 
-// TODO
 trait AvoidNonProducingIterationDebuggerState extends BottomUpDebuggerState {
   protected val expectedFixpoint: mutable.Map[(Predicate, ValueTable), ValueTable] =
     mutable.Map.empty
@@ -175,9 +160,9 @@ trait AvoidNonProducingIterationDebuggerState extends BottomUpDebuggerState {
   }
 
   override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
-    val unseen = super.pushQuery(pred, args)
+    val unseen = determineUnseen(pred, args)
     expectedFixpoint += (pred -> unseen) -> readBottomUp(pred, unseen)
-    unseen
+    super.pushQuery(pred, args)
   }
 
   override def popQuery(pred: Predicate, args: ValueTable): ValueTable = {

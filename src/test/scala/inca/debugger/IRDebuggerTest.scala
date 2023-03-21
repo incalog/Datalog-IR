@@ -34,7 +34,11 @@ class IRDebuggerTest extends AnyFunSuite {
     ): Debugger = {
     val compiled = Compiler.compileGP(_module, dm, Options())
     val debugger =
-      new InitializingIRDebugger(compiled, dbInput, rt => new AccumulatingDebuggerState(rt))
+      new InitializingIRDebugger(
+        compiled,
+        dbInput,
+        rt => new AccumulatingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState)
+
     debugger
   }
 
