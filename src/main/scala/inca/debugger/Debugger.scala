@@ -63,10 +63,10 @@ trait Debugger extends DebuggerAPI {
       _database.processDatabaseInput(input)
     })
     val rt = DatalogRuntime(_engine, _database, module)
-    state = debuggingState(rt)
+    state = stateFactory(rt)
   }
 
-  def debuggingState: DatalogRuntime => DebuggerState
+  def stateFactory: DatalogRuntime => DebuggerState
 
   /*
    * Functions reading the debugging state

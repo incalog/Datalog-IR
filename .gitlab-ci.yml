@@ -15,7 +15,7 @@ test:
     - sbt compile
     - sbt "testOnly inca.runtime.**"
     - sbt "testOnly inca.backend.**"
+    - sbt "testOnly inca.debugger.**"
     - sbt "testOnly inca.frontend.functional.**"
     - sbt "testOnly inca.frontend.constraint.**"
     - sbt "testOnly inca.caseStudies.**"
-    - sbt "testOnly inca.debugger.**"

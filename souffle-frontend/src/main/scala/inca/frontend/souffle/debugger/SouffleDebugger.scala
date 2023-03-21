@@ -234,6 +234,6 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
       case _ => None
     }
 
-  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+  override def stateFactory: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
     new AccumulatingDebuggerState(rt)
 }

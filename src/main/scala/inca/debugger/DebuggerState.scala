@@ -1,5 +1,6 @@
 package inca.debugger
 
+import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
 import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
@@ -217,12 +218,17 @@ class ResettingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
   }
 }
 
-class AccumulatingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
+// blacklist will be propagated and cleaned when pushing and popping a subquery
+class AccumulatingDebuggerState(
+    override val bottomUpRuntime: DatalogRuntime)
     extends BottomUpDebuggerState(bottomUpRuntime) {
+  lazy val depGraph: DependencyGraph = new DependencyGraph(bottomUpRuntime.compiled.ir)
+
+  private def isCyclic(pred: Predicate): Boolean = depGraph.cycles.exists(_.contains(pred))
 
   override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val unseen = super.pushQuery(pred, args)
-    if (unseen.nonEmpty) {
+    if (unseen.nonEmpty && isCyclic(pred)) {
       val blacklist = prepareBlacklist(pred, unseen)
       val input = DatabaseInput(EditScript(Seq()), Map(blacklist), Map())
       bottomUpRuntime.engine.delayUpdatePropagation { () =>
@@ -234,8 +240,9 @@ class AccumulatingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
 
   override def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val originalArgs = super.popQuery(pred, args)
-    if (originalArgs.nonEmpty) {
-      val blacklist = prepareBlacklist(pred, originalArgs)
+    if (originalArgs.nonEmpty && isCyclic(pred)) {
+      val diff = originalArgs.diff(unionOfStack(pred, adorn(pred, args)))
+      val blacklist = prepareBlacklist(pred, diff)
       val input = DatabaseInput(EditScript(Seq()), Map(), Map(blacklist))
       bottomUpRuntime.engine.delayUpdatePropagation { () =>
         bottomUpRuntime.db.processDatabaseInput(input)

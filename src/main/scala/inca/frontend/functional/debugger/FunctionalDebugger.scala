@@ -425,6 +425,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     }
   }
 
-  override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+  override def stateFactory: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
     new AccumulatingDebuggerState(rt)
 }

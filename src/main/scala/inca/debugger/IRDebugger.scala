@@ -25,7 +25,7 @@ trait IRDebugger extends Debugger {
 final class InitializingIRDebugger(
     module: CompiledDatalogModule,
     input: DatabaseInput,
-    val debuggingState: DatalogRuntime => DebuggerState)
+    val stateFactory: DatalogRuntime => DebuggerState)
     extends IRDebugger {
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
@@ -33,11 +33,11 @@ final class InitializingIRDebugger(
 
 final class ExternallyInitializableDebugger(
     module: CompiledDatalogModule,
-    val debuggingState: DatalogRuntime => DebuggerState)
+    val stateFactory: DatalogRuntime => DebuggerState)
     extends IRDebugger {
   super.initialize(module)
 
   def setRuntime(runtime: DatalogRuntime): Unit = {
-    state = debuggingState(runtime)
+    state = stateFactory(runtime)
   }
 }

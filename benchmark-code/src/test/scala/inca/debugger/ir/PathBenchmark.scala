@@ -1,9 +1,11 @@
 package inca.debugger.ir
 
 import inca.backend.ir.Datalog
+import inca.compiler.CompiledDatalogModule
 import inca.compiler.Compiler
 import inca.compiler.Options
 import inca.debugger._
+import inca.debugger.souffle.Configs.BaseConfig
 import inca.measurements.util.BenchmarkUtils
 import inca.measurements.util.BenchmarkUtils.Measurement
 import inca.measurements.util.CSVUtil.csvToString
@@ -11,10 +13,14 @@ import inca.measurements.util.CSVUtil.CSV
 import inca.measurements.util.Config
 import inca.measurements.util.Units
 import inca.runtime.context.DataModel
+import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
+import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import inca.util.FilesUtil
+import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import scala.collection.mutable
 import truechange.EditScript
 
@@ -38,7 +44,7 @@ object PathBenchmark {
         5,
         10,
         "path",
-        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
+        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(10), ScalaValue(11)))),
         i)
     }
   val overConfigs: Seq[PathConfig] =
@@ -47,24 +53,51 @@ object PathBenchmark {
         5,
         10,
         "path",
-        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(9), ScalaValue(10)))),
+        ValueTable(Seq("from", "temp"), Seq(Seq(ScalaValue(10), ScalaValue(11)))),
         i)
     }
 
   def main(args: Array[String]): Unit = {
+    // measure bottom-up time
+    println("Bottom-Up")
+//    for (c <- overConfigs) {
+//      for (_ <- 0 until c.warmup) {
+//        val runtime = initRuntime()
+//        measureBottomUp(runtime, graphFromPaper(c.numCycleNodes))
+//        EnginePool.disposeAllEngines()
+//        System.gc()
+//      }
+//      val measurements = for (_ <- 0 until c.runs) yield {
+//        val runtime = initRuntime()
+//        val time = measureBottomUp(runtime, graphFromPaper(c.numCycleNodes))
+//        EnginePool.disposeAllEngines()
+//        System.gc()
+//        time
+//      }
+//      println(measurements)
+//      FilesUtil.writeFile(
+//        s"$resultPath/Path-BottomUp${c.numCycleNodes}.csv",
+//        csvToString(IndexedSeq("measurement") +: measurements.map(v => IndexedSeq(v))))
+//    }
+
     // measure time and number of steps (step-into)
+    println("Into")
     for (c <- intoConfigs) {
+      println(s"Node ${c.numCycleNodes}")
       val stepIntoMeasurements = measure(c, (debugger, _, _) => measureStepInto(debugger))
       FilesUtil.writeFile(
-        s"$resultPath/Path-StepInto${c.numCycleNodes}.csv",
+        s"$resultPath/Path-StepInto${c.numCycleNodes}-Opt.csv",
         csvToString(stepIntoMeasurements))
     }
+
     // measure time and number of steps (step-over)
+    println("Over")
     for (c <- overConfigs) {
+      println(s"Node ${c.numCycleNodes}")
       val stepOverMeasurements =
         measure(c, (debugger, _, _) => measureStepOver(debugger, c.predToStopAt, c.tableToStopAt))
       FilesUtil.writeFile(
-        s"$resultPath/Path-StepOver${c.numCycleNodes}.csv",
+        s"$resultPath/Path-StepOver${c.numCycleNodes}-Opt.csv",
         csvToString(stepOverMeasurements))
     }
   }
@@ -110,19 +143,42 @@ object PathBenchmark {
   }
 
   def initDebugger(edges: Seq[Edge]): IRDebugger = {
+    val runtime = initRuntime()
+    measureBottomUp(runtime, edges)
+    val debugger =
+      new ExternallyInitializableDebugger(
+        runtime.compiled.asInstanceOf[CompiledDatalogModule],
+        rt => new AccumulatingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState)
+    debugger.setRuntime(runtime)
+    debugger
+  }
+
+  def initRuntime(): DatalogRuntime = {
     val module = Datalog.Module("Prog", Seq(), Seq(ExamplePrograms.pathPatternExt), Seq())
     val compiled = Compiler.compileGP(
       module,
       DataModel.from(),
       Options()
-    ) // withEngine(DRedReteBackendFactory.INSTANCE))
+    )
+    val scope = new QueryScope(compiled.dataModel)
+    // EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (engine, db) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+    DatalogRuntime(engine, db, compiled)
+  }
+
+  def measureBottomUp(runtime: DatalogRuntime, edges: Seq[Edge]): Long = {
     val insertions = Map("edge" -> edges.map { case (f, t) =>
       Tuples.staticArityFlatTupleOf(f, t)
     }.toSet)
     val dbInput = DatabaseInput(EditScript(Seq()), insertions, Map())
-    val debugger =
-      new InitializingIRDebugger(compiled, dbInput, rt => new AccumulatingDebuggerState(rt))
-    debugger
+    val matcher = runtime.engine.getMatcher(runtime.compiled.psystemModule.patterns("path")())
+    val start = System.nanoTime()
+    runtime.engine.delayUpdatePropagation { () =>
+      runtime.db.processDatabaseInput(dbInput)
+    }
+    matcher.countMatches()
+    val end = System.nanoTime()
+    end - start
   }
 
   def measureStepInto(debugger: IRDebugger): (Seq[Long], Long, Option[Long]) = {
