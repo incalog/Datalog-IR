@@ -122,13 +122,17 @@ public class FunIncAUtil {
                 funDefParentOfNamedElement =
                         PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
                 boolean isFunCall = false;
+                boolean isCallingFunction = false;
                 FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
                 if (funCall != null) { // is e part of a function call?
-                    PsiElement fun = funCall.getFirstChild();
+                    isFunCall = true;
+                    PsiElement fun = funCall.getFirstChild(); // TODO delete this if / replace with alternative
                     if (PsiTreeUtil.isAncestor(fun, e, false)) {
-                        isFunCall = true;
+                        isCallingFunction = true;
                     }
                 }
+                if (PsiTreeUtil.getParentOfType(e, FunIncAFoldExp.class) != null)
+                    isFunCall = true;
 
                 if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
@@ -144,8 +148,15 @@ public class FunIncAUtil {
                         if (PsiTreeUtil.isAncestor(matchParentOfNamedElement, matchParentOfE, false)) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FunIncAParamDef && !isFunCall) { // declaration is a parameter
-                        if (funDefParentOfNamedElement == funDefParentOfE) {
+                    } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter // TODO && !isFunCall
+                        FunIncAParamDef paramDef = (FunIncAParamDef) namedElement;
+                        if (isCallingFunction) {
+                            if (paramDef.getType().getFunType() != null) {
+                                if (funDefParentOfNamedElement == funDefParentOfE) {
+                                    res.add(namedElement);
+                                }
+                            }
+                        } else if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
                         }
                     } else if (namedElement instanceof FunIncATypeVarDef && !isFunCall) { // declaration is a type variable

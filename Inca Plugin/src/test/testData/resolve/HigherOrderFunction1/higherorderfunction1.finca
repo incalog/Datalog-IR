@@ -1,0 +1,7 @@
+module higherOrderFunction1
+
+def <resolved>simple(x: Int): Int = x
+
+def higherOrderFunction(f: Int => Int, x : Int): Int = f(x)
+
+@main def main(): Int = higherOrderFunction(<ref>simple, 3)

@@ -22,12 +22,25 @@ public class FunIncAAnnotator implements Annotator {
 
         if (element instanceof FunIncAFunDef) {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);
+            PsiElement root = funDef.getContainingFile();
+            List<PsiElement> rootChildren = List.of(root.getChildren());
+            for (PsiElement child : rootChildren) {
+                if (child != funDef && child instanceof FunIncAFunDef
+                        && funDef.getName().equals(((FunIncAFunDef) child).getName())) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Duplicate name " + funDef.getName())
+                            .range(funDef.getId())
+                            .create();
+                }
+            }
             FunIncAExp body = funDef.getExp();
             FunIncAType expected = funDef.getType();
-            FunIncATypechecker.validateType(expected, holder);
+            if (expected != null)
+                FunIncATypechecker.validateType(expected, holder);
             Type expectedType = PsiToTypeConverter.convert(expected);
             for (FunIncAParamDef paramDef : funDef.getParamDefList()) // annotate all parameter types
-                FunIncATypechecker.validateType(paramDef.getType(), holder);
+                if (paramDef.getType() != null)
+                    FunIncATypechecker.validateType(paramDef.getType(), holder);
 
             if (body == null) { // do not annotate if function has no body
                 return;
@@ -48,13 +61,32 @@ public class FunIncAAnnotator implements Annotator {
         if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             List<FunIncADataConstructorDef> constructors = dataDef.getDataConstructorDefList();
+            PsiElement root = dataDef.getContainingFile();
+            List<PsiElement> rootChildren = List.of(root.getChildren());
+            for (PsiElement child : rootChildren) {
+                if (child instanceof FunIncAFunDef) {
+                    for (FunIncADataConstructorDef cons : constructors) {
+                        if (cons.getName().equals(((FunIncAFunDef) child).getName())) {
+                            holder.newAnnotation(HighlightSeverity.ERROR,
+                                            "Duplicate name " + dataDef.getName())
+                                    .range(cons.getId())
+                                    .create();
+                        }
+                    }
+                }
+                if (child != dataDef && child instanceof FunIncADataDef
+                        && dataDef.getName().equals(((FunIncADataDef) child).getName())) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Duplicate name " + dataDef.getName())
+                            .range(dataDef.getId())
+                            .create();
+                }
+            }
             for (FunIncADataConstructorDef cons : constructors) {
-                FunIncATypechecker.validateTypes(cons.getTypeList(), holder);
+                if (cons.getTypeList() != null)
+                    FunIncATypechecker.validateTypes(cons.getTypeList(), holder);
             }
             // TODO check parametric types
-            holder.newAnnotation(HighlightSeverity.INFORMATION, "Typecheck not yet implemented")
-                    .range(element)
-                    .create();
         }
 
     }

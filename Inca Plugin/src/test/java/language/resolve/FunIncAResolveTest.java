@@ -5,6 +5,9 @@ public class FunIncAResolveTest extends FunIncAResolveTestCase {
 
     public void testConstructor(){doTest();}
     public void testDatatypes(){doTest();}
+    public void testFold(){doTest();}
+    public void testHigherOrderFunction1(){doTest();}
+    public void testHigherOrderFunction2(){doTest();}
     public void testLet(){doTest();}
     public void testLet2(){doTest(false);}
     public void testMatchCase(){doTest();}

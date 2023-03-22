@@ -9,6 +9,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import language.FunIncAReference;
 import language.psi.*;
 import language.typing.types.*;
+import org.apache.commons.lang.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -472,8 +473,10 @@ public class FunIncATypechecker {
                         dataDefs.add((FunIncADataDef) child);
                 }
                 if (dataDefs.isEmpty()) {
+                    // TypeRef can only reference data definitions, or parametric types.
+                    // So when there is no data definition found, TypeRef references a parametric type.
                     holder.newAnnotation(HighlightSeverity.ERROR,
-                            "Cannot match on type " + matcheeType + ", type not defined")
+                                    "Cannot match on parametric type " + matcheeType)
                             .range(matchee)
                             .create();
                     List<Type> caseTypes = new ArrayList<>();
@@ -494,22 +497,6 @@ public class FunIncATypechecker {
                     FunIncADataDef dataDef = dataDefs.get(0);
                     return typecheckTypeNameMatch(exp, cases, dataDef, holder);
                 }
-            } else if (false) { // TODO how to find out if this a parametric type
-                // match on matcheeType:
-                // case td: TName if isTypeVar(td.name) =>
-                //          error(s"Cannot match on parametric type $td", matchee)
-                //          val ctys = cases.map(c => typecheck(c._2))
-                //          join(ctys)
-                //
-                // def isTypeVar(name: Name): Boolean = tyVars.contains(name)
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Cannot match on parametric type " + matcheeType)
-                        .range(matchee)
-                        .create();
-                List<Type> caseTypes = new ArrayList<>();
-                for (FunIncAMatchCase matchCase : cases)
-                    caseTypes.add(typecheckExp(matchCase.getExp(), holder));
-                return FunIncATypeUtil.join(caseTypes);
             } else if (matcheeType instanceof ConstructorType) { // TODO constructor match
 //                PsiElement constrName = PsiTreeUtil.findChildOfType(matchee, FuncIncaVar.class);
 //                if (constrName.getReference() != null)
@@ -575,7 +562,7 @@ public class FunIncATypechecker {
                     return new AnyType();
             }
         } else if (exp instanceof FunIncABaseApplyMethodExp) {
-            // TODO FunIncABaseApplyMeth
+            // TODO FunIncABaseApplyMethodExp
         } else if (exp instanceof FunIncABaseApplyInfixExp) {
             FunIncABaseApplyInfixExp infixExp = (FunIncABaseApplyInfixExp) exp;
             List<FunIncAExp> children = infixExp.getExpList();
@@ -695,7 +682,63 @@ public class FunIncATypechecker {
             return new SetType(buildType);
 
         } else if (exp instanceof FunIncAFoldExp) {
-            // TODO FunIncAFoldExp
+            FunIncAFoldExp foldExp = (FunIncAFoldExp) exp;
+            FunIncAType tyAnno = foldExp.getType();
+            FunIncAExp init;
+            FunIncAExp op;
+            FunIncAExp set;
+            try {
+                init = foldExp.getExpList().get(0);
+                op = foldExp.getExpList().get(1);
+                set = foldExp.getExpList().get(2);
+            } catch (NullPointerException e) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Incomplete fold expression")
+                        .range(foldExp)
+                        .create();
+                return new AnyType();
+            }
+            Type initType = typecheckExp(init, holder);
+            Type opType = typecheckExp(op, holder);
+            Type setType = typecheckExp(set, holder);
+            Type setContentType;
+            if (setType instanceof SetType) {
+                setContentType = ((SetType) setType).getSetType();
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Can only fold over sets, but got " + setType)
+                        .range(set)
+                        .create();
+                setContentType = new NothingType();
+            }
+            Type foldType;
+            if (tyAnno != null) {
+                validateType(tyAnno, holder);
+                foldType = PsiToTypeConverter.convert(tyAnno);
+            } else {
+                foldType = FunIncATypeUtil.join(initType, setContentType);
+            }
+            if (opType instanceof FunType) {
+                List<Type> paramTypes = ((FunType) opType).paramTypes;
+                Type returnType = ((FunType) opType).returnType;
+                if (paramTypes.size() != 2
+                        || !FunIncATypeUtil.subtype(paramTypes.get(0), foldType)
+                        || !FunIncATypeUtil.subtype(paramTypes.get(1), foldType)
+                        || !FunIncATypeUtil.subtype(returnType, foldType)) {
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
+                                    ", but " + op.getText() + " has type " + opType)
+                            .range(op)
+                            .create();
+                }
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
+                                ", but " + op.getText() + " has type " + opType)
+                        .range(op)
+                        .create();
+            }
+            return foldType;
         }
         return new AnyType();
     }
@@ -779,74 +822,7 @@ public class FunIncATypechecker {
                                                   List<FunIncAMatchCase> cases,
                                                   FunIncADataDef dataDef,
                                                   AnnotationHolder holder) {
-        Set<FunIncADataConstructorDef> seenConstructors = new HashSet<>();
-        Set<FunIncADataConstructorDef> availableConstructors = new HashSet<>();
-        for (FunIncADataConstructorDef cons : dataDef.getDataConstructorDefList())
-            availableConstructors.add(cons);
-
-        List<Type> caseTypes = new ArrayList<>();
-        for (FunIncAMatchCase matchCase : cases) {
-            PsiElement pat;
-            try {
-                pat = matchCase.getPat().getFirstChild();
-            } catch (NullPointerException e) {
-                caseTypes.add(new AnyType());
-                continue;
-            }
-            FunIncAExp e = matchCase.getExp();
-            if (pat instanceof FunIncAConstructorPat) {
-                FunIncAConstructorPat constructorPat = (FunIncAConstructorPat) pat;
-                String constructorName = constructorPat.getConstructorRef().getText();
-                FunIncAReference reference = (FunIncAReference) constructorPat.getConstructorRef().getReference();
-                FunIncADataConstructorDef constructorDef = null;
-                ResolveResult[] result = reference.multiResolve(true);
-                for (ResolveResult res : result)
-                    if (availableConstructors.contains(res.getElement()))
-                        constructorDef = (FunIncADataConstructorDef) res.getElement();
-                if (constructorDef == null) { // only if there are 0 or more than 2 results, where none belong to dataDef
-                    holder.newAnnotation(HighlightSeverity.ERROR,
-                                    "No constructor " + constructorName + " of type " + dataDef.getName() +
-                                            " found")
-                            .range(constructorPat.getConstructorRef())
-                            .create();
-                    caseTypes.add(typecheckExp(e, holder));
-                    continue;
-                }
-                if (!seenConstructors.add(constructorDef)) // this constructor was already used in a match case
-                    holder.newAnnotation(HighlightSeverity.ERROR,
-                                    "Duplicate constructor pattern " + constructorName)
-                            .range(constructorPat.getConstructorRef())
-                            .create();
-                if (constructorDef.getTypeList().size() != constructorPat.getPatternVarDefList().size()) // number of parameters does not match
-                    holder.newAnnotation(HighlightSeverity.ERROR,
-                                    "Wrong number of constructor arguments, expected " +
-                                            constructorDef.getTypeList().size() + " but got " +
-                                            constructorPat.getPatternVarDefList().size())
-                            .range(constructorPat)
-                            .create();
-                caseTypes.add(typecheckExp(e, holder));
-            } else { // pattern is not instance of FuncIncaConstructorPattern
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Cannot match pattern " + pat.getText() +
-                                        " against matchee of type " + dataDef.getName())
-                        .range(pat)
-                        .create();
-
-                caseTypes.add(typecheckExp(e, holder));
-            }
-        }
-        availableConstructors.removeAll(seenConstructors);
-        if (!availableConstructors.isEmpty()) {
-            String missingConstructors = "";
-            for (FunIncADataConstructorDef cons : availableConstructors)
-                missingConstructors += cons.getName() + ", ";
-            holder.newAnnotation(HighlightSeverity.ERROR,
-                            "Pattern match must be complete but missed the following constructors: " +
-                                    missingConstructors.substring(0, missingConstructors.length() - 2))
-                    .range(exp)
-                    .create();
-        }
-        return FunIncATypeUtil.join(caseTypes);
+        return new AnyType();
     }
 //    private static FuncIncaType typecheckConstructorMatch(PsiElement exp, // matchee is a FuncIncaConstructorType
 //                                                          List<FunIncAMatchCase> cases,
