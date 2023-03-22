@@ -16,6 +16,7 @@ import truechange.URI
 trait DebuggerState {
   def bottomUpRuntime: DatalogRuntime
   lazy val program: Datalog.Module = bottomUpRuntime.compiled.ir
+  lazy val depGraph: DependencyGraph = new DependencyGraph(program)
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
     throw new IllegalStateException("Reading bottom-up database not supported")
@@ -125,6 +126,7 @@ trait DebuggerState {
     blacklistName -> tuples
   }
 
+  protected def isCyclic(pred: Predicate): Boolean = depGraph.cycles.exists(_.contains(pred))
 }
 
 class BottomUpDebuggerState(val bottomUpRuntime: DatalogRuntime) extends DebuggerState {
@@ -207,9 +209,6 @@ class ResettingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
 class AccumulatingDebuggerState(
     override val bottomUpRuntime: DatalogRuntime)
     extends BottomUpDebuggerState(bottomUpRuntime) {
-  lazy val depGraph: DependencyGraph = new DependencyGraph(bottomUpRuntime.compiled.ir)
-
-  private def isCyclic(pred: Predicate): Boolean = depGraph.cycles.exists(_.contains(pred))
 
   override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
     val unseen = super.pushQuery(pred, args)
@@ -234,5 +233,59 @@ class AccumulatingDebuggerState(
       }
     }
     originalArgs
+  }
+}
+// cases
+// push, read
+//   +insert, update
+// push, pop, read
+//   +insert, -insert, update
+// push, read, pop, read
+//   +insert, update and -insert(clear), +delete, update and -delete(clear)
+
+class DelayingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
+    extends BottomUpDebuggerState(bottomUpRuntime) {
+
+  private val collectedBlacklistInserts: mutable.Map[(Predicate, Adornment), ValueTable] =
+    mutable.Map.empty
+  private val collectedBlacklistDeletes: mutable.Map[(Predicate, Adornment), ValueTable] =
+    mutable.Map.empty
+
+  override def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
+    if (isCyclic(pred)) {
+      val inserts = collectedBlacklistInserts.map { case ((pred, _), args) =>
+        prepareBlacklist(pred, args)
+      }.toMap
+      val deletes = collectedBlacklistDeletes.map { case ((pred, _), args) =>
+        prepareBlacklist(pred, args)
+      }.toMap
+      collectedBlacklistInserts.clear()
+      collectedBlacklistDeletes.clear()
+      val input = DatabaseInput(EditScript(Seq()), inserts, deletes)
+      bottomUpRuntime.engine.delayUpdatePropagation { () =>
+        bottomUpRuntime.db.processDatabaseInput(input)
+      }
+    }
+    super.readBottomUp(pred, args)
+  }
+
+  override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
+    val adornment = adorn(pred, args)
+    val empty = ValueTable.empty(args.columns)
+    val newInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty).union(args)
+    collectedBlacklistInserts += (pred -> adornment) -> newInsert
+    val oldDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty)
+    collectedBlacklistDeletes += (pred, adornment) -> oldDelete.diff(newInsert)
+    super.pushQuery(pred, args)
+  }
+
+  override def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
+    val adornment = adorn(pred, args)
+    val empty = ValueTable.empty(args.columns)
+    val newDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty).diff(args)
+    collectedBlacklistDeletes += (pred -> adornment) -> newDelete
+    val oldInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty)
+    collectedBlacklistInserts += (pred, adornment) -> oldInsert.diff(newDelete)
+    super.popQuery(pred, args)
   }
 }

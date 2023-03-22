@@ -4,10 +4,12 @@ import inca.backend.ir.Datalog
 import inca.compiler.source.SourceFile
 import inca.debugger.AccumulatingDebuggerState
 import inca.debugger.Atom
+import inca.debugger.AvoidNonProducingIterationDebuggerState
 import inca.debugger.DebuggerState
 import inca.debugger.Predicate
 import inca.debugger.Query
 import inca.debugger.QueryResult
+import inca.debugger.ResettingDebuggerState
 import inca.debugger.Rule
 import inca.debugger.ScalaValue
 import inca.debugger.Subquery
@@ -23,7 +25,7 @@ import java.io.File
 
 object Configs {
   val warmup: Int = 5
-  val runs: Int = 10
+  val runs: Int = 1
   val varPointsToPath = "souffle-frontend/benchmark/self-contained.dl"
   val factsPath = "souffle-frontend/benchmark/facts/"
 
@@ -35,6 +37,9 @@ object Configs {
     val programs: Seq[DoopProgram] = Seq(MiniJavac, Antlr, Ant, JEdit, Emma, Pmd)
     case object MiniJavac extends DoopProgram {
       val path: String = "minijavac"
+    }
+    case object MiniJavacSlim extends DoopProgram {
+      val path: String = "minijavac-slim"
     }
     case object Antlr extends DoopProgram {
       val path: String = "antlr"
@@ -61,19 +66,23 @@ object Configs {
     case object PureIntoSemantics extends DebuggingSemantics {
       override def name: String = "PureInto"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-//        new DebuggerState {
-//          override def bottomUpRuntime: DatalogRuntime = rt
-//        }
-        new AccumulatingDebuggerState(rt)
+        new ResettingDebuggerState(rt)
+    }
+    case object PureIntoOptSemantics extends DebuggingSemantics {
+      override def name: String = "PureIntoOpt"
+      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+        new ResettingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
     }
     case object HybridSemantics extends DebuggingSemantics {
       override def name: String = "HybridSemantics"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new AccumulatingDebuggerState(rt)
+        new ResettingDebuggerState(rt)
     }
-    //    case object AvoidNonProducingIterationSemantics extends DebuggingSemantics {
-    //      override def name: String = "AvoidNonProducingIterationIteration"
-    //    }
+    case object HybridOptSemantics extends DebuggingSemantics {
+      override def name: String = "HybridSemanticsOpt"
+      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
+        new ResettingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
+    }
   }
 
   trait BaseConfig extends Config {

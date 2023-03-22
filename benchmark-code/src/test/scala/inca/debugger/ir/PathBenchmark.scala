@@ -21,6 +21,7 @@ import inca.util.FilesUtil
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import scala.collection.mutable
 import truechange.EditScript
 
@@ -39,7 +40,7 @@ object PathBenchmark {
   val resultPath = "benchmark-results/debugger/data"
 
   val intoConfigs: Seq[PathConfig] =
-    for (i <- 10 to 100 by 10) yield {
+    for (i <- 10 to 500 by 10) yield {
       PathConfig(
         5,
         10,
@@ -48,7 +49,7 @@ object PathBenchmark {
         i)
     }
   val overConfigs: Seq[PathConfig] =
-    for (i <- 10 to 700 by 10) yield {
+    for (i <- 10 to 500 by 10) yield {
       PathConfig(
         5,
         10,
@@ -62,13 +63,17 @@ object PathBenchmark {
     println("Bottom-Up")
 //    for (c <- overConfigs) {
 //      for (_ <- 0 until c.warmup) {
-//        val runtime = initRuntime()
+//        val module = Datalog.Module("Prog", Seq(), Seq(ExamplePrograms.pathPatternExt), Seq())
+//        val blModule = BlacklistTransformation.transformer(DataModel.from()).transformModule(module)
+//        val runtime = initRuntime(blModule)
 //        measureBottomUp(runtime, graphFromPaper(c.numCycleNodes))
 //        EnginePool.disposeAllEngines()
 //        System.gc()
 //      }
 //      val measurements = for (_ <- 0 until c.runs) yield {
-//        val runtime = initRuntime()
+//        val module = Datalog.Module("Prog", Seq(), Seq(ExamplePrograms.pathPatternExt), Seq())
+//        val blModule = BlacklistTransformation.transformer(DataModel.from()).transformModule(module)
+//        val runtime = initRuntime(blModule)
 //        val time = measureBottomUp(runtime, graphFromPaper(c.numCycleNodes))
 //        EnginePool.disposeAllEngines()
 //        System.gc()
@@ -79,7 +84,6 @@ object PathBenchmark {
 //        s"$resultPath/Path-BottomUp${c.numCycleNodes}.csv",
 //        csvToString(IndexedSeq("measurement") +: measurements.map(v => IndexedSeq(v))))
 //    }
-
     // measure time and number of steps (step-into)
     println("Into")
     for (c <- intoConfigs) {
@@ -91,15 +95,15 @@ object PathBenchmark {
     }
 
     // measure time and number of steps (step-over)
-    println("Over")
-    for (c <- overConfigs) {
-      println(s"Node ${c.numCycleNodes}")
-      val stepOverMeasurements =
-        measure(c, (debugger, _, _) => measureStepOver(debugger, c.predToStopAt, c.tableToStopAt))
-      FilesUtil.writeFile(
-        s"$resultPath/Path-StepOver${c.numCycleNodes}-Opt.csv",
-        csvToString(stepOverMeasurements))
-    }
+//    println("Over")
+//    for (c <- overConfigs) {
+//      println(s"Node ${c.numCycleNodes}")
+//      val stepOverMeasurements =
+//        measure(c, (debugger, _, _) => measureStepOver(debugger, c.predToStopAt, c.tableToStopAt))
+//      FilesUtil.writeFile(
+//        s"$resultPath/Path-StepOver${c.numCycleNodes}-Opt.csv",
+//        csvToString(stepOverMeasurements))
+//    }
   }
 
   type Edge = (Int, Int)
@@ -118,7 +122,9 @@ object PathBenchmark {
       config: PathConfig,
       measureClosure: (IRDebugger, String, ValueTable) => (Seq[Long], Long, Option[Long])
     ): CSV = {
+    println("Init")
     val debugger = initDebugger(graphFromPaper(config.numCycleNodes))
+    println("Warmup")
     for (i <- 0 until config.warmup) {
       val queryTable = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
       debugger.entry("path", queryTable)
@@ -128,10 +134,12 @@ object PathBenchmark {
       debugger.clearIRControlTrace()
     }
     val header = IndexedSeq[Any]("numSteps", "measurement")
+    println("Measure")
     val rows = for (i <- 0 until config.runs) yield {
       val queryTable = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
       debugger.entry("path", queryTable)
       val (vals, steps, over) = measureClosure(debugger, config.predToStopAt, config.tableToStopAt)
+      println("NEXT RUN")
       debugger.state.clear()
       debugger.queryStack.clear()
       debugger.clearIRControlTrace()
@@ -143,26 +151,36 @@ object PathBenchmark {
   }
 
   def initDebugger(edges: Seq[Edge]): IRDebugger = {
-    val runtime = initRuntime()
+    val module = Datalog.Module("Prog", Seq(), Seq(ExamplePrograms.pathPatternExt), Seq())
+    val blModule = BlacklistTransformation.transformer(DataModel.from()).transformModule(module)
+    val runtime = initRuntime(blModule)
     measureBottomUp(runtime, edges)
+
+    val compiled = Compiler.compileGP(
+      module,
+      DataModel.from(),
+      Options()
+    )
+
     val debugger =
       new ExternallyInitializableDebugger(
-        runtime.compiled.asInstanceOf[CompiledDatalogModule],
-        rt => new AccumulatingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState)
+        compiled,
+        rt => new AccumulatingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
+      )
     debugger.setRuntime(runtime)
     debugger
   }
 
-  def initRuntime(): DatalogRuntime = {
-    val module = Datalog.Module("Prog", Seq(), Seq(ExamplePrograms.pathPatternExt), Seq())
+  def initRuntime(module: Datalog.Module): DatalogRuntime = {
     val compiled = Compiler.compileGP(
       module,
       DataModel.from(),
       Options()
     )
     val scope = new QueryScope(compiled.dataModel)
-    // EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    val (engine, db) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+//    val (engine, db) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+    val (engine, db) =
+      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     DatalogRuntime(engine, db, compiled)
   }
 
@@ -189,6 +207,7 @@ object PathBenchmark {
       val end = System.nanoTime()
       measurements += (end - start)
     }
+    println(debugger.queryStack.top)
     (measurements.toSeq, debugger.irControlTrace.size - 1, None)
   }
 
@@ -222,6 +241,7 @@ object PathBenchmark {
           measurements += end - start
       }
     }
+    println(debugger.queryStack.top)
     (measurements.toSeq, debugger.irControlTrace.size - 1, None)
   }
 }
