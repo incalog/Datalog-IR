@@ -85,80 +85,6 @@ object VarPointsToBenchmark {
     println(matcher.countMatches())
   }
 
-//  def measureStepInto(config: BaseConfig): (Seq[Long], Long, Long) = {
-//    val (blModule, ogModule, runtime) = initRuntime(config)
-//    val debugger =
-//      new ExternallyInitializableDebugger(ogModule, config.semantics.debuggingState)
-//    // initialize bottom-up database
-//    initBottomUp(blModule, runtime, config)
-//    debugger.setRuntime(runtime)
-//    println("START MEASUREMENT")
-//    debugger.entry(config.entry, config.args)
-//    val measurements: mutable.ListBuffer[Long] = mutable.ListBuffer()
-//    while (!debugger.isFinished) {
-//      val start = System.nanoTime()
-//      debugger.stepInto()
-//      val end = System.nanoTime()
-//      // println(debugger.queryStack.top)
-//      measurements += end - start
-//    }
-//
-//    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-//    val expected = debugger.state.readBottomUp(config.entry, config.args)
-//
-//    println(result.size)
-//    println(result)
-//    println(expected.size)
-//    println(expected)
-//    val tooMuch = result.entries.diff(expected.entries)
-//    val missing = expected.entries.diff(result.entries)
-//    println(tooMuch)
-//    println(missing)
-//    assert(result == expected)
-//
-//    MemoryUtil.collectGarbage()
-//    val mem = MemoryUtil.usedMemoryInMBytes()
-//    //    println(s"STEPS: ${debugger.irControlTrace.size}")
-//    //    println(s"MS/STEP: ${(end - start).toDouble / debugger.irControlTrace.size.toDouble}")
-//    EnginePool.disposeAllEngines()
-//    (measurements.toSeq, mem, debugger.irControlTrace.size - 1)
-//  }
-
-//  def measureStepOut(config: BaseConfig): (Seq[Long], Long, Long) = {
-////    val (module, runtime) = initRuntime(config)
-////    val debugger = new ExternallyInitializableDebugger(module, config.semantics.debuggingState)
-////    // initialize bottom-up database
-////    initBottomUp(module, runtime, config)
-//    val (blModule, ogModule, runtime) = initRuntime(config)
-//    val debugger =
-//      new ExternallyInitializableDebugger(ogModule, config.semantics.debuggingState)
-//    // initialize bottom-up database
-//    initBottomUp(blModule, runtime, config)
-//    debugger.setRuntime(runtime)
-//    println("START MEASUREMENT")
-//    debugger.entry(config.entry, config.args)
-//    val start = System.currentTimeMillis()
-//    debugger.stepOut()
-//    val end = System.currentTimeMillis()
-//
-//    val expected = debugger.state.readBottomUp(config.entry, config.args)
-//    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-//    println(result.size)
-//    println(result)
-//    println(expected.size)
-//    println(expected)
-//    val tooMuch = result.entries.diff(expected.entries)
-//    val missing = expected.entries.diff(result.entries)
-////    println(tooMuch)
-////    println(missing)
-//    assert(result == expected)
-//
-//    MemoryUtil.collectGarbage()
-//    val mem = MemoryUtil.usedMemoryInMBytes()
-//    EnginePool.disposeAllEngines()
-//    (Seq(end - start), mem, debugger.irControlTrace.size - 1)
-//  }
-
   def measureInteractive(
       config: BaseConfig,
       oracle: Oracle,
@@ -229,74 +155,6 @@ object VarPointsToBenchmark {
     (intoMeasurements.toSeq, overMeasurements.toMap, mem)
   }
 
-  def collectMeasurements(
-      config: BaseConfig,
-      f: BaseConfig => (Seq[Long], Long, Long)
-    ): CSVRow = {
-    val (time, mem, steps) = f(config)
-    IndexedSeq[Any](steps, mem) ++ time
-  }
-
-  def addCSVHeader(rows: CSV): CSV = {
-    val numberOfStepsInto = rows.head(0).asInstanceOf[Long].toInt
-    val stepColumns = (1 to numberOfStepsInto).map(i => s"step$i")
-    val columnHeader: CSVRow = IndexedSeq("NumberOfSteps", "Memory (MB)") ++ stepColumns
-    columnHeader +: rows
-  }
-
-  def measureAndWrite(
-      config: BaseConfig,
-      f: BaseConfig => (Seq[Long], Long, Long),
-      filePostFix: String = "StepInto"
-    ): Unit = {
-    val measurements: CSV =
-      BenchmarkUtils.measure(() => collectMeasurements(config, f), config).toIndexedSeq
-    val csv = addCSVHeader(measurements)
-    FilesUtil.writeFile(s"$resultsPath/${config.name}_${filePostFix}.csv", csvToString(csv))
-  }
-
-  def measureInteractiveAndWrite(
-      config: BaseConfig,
-      oracle: Oracle
-    ): Unit = {
-    val measurements = BenchmarkUtils.measure(() => measureInteractive(config, oracle), config)
-    measurements.foreach { case (into, over, mem) =>
-      println("RUN")
-      println(into.size)
-      val intoMs = into.map(_.toDouble / 1000000)
-      // TODO how to store the data in csv?
-      // What data do we want to store?
-      // What data do we have?
-      // NumberOfStepIntos (All steps that trigger a step into)
-      // measurement of step into execution (individually)
-      // memory after run
-      // NumberOfStepOvers for a predicate
-      // measurement of step over execution (individually)
-      println(intoMs)
-      println(intoMs.sum)
-      over.foreach { case (p, vs) =>
-        println(p)
-        println(s"  size ${vs.size}")
-        println("  " + vs.map(_.toDouble / 1000000).mkString(", "))
-      }
-      // println(into.size + over.map(_._2.size).sum)
-      println(mem)
-      val total = intoMs.sum + over.map(_._2.map(_.toDouble / 1000000).sum).sum
-      println(s"TOTALTIME: $total")
-    }
-    //    // intoSteps, memory, OverStepsX, OverStepsY, OverStepsZ,
-    //    val numIntoSteps = measurements.head._1.size
-    //    val numOverPred = measurements.head._2.keys.size
-    //    val overPredHeader = measurements.head._2.keys.toSeq.map("NumberOfOverSteps" + _)
-    //    val intoStepsHeader = (1 to numIntoSteps).map("intoStep" + _)
-    //    val columnHeader = IndexedSeq("NumberOfIntoSteps", "Memory (MB)", "NumberOfOverPreds") ++ intoStepsHeader ++
-    //    val rows = measurements.map { case (intoSteps, overSteps, mem) =>
-    //      (intoSteps.)
-    //    }
-    //    columnHeader +: rows
-    //
-  }
-
   def measureEachSemanticsRule(
       config: BaseConfig,
       timeout: Option[Long] = None
@@ -322,7 +180,11 @@ object VarPointsToBenchmark {
     def timeoutReached(vals: Map[String, Seq[Long]]): Boolean = {
       timeout match {
         case Some(till) =>
-          till - vals.flatMap(_._2).sum < 0
+          val reached = (till - vals.values.flatten.sum) < 0
+          if (reached) {
+            println(s"${config.name} TIMEOUTREACHED(${timeout.getOrElse(0L)}) = $reached")
+          }
+          reached
         case None => false
       }
     }
@@ -375,8 +237,9 @@ object VarPointsToBenchmark {
 //    println(missing)
 //    assert(result == expected)
 
-//    MemoryUtil.collectGarbage()
-//    val mem = MemoryUtil.usedMemoryInMBytes()
+    MemoryUtil.collectGarbage()
+    val mem = MemoryUtil.usedMemoryInMBytes()
+    println(s"${config.name} memory ${mem}")
 //    println(s"ATOMINTOS ${debugger.numerOfAtomInto}")
 //    println(s"RECORDED INTOS: ${ruleMeasurements("AtomInto").size}")
     EnginePool.disposeAllEngines()
@@ -391,19 +254,19 @@ object VarPointsToBenchmark {
       scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
       scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
-      // scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics),
-      // scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics),
-      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics)
+//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics),
+//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics),
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics)
     )
     val overConfigs = Seq(
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale2,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale3,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale4
-      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale1,
-      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale2,
-      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale3,
-      // scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale4
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale1,
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale2,
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale3,
+//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale4
     )
 
     println("INTO")

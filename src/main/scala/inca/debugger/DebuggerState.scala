@@ -91,7 +91,8 @@ trait DebuggerState {
 
   def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
     val td = readTopDown(pred, args)
-    result.subset(td)
+    // result.subset(td)
+    result.size <= td.size
   }
 
   protected def unionOfStack(pred: Predicate, adornment: Adornment): ValueTable = {
@@ -270,22 +271,27 @@ class DelayingDebuggerState(override val bottomUpRuntime: DatalogRuntime)
   }
 
   override def pushQuery(pred: Predicate, args: ValueTable): ValueTable = {
-    val adornment = adorn(pred, args)
-    val empty = ValueTable.empty(args.columns)
-    val newInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty).union(args)
-    collectedBlacklistInserts += (pred -> adornment) -> newInsert
-    val oldDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty)
-    collectedBlacklistDeletes += (pred, adornment) -> oldDelete.diff(newInsert)
-    super.pushQuery(pred, args)
+    val unseen = super.pushQuery(pred, args)
+    if (isCyclic(pred) && unseen.nonEmpty) {
+      val adornment = adorn(pred, unseen)
+      val empty = ValueTable.empty(unseen.columns)
+      val newInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty).union(unseen)
+      val oldDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty)
+      collectedBlacklistInserts += (pred -> adornment) -> newInsert.diff(oldDelete)
+      collectedBlacklistDeletes += (pred, adornment) -> oldDelete.diff(newInsert)
+    }
+    unseen
   }
 
   override def popQuery(pred: Predicate, args: ValueTable): ValueTable = {
-    val adornment = adorn(pred, args)
-    val empty = ValueTable.empty(args.columns)
-    val newDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty).diff(args)
-    collectedBlacklistDeletes += (pred -> adornment) -> newDelete
-    val oldInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty)
-    collectedBlacklistInserts += (pred, adornment) -> oldInsert.diff(newDelete)
+    if (isCyclic(pred)) {
+      val adornment = adorn(pred, args)
+      val empty = ValueTable.empty(args.columns)
+      val newDelete = collectedBlacklistDeletes.getOrElse(pred -> adornment, empty).union(args)
+      val oldInsert = collectedBlacklistInserts.getOrElse(pred -> adornment, empty)
+      collectedBlacklistDeletes += (pred -> adornment) -> newDelete.diff(oldInsert)
+      collectedBlacklistInserts += (pred, adornment) -> oldInsert.diff(newDelete)
+    }
     super.popQuery(pred, args)
   }
 }

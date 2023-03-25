@@ -6,6 +6,7 @@ import inca.debugger.AccumulatingDebuggerState
 import inca.debugger.Atom
 import inca.debugger.AvoidNonProducingIterationDebuggerState
 import inca.debugger.DebuggerState
+import inca.debugger.DelayingDebuggerState
 import inca.debugger.Predicate
 import inca.debugger.Query
 import inca.debugger.QueryResult
@@ -66,22 +67,22 @@ object Configs {
     case object PureIntoSemantics extends DebuggingSemantics {
       override def name: String = "PureInto"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new ResettingDebuggerState(rt)
+        new DelayingDebuggerState(rt)
     }
     case object PureIntoOptSemantics extends DebuggingSemantics {
       override def name: String = "PureIntoOpt"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new ResettingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
+        new DelayingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
     }
     case object HybridSemantics extends DebuggingSemantics {
       override def name: String = "HybridSemantics"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new ResettingDebuggerState(rt)
+        new DelayingDebuggerState(rt)
     }
     case object HybridOptSemantics extends DebuggingSemantics {
       override def name: String = "HybridSemanticsOpt"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new ResettingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
+        new DelayingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
     }
   }
 

@@ -107,12 +107,12 @@ class ImmutableBTreeTable[V: ClassTag](
     }.toMap
   }
 
-  override def columns: Seq[String] = cols
+  override lazy val columns: Seq[String] = cols
   override def isBound(column: String): Boolean = cols.contains(column)
 
-  override def isEmpty: Boolean = indices(indexCovers.head).size == 0
-  override def isUnit: Boolean = columns.isEmpty && entries.size == 1 && entries.head == Seq()
-  override def size: Int = indices(indexCovers.head).size
+  override lazy val isEmpty: Boolean = indices(indexCovers.head).size == 0
+  override lazy val isUnit: Boolean = columns.isEmpty && entries.size == 1 && entries.head == Seq()
+  override lazy val size: Int = indices(indexCovers.head).size
 
   override def columnIndex(column: String): Int = columns.indexOf(column)
 
@@ -373,7 +373,7 @@ class ImmutableBTreeTable[V: ClassTag](
     ImmutableBTreeTable[V](newColumns, newEntries, newIndexCovers, minDegree)
   }
 
-  override def toString: String = {
+  override lazy val toString: String = {
     if (size == 0) {
       s"EmptyTable(${columns.mkString(", ")})"
     } else if (columns.isEmpty && size == 1) {
@@ -386,10 +386,14 @@ class ImmutableBTreeTable[V: ClassTag](
     }
   }
 
-  override def hashCode(): Int = {
+  private lazy val _hashCode = {
     val columnsHash = columns.##
     val entriesHash = entries.##
     31 * ((31 + columnsHash) + entriesHash)
+  }
+
+  override def hashCode(): Int = {
+    _hashCode
   }
 
 //  override def hashCode(): Int = {}
