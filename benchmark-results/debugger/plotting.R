@@ -205,8 +205,6 @@ boxplot(varPointsToUnOptRuleMerge, varPointsToUnOptRuleResult, varPointsToUnOptA
 )
 dev.off()
 
-sortedInto <- sort(combinedUnOptAtomEDB, decreasing = TRUE)
-
 
 pdf(file = paste(graphpath, "All-Into-UnOpt.pdf", sep="/"))
 boxplot(combinedUnOptRuleMerge, combinedUnOptRuleResult, combinedUnOptAtomEDB, combinedUnOptAtomEq, combinedUnOptAtomNeq, combinedUnOptAtomPrim, combinedUnOptAtomInto, combinedUnOptAtomSkip, combinedUnOptQueryUnion, combinedUnOptQueryStable, combinedUnOptQueryIterate, combinedUnOptQueryResult, combinedUnOptAll,
@@ -361,12 +359,14 @@ plot(data.matrix(pathOverTime),
      col = color2,
      ylab = "Running time (ms)",
      xlab = "X",
+     xaxt = "n",
      # names = seq(10, 500, by = 10),
      # col = durationColors
-     ylim = c(0, 70000),
+     ylim = c(0, 60000),
 )
 lines(data.matrix(pathIntoTime), type = "o", col = color3)
 lines(data.matrix(pathBUTime), type = "o", col = color4)
+axis(1, at = c(1:100), labels = seq(10, 1000, by = 10))
 legend("topright", legend=c("step-into", "step-over", "bottom-up"),
        col=c(color3, color2, color4), lty=1:1)
 dev.off()
