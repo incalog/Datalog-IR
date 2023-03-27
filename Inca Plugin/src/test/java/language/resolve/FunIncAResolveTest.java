@@ -5,7 +5,7 @@ public class FunIncAResolveTest extends FunIncAResolveTestCase {
 
     public void testConstructor(){doTest();}
     public void testDatatypes(){doTest();}
-    public void testFold(){doTest();}
+    public void testFold(){doTest();} // cannot be parsed?? AST only contains dummy blocks
     public void testHigherOrderFunction1(){doTest();}
     public void testHigherOrderFunction2(){doTest();}
     public void testLet(){doTest();}
@@ -22,6 +22,9 @@ public class FunIncAResolveTest extends FunIncAResolveTestCase {
     public void testParamTypesReturn(){doTest();}
     public void testSetComprehension1(){doTest();}
     public void testSetComprehension2(){doTest();}
+    public void testSetComprehension3(){doTest();} // function call within set comprehension
+    public void testSetComprehension4(){doTest();} // higher order function within set comprehension
+    public void testSetComprehension5(){doTest();} // match expression with set comprehension in case
     public void testSetComprehensionShadowing1(){doTest();}
     public void testSetComprehensionShadowing2(){doTest();}
 }

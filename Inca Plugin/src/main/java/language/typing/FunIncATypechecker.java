@@ -9,7 +9,6 @@ import com.intellij.psi.util.PsiTreeUtil;
 import language.FunIncAReference;
 import language.psi.*;
 import language.typing.types.*;
-import org.apache.commons.lang.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -143,12 +142,18 @@ public class FunIncATypechecker {
             FunIncASetMemberExp setMemberExp = PsiTreeUtil.getParentOfType(varRef, FunIncASetMemberExp.class);
             FunIncAExp exp = setMemberExp.getExpList().get(0);
             FunIncAExp set = setMemberExp.getExpList().get(1);
-            boolean isTupleExp = exp.getFirstChild() instanceof FunIncATupleExp;
+            if (varRef.getName().equals(set.getText())) { // breaks loop in case the set variable has the same name as varRef
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Unresolved name")
+                        .range(varRef)
+                        .create();
+                return new AnyType();
+            }
             Type type = typecheckExp(set, holder);
             if (!(type instanceof SetType))
                 return new AnyType();
             SetType setType = (SetType) type;
-            if (isTupleExp) {
+            if (exp instanceof FunIncATupleExp) {
                 if (!(setType.getSetType() instanceof TupleType)) {
                     return new AnyType();
                 }
@@ -291,8 +296,10 @@ public class FunIncATypechecker {
             ResolveResult[] result = reference.multiResolve(true);
             if (result.length == 0) {
                 if ((PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class) != null) &&
-                        (PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class) != null)) {
+                        (PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class) != null) &&
+                        (PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class) == null)) {
                     // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
+                    // except varExp it is a variable in a function call (function or parameter)
                     return typeOfVarDef(varExp, holder);
                 } else {
                     holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved name " + varExp.getName())
@@ -669,8 +676,8 @@ public class FunIncATypechecker {
                         .create();
                 return new SetType(new NothingType());
             }
-            List<FunIncAExp> preds = setComprehensionExp.getExpList().subList(1, setComprehensionExp.getExpList().size());
-            for (FunIncAExp pred : preds) {
+            List<FunIncAExp> predicates = setComprehensionExp.getExpList().subList(1, setComprehensionExp.getExpList().size());
+            for (FunIncAExp pred : predicates) {
                 Type type = typecheckExp(pred, holder);
                 if (! FunIncATypeUtil.subtype(type, new BooleanType())) {
                     holder.newAnnotation(HighlightSeverity.ERROR,

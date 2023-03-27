@@ -1,0 +1,4 @@
+module setcomprehension3
+
+def <resolved>transitive(r: () => Set[(Int, Int)]): Set[(Int, Int)] =
+  r() ++ {(n1,n3) | (n1,n2) in r(), (n2,n3) in <ref>transitive(r)}

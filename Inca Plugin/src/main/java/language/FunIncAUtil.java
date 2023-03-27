@@ -1,11 +1,8 @@
 package language;
 
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
-import com.intellij.psi.search.FileTypeIndex;
 import language.psi.*;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,17 +75,18 @@ public class FunIncAUtil {
                             } else if (namedElement instanceof FunIncAParamDef) {
                                 resCandidates.add(namedElement);
                             } else if (namedElement instanceof FunIncAPatternVarDef) {
-                                FunIncAConstructorPat patternParentNamedElement = PsiTreeUtil.getParentOfType(
-                                        namedElement, FunIncAConstructorPat.class);
-                                FunIncAConstructorPat patternParentE = PsiTreeUtil.getParentOfType(e,
-                                        FunIncAConstructorPat.class);
-                                if ((patternParentE != null) && (patternParentE == patternParentNamedElement))
+                                FunIncAMatchCase matchCaseParent = PsiTreeUtil.getParentOfType(
+                                        namedElement, FunIncAMatchCase.class);
+                                if (PsiTreeUtil.isAncestor(matchCaseParent, e, true))
                                     resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncAFunDef) {
-                                resCandidates.add(namedElement);
                             } else if (namedElement instanceof FunIncADataConstructorDef) {
                                 resCandidates.add(namedElement);
                             }
+                        } else if (namedElement instanceof FunIncAFunDef) {
+                            if (PsiTreeUtil.getParentOfType(e, FunIncACallExp.class) != null) // only resolve to FunDef if e is part of a function call
+                                resCandidates.add(namedElement);
+                        } else if (namedElement instanceof FunIncADataDef) {
+                            resCandidates.add(namedElement);
                         }
 
                     }
@@ -126,7 +124,7 @@ public class FunIncAUtil {
                 FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
                 if (funCall != null) { // is e part of a function call?
                     isFunCall = true;
-                    PsiElement fun = funCall.getFirstChild(); // TODO delete this if / replace with alternative
+                    PsiElement fun = funCall.getFirstChild();
                     if (PsiTreeUtil.isAncestor(fun, e, false)) {
                         isCallingFunction = true;
                     }
@@ -141,14 +139,12 @@ public class FunIncAUtil {
                             res.add(namedElement);
                         }
                     } else if (namedElement instanceof FunIncAPatternVarDef) { // declaration is in pattern match case
-                        FunIncAMatchCase matchParentOfNamedElement =
+                        FunIncAMatchCase matchCaseParent =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncAMatchCase.class);
-                        FunIncAMatchCase matchParentOfE =
-                                PsiTreeUtil.getParentOfType(e, FunIncAMatchCase.class);
-                        if (PsiTreeUtil.isAncestor(matchParentOfNamedElement, matchParentOfE, false)) {
+                        if (PsiTreeUtil.isAncestor(matchCaseParent, e, false)) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter // TODO && !isFunCall
+                    } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter
                         FunIncAParamDef paramDef = (FunIncAParamDef) namedElement;
                         if (isCallingFunction) {
                             if (paramDef.getType().getFunType() != null) {
