@@ -389,6 +389,7 @@ plot(data.matrix(pathOverSteps),
      ylim = c(0, 120000),
 )
 lines(data.matrix(pathIntoSteps), type = "o", col = color3)
+axis(1, at = c(1:100), labels = seq(10, 1000, by = 10))
 legend("topright", legend=c("step-into", "step-over"),
        col=c(color3, color2), lty=1:1)
 dev.off()
