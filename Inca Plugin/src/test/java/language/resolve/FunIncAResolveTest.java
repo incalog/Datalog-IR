@@ -24,7 +24,7 @@ public class FunIncAResolveTest extends FunIncAResolveTestCase {
     public void testSetComprehension2(){doTest();}
     public void testSetComprehension3(){doTest();} // function call within set comprehension
     public void testSetComprehension4(){doTest();} // higher order function within set comprehension
-    public void testSetComprehension5(){doTest();} // match expression with set comprehension in case
+    public void testSetComprehension5(){doTest();} // set comprehension with 2 declarations in member expressions
     public void testSetComprehensionShadowing1(){doTest();}
     public void testSetComprehensionShadowing2(){doTest();}
 }

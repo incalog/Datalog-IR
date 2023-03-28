@@ -1,12 +1,4 @@
 module setcomprehension5
 
-data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
-
-@main def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
-  case Assign(x, a) => {}
-  case Skip() => {}
-  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
-  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
-  case While(c, <resolved>s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(<ref>s)}
-}
-
+def transitive(r: () => Set[(Int, Int)]): Set[(Int, Int)] =
+  r() ++ {(n1,<ref>n2) | (n1,<resolved>n2) in r(), (n2,n3) in transitive(r)}
