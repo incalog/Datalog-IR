@@ -205,7 +205,6 @@ boxplot(varPointsToUnOptRuleMerge, varPointsToUnOptRuleResult, varPointsToUnOptA
 )
 dev.off()
 
-
 pdf(file = paste(graphpath, "All-Into-UnOpt.pdf", sep="/"))
 boxplot(combinedUnOptRuleMerge, combinedUnOptRuleResult, combinedUnOptAtomEDB, combinedUnOptAtomEq, combinedUnOptAtomNeq, combinedUnOptAtomPrim, combinedUnOptAtomInto, combinedUnOptAtomSkip, combinedUnOptQueryUnion, combinedUnOptQueryStable, combinedUnOptQueryIterate, combinedUnOptQueryResult, combinedUnOptAll,
         main = "(A) Reduction rule running times when only using step-into",
@@ -214,7 +213,7 @@ boxplot(combinedUnOptRuleMerge, combinedUnOptRuleResult, combinedUnOptAtomEDB, c
         xaxt = "n",
         log = "y",
         outline = FALSE,
-        col = c(rep(color1, times = 12), color4)
+        col = c(rep("lightgrey", times = 12), "grey40")
         # ylim = c(0.001, 350),
         # boxwex = 0.5
 )
@@ -303,6 +302,14 @@ dev.off()
 #         # ylim = c(0.001, 350),
 # )
 # dev.off()
+print("AINTO")
+print(length(combinedUnOptAtomInto))
+print("AEDB")
+print(length(combinedUnOptAtomEDB))
+print("APRIM")
+print(length(combinedUnOptAtomPrim))
+print("COMBINED SIZE")
+print(length(combinedUnOptAll))
 
 
 
@@ -312,6 +319,15 @@ scenario1UnOptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;
 scenario2UnOptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndStaticFieldPointsTo_Over.csv")
 scenario3UnOptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndInstanceFieldPointsTo_Over.csv")
 scenario4UnOptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemantics_IntoVarPointsToAndReachable_Over.csv")
+sorted1 <- sort(scenario1UnOptOver, decreasing = TRUE)
+sorted2 <- sort(scenario2UnOptOver, decreasing = TRUE)
+sorted3 <- sort(scenario3UnOptOver, decreasing = TRUE)
+sorted4 <- sort(scenario4UnOptOver, decreasing = TRUE)
+print("SIZES")
+print(length(scenario1UnOptOver))
+print(length(scenario2UnOptOver))
+print(length(scenario3UnOptOver))
+print(length(scenario4UnOptOver))
 
 # scenario1OptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemanticsOpt_IntoVarPointsTo_Over.csv")
 # scenario2OptOver <-    readMeasurement("VarPointsTo_minijavac_VarPointsTo_var;heap_HybridSemanticsOpt_IntoVarPointsToAndStaticFieldPointsTo_Over.csv")
@@ -363,12 +379,13 @@ plot(data.matrix(pathOverTime),
      # names = seq(10, 500, by = 10),
      # col = durationColors
      ylim = c(0, 60000),
+     lwd = 1.5
 )
-lines(data.matrix(pathIntoTime), type = "o", col = color3)
-lines(data.matrix(pathBUTime), type = "o", col = color4)
+lines(data.matrix(pathIntoTime), type = "o", col = color3, lwd = 1.5)
+lines(data.matrix(pathBUTime), type = "o", col = color4, lwd = 1.5)
 axis(1, at = c(1:100), labels = seq(10, 1000, by = 10))
 legend("topright", legend=c("step-into", "step-over", "bottom-up"),
-       col=c(color3, color2, color4), lty=1:1)
+       col=c(color3, color2, color4), lty=1:1, lwd = 3)
 dev.off()
 
 # Path Into/Over Steps
@@ -387,9 +404,10 @@ plot(data.matrix(pathOverSteps),
      # col = durationColors
      xaxt='n',
      ylim = c(0, 120000),
+     lwd = 1.5
 )
-lines(data.matrix(pathIntoSteps), type = "o", col = color3)
+lines(data.matrix(pathIntoSteps), type = "o", col = color3, lwd = 1.5)
 axis(1, at = c(1:100), labels = seq(10, 1000, by = 10))
 legend("topright", legend=c("step-into", "step-over"),
-       col=c(color3, color2), lty=1:1)
+       col=c(color3, color2), lty=1:1, lwd=3)
 dev.off()
