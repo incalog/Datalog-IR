@@ -145,6 +145,8 @@ combinedUnOptQueryUnion <-        c(varPointsToUnOptQueryUnion, subtypeOfUnOptQu
 combinedUnOptQueryIterate <-      c(varPointsToUnOptQueryIterate, subtypeOfUnOptQueryIterate, methodLookupUnOptQueryIterate)
 combinedUnOptQueryStable <-       c(varPointsToUnOptQueryStable, subtypeOfUnOptQueryStable, methodLookupUnOptQueryStable)
 combinedUnOptQueryResult <-       c(varPointsToUnOptQueryResult, subtypeOfUnOptQueryResult, methodLookupUnOptQueryResult)
+print("ALL")
+print(length(combinedUnOptAll))
 
 # combinedOptAll <-               c(varPointsToOptAll, subtypeOfOptAll, methodLookupOptAll)
 # combinedOptAtomEDB <-           c(varPointsToOptAtomEDB, subtypeOfOptAtomEDB, methodLookupOptAtomEDB)
@@ -336,9 +338,9 @@ print(length(scenario4UnOptOver))
 
 pdf(file = paste(graphpath, "VarPointsTo-Over-UnOpt.pdf", sep="/"))
 boxplot(scenario1UnOptOver, scenario2UnOptOver, scenario3UnOptOver, scenario4UnOptOver,
-        main = "(B) Running times of step-over in interactive debugging scenarios",
+        main = "(B) Running times of step-over in scenarios (iiia-iiid)",
         ylab = "Time per reduction step (ms)",
-        names = c("Scenario 1", "Scenario 2", "Scenario 3", "Scenario 4"),
+        names = c("Scenario (iiia)", "Scenario (iiib)", "Scenario (iiic)", "Scenario (iiid)"),
         # las = 2,
         # log = "y",
         outline = FALSE,
