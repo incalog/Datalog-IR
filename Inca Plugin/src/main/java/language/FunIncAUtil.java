@@ -58,7 +58,7 @@ public class FunIncAUtil {
             // finding candidates for resolving references
             List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
-                if (name.equals(namedElement.getName()) && (namedElement != e)) { // excludes e from resolved candidates
+                if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FunIncAVarRefExp) {
                         if (PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class) == setParent &&
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class) != null) {
@@ -94,9 +94,9 @@ public class FunIncAUtil {
                 }
             }
 
-            if (resCandidates.size() == 1) { // there is only one declaration of e, return the declaration
-                res.add(resCandidates.get(0));
-            } else if (resCandidates.size() > 1){ // there are two or more declarations of e. The ones outside the set comprehension shadow declarations in set
+            if (resCandidates.size() > 0) { // there may be two or more declarations of e or declarations inside
+                // of the set-comprehension-expression
+                // the ones outside the set comprehension shadow declarations in the set-comprehension-exp
                 for (PsiNamedElement node : resCandidates) {
                     if (node instanceof FunIncADecl) {
                         res.add(node);
@@ -106,18 +106,19 @@ public class FunIncAUtil {
                     // and are therefore invalid
                 }
                 if (res.isEmpty()) {
-                    // there are more than one definition of e.
-                    // but since res is empty, none of those are outside the set-comprehension-expression, so these
-                    // definitions must be inside the set-comprehension, inside member-expressions.
+                    // since res is empty, none of the found definitions are outside the set-comprehension-expression,
+                    // so these definitions must be inside the set-comprehension, inside member-expressions.
                     // if there are more than one definition via member-expression, i.e.
                     // {(n1,n2) | (n2,n3) in set1, (n1,n2) in set2}, then the first definition of n2 has to be the resolved
-                    // element, since the variable n2 is first introduced in "(n2,n3) in set1"
+                    // element, since the variable n2 is first introduced in "(n2,n3) in set1" and n2 in "(n1,n2)"
+                    // references the first n2.
                     PsiNamedElement firstDef = resCandidates.get(0);
                     for (PsiNamedElement node : resCandidates) {
                         if (node.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
                             firstDef = node;
                     }
-                    res.add(firstDef);
+                    if (firstDef != e)
+                        res.add(firstDef);
                 }
             }
 
