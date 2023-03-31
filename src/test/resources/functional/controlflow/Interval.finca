@@ -8,6 +8,12 @@ data Exp = Var(String) |
            Sub(Exp, Exp)
 data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
 
+def max(v1: Int, v2:Int): Int = if (v1 >= v2) v1 else v2
+
+def min(v1: Int, v2:Int): Int = if (v1 >= v2) v2 else v2
+
+def abs(v: Int):Int = if (v >= 0) v else -v
+
 def init(stm: Stm): Stm = stm match {
   case Assign(x, a) => stm
   case Skip() => stm
@@ -110,13 +116,13 @@ def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
   case TopInterval() => TopInterval()
   case IV(l1, h1) => iv2 match {
     case TopInterval() => TopInterval()
-    case IV(l2, h2) => widenInterval(IV(`Math.min`(l1, l2), `Math.max`(h1, h2)))
+    case IV(l2, h2) => widenInterval(IV(min(l1, l2), max(h1, h2)))
   }
 }
 def widenInterval(iv: Interval): Interval = iv match {
   case TopInterval() => TopInterval()
   case IV(l, h) =>
-    if (`Math.abs`(h - l) <= 10)
+    if (abs(h - l) <= 10)
       iv
     else
       TopInterval()
@@ -242,8 +248,8 @@ def mulInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
       let v2 = l1 * h2 in
       let v3 = h1 * l2 in
       let v4 = h1 * h2 in
-      let low = `Math.min`(v1, `Math.min`(v2, `Math.min`(v3, v4))) in
-      let high = `Math.max`(v1, `Math.max`(v2, `Math.max`(v3, v4))) in
+      let low = min(v1, min(v2, min(v3, v4))) in
+      let high = max(v1, max(v2, max(v3, v4))) in
       IV(low, high)
   }
 }
