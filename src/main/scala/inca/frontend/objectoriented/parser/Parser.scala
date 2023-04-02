@@ -360,7 +360,7 @@ trait Parser {
   protected[frontend] val scalaTerm: P[Scala[meta.Term]] =
     P.charsWhile(_ != scalaQuoteChar).flatMap { raw_code =>
       raw_code.parse[Term] match {
-        case err: Parsed.Error    => fail(err.message)
+        case err: Parsed.Error    => fail(s"Scala parse error: ${err.message} in $raw_code")
         case Parsed.Success(code) => pass(Scala(code))
       }
     }

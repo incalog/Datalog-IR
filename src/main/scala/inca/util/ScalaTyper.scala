@@ -109,8 +109,9 @@ trait ScalaTyper {
          |  $code
          |}
          |""".stripMargin
-    val tree = toolbox.parse(completeCode)
+
     try {
+      val tree = toolbox.parse(completeCode)
       val typechecked = toolbox.typecheck(tree)
       val typ = typechecked.tpe.dealias
       val normalizedType =
@@ -119,7 +120,7 @@ trait ScalaTyper {
     } catch {
       case err@ToolBoxError(msg, throwable) =>
         val cleanMsg = msg.replace(s"${topLevelObject.fullName}.", "")
-        Right(ToolBoxError(cleanMsg, throwable))
+        Right(ToolBoxError(s"$cleanMsg in\n$code", throwable))
     }
   }
 

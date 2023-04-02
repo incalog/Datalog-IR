@@ -229,6 +229,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("SetIntersection", "A", "main", Seq(), SetResult(1, 3)),
+      TestDefinition("SetIntersection2", "A", "main", Seq(), SetResult(1, 3)),
       TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetUnionIntersection", "A", "main", Seq(), SetResult(1, 2, 3, 4))
@@ -274,8 +275,14 @@ object TestDefinition {
   def caseClassTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/caseclass")
     Seq(
-      //TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
-      TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult("X", "Z", "Y")),
+      TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
+      TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult(
+        TupleResult("X", "X"), TupleResult("X", "Y"), TupleResult("X", "Z"), TupleResult("X", "W"),
+        TupleResult("Y", "X"), TupleResult("Y", "Y"), TupleResult("Y", "Z"), TupleResult("Y", "W"),
+        TupleResult("Z", "X"), TupleResult("Z", "Y"), TupleResult("Z", "Z"), TupleResult("Z", "W"),
+        TupleResult("A", "W"),
+        TupleResult("B", "A"), TupleResult("B", "C"), TupleResult("B", "W")
+      )),
     )
   }
 
@@ -283,7 +290,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     Seq(
       TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
-      //TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
+      TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
     )
   }
 
@@ -342,11 +349,16 @@ object TestDefinition {
 
   def abstractSyntaxGraphTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("syntax")
-    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("main", "a", "c"))
+    TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("a", "c"))
   }
 
-  /*def section3: TestDefinition[Int] = {
+  def loopTest: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("graphs")
+    TestDefinition("Loop", "Main", "main", Seq(), SetResult())
+  }
+
+  def monoMapTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("Section3", "AddOp", "main", Seq(), 10)
-  }*/
+    TestDefinition("MonotoneTest", "Main", "main", Seq(), SetResult(3))
+  }
 }

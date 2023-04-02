@@ -11,7 +11,7 @@ import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions()//, Seq(DeriveDemandPatterns, DemandTransformation))
+  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))//, Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -199,6 +199,15 @@ class DatalogTest extends AnyFunSuite {
   test("Abstract Syntax Graph") {
     performTests(abstractSyntaxGraphTest)
   }
+
+  test("Loop") {
+    performTests(loopTest)
+  }
+
+  test("Perform MonoMapTest") {
+    performTests(monoMapTest)
+  }
+
 
   /*test("Section 3") {
     performTests(section3)

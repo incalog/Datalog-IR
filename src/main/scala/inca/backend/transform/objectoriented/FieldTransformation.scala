@@ -20,6 +20,18 @@ case class MaxAgg() extends Aggregation[Int] {
   override val hasUnjoin: Boolean = false
 }
 
+
+// TODO: Required for set comprehension
+/*case class ListAgg() extends Aggregation[List[Any]] {
+  override val name: String = "listAgg"
+  override def init: List[Any] = List()
+  override def join(v1: List[Any], v2: List[Any]): List[Any] = v1 ++ v2
+  //override def unjoin(v1: Int, v2: Int): Int = v1 - v2
+  override val isAssociative: Boolean = true
+  override val isCommutative: Boolean = false
+  override val hasUnjoin: Boolean = false
+}*/
+
 /**
  * Should be applied after alloc transformation.
  *

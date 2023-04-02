@@ -13,6 +13,7 @@ module SetTest
 // }
 //
 
+// Currently not supported !!
 class A {
     var value: Int = 0
 

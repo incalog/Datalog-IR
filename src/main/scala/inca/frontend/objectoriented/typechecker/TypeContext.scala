@@ -143,7 +143,7 @@ trait TypeContext extends TypeIO {
     var allFields = collect[FieldDef](clazz, f => f.name == name)
 
     // Special case for monotone classes to satisfy the typechecker
-    if (clazz.isDefined && clazz.get.isMontoneClass) {
+    if (clazz.isDefined && clazz.get.isMonotoneClass) {
       val Some((_, resType)) = clazz.get.montoneTypes
       val resultField = FieldDef(Seq(), None, Name("result"), resType, None, immutable = true)
       allFields :+= (clazz.get -> resultField)

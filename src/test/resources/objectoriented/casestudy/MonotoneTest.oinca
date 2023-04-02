@@ -1,0 +1,41 @@
+module MonoTest
+
+case class Num(val value: Int) {
+
+}
+
+class SumMonotoneWithSetSemantics extends BalancedMonotone[Int, Num] {
+
+    def init(): Num = {
+        new Num(0)
+    }
+
+    def join(m1: Num, m2: Num): Num = {
+        val n1: Num = m1.asInstanceOf[Num]
+        val n2: Num = m2.asInstanceOf[Num]
+        new Num(n1.value + n2.value)
+    }
+
+    def lift(v: Int): Num = {
+        new Num(v)
+    }
+
+    def get(): Num = {
+        this.result
+        //val res: Any = this.result
+        //val n: Num = res.asInstanceOf[Num]
+        //n.value // No idea why, but this is currently not working.
+    }
+}
+
+class Main {
+    @main
+    def main(): Int = {
+        val mono: SumMonotoneWithSetSemantics = new SumMonotoneWithSetSemantics()
+        mono += 1
+        mono += 2
+        val res: Any = mono.get()
+        val n: Num = res.asInstanceOf[Num]
+        n.value
+    }
+}

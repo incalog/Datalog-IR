@@ -1,5 +1,6 @@
 module SetTest
 
+// Currently not supported !!
 class A {
     val mySet: Set[Int] = Set[Int]()
 

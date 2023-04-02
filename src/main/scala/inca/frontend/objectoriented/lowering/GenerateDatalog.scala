@@ -53,8 +53,45 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(tyOID))
 
   def transModule(): Datalog.Module = {
+    /*val main = Datalog.Pattern(None, "Main$main", Seq(Datalog.Param("y", Datalog.TScalaDouble)), Seq(
+      Datalog.Body(
+        Seq(
+          Datalog.Call("f", Seq(Datalog.DoubleConstant(2.0), Datalog.Var("y")))
+        )
+      )
+    )).addHint(MagicSetHints.Main(Seq()))
 
-    //return loadSection3Example()
+    val f = Datalog.Pattern(None, "f", Seq(Datalog.Param("x", Datalog.TScalaDouble)), Seq(
+      Datalog.Body(Seq(
+        Datalog.Computed(Datalog.Var("tmp"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => 1.0/x"))),
+        Datalog.Eq(Datalog.True, Datalog.True),
+        Datalog.Call("f", Seq(Datalog.Var("tmp")))
+      )),
+      Datalog.Body(Seq(
+        Datalog.Eq(Datalog.True, Datalog.True),
+        Datalog.Computed(Datalog.Var("tmp"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => 1.0/x"))),
+      ))
+    ))
+
+    val f = Datalog.Pattern(None, "f", Seq(Datalog.Param("x", Datalog.TScalaDouble), Datalog.Param("y", Datalog.TScalaDouble)), Seq(
+      Datalog.Body(Seq(
+        Datalog.Computed(Datalog.False, Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaBoolean, Scala(q"(x: Double) => (x >= 10.0)"))),
+        Datalog.Computed(Datalog.Var("tmp2"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => x+1.0"))),
+        Datalog.Call("f", Seq(Datalog.Var("tmp2"), Datalog.Var("y")))
+      )),
+      Datalog.Body(Seq(
+        Datalog.Computed(Datalog.True, Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaBoolean, Scala(q"(x: Double) => (x >= 10.0)"))),
+        Datalog.Eq(Datalog.Var("y"), Datalog.Var("x"))
+      ))
+    ))
+
+    val Module(name, imports, classes) = coreModule
+    return Datalog.Module(
+      name.raw,
+      imports.map(_.name.raw),
+      List(main, f),
+      Nil
+    )*/
 
     // real code
     val Module(name, imports, classes) = coreModule
@@ -115,9 +152,14 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val params = classes.flatMap(collectMethods).map {
       case (sig, (c, m)) =>
-        val isMonotoneAddMethod = c.isMontoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
+        val isMonotoneAddMethod = c.isMonotoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
         val outParms = if (isMonotoneAddMethod && m.outType.isInstanceOf[TTuple]) {
-          Seq(Datalog.Param(gensym.fresh("out"), transType(m.outType)))
+          // TODO: support this for arbitrarily nested tuples
+          val resType = m.outType match {
+            case ty : TClass => transDataType(ty)
+            case ty =>  transType(ty)
+          }
+          Seq(Datalog.Param(gensym.fresh("out"), resType))
         } else {
           flattenParam("out", m.outType, genFresh = false)
         }
@@ -339,7 +381,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     }
 
     val fieldVarsAndComps = fields.map { f =>
-      // FIXME: This is tuple check will fail if we allow coalescing sets, since tuples can then be contained inside a
+      // FIXME: This tuple check will fail if we allow coalescing sets, since tuples can then be contained inside a
       //  set. For now a Tuple can only be the outermost type at this source position.
       val isTuple = f.typ.isInstanceOf[TTuple]
       val (vars, comps) = f.typ.flatten.zipWithIndex.map {
@@ -596,21 +638,27 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val qualifiedName = methodPatName(classDef.name.raw, methodDef.name.raw)
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
+    //TODO: we might not want to flat input tuple argument to += for Monotones
     val argParams = methodDef.params.flatMap { case Param(name, typ) =>
       flattenParam(name.raw, typ, genFresh = false)
     }
 
     // Special aggregate functions in a monotone class are only translated to scala
-    val isMonotoneAddMethod = classDef.isMontoneClass && methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
-    val isMonotoneAggregateMethod = classDef.isMontoneClass && (methodDef.name match {
+    val isMonotoneAddMethod = classDef.isMonotoneClass && methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
+    val isMonotoneAggregateMethod = classDef.isMonotoneClass && (methodDef.name match {
       case Name("init") | Name("join") => true
       case _ => false
     })
-    // Do not flatten tuples for monotone types
+    // Do not flatten return tuples for monotone types
     val returnParams =
-      if (isMonotoneAddMethod)
-        Seq(Datalog.Param(gensym.fresh("return"), transType(methodDef.outType)))
-      else if (methodDef.returnsUnit)
+      if (isMonotoneAddMethod) {
+        // TODO: Support nested tuples
+        val resType = methodDef.outType match {
+          case ty: TClass => transDataType(ty)
+          case ty => transType(ty)
+        }
+        Seq(Datalog.Param(gensym.fresh("return"), resType))
+      } else if (methodDef.returnsUnit)
         Seq()
       else
         flattenParam("return", methodDef.outType, genFresh = true)
@@ -625,6 +673,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       // return a real scala tuple, not a flattened one
       if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
+        // TODO: coealesced inside tuples
         import scala.meta._
 
         val orgReturnParams = flattenVars("return", methodDef.outType, genFresh = true).toList
@@ -642,6 +691,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           Datalog.Eq(v, t)
         }
         Datalog.Body(cons ++ returnCons :+ transformReturnCond)
+      } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TClass]) {
+        // TODO: Remove this by merging it with the if-body above
+        val returnParam = returnParams.head
+        val returnTerm = returnTerms.head
+        val clsName = methodDef.outType.asInstanceOf[TClass].ref.name.raw
+        val coalescedCall = Datalog.Call(coalescedPatName(clsName), Seq(returnTerm, Datalog.Var(returnParam.name)))
+        Datalog.Body(cons :+ coalescedCall)
       } else {
         val returnCons = returnParams.zip(returnTerms).map { case (p, t) =>
           Datalog.Eq(Datalog.Var(p.name), t)
@@ -760,8 +816,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       for ((terms, cons) <- transExpression(recv)) yield {
         // reading the result value should perform an aggregation instead
-        if (classDef.isMontoneClass && targetName.raw == "result") {
-          //val montoneScalaObject = Datalog.Call(coalescedPatName(classDef.name.raw), terms)
+        if (classDef.isMonotoneClass && targetName.raw == "result") {
           val Some((valType, resType)) = classDef.montoneTypes
           val aggVarType = transType(resType)
 
@@ -770,6 +825,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             aggVarType,
             None,
             // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
+            // TODO: Actually there is a way: Append the coalesced object as first argument to the result tuple that we
+            //  aggregate over
+            //  E.g: Avg$__plus__(this: inca.runtime.data.ObjectID, value: Int, return$0: (Avg, Int, Double)) {
+            //      coealesced(this, baseObj)
+            //      retunr$0 = (baseObj, ..., ...)
+            //    }
+            //  Just make it static...
             // TODO: This uses a fixed allocId for now
             Scala(q"${Term.Name(classDef.name.raw)}(0).__aggregation__"),
             methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
@@ -794,6 +856,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
                   Scala(q"(aggVar: ${aggVarType.asScala}) => aggVar.${Term.Name("_" + (idx + 1))}")
                 ))
               }
+            } else if (resType.isInstanceOf[TClass]) {
+              // Todo: extend this to nested tuple
+              // Todo: extend this to nested tuple
+              val clsName = resType.asInstanceOf[TClass].ref.name.raw
+              val uncoalescedCall = Datalog.Call(uncoalescedPatName(clsName), Seq(aggVar, resultVars.head._1))
+              Seq(uncoalescedCall)
+              //Seq()
             } else {
               // we got a single value back from the aggregation
               Seq(Datalog.Eq(resultVars.head._1, aggVar))
@@ -842,7 +911,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       val (classDef, methodDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
 
-      val outVars = if (classDef.isMontoneClass && fun.raw == AssignmentOp.AGG_ELEMENT.name.raw)
+      val outVars = if (classDef.isMonotoneClass && fun.raw == AssignmentOp.AGG_ELEMENT.name.raw)
         Seq(Datalog.Var(gensym.fresh("methodCall")))
       else
         flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
@@ -862,7 +931,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       //  We might need some encoding for empty set to support none unit methods
       //  For unit methods we do not need to change anything on the call side
       //  For none unit methods we would need to filter / aggregate the result of the enclosing method
-      //  For the Abstract syntax graph we would need to aggreagte the visitVar method calls
+      //  For the Abstract syntax graph we would need to aggregate the visitVar method calls
       if (isFix) {
         if (methodDef.returnsUnit)
           Seq((Seq(), Seq()), (terms, atoms))

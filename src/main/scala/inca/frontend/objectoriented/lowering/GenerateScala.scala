@@ -104,7 +104,7 @@ class GenerateScala {
     hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
     val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
 
-    val aggregationVal = if (classDef.isMontoneClass) {
+    val aggregationVal = if (classDef.isMonotoneClass) {
       val Some((_, resType)) = classDef.montoneTypes
       val scalaTy = transType(resType)
       val tyAggregation = typeOf[Aggregation[_]]
@@ -308,7 +308,7 @@ class GenerateScala {
       recv.typ match {
         case Some(TClass(ref)) =>
           ref.target match {
-            case Some(classDef) if classDef.isMontoneClass && targetName.raw == "result" =>
+            case Some(classDef) if classDef.isMonotoneClass && targetName.raw == "result" =>
               throw BodyMustFailException("Illegal usage of result field!")
             case None | Some(_) => default
           }

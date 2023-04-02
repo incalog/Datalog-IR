@@ -327,28 +327,29 @@ class SomeConstant extends MConstant {
     }
 }
 
-class MonotoneMap extends BalancedMonotone[(String, MConstant), `scala.collection.immutable.Map[String, MConstant]`] {
-    def init(): `scala.collection.immutable.Map[String, MConstant]` = {
-        `scala.collection.immutable.Map[String, MConstant]`()
+class MonotoneMap extends BalancedMonotone[(String, Any), `scala.collection.immutable.Map[String, Any]`] {
+    def init(): `scala.collection.immutable.Map[String, Any]` = {
+        `scala.collection.immutable.Map[String, Any]`()
     }
 
-    def join(m1: `scala.collection.immutable.Map[String, MConstant]`, m2: `scala.collection.immutable.Map[String, MConstant]`): `scala.collection.immutable.Map[String, MConstant]` = {
+    def join(m1: `scala.collection.immutable.Map[String, Any]`, m2: `scala.collection.immutable.Map[String, Any]`): `scala.collection.immutable.Map[String, Any]` = {
         m1 ++ m2
         //(m1.`keyset` ++ m2.`keyset`).`map { i => i -> }``
     }
 
-    def lift(pair: (String, MConstant)): `scala.collection.immutable.Map[String, MConstant]` = {
+    def lift(pair: (String, MConstant)): `scala.collection.immutable.Map[String, Any]` = {
         `scala.collection.immutable.Map[String, Int]`(pair._1 -> pair._2)
     }
 
-    def get(): `scala.collection.immutable.Map[String, MConstant]` = {
+    def get(): `scala.collection.immutable.Map[String, Any]` = {
         this.result
     }
 }
 
 
-class FIConstantPropagationVisitor extends Visitor {
+/*class FIConstantPropagationVisitor extends Visitor {
     /** The Map type separates keys from aggregated values */
+    // mono.Map[String, MConstant]
     val vars: MonotoneMap = new MonotoneMap()
 
     def visitValDef(s: ValDef): Unit = {
@@ -362,7 +363,80 @@ class FIConstantPropagationVisitor extends Visitor {
     def visitAssign(s: Assign): Unit = {
         this.vars += (s.lhs, s.rhs.aevalConst(this.vars))
     }
+}*/
+
+/** Shows a groupped aggregation */
+class FIConstantPropagationVisitor extends Visitor {
+    /** The Map type separates keys from aggregated values */
+    vag vars: Map[String, MConstant] = Map(("$$", new NoConstant()))
+        with MConstant.join
+
+    def visitValDef(s: ValDef): Unit = {
+        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+    }
+
+    def visitVarDef(s: VarDef): Unit = {
+        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+    }
+
+    def visitAssign(s: Assign): Unit = {
+        this.vars #= (s.lhs, s.rhs.aevalConst(this.vars))
+    }
 }
+
+/** Shows a nested groupped aggregation */
+class FSConstantPropagationVisitor extends Visitor {
+    // TODO empty set not currently allowed here
+
+    /** The Map types separate key1 from key2 and the aggregated values.
+     *  This could have been written Map[(Stm, String), MConstant], but the
+     *  nested type provides easier access per statement.
+     */
+    vag varsAfter: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
+        with MConstant.join
+    vag varsBefore: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
+        with MConstant.join
+
+    def visitValDef(s: ValDef): Unit = {
+        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
+    }
+
+    def visitVarDef(s: VarDef): Unit = {
+        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
+    }
+
+    def visitAssign(s: Assign): Unit = {
+        this.varsAfter(s) #= (s.lhs, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.lhs) yield bf
+    }
+
+    def visitSkip(s: Skip): Unit = {
+        this.varsAfter(s) ##= this.varsBefore(s)
+    }
+
+    def visitSequence(s: Sequence): Unit = {
+        // data flow s.s2.first() <- s.s1.last()
+        this.varsBefore(s.s2.first()) ##= this.varsAfter(s.s1.last())
+    }
+
+    def visitIf(s: If): Unit = {
+        // data flow s.thn.first() <- s
+        // data flow s.els.first() <- s
+        this.varsBefore(s.thn.first()) ##= this.varsBefore(s)
+        this.varsBefore(s.els.first()) ##= this.varsBefore(s)
+    }
+
+    def visitWhile(s: While): Unit = {
+        // data flow s.body.first() <- s
+        // data flow s <- s.body.last()
+        this.varsAfter(s) ##= this.varsBefore(s)
+        this.varsBefore(s.body.first()) ##= this.varsAfter(s)
+        this.varsBefore(s) ##= this.varsAfter(s.body.last())
+    }
+}
+
 
 class Examples {
     val factorial: Stm =

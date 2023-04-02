@@ -1,0 +1,17 @@
+module LoopTest
+
+case class Num(val value: Double) {
+}
+
+class Main {
+    def loop(n: Num): Set[Num] = {
+         Set(n) ++ this.loop(new Num(1/n.value))
+    }
+
+    @main
+    def main(): Set[Double] = {
+        val m: Main = new Main()
+        val start: Num = new Num(2.0)
+        for (n <- m.loop(start)) yield n.value
+    }
+}
