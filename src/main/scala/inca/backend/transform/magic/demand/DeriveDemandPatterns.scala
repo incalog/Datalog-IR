@@ -43,15 +43,17 @@ object DeriveDemandPatterns extends Transformation {
         if (!visited(current, currentAdorn)) {
           val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
-          val adornedBody = pat.bodies.map { body =>
-            var previous = ListBuffer[Atom]()
+          pat.bodies.map { body =>
+            val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
               val res = atom.asCall match {
                 case Some((name, args)) =>
                   val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
-                  val adorned = atom.replaceCall(adornmentName(name, adorn), args)
                   todo += name -> adorn
-                  adorned.withHints(atom).addHint(MagicSetHints.Adornment(adorn))
+                  atom.addHint(MagicSetHints.Adornment(adorn))
+//                  val adorned = atom.replaceCall(adornmentName(name, adorn), args)
+//                  val newAtom = adorned.withHints(atom).addHint(MagicSetHints.Adornment(adorn))
+//                  newAtom
                 case None =>
                   atom
               }
@@ -61,13 +63,14 @@ object DeriveDemandPatterns extends Transformation {
             Body(adornedAtoms).withHints(body)
           }
           // now we can construct the adorned pattern for this specific adornment
-          val adornedPat =
-            Pattern(
-              pat.vis,
-              adornmentName(pat.name, currentAdorn),
-              pat.params,
-              adornedBody
-            ).withHints(pat).addHint(MagicSetHints.Adornment(currentAdorn))
+          // TODO collect adornedPat
+//          val adornedPat =
+//            Pattern(
+//              pat.vis,
+//              adornmentName(pat.name, currentAdorn),
+//              pat.params,
+//              adornedBody
+//            ).withHints(pat).addHint(MagicSetHints.Adornment(currentAdorn))
           adornedPatterns += pat.name -> currentAdorn
         }
       }

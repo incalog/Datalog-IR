@@ -14,7 +14,8 @@ object DemandTransformation extends Transformation {
 
   val demandPatternPrefix = "input$"
   val demandPatternExtensionalPrefix = "ext_input$"
-  def inputPatternName(name: Name): String = demandPatternPrefix + name
+  def inputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
+
   def extensionalInputPatternName(name: Name): String = demandPatternExtensionalPrefix + name
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
@@ -48,11 +49,8 @@ object DemandTransformation extends Transformation {
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
       if (pat.hasHint(MagicSetHints.DemandPatternsKey)) {
-        val demandPats = getDemandPatterns(pat)
-        demandPats.adorn.map { demandPat =>
-          val extendedPatterns = insertInputCall(pat, demandPat)
-          extendedPatterns
-        }.toSeq
+        val demandPats = getDemandPatterns(pat).adorn.toSeq
+        Seq(insertInputCall(pat, demandPats))
       } else {
         Seq(pat)
       }
@@ -68,21 +66,27 @@ object DemandTransformation extends Transformation {
       else pat.hints(MagicSetHints.DemandPatternsKey).asInstanceOf[MagicSetHints.DemandPatterns]
     }
 
-    private def insertInputCall(pat: Pattern, demandPat: Seq[Boolean]): Pattern = {
+
+    private def insertInputCall(pat: Pattern, demandPats: Seq[Seq[Boolean]]): Pattern = {
       if (!shouldInsertInput(pat))
         return pat
 
       if (pat.bodies.isEmpty) {
-        val body = deriveInputCall(pat, demandPat).map(c => Body(Seq(c)))
-        return Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
+        // TODO is this correct?
+        val bodies = demandPats.flatMap { demandPat =>
+          deriveInputCall(pat, demandPat).map(c => Body(Seq(c)))
+        }
+        return Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
       }
 
-      val bodies = pat.bodies.map { b =>
-        if (shouldInsertInput(b)) {
-          val inputCall = deriveInputCall(pat, demandPat)
-          Body(inputCall.toSeq ++ b.atoms).withHints(b)
-        } else {
-          b
+      val bodies = demandPats.flatMap { demandPat =>
+        pat.bodies.map { b =>
+          if (shouldInsertInput(b)) {
+            val inputCall = deriveInputCall(pat, demandPat)
+            Body(inputCall.toSeq ++ b.atoms).withHints(b)
+          } else {
+            b
+          }
         }
       }
       Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
@@ -91,10 +95,10 @@ object DemandTransformation extends Transformation {
     private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = {
       val boundParams = deriveBoundParams(pat, demandPat)
       if (boundParams.isEmpty) {
-        Some(Call(inputPatternName(pat.name), List(Var("_"))).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name, demandPat), List(Var("_"))).addHint(InputCall(pat.name)))
       } else {
         val args = boundParams.map(p => Var(p.name))
-        Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name, demandPat), args).addHint(InputCall(pat.name)))
       }
     }
 
@@ -126,19 +130,25 @@ object DemandTransformation extends Transformation {
       val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
 
       // for each body there can be multiple input bodies (due to multiple pattern calls)
-      val inputPatterns = patterns.flatMap { p =>
-        p.bodies.flatMap { body =>
+      val inputPatterns = patterns.flatMap { visitedPat =>
+        visitedPat.bodies.flatMap { body =>
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
                 if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
-                  val bindings = boundIndices.map { i =>
-                    Eq(args(i), Var(params(i).name))
+                  val callAdornment = atom.hints(MagicSetHints.AdornmentKey).asInstanceOf[MagicSetHints.Adornment]
+                  if (callAdornment.adorn == demandPat) {
+                    val bindings = boundIndices.map { i =>
+                      Eq(args(i), Var(params(i).name))
+                    }
+                    val prefixAtoms = body.atoms.take(atomix)
+                    Seq(Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body))
+                  } else {
+                    Seq()
                   }
-                  Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
-                }
-                else
+                } else {
                   Seq()
+                }
               case _ => Seq()
             }
           }
@@ -154,7 +164,7 @@ object DemandTransformation extends Transformation {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      val inputPat = Pattern(None, inputPatternName(pat.name, demandPat), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else

@@ -76,7 +76,7 @@ class GenerateIR(module: Module) {
       Datalog.Eq(Datalog.Var(param.name), term)
     }
     val bodyConstraints = rule.body.flatMap(transAtom)
-    Datalog.Body(paramEqs ++ headConstraints.flatten ++ bodyConstraints)
+    Datalog.Body(bodyConstraints ++ paramEqs ++ headConstraints.flatten)
   }
 
   private def transAtom(a: Atom): Seq[Datalog.Atom] = a match {
