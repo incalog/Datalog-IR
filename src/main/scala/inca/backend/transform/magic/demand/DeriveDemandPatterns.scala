@@ -3,6 +3,7 @@ package inca.backend.transform.magic.demand
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.Collect
+import inca.backend.optimize.EliminateAliases
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
 
@@ -19,10 +20,11 @@ object DeriveDemandPatterns extends Transformation {
 
     // we adorn the program but then return original program where to add hints for the found demand patterns
     override def transformModule(module: Module): Module = {
+      // we need to eliminate aliases beforehand such that the order or renamings by = does not matter
+      val noAliasesModule = EliminateAliases.optimizer(dataModel).optimizeModule(module)
       var adornedPatterns: Set[(Name, Adornment)] = Set()
-      var unvisitedPatterns: Set[Pattern] = module.pats.toSet
 
-      val mainHints = collectMainPattern(module)
+      val mainHints = collectMainPattern(noAliasesModule)
       val mains = mainHints.map { p =>
         val mainHint = p.hints(MagicSetHints.MainKey).asInstanceOf[MagicSetHints.Main]
         val adornment = mainHint.adorn
@@ -41,17 +43,18 @@ object DeriveDemandPatterns extends Transformation {
         todo = todo.tail
 
         if (!visited(current, currentAdorn)) {
-          val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
-          unvisitedPatterns -= pat
-          val adornedBody = pat.bodies.map { body =>
+          val pat = noAliasesModule.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
+          // unvisitedPatterns -= pat
+          pat.bodies.map { body =>
             val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
               val res = atom.asCall match {
                 case Some((name, args)) =>
                   val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
-                  val adorned = atom.replaceCall(adornmentName(name, adorn), args)
                   todo += name -> adorn
-                  adorned.withHints(atom).addHint(MagicSetHints.Adornment(adorn))
+                  val oldAdornments = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
+                  val newAdornments = MagicSetHints.Adornments(oldAdornments.adorn + adorn)
+                  atom.addHint(newAdornments)
                 case None =>
                   atom
               }
@@ -60,38 +63,26 @@ object DeriveDemandPatterns extends Transformation {
             }
             Body(adornedAtoms).withHints(body)
           }
-          // now we can construct the adorned pattern for this specific adornment
-          val adornedPat =
-            Pattern(
-              pat.vis,
-              adornmentName(pat.name, currentAdorn),
-              pat.params,
-              adornedBody
-            ).withHints(pat).addHint(MagicSetHints.Adornment(currentAdorn))
           adornedPatterns += pat.name -> currentAdorn
         }
       }
 
       // annotate original pattern with found demand patterns
-      module.pats.foreach { p =>
+      noAliasesModule.pats.foreach { p =>
         val demandPats = adornedPatterns.filter {
           case(name, _) => name == p.name
         }.map(_._2)
         p.addHint(MagicSetHints.DemandPatterns(demandPats))
       }
-      // Module(module.name, module.imports, module.data, module.pats, module.scalaContent)
-      module
+      noAliasesModule
     }
   }
 
   private def collectMainPattern(module: Module): Seq[Pattern]=
     module.pats.filter { p => p.hints.contains(MagicSetHints.MainKey) }
 
-  object CollectVars extends Collect[Var] {
-    override def transVar(v: Var): Seq[Var] = Seq(v)
-  }
 
-  def fixedAdornment(con: Atom): Option[Adornment] =
+  def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
     con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
       Some(adorn)
     }
@@ -113,12 +104,6 @@ object DeriveDemandPatterns extends Transformation {
     }
   }
 
-  def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
-    val vars = CollectVars.transAtom(constraint).toSet
-    vars.diff(prevBound)
-  }
-
   def adornmentName(name: Name, adorn: Adornment): String =
     s"${name}_${adornmentToString(adorn)}"
 
@@ -126,4 +111,14 @@ object DeriveDemandPatterns extends Transformation {
     case false => "f"
     case true => "b"
   }.mkString
+
+  private object CollectVars extends Collect[Var] {
+    override def transVar(v: Var): Seq[Var] = Seq(v)
+  }
+
+  def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
+    val vars = CollectVars.transAtom(constraint).toSet
+    vars.diff(prevBound)
+  }
 }

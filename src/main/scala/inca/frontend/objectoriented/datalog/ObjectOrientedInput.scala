@@ -30,8 +30,10 @@ protected[datalog] final case class ObjectOrientedInput(terms: Seq[meta.Term], c
     val inputParamNames = paramNames.slice(0, cargs.size)
     val rel = Relation.from(relName, inputParamNames, Seq(cargs))
 
+    val adornment = "b".repeat(inputParamNames.size) + "f".repeat(paramNames.size-inputParamNames.size)
+
     val es = EditScript(ess.flatMap(_.edits))
-    val insert = Relation.from(demandPatternExtensionalPrefix + relName, inputParamNames, Seq(cargs))
+    val insert = Relation.from(demandPatternExtensionalPrefix + relName + "$" + adornment, inputParamNames, Seq(cargs))
     val change = EDBChange(es, Seq(insert), Seq())
     (change, rel, diffables)
   }

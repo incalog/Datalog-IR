@@ -446,7 +446,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         throw new RuntimeException(s"Case class ${classDef.name} does not contain a primary constructor")
       )
       val primaryParamNames = primaryConstr.params.map(_.name.raw)
-      val (primaryFields, secondaryFields) = fieldVarsAndComps.partition { case (f, _, _) =>
+      val (primaryFields, _) = fieldVarsAndComps.partition { case (f, _, _) =>
         primaryParamNames.contains(f.name.raw)
       }
       val qualifiedName = constructorPatName(classDef.name.raw) + primaryConstr.signature
@@ -473,7 +473,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
+    val bodies = Seq(bodyWithNull, bodyWithoutId) //Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
       //.addHint(MagicSetHints.NoInputRelation)
 

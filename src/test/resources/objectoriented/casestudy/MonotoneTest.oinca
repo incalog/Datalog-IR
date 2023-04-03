@@ -10,9 +10,7 @@ class SumMonotoneWithSetSemantics extends BalancedMonotone[Int, Num] {
         new Num(0)
     }
 
-    def join(m1: Num, m2: Num): Num = {
-        val n1: Num = m1.asInstanceOf[Num]
-        val n2: Num = m2.asInstanceOf[Num]
+    def join(n1: Num, n2: Num): Num = {
         new Num(n1.value + n2.value)
     }
 
@@ -22,9 +20,6 @@ class SumMonotoneWithSetSemantics extends BalancedMonotone[Int, Num] {
 
     def get(): Num = {
         this.result
-        //val res: Any = this.result
-        //val n: Num = res.asInstanceOf[Num]
-        //n.value // No idea why, but this is currently not working.
     }
 }
 
@@ -34,8 +29,7 @@ class Main {
         val mono: SumMonotoneWithSetSemantics = new SumMonotoneWithSetSemantics()
         mono += 1
         mono += 2
-        val res: Any = mono.get()
-        val n: Num = res.asInstanceOf[Num]
-        n.value
+        val res: Num = mono.get()
+        res.value
     }
 }

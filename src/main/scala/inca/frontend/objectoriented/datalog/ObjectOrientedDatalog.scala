@@ -66,7 +66,7 @@ final class ObjectOrientedDatalog(compiled: CompiledObjectModule) extends Datalo
 
   private def throwTypeCastExceptionIfRequired(): Unit = {
     val casts = read(UnitRelation(castPatName))
-    val castInputs = read(UnitRelation(demandPatternPrefix + castPatName))
+    val castInputs = read(UnitRelation(demandPatternPrefix + castPatName + "$bb"))
 
     val castObjects = casts.toSet.asInstanceOf[Set[(ObjectID, String)]]
     val castInputObjects = castInputs.toSet.asInstanceOf[Set[(ObjectID, String)]]

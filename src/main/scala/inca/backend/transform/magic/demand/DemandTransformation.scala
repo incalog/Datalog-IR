@@ -8,14 +8,17 @@ import inca.backend.transform.{FilterBodyTransformer, Transformation, Transforme
 import inca.runtime.context.DataModel
 import inca.util.Gensym
 
+import scala.collection.mutable
+
 
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
 object DemandTransformation extends Transformation {
 
   val demandPatternPrefix = "input$"
   val demandPatternExtensionalPrefix = "ext_input$"
-  def inputPatternName(name: Name): String = demandPatternPrefix + name
-  def extensionalInputPatternName(name: Name): String = demandPatternExtensionalPrefix + name
+  def inputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
+
+  def extensionalInputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternExtensionalPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
@@ -48,11 +51,8 @@ object DemandTransformation extends Transformation {
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
       if (pat.hasHint(MagicSetHints.DemandPatternsKey)) {
-        val demandPats = getDemandPatterns(pat)
-        demandPats.adorn.map { demandPat =>
-          val extendedPatterns = insertInputCall(pat, demandPat)
-          extendedPatterns
-        }.toSeq
+        val demandPats = getDemandPatterns(pat).adorn.toSeq
+        Seq(insertInputCall(pat, demandPats))
       } else {
         Seq(pat)
       }
@@ -68,21 +68,27 @@ object DemandTransformation extends Transformation {
       else pat.hints(MagicSetHints.DemandPatternsKey).asInstanceOf[MagicSetHints.DemandPatterns]
     }
 
-    private def insertInputCall(pat: Pattern, demandPat: Seq[Boolean]): Pattern = {
+
+    private def insertInputCall(pat: Pattern, demandPats: Seq[Seq[Boolean]]): Pattern = {
       if (!shouldInsertInput(pat))
         return pat
 
       if (pat.bodies.isEmpty) {
-        val body = deriveInputCall(pat, demandPat).map(c => Body(Seq(c)))
-        return Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
+        // TODO is this correct?
+        val bodies = demandPats.flatMap { demandPat =>
+          deriveInputCall(pat, demandPat).map(c => Body(Seq(c)))
+        }
+        return Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
       }
 
-      val bodies = pat.bodies.map { b =>
-        if (shouldInsertInput(b)) {
-          val inputCall = deriveInputCall(pat, demandPat)
-          Body(inputCall.toSeq ++ b.atoms).withHints(b)
-        } else {
-          b
+      val bodies = demandPats.flatMap { demandPat =>
+        pat.bodies.map { b =>
+          if (shouldInsertInput(b)) {
+            val inputCall = deriveInputCall(pat, demandPat)
+            Body(inputCall.toSeq ++ b.atoms).withHints(b)
+          } else {
+            b
+          }
         }
       }
       Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
@@ -91,10 +97,10 @@ object DemandTransformation extends Transformation {
     private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = {
       val boundParams = deriveBoundParams(pat, demandPat)
       if (boundParams.isEmpty) {
-        Some(Call(inputPatternName(pat.name), List(Var("_$"))).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name, demandPat), List(Var("_"))).addHint(InputCall(pat.name)))
       } else {
         val args = boundParams.map(p => Var(p.name))
-        Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name, demandPat), args).addHint(InputCall(pat.name)))
       }
     }
 
@@ -105,6 +111,30 @@ object DemandTransformation extends Transformation {
 
     private def deriveBoundIndices(pat: Pattern, demandPat: Seq[Boolean]): Seq[Int] = {
       demandPat.zipWithIndex.filter(_._1).map(_._2)
+    }
+
+    private def allParamsBound(body: Body, params: Seq[Param]): Boolean = {
+      val currentlyBound: mutable.HashSet[Name] = mutable.HashSet()
+      def isBound(t: Term): Boolean = t match {
+        case Var(name) => currentlyBound.contains(name)
+        case Constant(_) => true
+      }
+      body.atoms.foreach {
+        case Undef(t) =>
+          throw new UnsupportedOperationException("Currently does not support Undef in demand transformation")
+        case Compare(EqComparator, lhs, rhs) =>
+          if (isBound(lhs))
+            currentlyBound ++= CollectVars.transTerm(rhs)
+          else if (isBound(rhs))
+            currentlyBound ++= CollectVars.transTerm(lhs)
+          else
+            () // do nothing
+        case Compare(NeqComparator, lhs, rhs) =>
+          () // do nothing
+        case atom =>
+          currentlyBound ++= CollectVars.transAtom(atom)
+      }
+      params.forall(p => currentlyBound.contains(p.name))
     }
 
     private def deriveInputPattern(pat: Pattern, demandPat: Seq[Boolean], patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
@@ -118,6 +148,7 @@ object DemandTransformation extends Transformation {
       }
 
       val boundIndices = deriveBoundIndices(pat, demandPat)
+      val boundParams = boundIndices.map(params)
       val dummyParam =
         if (boundIndices.isEmpty)
           Some(Param(gensym.fresh("dummy"), TScala("Boolean")))
@@ -126,38 +157,49 @@ object DemandTransformation extends Transformation {
       val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
 
       // for each body there can be multiple input bodies (due to multiple pattern calls)
-      val inputPatterns = patterns.flatMap { p =>
-        p.bodies.flatMap { body =>
+      val inputPatterns = patterns.flatMap { visitedPat =>
+        visitedPat.bodies.flatMap { body =>
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
                 if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
-                  val bindings = boundIndices.map { i =>
-                    Eq(args(i), Var(params(i).name))
+                  val callAdornment = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
+                  if (callAdornment.adorn.contains(demandPat)) {
+                    val bindings = boundIndices.map { i =>
+                      Eq(args(i), Var(params(i).name))
+                    }
+                    val prefixAtoms = body.atoms.take(atomix)
+                    // check if every param is bound, else we do not generate rule
+                    val inputPatternBody = Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body)
+                    if (allParamsBound(inputPatternBody, (boundParams ++ dummyParam)))
+                      Seq(inputPatternBody)
+                    else
+                      Seq()
+                  } else {
+                    Seq()
                   }
-                  Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
-                }
-                else
+                } else {
                   Seq()
+                }
               case _ => Seq()
             }
           }
         }
       }
 
-      val boundParams = boundIndices.map(params)
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name, demandPat), boundParams.map(p => Var(p.name)))
         Some(Body(Seq(extCall) ++ dummyBinding))
       } else {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      val inputPat = Pattern(None, inputPatternName(pat.name, demandPat), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
       if (pat.hasHint(OptimizationHints.NoInlineInputKey)) {
         inputPat.addHint(OptimizationHints.NoInline)
       }
+
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else
