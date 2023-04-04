@@ -29,7 +29,7 @@ object DemandTransformation extends Transformation {
       val inputPatterns = mod.pats.flatMap { pat =>
         val demandPats = getDemandPatterns(pat)
         demandPats.adorn.flatMap { demandPat =>
-          deriveInputPattern(pat, demandPat, insertedInputCallPats)
+          deriveInputPattern(pat, demandPat, mod.pats)
         }
       }
 
@@ -136,8 +136,8 @@ object DemandTransformation extends Transformation {
             atom.asCall match {
               case Some((name, args)) =>
                 if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
-                  val callAdornment = atom.hints(MagicSetHints.AdornmentKey).asInstanceOf[MagicSetHints.Adornment]
-                  if (callAdornment.adorn == demandPat) {
+                  val callAdornment = atom.hints(MagicSetHints.AdornmentsKey).asInstanceOf[MagicSetHints.Adornments]
+                  if (callAdornment.adorn.contains(demandPat)) {
                     val bindings = boundIndices.map { i =>
                       Eq(args(i), Var(params(i).name))
                     }

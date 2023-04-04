@@ -8,7 +8,7 @@ object MagicSetHints {
   val IgnoreCallKey = "MAGIC_IGNORE_CALL"
   val FixedAdornmentKey = "MAGIC_FIXED_ADORNMENT"
   val NoInputRelationKey = "MAGIC_NO_INPUT_RELATION"
-  val AdornmentKey = "MAGIC_ADORNMENT"
+  val AdornmentsKey = "MAGIC_ADORNMENTS"
   val InputCallKey = "MAGIC_INPUT_CALL"
 
   val DemandPatternsKey = "DEMAND_DEMAND_PATTERNS"
@@ -59,8 +59,11 @@ object MagicSetHints {
   /**
    * indicates the adornment
    */
-  case class Adornment(adorn: Seq[Boolean]) extends Hint {
-    val key: Key = AdornmentKey
+  case class Adornments(adorn: Set[Seq[Boolean]]) extends Hint {
+    val key: Key = AdornmentsKey
+  }
+  object Adornments {
+    def singleton(adorn: Seq[Boolean]): Adornments = Adornments(Set(adorn))
   }
 
   case class InputCall(name: String) extends Hint {
