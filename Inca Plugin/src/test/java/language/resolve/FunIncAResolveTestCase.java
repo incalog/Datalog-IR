@@ -56,8 +56,8 @@ public class FunIncAResolveTestCase extends FunIncACodeInsightTest {
                 if (refElement == null) fail("Reference was null in " + file.getName());
             }
             if (resolvedOffset != -1) {
-                resolvedElement = psiFile.findElementAt(resolvedOffset); // returns FuncIncaId
-                resolvedElement = resolvedElement.getParent(); // parent of the Id Node is a FuncIncaVarId Node
+                resolvedElement = psiFile.findElementAt(resolvedOffset); // returns ID-node, the token
+                resolvedElement = resolvedElement.getParent(); // parent of the token is a FunIncAVarRefExp Node
                 if (resolvedElement == null) { fail("Resolved element returned null in " + file.getName()); }
             }
         }

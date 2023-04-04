@@ -1,0 +1,7 @@
+module setComprehension7
+
+def set1: Set[Int] = { 1,2,3,4,5 }
+def set2: Set[(String, Int)] = {("twohundred", 200), ("onethousand", 1000)}
+
+def compInComp(): Set[Int] =
+    { x | (str, x) in { (<ref>s,n) | (<resolved>s,n) in set4 } }

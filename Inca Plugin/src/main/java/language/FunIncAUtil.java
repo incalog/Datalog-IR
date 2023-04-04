@@ -60,8 +60,8 @@ public class FunIncAUtil {
             for (PsiNamedElement namedElement : namedElements) {
                 if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FunIncAVarRefExp) {
-                        if (PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class) == setParent &&
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class) != null) {
+                        if (PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class) == setParent && // TODO named element set comprehension is ancestor to setParent bc bei verschachtelten setcompr können innere auf äußere zugreifen
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class) != null) { // TODO aber nur die bereits definierten?
                             // declarations with FuncIncaVar in predicates can only be member-expressions
                             resCandidates.add(namedElement);
                         }
@@ -113,12 +113,25 @@ public class FunIncAUtil {
                     // element, since the variable n2 is first introduced in "(n2,n3) in set1" and n2 in "(n1,n2)"
                     // references the first n2.
                     PsiNamedElement firstDef = resCandidates.get(0);
-                    for (PsiNamedElement node : resCandidates) {
-                        if (node.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
-                            firstDef = node;
+                    for (PsiNamedElement candidate : resCandidates) {
+                        if (candidate.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
+                            firstDef = candidate;
                     }
                     if (firstDef != e)
                         res.add(firstDef);
+                    else { //
+                        FunIncASetMemberExp memberParent = PsiTreeUtil.getParentOfType(e, FunIncASetMemberExp.class);
+                        if (resCandidates.size() > 1 &&
+                                PsiTreeUtil.isAncestor(memberParent, setParent, true)) {
+                            resCandidates.remove(e);
+                            firstDef = resCandidates.get(0);
+                            for (PsiNamedElement candidate : resCandidates) {
+                                if (candidate.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
+                                    firstDef = candidate;
+                            }
+                            res.add(firstDef);
+                        }
+                    }
                 }
             }
 

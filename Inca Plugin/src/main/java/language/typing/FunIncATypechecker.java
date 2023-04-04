@@ -293,13 +293,13 @@ public class FunIncATypechecker {
             // call getTypeOfVarRef
             FunIncAVarRefExp varExp = (FunIncAVarRefExp) exp;
             FunIncAReference reference = (FunIncAReference) varExp.getReference();
-            ResolveResult[] result = reference.multiResolve(true);
+            ResolveResult[] result = reference.multiResolve(true); // beginning of loop
             if (result.length == 0) {
                 if ((PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class) != null) &&
                         (PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class) != null) &&
                         (PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class) == null)) {
                     // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
-                    // except varExp it is a variable in a function call (function or parameter)
+                    // and not a reference, except varExp it is a variable in a function call referencing a function
                     return typeOfVarDef(varExp, holder);
                 } else {
                     holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved name " + varExp.getName())
@@ -504,7 +504,7 @@ public class FunIncATypechecker {
                     FunIncADataDef dataDef = dataDefs.get(0);
                     return typecheckTypeNameMatch(exp, cases, dataDef, holder);
                 }
-            } else if (matcheeType instanceof ConstructorType) { // TODO constructor match
+            } else if (matcheeType instanceof ConstructorType) { // TODO constructorType match
 //                PsiElement constrName = PsiTreeUtil.findChildOfType(matchee, FuncIncaVar.class);
 //                if (constrName.getReference() != null)
 //                    return typecheckConstructorMatch(exp, cases, constrName.getReference().resolve(), matcheeType, holder);
