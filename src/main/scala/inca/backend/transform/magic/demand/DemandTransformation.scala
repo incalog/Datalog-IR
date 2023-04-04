@@ -18,7 +18,7 @@ object DemandTransformation extends Transformation {
   val demandPatternExtensionalPrefix = "ext_input$"
   def inputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
 
-  def extensionalInputPatternName(name: Name): String = demandPatternExtensionalPrefix + name
+  def extensionalInputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternExtensionalPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
@@ -119,11 +119,7 @@ object DemandTransformation extends Transformation {
         case Var(name) => currentlyBound.contains(name)
         case Constant(_) => true
       }
-      // inputs always just bind
-      val inputEnumeratedVars = CollectVars.transAtom(body.atoms.head)
-      currentlyBound ++= inputEnumeratedVars
-
-      body.atoms.tail.foreach {
+      body.atoms.foreach {
         case Undef(t) =>
           throw new UnsupportedOperationException("Currently does not support Undef in demand transformation")
         case Compare(EqComparator, lhs, rhs) =>
@@ -193,7 +189,7 @@ object DemandTransformation extends Transformation {
 
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name, demandPat), boundParams.map(p => Var(p.name)))
         Some(Body(Seq(extCall) ++ dummyBinding))
       } else {
         None
