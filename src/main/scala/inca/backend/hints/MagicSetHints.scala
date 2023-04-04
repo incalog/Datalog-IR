@@ -63,6 +63,7 @@ object MagicSetHints {
     val key: Key = AdornmentsKey
   }
   object Adornments {
+    def empty: Adornments = Adornments(Set())
     def singleton(adorn: Seq[Boolean]): Adornments = Adornments(Set(adorn))
   }
 
