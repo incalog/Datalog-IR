@@ -81,9 +81,6 @@ object DeriveDemandPatterns extends Transformation {
   private def collectMainPattern(module: Module): Seq[Pattern]=
     module.pats.filter { p => p.hints.contains(MagicSetHints.MainKey) }
 
-  object CollectVars extends Collect[Var] {
-    override def transVar(v: Var): Seq[Var] = Seq(v)
-  }
 
   def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
     con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
@@ -107,12 +104,6 @@ object DeriveDemandPatterns extends Transformation {
     }
   }
 
-  def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
-    val vars = CollectVars.transAtom(constraint).toSet
-    vars.diff(prevBound)
-  }
-
   def adornmentName(name: Name, adorn: Adornment): String =
     s"${name}_${adornmentToString(adorn)}"
 
@@ -120,4 +111,14 @@ object DeriveDemandPatterns extends Transformation {
     case false => "f"
     case true => "b"
   }.mkString
+
+  private object CollectVars extends Collect[Var] {
+    override def transVar(v: Var): Seq[Var] = Seq(v)
+  }
+
+  def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
+    val vars = CollectVars.transAtom(constraint).toSet
+    vars.diff(prevBound)
+  }
 }

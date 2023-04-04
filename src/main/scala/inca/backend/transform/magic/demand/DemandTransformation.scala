@@ -8,6 +8,8 @@ import inca.backend.transform.{FilterBodyTransformer, Transformation, Transforme
 import inca.runtime.context.DataModel
 import inca.util.Gensym
 
+import scala.collection.mutable
+
 
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
 object DemandTransformation extends Transformation {
@@ -111,6 +113,34 @@ object DemandTransformation extends Transformation {
       demandPat.zipWithIndex.filter(_._1).map(_._2)
     }
 
+    private def allParamsBound(body: Body, params: Seq[Param]): Boolean = {
+      val currentlyBound: mutable.HashSet[Name] = mutable.HashSet()
+      def isBound(t: Term): Boolean = t match {
+        case Var(name) => currentlyBound.contains(name)
+        case Constant(_) => true
+      }
+      // inputs always just bind
+      val inputEnumeratedVars = CollectVars.transAtom(body.atoms.head)
+      currentlyBound ++= inputEnumeratedVars
+
+      body.atoms.tail.foreach {
+        case Undef(t) =>
+          throw new UnsupportedOperationException("Currently does not support Undef in demand transformation")
+        case Compare(EqComparator, lhs, rhs) =>
+          if (isBound(lhs))
+            currentlyBound ++= CollectVars.transTerm(rhs)
+          else if (isBound(rhs))
+            currentlyBound ++= CollectVars.transTerm(lhs)
+          else
+            () // do nothing
+        case Compare(NeqComparator, lhs, rhs) =>
+          () // do nothing
+        case atom =>
+          currentlyBound ++= CollectVars.transAtom(atom)
+      }
+      params.forall(p => currentlyBound.contains(p.name))
+    }
+
     private def deriveInputPattern(pat: Pattern, demandPat: Seq[Boolean], patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
       if (!shouldDeriveInput(pat))
         return Seq()
@@ -122,6 +152,7 @@ object DemandTransformation extends Transformation {
       }
 
       val boundIndices = deriveBoundIndices(pat, demandPat)
+      val boundParams = boundIndices.map(params)
       val dummyParam =
         if (boundIndices.isEmpty)
           Some(Param(gensym.fresh("dummy"), TScala("Boolean")))
@@ -142,7 +173,12 @@ object DemandTransformation extends Transformation {
                       Eq(args(i), Var(params(i).name))
                     }
                     val prefixAtoms = body.atoms.take(atomix)
-                    Seq(Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body))
+                    // check if every param is bound, else we do not generate rule
+                    val inputPatternBody = Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body)
+                    if (allParamsBound(inputPatternBody, (boundParams ++ dummyParam)))
+                      Seq(inputPatternBody)
+                    else
+                      Seq()
                   } else {
                     Seq()
                   }
@@ -155,7 +191,6 @@ object DemandTransformation extends Transformation {
         }
       }
 
-      val boundParams = boundIndices.map(params)
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
         val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
