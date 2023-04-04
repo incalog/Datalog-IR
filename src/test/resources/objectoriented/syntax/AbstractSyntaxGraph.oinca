@@ -129,7 +129,7 @@ class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[
     }
 }
 
-class MonotoneMap extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`] {
+/*class MonotoneMap extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`] {
     def init(): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
         `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]`()
     }
@@ -156,7 +156,7 @@ class MonotoneMap extends BalancedMonotone[(Any, Any), `scala.collection.immutab
     def get(): `scala.collection.immutable.Map[Any, scala.collection.immutable.Set[Any]]` = {
         this.result
     }
-}
+}*/
 
 class ReachVisitor extends Visitor {
   val reachable: MonotoneSet = new MonotoneSet()

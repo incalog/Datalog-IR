@@ -24,7 +24,7 @@ object GPPrinter {
   def prettyPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
-    header + bodies// + " " + gp.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
+    header + " " + gp.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("") +  bodies
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {

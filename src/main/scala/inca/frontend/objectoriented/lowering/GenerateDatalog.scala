@@ -451,6 +451,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
       val qualifiedName = constructorPatName(classDef.name.raw) + primaryConstr.signature
       val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
+        //.addHint(MagicSetHints.IgnoreCall)
+        //.addHint(MagicSetHints.FixedAdornment(false +: primaryFields.map(_ => true)))
       val readFieldCalls = primaryFields.flatMap(_._3.flatten)
 
       Datalog.Body(
@@ -471,8 +473,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
+    val bodies = Seq(bodyWithNull, bodyWithoutId) //Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
+      //.addHint(MagicSetHints.NoInputRelation)
 
     // TODO: Could be optimized by only using this key per body
     if (classDef.isCaseClass)
