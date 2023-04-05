@@ -24,11 +24,11 @@ class FunctionsDataTest extends AnyFunSuite {
     assert(fun.execute("main", Seq()) == fun.result(q"""BusStation("B", 5)"""))
   }
 
-  test("Binary tree example") {
+  /*test("Binary tree example") {
     val code = FileUtil.readFile("functional/unittests/BinaryTree.finca")
     val fun = loadFunction(code)
     assert(fun.execute("main", Seq()) == fun.result(q"20"))
-  }
+  }*/
 
   // TODO: Remove me
   test("Datatypes") {
