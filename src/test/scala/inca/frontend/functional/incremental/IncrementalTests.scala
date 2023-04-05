@@ -8,8 +8,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.meta.quasiquotes._
 
 class IncrementalTests extends AnyFunSuite {
-  val trackedRelsPlus = Set("plus", "input$plus")
-  val trackedRelsFact = Set("main", "fact", "input$fact")
+  val trackedRelsPlus = Set("plus", "input$plus$bbf")
+  val trackedRelsFact = Set("main", "fact", "input$fact$bf")
 
   test("primitive prog increase numerical input") {
     val code = readFile("functional/unittests/Fact.finca")
