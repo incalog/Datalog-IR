@@ -354,7 +354,7 @@ object TestDefinition {
 
   def loopTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("graphs")
-    TestDefinition("Loop", "Main", "main", Seq(), SetResult())
+    TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
   }
 
   def monoMapTest: TestDefinition[Any] = {

@@ -11,11 +11,11 @@ class Graph {
       new Edge("X", "Y"),
       new Edge("Y", "Z"),
       // introduce a cycle
-      new Edge("Z", "X")/*,
+      new Edge("Z", "X"),
       new Edge("Z", "W"),
       new Edge("A", "W"),
       new Edge("B", "A"),
-      new Edge("B", "C")*/
+      new Edge("B", "C")
     )
 
     def vertices(): Set[String] = {
@@ -27,8 +27,8 @@ class Graph {
     @main
     def main(): Set[(String, String)] = {
       val g: Graph = new Graph()
-      //for (v <- g.vertices(); r <- g.path(v)) yield (r.from, r.to)
-      for (p <- g.path("X")) yield (p.from, p.to)
+      for (v <- g.vertices(); r <- g.path(v)) yield (r.from, r.to)
+      //for (p <- g.path("X")) yield (p.from, p.to)
     }
 
     def path(x: String): Set[Path] = {

@@ -473,7 +473,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithoutId) //Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
+    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
       //.addHint(MagicSetHints.NoInputRelation)
 
