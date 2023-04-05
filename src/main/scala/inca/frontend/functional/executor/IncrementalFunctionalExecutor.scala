@@ -313,7 +313,7 @@ object IncrementalFunctionalExecutor {
       val loadingTime = endLoadDB - startLoadDB
 
       val startInsertQuery = System.nanoTime()
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insert(extensionalRelationName(main, tuple), tuple)
       val endInsertQuery = System.nanoTime()
       lastMainExtRel = Some(tuple)
 
