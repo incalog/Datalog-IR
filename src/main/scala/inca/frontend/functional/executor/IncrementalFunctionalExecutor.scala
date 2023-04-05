@@ -281,11 +281,21 @@ object IncrementalFunctionalExecutor {
     def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
       val (es, tuple) = input
       feed.processEditScript(es)
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
+      feed.insert(extensionalRelationName(main, tuple), tuple)
       val results = output(main, tuple)
       if (deleteInput)
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        feed.delete(extensionalRelationName(main, tuple), tuple)
       results
+    }
+
+    def extensionalRelationName(main: String, tuple: Tuple): String = {
+      val numBoundParams = tuple.getSize
+      val boundAdorn = (0 until numBoundParams).map(_ => "b")
+      val mainPattern = compiled.optimized.pats.find(_.name == main).getOrElse(throw new IllegalArgumentException(s"WHY $main not exist?"))
+      val numFreeParams =  mainPattern.params.size - numBoundParams
+      val freeAdorn = (0 until numFreeParams).map(_ => "f")
+      val name = demandPatternExtensionalPrefix + main + "$" + (boundAdorn ++ freeAdorn).mkString
+      name
     }
 
     def measureInitial(main: String, args: Seq[meta.Term]): (Long, Long, Long, Query.Matcher) = {
@@ -326,8 +336,8 @@ object IncrementalFunctionalExecutor {
         lastMainExtRel match {
           case Some(lastTuple) =>
             if (lastTuple != tuple) {
-              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-              feed.delete(demandPatternExtensionalPrefix + main, lastTuple)
+              feed.insert(extensionalRelationName(main, tuple) , tuple)
+              feed.delete(extensionalRelationName(main, tuple), lastTuple)
             } else {
               // do nothing
             }
