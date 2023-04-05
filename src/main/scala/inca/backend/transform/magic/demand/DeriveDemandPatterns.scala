@@ -48,18 +48,23 @@ object DeriveDemandPatterns extends Transformation {
           pat.bodies.map { body =>
             val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
-              val res = atom.asCall match {
-                case Some((name, args)) =>
-                  val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
-                  todo += name -> adorn
-                  val oldAdornments = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
-                  val newAdornments = MagicSetHints.Adornments(oldAdornments.adorn + adorn)
-                  atom.addHint(newAdornments)
-                case None =>
-                  atom
+              if (!atom.hasHint(MagicSetHints.IgnoreCallKey)) {
+                val res = atom.asCall match {
+                  case Some((name, args)) =>
+                    val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
+                    todo += name -> adorn
+                    val oldAdornments = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
+                    val newAdornments = MagicSetHints.Adornments(oldAdornments.adorn + adorn)
+                    atom.addHint(newAdornments)
+                  case None =>
+                    atom
+                }
+                previous += atom
+                res
+              } else {
+                previous += atom
+                atom
               }
-              previous += atom
-              res
             }
             Body(adornedAtoms).withHints(body)
           }

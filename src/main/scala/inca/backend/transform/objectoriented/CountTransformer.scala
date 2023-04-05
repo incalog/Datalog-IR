@@ -192,8 +192,9 @@ abstract class CountTransformer(val rootPatternHint: String,
               val (countOutVar, transAtom) = transformCall(c, countVar)
               countVar = countOutVar
               transAtom
-            case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
-              Seq(Computed(lhs, transformAgg(c, countVar)))
+            case comp@Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
+              val newHints = hintWithAdjustedFixedAdornment(comp, c.args.size, Seq(true, false))
+              Seq(Computed(lhs, transformAgg(c, countVar)).withHints(newHints))
             case a => Seq(a)
           }).withHints(body)
         }
@@ -227,8 +228,9 @@ abstract class CountTransformer(val rootPatternHint: String,
               val (countOutVar, transAtom) = transformCall(c, countVar)
               countVar = countOutVar
               transAtom
-            case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
-              Seq(Computed(lhs, transformAgg(c, countVar)))
+            case comp@Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
+              val newHints = hintWithAdjustedFixedAdornment(comp, c.args.size, Seq(true, false))
+              Seq(Computed(lhs, transformAgg(c, countVar)).withHints(newHints))
             case a => Seq(a)
           } :+ Eq(
             Var(countParams.last.name), countVar

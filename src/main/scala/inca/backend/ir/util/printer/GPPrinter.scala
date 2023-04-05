@@ -49,7 +49,7 @@ object GPPrinter {
 
   def prettyBody(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
 
-  def prettyAtom(atom: Atom): String = atom match {
+  def prettyAtom(atom: Atom): String = (atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
     case NotHasType(v, typ) => "not " + prettyType(typ) + "(" + prettyTerm(v) + ")"
@@ -73,7 +73,7 @@ object GPPrinter {
       s"${neg}extensional find $call"
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
-  }
+  }) + atom.hints
 
   def prettyLink(link: Link): String = link match {
     case Datalog.ParentLink => "parent"
