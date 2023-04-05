@@ -451,8 +451,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
       val qualifiedName = constructorPatName(classDef.name.raw) + primaryConstr.signature
       val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
-        //.addHint(MagicSetHints.IgnoreCall)
-        //.addHint(MagicSetHints.FixedAdornment(false +: primaryFields.map(_ => true)))
       val readFieldCalls = primaryFields.flatMap(_._3.flatten)
 
       Datalog.Body(
@@ -473,7 +471,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithoutId) //Seq(bodyWithNull, bodyWithId, bodyWithoutId) // TODO: Why is bodyWithId causing problems ?
+    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
       //.addHint(MagicSetHints.NoInputRelation)
 
@@ -821,7 +819,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         // reading the result value should perform an aggregation instead
         if (classDef.isMonotoneClass && targetName.raw == "result") {
           val Some((valType, resType)) = classDef.montoneTypes
-          val aggVarType = transType(resType)
+          val aggVarType = transDataType(resType)
 
           val args = terms ++ valType.flatten.map(_ => Datalog.Var(gensym.fresh("_")))
           val readAgg = Datalog.CustomAggregation(
