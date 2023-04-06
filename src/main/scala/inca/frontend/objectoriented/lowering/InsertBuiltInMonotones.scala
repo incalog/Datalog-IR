@@ -1,11 +1,11 @@
 package inca.frontend.objectoriented.lowering
 
 import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TScalaAny, TScalaString, TSet, TUnit, Type, Visibility}
-import inca.frontend.objectoriented.lowering.InsertBuildInMonotones.{monoMapName, transformModule}
+import inca.frontend.objectoriented.lowering.InsertBuiltInMonotones.{monoMapName, transformModule}
 
-object InsertBuildInMonotones {
+object InsertBuiltInMonotones {
   def transformModule(module: Module): Module =
-    new InsertBuildInMonotones(module).transModule()
+    new InsertBuiltInMonotones(module).transModule()
 
   def transformModules(modules: Seq[Module]): Seq[Module] =
     modules.map(transformModule)
@@ -17,7 +17,7 @@ object InsertBuildInMonotones {
  * This class adds missing definitions, such as an empty constructor definition or an implicit return statement to the
  * module. This should be executed before we attempt to typecheck a module.
  */
-class InsertBuildInMonotones(val module: Module) extends ModuleLowering {
+class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   var buildInMonotones: Map[String, ClassDef] = Map()
 
   override private[lowering] def transModuleInternal(module: Module): Module = {
@@ -27,10 +27,13 @@ class InsertBuildInMonotones(val module: Module) extends ModuleLowering {
     Module(name, imports, buildInMonotones.values.toSeq ++ transClasses)
   }
 
-  private def monomorphClassName(name: String, tyParams: Seq[Type]) = if (tyParams.isEmpty)
+  private def monomorphClassName(name: String, tyParams: Seq[Type]): String = if (tyParams.isEmpty)
       name
     else
-      name + tyParams.map(ty => ty.toString.replace("`", "")).mkString("$", "$", "")
+      name + tyParams.map {
+        case ty@TClass(ClassRef(name)) => monomorphClassName(name.raw, ty.tyParams)
+        case ty => ty.toString.replace("`", "")
+      }.mkString("$", "$", "")
 
   private def createBuildInMonotone(name: Name, tyParams: Seq[Type]): TClass = {
     print("Create Monotone: ", name, tyParams)
@@ -39,20 +42,21 @@ class InsertBuildInMonotones(val module: Module) extends ModuleLowering {
     var monoCls = buildInMonotones.get(clsName)
 
     if (monoCls.isEmpty) {
+      val tys = tyParams.map(transType)
       monoCls = Some(ClassDef(
         // hardcore the map types for now
-        Seq(MonotoneMapAnnotation(tyParams)),
+        Seq(MonotoneMapAnnotation(tys)),
         None,
         Name(clsName),
         Seq(), // No parent class for now
         Seq(
-          MethodDef(Nil, None, Name("get"), Seq(Param(Name("key"), tyParams.head)), tyParams.last, Seq(
+          MethodDef(Nil, None, Name("get"), Seq(Param(Name("key"), tys.head)), tys.last, Seq(
             // We implement this in GenerateDatalog
             ReturnStmt(NullExpr())
           )),
-          MethodDef(Nil, None, Name("keys"), Seq(), TSet(tyParams.head), Seq(
+          MethodDef(Nil, None, Name("keys"), Seq(), TSet(tys.head), Seq(
             // We implement this in GenerateDatalog
-            ReturnStmt(SetExpr(Seq(), tty = Some(tyParams.head)))
+            ReturnStmt(SetExpr(Seq(), tty = Some(tys.head)))
           ))
         )
       ))

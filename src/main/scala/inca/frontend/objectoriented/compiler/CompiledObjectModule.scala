@@ -5,7 +5,7 @@ import inca.backend.ir.Datalog.Name
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
-import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, Defunctionalize, GenerateDataModel, GenerateDatalog, InsertBuildInMonotones, SetLifting, StaticSingleAssignment}
+import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, Defunctionalize, GenerateDataModel, GenerateDatalog, InsertBuiltInMonotones, SetLifting, StaticSingleAssignment}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -29,7 +29,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       }
     }
 
-    val monotoneModule = InsertBuildInMonotones.transformModule(fun)
+    val monotoneModule = InsertBuiltInMonotones.transformModule(fun)
     AddMissingDefinitions.transformModule(monotoneModule)
   }
 
