@@ -359,6 +359,6 @@ object TestDefinition {
 
   def monoMapTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("MonotoneTest", "Main", "main", Seq(), SetResult(3))
+    TestDefinition("MonotoneTest", "Main", "main", Seq(), SetResult(9, 7))
   }
 }

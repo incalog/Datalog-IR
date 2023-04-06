@@ -39,6 +39,7 @@ case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Ex
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"new $classRef($argsS)"
   }
+  var tyParams: Seq[Type] = Seq()
 }
 
 case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)] {

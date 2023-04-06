@@ -106,8 +106,8 @@ object GPPrinter {
         val params = code.tree.params.map(_.name.value)
         val scalaArgs = args.map(a => meta.Term.Name(a._1.asInstanceOf[Var].name))
         val codeS = EvalFusion.scalaSubst(code.tree.body, Map() ++ params.zip(scalaArgs)).syntax.replace("\n", "\n\t\t")
-        //s"${prettyTerm(lhs)} == `(${code.tree}: ${returnType.asScala})(${args.map(_._1.asInstanceOf[Var].name).mkString(", ")})`"
-        s"${prettyTerm(lhs)} == `$codeS`"
+        s"${prettyTerm(lhs)} == `(${code.tree}: ${returnType.asScala})(${args.map(_._1.asInstanceOf[Var].name).mkString(", ")})`"
+        //s"${prettyTerm(lhs)} == `$codeS`"
       } else {
         val codeS = code.syntax.replace("\n", "\n\t\t")
         val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")

@@ -49,7 +49,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
   def isCaseClass: Boolean = annos.contains(CaseAnnotation)
   def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation])
+  def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
+  def isAbstract: Boolean = annos.contains(AbstractAnnotation)
   def montoneTypes: Option[(Type, Type)] = annos.flatMap {
+    case MonotoneMapAnnotation(types) => Some((types.head, types.last))
     case MonotoneAnnotation(_, types) => Some((types.head, types.last))
     case _ => None
   }.headOption

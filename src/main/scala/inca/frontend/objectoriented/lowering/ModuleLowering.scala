@@ -109,8 +109,10 @@ trait ModuleLowering {
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
-    case ConstructorExpr(ClassRef(name), args) =>
-      ConstructorExpr(ClassRef(name), transExpressions(args))
+    case constr@ConstructorExpr(ClassRef(name), args) =>
+      val newConstr = ConstructorExpr(ClassRef(name), transExpressions(args))
+      newConstr.tyParams = constr.tyParams.map(transType)
+      newConstr
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
     case MethodCallExpr(recv, fun, args, isFix) =>
@@ -161,7 +163,10 @@ trait ModuleLowering {
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
-      case TClass(ClassRef(name)) => TClass(ClassRef(name))
+      case tcls@TClass(ClassRef(name)) =>
+        val ty = TClass(ClassRef(name))
+        ty.tyParams = tcls.tyParams.map(transType)
+        ty
     }
   }
 }

@@ -71,6 +71,7 @@ case class TClass(ref: ClassRef) extends Type {
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.ObjectID" //t"truechange.URI"
+  var tyParams: Seq[Type] = Seq()
 }
 
 case class TSet(ty: Type) extends Type {

@@ -95,14 +95,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     // real code
     val Module(name, imports, classes) = coreModule
+    val concreteClasses = classes.filter(c => !c.isAbstract)
+
     gensym.register(coreModule.usedModuleNames.map(_.raw))
-    gensym.register(coreModule.classes.map(_.name.raw))
+    gensym.register(concreteClasses.map(_.name.raw))
 
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
-    generatedPatterns ++= transDynamicDispatch(classes)
-    generatedPatterns ++= classes.flatMap(transClass)
+    generatedPatterns ++= transDynamicDispatch(concreteClasses)
+    generatedPatterns ++= concreteClasses.flatMap(transClass)
 
     val scalaModule = genScala.genModule(typedModule)
     // TODO: Optimize: We only need to generate this if we use an aggregation. We keep it in for now, to spot errors
@@ -124,12 +126,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
    * @param neg      negate the guard, that means no object with the id exists
    * @return         Datalog.Call to check the existence
    */
-  private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
+  /*private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
     val thisVar = Datalog.Var("this")
     Datalog.Call(constructorPatName(classDef.name.raw), Seq(thisVar), neg = neg)
       .addHint(MagicSetHints.IgnoreCall)
       .addHint(MagicSetHints.FixedAdornment(Seq(false)))
-  }
+  }*/
 
   private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     /*
@@ -173,7 +175,17 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case (sig, (c, m)) =>
           val methodParams = params(sig).map(p => Datalog.Var(p.name))
           val methodCall = Datalog.Call(methodPatName(c.name.raw, m.name.raw), methodParams)
-          sig -> Datalog.Body(Seq(guard(cls), methodCall))
+          val tyVar = Datalog.Var(gensym.fresh("ty"))
+          val compRuntimeType = Datalog.Computed(
+            tyVar,
+            Datalog.Evaluation(
+              Seq(Datalog.Var("this") -> transType(c.typ)),
+              Datalog.TScalaString,
+              Scala(q"(obj: $tyOID) => obj.typ")
+            )
+          )
+          val guard = Datalog.Eq(tyVar, Datalog.StringConstant(cls.name.raw))
+          sig -> Datalog.Body(Seq(compRuntimeType, guard, methodCall))
       }.toSeq
     })
 
@@ -638,6 +650,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val qualifiedName = methodPatName(classDef.name.raw, methodDef.name.raw)
 
+    val thisVar = Datalog.Var("this")
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     //TODO: we might not want to flat input tuple argument to += for Monotones
     val argParams = methodDef.params.flatMap { case Param(name, typ) =>
@@ -645,6 +658,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     }
 
     // Special aggregate functions in a monotone class are only translated to scala
+    val isMonotoneMapGetMethod = classDef.isMonotoneMapClass && methodDef.name.raw == "get"
+    val isMonotoneMapKeysMethod = classDef.isMonotoneMapClass && methodDef.name.raw == "keys"
+
     val isMonotoneAddMethod = classDef.isMonotoneClass && methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
     val isMonotoneAggregateMethod = classDef.isMonotoneClass && (methodDef.name match {
       case Name("init") | Name("join") => true
@@ -664,16 +680,46 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       else
         flattenParam("return", methodDef.outType, genFresh = true)
 
-    val bodyRes = if (isMonotoneAggregateMethod)
+    val bodyRes = if (isMonotoneAggregateMethod || isMonotoneMapKeysMethod || isMonotoneMapGetMethod)
       Seq((None, Seq(), None))
     else
       transStatements(methodDef.body, None, methodDef)
 
-    var bodies = for ((optReturn, cons, _) <- bodyRes) yield {
+    val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
       val returnTerms = optReturn.getOrElse(Seq())
 
-      // return a real scala tuple, not a flattened one
-      if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
+      if (isMonotoneMapGetMethod) {
+        // Create a new monotone with a fixed object-id based on the key
+        val thisMetaTerm = Term.Name("obj")
+        val thisMetaParam = Term.Param(Nil, thisMetaTerm, Some(thisParam.typ.asScala), None)
+        val metaTerms = thisMetaTerm +: argParams.map(p => Term.Name(p.name)).toList
+        val metaParams = thisMetaParam +: argParams.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList
+
+        val outputMonotoneName = methodDef.outType match {
+          case TClass(ClassRef(name)) => name.raw
+          case ty => throw new IllegalArgumentException(s"Monotone map get method should return a class, not $ty")
+        }
+
+        val returnVar = Datalog.Var(returnParams.head.name)
+        val genOutMonotone = Datalog.Computed(
+          returnVar,
+          Datalog.Evaluation(
+            (thisParam +: argParams).map(p => Datalog.Var(p.name) -> p.typ),
+            transType(methodDef.outType),
+            Scala(q"(..$metaParams) => $oOID($outputMonotoneName, java.util.Objects.hash(..$metaTerms))")
+          )
+        )
+        //val constrCall = Datalog.Call(constructorPatName(outputMonotoneName), Seq(returnVar))
+        Datalog.Body(Seq(genOutMonotone))
+
+      } else if (isMonotoneMapKeysMethod) {
+        val returnVar = Datalog.Var(returnParams.head.name)
+        val readKeys = Datalog.Call(methodPatName(classDef.name.raw, "get"), Seq(thisVar, returnVar, Datalog.Var(gensym.fresh("_"))))
+          .addHint(MagicSetHints.IgnoreCall)
+          .addHint(MagicSetHints.FixedAdornment(Seq(false, true)))
+        Datalog.Body(Seq(readKeys))
+      } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
+        // return a real scala tuple, not a flattened one
         // TODO: coealesced inside tuples
         import scala.meta._
 

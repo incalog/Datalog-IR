@@ -73,6 +73,7 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val SET: Value        = Value("Set")
+    val MONOMAP: Value    = Value("MonoMap")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
@@ -82,7 +83,7 @@ trait Parser {
 
   import Keyword._
 
-  val keywords: Set[String] = Keyword.values.map(_.toString)
+  val keywords: Set[String] = Keyword.values.filter(_ != MONOMAP).map(_.toString) // HACK: We do allow MonoMap as id
   val reservedMethods: Set[String] = ReservedMethods.values.map(_.toString)
 
   def keyword(keyword: Keyword): P[Unit] =
@@ -166,6 +167,13 @@ trait Parser {
   protected[frontend] val classType: P[TClass] =
     classRef.mapWithLoc(TClass)
 
+  protected[frontend] def monoMapType: P[TClass] =
+    (keyword(MONOMAP) *> inBrackets(seq0(P.defer(typeAnno), min=2, max=2))).mapWithLoc { typeParams =>
+        val monoMapType = TClass(ClassRef(Name(MONOMAP.toString)))
+        monoMapType.tyParams = typeParams
+        monoMapType
+    }
+
   protected[frontend] val atomicTypeAnno: P[Type] =
     spaced(
       simpleType("Any", TAny) |
@@ -177,7 +185,7 @@ trait Parser {
     )
 
   protected[frontend] val typeAnno: P[Type] =
-    setType | atomicTypeAnno
+    monoMapType | setType | atomicTypeAnno
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
@@ -194,14 +202,16 @@ trait Parser {
         targetExpr match {
           case FieldReadExpr(previousExpr, name) if isEqualAssign =>
             pass(FieldAssignStmt(previousExpr, name, valueExpr))
-          case fieldRead@FieldReadExpr(previousExpr, _) if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(fieldRead, op.name, Seq(valueExpr))))
-
+//          case fieldRead@FieldReadExpr(previousExpr, _) if isAggAssign =>
+//            pass(ExprStmt(MethodCallExpr(fieldRead, op.name, Seq(valueExpr))))
           case VarReadExpr(name) if isEqualAssign
             => pass(VarAssignStmt(name, valueExpr))
-          case varRead@VarReadExpr(name) if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(varRead, op.name, Seq(valueExpr))))
-          case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
+//          case varRead@VarReadExpr(name) if isAggAssign =>
+//            pass(ExprStmt(MethodCallExpr(varRead, op.name, Seq(valueExpr))))
+          case exp if isAggAssign =>
+            pass(ExprStmt(MethodCallExpr(exp, op.name, Seq(valueExpr))))
+          case _ =>
+            fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
   }
@@ -237,8 +247,8 @@ trait Parser {
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
 
-  private val call: P[(Name, Seq[Expression])] =
-    (identifier.soft ~ inParentheses(seq0(P.defer(expr))))
+  private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
+    (identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr))))
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
@@ -258,7 +268,11 @@ trait Parser {
     variable.mapWithLoc(VarReadExpr.apply)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
-    (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(ClassRef(name), argList) }
+    (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
+      val constr = ConstructorExpr(ClassRef(name), argList)
+      constr.tyParams = tyParams.getOrElse(Seq())
+      constr
+    }
 
   protected[frontend] val superExpr: P[SuperExpr] =
     (keyword(SUPER) *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
@@ -315,13 +329,13 @@ trait Parser {
                 TypeCastExpr(prev, ty)
               case (Name("isInstanceOf"), ty: Type) =>
                 InstanceOfExpr(prev, ty)
-              case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
+              case ((Name("fold"), _: Option[Seq[Type]]), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
                 val projection = args.headOption match {
                   case Some(TupleExpr(proj: Seq[Expression])) => proj
                   case None => Seq(VarReadExpr(Name("#")))
                 }
                 SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-              case (name: Name, argList: Seq[Expression]) =>
+              case ((name: Name, tyParams: Option[Seq[Type]]), argList: Seq[Expression]) =>
                 MethodCallExpr(prev, name, argList, isFix = fix.isDefined)
               case (name: Name, argList: Option[Seq[Expression]]) =>
                 BaseApplyMethodExpr(prev, name, argList)
@@ -594,6 +608,7 @@ object Parser {
     parser.module.parse(code) match {
       case Right((_, module)) => module
       case Left(e: cats.parse.Parser.Error) =>
+        print(e)
         val parsedTo = code.substring(0, e.failedAtOffset).split('\n').lastOption.getOrElse("").strip()
         val expected = e.expected.toList.mkString(", ")
         val msg = s"'$parsedTo' Expected: $expected"

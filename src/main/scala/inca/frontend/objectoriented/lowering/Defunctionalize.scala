@@ -89,7 +89,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val methods = Seq(constr, apply)
 
     val clsName = Name(gensym.fresh("Defun" + typeSuffix(ty)))
-    val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, methods)
+    val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, parentRefs, methods)
     defnClassDefs += ty -> clazz
     clazz
   }

@@ -49,11 +49,22 @@ object CaseAnnotation extends Annotation {
   override def toString: String = "@case"
 }
 
+object AbstractAnnotation extends Annotation {
+  override def key: Annotation.Key = "ABSTRACT_CLASS"
+
+  override def toString: String = "@abstract"
+}
+
 /*
 Annotation used internally for monotone classes.
  */
 case class MonotoneAnnotation(name: Name, types: Seq[Type]) extends Annotation {
   override def key: Annotation.Key = "MONOTONE_CLASS"
+
+  override def toString: String = s"@monotone(${types.mkString(", ")})"
+}
+case class MonotoneMapAnnotation(types: Seq[Type]) extends Annotation {
+  override def key: Annotation.Key = "MONOTONE_MAP_CLASS"
 
   override def toString: String = s"@monotone(${types.mkString(", ")})"
 }
