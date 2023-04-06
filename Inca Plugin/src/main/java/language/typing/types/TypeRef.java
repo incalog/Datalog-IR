@@ -13,7 +13,7 @@ public class TypeRef implements Type {
         name = newName;
     }
     
-    TypeRef(String newName, List<Type> newTys) {
+    public TypeRef(String newName, List<Type> newTys) {
         name = newName;
         paramTypes = newTys;
     }

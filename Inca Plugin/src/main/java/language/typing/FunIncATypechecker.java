@@ -31,8 +31,7 @@ public class FunIncATypechecker {
                 paramTypesPsi.add(paramDef.getType());
             }
             List<Type> paramTypes = PsiToTypeConverter.convert(paramTypesPsi);
-            // TODO typeVariables
-            List<Type> typeVars = new ArrayList<>();
+            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(funDef.getTypeVarDefList()); // TODO typeVariables
             return new FunType(typeVars, paramTypes, returnType);
         } else if (element instanceof FunIncAParamDef) {
             FunIncAParamDef paramDef = (FunIncAParamDef) element;
@@ -46,7 +45,7 @@ public class FunIncATypechecker {
             return PsiToTypeConverter.convert(paramDef.getType());
         } else if (element instanceof FunIncADataConstructorDef) {
             FunIncADataConstructorDef constructorDef = (FunIncADataConstructorDef) element;
-            List<Type> typeVariables = new ArrayList<>(); // TODO type variables
+            List<Type> typeVariables = PsiToTypeConverter.convertTypeVarDefs(constructorDef.getTypeVarDefList()); // TODO type variables
             List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
             Type returnType = typeOfTypeDef(constructorDef.getParent(), holder);
             return new FunType(typeVariables, paramTypes, returnType);
@@ -158,7 +157,7 @@ public class FunIncATypechecker {
                     return new AnyType();
                 }
                 int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
-                if (index < ((TupleType) setType.getSetType()).getTypes().size()) {
+                if (index < ((TupleType) setType.getSetType()).getTypes().size() && index != -1) {
                     return ((TupleType) setType.getSetType()).getTypes().get(index);
                 } else {
                     return new AnyType();
@@ -195,12 +194,13 @@ public class FunIncATypechecker {
 
     public static Type typeOfTypeDef(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
         if (element instanceof FunIncATypeVarDef){
-            // fundef or datadef
+            String name = ((FunIncATypeVarDef) element).getName();
+            return new ParametricType(name);
         }  else if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             String name = dataDef.getName();
-            List<Type> typeVars = new ArrayList<>(); // TODO type vars
-            return new TypeRef(name);
+            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList()); // TODO type vars
+            return new TypeRef(name, typeVars);
         }
         holder.newAnnotation(HighlightSeverity.ERROR,
                 "Unknown type reference")
@@ -260,7 +260,7 @@ public class FunIncATypechecker {
         } else if (ty instanceof FunIncASetType) {
             validateType(((FunIncASetType) ty).getType(), holder);
             return;
-        } else if (ty instanceof FunIncAConstructorType || ty instanceof FunIncATypeNameRef) {
+        } else if (ty instanceof FunIncATypeNameRef) {
             FunIncAReference ref = (FunIncAReference) ty.getReference();
             ResolveResult[] result = ref.multiResolve(true);
             if (result.length == 0) {
@@ -275,6 +275,26 @@ public class FunIncATypechecker {
                 holder.newAnnotation(HighlightSeverity.ERROR,
                                 "Ambiguos reference name " + tyText)
                         .range(ty)
+                        .create();
+                return;
+            }
+        } else if (ty instanceof FunIncAConstructorType) {
+            validateTypes(((FunIncAConstructorType) ty).getTypeList(), holder);
+            FunIncATypeNameRef typeNameRef = ((FunIncAConstructorType) ty).getTypeNameRef();
+            FunIncAReference ref = (FunIncAReference) typeNameRef.getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            if (result.length == 0) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Type " + tyText + " is not defined")
+                        .range(typeNameRef)
+                        .create();
+                return;
+            } else if (result.length == 1) {
+                return;
+            } else {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Ambiguos reference name " + tyText)
+                        .range(typeNameRef)
                         .create();
                 return;
             }
@@ -366,7 +386,16 @@ public class FunIncATypechecker {
         } else if (exp instanceof FunIncACastExp) {
             FunIncACastExp cast = (FunIncACastExp) exp;
             FunIncAExp ex = cast.getExp();
-            Type expectedType = new TypeRef(Objects.requireNonNull(cast.getTypeNameRef()).getText());
+            Type expectedType;
+            try {
+                expectedType = new TypeRef(cast.getTypeNameRef().getText(), new ArrayList<>());
+            } catch (NullPointerException e) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing Type")
+                        .range(cast)
+                        .create();
+                return new AnyType();
+            }
             Type inferredType = typecheckExp(ex, holder);
             if (FunIncATypeUtil.meet(expectedType, inferredType).equals(new NothingType()))
                 holder.newAnnotation(HighlightSeverity.ERROR,
@@ -422,7 +451,7 @@ public class FunIncATypechecker {
                         .create();
                 return new AnyType();
             }
-            Type funExpType = typecheckExp(funExp, holder);
+            Type funExpType = typecheckExp(funExp, holder); // TODO handle parametric types, replace ocurring prametrictypes
             Type returnType = funExpType;
             int n = callExp.getCallExpListList().size(); // n holds the number of function calls
             while (n > 0) {

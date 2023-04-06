@@ -1,0 +1,14 @@
+module paramTypesDataDef1
+
+
+data List[V] = Nil() | Cons(V, List[V])
+data Map[K, <resolved>V] = Empty() | Bind(K, <ref>V, Map[K, V])
+
+data Either[A] = Left(List[A]) | Right(Map[A, A])
+
+def map[A, B](l: List[A], f: A => B): List[B] = l match {
+  case Nil() => Nil[B]()
+  case Cons(x, rest) => Cons[B](f(x), map[A, B](rest, f))
+}
+
+@main def main(): List[Boolean] = map[Int, Boolean](Cons[Int](12, Nil[Int]()), (x: Int) => (x % 2) == 0)

@@ -53,6 +53,19 @@ public class PsiToTypeConverter {
         return types;
     }
 
+    public static List<Type> convertTypeVarDefs(@Nullable List<FunIncATypeVarDef> elements) {
+        List<Type> types = new ArrayList<>();
+        if (elements == null || elements.isEmpty())
+            return types;
+        else {
+            FunIncATypeVarDef element = elements.remove(0);
+            String name = element.getName();
+            types.add(new ParametricType(name));
+            types.addAll(convertTypeVarDefs(elements));
+            return types;
+        }
+    }
+
     private static Type convert(FunIncAAtomicType element){
         PsiElement e = element.getFirstChild();
         String eText = e.getText();
@@ -84,7 +97,7 @@ public class PsiToTypeConverter {
             return new StringType();
         } else if (e instanceof FunIncATypeNameRef){
            String name = ((FunIncATypeNameRef) e).getId().getText();
-           return new TypeRef(name);
+           return new TypeRef(name, new ArrayList<>());
         } else {
             return new AnyType();
         }

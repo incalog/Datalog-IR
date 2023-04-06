@@ -1,7 +1,4 @@
-module setComprehension7
+module setComprehension9
 
-def set1: Set[Int] = { 1,2,3,4,5 }
-def set2: Set[(String, Int)] = {("twohundred", 200), ("onethousand", 1000)}
-
-def compInComp(): Set[Int] =
-    { x | (str, x) in { (<ref>s,n) | (<resolved>s,n) in set4 } }
+def transitive(r: () => Set[(Int, Int)]): Set[(Int, Int)] =
+  r() ++ {(n1,n2) | (n1,<resolved>n2) in r(), (<ref>n2,n3) in transitive(r)}
