@@ -45,6 +45,6 @@ class Main {
         nested.get("B").get(3) += 3
 
         // We still got the problem with duplicate aggregation, but it shouldn't exist in a fixpoint
-        for (k1 <- nested.keys() if k1 == "A"; k2 <- nested.get(k1).keys() if k2 == 1 ) yield nested.get(k1).get(k2).get().value*/
+        for (k1 <- nested.keys() if k1 == "A"; k2 <- nested.get(k1).keys() if k2 == 1) yield nested.get(k1).get(k2).get().value*/
     }
 }
