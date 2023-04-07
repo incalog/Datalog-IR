@@ -333,14 +333,14 @@ object TestDefinition {
       TupleResult("VarDef", "VarDef"), TupleResult("Skip", "Skip"), TupleResult("Assign", "Assign")
     )
 
-    implicit val subdir: Option[String] = Some("graphs")
+    implicit val subdir: Option[String] = Some("casestudy")
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  /*def whileLangTest: TestDefinition[SetResult[Any]] = {
+  def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())
-  }*/
+    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult())
+  }
 
   def noDemandTest: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("unittests")
@@ -358,7 +358,7 @@ object TestDefinition {
   }
 
   def monoMapTest: TestDefinition[Any] = {
-    implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("MonotoneTest", "Main", "main", Seq(), SetResult(9, 7))
+    implicit val subdir: Option[String] = Some("unittests/monotone")
+    TestDefinition("Builtin", "Main", "main", Seq(), SetResult(9, 7))
   }
 }

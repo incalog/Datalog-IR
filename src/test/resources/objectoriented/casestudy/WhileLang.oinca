@@ -4,53 +4,36 @@ class Exp {
     // abstract
     def accept(v: Visitor): Unit = { }
 
-    def aevalConst(m: `Map`[String, MConstant]): MConstant = {
-        new NoConstant()
+    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
+        new MConstant(`None`)
     }
 }
 
-class Var extends Exp {
-    val name: String
-    def this(name: String) = {
-        this.name = name
-    }
-
+class Var(val name: String) extends Exp {
     @override
     def accept(v: Visitor): Unit = {
         v.visitVar(this)
     }
 
     @override
-    def aevalConst(m: `Map[String, MConstant]`): MConstant = {
-        m.`getOrElse`(this.name, new NoConstant())
+    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
+        m.get(this.name).get()
     }
 }
 
-class Num extends Exp {
-    val num: Int
-    def this(num: Int) = {
-        this.num = num
-    }
-
+class Num(val num: Int) extends Exp {
     @override
     def accept(v: Visitor): Unit = {
         v.visitNum(this)
     }
 
     @override
-    def aevalConst(m: `Map[String, MConstant]`): MConstant = {
-        new SomeConstant(this.num)
+    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
+        new MConstant(`Some`(this.num))
     }
 }
 
-class BinOp extends Exp {
-    val left: Exp
-    val right: Exp
-    def this(left: Exp, right: Exp) = {
-        this.left = left
-        this.right = right
-    }
-
+class BinOp(val left: Exp, val right: Exp) extends Exp {
     @override
     def accept(v: Visitor): Unit = {
         this.left.accept(v)
@@ -61,7 +44,7 @@ class BinOp extends Exp {
     def binOpAccept(v: Visitor): Unit = { }
 
     @override
-    def aevalConst(m: `Map[String, MConstant]`): MConstant = {
+    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
         this.binOpConst(this.left.aevalConst(m), this.right.aevalConst(m))
     }
     // abstract
@@ -133,13 +116,7 @@ class Stm {
         this
     }
 }
-class Assign extends Stm {
-    val lhs: String
-    val rhs: Exp
-    def this(lhs: String, rhs: Exp) = {
-        this.lhs = lhs
-        this.rhs = rhs
-    }
+class Assign(val name: String, val rhs: Exp) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.rhs.accept(v)
@@ -147,20 +124,12 @@ class Assign extends Stm {
     }
 }
 class Skip extends Stm {
-    def this() = {
-    }
     @override
     def accept(v: Visitor): Unit = {
         v.visitSkip(this)
     }
 }
-class Sequence extends Stm {
-    val s1: Stm
-    val s2: Stm
-    def this(s1: Stm, s2: Stm) = {
-        this.s1 = s1
-        this.s2 = s2
-    }
+class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.s1.accept(v)
@@ -176,15 +145,7 @@ class Sequence extends Stm {
         this.s2.last()
     }
 }
-class If extends Stm {
-    val cnd: Exp
-    val thn: Stm
-    val els: Stm
-    def this(cnd: Exp, thn: Stm, els: Stm) = {
-        this.cnd = cnd
-        this.thn = thn
-        this.els = els
-    }
+class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.cnd.accept(v)
@@ -193,13 +154,7 @@ class If extends Stm {
         v.visitIf(this)
     }
 }
-class While extends Stm {
-    val cnd: Exp
-    val body: Stm
-    def this(cnd: Exp, body: Stm) = {
-        this.cnd = cnd
-        this.body = body
-    }
+class While(val cnd: Exp, val body: Stm) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.cnd.accept(v)
@@ -207,26 +162,14 @@ class While extends Stm {
         v.visitWhile(this)
     }
 }
-class ValDef extends Stm {
-    val name: String
-    val rhs: Exp
-    def this(name: String, rhs: Exp) = {
-        this.name = name
-        this.rhs = rhs
-    }
+class ValDef(val name: String, val rhs: Exp) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.rhs.accept(v)
         v.visitValDef(this)
     }
 }
-class VarDef extends Stm {
-    val name: String
-    val rhs: Exp
-    def this(name: String, rhs: Exp) = {
-        this.name = name
-        this.rhs = rhs
-    }
+class VarDef(val name: String, val rhs: Exp) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.rhs.accept(v)
@@ -254,192 +197,121 @@ class Visitor {
     def visitVarDef(s: VarDef): Unit = { }
 }
 
-class MConstant {
-    def join(that: MConstant): MConstant = {
-        this
+// Currently we do not support coalescing / uncoalescing of subclasses.
+// Therefore we encode NoConstant as MConstant(None).
+case class MConstant(val num: `Option[Int]`) {
+    def isSomeConstant(): Boolean = {
+        val numOption: `Option[Int]` = this.num
+        numOption.`isDefined`
     }
 
-    def num(n: Int): MConstant = {
-        new SomeConstant(n)
+    def isNoConstant(): Boolean = {
+        val numOption: `Option[Int]` = this.num
+        numOption.`isEmpty`
     }
-    def add(that: MConstant): MConstant = {
-        this
+
+    // Only call this if you know that this is some Constant
+    def value(): Int = {
+        val numOption: `Option[Int]` = this.num
+        numOption.`get`
     }
-    def sub(that: MConstant): MConstant = {
-        this
-    }
-    def mul(that: MConstant): MConstant = {
-        this
-    }
-    def gt(that: MConstant): MConstant = {
-        this
-    }
-}
-class NoConstant extends MConstant {
-}
-class SomeConstant extends MConstant {
-    val num: Int
-    def this(num: Int) = {
-        this.num = num
-    }
-    @override
-    def join(that: MConstant): MConstant = {
-        if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
-            this
+
+    def stringValue(): String = {
+        if (this.isSomeConstant()) {
+            val num: Int = this.value()
+            num.`toString`()
         } else {
-            new NoConstant()
+            "NoConstant"
         }
     }
 
     def add(that: MConstant): MConstant = {
-        if (that.isInstanceOf[SomeConstant]) {
-            new SomeConstant(this.num + that.asInstanceOf[SomeConstant].num)
+        if (this.isSomeConstant() && that.isSomeConstant()) {
+            new MConstant(`Some`(this.value() + that.value()))
         } else {
-            new NoConstant()
+            new MConstant(`None`)
         }
     }
 
     def sub(that: MConstant): MConstant = {
-        if (that.isInstanceOf[SomeConstant]) {
-            new SomeConstant(this.num - that.asInstanceOf[SomeConstant].num)
+        if (this.isSomeConstant() && that.isSomeConstant()) {
+            new MConstant(`Some`(this.value() - that.value()))
         } else {
-            new NoConstant()
+            new MConstant(`None`)
         }
     }
 
     def mul(that: MConstant): MConstant = {
-        if (that.isInstanceOf[SomeConstant]) {
-            new SomeConstant(this.num * that.asInstanceOf[SomeConstant].num)
+        if (this.isSomeConstant() && that.isSomeConstant()) {
+            new MConstant(`Some`(this.value() * that.value()))
         } else {
-            new NoConstant()
+            new MConstant(`None`)
         }
     }
 
     def gt(that: MConstant): MConstant = {
-        if (that.isInstanceOf[SomeConstant]) {
-            if(this.num > that.asInstanceOf[SomeConstant].num)
-                new SomeConstant(1)
+        if (this.isSomeConstant() && that.isSomeConstant()) {
+            if(this.value() > that.value())
+                new MConstant(`Some`(1))
             else
-                new SomeConstant(0)
+                new MConstant(`Some`(0))
         } else {
-            new NoConstant()
+            new MConstant(`None`)
         }
     }
 }
 
-class MonotoneMap extends BalancedMonotone[(String, Any), `scala.collection.immutable.Map[String, Any]`] {
-    def init(): `scala.collection.immutable.Map[String, Any]` = {
-        `scala.collection.immutable.Map[String, Any]`()
+class MConstantMonotone extends BalancedMonotone[MConstant, MConstant] {
+    def init(): MConstant = {
+        new MConstant(`None`)
     }
 
-    def join(m1: `scala.collection.immutable.Map[String, Any]`, m2: `scala.collection.immutable.Map[String, Any]`): `scala.collection.immutable.Map[String, Any]` = {
-        m1 ++ m2
-        //(m1.`keyset` ++ m2.`keyset`).`map { i => i -> }``
+    def join(v1: MConstant, v2: MConstant): MConstant = {
+        if (v1.num == v2.num) {
+            v1
+        } else {
+            new MConstant(`None`)
+        }
     }
 
-    def lift(pair: (String, MConstant)): `scala.collection.immutable.Map[String, Any]` = {
-        `scala.collection.immutable.Map[String, Int]`(pair._1 -> pair._2)
+    def lift(v: MConstant): MConstant = {
+        v
     }
 
-    def get(): `scala.collection.immutable.Map[String, Any]` = {
+    def get(): MConstant = {
         this.result
     }
 }
 
-
-/*class FIConstantPropagationVisitor extends Visitor {
-    /** The Map type separates keys from aggregated values */
-    // mono.Map[String, MConstant]
-    val vars: MonotoneMap = new MonotoneMap()
-
-    def visitValDef(s: ValDef): Unit = {
-        this.vars += (s.name, s.rhs.aevalConst(this.vars))
-    }
-
-    def visitVarDef(s: VarDef): Unit = {
-        this.vars += (s.name, s.rhs.aevalConst(this.vars))
-    }
-
-    def visitAssign(s: Assign): Unit = {
-        this.vars += (s.lhs, s.rhs.aevalConst(this.vars))
-    }
-}*/
-
-/** Shows a groupped aggregation */
 class FIConstantPropagationVisitor extends Visitor {
     /** The Map type separates keys from aggregated values */
-    vag vars: Map[String, MConstant] = Map(("$$", new NoConstant()))
-        with MConstant.join
+    val vars: MonoMap[String, MConstantMonotone] = new MonoMap[String, MConstantMonotone]()
 
+    @override
     def visitValDef(s: ValDef): Unit = {
-        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        return
     }
 
+    @override
     def visitVarDef(s: VarDef): Unit = {
-        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        return
     }
 
+    @override
     def visitAssign(s: Assign): Unit = {
-        this.vars #= (s.lhs, s.rhs.aevalConst(this.vars))
+        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        return
     }
 }
 
-/** Shows a nested groupped aggregation */
-class FSConstantPropagationVisitor extends Visitor {
-    // TODO empty set not currently allowed here
 
-    /** The Map types separate key1 from key2 and the aggregated values.
-     *  This could have been written Map[(Stm, String), MConstant], but the
-     *  nested type provides easier access per statement.
-     */
-    vag varsAfter: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
-        with MConstant.join
-    vag varsBefore: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
-        with MConstant.join
-
-    def visitValDef(s: ValDef): Unit = {
-        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
-    }
-
-    def visitVarDef(s: VarDef): Unit = {
-        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
-    }
-
-    def visitAssign(s: Assign): Unit = {
-        this.varsAfter(s) #= (s.lhs, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.lhs) yield bf
-    }
-
-    def visitSkip(s: Skip): Unit = {
-        this.varsAfter(s) ##= this.varsBefore(s)
-    }
-
-    def visitSequence(s: Sequence): Unit = {
-        // data flow s.s2.first() <- s.s1.last()
-        this.varsBefore(s.s2.first()) ##= this.varsAfter(s.s1.last())
-    }
-
-    def visitIf(s: If): Unit = {
-        // data flow s.thn.first() <- s
-        // data flow s.els.first() <- s
-        this.varsBefore(s.thn.first()) ##= this.varsBefore(s)
-        this.varsBefore(s.els.first()) ##= this.varsBefore(s)
-    }
-
-    def visitWhile(s: While): Unit = {
-        // data flow s.body.first() <- s
-        // data flow s <- s.body.last()
-        this.varsAfter(s) ##= this.varsBefore(s)
-        this.varsBefore(s.body.first()) ##= this.varsAfter(s)
-        this.varsBefore(s) ##= this.varsAfter(s.body.last())
-    }
-}
 
 
 class Examples {
     val factorial: Stm =
+    new Sequence(new ValDef("m", new Num(3)),
         new Sequence(new VarDef("n", new Num(5)),
             new Sequence(new VarDef("acc", new Num(1)),
                 new While(
@@ -451,15 +323,17 @@ class Examples {
                 )
             )
         )
+    )
 }
 
-class FactorialSumNum {
+class ConstantPropagation {
     @main
-    def sumNum(): Int = {
+    def factorial(): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
         examples.factorial.accept(constantProp)
-        constantProp.vars
+        // This would be correct if it weren't for the stupid bug, where we need to aggregate a second time
+        for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).get().stringValue())
     }
 }
 

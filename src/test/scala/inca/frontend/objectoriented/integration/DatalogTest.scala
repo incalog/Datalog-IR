@@ -172,9 +172,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(cfgVisitorTest)
   }
 
-  /*test("While lang case study") {
+  test("While lang case study") {
     performTests(whileLangTest)
-  }*/
+  }
 
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
@@ -204,12 +204,7 @@ class DatalogTest extends AnyFunSuite {
     performTests(loopTest)
   }
 
-  test("Perform MonoMapTest") {
+  test("Mono Map") {
     performTests(monoMapTest)
   }
-
-
-  /*test("Section 3") {
-    performTests(section3)
-  }*/
 }

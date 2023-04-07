@@ -36,8 +36,8 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
       }.mkString("$", "$", "")
 
   private def createBuildInMonotone(name: Name, tyParams: Seq[Type]): TClass = {
-    print("Create Monotone: ", name, tyParams)
     val clsName = monomorphClassName(name.raw, tyParams)
+    println("Create Monotone: ", clsName)
 
     var monoCls = buildInMonotones.get(clsName)
 
