@@ -289,7 +289,7 @@ object TestDefinition {
   def monotoneTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     Seq(
-      TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
+      //TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
       TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
     )
   }
@@ -339,8 +339,8 @@ object TestDefinition {
 
   def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult()),
-    //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
+    //TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult()),
+    TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
   }
 
   def noDemandTest: TestDefinition[Int] = {

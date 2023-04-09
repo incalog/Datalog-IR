@@ -25,7 +25,9 @@ object GenerateDatalog {
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
   def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
+  def coalescedPatName(): String = s"${internalPrefix}coalesced"
   def uncoalescedPatName(className: String): String = s"${internalPrefix}uncoalesced_$className"
+  def uncoalescedPatName(): String = s"${internalPrefix}uncoalesced"
   def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
   def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
@@ -175,23 +177,56 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case (sig, (c, m)) =>
           val methodParams = params(sig).map(p => Datalog.Var(p.name))
           val methodCall = Datalog.Call(methodPatName(c.name.raw, m.name.raw), methodParams)
-          val tyVar = Datalog.Var(gensym.fresh("ty"))
-          val compRuntimeType = Datalog.Computed(
-            tyVar,
+          val guard = Datalog.Computed(
+            Datalog.StringConstant(cls.name.raw),
             Datalog.Evaluation(
               Seq(Datalog.Var("this") -> transType(c.typ)),
               Datalog.TScalaString,
               Scala(q"(obj: $tyOID) => obj.typ")
             )
           )
-          val guard = Datalog.Eq(tyVar, Datalog.StringConstant(cls.name.raw))
-          sig -> Datalog.Body(Seq(compRuntimeType, guard, methodCall))
+          sig -> Datalog.Body(Seq(guard, methodCall))
       }.toSeq
     })
 
-    params.map { case (sig, params) =>
+    val methodDispatchs = params.map { case (sig, params) =>
       Datalog.Pattern(None, dispatchPatName(sig), params, bodies.get(sig).toSeq)
     }.toSeq
+
+    val normalClasses = classes.filter(!_.isDefunAuxiliary)
+    val coalescedBodies = normalClasses.map { cls =>
+      val guard = Datalog.Computed(
+        Datalog.StringConstant(cls.name.raw),
+        Datalog.Evaluation(
+          Seq(Datalog.Var("this") -> transType(cls.typ)),
+          Datalog.TScalaString,
+          Scala(q"(obj: $tyOID) => obj.typ")
+        )
+      )
+      val coalescedCall = Datalog.Call(coalescedPatName(cls.name.raw), Seq(Datalog.Var("this"), Datalog.Var("obj")))
+      Datalog.Body(Seq(guard, coalescedCall))
+    }
+
+    val uncoalescedBodies = normalClasses.map { cls =>
+      val guard = Datalog.Computed(
+        Datalog.StringConstant(cls.name.raw),
+        Datalog.Evaluation(
+          Seq(Datalog.Var("obj") -> Datalog.TScala(Scala(t"AnyRef"))),
+          Datalog.TScalaString,
+          Scala(q"(obj: AnyRef) => obj.getClass.getSimpleName")
+        )
+      )
+      val uncoalescedCall = Datalog.Call(uncoalescedPatName(cls.name.raw), Seq(Datalog.Var("obj"), Datalog.Var("this")))
+      Datalog.Body(Seq(guard, uncoalescedCall))
+    }
+
+
+    val thisParam = Datalog.Param("this", GP_URI)
+    val objParam = Datalog.Param("obj", Datalog.TScala(Scala(t"AnyRef")))
+    val coalescedDispatch = Datalog.Pattern(None, coalescedPatName(), Seq(thisParam, objParam), coalescedBodies)
+    val uncoalescedDispatch = Datalog.Pattern(None, uncoalescedPatName(), Seq(objParam, thisParam), uncoalescedBodies)
+
+    methodDispatchs :+ coalescedDispatch :+ uncoalescedDispatch
   }
 
   private def transNull(): Datalog.Pattern = gensym.scoped {
@@ -273,7 +308,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
-    classDef.content.flatMap {
+    val unCoalescingPattern =
+      if (!classDef.isDefunAuxiliary)
+        Seq(generateConstructorCoalesced(classDef), generateConstructorUncoalesced(classDef))
+      else
+        Seq()
+
+    val clsPattern = classDef.content.flatMap {
       case field: FieldDef => Seq(transField(classDef, field))
       case method: MethodDef => Seq(transMethod(classDef, method))
       case constructor: ConstructorDef =>
@@ -281,7 +322,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
-    } :+ transDefaultConstructor(classDef) :+ generateConstructorCoalesced(classDef) :+ generateConstructorUncoalesced(classDef)
+    }
+    (clsPattern ++ unCoalescingPattern) :+ transDefaultConstructor(classDef)
   }
 
   private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -314,7 +356,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         t match {
           case TClass(ClassRef(name)) =>
             val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
-            val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(name.raw), Seq(v, coalescedChildVar)))
+            val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(), Seq(v, coalescedChildVar)))
             (coalescedChildCall, coalescedChildVar)
           case _ =>
             (Seq(), v)
@@ -351,7 +393,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
     val bodies = Seq(bodyWithObject, bodyWithNull)
     val params = Seq(uriParam, objParam)
-    val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(className), params, bodies)
+    val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(classDef.name.raw), params, bodies)
     constrCoalescedPat
       //.addHint(MagicSetHints.NoInputRelation)
   }
@@ -400,7 +442,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case (ty@TClass(ClassRef(name)), i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           val childUri = Datalog.Var(gensym.fresh(f.name.raw))
-          val call = Datalog.Call(uncoalescedPatName(name.raw), Seq(fieldReadVar, childUri))
+          val call = Datalog.Call(uncoalescedPatName(), Seq(fieldReadVar, childUri))
           (childUri, Seq(fieldReadComp, call))
         case (ty, i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
@@ -484,7 +526,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val params = Seq(objParam, uriParam)
     val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
-    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
+    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(classDef.name.raw), params, bodies)
       //.addHint(MagicSetHints.NoInputRelation)
 
     // TODO: Could be optimized by only using this key per body
@@ -717,7 +759,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val returnVars = returnParams.map(rp => Datalog.Var(rp.name))
         val readKeys = Datalog.Call(methodPatName(classDef.name.raw, "get"), thisVar +: returnVars :+ Datalog.Var(gensym.fresh("_")))
           .addHint(MagicSetHints.IgnoreCall)
-          .addHint(MagicSetHints.FixedAdornment(true +: returnVars.map(_ => true) :+ false))
+          //.addHint(MagicSetHints.FixedAdornment(true +: returnVars.map(_ => true) :+ false))
         Datalog.Body(Seq(readKeys))
       } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
         // return a real scala tuple, not a flattened one
@@ -744,7 +786,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val returnParam = returnParams.head
         val returnTerm = returnTerms.head
         val clsName = methodDef.outType.asInstanceOf[TClass].ref.name.raw
-        val coalescedCall = Datalog.Call(coalescedPatName(clsName), Seq(returnTerm, Datalog.Var(returnParam.name)))
+        val coalescedCall = Datalog.Call(coalescedPatName(), Seq(returnTerm, Datalog.Var(returnParam.name)))
         Datalog.Body(cons :+ coalescedCall)
       } else {
         val returnCons = returnParams.zip(returnTerms).map { case (p, t) =>
@@ -908,7 +950,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
               // Todo: extend this to nested tuple
               // Todo: extend this to nested tuple
               val clsName = resType.asInstanceOf[TClass].ref.name.raw
-              val uncoalescedCall = Datalog.Call(uncoalescedPatName(clsName), Seq(aggVar, resultVars.head._1))
+              val uncoalescedCall = Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVars.head._1))
               Seq(uncoalescedCall)
               //Seq()
             } else {
@@ -1092,7 +1134,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val oldOutName = pat.params(leftParams.size).name
           val newOutName = gensym.fresh("out")
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
-          val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
+          val coalesceCon = Datalog.Call(coalescedPatName(), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
           pat.copy(params = leftParams ++ (newOutParam +: rightParams), bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
         case _ =>
           generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
@@ -1121,7 +1163,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         aggType.flatten(aggIndex) match {
           case td: TClass =>
             val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
-            val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))
+            val uncoalesce = Datalog.Call(uncoalescedPatName(), Seq(foldVar, foldVarUncoalesced))
             (Seq(foldVarUncoalesced), projCons.flatten :+ compCon :+ uncoalesce)
           case _ =>
             (Seq(foldVar), projCons.flatten :+ compCon)

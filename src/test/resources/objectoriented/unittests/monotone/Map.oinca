@@ -18,6 +18,26 @@ class MonotoneMap extends BalancedMonotone[(String, Int), `scala.collection.immu
     }
 }
 
+case class Num(val value: Int) { }
+
+/*class MonotoneMapNum extends BalancedMonotone[(String, Num), `scala.collection.immutable.Map[String, Any]`] {
+    def init(): `scala.collection.immutable.Map[String, Int]` = {
+        `scala.collection.immutable.Map[String, Int]`()
+    }
+
+    def join(m1: `scala.collection.immutable.Map[String, Any]`, m2: `scala.collection.immutable.Map[String, Any]`): `scala.collection.immutable.Map[String, Any]` = {
+        m1 ++ m2
+    }
+
+    def lift(pair: (String, Num)): `scala.collection.immutable.Map[String, Any]` = {
+        `scala.collection.immutable.Map[String, Int]`(pair._1 -> pair._2.value)
+    }
+
+    def get(): `scala.collection.immutable.Map[String, Any]` = {
+        this.result
+    }
+}*/
+
 class Example {
     @main
     def main(): `scala.collection.immutable.Map[String, Int]` = {

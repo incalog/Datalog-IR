@@ -51,6 +51,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation])
   def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
   def isAbstract: Boolean = annos.contains(AbstractAnnotation)
+  def isDefunAuxiliary: Boolean = annos.contains(DefunAuxiliaryAnnotation)
   def montoneTypes: Option[(Type, Type)] = annos.flatMap {
     case MonotoneMapAnnotation(types) => Some((types.head, types.last))
     case MonotoneAnnotation(_, types) => Some((types.head, types.last))

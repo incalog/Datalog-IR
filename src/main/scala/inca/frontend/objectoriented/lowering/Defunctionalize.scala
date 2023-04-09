@@ -115,7 +115,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux" + typeSuffix(typ)))
-    val clazz = ClassDef(Seq(), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
+    val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
     auxClassDefs += clazz
     clazz
   }

@@ -345,7 +345,7 @@ class FIConstantPropagationVisitor extends Visitor {
     }
 }
 
-class FSConstantPropagationVisitor extends Visitor {
+/*class FSConstantPropagationVisitor extends Visitor {
     val varsAfter: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
     val varsBefore: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
 
@@ -414,8 +414,30 @@ class FSConstantPropagationVisitor extends Visitor {
         for (n3 <- this.varsAfter.get(s.body.last()).keys()) yield this.assignVarsBefore(s, n3, this.varsAfter.get(s.body.last()).get(n3).get())
         return
     }
-}
+}*/
 
+
+/*class InnerMonoMap extends BalancedMonotone[String, MConstant] {
+    def init(): MConstant = {
+        new MConstant(`None`)
+    }
+
+    def join(v1: MConstant, v2: MConstant): MConstant = {
+        if (v1.num == v2.num) {
+            v1
+        } else {
+            new MConstant(`None`)
+        }
+    }
+
+    def lift(v: MConstant): MConstant = {
+        v
+    }
+
+    def get(): MConstant = {
+        this.result
+    }
+}*/
 
 
 class Examples {
@@ -449,7 +471,7 @@ class ConstantPropagation {
 }
 
 class AdvancedConstantPropagation {
-    //@main
+    @main
     def factorial(): Set[(String, String, String, String)] = {
         val constantProp: FSConstantPropagationVisitor = new FSConstantPropagationVisitor()
         val examples: Examples = new Examples()
@@ -462,5 +484,3 @@ class AdvancedConstantPropagation {
             yield ("After", k3.stringValue(), k4, constantProp.varsAfter.get(k3).get(k4).get().stringValue()))
     }
 }
-
-

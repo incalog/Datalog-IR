@@ -55,6 +55,12 @@ object AbstractAnnotation extends Annotation {
   override def toString: String = "@abstract"
 }
 
+object DefunAuxiliaryAnnotation extends Annotation {
+  override def key: Annotation.Key = "DEFUN_AUXILIARY_CLASS"
+
+  override def toString: String = "@defun"
+}
+
 /*
 Annotation used internally for monotone classes.
  */
