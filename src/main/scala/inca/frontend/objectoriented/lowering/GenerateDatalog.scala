@@ -716,7 +716,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val returnVar = Datalog.Var(returnParams.head.name)
         val readKeys = Datalog.Call(methodPatName(classDef.name.raw, "get"), Seq(thisVar, returnVar, Datalog.Var(gensym.fresh("_"))))
           .addHint(MagicSetHints.IgnoreCall)
-          .addHint(MagicSetHints.FixedAdornment(Seq(false, true)))
+          .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
         Datalog.Body(Seq(readKeys))
       } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
         // return a real scala tuple, not a flattened one

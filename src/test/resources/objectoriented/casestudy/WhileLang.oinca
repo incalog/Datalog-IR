@@ -115,6 +115,10 @@ class Stm {
     def last(): Stm = {
         this
     }
+
+    def stringValue(): String = {
+        "Stm"
+    }
 }
 class Assign(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -122,11 +126,21 @@ class Assign(val name: String, val rhs: Exp) extends Stm {
         this.rhs.accept(v)
         v.visitAssign(this)
     }
+
+    @override
+    def stringValue(): String = {
+        "Assign"
+    }
 }
 class Skip extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         v.visitSkip(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Skip"
     }
 }
 class Sequence(val s1: Stm, val s2: Stm) extends Stm {
@@ -144,6 +158,11 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     def last(): Stm = {
         this.s2.last()
     }
+
+    @override
+    def stringValue(): String = {
+        "Sequence"
+    }
 }
 class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
     @override
@@ -153,6 +172,11 @@ class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
         this.els.accept(v)
         v.visitIf(this)
     }
+
+    @override
+    def stringValue(): String = {
+        "If"
+    }
 }
 class While(val cnd: Exp, val body: Stm) extends Stm {
     @override
@@ -161,6 +185,11 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
         this.body.accept(v)
         v.visitWhile(this)
     }
+
+    @override
+    def stringValue(): String = {
+        "While"
+    }
 }
 class ValDef(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -168,12 +197,22 @@ class ValDef(val name: String, val rhs: Exp) extends Stm {
         this.rhs.accept(v)
         v.visitValDef(this)
     }
+
+    @override
+    def stringValue(): String = {
+        "Val"
+    }
 }
 class VarDef(val name: String, val rhs: Exp) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.rhs.accept(v)
         v.visitVarDef(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Var"
     }
 }
 
@@ -197,7 +236,7 @@ class Visitor {
     def visitVarDef(s: VarDef): Unit = { }
 }
 
-// Currently we do not support coalescing / uncoalescing of subclasses.
+// Currently we do not support coalescing / uncoalescing of subclasses (aka. dynamic dispatching).
 // Therefore we encode NoConstant as MConstant(None).
 case class MConstant(val num: `Option[Int]`) {
     def isSomeConstant(): Boolean = {
@@ -306,12 +345,83 @@ class FIConstantPropagationVisitor extends Visitor {
     }
 }
 
+class FSConstantPropagationVisitor extends Visitor {
+    val varsAfter: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
+    val varsBefore: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
+
+    // we can not assign a complete inner map currently... so this is a workaround
+    def assignVarsAfter(s: Stm, n: String, v: MConstant): Unit = {
+        this.varsAfter.get(s).get(n) += v
+        return
+    }
+
+    def assignVarsBefore(s: Stm, n: String, v: MConstant): Unit = {
+        this.varsBefore.get(s).get(n) += v
+        return
+    }
+
+    @override
+    def visitValDef(s: ValDef): Unit = {
+        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
+        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
+        return
+    }
+
+    @override
+    def visitVarDef(s: VarDef): Unit = {
+        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
+        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
+        return
+    }
+
+    @override
+    def visitAssign(s: Assign): Unit = {
+        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
+        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
+        return
+    }
+
+    @override
+    def visitSkip(s: Skip): Unit = {
+        for (n <- this.varsBefore.get(s).keys()) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
+        return
+    }
+
+    @override
+    def visitSequence(s: Sequence): Unit = {
+        // data flow s.s2.first() <- s.s1.last()
+        for (n <- this.varsAfter.get(s.s1.last()).keys()) yield this.assignVarsBefore(s.s2.first(), n, this.varsAfter.get(s.s1.last()).get(n).get())
+        return
+    }
+
+    @override
+    def visitIf(s: If): Unit = {
+        // data flow s.thn.first() <- s
+        // data flow s.els.first() <- s
+        for (n1 <- this.varsBefore.get(s).keys()) yield this.assignVarsBefore(s.thn.first(), n1, this.varsBefore.get(s).get(n1).get())
+        for (n2 <- this.varsBefore.get(s).keys()) yield this.assignVarsBefore(s.els.first(), n2, this.varsBefore.get(s).get(n2).get())
+        for (n3 <- this.varsBefore.get(s.thn.last()).keys()) yield this.assignVarsAfter(s.thn.last(), n3, this.varsBefore.get(s.thn.last()).get(n3).get())
+        for (n4 <- this.varsBefore.get(s.els.last()).keys()) yield this.assignVarsAfter(s.els.last(), n4, this.varsBefore.get(s.els.last()).get(n4).get())
+        return
+    }
+
+    @override
+    def visitWhile(s: While): Unit = {
+        // data flow s.body.first() <- s
+        // data flow s <- s.body.last()
+        for (n1 <- this.varsBefore.get(s).keys()) yield this.assignVarsAfter(s, n1, this.varsBefore.get(s).get(n1).get())
+        for (n2 <- this.varsAfter.get(s).keys()) yield this.assignVarsBefore(s.body.first(), n2, this.varsAfter.get(s).get(n2).get())
+        for (n3 <- this.varsAfter.get(s.body.last()).keys()) yield this.assignVarsBefore(s, n3, this.varsAfter.get(s.body.last()).get(n3).get())
+        return
+    }
+}
 
 
 
 class Examples {
     val factorial: Stm =
     new Sequence(new ValDef("m", new Num(3)),
+    new Sequence(new Assign("m", new Num(3)),
         new Sequence(new VarDef("n", new Num(5)),
             new Sequence(new VarDef("acc", new Num(1)),
                 new While(
@@ -324,19 +434,33 @@ class Examples {
             )
         )
     )
+    )
 }
 
 class ConstantPropagation {
-    @main
+    //@main
     def factorial(): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
         examples.factorial.accept(constantProp)
-        // This would be correct if it weren't for the stupid bug, where we need to aggregate a second time
+        // This would be correct if it weren't for the bug, where we need to aggregate a second time
         for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).get().stringValue())
     }
 }
 
+class AdvancedConstantPropagation {
+    @main
+    def factorial(): Set[(String, String, String, String)] = {
+        val constantProp: FSConstantPropagationVisitor = new FSConstantPropagationVisitor()
+        val examples: Examples = new Examples()
+        examples.factorial.accept(constantProp)
 
+        (for (k <- constantProp.varsBefore.keys(); k2 <- constantProp.varsBefore.get(k).keys())
+            yield ("Before", k.stringValue(), k2, constantProp.varsBefore.get(k).get(k2).get().stringValue()))
+        ++
+        (for (k3 <- constantProp.varsAfter.keys(); k4 <- constantProp.varsAfter.get(k3).keys())
+            yield ("After", k3.stringValue(), k4, constantProp.varsAfter.get(k3).get(k4).get().stringValue()))
+    }
+}
 
 
