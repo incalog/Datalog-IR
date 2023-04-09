@@ -438,7 +438,7 @@ class Examples {
 }
 
 class ConstantPropagation {
-    //@main
+    @main
     def factorial(): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
@@ -449,7 +449,7 @@ class ConstantPropagation {
 }
 
 class AdvancedConstantPropagation {
-    @main
+    //@main
     def factorial(): Set[(String, String, String, String)] = {
         val constantProp: FSConstantPropagationVisitor = new FSConstantPropagationVisitor()
         val examples: Examples = new Examples()

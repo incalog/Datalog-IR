@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TScalaAny, TScalaString, TSet, TUnit, Type, Visibility}
+import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TScalaAny, TScalaString, TSet, TTuple, TUnit, Type, Visibility}
 import inca.frontend.objectoriented.lowering.InsertBuiltInMonotones.{monoMapName, transformModule}
 
 object InsertBuiltInMonotones {
@@ -31,7 +31,7 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
       name
     else
       name + tyParams.map {
-        case ty@TClass(ClassRef(name)) => monomorphClassName(name.raw, ty.tyParams)
+        case ty@TClass(ClassRef(clsName)) => monomorphClassName(clsName.raw, ty.tyParams)
         case ty => ty.toString.replace("`", "")
       }.mkString("$", "$", "")
 

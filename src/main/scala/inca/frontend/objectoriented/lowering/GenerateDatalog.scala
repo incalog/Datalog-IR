@@ -155,7 +155,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val params = classes.flatMap(collectMethods).map {
       case (sig, (c, m)) =>
         val isMonotoneAddMethod = c.isMonotoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
-        val outParms = if (isMonotoneAddMethod && m.outType.isInstanceOf[TTuple]) {
+        val outParms = if (isMonotoneAddMethod) {
           // TODO: support this for arbitrarily nested tuples
           val resType = m.outType match {
             case ty : TClass => transDataType(ty)
@@ -675,10 +675,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           case ty => transType(ty)
         }
         Seq(Datalog.Param(gensym.fresh("return"), resType))
-      } else if (methodDef.returnsUnit)
+      } else if (methodDef.returnsUnit) {
         Seq()
-      else
+      } else {
         flattenParam("return", methodDef.outType, genFresh = true)
+      }
 
     val bodyRes = if (isMonotoneAggregateMethod || isMonotoneMapKeysMethod || isMonotoneMapGetMethod)
       Seq((None, Seq(), None))
@@ -713,10 +714,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         Datalog.Body(Seq(genOutMonotone))
 
       } else if (isMonotoneMapKeysMethod) {
-        val returnVar = Datalog.Var(returnParams.head.name)
-        val readKeys = Datalog.Call(methodPatName(classDef.name.raw, "get"), Seq(thisVar, returnVar, Datalog.Var(gensym.fresh("_"))))
+        val returnVars = returnParams.map(rp => Datalog.Var(rp.name))
+        val readKeys = Datalog.Call(methodPatName(classDef.name.raw, "get"), thisVar +: returnVars :+ Datalog.Var(gensym.fresh("_")))
           .addHint(MagicSetHints.IgnoreCall)
-          .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
+          .addHint(MagicSetHints.FixedAdornment(true +: returnVars.map(_ => true) :+ false))
         Datalog.Body(Seq(readKeys))
       } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
         // return a real scala tuple, not a flattened one

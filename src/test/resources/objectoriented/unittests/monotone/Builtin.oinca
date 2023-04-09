@@ -27,15 +27,15 @@ class Main {
     @main
     def main(): Set[Int] = {
         //val mono: SumMonotoneWithSetSemantics = new SumMonotoneWithSetSemantics()
-        var map: MonoMap[String, SumMonotoneWithSetSemantics] = new MonoMap[String, SumMonotoneWithSetSemantics]()
-        map.get("A") += 4
-        map.get("A") += 5
-        map.get("B") += 3
-        map.get("B") += 4
-        map.get("C") += 1
+        var map: MonoMap[(String, String), SumMonotoneWithSetSemantics] = new MonoMap[(String, String), SumMonotoneWithSetSemantics]()
+        map.get(("A", "A")) += 4
+        map.get(("A", "A")) += 5
+        map.get(("B", "A")) += 3
+        map.get(("B", "A")) += 4
+        map.get(("C", "A")) += 1
 
         // We can perform set comprehensions using the keys
-        for (k <- map.keys() if ((k == "B") || (k == "A"))) yield map.get(k).get().value
+        for (k <- map.keys() if ((k._1 == "B") || (k._1 == "A"))) yield map.get(k).get().value
 
         // We can nest maps
         /*var nested: MonoMap[String, MonoMap[Int, SumMonotoneWithSetSemantics]] = new MonoMap[String, MonoMap[Int, SumMonotoneWithSetSemantics]]()
