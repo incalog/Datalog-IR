@@ -5,7 +5,7 @@ class Exp {
     def accept(v: Visitor): Unit = { }
 
     def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
-        new MConstant(`None`)
+        new NoConstant()
     }
 }
 
@@ -29,7 +29,7 @@ class Num(val num: Int) extends Exp {
 
     @override
     def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
-        new MConstant(`Some`(this.num))
+        new SomeConstant(this.num)
     }
 }
 
@@ -236,81 +236,101 @@ class Visitor {
     def visitVarDef(s: VarDef): Unit = { }
 }
 
-// Currently we do not support coalescing / uncoalescing of subclasses (aka. dynamic dispatching).
-// Therefore we encode NoConstant as MConstant(None).
-case class MConstant(val num: `Option[Int]`) {
-    def isSomeConstant(): Boolean = {
-        val numOption: `Option[Int]` = this.num
-        numOption.`isDefined`
+case class MConstant {
+    def join(that: MConstant): MConstant = {
+        this
     }
 
-    def isNoConstant(): Boolean = {
-        val numOption: `Option[Int]` = this.num
-        numOption.`isEmpty`
+    def num(n: Int): MConstant = {
+        new SomeConstant(n)
     }
-
-    // Only call this if you know that this is some Constant
-    def value(): Int = {
-        val numOption: `Option[Int]` = this.num
-        numOption.`get`
+    def add(that: MConstant): MConstant = {
+        this
+    }
+    def sub(that: MConstant): MConstant = {
+        this
+    }
+    def mul(that: MConstant): MConstant = {
+        this
+    }
+    def gt(that: MConstant): MConstant = {
+        this
     }
 
     def stringValue(): String = {
-        if (this.isSomeConstant()) {
-            val num: Int = this.value()
-            num.`toString`()
-        } else {
-            "NoConstant"
-        }
+        "MConstant"
     }
-
-    def add(that: MConstant): MConstant = {
-        if (this.isSomeConstant() && that.isSomeConstant()) {
-            new MConstant(`Some`(this.value() + that.value()))
-        } else {
-            new MConstant(`None`)
-        }
-    }
-
-    def sub(that: MConstant): MConstant = {
-        if (this.isSomeConstant() && that.isSomeConstant()) {
-            new MConstant(`Some`(this.value() - that.value()))
-        } else {
-            new MConstant(`None`)
-        }
-    }
-
-    def mul(that: MConstant): MConstant = {
-        if (this.isSomeConstant() && that.isSomeConstant()) {
-            new MConstant(`Some`(this.value() * that.value()))
-        } else {
-            new MConstant(`None`)
-        }
-    }
-
-    def gt(that: MConstant): MConstant = {
-        if (this.isSomeConstant() && that.isSomeConstant()) {
-            if(this.value() > that.value())
-                new MConstant(`Some`(1))
-            else
-                new MConstant(`Some`(0))
-        } else {
-            new MConstant(`None`)
-        }
+}
+case class NoConstant extends MConstant {
+    @override
+    def stringValue(): String = {
+        "NoConstant"
     }
 }
 
-class MConstantMonotone extends BalancedMonotone[MConstant, MConstant] {
-    def init(): MConstant = {
-        new MConstant(`None`)
+case class SomeConstant(val num: Int) extends MConstant {
+    @override
+    def join(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
+            this
+        } else {
+            new NoConstant()
+        }
     }
 
-    def join(v1: MConstant, v2: MConstant): MConstant = {
-        if (v1.num == v2.num) {
-            v1
+    @override
+    def add(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num + that.asInstanceOf[SomeConstant].num)
         } else {
-            new MConstant(`None`)
+            new NoConstant()
         }
+    }
+
+    @override
+    def sub(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num - that.asInstanceOf[SomeConstant].num)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def mul(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num * that.asInstanceOf[SomeConstant].num)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def gt(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            if(this.num > that.asInstanceOf[SomeConstant].num)
+                new SomeConstant(1)
+            else
+                new SomeConstant(0)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def stringValue(): String = {
+        "SomeConstant(" + this.num + ")"
+    }
+}
+
+
+class MConstantMonotone extends BalancedMonotone[MConstant, MConstant] {
+    def init(): MConstant = {
+        new NoConstant()
+    }
+
+    def join(c1: MConstant, c2: MConstant): MConstant = {
+        c1.join(c2)
     }
 
     def lift(v: MConstant): MConstant = {
@@ -417,29 +437,6 @@ class FIConstantPropagationVisitor extends Visitor {
 }*/
 
 
-/*class InnerMonoMap extends BalancedMonotone[String, MConstant] {
-    def init(): MConstant = {
-        new MConstant(`None`)
-    }
-
-    def join(v1: MConstant, v2: MConstant): MConstant = {
-        if (v1.num == v2.num) {
-            v1
-        } else {
-            new MConstant(`None`)
-        }
-    }
-
-    def lift(v: MConstant): MConstant = {
-        v
-    }
-
-    def get(): MConstant = {
-        this.result
-    }
-}*/
-
-
 class Examples {
     val factorial: Stm =
     new Sequence(new ValDef("m", new Num(3)),
@@ -470,7 +467,7 @@ class ConstantPropagation {
     }
 }
 
-class AdvancedConstantPropagation {
+/*class AdvancedConstantPropagation {
     @main
     def factorial(): Set[(String, String, String, String)] = {
         val constantProp: FSConstantPropagationVisitor = new FSConstantPropagationVisitor()
@@ -483,4 +480,4 @@ class AdvancedConstantPropagation {
         (for (k3 <- constantProp.varsAfter.keys(); k4 <- constantProp.varsAfter.get(k3).keys())
             yield ("After", k3.stringValue(), k4, constantProp.varsAfter.get(k3).get(k4).get().stringValue()))
     }
-}
+}*/
