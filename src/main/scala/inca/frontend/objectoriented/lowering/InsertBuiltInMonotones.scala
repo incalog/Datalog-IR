@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TScalaAny, TScalaString, TSet, TTuple, TUnit, Type, Visibility}
+import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetComprehension, SetExpr, SetMemberExpr, TClass, TScalaAny, TScalaString, TSet, TTuple, TUnit, Type, VarReadExpr, Visibility}
 import inca.frontend.objectoriented.lowering.InsertBuiltInMonotones.{monoMapName, transformModule}
 
 object InsertBuiltInMonotones {
@@ -57,7 +57,12 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
           MethodDef(Nil, None, Name("keys"), Seq(), TSet(tys.head), Seq(
             // We implement this in GenerateDatalog
             ReturnStmt(SetExpr(Seq(), tty = Some(tys.head)))
-          ))
+          ))/*,
+          MethodDef(Nil, None, Name("values"), Seq(), TSet(tys.last), Seq(
+            SetComprehension(Seq(
+              SetMemberExpr(Name("result"), VarReadExpr())
+            ))
+          ))*/
         )
       ))
       buildInMonotones += (clsName -> monoCls.get)

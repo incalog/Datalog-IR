@@ -339,7 +339,11 @@ object TestDefinition {
 
   def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult()),
+    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult(
+      TupleResult("m", "SomeConstant(3)"),
+      TupleResult("n", "NoConstant"),
+      TupleResult("acc", "NoConstant")
+    ))
     //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
   }
 

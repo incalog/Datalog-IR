@@ -104,8 +104,12 @@ class SetLifting(val module: Module) extends ModuleLowering {
     (SetFold(varReadExpr, transExpressions(projection), ClassRef(className), opMethod, transExpression(neutral).head) , Seq(varDecl))
   }
 
+  // TODO: ugly hack, but it doesn't matter since we remove this module completely and do these operations inside
+  //  GenerateDatalog. This lowering is incomplete e.g. it does not work for comprehension with object allocations.
+  var containedInSetComprehension: Boolean = false
+
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case setExpr : SetExpr =>
+    case setExpr: SetExpr if !containedInSetComprehension =>
       val (newExpr, stmts) = liftSetExpression(setExpr)
       genStmt.add(stmts)
       Seq(newExpr)
@@ -114,6 +118,12 @@ class SetLifting(val module: Module) extends ModuleLowering {
       val (newExpr, stmts) = liftSetFoldExpression(setFold)
       genStmt.add(stmts)
       Seq(newExpr)
+
+    case setComprehension: SetComprehension =>
+      containedInSetComprehension = true
+      val res = super.transExpressionInternal(expression)
+      containedInSetComprehension = false
+      res
 
     case _ => super.transExpressionInternal(expression)
   }
