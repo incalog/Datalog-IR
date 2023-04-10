@@ -1,10 +1,7 @@
 package language.typing.types;
 
 public class ParametricType implements Type {
-    private String name;
-
-    ParametricType() {
-    }
+    public String name;
 
     public ParametricType(String param) {
         name = param;
@@ -14,8 +11,5 @@ public class ParametricType implements Type {
     public String toString() {
         return name;
     }
-    
-    public String getName() {
-        return name;
-    }
+
 }

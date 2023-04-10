@@ -4,7 +4,7 @@ import java.util.List;
 
 public class ConstructorType implements Type {
     private final String name;
-    private final List<Type> types;
+    private List<Type> types;
 
     public ConstructorType(String newName, List<Type> newTypes){
         name = newName;
@@ -28,5 +28,9 @@ public class ConstructorType implements Type {
 
     public List<Type> getTypes(){
         return types;
+    }
+
+    public void setTypes(List<Type> ts) {
+        types = ts;
     }
 }

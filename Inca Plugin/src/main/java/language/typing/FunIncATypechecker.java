@@ -31,7 +31,7 @@ public class FunIncATypechecker {
                 paramTypesPsi.add(paramDef.getType());
             }
             List<Type> paramTypes = PsiToTypeConverter.convert(paramTypesPsi);
-            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(funDef.getTypeVarDefList()); // TODO typeVariables
+            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(funDef.getTypeVarDefList());
             return new FunType(typeVars, paramTypes, returnType);
         } else if (element instanceof FunIncAParamDef) {
             FunIncAParamDef paramDef = (FunIncAParamDef) element;
@@ -45,7 +45,13 @@ public class FunIncATypechecker {
             return PsiToTypeConverter.convert(paramDef.getType());
         } else if (element instanceof FunIncADataConstructorDef) {
             FunIncADataConstructorDef constructorDef = (FunIncADataConstructorDef) element;
-            List<Type> typeVariables = PsiToTypeConverter.convertTypeVarDefs(constructorDef.getTypeVarDefList()); // TODO type variables
+            List<Type> typeVariables = new ArrayList<>();
+            if (!constructorDef.getTypeVarDefList().isEmpty()) { // if the constructor definition has defined type variables use those
+                typeVariables = PsiToTypeConverter.convertTypeVarDefs(constructorDef.getTypeVarDefList());
+            } else if (!((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList().isEmpty()) { // if not use parent (data def) type variables
+                typeVariables = PsiToTypeConverter
+                        .convertTypeVarDefs(((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList());
+            }
             List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
             Type returnType = typeOfTypeDef(constructorDef.getParent(), holder);
             return new FunType(typeVariables, paramTypes, returnType);
@@ -90,16 +96,16 @@ public class FunIncATypechecker {
                 int index = binding.getVarDefList().indexOf(element); // position of the VarDef in question
                 TupleType inferredTupleType = (TupleType) inferredType;
                 if (binding.getType() == null) { // no expected types
-                    if (index < inferredTupleType.getTypes().size())
-                        return inferredTupleType.getTypes().get(index);
+                    if (index < inferredTupleType.types.size())
+                        return inferredTupleType.types.get(index);
                     else
                         return new AnyType(); // nothing bound to that VarDef
                 } else { // expected types are given
                     Type expectedType = PsiToTypeConverter.convert(binding.getType());
                     if (expectedType instanceof TupleType) {
                         TupleType expectedTupleType = (TupleType) expectedType;
-                        if (index < expectedTupleType.getTypes().size()) { // this VarDef has an expected type
-                            Type expectedTypeIndex = expectedTupleType.getTypes().get(index);
+                        if (index < expectedTupleType.types.size()) { // this VarDef has an expected type
+                            Type expectedTypeIndex = expectedTupleType.types.get(index);
                             if (expectedTypeIndex instanceof UnitType) {
                                 holder.newAnnotation(HighlightSeverity.ERROR,
                                                 "Cannot assign Type Unit to "
@@ -107,8 +113,8 @@ public class FunIncATypechecker {
                                         .range(binding.getType().getAtomicType().getTupleType().getTypeList().get(index))
                                         .create();
                             }
-                            if (index < inferredTupleType.getTypes().size()) {
-                                Type inferredTypeIndex = inferredTupleType.getTypes().get(index);
+                            if (index < inferredTupleType.types.size()) {
+                                Type inferredTypeIndex = inferredTupleType.types.get(index);
                                 if (!expectedTypeIndex.equals(inferredTypeIndex)) {
                                     holder.newAnnotation(HighlightSeverity.ERROR,
                                             "Expected " + expectedTypeIndex + ", but got " + inferredTypeIndex)
@@ -123,14 +129,14 @@ public class FunIncATypechecker {
                             }
                             return expectedTypeIndex;
                         } else { // this VarDef has no expected type despite given expected types, index > expectedType size
-                            if (index < inferredTupleType.getTypes().size())
-                                return inferredTupleType.getTypes().get(index);
+                            if (index < inferredTupleType.types.size())
+                                return inferredTupleType.types.get(index);
                             else
                                 return new AnyType();
                         }
                     } else { // expected type is not a tuple
-                        if (index < inferredTupleType.getTypes().size())
-                            return inferredTupleType.getTypes().get(index);
+                        if (index < inferredTupleType.types.size())
+                            return inferredTupleType.types.get(index);
                         else
                             return new AnyType();
                     }
@@ -157,8 +163,8 @@ public class FunIncATypechecker {
                     return new AnyType();
                 }
                 int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
-                if (index < ((TupleType) setType.getSetType()).getTypes().size() && index != -1) {
-                    return ((TupleType) setType.getSetType()).getTypes().get(index);
+                if (index < ((TupleType) setType.getSetType()).types.size() && index != -1) {
+                    return ((TupleType) setType.getSetType()).types.get(index);
                 } else {
                     return new AnyType();
                 }
@@ -199,7 +205,7 @@ public class FunIncATypechecker {
         }  else if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             String name = dataDef.getName();
-            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList()); // TODO type vars
+            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
             return new TypeRef(name, typeVars);
         }
         holder.newAnnotation(HighlightSeverity.ERROR,
@@ -359,7 +365,7 @@ public class FunIncATypechecker {
                     validateType(multiple.getType(), holder);
                     Type type = PsiToTypeConverter.convert(multiple.getType());
                     if (type instanceof TupleType) {
-                        int n = ((TupleType) type).getTypes().size();
+                        int n = ((TupleType) type).types.size();
                         int m = multiple.getVarDefList().size();
                         if (n != m)
                             holder.newAnnotation(HighlightSeverity.ERROR,
@@ -452,6 +458,30 @@ public class FunIncATypechecker {
                 return new AnyType();
             }
             Type funExpType = typecheckExp(funExp, holder); // TODO handle parametric types, replace ocurring prametrictypes
+            if (funExpType instanceof FunType && !((FunType) funExpType).typeVars.isEmpty()) {
+                FunType funType = (FunType) funExpType;
+                List<FunIncAType> concreteTypes = callExp.getTypeList();
+                Map<String, Type> subst = new HashMap<>();
+                if (funType.typeVars.size() != concreteTypes.size())
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Function " + funExp.getText() + " expects " + funType.typeVars.size() + " type " +
+                                    "arguments, but found " + concreteTypes.size() + " type arguments in call")
+                            .range(callExp)
+                            .create();
+                int i = 0; // index for assigning types in the substitution map
+                for (Type type : funType.typeVars) { // bulding the substitution map
+                    if (type instanceof ParametricType) {
+                        String name = ((ParametricType) type).name;
+                        if (i < concreteTypes.size()) {
+                            subst.put(name, PsiToTypeConverter.convert(concreteTypes.get(i)));
+                            i++;
+                        } else {
+                            subst.put(name, new AnyType());
+                        }
+                    }
+                }
+                FunIncATypeUtil.substitute(funExpType, subst);
+            }
             Type returnType = funExpType;
             int n = callExp.getCallExpListList().size(); // n holds the number of function calls
             while (n > 0) {
@@ -661,8 +691,8 @@ public class FunIncATypechecker {
 
             Type typeTuple = typecheckExp(tuple, holder);
             if (typeTuple instanceof TupleType && setContentType instanceof TupleType) {
-                int n = ((TupleType) typeTuple).getTypes().size();
-                int m = ((TupleType) setContentType).getTypes().size();
+                int n = ((TupleType) typeTuple).types.size();
+                int m = ((TupleType) setContentType).types.size();
                 List<FunIncAExp> tupleExp = ((FunIncATupleExp) tuple).getExpList();
                 if (n != m)
                     holder.newAnnotation(HighlightSeverity.ERROR,
@@ -670,8 +700,8 @@ public class FunIncATypechecker {
                             .range(memberExp)
                             .create();
                 for (int i = 0; i < Math.min(n,m); i++) {
-                    Type expType = ((TupleType) typeTuple).getTypes().get(i);
-                    Type setTupleType = ((TupleType) setContentType).getTypes().get(i);
+                    Type expType = ((TupleType) typeTuple).types.get(i);
+                    Type setTupleType = ((TupleType) setContentType).types.get(i);
                     if (! FunIncATypeUtil.subtype(expType, setTupleType))
                         holder.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + setTupleType + ", but got " + expType)

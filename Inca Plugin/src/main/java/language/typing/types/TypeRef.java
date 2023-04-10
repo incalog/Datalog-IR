@@ -6,9 +6,6 @@ public class TypeRef implements Type {
     private String name;
     private List<Type> paramTypes;
 
-    TypeRef() {
-    }
-
     public TypeRef(String newName) {
         name = newName;
     }

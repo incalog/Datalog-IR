@@ -35,7 +35,7 @@ public class PsiToTypeConverter {
             Type argType = convert(((FunIncAFunType) e).getAtomicType());
             Type returnType = convert(((FunIncAFunType) e).getType());
             if (argType instanceof TupleType) {
-                return new FunType(new ArrayList<>(), ((TupleType) argType).getTypes(), returnType);
+                return new FunType(new ArrayList<>(), ((TupleType) argType).types, returnType);
             } else {
                 return new FunType(new ArrayList<>(), List.of(argType), returnType);
             }

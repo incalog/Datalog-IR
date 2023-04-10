@@ -5,8 +5,8 @@ import java.util.List;
 public class FunType implements Type {
 
     public final List<Type> typeVars;
-    public final List<Type> paramTypes;
-    public final Type returnType;
+    public List<Type> paramTypes;
+    public Type returnType;
 
     public FunType(List<Type> typeVars, List<Type> paramTypes, Type returnType) {
         this.typeVars = typeVars;

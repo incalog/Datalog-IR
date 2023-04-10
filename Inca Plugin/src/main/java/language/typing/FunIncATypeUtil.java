@@ -4,6 +4,8 @@ import language.typing.types.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class FunIncATypeUtil {
     public static Boolean subtype(Type subType, Type superType) {
@@ -28,8 +30,8 @@ public class FunIncATypeUtil {
             if(((ConstructorType) type1).getName().equals(((TypeRef) type2).getName()))
                 return type1;
         } else if (type1 instanceof TupleType && type2 instanceof TupleType) {
-            List<Type> tupleTypes1 = ((TupleType) type1).getTypes();
-            List<Type> tupleTypes2 = ((TupleType) type2).getTypes();
+            List<Type> tupleTypes1 = ((TupleType) type1).types;
+            List<Type> tupleTypes2 = ((TupleType) type2).types;
             if(tupleTypes1.size() == tupleTypes2.size()){
                 int n = tupleTypes1.size();
                 List<Type> tupTys = new ArrayList<>(n);
@@ -77,8 +79,8 @@ public class FunIncATypeUtil {
         } else if (type2 instanceof NothingType) {
             return type1;
         } else if (type1 instanceof TupleType && type2 instanceof TupleType) {
-            List<Type> tupleTypes1 = ((TupleType) type1).getTypes();
-            List<Type> tupleTypes2 = ((TupleType) type2).getTypes();
+            List<Type> tupleTypes1 = ((TupleType) type1).types;
+            List<Type> tupleTypes2 = ((TupleType) type2).types;
             if(tupleTypes1.size() == tupleTypes2.size()){
                 int n = tupleTypes1.size();
                 List<Type> tupTys = new ArrayList<>(n);
@@ -110,5 +112,28 @@ public class FunIncATypeUtil {
             return new AnyType();
         }
         return new AnyType();
+    }
+
+    public static Type substitute(Type type, Map<String, Type> subst) { // TODO
+        if (type instanceof FunType) {
+            FunType funType = (FunType)  type;
+            funType.paramTypes = funType.paramTypes.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+            funType.returnType = substitute(funType.returnType, subst);
+        } else if (type instanceof TupleType) {
+            TupleType tupleType = (TupleType) type;
+            tupleType.types = tupleType.types.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+        } else if (type instanceof TypeRef){
+            String name = ((TypeRef) type).getName();
+            if (subst.containsKey(name))
+                type = subst.get(name);
+        } else if (type instanceof ConstructorType) {
+            ConstructorType constructorType = (ConstructorType) type;
+            constructorType.setTypes(
+                    constructorType.getTypes().stream().map(t -> substitute(t, subst)).collect(Collectors.toList()));
+        } else if (type instanceof SetType) {
+            SetType setType = (SetType) type;
+            setType.setSetType(substitute(setType.getSetType(), subst));
+        }
+        return type;
     }
 }
