@@ -16,8 +16,8 @@ class Var(val name: String) extends Exp {
     }
 
     @override
-    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
-        m.get(this.name).result
+    def aevalConst(vp: ValueProvider): MConstant = {
+        vp.getValue(this.name)
     }
 }
 
@@ -338,25 +338,32 @@ class MConstantMonotone extends BalancedMonotone[MConstant, MConstant] {
     }
 }
 
-class FIConstantPropagationVisitor extends Visitor {
+class ValueProvider extends Visitor {
+    def getValue(s: String): MConstant = new NoConstant()
+}
+
+class FIConstantPropagationVisitor extends ValueProvider {
     /** The Map type separates keys from aggregated values */
     val vars: MonoMap[String, MConstantMonotone] = new MonoMap[String, MConstantMonotone]()
 
     @override
+    def getValue(s: String): MConstant = this.vars.get(s).result
+
+    @override
     def visitValDef(s: ValDef): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 
     @override
     def visitVarDef(s: VarDef): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 
     @override
     def visitAssign(s: Assign): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 }
