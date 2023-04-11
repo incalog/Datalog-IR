@@ -17,7 +17,7 @@ class Var(val name: String) extends Exp {
 
     @override
     def aevalConst(p: ValueProvider): MConstant = {
-        p.get(this.name)
+        p.getValue(this.name)
     }
 }
 
@@ -337,7 +337,7 @@ case class SomeConstant(val num: Int) extends MConstant {
 }
 
 class ValueProvider extends Visitor {
-    def get(s: String): MConstant = {
+    def getValue(s: String): MConstant = {
         new NoConstant()
     }
 }
@@ -347,7 +347,7 @@ class FIConstantPropagationVisitor extends ValueProvider {
     val vars: MonoMap[String, MConstant] = new MonoMap[String, MConstant]()
 
     @override
-    def get(s: String): MConstant = {
+    def getValue(s: String): MConstant = {
         this.vars.get(s) // this aggregates automatically
     }
 

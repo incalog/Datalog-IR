@@ -8,6 +8,8 @@ class Avg {
     def add(v: Int): Unit = {
         `((e: scala.collection.mutable.Map[String, Double], v: Int) => e("value") = e("value") + v)`(this.result, v)
         `((e: scala.collection.mutable.Map[String, Double], v: Int) => e("count") = e("count") + 1.0)`(this.result, v)
+        // This alone will not work. Viatra will cache the result and not reevaluate it, unless it depends on
+        // an input that changed.
         //`((e: scala.collection.mutable.Map[String, Double]) => e("count") = e("count") + 1.0)`(this.result)
     }
 
