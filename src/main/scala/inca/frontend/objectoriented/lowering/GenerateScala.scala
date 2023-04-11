@@ -55,6 +55,7 @@ class GenerateScala {
   }
 
   def genModule(module: Module): ScalaModule = {
+    // TODO: Hack MonoMap
     val (cls, objs) = module.classes.map(transClass).unzip
     new ScalaModule(cls, objs)
   }
@@ -163,7 +164,11 @@ class GenerateScala {
 
     val allocIdTerm = Term.Name("allocId")
     val allocIdParam = Term.Param(Nil, allocIdTerm, Some(transType(TScalaInt)), None)
-    val params = allocIdParam +: fields.flatMap { f =>
+    // TODO: hack MonoMap
+    val myFields = fields.filter { f =>
+      !(f.typ.isInstanceOf[TClass] && f.typ.asInstanceOf[TClass].ref.name.raw.startsWith("MonoMap"))
+    }
+    val params = allocIdParam +: myFields.flatMap { f =>
       f.typ.flatten.zipWithIndex.map { case (ty, i) =>
         Term.Param(Nil, Term.Name(f.name.raw + "$" + i), Some(transType(ty)), None)
       }
@@ -182,7 +187,7 @@ class GenerateScala {
         (index + 1, q"${Term.Name(name + "$" + index)}")
     }
 
-    val assignments = fields.map { f =>
+    val assignments = myFields.map { f =>
       val (newIndex, paramTerm) = fieldToTuple(f.name.raw, f.typ)
       val fieldTerm = Term.Name(f.name.raw)
       q"obj.$fieldTerm = $paramTerm"

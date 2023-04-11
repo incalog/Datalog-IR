@@ -1,0 +1,33 @@
+module AVGTest
+
+// Before we hack the compiler we just simulate what the compiler should do, by using a mutable scala object directly
+// This example shows that our mutation evaluations are not executed as often, as we would hope
+class Avg {
+    val result: `scala.collection.mutable.Map[String, Double]` = `scala.collection.mutable.Map[String, Double](("value", 0.0), ("count", 0.0))`
+
+    def add(v: Int): Unit = {
+        `((e: scala.collection.mutable.Map[String, Double], v: Int) => e("value") = e("value") + v)`(this.result, v)
+        `((e: scala.collection.mutable.Map[String, Double], v: Int) => e("count") = e("count") + 1.0)`(this.result, v)
+        //`((e: scala.collection.mutable.Map[String, Double]) => e("count") = e("count") + 1.0)`(this.result)
+    }
+
+    def get(): Double = {
+        val e: `scala.collection.mutable.Map[String, Double]` = this.result
+        val count: Double = `((e: scala.collection.mutable.Map[String, Double]) => e("count"))`(e)
+        val sum: Double = `((e: scala.collection.mutable.Map[String, Double]) => e("value"))`(e)
+        sum / count
+    }
+}
+
+class Example {
+    @main
+    def main(): Double = {
+        var avg: Avg = new Avg()
+        avg.add(1)
+        avg.add(1)
+        avg.add(2)
+        val res: Double = avg.get()
+        //avg += 2
+        res
+    }
+}

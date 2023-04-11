@@ -4,7 +4,7 @@ class Exp {
     // abstract
     def accept(v: Visitor): Unit = { }
 
-    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
+    def aevalConst(p: ValueProvider): MConstant = {
         new NoConstant()
     }
 }
@@ -16,8 +16,8 @@ class Var(val name: String) extends Exp {
     }
 
     @override
-    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
-        m.get(this.name).result
+    def aevalConst(p: ValueProvider): MConstant = {
+        p.get(this.name)
     }
 }
 
@@ -28,7 +28,7 @@ class Num(val num: Int) extends Exp {
     }
 
     @override
-    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
+    def aevalConst(p: ValueProvider): MConstant = {
         new SomeConstant(this.num)
     }
 }
@@ -44,8 +44,8 @@ class BinOp(val left: Exp, val right: Exp) extends Exp {
     def binOpAccept(v: Visitor): Unit = { }
 
     @override
-    def aevalConst(m: MonoMap[String, MConstantMonotone]): MConstant = {
-        this.binOpConst(this.left.aevalConst(m), this.right.aevalConst(m))
+    def aevalConst(p: ValueProvider): MConstant = {
+        this.binOpConst(this.left.aevalConst(p), this.right.aevalConst(p))
     }
     // abstract
     def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
@@ -236,8 +236,21 @@ class Visitor {
     def visitVarDef(s: VarDef): Unit = { }
 }
 
-case class MConstant {
-    def join(that: MConstant): MConstant = {
+case class MConstant extends BalancedMonotone[MConstant, MConstant] {
+
+    def init(): MConstant = {
+        new NoConstant()
+    }
+
+    def join(c1: MConstant, c2: MConstant): MConstant = {
+        c1.joined(c2)
+    }
+
+    def lift(v: MConstant): MConstant = {
+        v
+    }
+
+    def joined(that: MConstant): MConstant = {
         this
     }
 
@@ -270,7 +283,7 @@ case class NoConstant extends MConstant {
 
 case class SomeConstant(val num: Int) extends MConstant {
     @override
-    def join(that: MConstant): MConstant = {
+    def joined(that: MConstant): MConstant = {
         if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
             this
         } else {
@@ -323,115 +336,39 @@ case class SomeConstant(val num: Int) extends MConstant {
     }
 }
 
-
-class MConstantMonotone extends BalancedMonotone[MConstant, MConstant] {
-    def init(): MConstant = {
+class ValueProvider extends Visitor {
+    def get(s: String): MConstant = {
         new NoConstant()
     }
-
-    def join(c1: MConstant, c2: MConstant): MConstant = {
-        c1.join(c2)
-    }
-
-    def lift(v: MConstant): MConstant = {
-        v
-    }
 }
 
-class FIConstantPropagationVisitor extends Visitor {
+class FIConstantPropagationVisitor extends ValueProvider {
     /** The Map type separates keys from aggregated values */
-    val vars: MonoMap[String, MConstantMonotone] = new MonoMap[String, MConstantMonotone]()
+    val vars: MonoMap[String, MConstant] = new MonoMap[String, MConstant]()
+
+    @override
+    def get(s: String): MConstant = {
+        this.vars.get(s) // this aggregates automatically
+    }
 
     @override
     def visitValDef(s: ValDef): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 
     @override
     def visitVarDef(s: VarDef): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 
     @override
     def visitAssign(s: Assign): Unit = {
-        this.vars.get(s.name) += s.rhs.aevalConst(this.vars)
+        this.vars += (s.name, s.rhs.aevalConst(this))
         return
     }
 }
-
-/*class FSConstantPropagationVisitor extends Visitor {
-    val varsAfter: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
-    val varsBefore: MonoMap[Stm, MonoMap[String, MConstantMonotone]] = new MonoMap[Stm, MonoMap[String, MConstantMonotone]]()
-
-    // we can not assign a complete inner map currently... so this is a workaround
-    def assignVarsAfter(s: Stm, n: String, v: MConstant): Unit = {
-        this.varsAfter.get(s).get(n) += v
-        return
-    }
-
-    def assignVarsBefore(s: Stm, n: String, v: MConstant): Unit = {
-        this.varsBefore.get(s).get(n) += v
-        return
-    }
-
-    @override
-    def visitValDef(s: ValDef): Unit = {
-        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
-        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
-        return
-    }
-
-    @override
-    def visitVarDef(s: VarDef): Unit = {
-        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
-        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
-        return
-    }
-
-    @override
-    def visitAssign(s: Assign): Unit = {
-        this.varsAfter.get(s).get(s.name) += s.rhs.aevalConst(this.varsBefore.get(s))
-        for (n <- this.varsBefore.get(s).keys() if n != s.name) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
-        return
-    }
-
-    @override
-    def visitSkip(s: Skip): Unit = {
-        for (n <- this.varsBefore.get(s).keys()) yield this.assignVarsAfter(s, n, this.varsBefore.get(s).get(n).get())
-        return
-    }
-
-    @override
-    def visitSequence(s: Sequence): Unit = {
-        // data flow s.s2.first() <- s.s1.last()
-        for (n <- this.varsAfter.get(s.s1.last()).keys()) yield this.assignVarsBefore(s.s2.first(), n, this.varsAfter.get(s.s1.last()).get(n).get())
-        return
-    }
-
-    @override
-    def visitIf(s: If): Unit = {
-        // data flow s.thn.first() <- s
-        // data flow s.els.first() <- s
-        for (n1 <- this.varsBefore.get(s).keys()) yield this.assignVarsBefore(s.thn.first(), n1, this.varsBefore.get(s).get(n1).get())
-        for (n2 <- this.varsBefore.get(s).keys()) yield this.assignVarsBefore(s.els.first(), n2, this.varsBefore.get(s).get(n2).get())
-        for (n3 <- this.varsBefore.get(s.thn.last()).keys()) yield this.assignVarsAfter(s.thn.last(), n3, this.varsBefore.get(s.thn.last()).get(n3).get())
-        for (n4 <- this.varsBefore.get(s.els.last()).keys()) yield this.assignVarsAfter(s.els.last(), n4, this.varsBefore.get(s.els.last()).get(n4).get())
-        return
-    }
-
-    @override
-    def visitWhile(s: While): Unit = {
-        // data flow s.body.first() <- s
-        // data flow s <- s.body.last()
-        for (n1 <- this.varsBefore.get(s).keys()) yield this.assignVarsAfter(s, n1, this.varsBefore.get(s).get(n1).get())
-        for (n2 <- this.varsAfter.get(s).keys()) yield this.assignVarsBefore(s.body.first(), n2, this.varsAfter.get(s).get(n2).get())
-        for (n3 <- this.varsAfter.get(s.body.last()).keys()) yield this.assignVarsBefore(s, n3, this.varsAfter.get(s.body.last()).get(n3).get())
-        return
-    }
-}*/
-
 
 class Examples {
     val factorial: Stm =
@@ -458,22 +395,8 @@ class ConstantPropagation {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
         examples.factorial.accept(constantProp)
-        // This would be correct if it weren't for the bug, where we need to aggregate a second time
-        for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).result.stringValue())
+        // By using result directly we force the aggregation to appear here. Somehow this fixes the double
+        // aggregation error.
+        for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).stringValue())
     }
 }
-
-/*class AdvancedConstantPropagation {
-    @main
-    def factorial(): Set[(String, String, String, String)] = {
-        val constantProp: FSConstantPropagationVisitor = new FSConstantPropagationVisitor()
-        val examples: Examples = new Examples()
-        examples.factorial.accept(constantProp)
-
-        (for (k <- constantProp.varsBefore.keys(); k2 <- constantProp.varsBefore.get(k).keys())
-            yield ("Before", k.stringValue(), k2, constantProp.varsBefore.get(k).get(k2).get().stringValue()))
-        ++
-        (for (k3 <- constantProp.varsAfter.keys(); k4 <- constantProp.varsAfter.get(k3).keys())
-            yield ("After", k3.stringValue(), k4, constantProp.varsAfter.get(k3).get(k4).get().stringValue()))
-    }
-}*/

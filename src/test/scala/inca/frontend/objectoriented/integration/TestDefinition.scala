@@ -347,6 +347,12 @@ object TestDefinition {
     //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
   }
 
+  def primitiveMonotone: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/monotone")
+    TestDefinition("PrimitiveMonotone", "Example", "main", Seq(), SetResult())
+    //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
+  }
+
   def noDemandTest: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("NoDemand", "A", "main", Seq(), 3)

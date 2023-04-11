@@ -14,8 +14,7 @@ object InsertBuiltInMonotones {
 }
 
 /**
- * This class adds missing definitions, such as an empty constructor definition or an implicit return statement to the
- * module. This should be executed before we attempt to typecheck a module.
+ * Just to satisfy the typechecker...
  */
 class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   var buildInMonotones: Map[String, ClassDef] = Map()
@@ -37,7 +36,6 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
 
   private def createBuildInMonotone(name: Name, tyParams: Seq[Type]): TClass = {
     val clsName = monomorphClassName(name.raw, tyParams)
-    println("Create Monotone: ", clsName)
 
     var monoCls = buildInMonotones.get(clsName)
 
@@ -57,6 +55,9 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
           MethodDef(Nil, None, Name("keys"), Seq(), TSet(tys.head), Seq(
             // We implement this in GenerateDatalog
             ReturnStmt(SetExpr(Seq(), tty = Some(tys.head)))
+          )),
+          MethodDef(Nil, None, Name("__plus__"), Seq(Param(Name("kv"), TTuple(tys))), TUnit, Seq(
+            // We implement this in GenerateDatalog
           ))/*,
           MethodDef(Nil, None, Name("values"), Seq(), TSet(tys.last), Seq(
             SetComprehension(Seq(

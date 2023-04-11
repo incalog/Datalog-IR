@@ -15,6 +15,7 @@ object TypeHelper {
       .replaceAll("""Double\(.*\)""", "Double")
       .replaceAll("""Long\(.*\)""", "Long")
       .replaceAll("""Boolean\(.*\)""", "Boolean")
+      .replaceAll("""Null\(.*\)""", "Null")
     import meta.parsers._
     val metaTyp = typStrCleaned.parse[meta.Type].get
     decode(metaTyp)

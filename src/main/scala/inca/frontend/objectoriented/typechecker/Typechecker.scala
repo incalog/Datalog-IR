@@ -421,7 +421,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(target).asSet match {
         case Some(TSet(ty)) =>
           bindVar(name, setMember, ty, immutable = true)
-          println("Bind Variable: ", name, setMember)
           if (predicate.isDefined) {
             assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
           }
