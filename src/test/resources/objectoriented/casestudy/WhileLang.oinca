@@ -246,6 +246,7 @@ case class MConstant extends BalancedMonotone[MConstant, MConstant] {
         c1.joined(c2)
     }
 
+    // The current hack ignores the lift
     def lift(v: MConstant): MConstant = {
         v
     }

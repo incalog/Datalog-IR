@@ -306,26 +306,64 @@ class Visitor {
   def visitVarDef(s: VarDef): Unit = { }
 }
 
+class MonoSet extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Set[(Any, Any)]`] {
+    def init(): `scala.collection.immutable.Set[(Any, Any)]` = {
+        `scala.collection.immutable.Set[(Any, Any)]`()
+    }
+
+    def join(m1: `scala.collection.immutable.Set[(Any, Any)]`, m2: `scala.collection.immutable.Set[(Any, Any)]`): `scala.collection.immutable.Set[(Any, Any)]` = {
+        m1 ++ m2
+    }
+
+    def lift(element: (Any, Any)): `scala.collection.immutable.Set[(Any, Any)]` = {
+        `scala.collection.immutable.Set[(Any, Any)]`(`Tuple2.apply`(element._1, element._2))
+    }
+
+    def get(): `scala.collection.immutable.Set[(Any, Any)]` = {
+        this.result
+    }
+}
+
+
 class CfgVisitor extends Visitor {
   // TODO empty set not currently allowed here
-  var cfg: Set[(Stm, Stm)] = Set((new Skip(), new Skip()))
+  var cfg: MonoSet = new MonoSet()
+
+  def cfgSet(): Set[(Stm, Stm)] = {
+    val set: `scala.collection.immutable.Set[(Any, Any)]` = this.cfg.get()
+    val list: `scala.collection.immutable.Vector[(Any, Any)]` = set.`toVector`
+    this.cfgSetIter(list, 0)
+  }
+
+  def cfgSetIter(list: `scala.collection.immutable.Vector[(Any, Any)]`, ix: Int): Set[(Stm, Stm)] = {
+    val e: `(Any, Any)` = list.`apply`(ix)
+    val s1: Stm = e.`productElement`(0).asInstanceOf[Stm]
+    val s2: Stm = e.`productElement`(1).asInstanceOf[Stm]
+    if (ix == list.`size` - 1) {
+      Set((s1, s2))
+    } else {
+      Set((s1, s2)) ++ this.cfgSetIter(list, ix + 1)
+    }
+  }
 
   @override
   def visitSequence(s: Sequence): Unit = {
     val from: Stm = s.s1.last()
     val to: Stm = s.s2.first()
 
-    this.cfg = this.cfg ++ Set((from,to))
+    this.cfg += (from,to)
   }
 
   @override
   def visitIf(s: If): Unit = {
-    this.cfg = this.cfg ++ Set((s,s.thn.first()), (s,s.els.first()))
+    this.cfg += (s,s.thn.first())
+    this.cfg += (s,s.els.first())
   }
 
   @override
   def visitWhile(s: While): Unit = {
-    this.cfg = this.cfg ++ Set((s, s.body.first()), (s.body.last(), s))
+    this.cfg += (s, s.body.first())
+    this.cfg += (s.body.last(), s)
   }
 }
 
@@ -348,6 +386,6 @@ class Examples {
     val visitor: CfgVisitor = new CfgVisitor()
     val examples: Examples = new Examples()
     examples.factorial.accept(visitor)
-    for (c <- visitor.cfg) yield (c._1.getString(), c._2.getString())
+    for (c <- visitor.cfgSet()) yield (c._1.getString(), c._2.getString())
   }
 }

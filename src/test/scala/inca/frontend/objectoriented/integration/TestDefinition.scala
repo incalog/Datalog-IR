@@ -330,7 +330,7 @@ object TestDefinition {
   def cfgVisitorTest: TestDefinition[SetResult[Any]] = {
     val expectedRes = SetResult(
       TupleResult("VarDef", "While"), TupleResult("Assign", "While"), TupleResult("While", "Assign"),
-      TupleResult("VarDef", "VarDef"), TupleResult("Skip", "Skip"), TupleResult("Assign", "Assign")
+      TupleResult("VarDef", "VarDef"), TupleResult("Assign", "Assign") // TupleResult("Skip", "Skip")
     )
 
     implicit val subdir: Option[String] = Some("casestudy")
