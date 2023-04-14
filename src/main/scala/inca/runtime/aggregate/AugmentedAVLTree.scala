@@ -18,7 +18,10 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
         node.lhs = newLhs
       } else if (res == 0) {
         node.count += 1
-        node.computedValue = op(node.computedValue, node.value)
+        node.recompute()
+        // FIXME: This reformulation prevent the aggregation from working correctly.
+        //  See FoldIntProjected for an example that fails
+        //node.computedValue = op(node.computedValue, node.value)
         // no rotations needed
         return node
       } else {

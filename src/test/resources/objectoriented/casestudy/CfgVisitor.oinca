@@ -133,8 +133,8 @@ class Stm {
   def first(): Stm = {
     this
   }
-  def last(): Stm = {
-    this
+  def last(): Set[Stm] = {
+    Set(this)
   }
 
   def getString(): String = {
@@ -194,7 +194,7 @@ class Sequence extends Stm {
   }
 
   @override
-  def last(): Stm = {
+  def last(): Set[Stm] = {
     this.s2.last()
   }
 
@@ -219,6 +219,11 @@ class If extends Stm {
     this.thn.accept(v)
     this.els.accept(v)
     v.visitIf(this)
+  }
+
+  @override
+  def last(): Set[Stm] = {
+    this.thn.last() ++ this.els.last()
   }
 
   @override
@@ -326,7 +331,6 @@ class MonoSet extends BalancedMonotone[(Any, Any), `scala.collection.immutable.S
 
 
 class CfgVisitor extends Visitor {
-  // TODO empty set not currently allowed here
   var cfg: MonoSet = new MonoSet()
 
   def cfgSet(): Set[(Stm, Stm)] = {
@@ -346,12 +350,16 @@ class CfgVisitor extends Visitor {
     }
   }
 
+  def addPath(from: Stm, to: Stm): Unit = {
+    this.cfg += (from,to)
+  }
+
   @override
   def visitSequence(s: Sequence): Unit = {
-    val from: Stm = s.s1.last()
     val to: Stm = s.s2.first()
-
-    this.cfg += (from,to)
+    for (from <- s.s1.last())
+        yield this.addPath(from, to)
+    return
   }
 
   @override
@@ -363,7 +371,9 @@ class CfgVisitor extends Visitor {
   @override
   def visitWhile(s: While): Unit = {
     this.cfg += (s, s.body.first())
-    this.cfg += (s.body.last(), s)
+    for (from <- s.body.last())
+        yield this.addPath(from, s)
+    return
   }
 }
 
