@@ -4,6 +4,7 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.ResolveResult;
 import com.intellij.psi.util.PsiTreeUtil;
 import language.FunIncAReference;
@@ -147,7 +148,7 @@ public class FunIncATypechecker {
             FunIncASetMemberExp setMemberExp = PsiTreeUtil.getParentOfType(varRef, FunIncASetMemberExp.class);
             FunIncAExp exp = setMemberExp.getExpList().get(0);
             FunIncAExp set = setMemberExp.getExpList().get(1);
-            if (varRef.getName().equals(set.getText())) { // breaks loop in case the set variable has the same name as varRef
+            if (varRef.getName().equals(set.getText())) { // breaks infinite loop in case the set variable has the same name as varRef
                 holder.newAnnotation(HighlightSeverity.ERROR,
                         "Unresolved name")
                         .range(varRef)
@@ -189,6 +190,26 @@ public class FunIncATypechecker {
             }
             int index = pattern.getPatternVarDefList().indexOf(patternVarDef);
             List<FunIncAType> typeList = constructorDef.getTypeList();
+            List<FunIncATypeVarDef> typeVarDefList = ((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList();
+            if (typeVarDefList != null) { // if data def has parametric types
+                FunIncAMatchExp matchExp = PsiTreeUtil.getParentOfType(patternVarDef, FunIncAMatchExp.class);
+                Type matcheeType = typecheckExp(matchExp.getExp(), holder);
+                if (matcheeType instanceof ConstructorType) {
+                    Type patternVarType = PsiToTypeConverter.convert(typeList.get(index));
+                    Map<String, Type> substMap = new HashMap<>();
+                    int i = 0;
+                    for (FunIncATypeVarDef typeVarDef : typeVarDefList) {
+                        String name = typeVarDef.getName();
+                        if (i < ((ConstructorType) matcheeType).getTypes().size()) {
+                            substMap.put(name, ((ConstructorType) matcheeType).getTypes().get(i));
+                            i++;
+                        } else {
+                            substMap.put(name, new AnyType());
+                        }
+                    }
+                    return FunIncATypeUtil.substitute(patternVarType, substMap);
+                } // if matcheeType not a ConstructorType, returning the parametric type is just fine, so continue just as normal
+            }
             if (typeList.size() > index) {
                 return PsiToTypeConverter.convert(typeList.get(index));
             } else {
@@ -457,11 +478,11 @@ public class FunIncATypechecker {
                         .create();
                 return new AnyType();
             }
-            Type funExpType = typecheckExp(funExp, holder); // TODO handle parametric types, replace ocurring prametrictypes
+            Type funExpType = typecheckExp(funExp, holder);
             if (funExpType instanceof FunType && !((FunType) funExpType).typeVars.isEmpty()) {
                 FunType funType = (FunType) funExpType;
                 List<FunIncAType> concreteTypes = callExp.getTypeList();
-                Map<String, Type> subst = new HashMap<>();
+                Map<String, Type> substMap = new HashMap<>();
                 if (funType.typeVars.size() != concreteTypes.size())
                     holder.newAnnotation(HighlightSeverity.ERROR,
                             "Function " + funExp.getText() + " expects " + funType.typeVars.size() + " type " +
@@ -473,14 +494,14 @@ public class FunIncATypechecker {
                     if (type instanceof ParametricType) {
                         String name = ((ParametricType) type).name;
                         if (i < concreteTypes.size()) {
-                            subst.put(name, PsiToTypeConverter.convert(concreteTypes.get(i)));
+                            substMap.put(name, PsiToTypeConverter.convert(concreteTypes.get(i)));
                             i++;
                         } else {
-                            subst.put(name, new AnyType());
+                            substMap.put(name, new AnyType());
                         }
                     }
                 }
-                FunIncATypeUtil.substitute(funExpType, subst);
+                FunIncATypeUtil.substitute(funExpType, substMap);
             }
             Type returnType = funExpType;
             int n = callExp.getCallExpListList().size(); // n holds the number of function calls
@@ -564,9 +585,15 @@ public class FunIncATypechecker {
                     return typecheckTypeNameMatch(exp, cases, dataDef, holder);
                 }
             } else if (matcheeType instanceof ConstructorType) { // TODO constructorType match
-//                PsiElement constrName = PsiTreeUtil.findChildOfType(matchee, FuncIncaVar.class);
-//                if (constrName.getReference() != null)
-//                    return typecheckConstructorMatch(exp, cases, constrName.getReference().resolve(), matcheeType, holder);
+                ConstructorType constructorType = (ConstructorType) matcheeType;
+                String dataName = constructorType.getName();
+                PsiFile file = matchee.getContainingFile();
+                Collection<FunIncADataDef> dataDefs = PsiTreeUtil.findChildrenOfType(file, FunIncADataDef.class);
+                for (FunIncADataDef dataDef : dataDefs) {
+                    if (dataName.equals(dataDef.getName())) {
+                        return typecheckConstructorMatch(exp, cases, dataDef, constructorType, holder);
+                    }
+                }
 
             } else {
                 holder.newAnnotation(HighlightSeverity.ERROR,
@@ -887,97 +914,91 @@ public class FunIncATypechecker {
     private static Type typecheckConstructorMatch(PsiElement exp,
                                                   List<FunIncAMatchCase> cases,
                                                   FunIncADataDef dataDef,
+                                                  ConstructorType constructorType,
                                                   AnnotationHolder holder) {
-        return new AnyType();
+        Set<String> seenConstructors = new HashSet<>();
+        Map<String, Type> availableConstructors = new HashMap<>();
+        for (FunIncADataConstructorDef cons : dataDef.getDataConstructorDefList())
+            availableConstructors.put(cons.getName(), typeOfVarDef(cons, holder));
+
+        // build the substitution map
+        Map<String, Type> substMap = new HashMap<>();
+        int i = 0; // index for assigning types in the substitution map
+        for (Type type : PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList())) {
+            if (type instanceof ParametricType) {
+                String name = ((ParametricType) type).name;
+                if (i < constructorType.getTypes().size()) { // TODO ist es richtig hier die typen von constructor type zu nehmen, oder lieber die von pattern
+                    substMap.put(name, constructorType.getTypes().get(i));
+                    i++;
+                } else {
+                    substMap.put(name, new AnyType());
+                }
+            }
+        }
+
+        // substitute the parametric types in the constructors with substitution map
+        Map<String, Type> substConstructors = new HashMap<>();
+        for (Map.Entry<String, Type> cons : availableConstructors.entrySet()) {
+            substConstructors.put(cons.getKey(), FunIncATypeUtil.substitute(cons.getValue(), substMap));
+        }
+
+        List<Type> caseTypes = new ArrayList<>();
+        for (FunIncAMatchCase matchCase : cases) {
+            PsiElement pat;
+            try {
+                pat = matchCase.getPat().getFirstChild();
+            } catch (NullPointerException e) {
+                caseTypes.add(new AnyType());
+                continue;
+            }
+            FunIncAExp e = matchCase.getExp();
+            if (pat instanceof FunIncAConstructorPat) {
+                FunIncAConstructorPat constructorPat = (FunIncAConstructorPat) pat;
+                String constructorName = constructorPat.getConstructorRef().getText();
+                if (!seenConstructors.add(constructorName)) // this constructor was already used in a match case
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Duplicate constructor pattern " + constructorName)
+                            .range(constructorPat.getConstructorRef())
+                            .create();
+                if (availableConstructors.get(constructorName) != null) { // seen constructor is available
+                    // TODO Problem: function call möchte typ von x,rest wissen. typeOfVar schaut in constructordef nach, da steht A,List[A]
+                    FunType constructorDef = (FunType) availableConstructors.get(constructorName);
+                    if (constructorDef.paramTypes.size() != constructorPat.getPatternVarDefList().size()) // number of parameters does not match
+                        holder.newAnnotation(HighlightSeverity.ERROR,
+                                        "Wrong number of constructor arguments, expected " +
+                                                constructorDef.paramTypes.size() + " but got " +
+                                                constructorPat.getPatternVarDefList().size())
+                                .range(constructorPat)
+                                .create();
+                    caseTypes.add(typecheckExp(e, holder));
+                } else { // seen constructor is not available
+                    holder.newAnnotation(HighlightSeverity.ERROR,
+                                    "Cannot match pattern " + pat.getText() +
+                                            " against matchee of type " + dataDef.getName())
+                            .range(constructorPat.getConstructorRef())
+                            .create();
+                    caseTypes.add(typecheckExp(e, holder));
+                }
+            } else { // pattern is not instance of FuncIncaConstructorPattern
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                "Cannot match pattern " + pat.getText() +
+                                        " against matchee of type " + dataDef.getName())
+                        .range(pat)
+                        .create();
+                caseTypes.add(typecheckExp(e, holder));
+            }
+        }
+        // checks for missing constructors
+        Set<String> missingConstructors = availableConstructors.keySet();
+        missingConstructors.removeAll(seenConstructors);
+        if (!missingConstructors.isEmpty())
+            holder.newAnnotation(HighlightSeverity.ERROR,
+                            "Pattern must be complete but missed the following constructors: " + missingConstructors)
+                .range(exp)
+                .create();
+
+        return FunIncATypeUtil.join(caseTypes);
     }
-//    private static FuncIncaType typecheckConstructorMatch(PsiElement exp, // matchee is a FuncIncaConstructorType
-//                                                          List<FunIncAMatchCase> cases,
-//                                                          PsiElement consName, // definition of this TypeConstructor matchee
-//                                                          FuncIncaType matcheeType, // seperate, bc types do not reference their definition
-//                                                          AnnotationHolder holder) {
-//        PsiElement data = consName;
-//        Map<String, DataConstructor> seenConstr = new HashMap<>();
-//        Map<String, DataConstructor> availableConstr = new HashMap<>();
-//        Map<String, FuncIncaType> subst = new HashMap<>(); // maps name of parameterized type to the currently used type
-//
-//        for (int i = 0; i < ((FuncIncaConstructorType) matcheeType).getTypes().size(); i++) {
-//            FuncIncaType ty = ((FuncIncaConstructorType) matcheeType).getTypes().get(i);
-//            String param = ((FunIncADataDef) consName).getTypeVarDefList().get(i).getId().getText();
-//            subst.put(param, ty);
-//        }
-//
-//        for (FuncIncaDataConstructor c : ((FuncIncaDataDef) data).getDataConstructorList()) {
-//            List<FuncIncaType> tyVars = new ArrayList<>();
-//            for (FuncIncaTypeVariable paramTy : c.getTypeVariables().getTypeVariableList())
-//                tyVars.add(subst.get(paramTy.getText()));
-//            availableConstr.put(c.getId().getText(),
-//                    new DataConstructor(c.getId().getText(),
-//                            tyVars,
-//                            FuncIncaTypeUtil.psiToFuncIncaType(c.getTypeAnnotationList())));
-//        }
-//
-//        List<FuncIncaType> caseTypes = new ArrayList<>();
-//        for (FuncIncaMatchCase matchCase : cases) {
-//            FuncIncaPattern pattern = matchCase.getPattern();
-//            PsiElement e = matchCase.getExp();
-//            if (pattern instanceof FuncIncaConstructorPattern) {
-//                int params = ((FuncIncaConstructorPattern) pattern).getConsPatternIdList().size(); // number of parameters in patternmatch
-//                FuncIncaConsId consId = ((FuncIncaConstructorPattern) pattern).getConsId();
-//                if (seenConstr.containsKey(consId.getText()))
-//                    holder.newAnnotation(HighlightSeverity.ERROR, "Duplicate constructor pattern " + consId).
-//                            range(consId.getTextRange()).create();
-//                else
-//                    seenConstr.put(consId.getText(), new DataConstructor(consId.getText(),
-//                            FuncIncaTypeUtil.typeVariablesToFuncIncaType(((FuncIncaConstructorPattern) pattern).getTypeVariables().getTypeVariableList()),
-//                            Collections.nCopies(params, new FuncIncaAnyType())));
-//
-//                // TODO line 466
-//                for (Map.Entry<String, DataConstructor> ac : availableConstr.entrySet()) {
-//                    if (seenConstr.containsKey(ac.getKey())) {
-//                        if (params != ac.getValue().getTypes().size())
-//                            holder.newAnnotation(HighlightSeverity.ERROR,
-//                                    "Wrong number of constructor aruments, expected " + ac.getValue().getTypes().size()
-//                            + " but got " + params).range(pattern).create();
-//                        // TODO scopedTypeContext {
-//                        //              vars.zipAll(paramTypes, null, null).foreach {
-//                        //                case (null, ty) => // nothing
-//                        //                case (v, null) => bindVar(v.name, pat, TAny)
-//                        //                case (v, ty) => bindVar(v.name, pat, ty)
-//                        //              }
-//                        //              typecheck(e)
-//                        //            }
-//                        caseTypes.add(typecheck(e, holder));
-//                    } else {
-//                        holder.newAnnotation(HighlightSeverity.ERROR,
-//                                "Cannot match constructor " + consId + " against matchee of type " + matcheeType)
-//                                .range(pattern)
-//                                .create();
-//                        // TODO scopedTypeContext {
-//                        //              vars.foreach(v => bindVar(v.name, pat, TAny))
-//                        //              typecheck(e)
-//                        //            }
-//                    }
-//                }
-//            } else { // pattern is not instance of FuncIncaConstructorPattern
-//                holder.newAnnotation(HighlightSeverity.ERROR, "Cannot match pattern " + pattern
-//                        + " against type " + consName).range(pattern).create();
-//                // TODO scopedTypeContext {
-//                //          val dummy = ConstructorPattern(Name("?"), Seq())
-//                //          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
-//                //          typecheck(e)
-//                //        }
-//                caseTypes.add(typecheck(e, holder));
-//            }
-//        }
-//        Set<String> missingCons = new HashSet<>();
-//        for (Map.Entry<String, DataConstructor> ac : availableConstr.entrySet())
-//            if (!seenConstr.containsKey(ac.getKey()))
-//                missingCons.add(ac.getKey());
-//        holder.newAnnotation(HighlightSeverity.ERROR,
-//                        "Pattern must be complete but missed the following constructors: " + missingCons)
-//                .range(exp).create();
-//        return join(caseTypes);
-//    }
 
     private static Type checkBinArithmeticOp(Type lhs, Type rhs, String op, PsiElement exp, AnnotationHolder holder) {
         if (lhs.isIntType()) {
