@@ -148,7 +148,7 @@ public class FunIncATypechecker {
             FunIncASetMemberExp setMemberExp = PsiTreeUtil.getParentOfType(varRef, FunIncASetMemberExp.class);
             FunIncAExp exp = setMemberExp.getExpList().get(0);
             FunIncAExp set = setMemberExp.getExpList().get(1);
-            if (varRef.getName().equals(set.getText())) { // breaks infinite loop in case the set variable has the same name as varRef
+            if (varRef.getName().equals(set.getText())) { // breaks infinite loop in case the set variable has the same name as the element varRef
                 holder.newAnnotation(HighlightSeverity.ERROR,
                         "Unresolved name")
                         .range(varRef)
@@ -342,11 +342,17 @@ public class FunIncATypechecker {
             FunIncAReference reference = (FunIncAReference) varExp.getReference();
             ResolveResult[] result = reference.multiResolve(true); // beginning of loop
             if (result.length == 0) {
-                if ((PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class) != null) &&
-                        (PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class) != null) &&
-                        (PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class) == null)) {
+                FunIncASetMemberExp setMemberParent = PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class);
+                FunIncASetComprehensionExp setComprehensionParent =
+                        PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class);
+                boolean isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false);
+                FunIncACallExp callParent = PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class);
+                if ((setMemberParent != null) &&
+                        (setComprehensionParent != null) &&
+                        (callParent == null) &&
+                        isDefinition) {
                     // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
-                    // and not a reference, except varExp it is a variable in a function call referencing a function
+                    // and not a reference, except varExp it is a variable in a function call
                     return typeOfVarDef(varExp, holder);
                 } else {
                     holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved name " + varExp.getName())

@@ -59,12 +59,24 @@ public class FunIncAUtil {
             for (PsiNamedElement namedElement : namedElements) {
                 if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FunIncAVarRefExp) {
-                        if (PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class) == setParent &&
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class) != null) {
-                            // TODO varRefs in einem function call ausschließen { .. | .. in { s | s in s() }}
+                        FunIncASetComprehensionExp namedElementSetCompParent =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class);
+                        FunIncASetMemberExp namedElementSetMemberParent =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class);
+                        FunIncACallExp namedElementCallParent =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncACallExp.class);
+                        boolean isDefinition = false;// namedElement is only considered a definition if it is within a SetMemberExp within a SetComprehensionExp
+                        if (namedElementSetCompParent != null && namedElementSetMemberParent != null)
+                            isDefinition = PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementSetMemberParent, false);
+                        boolean isPartOfCallExp = false; // excludes VarRefExp in CallExp within nested set comprehensions from being considered definitions
+                        if (namedElementCallParent != null)
+                            isPartOfCallExp = PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementCallParent, false);
+                        if (namedElementSetCompParent == setParent
+                                && namedElementSetMemberParent != null
+                                && isDefinition
+                                && !isPartOfCallExp) {
                             // declarations with FuncIncaVar in predicates can only be member-expressions
                             resCandidates.add(namedElement);
-                            // TODO named element set comprehension is ancestor to setParent bc bei verschachtelten setcompr können innere auf äußere zugreifen (if setparent != this separent)
                         }
                     }
                     if (namedElement instanceof FunIncADecl) { // every other possible variable definition
@@ -100,8 +112,9 @@ public class FunIncAUtil {
             }
 
             if (resCandidates.size() > 0) { // there may be two or more declarations of e or declarations inside
-                // the set-comprehension-expression
-                // the ones outside the set comprehension shadow declarations in the set-comprehension-exp
+                // the set-comprehension-expression.
+                // the definitions outside the set comprehension shadow declarations in the set-comprehension-exp.
+                // outside of SetCompExp only FunIncADecl can be valid definitions
                 for (PsiNamedElement candidate : resCandidates) {
                     if (candidate instanceof FunIncADecl) {
                         res.add(candidate);
@@ -115,7 +128,7 @@ public class FunIncAUtil {
                     // element, since the variable n2 is first introduced in "(n2,n3) in set1" and n2 in "(n1,n2)"
                     // references the first n2.
                     PsiNamedElement firstDef = resCandidates.get(0);
-                    if (PsiTreeUtil.isAncestor(setParent.getExpList().get(0), firstDef, false)) { // TODO WHATTTT
+                    if (PsiTreeUtil.isAncestor(setParent.getExpList().get(0), firstDef, false)) {
                         if (resCandidates.size() > 1) {
                             resCandidates.remove(0);
                             firstDef = resCandidates.get(0);
