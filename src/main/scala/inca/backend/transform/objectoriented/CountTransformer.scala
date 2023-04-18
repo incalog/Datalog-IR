@@ -278,9 +278,9 @@ abstract class CountTransformer(val rootPatternHint: String,
       val rootPats = pattern.filter(_.hasHint(rootPatternHint)).toSet
 
       if (leafPats.nonEmpty && rootPats.isEmpty)
-        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Missing root annotation!")
+        throw new IllegalArgumentException(s"Missing root annotation!")
       else if (rootPats.size > 1)
-        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Ambiguous root!")
+        throw new IllegalArgumentException(s"Ambiguous root!")
 
       if (leafPats.isEmpty)
         return pattern

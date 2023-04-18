@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.Computed
 import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
@@ -55,48 +56,25 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(tyOID))
 
+  private def createObject(className: String, typ: Type): (Datalog.Var, Computed) = {
+    val objVar = Datalog.Var(gensym.fresh("obj"))
+    val constrScalaFun = Term.Function(Nil, q"$oOID($className)")
+    val constrComp = Datalog.Computed(objVar, Datalog.Evaluation(
+      Seq(), transType(typ), Scala(constrScalaFun))
+    )
+    (objVar, constrComp.addHint(ObjectHints.AllocationInit))
+  }
+
+  private def createNullObject(): (Datalog.Var, Computed) = {
+    val objVar = Datalog.Var(gensym.fresh("null"))
+    val constrScalaFun = Term.Function(Nil, q"""$oOID("Null")""")
+    val constrComp = Datalog.Computed(objVar, Datalog.Evaluation(
+      Seq(), transDataType(TNull), Scala(constrScalaFun))
+    )
+    (objVar, constrComp)
+  }
+
   def transModule(): Datalog.Module = {
-    /*val main = Datalog.Pattern(None, "Main$main", Seq(Datalog.Param("y", Datalog.TScalaDouble)), Seq(
-      Datalog.Body(
-        Seq(
-          Datalog.Call("f", Seq(Datalog.DoubleConstant(2.0), Datalog.Var("y")))
-        )
-      )
-    )).addHint(MagicSetHints.Main(Seq()))
-
-    val f = Datalog.Pattern(None, "f", Seq(Datalog.Param("x", Datalog.TScalaDouble)), Seq(
-      Datalog.Body(Seq(
-        Datalog.Computed(Datalog.Var("tmp"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => 1.0/x"))),
-        Datalog.Eq(Datalog.True, Datalog.True),
-        Datalog.Call("f", Seq(Datalog.Var("tmp")))
-      )),
-      Datalog.Body(Seq(
-        Datalog.Eq(Datalog.True, Datalog.True),
-        Datalog.Computed(Datalog.Var("tmp"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => 1.0/x"))),
-      ))
-    ))
-
-    val f = Datalog.Pattern(None, "f", Seq(Datalog.Param("x", Datalog.TScalaDouble), Datalog.Param("y", Datalog.TScalaDouble)), Seq(
-      Datalog.Body(Seq(
-        Datalog.Computed(Datalog.False, Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaBoolean, Scala(q"(x: Double) => (x >= 10.0)"))),
-        Datalog.Computed(Datalog.Var("tmp2"), Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaDouble, Scala(q"(x: Double) => x+1.0"))),
-        Datalog.Call("f", Seq(Datalog.Var("tmp2"), Datalog.Var("y")))
-      )),
-      Datalog.Body(Seq(
-        Datalog.Computed(Datalog.True, Datalog.Evaluation(Seq(Datalog.Var("x") -> Datalog.TScalaDouble), Datalog.TScalaBoolean, Scala(q"(x: Double) => (x >= 10.0)"))),
-        Datalog.Eq(Datalog.Var("y"), Datalog.Var("x"))
-      ))
-    ))
-
-    val Module(name, imports, classes) = coreModule
-    return Datalog.Module(
-      name.raw,
-      imports.map(_.name.raw),
-      List(main, f),
-      Nil
-    )*/
-
-    // real code
     val Module(name, imports, classes) = coreModule
     val concreteClasses = classes.filter(c => !c.isAbstract && !c.isMonotoneMapClass)
 
@@ -122,19 +100,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       generatedScala.toList
     )
   }
-
-  /**
-   * Guard that ensures that an object of the class with the id specified in the var `this` exists.
-   * @param classDef the class to check for
-   * @param neg      negate the guard, that means no object with the id exists
-   * @return         Datalog.Call to check the existence
-   */
-  /*private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
-    val thisVar = Datalog.Var("this")
-    Datalog.Call(constructorPatName(classDef.name.raw), Seq(thisVar), neg = neg)
-      .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(Seq(false)))
-  }*/
 
   private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     /*
@@ -231,13 +196,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transNull(): Datalog.Pattern = gensym.scoped {
-    val outParam = Datalog.Param("this", transType(TNull))
-    val thisVar = Datalog.Var("this")
-    val constrScalaFun = Term.Function(Nil, q"""$oOID("Null")""")
-    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), transType(TNull), Scala(constrScalaFun)))
-
-    Datalog.Pattern(None, constructorPatName("Null"), Seq(outParam), Seq(
-      Datalog.Body(Seq(tmpCons))
+    Datalog.Pattern(None, constructorPatName("Null"), Seq(Datalog.Param("this", transType(TNull))), Seq(
+      Datalog.Body(Seq())
     ))
   }
 
@@ -469,10 +429,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Datalog.Call(patName, uriVar +: args)
     }
 
-    val allSetterCalls = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
-      comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet())
-    }
-
     val intOptionType = TScala(Scala(t"Option[Int]"))
     val (allocVar, allocComp) = readFieldComp("allocId", intOptionType, None)
 
@@ -494,6 +450,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       )
     )
 
+    // existing object was returned
     val genURIWithId = Datalog.Computed(
       uriVar,
       Datalog.Evaluation(
@@ -502,13 +459,18 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         Scala(q"""(allocId: Option[Int]) => $oOID(${className}, allocId.get)""")
       )
     )
-    // existing object was returned
-    val bodyWithId = Datalog.Body(
+    val allSetterCalls = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
+      comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet())
+    }
+    val bodyWithExistingObject = Datalog.Body(
       objIsNull(false) +: allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: allSetterCalls
     )
 
     // new object was created in scala
-    val bodyWithoutId = if (classDef.isCaseClass) {
+    val allSetterCallsWithFixedTimestamp = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
+      comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet(fixedTimestamp = Some(0)))
+    }
+    val bodyWithNewObject = if (classDef.isCaseClass) {
       val primaryConstr = classDef.constructors.find(_.isPrimary).getOrElse(
         throw new RuntimeException(s"Case class ${classDef.name} does not contain a primary constructor")
       )
@@ -524,29 +486,24 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: readFieldCalls :+ genURIWithoutId
       )
     } else {
-      val genURIWithoutId = Datalog.Call(constructorPatName(className), Seq(uriVar))
+      val (objVar, objComp) = createObject(className, classDef.typ)
+      val constrCall = Datalog.Call(constructorPatName(className), Seq(objVar))
+      val createObjectAtoms = Seq(objComp, constrCall, Datalog.Eq(uriVar, objVar))
       Datalog.Body(
-        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: allSetterCalls
+        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: (createObjectAtoms ++ allSetterCallsWithFixedTimestamp)
       )
     }
 
-
-    // object is null object
-    val genNullURI = Datalog.Call(constructorPatName("Null"), Seq(uriVar))
+    // object is null
+    val (nullVar, nullComp) = createNullObject()
+    val nullConstrCall = Datalog.Call(constructorPatName("Null"), Seq(nullVar))
     val bodyWithNull = Datalog.Body(
-      Seq(objIsNull(true) , genNullURI)
+      Seq(objIsNull(true), nullComp, nullConstrCall, Datalog.Eq(uriVar, nullVar))
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
-    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(classDef.name.raw), params, bodies)
-      //.addHint(MagicSetHints.NoInputRelation)
-
-    // TODO: Could be optimized by only using this key per body
-    if (classDef.isCaseClass)
-      constrUncoalescedPat
-    else
-      constrUncoalescedPat.addHint(ObjectHints.Allocation)
+    val bodies = Seq(bodyWithNull, bodyWithExistingObject, bodyWithNewObject)
+    Datalog.Pattern(None, uncoalescedPatName(classDef.name.raw), params, bodies)
   }
 
   private def transFieldInitBody(classDef: ClassDef): Seq[(Seq[Datalog.Term], Datalog.Body)] = {
@@ -710,14 +667,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val params = Seq(thisParam, Datalog.Param("hash", Datalog.TScalaInt))
       Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
     } else {
-      val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
-      val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
-        Seq(), transType(classDef.typ), Scala(constrScalaFun))
-      )
-      val body = Datalog.Body(Seq(constrComp.addHint(ObjectHints.AllocationInit)))
-      val params = Seq(thisParam)
-      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
-        .addHint(ObjectHints.Allocation)
+      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), Seq(thisParam), Seq())
+        //.addHint(ObjectHints.Allocation)
     }
   }
 
@@ -978,8 +929,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
+      val classDef = classRef.target.getOrElse(throw new IllegalArgumentException(s"Unresolved classRef ${classRef.name}"))
+
       // constructors are never implicitly inherited !
-      val constructedVar = Datalog.Var(gensym.fresh("new"))
+      val (constructedVar, constrComp) = createObject(classDef.name.raw, classDef.typ)
       val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
 
@@ -987,11 +940,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       // create single call constraint when no arguments are passed
       if (argRes.isEmpty)
-        return Seq((Seq(constructedVar), Seq(Datalog.Call(constrName, Seq(constructedVar)))))
+        return Seq((Seq(constructedVar), Seq(constrComp, Datalog.Call(constrName, Seq(constructedVar)))))
 
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
-        (Seq(constructedVar), argCons.flatten ++ Seq(Datalog.Call(constrName, constructedVar +: argTerms.flatten)))
+        (Seq(constructedVar), argCons.flatten ++ Seq(constrComp, Datalog.Call(constrName, constructedVar +: argTerms.flatten)))
       }
 
     case superExpr@SuperExpr(args) =>
@@ -1096,9 +1049,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
     case NullExpr() =>
-      val nullVar = Datalog.Var(gensym.fresh("null"))
+      val (nullVar, nullComp) = createNullObject()
       val nullConstrCall = Datalog.Call(constructorPatName("Null"), Seq(nullVar))
-      Seq((Seq(nullVar), Seq(nullConstrCall)))
+      Seq((Seq(nullVar), Seq(nullComp, nullConstrCall)))
 
     case TupleExpr(exps) =>
       if (exps.isEmpty)

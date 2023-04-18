@@ -4,7 +4,7 @@ import inca.backend.hints.Hint.Key
 
 object ObjectHints {
 
-  val AllocationKey = "OBJECT_ALLOCATION"
+  val AllocationConstructorKey = "OBJECT_ALLOCATION_CONSTRUCTOR"
   val AllocationInitKey = "OBJECT_ALLOCATION_INIT"
   val AllocationRootKey = "OBJECT_ALLOCATION_ROOT"
 
@@ -16,8 +16,8 @@ object ObjectHints {
   /**
    * The annotated pattern represents an object constructor
    */
-  object Allocation extends Hint {
-    override def key: Key = AllocationKey
+  object AllocationConstructor extends Hint {
+    override def key: Key = AllocationConstructorKey
   }
 
   /**
@@ -28,7 +28,7 @@ object ObjectHints {
   }
 
   /**
-   * Mark a Computed as initialization of the ObjectID.
+   * Mark a Computed as initialization of an ObjectID.
    */
   object AllocationInit extends Hint {
     override def key: Key = AllocationInitKey
