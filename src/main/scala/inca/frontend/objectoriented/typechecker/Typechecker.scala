@@ -580,9 +580,15 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def resolveSignatures[T <: Resolvable[Int]](callables: Seq[T]): Unit = {
+  def resolveSignatures[T <: Resolvable[Signature]](callables: Seq[T]): Unit = {
     // Get the signature of the top most implementation
-    val signature = if (callables.nonEmpty) callables.head.hashCode() else 0
+    val types = callables.headOption match {
+      case Some(MethodDef(_ , _, _, params, outType, _)) => params.map(_.typ) :+ outType
+      case Some(ConstructorDef(_, _, params, _)) => params.map(_.typ)
+      case None => Seq()
+    }
+
+    val signature = types.map(_.signature).mkString("$")
     callables.foreach(_.target = Some(signature))
   }
 }

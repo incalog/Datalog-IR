@@ -103,7 +103,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     /*
-     * Collect all methods implemented by a class. This function traverses all parent classes and stores
+     * Collect all methods transitively implemented by a class. This function traverses all parent classes and stores
      * a mapping func.name${hash} -> (classDef, methodDef) where classDef is the class itself or the parent class
      * where the method is last overwritten.
      */
@@ -278,6 +278,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val clsPattern = classDef.content.flatMap {
       case field: FieldDef => Seq(transField(classDef, field))
       case method: MethodDef => Seq(transMethod(classDef, method))
+      // TODO: Prevent recreating the default constructor
       case constructor: ConstructorDef =>
         Seq(
           transConstructor(classDef, constructor),

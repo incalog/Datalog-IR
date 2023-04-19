@@ -143,7 +143,8 @@ object FieldTransformation extends Transformation {
       gensym.register(CollectVars.transPattern(leafPat))
 
       // Do nothing for immutable fields
-      if (isImmutableField(leafPat)) return leafPat
+      if (isImmutableField(leafPat))
+        return leafPat
 
       /*if (leafPat.params.size != 2) {
         throw new IllegalArgumentException(s"Field pattern ${leafPat.name} requires exactly two parameters!")

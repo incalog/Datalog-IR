@@ -4,7 +4,7 @@ import inca.compiler.SourceLocation
 
 package object core {
   val TUnit: TTuple = TTuple(Seq.empty)
-  type Signature = Int
+  type Signature = String
 
   case class Name(raw: String) extends SourceLocation {
     override def toString: String = raw

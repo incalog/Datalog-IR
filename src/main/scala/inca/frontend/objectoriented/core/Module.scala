@@ -105,7 +105,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 
   // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
   // to correctly identify matching methods from the parent class.
-  def signature: Signature = target.getOrElse(0)
+  def signature: Signature = target.getOrElse("")
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -126,7 +126,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
   def isMain: Boolean = annos.contains(MainAnnotation)
   def isPrimary: Boolean = annos.contains(PrimaryAnnotation)
   def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
-  def signature: Signature = target.getOrElse(0)
+  def signature: Signature = target.getOrElse("")
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
