@@ -37,15 +37,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   var auxClassDefs: Set[ClassDef] = Set()
   var defnClassDefs: Map[Type, ClassDef] = Map()
 
-  private def typeSuffix(typ: Type): String = typ match {
-    case TAny => "Any"
-    case TNull => "Null"
-    case TTuple(ts) => "Tuple$" + ts.map(typeSuffix).mkString("_")
-    case TScala(ty) => ty.syntax
-    case TClass(ClassRef(Name(raw))) => raw
-    case TSet(ty) => "Set$" + typeSuffix(ty)
-  }
-
   private def supertypes(typ: Type): Seq[Type] = typ match {
     case TAny =>
       Seq()
@@ -88,7 +79,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
     val methods = Seq(constr, apply)
 
-    val clsName = Name(gensym.fresh("Defun" + typeSuffix(ty)))
+    val clsName = Name(gensym.fresh("Defun" + Type.suffix(ty)))
     val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, parentRefs, methods)
     defnClassDefs += ty -> clazz
     clazz
@@ -114,7 +105,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
-    val clsName = Name(gensym.fresh("Aux" + typeSuffix(typ)))
+    val clsName = Name(gensym.fresh("Aux" + Type.suffix(typ)))
     val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
     auxClassDefs += clazz
     clazz
@@ -144,7 +135,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
     // TODO: We might need to transform maps as well
     // Transform: set fields to object set fields
-    case FieldDef(annos, vis, name, tySet@TSet(ty), body, immutable) =>
+    case FieldDef(annos, vis, name, tySet@TSet(_), body, immutable) =>
       val newBody = if (body.isDefined) Some(sanitize(body.get)) else body
       val replacement = FieldDef(annos, vis, name, genDefunClassDef(tySet).typ, newBody, immutable)
       super.transFieldInternal(replacement, classDef)

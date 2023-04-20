@@ -12,19 +12,28 @@ sealed trait Type extends SourceLocation {
   def asScala: meta.Type
   def asSet: Option[TSet] = None
   override def toString: String = prettyprint
-  def signature: String
 }
+
+object Type {
+  def suffix(typ: Type): String = typ match {
+    case TAny => "Any"
+    case TNull => "Null"
+    case TTuple(ts) => "Tuple_" + ts.map(suffix).mkString("_")
+    case TScala(ty) => ty.syntax
+    case TClass(ClassRef(Name(raw))) => raw
+    case TSet(ty) => "Set_" + suffix(ty)
+  }
+}
+
 case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"Any"
-  override def signature: String = "Any"
 }
 case object TNull extends Type {
   override def prettyprint: String = "Null"
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.ObjectID" //t"truechange.URI" // t"Null"
-  override def signature: String = "Null"
 }
 
 case class TTuple(ts: Seq[Type]) extends Type {
@@ -42,11 +51,6 @@ case class TTuple(ts: Seq[Type]) extends Type {
     else
       t"(..${ts.map(_.asScala).toList})"
   }
-  override def signature: String = ts.size match {
-    case 0 => "Unit"
-    case 1 => ts.head.signature
-    case _ => ts.map(_.signature).mkString("Tuple_", "_", "")
-  }
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -60,7 +64,6 @@ case class TScala(ty: Scala[meta.Type]) extends Type {
   override def prettyprint: String = s"`${ty.syntax}`"
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = ty.tree
-  override def signature: String = s"${ty.syntax}"
 }
 object TScala {
   def apply(typeString: String): TScala = {
@@ -81,7 +84,6 @@ case class TClass(ref: ClassRef) extends Type {
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.ObjectID" //t"truechange.URI"
   var tyParams: Seq[Type] = Seq()
-  override def signature: String = ref.name.raw
 }
 
 case class TSet(ty: Type) extends Type {
@@ -89,5 +91,4 @@ case class TSet(ty: Type) extends Type {
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
   override def asSet: Option[TSet] = Some(this)
-  override def signature: String = s"Set_${ty.signature}"
 }

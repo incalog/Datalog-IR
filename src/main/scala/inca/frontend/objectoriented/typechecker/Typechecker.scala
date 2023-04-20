@@ -135,7 +135,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
     // get all overriden methods and assign them the same signature
     val overrideMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
-    resolveSignatures(overrideMethods.map(_._2))
+
+    // make sure all overridden methods share the same parameter names
+    overrideMethods.foreach { case (_, m) =>
+      m.params.zip(methodDef.params).foreach { case (p1, p2) =>
+        if (p1.name.raw != p2.name.raw) {
+          error(s"Overridden methods must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}", m)
+        }
+      }
+    }
+
+    resolveSignatures(overrideMethods)
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
@@ -171,7 +181,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       error(s"Constructor '${classDef.name}' can not be static", constructorDef)
 
     val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
-    resolveSignatures(overrideConstructors.map(_._2))
+
+    overrideConstructors.foreach { case (_, m) =>
+      m.params.zip(constructorDef.params).foreach { case (p1, p2) =>
+        if (p1.name.raw != p2.name.raw) {
+          error(s"Overridden constructor must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}", m)
+        }
+      }
+    }
+
+    resolveSignatures(overrideConstructors)
 
     constructorDef.params.foreach { p =>
       p.typ match {
@@ -580,15 +599,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def resolveSignatures[T <: Resolvable[Signature]](callables: Seq[T]): Unit = {
+  def resolveSignatures[T <: Resolvable[Signature]](callables: Seq[(ClassDef, T)]): Unit = {
     // Get the signature of the top most implementation
+    // Note: we compile the parent class type into the signature as well. This way we don't get conflicts if an
+    // unrelated class implements a method with the same signature.
     val types = callables.headOption match {
-      case Some(MethodDef(_ , _, _, params, outType, _)) => params.map(_.typ) :+ outType
-      case Some(ConstructorDef(_, _, params, _)) => params.map(_.typ)
+      case Some((cls: ClassDef, MethodDef(_ , _, _, params, outType, _))) => cls.typ +: params.map(_.typ) :+ outType
+      case Some((cls: ClassDef, ConstructorDef(_, _, params, _))) => cls.typ +: params.map(_.typ)
       case None => Seq()
     }
 
-    val signature = types.map(_.signature).mkString("$")
-    callables.foreach(_.target = Some(signature))
+    val signature = types.map(Type.suffix).mkString("$")
+    callables.foreach(_._2.target = Some(signature))
   }
 }
