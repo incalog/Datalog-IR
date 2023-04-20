@@ -4,7 +4,7 @@ import inca.analyzedData.Nat._
 import inca.analyzedLangs.Exp
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.extensions.evalCall.Trees._
-import inca.frontend.datalog.Relation
+import inca.frontend.ir.Relation
 import inca.runtime.context.QueryScope
 import inca.util.Scala
 import inca.util.matchers.IncaConstraintMatchers

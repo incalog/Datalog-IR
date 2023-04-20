@@ -1,6 +1,6 @@
-package inca.frontend.datalog
+package inca.frontend.ir
 
-import inca.frontend.datalog.{ Datalog => DatalogAPI }
+import inca.frontend.ir.{ Datalog => DatalogAPI }
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
 import inca.backend.optimize.Optimization

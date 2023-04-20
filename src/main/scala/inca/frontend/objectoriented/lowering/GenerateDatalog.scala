@@ -285,7 +285,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transSuper(classDef, constructor)
         )
     }
-    (clsPattern ++ unCoalescingPattern) :+ transDefaultConstructor(classDef)
+    (clsPattern ++ unCoalescingPattern)
   }
 
   private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -606,7 +606,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val bodies = constrBodies.flatMap { cB =>
         fieldInitBodies.map { fB =>
           Datalog.Body(
-            Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: (fB.atoms ++ cB.atoms)
+            (fB.atoms ++ cB.atoms)
           )
         }
       }
@@ -650,27 +650,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       flattenParam(fieldDef.name.raw, fieldDef.typ, genFresh = false)
     val pat = Datalog.Pattern(None, qualifiedName, params, Seq())
     pat.addHint(ObjectHints.Field(fieldDef.immutable))
-  }
-
-  private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
-    val thisVar = Datalog.Var("this")
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
-    if (classDef.isCaseClass) {
-      val hashVarName = "hash"
-      val constrScalaFun = Term.Function(
-        List(Term.Param(Nil, Term.Name(hashVarName), Some(TScalaInt.asScala), None)),
-        q"""$oOID(${classDef.name.raw}, ${Term.Name(hashVarName)})"""
-      )
-      val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
-        Seq(Datalog.Var(hashVarName) -> Datalog.TScalaInt), transType(classDef.typ), Scala(constrScalaFun))
-      )
-      val body = Datalog.Body(Seq(constrComp))
-      val params = Seq(thisParam, Datalog.Param("hash", Datalog.TScalaInt))
-      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
-    } else {
-      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), Seq(thisParam), Seq())
-        //.addHint(ObjectHints.Allocation)
-    }
   }
 
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {

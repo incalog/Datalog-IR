@@ -1,4 +1,4 @@
-package inca.frontend.datalog
+package inca.frontend.ir
 
 import truechange.EditScript
 

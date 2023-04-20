@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
-import inca.frontend.datalog.{EDBChange, Relation}
+import inca.frontend.ir.{EDBChange, Relation}
 import inca.runtime.Query.Specification
 import inca.util.Scala.ScalaCompiler
 import truechange.EditScript
