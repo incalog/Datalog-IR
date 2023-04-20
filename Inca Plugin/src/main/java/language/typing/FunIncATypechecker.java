@@ -18,8 +18,12 @@ import java.util.stream.Collectors;
 
 public class FunIncATypechecker {
 
-
-    // These two functions will return the type of the resolved target
+    /**
+     * This function will determine the type of resolved target of variable-references
+     * @param element element, whose type is to be determined
+     * @param holder holds error annotations
+     * @return type of element
+     */
     public static Type typeOfVarDef(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
         if (element instanceof FunIncAFunDef) {
             FunIncAFunDef funDef = (FunIncAFunDef) element;
@@ -160,17 +164,17 @@ public class FunIncATypechecker {
                 return new AnyType();
             SetType setType = (SetType) type;
             if (exp instanceof FunIncATupleExp) {
-                if (!(setType.getSetType() instanceof TupleType)) {
+                if (!(setType.setType instanceof TupleType)) {
                     return new AnyType();
                 }
                 int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
-                if (index < ((TupleType) setType.getSetType()).types.size() && index != -1) {
-                    return ((TupleType) setType.getSetType()).types.get(index);
+                if (index < ((TupleType) setType.setType).types.size() && index != -1) {
+                    return ((TupleType) setType.setType).types.get(index);
                 } else {
                     return new AnyType();
                 }
             } else {
-                return setType.getSetType();
+                return setType.setType;
             }
 
         } else if (element instanceof FunIncAPatternVarDef) {
@@ -200,15 +204,15 @@ public class FunIncATypechecker {
                     int i = 0;
                     for (FunIncATypeVarDef typeVarDef : typeVarDefList) {
                         String name = typeVarDef.getName();
-                        if (i < ((ConstructorType) matcheeType).getTypes().size()) {
-                            substMap.put(name, ((ConstructorType) matcheeType).getTypes().get(i));
+                        if (i < ((ConstructorType) matcheeType).types.size()) {
+                            substMap.put(name, ((ConstructorType) matcheeType).types.get(i));
                             i++;
                         } else {
                             substMap.put(name, new AnyType());
                         }
                     }
                     return FunIncATypeUtil.substitute(patternVarType, substMap);
-                } // if matcheeType not a ConstructorType, returning the parametric type is just fine, so continue just as normal
+                } // else: matcheeType not a ConstructorType, returning the unsubstituted parametric type is just fine
             }
             if (typeList.size() > index) {
                 return PsiToTypeConverter.convert(typeList.get(index));
@@ -219,6 +223,12 @@ public class FunIncATypechecker {
         return new AnyType();
     }
 
+    /**
+     * This function will determine the type of resolved target of type-references
+     * @param element element, whose type is to be determined
+     * @param holder holds error annotations
+     * @return type of element
+     */
     public static Type typeOfTypeDef(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
         if (element instanceof FunIncATypeVarDef){
             String name = ((FunIncATypeVarDef) element).getName();
@@ -227,7 +237,10 @@ public class FunIncATypechecker {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             String name = dataDef.getName();
             List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
-            return new TypeRef(name, typeVars);
+            if (typeVars.isEmpty())
+                return new TypeRef(name);
+            else
+                return new ConstructorType(name, typeVars);
         }
         holder.newAnnotation(HighlightSeverity.ERROR,
                 "Unknown type reference")
@@ -300,7 +313,7 @@ public class FunIncATypechecker {
                 return;
             } else {
                 holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Ambiguos reference name " + tyText)
+                                "Ambiguous reference name " + tyText)
                         .range(ty)
                         .create();
                 return;
@@ -320,7 +333,7 @@ public class FunIncATypechecker {
                 return;
             } else {
                 holder.newAnnotation(HighlightSeverity.ERROR,
-                                "Ambiguos reference name " + tyText)
+                                "Ambiguous reference name " + tyText)
                         .range(typeNameRef)
                         .create();
                 return;
@@ -421,7 +434,7 @@ public class FunIncATypechecker {
             FunIncAExp ex = cast.getExp();
             Type expectedType;
             try {
-                expectedType = new TypeRef(cast.getTypeNameRef().getText(), new ArrayList<>());
+                expectedType = new TypeRef(cast.getTypeNameRef().getText());
             } catch (NullPointerException e) {
                 holder.newAnnotation(HighlightSeverity.ERROR,
                         "Missing Type")
@@ -477,13 +490,14 @@ public class FunIncATypechecker {
             FunIncAExp funExp = callExp.getExp();
             List<FunIncAExp> argExps = callExp.getCallExpListList().get(0).getExpList();
             if (funExp == null) {
-                // TODO quick fix
+                // quick fix
                 holder.newAnnotation(HighlightSeverity.ERROR,
                         "Missing function expression for function call")
                         .range(exp)
                         .create();
                 return new AnyType();
             }
+
             Type funExpType = typecheckExp(funExp, holder);
             if (funExpType instanceof FunType && !((FunType) funExpType).typeVars.isEmpty()) {
                 FunType funType = (FunType) funExpType;
@@ -507,12 +521,12 @@ public class FunIncATypechecker {
                         }
                     }
                 }
-                FunIncATypeUtil.substitute(funExpType, substMap);
+                funExpType = FunIncATypeUtil.substitute(funExpType, substMap);
             }
             Type returnType = funExpType;
-            int n = callExp.getCallExpListList().size(); // n holds the number of function calls
-            while (n > 0) {
-                argExps = callExp.getCallExpListList().get(callExp.getCallExpListList().size() - n).getExpList();
+            int n = callExp.getCallExpListList().size(); // n holds the number of function call
+            for (int i = 0; i < n; i++) {
+                argExps = callExp.getCallExpListList().get(i).getExpList();
                 if (returnType instanceof FunType) {
                     FunType funType = (FunType) returnType;
                     List<Type> argTypes = argExps.stream().map(e -> typecheckExp(e, holder)).collect(Collectors.toList());
@@ -520,21 +534,21 @@ public class FunIncATypechecker {
                         holder.newAnnotation(HighlightSeverity.ERROR,
                                         "Expected " + funType.paramTypes.size() + " arguments, but got "
                                                 + argTypes.size())
-                                .range(callExp.getCallExpListList().get(callExp.getCallExpListList().size() - n))
+                                .range(callExp.getCallExpListList().get(i))
                                 .create();
                     } else {
-                        for (int i = 0; i < funType.paramTypes.size(); i++) {
-                            if (!FunIncATypeUtil.subtype(argTypes.get(i), funType.paramTypes.get(i))) {
+                        for (int j = 0; j < funType.paramTypes.size(); j++) {
+                            if (!FunIncATypeUtil.subtype(argTypes.get(j), funType.paramTypes.get(j))) {
                                 holder.newAnnotation(HighlightSeverity.ERROR,
-                                                "Expected argument of type " + funType.paramTypes.get(i)
-                                                        + ", but got argument of type " + argTypes.get(i))
-                                        .range(argExps.get(i))
+                                                "Expected argument of type " + funType.paramTypes.get(j)
+                                                        + ", but got argument of type " + argTypes.get(j))
+                                        .range(argExps.get(j))
                                         .create();
                             }
                         }
                     }
                     returnType = funType.returnType;
-                }  else {
+                } else {
                     String callExpText = callExp.getText();
                     int callTextLength = callExpText.indexOf("(");
                     int beginning = callExp.getTextRange().getStartOffset();
@@ -547,7 +561,6 @@ public class FunIncATypechecker {
                             .create();
                     return returnType;
                 }
-                n -= 1;
             }
             return returnType;
 
@@ -592,7 +605,7 @@ public class FunIncATypechecker {
                 }
             } else if (matcheeType instanceof ConstructorType) { // TODO constructorType match
                 ConstructorType constructorType = (ConstructorType) matcheeType;
-                String dataName = constructorType.getName();
+                String dataName = constructorType.name;
                 PsiFile file = matchee.getContainingFile();
                 Collection<FunIncADataDef> dataDefs = PsiTreeUtil.findChildrenOfType(file, FunIncADataDef.class);
                 for (FunIncADataDef dataDef : dataDefs) {
@@ -719,7 +732,7 @@ public class FunIncATypechecker {
                         .create();
                 setContentType = new AnyType();
             } else {
-                setContentType = ((SetType) setType).getSetType();
+                setContentType = ((SetType) setType).setType;
             }
 
             Type typeTuple = typecheckExp(tuple, holder);
@@ -802,7 +815,7 @@ public class FunIncATypechecker {
             Type setType = typecheckExp(set, holder);
             Type setContentType;
             if (setType instanceof SetType) {
-                setContentType = ((SetType) setType).getSetType();
+                setContentType = ((SetType) setType).setType;
             } else {
                 holder.newAnnotation(HighlightSeverity.ERROR,
                                 "Can only fold over sets, but got " + setType)
@@ -933,8 +946,8 @@ public class FunIncATypechecker {
         for (Type type : PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList())) {
             if (type instanceof ParametricType) {
                 String name = ((ParametricType) type).name;
-                if (i < constructorType.getTypes().size()) { // TODO ist es richtig hier die typen von constructor type zu nehmen, oder lieber die von pattern
-                    substMap.put(name, constructorType.getTypes().get(i));
+                if (i < constructorType.types.size()) {
+                    substMap.put(name, constructorType.types.get(i));
                     i++;
                 } else {
                     substMap.put(name, new AnyType());
@@ -1070,8 +1083,8 @@ public class FunIncATypechecker {
         if (op.equals("++")) opName = "union";
         if (op.equals("&")) opName = "intersection";
         if (lhs.isSetType() && rhs.isSetType()){
-            Type lhsSetType = ((SetType) lhs).getSetType();
-            Type rhsSetType = ((SetType) rhs).getSetType();
+            Type lhsSetType = ((SetType) lhs).setType;
+            Type rhsSetType = ((SetType) rhs).setType;
             if (lhsSetType.equals(rhsSetType)) {
                 return lhs;
             } else {

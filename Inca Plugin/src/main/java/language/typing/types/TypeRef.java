@@ -3,16 +3,11 @@ package language.typing.types;
 import java.util.List;
 
 public class TypeRef implements Type {
-    private String name;
-    private List<Type> paramTypes;
+
+    public final String name;
 
     public TypeRef(String newName) {
         name = newName;
-    }
-    
-    public TypeRef(String newName, List<Type> newTys) {
-        name = newName;
-        paramTypes = newTys;
     }
 
     @Override
@@ -20,11 +15,4 @@ public class TypeRef implements Type {
         return name;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Type> getParamTypes() {
-        return paramTypes;
-    }
 }

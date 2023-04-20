@@ -3,7 +3,7 @@ package language.typing.types;
 import java.util.List;
 
 public class TupleType implements Type {
-    public List<Type> types;
+    final public List<Type> types;
 
     public TupleType(List<Type> tys) {
         types = tys;

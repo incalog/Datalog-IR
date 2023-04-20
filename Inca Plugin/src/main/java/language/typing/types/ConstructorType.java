@@ -3,8 +3,9 @@ package language.typing.types;
 import java.util.List;
 
 public class ConstructorType implements Type {
-    private final String name;
-    private List<Type> types;
+
+    public final String name;
+    public final List<Type> types;
 
     public ConstructorType(String newName, List<Type> newTypes){
         name = newName;
@@ -22,15 +23,4 @@ public class ConstructorType implements Type {
         return str.substring(0, str.length() - 1) + "]";
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Type> getTypes(){
-        return types;
-    }
-
-    public void setTypes(List<Type> ts) {
-        types = ts;
-    }
 }

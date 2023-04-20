@@ -31,7 +31,6 @@ public class FunIncAUtil {
         return res;
     }
 
-    // TODO fix set comprehensions
     /*
      * finds all Psi Definition nodes named "name" in one file
      * if name = null return all found definition nodes
@@ -167,10 +166,9 @@ public class FunIncAUtil {
                     continue;
                 }
 
-                PsiNamedElement funParentOfNamedElement;
-                PsiNamedElement funParentOfE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
-                funParentOfNamedElement =
+                PsiNamedElement funParentOfNamedElement =
                         PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+                PsiNamedElement funParentOfE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
                 boolean isFunCall = false;
                 boolean isCallingFunction = false;
                 FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
@@ -216,7 +214,7 @@ public class FunIncAUtil {
                             res.add(namedElement);
                         } else if (funParentOfE != null && funParentOfNamedElement == funParentOfE) {
                             res.add(namedElement);
-                        }
+                        } // TODO TypeVarDefs in Constructor Patterns
                     } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
                         res.add(namedElement);
                     } else if (namedElement instanceof FunIncADataDef) { // declaration is a type name

@@ -97,7 +97,7 @@ public class PsiToTypeConverter {
             return new StringType();
         } else if (e instanceof FunIncATypeNameRef){
            String name = ((FunIncATypeNameRef) e).getId().getText();
-           return new TypeRef(name, new ArrayList<>());
+           return new TypeRef(name);
         } else {
             return new AnyType();
         }

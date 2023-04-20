@@ -24,10 +24,10 @@ public class FunIncATypeUtil {
         } else if (type2 instanceof AnyType) {
             return type1;
         } else if (type1 instanceof TypeRef && type2 instanceof ConstructorType) {
-            if(((TypeRef) type1).getName().equals(((ConstructorType) type2).getName()))
+            if(((TypeRef) type1).name.equals(((ConstructorType) type2).name))
                 return type1;
         } else if (type1 instanceof ConstructorType && type2 instanceof TypeRef) {
-            if(((ConstructorType) type1).getName().equals(((TypeRef) type2).getName()))
+            if(((ConstructorType) type1).name.equals(((TypeRef) type2).name))
                 return type1;
         } else if (type1 instanceof TupleType && type2 instanceof TupleType) {
             List<Type> tupleTypes1 = ((TupleType) type1).types;
@@ -40,8 +40,8 @@ public class FunIncATypeUtil {
                 return new TupleType(tupTys);
             }
         } else if (type1 instanceof SetType && type2 instanceof SetType) {
-            Type setType1 = ((SetType) type1).getSetType();
-            Type setType2 = ((SetType) type2).getSetType();
+            Type setType1 = ((SetType) type1).setType;
+            Type setType2 = ((SetType) type2).setType;
             if (setType1 == null || setType2 == null)
                 return new SetType(new NothingType());
             return new SetType(meet(setType1, setType2));
@@ -89,8 +89,8 @@ public class FunIncATypeUtil {
                 return new TupleType(tupTys);
             }
         } else if (type1 instanceof SetType && type2 instanceof SetType) {
-            Type setType1 = ((SetType) type1).getSetType();
-            Type setType2 = ((SetType) type2).getSetType();
+            Type setType1 = ((SetType) type1).setType;
+            Type setType2 = ((SetType) type2).setType;
             return new SetType(join(setType1, setType2));
         } else if (type1 instanceof BooleanType) { // join of primitive scalatypes
             // case type2 is Nothing or Boolean is already covered, return of Any is down below
@@ -114,26 +114,39 @@ public class FunIncATypeUtil {
         return new AnyType();
     }
 
-    public static Type substitute(Type type, Map<String, Type> subst) { // TODO
+    public static Type substitute(Type type, Map<String, Type> subst) {
         if (type instanceof FunType) {
-            FunType funType = (FunType)  type;
-            funType.paramTypes = funType.paramTypes.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
-            funType.returnType = substitute(funType.returnType, subst);
+            FunType funType = (FunType) type;
+            List<Type> newParamTypes =
+                    funType.paramTypes.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+            Type newReturnType = substitute(funType.returnType, subst);
+            return new FunType(new ArrayList<>(), newParamTypes, newReturnType);
         } else if (type instanceof TupleType) {
             TupleType tupleType = (TupleType) type;
-            tupleType.types = tupleType.types.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+            List<Type> newTupleTypes = tupleType.types.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+            return new TupleType(newTupleTypes);
         } else if (type instanceof TypeRef){
-            String name = ((TypeRef) type).getName();
+            TypeRef typeRef = (TypeRef) type;
+            String name = typeRef.name;
             if (subst.containsKey(name))
-                type = subst.get(name);
+                return subst.get(name);
+            else
+                return new TypeRef(name);
         } else if (type instanceof ConstructorType) {
             ConstructorType constructorType = (ConstructorType) type;
-            constructorType.setTypes(
-                    constructorType.getTypes().stream().map(t -> substitute(t, subst)).collect(Collectors.toList()));
+            List<Type> newTypes = constructorType.types.stream().map(t -> substitute(t, subst)).collect(Collectors.toList());
+            return new ConstructorType(constructorType.name, newTypes);
         } else if (type instanceof SetType) {
             SetType setType = (SetType) type;
-            setType.setSetType(substitute(setType.getSetType(), subst));
+            Type newSetType = substitute(setType.setType, subst);
+            return new SetType(newSetType);
+        } else if (type instanceof ParametricType) {
+            ParametricType parametricType = (ParametricType) type;
+            String name = parametricType.name;
+            if (subst.containsKey(name))
+                return subst.get(name);
         }
+        // type is Int, Double, Boolean, String, Any, Nothing, or Unit, so no substitution necessary
         return type;
     }
 }

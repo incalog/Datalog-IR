@@ -1,18 +1,10 @@
 package language.typing.types;
 
 public class SetType implements Type {
-    private Type setType;
+    final public Type setType;
 
     public SetType(Type ty) {
         setType = ty;
-    }
-
-    public Type getSetType() {
-        return setType;
-    }
-
-    public void setSetType(Type type) {
-        setType = type;
     }
 
     @Override
