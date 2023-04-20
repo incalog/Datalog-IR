@@ -23,7 +23,9 @@ object GenerateDatalog {
   val castPatName: String = internalPrefix + "cast"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
-  def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
+  def staticMethodPatName(classDef: ClassDef, methodDef: MethodDef): String = s"${classDef.name.raw}$sep${methodDef.name.raw}"
+  def methodPatName(methodDef: MethodDef): String = s"${methodDef.name.raw}$sep${methodDef.signature}"
+  def dispatchPatName(methodNameWithSignature: String): String = "dispatch" + sep + s"${methodNameWithSignature}"
   def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
   def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
   def coalescedPatName(): String = s"${internalPrefix}coalesced"
@@ -32,7 +34,6 @@ object GenerateDatalog {
   def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
   def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
-  def methodPatName(className: String, methodName: String): String = s"$className$sep$methodName"
   def monoMapPatName(mapName: String): String = mapName + "$1"
 
   def transformModule(typedModule: Module, coreModule: Module): Datalog.Module =
@@ -103,62 +104,44 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     /*
-     * Collect all methods transitively implemented by a class. This function traverses all parent classes and stores
-     * a mapping func.name${hash} -> (classDef, methodDef) where classDef is the class itself or the parent class
-     * where the method is last overwritten.
+     * For a given class collect for each method the implementation class of the method.
      */
-    def collectMethods(classDef: ClassDef): Map[String, (ClassDef, MethodDef)] = {
-      val methods = classDef.content.flatMap {
-        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name + sep + m.signature -> (classDef, m))
+    def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[(String, ClassDef), (ClassDef, MethodDef)] = {
+      val methods = implClass.content.flatMap {
+        case m: MethodDef if !m.isStatic =>  Some((methodPatName(m), classDef) -> (implClass, m))
         case _ => None
       }.toMap
 
-      val parentMethods = classDef.parentClassRefs.flatMap { ref =>
+      val parentMethods = implClass.parentClassRefs.flatMap { ref =>
         val parentClassDef = ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}"))
-        collectMethods(parentClassDef)
+        collectMethods(classDef)(parentClassDef)
       }.toMap
+      // We rely on the default map collision behaviour to find the concrete implementation class
       parentMethods ++ methods
     }
 
-    val params = classes.flatMap(collectMethods).map {
-      case (sig, (c, m)) =>
-        val isMonotoneAddMethod = c.isMonotoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
-        val outParms = if (isMonotoneAddMethod) {
-          // TODO: support this for arbitrarily nested tuples
-          val resType = m.outType match {
-            case ty : TClass => transDataType(ty)
-            case ty =>  transType(ty)
-          }
-          Seq(Datalog.Param(gensym.fresh("out"), resType))
-        } else {
-          flattenParam("out", m.outType, genFresh = false)
-        }
-        sig ->
-          (Datalog.Param("this", transType(c.typ))
-            +: (m.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false)) ++ outParms))
-    }.toMap
-
-    val bodies = MultiDict.from(classes.flatMap { cls =>
-      collectMethods(cls).map {
-        case (sig, (c, m)) =>
-          val methodParams = params(sig).map(p => Datalog.Var(p.name))
-          val methodCall = Datalog.Call(methodPatName(c.name.raw, m.name.raw), methodParams)
-          val guard = Datalog.Computed(
-            Datalog.StringConstant(cls.name.raw),
-            Datalog.Evaluation(
-              Seq(Datalog.Var("this") -> transType(c.typ)),
-              Datalog.TScalaString,
-              Scala(q"(obj: $tyOID) => obj.typ")
-            )
-          )
-          sig -> Datalog.Body(Seq(guard, methodCall))
-      }.toSeq
-    })
-
-    val methodDispatchs = params.map { case (sig, params) =>
-      Datalog.Pattern(None, dispatchPatName(sig), params, bodies.get(sig).toSeq)
+    // Translate dynamic dispatching
+    val dispatchFacts: Map[String, Seq[(ClassDef, (ClassDef, MethodDef))]] = classes.flatMap(c => collectMethods(c)())
+      .groupBy(_._1._1).view.mapValues(_.map(v => v._1._2 -> v._2)).toMap
+    val dispatchPats = dispatchFacts.map {
+      case (qualifiedMethodName, classMapping) =>
+        Datalog.Pattern(None, dispatchPatName(qualifiedMethodName), Seq(
+          Datalog.Param("className", Datalog.TScalaString),
+          Datalog.Param("implClass", Datalog.TScalaString),
+        ), classMapping.map { case (c, (implC, _)) =>
+          Datalog.Body(Seq(
+            Datalog.Eq(Datalog.Var("className"), Datalog.StringConstant(c.name.raw)),
+            Datalog.Eq(Datalog.Var("implClass"), Datalog.StringConstant(implC.name.raw)),
+          ))
+        })
     }.toSeq
 
+    // Translate all methods
+    val methodPats = dispatchFacts.map {
+      case (qualifiedMethodName, clsMapping) => transMethodWithSameQualifiedName(qualifiedMethodName, clsMapping.map(_._2))
+    }.toSeq
+
+    // translate dynamic dispatching for coalescing
     val normalClasses = classes.filter(!_.isDefunAuxiliary)
     val coalescedBodies = normalClasses.map { cls =>
       val guard = Datalog.Computed(
@@ -173,6 +156,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Datalog.Body(Seq(guard, coalescedCall))
     }
 
+    // translate dynamic dispatching for uncoalescing
     val uncoalescedBodies = normalClasses.map { cls =>
       val guard = Datalog.Computed(
         Datalog.StringConstant(cls.name.raw),
@@ -186,13 +170,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Datalog.Body(Seq(guard, uncoalescedCall))
     }
 
-
     val thisParam = Datalog.Param("this", GP_URI)
     val objParam = Datalog.Param("obj", Datalog.TScala(Scala(t"AnyRef")))
-    val coalescedDispatch = Datalog.Pattern(None, coalescedPatName(), Seq(thisParam, objParam), coalescedBodies)
-    val uncoalescedDispatch = Datalog.Pattern(None, uncoalescedPatName(), Seq(objParam, thisParam), uncoalescedBodies)
+    val coalescedPat = Datalog.Pattern(None, coalescedPatName(), Seq(thisParam, objParam), coalescedBodies)
+    val uncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(), Seq(objParam, thisParam), uncoalescedBodies)
 
-    methodDispatchs :+ coalescedDispatch :+ uncoalescedDispatch
+    (methodPats ++ dispatchPats) :+ coalescedPat :+ uncoalescedPat
   }
 
   private def transNull(): Datalog.Pattern = gensym.scoped {
@@ -201,7 +184,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     ))
   }
 
-  private def getURIAttribute(uri: Datalog.Var, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
+  private def getURIAttribute(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
     val compAttr = Term.Name(attribute)
     val compArg = Term.Name("uri")
     val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
@@ -211,15 +194,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
   }
 
-  private def getURIIsNull(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+  private def getURIIsNull(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
     getURIAttribute(uri, "isNull", out, Datalog.TScalaBoolean)
   }
 
-  private def getURIAllocId(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+  private def getURIAllocId(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
     getURIAttribute(uri, "allocId", out, Datalog.TScalaInt)
   }
 
-  private def getURITyp(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+  private def getURITyp(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
     getURIAttribute(uri, "typ", out, Datalog.TScalaString)
   }
 
@@ -276,14 +259,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         Seq()
 
     val clsPattern = classDef.content.flatMap {
-      case field: FieldDef => Seq(transField(classDef, field))
-      case method: MethodDef => Seq(transMethod(classDef, method))
-      // TODO: Prevent recreating the default constructor
+      case field: FieldDef =>
+        Seq(transField(classDef, field))
+      case method: MethodDef if method.isStatic =>
+        Seq(transStaticMethod(classDef, method))
       case constructor: ConstructorDef =>
         Seq(
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
+      case _ => Seq() // Member methods are handled in dynamic dispatch translation
     }
     (clsPattern ++ unCoalescingPattern)
   }
@@ -488,8 +473,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       )
     } else {
       val (objVar, objComp) = createObject(className, classDef.typ)
-      val constrCall = Datalog.Call(constructorPatName(className), Seq(objVar))
-      val createObjectAtoms = Seq(objComp, constrCall, Datalog.Eq(uriVar, objVar))
+      val createObjectAtoms = Seq(objComp, Datalog.Eq(uriVar, objVar))
       Datalog.Body(
         objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: (createObjectAtoms ++ allSetterCallsWithFixedTimestamp)
       )
@@ -604,10 +588,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
     } else {
       val bodies = constrBodies.flatMap { cB =>
-        fieldInitBodies.map { fB =>
-          Datalog.Body(
-            (fB.atoms ++ cB.atoms)
-          )
+        fieldInitBodies.map {
+          fB => Datalog.Body(fB.atoms ++ cB.atoms)
         }
       }
       Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
@@ -652,93 +634,70 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     pat.addHint(ObjectHints.Field(fieldDef.immutable))
   }
 
-  private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
-    gensym.register(methodDef.vars.keys.map(_.raw) + "this")
-
-    val qualifiedName = methodPatName(classDef.name.raw, methodDef.name.raw)
-
-    val thisVar = Datalog.Var("this")
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
-    //TODO: we might not want to flat input tuple argument to += for Monotones
+  private def transStaticMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
     val argParams = methodDef.params.flatMap { case Param(name, typ) =>
       flattenParam(name.raw, typ, genFresh = false)
     }
 
-    // Special aggregate functions in a monotone class are only translated to scala
-    val isMonotoneAddMethod = classDef.isMonotoneClass && methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
-    val isMonotoneAggregateMethod = classDef.isMonotoneClass && (methodDef.name match {
-      case Name("init") | Name("join") => true
-      case _ => false
-    })
-    // Do not flatten return tuples for monotone types
     val returnParams =
-      if (isMonotoneAddMethod) {
-        // TODO: Support nested tuples
-        val resType = methodDef.outType match {
-          case ty: TClass => transDataType(ty)
-          case ty => transType(ty)
-        }
-        Seq(Datalog.Param(gensym.fresh("return"), resType))
-      } else if (methodDef.returnsUnit) {
+      if (methodDef.returnsUnit) {
         Seq()
       } else {
         flattenParam("return", methodDef.outType, genFresh = true)
       }
 
-    val bodyRes = if (isMonotoneAggregateMethod)
-      Seq((None, Seq(), None))
-    else
-      transStatements(methodDef.body, None, methodDef)
-
-    val bodies = {
-      for ((optReturn, cons, _) <- bodyRes) yield {
-      val returnTerms = optReturn.getOrElse(Seq())
-      if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
-        // return a real scala tuple, not a flattened one
-        // TODO: coealesced inside tuples
-        import scala.meta._
-
-        val orgReturnParams = flattenVars("return", methodDef.outType, genFresh = true).toList
-        val metaTerms = orgReturnParams.map(p => Term.Name(p._1.name))
-        val metaParams = orgReturnParams.map(p => Term.Param(Nil, Term.Name(p._1.name), Some(p._2.asScala), None))
-        val transformReturnCond = Datalog.Computed(
-          Datalog.Var(returnParams.head.name),
-          Datalog.Evaluation(
-            orgReturnParams,
-            returnParams.head.typ,
-            Scala(q"(..$metaParams) => (..$metaTerms)")
-          )
-        )
-        val returnCons = orgReturnParams.zip(returnTerms).map { case ((v, _), t) =>
-          Datalog.Eq(v, t)
-        }
-        Datalog.Body(cons ++ returnCons :+ transformReturnCond)
-      } else if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TClass]) {
-        // TODO: Remove this by merging it with the if-body above
-        val returnParam = returnParams.head
-        val returnTerm = returnTerms.head
-        val clsName = methodDef.outType.asInstanceOf[TClass].ref.name.raw
-        val coalescedCall = Datalog.Call(coalescedPatName(), Seq(returnTerm, Datalog.Var(returnParam.name)))
-        Datalog.Body(cons :+ coalescedCall)
-      } else {
+      val bodyRes = transStatements(methodDef.body, None, methodDef)
+      val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
+        val returnTerms = optReturn.getOrElse(Seq())
         val returnCons = returnParams.zip(returnTerms).map { case (p, t) =>
           Datalog.Eq(Datalog.Var(p.name), t)
         }
         Datalog.Body(cons ++ returnCons)
       }
-    }
+
+    val qualifiedName = staticMethodPatName(classDef, methodDef)
+    val pat = Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams, bodies)
+    if (methodDef.isMain)
+      pat.addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
+         .addHint(ObjectHints.AllocationRoot)
+         .addHint(ObjectHints.FieldRoot)
+    else
+      pat
+  }
+
+  private def transMethodWithSameQualifiedName(qualifiedName: String, pairs: Seq[(ClassDef, MethodDef)]): Datalog.Pattern = gensym.scoped {
+    val allMethods = pairs.map(_._2)
+    allMethods.foreach {m => gensym.register(m.vars.keys.map(_.raw) + "this") }
+
+    val reprMethod = allMethods.head
+    val thisParam = Datalog.Param("this", GP_URI)
+
+    val clsParam = Datalog.Param(gensym.fresh("cls"), Datalog.TScalaString)
+    val argParams = reprMethod.params.flatMap { case Param(name, typ) =>
+      flattenParam(name.raw, typ, genFresh = false)
     }
 
-    if (methodDef.isStatic) {
-      val pat = Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
-      if (methodDef.isMain)
-        pat.addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
-          .addHint(ObjectHints.AllocationRoot)
-          .addHint(ObjectHints.FieldRoot)
-      pat
-    } else {
-      Datalog.Pattern(transVis(methodDef.vis), qualifiedName, thisParam +: (argParams ++ returnParams), bodies)
+    val returnParams =
+      if (reprMethod.returnsUnit) {
+        Seq()
+      } else {
+        flattenParam("return", reprMethod.outType, genFresh = true)
+      }
+
+    val bodies = pairs.flatMap {
+      case (c, m) =>
+        val bodyRes = transStatements(m.body, None, m)
+        for ((optReturn, cons, _) <- bodyRes) yield {
+          val clsGuard = Datalog.Eq(Datalog.Var(clsParam.name), Datalog.StringConstant(c.name.raw))
+          val returnTerms = optReturn.getOrElse(Seq())
+          val returnCons = returnParams.zip(returnTerms).map { case (p, t) =>
+            Datalog.Eq(Datalog.Var(p.name), t)
+          }
+          Datalog.Body(clsGuard +: (cons ++ returnCons))
+        }
     }
+
+    Datalog.Pattern(transVis(reprMethod.vis), qualifiedName, clsParam +: thisParam +: (argParams ++ returnParams), bodies)
   }
 
   type Constraints = Seq[Datalog.Atom]
@@ -863,7 +822,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             //  Just make it static...
             // TODO: This uses a fixed allocId for now
             Scala(q"${Term.Name(classDef.name.raw)}(0).__aggregation__"),
-            methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
+            "SomeClass$+=", // TODO: Change this to the correct class
+            //methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
             args :+ Datalog.Var(gensym.fresh("_")),
             args.size
           )
@@ -957,48 +917,26 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       else
         flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
 
-      val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.signature)
+      val methodName = methodPatName(methodDef)
+      val dispatchName = dispatchPatName(methodName)
 
-      val Seq((terms, atoms)) = (for ((terms, cons) <- transExpression(recv)) yield {
-        if (argRes.isEmpty)
-          return Seq((outVars, cons :+ Datalog.Call(qualifiedName, terms ++ outVars)))
+      val Seq((terms, atoms)) = (for ((Seq(term), cons) <- transExpression(recv)) yield {
+        val runtimeTypeVar = Datalog.Var(gensym.fresh("C"))
+        val runtimeTypeComp = getURITyp(term, runtimeTypeVar)
+        val dispatchTypeVar = Datalog.Var(gensym.fresh("D"))
+        val dispatchCall = Datalog.Call(dispatchName, Seq(runtimeTypeVar, dispatchTypeVar))
+
+        if (argRes.isEmpty) {
+          val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: outVars)
+          val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
+          return Seq((outVars, cons ++ call))
+        }
 
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
           val (argTerms, argCons) = tups.unzip
-
-          // TODO: Hack MonoMap
-          if (classDef.isMonotoneMapClass) {
-            val monoTypes = classDef.montoneTypes.get
-            val resultType = monoTypes._2.asInstanceOf[TClass]
-
-            val (addVars, addCons) =
-              if (methodDef.name.raw == "get") {
-                // perform aggregation over map relation
-                val readAgg = Datalog.CustomAggregation(
-                  transDataType(resultType),
-                  None,
-                  Scala(q"${Term.Name(resultType.ref.name.raw)}(0).__aggregation__"),
-                  monoMapPatName(classDef.name.raw),
-                  argTerms.head :+ Datalog.Var(gensym.fresh("_")) :+ Datalog.Var(gensym.fresh("agg")),
-                  2
-                )
-                val outVar = Datalog.Var(gensym.fresh("out"))
-                val aggVar = Datalog.Var(gensym.fresh("agg"))
-                val resultComp = Datalog.Computed(aggVar, readAgg)
-                  .addHint(MagicSetHints.IgnoreCall)
-
-                (Seq(outVar), Seq(resultComp, Datalog.Call(uncoalescedPatName(), Seq(aggVar, outVar))))
-              } else if (methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw) {
-                val objVar = Datalog.Var(gensym.fresh("obj"))
-                val coalescedCall = Datalog.Call(coalescedPatName(), Seq(argTerms.flatten.toSeq(1), objVar))
-                (Seq(), Seq(coalescedCall, Datalog.Call(monoMapPatName(classDef.name.raw), argTerms.flatten :+ objVar)))
-              } else {
-                (Seq(), Seq())
-              }
-            (addVars, cons ++ argCons.flatten ++ addCons)
-          } else {
-            (outVars, cons ++ argCons.flatten ++ Seq(Datalog.Call(qualifiedName, terms ++ argTerms.flatten ++ outVars)))
-          }
+          val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: (argTerms.flatten ++ outVars))
+          val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
+          (outVars, cons ++ argCons.flatten ++ call)
         }
       }).flatten
 
