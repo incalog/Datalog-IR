@@ -7,13 +7,13 @@ import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.util.TupleOps
-import inca.runtime.data.ObjectID
+import inca.runtime.data.{Identity, NullID, ObjectID, StructuralID}
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala}
 
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
-import scala.meta.{Stat, Term, Type => MetaType}
+import scala.meta.{Lit, Stat, Term, Type => MetaType}
 import scala.meta.quasiquotes._
 
 object GenerateDatalog {
@@ -52,10 +52,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
   private val generatedScala = ListBuffer[Scala[Stat]]()
 
+  val tyID: meta.Type = typeOf[Identity]
+  val oNID: meta.Term = symbolOf(NullID)
+
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
 
-  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(tyOID))
+  val oSID: meta.Term = symbolOf(StructuralID)
+  val tySID: meta.Type = typeOf[StructuralID]
+
+  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(tyID))
 
   private def createObject(className: String, typ: Type): (Datalog.Var, Computed) = {
     val objVar = Datalog.Var(gensym.fresh("obj"))
@@ -66,9 +72,30 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     (objVar, constrComp.addHint(ObjectHints.AllocationInit))
   }
 
+  // Tuple = Seq[Datalog.Term]
+  private def createCaseClassObject(className: String, typ: Type, fields: Seq[(String, Type, Tuple)]): (Datalog.Var, Computed) = {
+    val objVar = Datalog.Var(gensym.fresh("obj"))
+
+    val flattenFields = fields.flatMap {
+      case (f, ty, terms) => flattenVars(f, ty).map(_._1.name).zip(terms)
+    }.toList
+
+    val fieldArgs = flattenFields.map { case (f, _) => Term.Name(f) }
+    val fieldParams = fieldArgs.map(a => Term.Param(Nil, a, Some(Datalog.TAny.asScala), None))
+    val fieldTuples = flattenFields.zip(fieldArgs).map { case ((f, _), t) => Term.Tuple(List(Lit.String(f), t)) }
+
+    val constrScalaFun = q"""(..$fieldParams) => $oSID($className, ..$fieldTuples)"""
+    val constrComp = Datalog.Computed(objVar, Datalog.Evaluation(
+      flattenFields.map(_._2 -> Datalog.TAny),
+      transType(typ),
+      Scala(constrScalaFun))
+    )
+    (objVar, constrComp)
+  }
+
   private def createNullObject(): (Datalog.Var, Computed) = {
     val objVar = Datalog.Var(gensym.fresh("null"))
-    val constrScalaFun = Term.Function(Nil, q"""$oOID("Null")""")
+    val constrScalaFun = Term.Function(Nil, q"$oNID()")
     val constrComp = Datalog.Computed(objVar, Datalog.Evaluation(
       Seq(), transDataType(TNull), Scala(constrScalaFun))
     )
@@ -194,6 +221,18 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
   }
 
+  private def getSIDField(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
+    val compAttr = Term.Name(attribute)
+    val compArg = Term.Name("uri")
+    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
+    Datalog.Computed(out, Datalog.Evaluation(
+      Seq(uri -> GP_URI),
+      outType,
+      Scala(q"($compParam) => $compArg.readField[${outType.asScala}]($attribute)")
+      )
+    )
+  }
+
   private def getURIIsNull(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
     getURIAttribute(uri, "isNull", out, Datalog.TScalaBoolean)
   }
@@ -259,11 +298,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         Seq()
 
     val clsPattern = classDef.content.flatMap {
-      case field: FieldDef =>
+      case field: FieldDef if !classDef.isCaseClass =>
         Seq(transField(classDef, field))
       case method: MethodDef if method.isStatic =>
         Seq(transStaticMethod(classDef, method))
-      case constructor: ConstructorDef =>
+      case constructor: ConstructorDef if !classDef.isCaseClass =>
         Seq(
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
@@ -538,62 +577,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val (fieldInitTerms, fieldInitBodies) = transFieldInitBody(classDef).unzip
 
     // we ignore the constructor body for a primary constructor
-    if (classDef.isCaseClass && constructorDef.isPrimary) {
-      import scala.meta._
-
-      // all fields that are defined, but not used in the primary constructor
-      // Note: this works, since the primary constructor always uses the field name as parameter name
-      val primaryParamNames = constructorDef.params.map(_.name.raw)
-      val fieldParams = classDef.fields
-        .filter(f => !primaryParamNames.contains(f.name.raw))
-        .zip(fieldInitTerms).flatMap { case (f, terms) =>
-          terms.map {
-            // we erase the type here, since we don't know it... this is not nice, but it works
-            case Datalog.Var(name) => Datalog.Param(name, Datalog.TAny)
-            case t => throw new RuntimeException(s"Unexpected term for field initialization $t")
-          }
+    val bodies = constrBodies.flatMap { cB =>
+      fieldInitBodies.map {
+        fB => Datalog.Body(fB.atoms ++ cB.atoms)
       }
-      // use all fields to calculate an allocId from them
-      val constructorParams = params ++ fieldParams
-      val hashVar = Datalog.Var(gensym.fresh("allocIdHash"))
-      val hashParams = constructorParams.map { p =>
-        Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)
-      }.toList
-      val hashScalaFun = Term.Function(
-        hashParams,
-        q"java.util.Objects.hash(..${constructorParams.map(p => Term.Name(p.name)).toList})"
-        /*constructorParams
-          .map { p => q"""${Term.Name(p.name)}.##""" }
-          .reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }*/
-      )
-      val hashComp = Datalog.Computed(hashVar, Datalog.Evaluation(
-        constructorParams.map(p => Datalog.Var(p.name) -> p.typ),
-        Datalog.TScalaInt,
-        Scala(hashScalaFun)
-      ))
-
-      // 1. define all literal for field declarations
-      // 2. calculate the allocId based on the literals and params
-      // 3. create the object
-      // 4. assign the value to all fields
-      val bodies = constrBodies.flatMap { cB =>
-        fieldInitBodies.map { fB =>
-          val (varSets, varDecls) = fB.atoms.partition(a => a.hasHint(ObjectHints.FieldSetKey))
-          Datalog.Body(
-            (varDecls :+ hashComp) ++
-              (Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"), hashVar)) +: (cB.atoms ++ varSets))
-          )
-        }
-      }
-      Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
-    } else {
-      val bodies = constrBodies.flatMap { cB =>
-        fieldInitBodies.map {
-          fB => Datalog.Body(fB.atoms ++ cB.atoms)
-        }
-      }
-      Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
     }
+    Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
   }
 
   private def transSuper(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
@@ -859,12 +848,21 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           }
 
           (resultVars.map(_._1), (cons :+ resultComp) ++ unpackCons)
+        } else if (classDef.isCaseClass) {
+          val recvTerm = terms.head
+          val fieldReadVars = flattenVars(targetName.raw, fieldDef.typ)
+          val res = fieldReadVars.map { case (v, ty) =>
+            val outVar = Datalog.Var(gensym.fresh(v.name))
+            val readVarComp = getSIDField(recvTerm, v.name, outVar, ty)
+            (Seq(outVar), Seq(readVarComp))
+          }.unzip
+          (res._1.flatten, res._2.flatten)
         } else {
-          val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1)
-          val fieldRead = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
-            .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
-            .addHint(ObjectHints.FieldGet)
-          (fieldReadVars, cons :+ fieldRead)
+            val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1)
+            val fieldRead = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
+              .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
+              .addHint(ObjectHints.FieldGet)
+            (fieldReadVars, cons :+ fieldRead)
         }
       }
 
@@ -872,19 +870,49 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val classDef = classRef.target.getOrElse(throw new IllegalArgumentException(s"Unresolved classRef ${classRef.name}"))
 
       // constructors are never implicitly inherited !
-      val (constructedVar, constrComp) = createObject(classDef.name.raw, classDef.typ)
-      val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
 
-      val constrName = constructorPatName(classRef.name.raw) + constructorDef.signature
+      if (classDef.isCaseClass) {
+        // Construct an SID with all fields
+        val primaryConstructor = classDef.constructors.filter(_.isPrimary).head
+        val constructorFieldNames = primaryConstructor.params.map(_.name.raw)
 
-      // create single call constraint when no arguments are passed
-      if (argRes.isEmpty)
-        return Seq((Seq(constructedVar), Seq(constrComp, Datalog.Call(constrName, Seq(constructedVar)))))
+        // translate and name or constructor arguments and fields
+        val constructorArgs = primaryConstructor.params.zip(args).map { case (p, a) => (p.name.raw, p.typ, a) }
+        val additionalFields = classDef.fields
+          .filter(f => !constructorFieldNames.contains(f.name.raw))
+          .map(f => (f.name.raw, f.typ, f.body.getOrElse(throw new RuntimeException("Uninitialized immutable field!"))))
 
-      for (tups <- TupleOps.cartesianProduct(argRes)) yield {
-        val (argTerms, argCons) = tups.unzip
-        (Seq(constructedVar), argCons.flatten ++ Seq(constrComp, Datalog.Call(constrName, constructedVar +: argTerms.flatten)))
+        val argRes = (constructorArgs ++ additionalFields).map {
+          case (fieldName, typ, exp) => transExpression(exp).map(r => (fieldName, typ, r))
+        }
+
+        if (argRes.isEmpty) {
+          // Create empty case class
+          val (constructedVar, constrComp) = createCaseClassObject(classDef.name.raw, classDef.typ, Seq())
+          return Seq((Seq(constructedVar), Seq(constrComp)))
+        }
+
+        for (tups <- TupleOps.cartesianProduct(argRes)) yield {
+          val (fieldNames, types, argTermsAndCons) = tups.unzip3
+          val (argTerms, argCons) = argTermsAndCons.unzip
+          val constructorArgs = (fieldNames, types, argTerms).zipped.toSeq
+          val (constructedVar, constrComp) = createCaseClassObject(classDef.name.raw, classDef.typ, constructorArgs)
+          (Seq(constructedVar), argCons.flatten ++ Seq(constrComp))
+        }
+      } else {
+        val argRes = args.map(e => transExpression(e))
+        val (constructedVar, constrComp) = createObject(classDef.name.raw, classDef.typ)
+        val constrName = constructorPatName(classRef.name.raw) + constructorDef.signature
+
+        // create single call constraint when no arguments are passed
+        if (argRes.isEmpty)
+          return Seq((Seq(constructedVar), Seq(constrComp, Datalog.Call(constrName, Seq(constructedVar)))))
+
+        for (tups <- TupleOps.cartesianProduct(argRes)) yield {
+          val (argTerms, argCons) = tups.unzip
+          (Seq(constructedVar), argCons.flatten ++ Seq(constrComp, Datalog.Call(constrName, constructedVar +: argTerms.flatten)))
+        }
       }
 
     case superExpr@SuperExpr(args) =>

@@ -33,7 +33,7 @@ case object TAny extends Type {
 case object TNull extends Type {
   override def prettyprint: String = "Null"
   override def flatten: Seq[Type] = Seq(this)
-  override def asScala: meta.Type = t"inca.runtime.data.ObjectID" //t"truechange.URI" // t"Null"
+  override def asScala: meta.Type = t"inca.runtime.data.Identity" //t"truechange.URI" // t"Null"
 }
 
 case class TTuple(ts: Seq[Type]) extends Type {
@@ -82,7 +82,7 @@ object TScalaAny extends TScala(Scala(t"Any"))
 case class TClass(ref: ClassRef) extends Type {
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
-  override def asScala: meta.Type = t"inca.runtime.data.ObjectID" //t"truechange.URI"
+  override def asScala: meta.Type = t"inca.runtime.data.Identity" //t"truechange.URI"
   var tyParams: Seq[Type] = Seq()
 }
 

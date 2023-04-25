@@ -73,7 +73,7 @@ object GPPrinter {
       s"${neg}extensional find $call"
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
-  })// + atom.hints
+  }) + atom.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
 
   def prettyLink(link: Link): String = link match {
     case Datalog.ParentLink => "parent"

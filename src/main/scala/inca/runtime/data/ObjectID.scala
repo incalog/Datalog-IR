@@ -1,10 +1,8 @@
 package inca.runtime.data
 
-import inca.runtime.data.ObjectID.nullAllocId
-
 import scala.collection.mutable
 
-case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
+case class ObjectID(override val typ: String, allocId: Int) extends Identity(typ) {
   /*
   override def toString: String = s"${super.toString}($typ, $allocId)"
   override def equals(obj: Any): Boolean = {
@@ -12,17 +10,9 @@ case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
     super.equals(obj)
   }
   */
-
-  val isNull: Boolean = allocId == nullAllocId
 }
 
 object ObjectID {
-  val nullAllocId: Int = -1
-
-  def apply(typ: String): ObjectID = {
-    new ObjectID(typ, nullAllocId)
-  }
-
   def apply(typ: String, allocId: Int): ObjectID = {
     new ObjectID(typ, allocId)
   }

@@ -133,19 +133,22 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
-    // get all overriden methods and assign them the same signature
-    val overrideMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
+    // get all overridden methods and assign them the same signature
+    val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
 
     // make sure all overridden methods share the same parameter names
-    overrideMethods.foreach { case (_, m) =>
+    overriddenMethods.foreach { case (_, m) =>
       m.params.zip(methodDef.params).foreach { case (p1, p2) =>
         if (p1.name.raw != p2.name.raw) {
-          error(s"Overridden methods must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}", m)
+          error(s"Overridden methods must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}.", m)
         }
+      }
+      if (m.vis != methodDef.vis) {
+        error(s"Overridden methods must have the same visibility: Exprected ${methodDef.vis} but got ${m.vis}")
       }
     }
 
-    resolveSignatures(overrideMethods)
+    resolveSignatures(overriddenMethods)
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
@@ -180,17 +183,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     if (constructorDef.isStatic)
       error(s"Constructor '${classDef.name}' can not be static", constructorDef)
 
-    val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
+    val overriddenConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
 
-    overrideConstructors.foreach { case (_, m) =>
+    overriddenConstructors.foreach { case (_, m) =>
       m.params.zip(constructorDef.params).foreach { case (p1, p2) =>
         if (p1.name.raw != p2.name.raw) {
           error(s"Overridden constructor must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}", m)
         }
       }
+      if (m.vis != constructorDef.vis) {
+        error(s"Overridden methods must have the same visibility: Exprected ${constructorDef.vis} but got ${m.vis}")
+      }
     }
 
-    resolveSignatures(overrideConstructors)
+    resolveSignatures(overriddenConstructors)
 
     constructorDef.params.foreach { p =>
       p.typ match {
@@ -599,7 +605,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def resolveSignatures[T <: Resolvable[Signature]](callables: Seq[(ClassDef, T)]): Unit = {
+  private def resolveSignatures[T <: Resolvable[Signature]](callables: Seq[(ClassDef, T)]): Unit = {
     // Get the signature of the top most implementation
     // Note: we compile the parent class type into the signature as well. This way we don't get conflicts if an
     // unrelated class implements a method with the same signature.
