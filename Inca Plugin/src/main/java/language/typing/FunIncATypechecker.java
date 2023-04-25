@@ -50,12 +50,10 @@ public class FunIncATypechecker {
             return PsiToTypeConverter.convert(paramDef.getType());
         } else if (element instanceof FunIncADataConstructorDef) {
             FunIncADataConstructorDef constructorDef = (FunIncADataConstructorDef) element;
+            FunIncADataDef dataDef = (FunIncADataDef) constructorDef.getParent();
             List<Type> typeVariables = new ArrayList<>();
-            if (!constructorDef.getTypeVarDefList().isEmpty()) { // if the constructor definition has defined type variables use those
-                typeVariables = PsiToTypeConverter.convertTypeVarDefs(constructorDef.getTypeVarDefList());
-            } else if (!((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList().isEmpty()) { // if not use parent (data def) type variables
-                typeVariables = PsiToTypeConverter
-                        .convertTypeVarDefs(((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList());
+            if (!dataDef.getTypeVarDefList().isEmpty()) { // get type variables of dataDef
+                typeVariables = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
             }
             List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
             Type returnType = typeOfTypeDef(constructorDef.getParent(), holder);
@@ -603,7 +601,7 @@ public class FunIncATypechecker {
                     FunIncADataDef dataDef = dataDefs.get(0);
                     return typecheckTypeNameMatch(exp, cases, dataDef, holder);
                 }
-            } else if (matcheeType instanceof ConstructorType) { // TODO constructorType match
+            } else if (matcheeType instanceof ConstructorType) {
                 ConstructorType constructorType = (ConstructorType) matcheeType;
                 String dataName = constructorType.name;
                 PsiFile file = matchee.getContainingFile();
@@ -980,7 +978,6 @@ public class FunIncATypechecker {
                             .range(constructorPat.getConstructorRef())
                             .create();
                 if (availableConstructors.get(constructorName) != null) { // seen constructor is available
-                    // TODO Problem: function call möchte typ von x,rest wissen. typeOfVar schaut in constructordef nach, da steht A,List[A]
                     FunType constructorDef = (FunType) availableConstructors.get(constructorName);
                     if (constructorDef.paramTypes.size() != constructorPat.getPatternVarDefList().size()) // number of parameters does not match
                         holder.newAnnotation(HighlightSeverity.ERROR,

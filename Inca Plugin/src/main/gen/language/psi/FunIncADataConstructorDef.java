@@ -11,9 +11,6 @@ public interface FunIncADataConstructorDef extends FunIncADecl {
   List<FunIncAType> getTypeList();
 
   @NotNull
-  List<FunIncATypeVarDef> getTypeVarDefList();
-
-  @NotNull
   PsiElement getId();
 
   String getName();

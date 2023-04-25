@@ -121,7 +121,7 @@ Visibility ::= 'private'
 
 // definition of datatypes
 DataDef ::= Annotation* Visibility? 'data' id TypeVarDefList? '=' DataConstructorDef ('|' DataConstructorDef)* {pin = 3}
-DataConstructorDef ::= id TypeVarDefList? '(' (Type (',' Type)*)? ')'
+DataConstructorDef ::= id '(' (Type (',' Type)*)? ')'
 
 // expressions
 Exp ::= IfExp | LetExp | SetMemberExp | InfixExp

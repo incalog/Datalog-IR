@@ -52,7 +52,7 @@ public class FunIncAUtil {
 
         Collection<PsiNamedElement> namedElements = PsiTreeUtil.findChildrenOfType(file, elementClass);
 
-        if (isSetComprehension && name != null) {
+        if (isSetComprehension && name != null) { // TODO own function for readability
             // finding candidates for resolving references
             List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
@@ -166,9 +166,9 @@ public class FunIncAUtil {
                     continue;
                 }
 
-                PsiNamedElement funParentOfNamedElement =
+                PsiNamedElement funParentNamedElement =
                         PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
-                PsiNamedElement funParentOfE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
+                PsiNamedElement funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
                 boolean isFunCall = false;
                 boolean isCallingFunction = false;
                 FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
@@ -185,7 +185,7 @@ public class FunIncAUtil {
                 if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
                         if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true) &&
-                                funParentOfNamedElement == funParentOfE) {
+                                funParentNamedElement == funParentE) {
                             res.add(namedElement);
                         }
                     } else if (namedElement instanceof FunIncAPatternVarDef) { // declaration is in pattern match case
@@ -198,23 +198,32 @@ public class FunIncAUtil {
                         FunIncAParamDef paramDef = (FunIncAParamDef) namedElement;
                         if (isCallingFunction) {
                             if (paramDef.getType().getFunType() != null) {
-                                if (funParentOfNamedElement == funParentOfE) {
+                                if (funParentNamedElement == funParentE) {
                                     res.add(namedElement);
                                 }
                             }
-                        } else if (funParentOfNamedElement == funParentOfE) {
+                        } else if (funParentNamedElement == funParentE) {
                             res.add(namedElement);
                         }
                     } else if (namedElement instanceof FunIncATypeVarDef // declaration is a type variable
-                            && e instanceof FunIncATypeNameRef) {
+                            && e instanceof FunIncATypeNameRef) { // can only be referenced by type name refs
                         FunIncADataDef dataDefParentE = PsiTreeUtil.getParentOfType(e, FunIncADataDef.class);
                         FunIncADataDef dataDefParentNamedElement =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncADataDef.class);
+                        FunIncAConstructorPat consPatParentE =
+                                PsiTreeUtil.getParentOfType(e, FunIncAConstructorPat.class);
+                        FunIncAConstructorPat consPatParentNamedElement =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncAConstructorPat.class);
                         if (dataDefParentE != null && dataDefParentE == dataDefParentNamedElement) {
+                            // TypeVarDef in DataDef
                             res.add(namedElement);
-                        } else if (funParentOfE != null && funParentOfNamedElement == funParentOfE) {
+                        } else if (funParentE != null && funParentNamedElement == funParentE) {
+                            // TypeVarDef in FunDef
                             res.add(namedElement);
-                        } // TODO TypeVarDefs in Constructor Patterns
+                        } else if (consPatParentE != null && consPatParentNamedElement == consPatParentE) {
+                            // TypeVarDef in ConstructorPat
+                            res.add(namedElement);
+                        }
                     } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
                         res.add(namedElement);
                     } else if (namedElement instanceof FunIncADataDef) { // declaration is a type name

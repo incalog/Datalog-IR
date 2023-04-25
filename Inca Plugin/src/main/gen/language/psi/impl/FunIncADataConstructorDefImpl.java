@@ -34,12 +34,6 @@ public class FunIncADataConstructorDefImpl extends FunIncADeclImpl implements Fu
 
   @Override
   @NotNull
-  public List<FunIncATypeVarDef> getTypeVarDefList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncATypeVarDef.class);
-  }
-
-  @Override
-  @NotNull
   public PsiElement getId() {
     return findNotNullChildByType(ID);
   }

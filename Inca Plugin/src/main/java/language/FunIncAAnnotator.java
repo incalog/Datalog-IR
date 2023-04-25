@@ -86,7 +86,6 @@ public class FunIncAAnnotator implements Annotator {
                 if (cons.getTypeList() != null)
                     FunIncATypechecker.validateTypes(cons.getTypeList(), holder);
             }
-            // TODO check parametric types
         }
 
     }
