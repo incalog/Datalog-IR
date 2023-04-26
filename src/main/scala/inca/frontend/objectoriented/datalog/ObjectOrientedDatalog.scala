@@ -4,7 +4,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPre
 import inca.frontend.objectoriented.compiler.CompiledObjectModule
 import inca.frontend.ir.{Datalog, EDBChange, Relation, UnitRelation}
 import inca.frontend.objectoriented.lowering.GenerateDatalog.castPatName
-import inca.runtime.data.ObjectID
+import inca.runtime.data.objectoriented.ObjectID
 import truechange.EditScript
 import truediff.Diffable
 

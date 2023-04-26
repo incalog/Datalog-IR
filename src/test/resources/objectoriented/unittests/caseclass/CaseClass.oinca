@@ -7,6 +7,7 @@ class C {
 case class A(val a: Int, val b: String) {
     val c: (Int, Int) = (4, 5)
     val d: Int = 6
+    //val e: C = new C()
 
    @main
    def main(): Boolean = {

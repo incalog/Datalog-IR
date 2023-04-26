@@ -6,8 +6,8 @@ import inca.backend.ir.Datalog.Computed
 import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
+import inca.runtime.data.objectoriented.{Identity, NullID, ObjectID, StructuralID}
 import inca.util.TupleOps
-import inca.runtime.data.{Identity, NullID, ObjectID, StructuralID}
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala}
 
@@ -72,7 +72,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     (objVar, constrComp.addHint(ObjectHints.AllocationInit))
   }
 
-  // Tuple = Seq[Datalog.Term]
   private def createCaseClassObject(className: String, typ: Type, fields: Seq[(String, Type, Tuple)]): (Datalog.Var, Computed) = {
     val objVar = Datalog.Var(gensym.fresh("obj"))
 
@@ -100,6 +99,36 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Seq(), transDataType(TNull), Scala(constrScalaFun))
     )
     (objVar, constrComp)
+  }
+
+  private def getURIAttribute(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
+    val compAttr = Term.Name(attribute)
+    val compArg = Term.Name("uri")
+    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
+    Datalog.Computed(
+      out, Datalog.Evaluation(Seq(uri -> GP_URI), outType, Scala(q"($compParam) => $compArg.$compAttr")
+      )
+    )
+  }
+
+  private def getSIDField(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
+    val compAttr = Term.Name(attribute)
+    val compArg = Term.Name("uri")
+    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
+    Datalog.Computed(out, Datalog.Evaluation(
+      Seq(uri -> GP_URI),
+      outType,
+      Scala(q"($compParam) => $compArg.readField[${outType.asScala}]($attribute)")
+    )
+    )
+  }
+
+  private def getURIIsNull(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
+    getURIAttribute(uri, "isNull", out, Datalog.TScalaBoolean)
+  }
+
+  private def getURITyp(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
+    getURIAttribute(uri, "typ", out, Datalog.TScalaString)
   }
 
   def transModule(): Datalog.Module = {
@@ -176,7 +205,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         Datalog.Evaluation(
           Seq(Datalog.Var("this") -> transType(cls.typ)),
           Datalog.TScalaString,
-          Scala(q"(obj: $tyOID) => obj.typ")
+          Scala(q"(obj: $tyID) => obj.typ")
         )
       )
       val coalescedCall = Datalog.Call(coalescedPatName(cls.name.raw), Seq(Datalog.Var("this"), Datalog.Var("obj")))
@@ -209,40 +238,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     Datalog.Pattern(None, constructorPatName("Null"), Seq(Datalog.Param("this", transType(TNull))), Seq(
       Datalog.Body(Seq())
     ))
-  }
-
-  private def getURIAttribute(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
-    val compAttr = Term.Name(attribute)
-    val compArg = Term.Name("uri")
-    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
-    Datalog.Computed(
-      out, Datalog.Evaluation(Seq(uri -> GP_URI), outType, Scala(q"($compParam) => $compArg.$compAttr")
-      )
-    )
-  }
-
-  private def getSIDField(uri: Datalog.Term, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
-    val compAttr = Term.Name(attribute)
-    val compArg = Term.Name("uri")
-    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
-    Datalog.Computed(out, Datalog.Evaluation(
-      Seq(uri -> GP_URI),
-      outType,
-      Scala(q"($compParam) => $compArg.readField[${outType.asScala}]($attribute)")
-      )
-    )
-  }
-
-  private def getURIIsNull(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
-    getURIAttribute(uri, "isNull", out, Datalog.TScalaBoolean)
-  }
-
-  private def getURIAllocId(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
-    getURIAttribute(uri, "allocId", out, Datalog.TScalaInt)
-  }
-
-  private def getURITyp(uri: Datalog.Term, out: Datalog.Term): Datalog.Computed = {
-    getURIAttribute(uri, "typ", out, Datalog.TScalaString)
   }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
@@ -329,24 +324,36 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val objParam = Datalog.Param("obj", objType)
     val objVar = Datalog.Var(objParam.name)
 
-    val (readFields, fieldVars) = fields.filter { f =>
+    val (fieldVars, readFields) = fields.filter { f =>
       // TODO: Hack MonoMap
       f.typ match {
         case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass => false
         case _ => true
       }
     }.map { f =>
-      val varName = gensym.fresh(f.name.raw)
-      val fieldReadVars = flattenVars(varName, f.typ).map(_._1)
-      val fieldPat = fieldPatName(className, f.name.raw)
-      val fieldReadCall = Datalog.Call(fieldPat, uriVar +: fieldReadVars)
-        .addHint(MagicSetHints.FixedAdornment(true +: fieldReadVars.map(_ => true)))
-        .addHint(ObjectHints.FieldGet)
-
-      // coalesced fields
+      var fieldReadVars: Seq[Datalog.Var] = Seq()
+      var fieldReadCalls: Seq[Datalog.Atom] = Seq()
+      if (classDef.isCaseClass) {
+        // Read fields from SID for case classes
+        val res = flattenVars(f.name.raw, f.typ).map { case (f, ty) =>
+          val outVar = Datalog.Var(gensym.fresh(f.name))
+          val comp = getSIDField(uriVar, f.name, outVar, ty)
+          (Seq(outVar), Seq(comp))
+        }.unzip
+        fieldReadVars = res._1.flatten
+        fieldReadCalls = res._2.flatten
+      } else {
+        // Read fields from field relation for normal classes
+        fieldReadVars = flattenVars(gensym.fresh(f.name.raw), f.typ).map(_._1)
+        fieldReadCalls = Seq(Datalog.Call(fieldPatName(className, f.name.raw), uriVar +: fieldReadVars)
+          .addHint(MagicSetHints.FixedAdornment(true +: fieldReadVars.map(_ => true)))
+          .addHint(ObjectHints.FieldGet)
+        )
+      }
+      // coalesced fields if required
       val (coalescedChildCalls, vars) = fieldReadVars.zip(f.typ.flatten).map { case (v, t) =>
         t match {
-          case TClass(ClassRef(name)) =>
+          case TClass(ClassRef(_)) =>
             val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
             val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(), Seq(v, coalescedChildVar)))
             (coalescedChildCall, coalescedChildVar)
@@ -354,18 +361,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             (Seq(), v)
         }
       }.unzip
-      (fieldReadCall +: coalescedChildCalls.flatten, vars)
+      (vars, fieldReadCalls ++ coalescedChildCalls.flatten)
     }.unzip
 
     // read and pass the allocation id and all fields to the scala function
-    val allocId = Datalog.Var(gensym.fresh("allocId"))
-    val readFieldsFlat = getURIAllocId(uriVar, allocId) +: readFields.flatten
-    val fieldVarsFlat = allocId +: fieldVars.flatten
-    val fieldTypes = TScalaInt +: fields.flatMap(_.typ.flatten)
+    val fieldVarsFlat = uriVar +: fieldVars.flatten
+    val fieldTypes = tyID +: fields.flatMap(_.typ.flatten).map(genScala.transType)
 
     val constrArgs = fieldVarsFlat.map { v => Term.Name(v.name) }.toList
     val constrParams = constrArgs.zip(fieldTypes).map {
-      case (vt, t) => Term.Param(Nil, vt, Some(genScala.transType(t)), None)
+      case (vt, t) => Term.Param(Nil, vt, Some(t), None)
     }
 
     val constrScalaFun = Term.Function(
@@ -373,10 +378,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Term.Apply(Term.Select(Term.Name(className), Term.Name("apply")), constrArgs)
     )
 
-    val evalParams = fieldVarsFlat.zip(fieldTypes).map { case (v, t) => v -> transDataType(t) }
+    val fieldDataTypes = GP_URI +: fields.flatMap(_.typ.flatten).map(transDataType)
+    val evalParams = fieldVarsFlat.zip(fieldDataTypes).map { case (v, t) => v -> t }
     val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
     val bodyWithObject = Datalog.Body(
-      getURIIsNull(uriVar, Datalog.False) +: readFieldsFlat :+ genOutObj
+      getURIIsNull(uriVar, Datalog.False) +: readFields.flatten :+ genOutObj
     )
 
     val genNullObj = Datalog.Computed(objVar, Datalog.Evaluation(Seq(), objType, Scala(q"() => null")))
@@ -387,7 +393,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val params = Seq(uriParam, objParam)
     val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(classDef.name.raw), params, bodies)
     constrCoalescedPat
-      //.addHint(MagicSetHints.NoInputRelation)
   }
 
   private def generateConstructorUncoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -454,8 +459,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Datalog.Call(patName, uriVar +: args)
     }
 
-    val intOptionType = TScala(Scala(t"Option[Int]"))
-    val (allocVar, allocComp) = readFieldComp("allocId", intOptionType, None)
+    val identityObjectOptionType = TScala(Scala(t"Option[$tyID]"))
+    val (identityObjectVar, identityObjectComp) = readFieldComp("__identity", identityObjectOptionType, None)
 
     def objIsNull(isNull: Boolean) = Datalog.Computed(
       if (isNull) Datalog.True else Datalog.False,
@@ -466,57 +471,53 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       )
     )
 
-    def allocIdIsDefinedComp(isDefined: Boolean) = Datalog.Computed(
+    def objectIsDefinedComp(isDefined: Boolean) = Datalog.Computed(
       if (isDefined) Datalog.True else Datalog.False,
       Datalog.Evaluation(
-        Seq(allocVar -> transType(intOptionType)),
+        Seq(identityObjectVar -> transType(identityObjectOptionType)),
         Datalog.TScalaBoolean,
-        Scala(q"""(allocIdOption: Option[Int]) => allocIdOption.isDefined""")
+        Scala(q"""(identityObjOption: Option[$tyID]) => identityObjOption.isDefined""")
       )
     )
 
     // existing object was returned
-    val genURIWithId = Datalog.Computed(
-      uriVar,
-      Datalog.Evaluation(
-        Seq(allocVar -> transType(intOptionType)),
-        transType(classDef.typ),
-        Scala(q"""(allocId: Option[Int]) => $oOID(${className}, allocId.get)""")
-      )
-    )
-    val allSetterCalls = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
-      comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet())
+    val allSetterCalls = {
+      if (classDef.isCaseClass) {
+        // Case classes are immutable, therefore we don't need to update the object
+        Seq()
+      } else {
+        fieldVarsAndComps.flatMap { case (f, vars, comps) =>
+          comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet())
+        }
+      }
     }
+    val assignUri = Datalog.Computed(uriVar, Datalog.Evaluation(
+      Seq(identityObjectVar -> transType(identityObjectOptionType)),
+      GP_URI,
+      Scala(q"(identityOption: Option[$tyID]) => identityOption.get")
+    ))
     val bodyWithExistingObject = Datalog.Body(
-      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: allSetterCalls
+      objIsNull(false) +: identityObjectComp +: objectIsDefinedComp(true) +: assignUri +: allSetterCalls
     )
 
     // new object was created in scala
     val allSetterCallsWithFixedTimestamp = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
       comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet(fixedTimestamp = Some(0)))
     }
-    val bodyWithNewObject = if (classDef.isCaseClass) {
-      val primaryConstr = classDef.constructors.find(_.isPrimary).getOrElse(
-        throw new RuntimeException(s"Case class ${classDef.name} does not contain a primary constructor")
-      )
-      val primaryParamNames = primaryConstr.params.map(_.name.raw)
-      val (primaryFields, _) = fieldVarsAndComps.partition { case (f, _, _) =>
-        primaryParamNames.contains(f.name.raw)
-      }
-      val qualifiedName = constructorPatName(classDef.name.raw) + primaryConstr.signature
-      val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
-      val readFieldCalls = primaryFields.flatMap(_._3.flatten)
-
-      Datalog.Body(
-        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: readFieldCalls :+ genURIWithoutId
-      )
+    val objComps = if (classDef.isCaseClass) {
+      val inputFields = fieldVarsAndComps.map { case (f, v, _) => (f.name.raw, f.typ, v) }
+      val fieldComps = fieldVarsAndComps.flatMap { case (_, _, c) => c }.flatten
+      val (term, comp) = createCaseClassObject(className, classDef.typ, inputFields)
+      fieldComps :+ comp :+ Datalog.Eq(uriVar, term)
     } else {
-      val (objVar, objComp) = createObject(className, classDef.typ)
-      val createObjectAtoms = Seq(objComp, Datalog.Eq(uriVar, objVar))
-      Datalog.Body(
-        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: (createObjectAtoms ++ allSetterCallsWithFixedTimestamp)
-      )
+      val (term, comp) = createObject(className, classDef.typ)
+      comp +: Datalog.Eq(uriVar, term) +: allSetterCallsWithFixedTimestamp
     }
+
+    val bodyWithNewObject = Datalog.Body(
+      objIsNull(false) +: identityObjectComp +: objectIsDefinedComp(false) +: objComps
+    )
+
 
     // object is null
     val (nullVar, nullComp) = createNullObject()
@@ -804,7 +805,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
             // TODO: Actually there is a way: Append the coalesced object as first argument to the result tuple that we
             //  aggregate over
-            //  E.g: Avg$__plus__(this: inca.runtime.data.ObjectID, value: Int, return$0: (Avg, Int, Double)) {
+            //  E.g: Avg$__plus__(this: inca.runtime.data.objectoriented.ObjectID, value: Int, return$0: (Avg, Int, Double)) {
             //      coealesced(this, baseObj)
             //      retunr$0 = (baseObj, ..., ...)
             //    }

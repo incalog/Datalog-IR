@@ -1,6 +1,4 @@
-package inca.runtime.data
-
-import scala.collection.mutable
+package inca.runtime.data.objectoriented
 
 case class ObjectID(override val typ: String, allocId: Int) extends Identity(typ) {
   /*

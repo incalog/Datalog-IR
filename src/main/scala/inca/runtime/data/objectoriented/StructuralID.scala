@@ -1,4 +1,4 @@
-package inca.runtime.data
+package inca.runtime.data.objectoriented
 
 case class StructuralID(override val typ: String, fields: Map[String, Any]) extends Identity(typ) {
   override def readField[T](name: String): T = {

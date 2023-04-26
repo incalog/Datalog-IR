@@ -5,6 +5,7 @@ import inca.runtime.data.WrappedURI
 import inca.util.Scala.typeOf
 import truediff.GenericDiffable
 import inca.runtime.aggregate.Aggregation
+import inca.runtime.data.objectoriented.Identity
 
 import scala.meta.{Ctor, Name => MetaName, Type => MetaType, _}
 
@@ -85,7 +86,7 @@ class GenerateScala {
     var fieldComps = classDef.fields.map { f =>
       val fieldTerm = Term.Name(f.name.raw)
       q"""${Term.Name("other")}.$fieldTerm == ${Term.Name("this")}.$fieldTerm"""
-    } :+ q"other.allocId == this.allocId"
+    } :+ q"other.__identity == this.__identity"
     fieldComps =
       if (parentRefOption.isDefined)
         q"super.equals(${Term.Name("other")}) == true" +: fieldComps
@@ -101,7 +102,7 @@ class GenerateScala {
     var hashComps = q"${Term.Name("this")}.getClass.getSimpleName.##" +: classDef.fields.map { f =>
       val fieldTerm = Term.Name(f.name.raw)
       q"""${Term.Name("this")}.$fieldTerm.##"""
-    } :+ q"this.allocId.##"
+    } :+ q"this.__identity.##"
     hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
     val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
 
@@ -141,7 +142,7 @@ class GenerateScala {
         }"""
       else
         q"""class $cls() extends $parentTypeRef {
-          var allocId: Option[Int] = None
+          var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
 
           override def equals(that: Any): Boolean = that match {
             case other: $cls => $equalImpl
@@ -162,13 +163,13 @@ class GenerateScala {
     val fields = classDef.fields.filter(_.typ.asSet.isEmpty)
     val staticMethods = classDef.methods.filter(m => m.isStatic && !m.isMain).flatMap(transMethod).toList
 
-    val allocIdTerm = Term.Name("allocId")
-    val allocIdParam = Term.Param(Nil, allocIdTerm, Some(transType(TScalaInt)), None)
+    val identityObjectTerm = Term.Name("__identity")
+    val identityObjectParam = Term.Param(Nil, identityObjectTerm, Some(typeOf[Identity]), None)
     // TODO: hack MonoMap
     val myFields = fields.filter { f =>
       !(f.typ.isInstanceOf[TClass] && f.typ.asInstanceOf[TClass].ref.name.raw.startsWith("MonoMap"))
     }
-    val params = allocIdParam +: myFields.flatMap { f =>
+    val params = identityObjectParam +: myFields.flatMap { f =>
       f.typ.flatten.zipWithIndex.map { case (ty, i) =>
         Term.Param(Nil, Term.Name(f.name.raw + "$" + i), Some(transType(ty)), None)
       }
@@ -200,7 +201,7 @@ class GenerateScala {
     q"""object $obj {
         def apply(..$params): $cls = {
           val obj = $newObj
-          obj.allocId = Some($allocIdTerm)
+          obj.__identity = Some($identityObjectTerm)
           ..$assignments
           obj
         }
