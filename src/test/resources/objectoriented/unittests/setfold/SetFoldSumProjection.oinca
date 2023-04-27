@@ -22,24 +22,23 @@ class Num(val value: Int) {
 
   @main def main(): (Int, Int, Int, Int, Int, Int) = {
     val n: Num = new Num(0)
-
-    // 0.
     val s: Set[(Int, Int)] = n.createSet(1, 10)
-    val a: Int = s.fold(0, Num.sumInt, (0, #))
-    val b: Int = s.fold(0, Num.sumInt, (_, #))
+    val a: Int = s.fold(0, Num.sumInt, (0, #)) // 55
+    val b: Int = s.fold(0, Num.sumInt, (_, #)) // 110
 
     // 1.
-    val c: Int = Set((0, 1), (1,1), (0, 3)).fold(0, Num.sumInt, (0, #))
+    val c: Int = Set((0, 1), (1,1), (0, 3)).fold(0, Num.sumInt, (0, #)) // 4
 
     // 2.
     val x: Int = 0
-    val d: Int = Set((x, 0, 1), (0, 1, 1), (1, 1, 1), (2, 1, 1)).fold(0, Num.sumInt, (x, _, #))
+    val d: Int = Set((x, 0, 1), (0, 1, 1), (1, 1, 1), (2, 1, 1)).fold(0, Num.sumInt, (x, _, #)) // 2
 
     // 3.
-    val e: Int = (for (s2 <- Set((0, 1), (1,1))) yield s2._2).fold(0, Num.sumInt)
+    val e: Int = (for (s2 <- Set((0, 2), (1,-1))) yield s2._2).fold(0, Num.sumInt) // 1
 
     // 4.
-    val f: Num = Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3))).fold(new Num(0), Num.sumNum, (0, #))
+    val ns: Set[(Int, Num)] = Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3)))
+    val f: Num = ns.fold(new Num(0), Num.sumNum, (0, #)) // 4
 
     (a, b, c, d, e, f.value)
   }

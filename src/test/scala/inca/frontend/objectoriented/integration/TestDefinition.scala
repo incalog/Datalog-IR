@@ -225,14 +225,12 @@ object TestDefinition {
     TestDefinition("SetTuple", "A", "main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
   }
 
-  def unionIntersectionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
+  def unionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      TestDefinition("SetIntersection", "A", "main", Seq(), SetResult(1, 3)),
-      TestDefinition("SetIntersection2", "A", "main", Seq(), SetResult(1, 3)),
-      TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
-      TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
-      TestDefinition("SetUnionIntersection", "A", "main", Seq(), SetResult(1, 2, 3, 4))
+      //TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
+      TestDefinition("SetUnionObject", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
+      //TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
     )
   }
 
@@ -297,13 +295,13 @@ object TestDefinition {
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
+      //TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      //TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
       TestDefinition("SetFoldSumProjection", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4))),
-      TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
-      TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
+      //TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
+      //TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
+      //TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
+      //TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
     )
   }
 

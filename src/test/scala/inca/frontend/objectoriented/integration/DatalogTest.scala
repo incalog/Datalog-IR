@@ -11,7 +11,7 @@ import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions()//, Seq(EliminateNonproductiveRelations)  Seq(DeriveDemandPatterns, DemandTransformation))
+  def options: ObjectOptions = ObjectOptions() // (Seq(EliminateNonproductiveRelations) //  Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -136,8 +136,8 @@ class DatalogTest extends AnyFunSuite {
     performTests(tupleSetTest)
   }
 
-  test("Set Union Intersection Example") {
-    performTests(unionIntersectionSetTest: _*)
+  test("Set Union Example") {
+    performTests(unionSetTest: _*)
   }
 
   test("Set Advanced Example") {

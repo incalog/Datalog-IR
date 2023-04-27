@@ -282,8 +282,8 @@ abstract class CountTransformer(val rootPatternHint: String,
       else if (rootPats.size > 1)
         throw new IllegalArgumentException(s"Ambiguous root!")
 
-      if (leafPats.isEmpty)
-        return pattern
+      //if (leafPats.isEmpty)
+      //  return pattern
 
       // exclude leaf and root pattern from affected pattern
       val searchPattern = pattern.toSet.diff(leafPats).diff(rootPats)

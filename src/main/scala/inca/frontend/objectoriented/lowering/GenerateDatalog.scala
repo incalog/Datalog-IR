@@ -1043,8 +1043,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val retVar = Datalog.Var(gensym.fresh("empty"))
         val extEmptySet = Datalog.ExtensionalCall(extName, Seq(retVar))
         Seq((Seq(retVar), Seq(extEmptySet)))*/
-      } else
-        exps.flatMap(transExpression)
+      } else {
+        //exps.flatMap(transExpression)
+        // Each body must contain all constraint to correctly thread the allocation counter
+        val (tups, cons) = exps.flatMap(transExpression).unzip
+        tups.map(t => t -> cons.flatten)
+      }
 
     case setMember@SetMemberExpr(name, recv, predicate) =>
       val typ = setMember.typ.getOrElse(throw new IllegalArgumentException(s"Missing type for expression $setMember"))
@@ -1206,9 +1210,17 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
+        // include all constraint to correctly thread the allocation counter
+        // Note lhsCons should be all equal no matter which element. The same holds for rhsCons.
         transExpression(left) ++ transExpression(right)
+        /*val (lhsTups, lhsCons) = transExpression(left).unzip
+        val (rhsTups, rhsCons) = transExpression(right).unzip
+        // Add all lhsCons to each rhs constraint. Note: Use the correct order !
+        val lhsRes = lhsTups.zip(lhsCons).map { case (t, c) => t -> Seq(rhsCons.head, c).flatten }
+        val rhsRes = rhsTups.zip(rhsCons).map { case (t, c) => t -> Seq(c, lhsCons.head).flatten }
+        lhsRes ++ rhsRes*/
 
-    case BaseApplyInfixExpr(left, op, right)
+    /*case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "&" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       val transLeft = transExpression(left)
       val transRight = transExpression(right)
@@ -1220,7 +1232,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
            (rightTerms, rightCons) <- transRight) yield {
         val eqTerms = leftTerms.zip(rightTerms).map { case (l, r) => Datalog.Eq(l, r) }
         (leftTerms, leftCons ++ rightCons ++ eqTerms)
-      }
+      }*/
 
     case BaseApplyInfixExpr(left, op, right) =>
       import scala.meta.quasiquotes._

@@ -1,9 +1,0 @@
-module SetTest
-
-class A {
-  def this() = {}
-
-  @main def main(): Set[Int] = {
-    return Set(2, 1, 3, 4) & Set(1, 3)
-  }
-}

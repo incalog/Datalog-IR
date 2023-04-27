@@ -75,7 +75,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     module
   }
 
-  lazy val defunModule: Module = {
+  lazy val coreModule: Module = {
     val dataModel = new GenerateDataModel(ssaModule)
     val module = Defunctionalize.transformModule(ssaModule, dataModel.transModule())
 
@@ -86,28 +86,6 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
         println("\nDefun Module - AST")
-        println(new AbstractSyntaxTree(module).toGraphViz)
-      }
-    }
-
-    typer.typecheck(module)
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
-
-    module
-  }
-
-  lazy val coreModule: Module = {
-    val module = SetLifting.transformModule(defunModule)
-
-    if (CompilerFlags.DEBUGMODE) {
-      println("\nCore Module")
-      println(module)
-
-      if (CompilerFlags.DebugConfig.AST_STEPS) {
-        println()
-        println("\nCore Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }

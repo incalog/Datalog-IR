@@ -1,0 +1,17 @@
+module SetUnionObjectTest
+
+class Num(val value: Int) {
+
+}
+
+class A {
+  def this() = {}
+
+  @main def main(): Set[Int] = {
+    //Set(new Num(1), new Num(3)) ++ Set(new Num(2))
+    val a: Set[Num] = Set(new Num(1), new Num(2))
+    val b: Set[Num] = Set(new Num(3), new Num(4))
+    val union: Set[Num] = a ++ b
+    for (n <- union) yield n.value
+  }
+}
