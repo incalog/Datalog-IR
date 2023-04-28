@@ -13,7 +13,4 @@ public interface FunIncAConstructorPat extends PsiElement {
   @NotNull
   List<FunIncAPatternVarDef> getPatternVarDefList();
 
-  @NotNull
-  List<FunIncATypeVarDef> getTypeVarDefList();
-
 }

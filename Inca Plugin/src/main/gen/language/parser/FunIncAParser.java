@@ -462,60 +462,52 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ConstructorRef TypeVarDefList? '(' (PatternVarDef (',' PatternVarDef)*)? ')'
+  // ConstructorRef '(' (PatternVarDef (',' PatternVarDef)*)? ')'
   public static boolean ConstructorPat(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ConstructorPat")) return false;
     if (!nextTokenIs(b, ID)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = ConstructorRef(b, l + 1);
-    r = r && ConstructorPat_1(b, l + 1);
     r = r && consumeToken(b, PARENS_OPEN);
-    r = r && ConstructorPat_3(b, l + 1);
+    r = r && ConstructorPat_2(b, l + 1);
     r = r && consumeToken(b, PARENS_CLOSE);
     exit_section_(b, m, CONSTRUCTOR_PAT, r);
     return r;
   }
 
-  // TypeVarDefList?
-  private static boolean ConstructorPat_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "ConstructorPat_1")) return false;
-    TypeVarDefList(b, l + 1);
-    return true;
-  }
-
   // (PatternVarDef (',' PatternVarDef)*)?
-  private static boolean ConstructorPat_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "ConstructorPat_3")) return false;
-    ConstructorPat_3_0(b, l + 1);
+  private static boolean ConstructorPat_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ConstructorPat_2")) return false;
+    ConstructorPat_2_0(b, l + 1);
     return true;
   }
 
   // PatternVarDef (',' PatternVarDef)*
-  private static boolean ConstructorPat_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "ConstructorPat_3_0")) return false;
+  private static boolean ConstructorPat_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ConstructorPat_2_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = PatternVarDef(b, l + 1);
-    r = r && ConstructorPat_3_0_1(b, l + 1);
+    r = r && ConstructorPat_2_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
   // (',' PatternVarDef)*
-  private static boolean ConstructorPat_3_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "ConstructorPat_3_0_1")) return false;
+  private static boolean ConstructorPat_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ConstructorPat_2_0_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!ConstructorPat_3_0_1_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "ConstructorPat_3_0_1", c)) break;
+      if (!ConstructorPat_2_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "ConstructorPat_2_0_1", c)) break;
     }
     return true;
   }
 
   // ',' PatternVarDef
-  private static boolean ConstructorPat_3_0_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "ConstructorPat_3_0_1_0")) return false;
+  private static boolean ConstructorPat_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ConstructorPat_2_0_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);

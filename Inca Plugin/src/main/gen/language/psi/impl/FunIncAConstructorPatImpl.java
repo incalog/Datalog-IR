@@ -39,10 +39,4 @@ public class FunIncAConstructorPatImpl extends ASTWrapperPsiElement implements F
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncAPatternVarDef.class);
   }
 
-  @Override
-  @NotNull
-  public List<FunIncATypeVarDef> getTypeVarDefList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunIncATypeVarDef.class);
-  }
-
 }

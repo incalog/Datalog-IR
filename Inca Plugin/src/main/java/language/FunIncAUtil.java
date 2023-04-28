@@ -210,18 +210,11 @@ public class FunIncAUtil {
                         FunIncADataDef dataDefParentE = PsiTreeUtil.getParentOfType(e, FunIncADataDef.class);
                         FunIncADataDef dataDefParentNamedElement =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncADataDef.class);
-                        FunIncAConstructorPat consPatParentE =
-                                PsiTreeUtil.getParentOfType(e, FunIncAConstructorPat.class);
-                        FunIncAConstructorPat consPatParentNamedElement =
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncAConstructorPat.class);
                         if (dataDefParentE != null && dataDefParentE == dataDefParentNamedElement) {
                             // TypeVarDef in DataDef
                             res.add(namedElement);
                         } else if (funParentE != null && funParentNamedElement == funParentE) {
                             // TypeVarDef in FunDef
-                            res.add(namedElement);
-                        } else if (consPatParentE != null && consPatParentNamedElement == consPatParentE) {
-                            // TypeVarDef in ConstructorPat
                             res.add(namedElement);
                         }
                     } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition

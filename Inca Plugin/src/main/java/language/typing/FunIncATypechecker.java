@@ -356,7 +356,7 @@ public class FunIncATypechecker {
                 FunIncASetMemberExp setMemberParent = PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class);
                 FunIncASetComprehensionExp setComprehensionParent =
                         PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class);
-                boolean isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false);
+                boolean isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false); // TODO Nullpointer
                 FunIncACallExp callParent = PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class);
                 if ((setMemberParent != null) &&
                         (setComprehensionParent != null) &&

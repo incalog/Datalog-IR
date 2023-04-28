@@ -145,7 +145,7 @@ MatchExp ::=  SubinfixExp 'match' '{' MatchCase* '}' {pin = 2}
 MatchCase ::= 'case' Pat '=>' Exp {pin = 1}
 Pat ::= ConstructorPat
 // OptionPattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
-ConstructorPat ::= ConstructorRef TypeVarDefList? '(' (PatternVarDef (',' PatternVarDef)*)? ')'
+ConstructorPat ::= ConstructorRef '(' (PatternVarDef (',' PatternVarDef)*)? ')'
 ConstructorRef ::= id
 PatternVarDef ::= id
 
