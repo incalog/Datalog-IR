@@ -84,11 +84,11 @@ class GenerateScala {
     // if their attributes match. We can not use a case class, since we might inherit from a class, which is not
     // possible when using a case class. See: SetFoldSumObject for a test where these overrrides are required.
 
-    var fieldComps = Seq(q"other.__identity == this.__identity")
-    /*classDef.fields.map { f =>
+    var fieldComps = //Seq(q"other.__identity == this.__identity")
+    classDef.fields.map { f =>
       val fieldTerm = Term.Name(f.name.raw)
       q"""${Term.Name("other")}.$fieldTerm == ${Term.Name("this")}.$fieldTerm"""
-    } :+ q"other.__identity == this.__identity" */
+    } :+ q"other.__identity == this.__identity"
     fieldComps =
       if (parentRefOption.isDefined)
         q"super.equals(${Term.Name("other")}) == true" +: fieldComps

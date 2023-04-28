@@ -3,6 +3,7 @@ package inca.frontend.objectoriented.lowering
 import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetComprehension, SetExpr, SetMemberExpr, TClass, TScalaAny, TScalaString, TSet, TTuple, TUnit, Type, VarReadExpr, Visibility}
 import inca.frontend.objectoriented.lowering.InsertBuiltInMonotones.{monoMapName, transformModule}
 
+
 object InsertBuiltInMonotones {
   def transformModule(module: Module): Module =
     new InsertBuiltInMonotones(module).transModule()

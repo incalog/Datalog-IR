@@ -43,7 +43,6 @@ case class TestDefinition[O](fileName: String, mainClass: String, mainMethod: St
 object TestDefinition {
 
   // type alias for tuple and set results
-  // TODO: Remove this after the ScalaExecutor is replaced
   type TupleResult[T] = Seq[T]
 
   object TupleResult {
@@ -228,9 +227,9 @@ object TestDefinition {
   def unionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      //TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
+      TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetUnionObject", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
-      //TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
+      TestDefinition("SetUnionMixed", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
     )
   }
 
@@ -284,23 +283,16 @@ object TestDefinition {
     )
   }
 
-  def monotoneTests: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("unittests/monotone")
-    Seq(
-      TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
-    )
-  }
-
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      //TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      //TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
+      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
       TestDefinition("SetFoldSumProjection", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4))),
-      //TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
-      //TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
-      //TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
-      //TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
+      TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
+      TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
+      TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
+      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
     )
   }
 
@@ -341,13 +333,11 @@ object TestDefinition {
       TupleResult("n", "NoConstant"),
       TupleResult("acc", "NoConstant")
     ))
-    //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
   }
 
   def primitiveMonotone: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     TestDefinition("PrimitiveMonotone", "Example", "main", Seq(), SetResult())
-    //TestDefinition("WhileLang", "AdvancedConstantPropagation", "factorial", Seq(), SetResult())
   }
 
   def noDemandTest: TestDefinition[Int] = {
@@ -363,10 +353,5 @@ object TestDefinition {
   def loopTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("graphs")
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
-  }
-
-  def monoMapTest: TestDefinition[Any] = {
-    implicit val subdir: Option[String] = Some("unittests/monotone")
-    TestDefinition("Builtin", "Main", "main", Seq(), SetResult(9, 7))
   }
 }
