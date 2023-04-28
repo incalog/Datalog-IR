@@ -108,29 +108,7 @@ class GenerateScala {
     hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
     val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
 
-    val aggregationVal = if (classDef.isMonotoneClass) {
-      val Some((_, resType)) = classDef.montoneTypes
-      val scalaTy = transType(resType)
-      val tyAggregation = typeOf[Aggregation[_]]
-      val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
-      Some(
-        q"""
-         lazy val __aggregation__ = {
-           val obj = this
-           new $initAggregation {
-             override val name = ${classDef.name.raw}
-             override def init: $scalaTy = obj.init()
-             override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = obj.join(v1, v2)
-             override val isAssociative = true
-             override val isCommutative = true
-           }
-         }"""
-      )
-    } else {
-      None
-    }
-
-    val clsBody = fields ++ aggregationVal ++ emptyDefaultConstructor ++ constructors ++ methods
+    val clsBody = fields ++ emptyDefaultConstructor ++ constructors ++ methods
     val clsDef =
       if (parentRefOption.isDefined)
         q"""class $cls() extends $parentTypeRef {
@@ -197,6 +175,28 @@ class GenerateScala {
     }.toList
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
+    val aggregationVal = if (classDef.isMonotoneClass) {
+      val Some((_, resType)) = classDef.montoneTypes
+      val scalaTy = transType(resType)
+      val tyAggregation = typeOf[Aggregation[_]]
+      val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
+      val monoType = Term.Name(classDef.name.raw)
+      List(
+        q"""
+         lazy val __aggregation__ = {
+           new $initAggregation {
+             override val name = ${classDef.name.raw}
+             override def init: $scalaTy = $monoType.init()
+             override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = $monoType.join(v1, v2)
+             override val isAssociative = true
+             override val isCommutative = true
+           }
+         }"""
+      )
+    } else {
+      Nil
+    }
+
     val obj = Term.Name(classDef.name.raw)
 
     // the apply method is used for coalesing and uncoalesing
@@ -207,6 +207,7 @@ class GenerateScala {
           ..$assignments
           obj
         }
+        ..$aggregationVal
         ..$staticMethods
     }"""
   }

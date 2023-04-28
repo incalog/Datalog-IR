@@ -312,10 +312,12 @@ class Visitor {
 }
 
 class MonoSet extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Set[(Any, Any)]`] {
+    @static
     def init(): `scala.collection.immutable.Set[(Any, Any)]` = {
         `scala.collection.immutable.Set[(Any, Any)]`()
     }
 
+    @static
     def join(m1: `scala.collection.immutable.Set[(Any, Any)]`, m2: `scala.collection.immutable.Set[(Any, Any)]`): `scala.collection.immutable.Set[(Any, Any)]` = {
         m1 ++ m2
     }

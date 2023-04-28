@@ -551,10 +551,9 @@ trait Parser {
       val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
           case (monotoneName: Name, types: Seq[Type]) =>
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), types.last, Seq(
-                ReturnStmt(
-                  MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))
-                )
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), TUnit, Seq(
+                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
+                ReturnStmt(TupleExpr())
               ))
             ))
           case c: ClassRef =>

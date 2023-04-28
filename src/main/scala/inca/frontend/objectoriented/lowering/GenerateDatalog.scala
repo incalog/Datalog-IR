@@ -667,16 +667,31 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       flattenParam(name.raw, typ, genFresh = false)
     }
 
-    val returnParams =
-      if (reprMethod.returnsUnit) {
+    val repCls = pairs.map(_._1).head
+    val isMonotoneAdd = repCls.isMonotoneClass && reprMethod.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
+
+    val returnParams = {
+      if (isMonotoneAdd) {
+        flattenParam("return", repCls.montoneTypes.get._2, genFresh = true)
+      } else if (reprMethod.returnsUnit) {
         Seq()
       } else {
         flattenParam("return", reprMethod.outType, genFresh = true)
       }
+    }
 
     val bodies = pairs.flatMap {
       case (c, m) =>
-        val bodyRes = transStatements(m.body, None, m)
+        val bodyRes = if (isMonotoneAdd) {
+          // Return the lifted value
+          val body = m.body.dropRight(1)
+          val liftExp = body.last match {
+            case ExprStmt(expr) => expr
+          }
+          transStatements(body.dropRight(1) :+ ReturnStmt(liftExp), None, m)
+        } else {
+          transStatements(m.body, None, m)
+        }
         for ((optReturn, cons, _) <- bodyRes) yield {
           val clsGuard = Datalog.Eq(Datalog.Var(clsParam.name), Datalog.StringConstant(c.name.raw))
           val returnTerms = optReturn.getOrElse(Seq())
@@ -799,56 +814,43 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val aggVarType = transDataType(resType)
 
           val args = terms ++ valType.flatten.map(_ => Datalog.Var(gensym.fresh("_")))
+          val addMethod = classDef.methods.filter(_.name.raw == AssignmentOp.AGG_ELEMENT.name.raw).head
+          val methodName = methodPatName(addMethod)
+          val dispatchName = dispatchPatName(methodName)
+          val runtimeTypeVar = Datalog.Var(gensym.fresh("C"))
+          val runtimeTypeComp = getURITyp(terms.head, runtimeTypeVar)
+          val dispatchTypeVar = Datalog.Var(gensym.fresh("D"))
+          val dispatchCall = Datalog.Call(dispatchName, Seq(runtimeTypeVar, dispatchTypeVar))
+
           val readAgg = Datalog.CustomAggregation(
             aggVarType,
             None,
-            // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
-            // TODO: Actually there is a way: Append the coalesced object as first argument to the result tuple that we
-            //  aggregate over
-            //  E.g: Avg$__plus__(this: inca.runtime.data.objectoriented.ObjectID, value: Int, return$0: (Avg, Int, Double)) {
-            //      coealesced(this, baseObj)
-            //      retunr$0 = (baseObj, ..., ...)
-            //    }
-            //  Just make it static...
-            // TODO: This uses a fixed allocId for now
-            Scala(q"${Term.Name(classDef.name.raw)}(0).__aggregation__"),
-            "SomeClass$+=", // TODO: Change this to the correct class
-            //methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
-            args :+ Datalog.Var(gensym.fresh("_")),
-            args.size
+            Scala(q"${Term.Name(classDef.name.raw)}.__aggregation__"),
+            methodName,
+            dispatchTypeVar +: args :+ Datalog.Var(gensym.fresh("_")),
+            args.size + 1
           )
           val aggVar = Datalog.Var(gensym.fresh("agg"))
           val resultComp = Datalog.Computed(aggVar, readAgg)
             .addHint(MagicSetHints.IgnoreCall)
             .addHint(MagicSetHints.FixedAdornment(args.map(_ => true) :+ false))
 
-          // TODO: Coalesing / Uncoalesing
+          // TODO: Support tuples by using scala tuples
 
           val resultVars = flattenVars("result", resType, genFresh = true)
           val unpackCons = {
-            if (resultVars.size > 1) {
-              // we got a scala tuple back from the aggregation, unpack it
-              resultVars.zipWithIndex.map { case ((v, ty), idx) =>
-                Datalog.Computed(v, Datalog.Evaluation(
-                  Seq(aggVar -> aggVarType),
-                  ty,
-                  Scala(q"(aggVar: ${aggVarType.asScala}) => aggVar.${Term.Name("_" + (idx + 1))}")
-                ))
-              }
-            } else if (resType.isInstanceOf[TClass]) {
-              // Todo: extend this to nested tuple
-              // Todo: extend this to nested tuple
-              val clsName = resType.asInstanceOf[TClass].ref.name.raw
-              val uncoalescedCall = Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVars.head._1))
-              Seq(uncoalescedCall)
-              //Seq()
-            } else {
-              // we got a single value back from the aggregation
-              Seq(Datalog.Eq(resultVars.head._1, aggVar))
+            resType match {
+              case clazz: TClass =>
+                val clsName = clazz.ref.name.raw
+                val uncoalescedCall = Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVars.head._1))
+                Seq(uncoalescedCall)
+              case _ =>
+                // we got a single value back from the aggregation
+                Seq(Datalog.Eq(resultVars.head._1, aggVar))
             }
           }
 
-          (resultVars.map(_._1), (cons :+ resultComp) ++ unpackCons)
+          (resultVars.map(_._1), (cons :+ runtimeTypeComp :+ dispatchCall :+ resultComp) ++ unpackCons)
         } else if (classDef.isCaseClass) {
           val recvTerm = terms.head
           val fieldReadVars = flattenVars(targetName.raw, fieldDef.typ)
@@ -942,7 +944,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
       val outVars = if (classDef.isMonotoneClass && fun.raw == AssignmentOp.AGG_ELEMENT.name.raw)
-        Seq(Datalog.Var(gensym.fresh("methodCall")))
+        flattenVars(gensym.fresh("methodCall"), classDef.montoneTypes.get._2).map(_._1)
       else
         flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
 

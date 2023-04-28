@@ -112,10 +112,12 @@ class DependencyAnalysis extends Visitor {
 // ~> Relation[A, B]
 
 class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
+    @static
     def init(): `scala.collection.immutable.Set[Any]` = {
         `scala.collection.immutable.Set[Any]`()
     }
 
+    @static
     def join(m1: `scala.collection.immutable.Set[Any]`, m2: `scala.collection.immutable.Set[Any]`): `scala.collection.immutable.Set[Any]` = {
         m1 ++ m2
     }
