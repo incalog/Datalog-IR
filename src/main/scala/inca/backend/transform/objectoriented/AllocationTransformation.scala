@@ -19,7 +19,7 @@ import scala.meta.XtensionQuasiquoteTerm
  *    argument as second parameter for the ObjectID creation. Increase the `allocIn` argument by one and assign the
  *    result to `allocOut` .
  */
-object AllocTransformation extends Transformation {
+object AllocationTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
     ObjectHints.AllocationRootKey,
     ObjectHints.AllocationConstructorKey,

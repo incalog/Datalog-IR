@@ -56,7 +56,6 @@ class GenerateScala {
   }
 
   def genModule(module: Module): ScalaModule = {
-    // TODO: Hack MonoMap
     val (cls, objs) = module.classes.map(transClass).unzip
     new ScalaModule(cls, objs)
   }
@@ -145,11 +144,7 @@ class GenerateScala {
 
     val identityObjectTerm = Term.Name("__identity")
     val identityObjectParam = Term.Param(Nil, identityObjectTerm, Some(typeOf[Identity]), None)
-    // TODO: hack MonoMap
-    val myFields = fields.filter { f =>
-      !(f.typ.isInstanceOf[TClass] && f.typ.asInstanceOf[TClass].ref.name.raw.startsWith("MonoMap"))
-    }
-    val params = identityObjectParam +: myFields.flatMap { f =>
+    val params = identityObjectParam +: fields.flatMap { f =>
       f.typ.flatten.zipWithIndex.map { case (ty, i) =>
         Term.Param(Nil, Term.Name(f.name.raw + "$" + i), Some(transType(ty)), None)
       }
@@ -168,14 +163,14 @@ class GenerateScala {
         (index + 1, q"${Term.Name(name + "$" + index)}")
     }
 
-    val assignments = myFields.map { f =>
+    val assignments = fields.map { f =>
       val (newIndex, paramTerm) = fieldToTuple(f.name.raw, f.typ)
       val fieldTerm = Term.Name(f.name.raw)
       q"obj.$fieldTerm = $paramTerm"
     }.toList
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
-    val aggregationVal = if (classDef.isMonotoneClass) {
+    val aggregationVal = if (classDef.isMonotoneClass && !classDef.isMonotoneMapClass) {
       val Some((_, resType)) = classDef.montoneTypes
       val scalaTy = transType(resType)
       val tyAggregation = typeOf[Aggregation[_]]

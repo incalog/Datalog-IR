@@ -48,7 +48,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
   def isCaseClass: Boolean = annos.contains(CaseAnnotation)
-  def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation])
+  def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation]) || isMonotoneMapClass
   def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
   def isAbstract: Boolean = annos.contains(AbstractAnnotation)
   def isDefunAuxiliary: Boolean = annos.contains(DefunAuxiliaryAnnotation)

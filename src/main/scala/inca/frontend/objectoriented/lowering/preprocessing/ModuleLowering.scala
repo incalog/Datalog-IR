@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.lowering
+package inca.frontend.objectoriented.lowering.preprocessing
 
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._

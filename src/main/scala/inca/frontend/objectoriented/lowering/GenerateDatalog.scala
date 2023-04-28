@@ -34,7 +34,6 @@ object GenerateDatalog {
   def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
   def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
-  def monoMapPatName(mapName: String): String = mapName + "$1"
 
   def transformModule(typedModule: Module, coreModule: Module): Datalog.Module =
     new GenerateDatalog(typedModule, coreModule).transModule()
@@ -79,7 +78,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       case (f, ty, terms) => flattenVars(f, ty).map(_._1.name).zip(terms)
     }.toList
 
-    val fieldArgs = flattenFields.map { case (f, _) => Term.Name(f) }
+    val fieldArgs = flattenFields.map { case (f, _) => Term.Name(gensym.fresh(f)) }
     val fieldParams = fieldArgs.map(a => Term.Param(Nil, a, Some(Datalog.TAny.asScala), None))
     val fieldTuples = flattenFields.zip(fieldArgs).map { case ((f, _), t) => Term.Tuple(List(Lit.String(f), t)) }
 
@@ -133,7 +132,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = coreModule
-    val concreteClasses = classes.filter(c => !c.isAbstract && !c.isMonotoneMapClass)
+    val concreteClasses = classes.filter(c => !c.isAbstract)
 
     gensym.register(coreModule.usedModuleNames.map(_.raw))
     gensym.register(concreteClasses.map(_.name.raw))
@@ -164,6 +163,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
      */
     def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[(String, ClassDef), (ClassDef, MethodDef)] = {
       val methods = implClass.content.flatMap {
+        case m: MethodDef if implClass.isMonotoneMapClass && Seq("keys", "get").contains(m.name.raw) => None
         case m: MethodDef if !m.isStatic =>  Some((methodPatName(m), classDef) -> (implClass, m))
         case _ => None
       }.toMap
@@ -324,13 +324,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val objParam = Datalog.Param("obj", objType)
     val objVar = Datalog.Var(objParam.name)
 
-    val (fieldVars, readFields) = fields.filter { f =>
-      // TODO: Hack MonoMap
-      f.typ match {
-        case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass => false
-        case _ => true
-      }
-    }.map { f =>
+    val (fieldVars, readFields) = fields.map { f =>
       var fieldReadVars: Seq[Datalog.Var] = Seq()
       var fieldReadCalls: Seq[Datalog.Atom] = Seq()
       if (classDef.isCaseClass) {
@@ -431,13 +425,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       (fieldReadVar, comp)
     }
 
-    val fieldVarsAndComps = fields.filter { f =>
-      // TODO: Hack MonoMap
-      f.typ match {
-        case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass => false
-        case _ => true
-      }
-    }.map { f =>
+    val fieldVarsAndComps = fields.map { f =>
       // FIXME: This tuple check will fail if we allow coalescing sets, since tuples can then be contained inside a
       //  set. For now a Tuple can only be the outermost type at this source position.
       val isTuple = f.typ.isInstanceOf[TTuple]
@@ -536,13 +524,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
      * Collect all fields from classDef and all inherited fields from all parents
      */
     def collectFields(classDef: ClassDef): Seq[(ClassDef, FieldDef)] = {
-      val fields = classDef.fields.filter { f =>
-        // TODO: Hack MonoMap
-        f.typ match {
-          case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass => false
-          case _ => true
-        }
-      }.map((classDef, _))
+      val fields = classDef.fields.map((classDef, _))
       val parentFields = classDef.parentClassRefs.flatMap(ref =>
         collectFields(ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
       )
@@ -602,21 +584,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transField(classDef: ClassDef, fieldDef: FieldDef): Datalog.Pattern = {
-    // TODO: Hack MonoMap
-    //   we just use the class name as relation name for now => Name collision
-    //   we do not support lifting for now
-    //   we should not include coalesced here
-    fieldDef.typ match {
-      case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass =>
-        // Create a monoMap field relation
-        val monoCls = ref.target.get
-        val monoTypes = monoCls.montoneTypes.get
-        return Datalog.Pattern(None, monoMapPatName(monoCls.name.raw), Seq(
-          Datalog.Param("key", transType(monoTypes._1)), Datalog.Param("value", transType(monoTypes._2)), Datalog.Param("coalesced", transDataType(monoTypes._2))
-        ), Seq())
-      case _ => // nothing
-    }
-
     val qualifiedName = fieldPatName(classDef.name.raw, fieldDef.name.raw)
     val params = Datalog.Param("this", transType(classDef.typ)) +:
       flattenParam(fieldDef.name.raw, fieldDef.typ, genFresh = false)
@@ -657,7 +624,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private def transMethodWithSameQualifiedName(qualifiedName: String, pairs: Seq[(ClassDef, MethodDef)]): Datalog.Pattern = gensym.scoped {
     val allMethods = pairs.map(_._2)
-    allMethods.foreach {m => gensym.register(m.vars.keys.map(_.raw) + "this") }
+    allMethods.foreach { m => gensym.register(m.vars.keys.map(_.raw) + "this") }
 
     val reprMethod = allMethods.head
     val thisParam = Datalog.Param("this", GP_URI)
@@ -672,7 +639,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val returnParams = {
       if (isMonotoneAdd) {
-        flattenParam("return", repCls.montoneTypes.get._2, genFresh = true)
+        val resType = repCls.montoneTypes.get._2
+        Seq(Datalog.Param(gensym.fresh("return"), transDataType(resType)))
       } else if (reprMethod.returnsUnit) {
         Seq()
       } else {
@@ -680,17 +648,25 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
     }
 
-    val bodies = pairs.flatMap {
+    val pairsSet = pairs.toSet // Remove duplicates
+    val bodies = pairsSet.flatMap {
       case (c, m) =>
-        val bodyRes = if (isMonotoneAdd) {
-          // Return the lifted value
-          val body = m.body.dropRight(1)
-          val liftExp = body.last match {
-            case ExprStmt(expr) => expr
+        val bodyRes = {
+          if (isMonotoneAdd && !repCls.isMonotoneMapClass) {
+            // Return the lifted value
+            val body = m.body.dropRight(1)
+            val liftExp = body.last match {
+              case ExprStmt(expr) => expr
+            }
+            transStatements(body.dropRight(1) :+ ReturnStmt(liftExp), None, m)
+          } else if (isMonotoneAdd && repCls.isMonotoneMapClass) {
+            val outVar = Datalog.Var(gensym.fresh("out"))
+            val coalArg = Datalog.Var(argParams.last.name)
+            val call = Datalog.Call(coalescedPatName(), Seq(coalArg, outVar))
+            Seq((Some(Seq(outVar)), Seq(call), None))
+          } else {
+            transStatements(m.body, None, m)
           }
-          transStatements(body.dropRight(1) :+ ReturnStmt(liftExp), None, m)
-        } else {
-          transStatements(m.body, None, m)
         }
         for ((optReturn, cons, _) <- bodyRes) yield {
           val clsGuard = Datalog.Eq(Datalog.Var(clsParam.name), Datalog.StringConstant(c.name.raw))
@@ -700,7 +676,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           }
           Datalog.Body(clsGuard +: (cons ++ returnCons))
         }
-    }
+    }.toSeq
 
     Datalog.Pattern(transVis(reprMethod.vis), qualifiedName, clsParam +: thisParam +: (argParams ++ returnParams), bodies)
   }
@@ -800,12 +776,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     case fieldRead@FieldReadExpr(recv, targetName) =>
       // to allow inheritance of attributes we use the classDef target of the field lookup
       val (classDef, fieldDef) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
-
-      // TODO: Hack MonoMap
-      fieldDef.typ match {
-        case TClass(ref) if ref.target.isDefined && ref.target.get.isMonotoneMapClass => return Seq((Seq(), Seq()))
-        case _ => // nothing
-      }
 
       for ((terms, cons) <- transExpression(recv)) yield {
         // reading the result value should perform an aggregation instead
@@ -933,16 +903,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       val (classDef, methodDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
 
-      // TODO: Hack MonoMap
-      if (classDef.isMonotoneMapClass && methodDef.name.raw == "keys") {
-        // query all keys
-        val keysVar = Datalog.Var(gensym.fresh("keys"))
-        val queryCall = Datalog.Call(monoMapPatName(classDef.name.raw), Seq(keysVar, Datalog.Var(gensym.fresh("_")), Datalog.Var(gensym.fresh("_"))))
-          .addHint(MagicSetHints.IgnoreCall)
-        //.addHint(MagicSetHints.)
-        return Seq((Seq(keysVar), Seq(queryCall)))
-      }
-
       val outVars = if (classDef.isMonotoneClass && fun.raw == AssignmentOp.AGG_ELEMENT.name.raw)
         flattenVars(gensym.fresh("methodCall"), classDef.montoneTypes.get._2).map(_._1)
       else
@@ -957,7 +917,18 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val dispatchTypeVar = Datalog.Var(gensym.fresh("D"))
         val dispatchCall = Datalog.Call(dispatchName, Seq(runtimeTypeVar, dispatchTypeVar))
 
-        if (argRes.isEmpty) {
+        val isMonoMapKeys = classDef.isMonotoneMapClass && methodDef.name.raw == "keys"
+        val isMonoMapGet = classDef.isMonotoneMapClass && methodDef.name.raw == "get"
+
+        if (isMonoMapKeys) {
+          val addMethod = classDef.methods.filter(_.name.raw == AssignmentOp.AGG_ELEMENT.name.raw).head
+          val addMethodName = methodPatName(addMethod)
+          val dispatchTypeVarAdd = Datalog.Var(gensym.fresh("D"))
+          val dispatchCallAdd = Datalog.Call(dispatchPatName(addMethodName), Seq(runtimeTypeVar, dispatchTypeVarAdd))
+          val queryCall = Datalog.Call(addMethodName, dispatchTypeVarAdd +: term +: outVars :+ Datalog.Var(gensym.fresh("_")) :+ Datalog.Var(gensym.fresh("_")))
+            .addHint(MagicSetHints.IgnoreCall)
+          return Seq((outVars, cons :+ runtimeTypeComp :+ dispatchCallAdd :+ queryCall))
+        } else if (argRes.isEmpty) {
           val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: outVars)
           val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
           return Seq((outVars, cons ++ call))
@@ -965,9 +936,41 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
           val (argTerms, argCons) = tups.unzip
-          val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: (argTerms.flatten ++ outVars))
-          val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
-          (outVars, cons ++ argCons.flatten ++ call)
+
+          if (isMonoMapGet) {
+            val Some((_, resType)) = classDef.montoneTypes
+
+            val addMethod = classDef.methods.filter(_.name.raw == AssignmentOp.AGG_ELEMENT.name.raw).head
+            val addMethodName = methodPatName(addMethod)
+            val dispatchTypeVarAdd = Datalog.Var(gensym.fresh("D"))
+            val dispatchCallAdd = Datalog.Call(dispatchPatName(addMethodName), Seq(runtimeTypeVar, dispatchTypeVarAdd))
+
+            val readAgg = Datalog.CustomAggregation(
+              transDataType(resType),
+              None,
+              Scala(q"${Term.Name(resType.asInstanceOf[TClass].ref.name.raw)}.__aggregation__"),
+              addMethodName,
+              dispatchTypeVarAdd +: term +: argTerms.flatten :+ Datalog.Var(gensym.fresh("_")) :+ Datalog.Var(gensym.fresh("_")),
+              argTerms.flatten.size + 3
+            )
+
+            val aggVar = Datalog.Var(gensym.fresh("agg"))
+            val aggComp = Datalog.Computed(aggVar, readAgg).addHint(MagicSetHints.IgnoreCall)
+
+            val resultVar = Datalog.Var(gensym.fresh("result"))
+            val unpackCons = resType match {
+              case TClass(_) =>
+                Seq(Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVar)))
+              case _ =>
+                Seq() // We never get here. We already fail before.
+            }
+            val aggCons = Seq(runtimeTypeComp, dispatchCallAdd, aggComp)
+            (Seq(resultVar), (cons ++ argCons.flatten ++ aggCons ++ unpackCons))
+          } else {
+            val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: (argTerms.flatten ++ outVars))
+            val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
+            (outVars, cons ++ argCons.flatten ++ call)
+          }
         }
       }).flatten
 

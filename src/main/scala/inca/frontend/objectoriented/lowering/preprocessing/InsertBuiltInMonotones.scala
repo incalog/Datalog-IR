@@ -1,7 +1,7 @@
-package inca.frontend.objectoriented.lowering
+package inca.frontend.objectoriented.lowering.preprocessing
 
-import inca.frontend.objectoriented.core.{Annotation, ClassContent, ClassDef, ClassRef, ConstructorExpr, Expression, MainAnnotation, MethodDef, Module, MonotoneAnnotation, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetComprehension, SetExpr, SetMemberExpr, TClass, TScalaAny, TScalaString, TSet, TTuple, TUnit, Type, VarReadExpr, Visibility}
-import inca.frontend.objectoriented.lowering.InsertBuiltInMonotones.{monoMapName, transformModule}
+import inca.frontend.objectoriented.core.{ClassDef, ClassRef, ConstructorExpr, Expression, MethodDef, Module, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TSet, TTuple, TUnit, Type}
+import inca.frontend.objectoriented.lowering.preprocessing.InsertBuiltInMonotones.monoMapName
 
 
 object InsertBuiltInMonotones {

@@ -53,7 +53,7 @@ case class MaxAgg() extends Aggregation[Int] {
  *    - target: Call (Ignore) =>
  *        - Insert two arguments, one for `tsIn` and one for `tsOut`
  */
-object FieldTransformation extends Transformation {
+object MutationTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
     ObjectHints.FieldRootKey,
     ObjectHints.FieldKey,
