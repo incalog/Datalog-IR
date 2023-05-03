@@ -38,7 +38,7 @@ public class FunIncAUtil {
     public static List<PsiNamedElement> findDefinitionNode(@Nullable FunIncAFile file, @Nullable String name, @Nullable PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
         if (file == null)
-            return new ArrayList<PsiNamedElement>();
+            return new ArrayList<>();
         final FunIncASetComprehensionExp setParent = PsiTreeUtil.getParentOfType(e, FunIncASetComprehensionExp.class);
         final boolean isSetComprehension = setParent != null;
         // We only want to look for classes that match the element e we are resolving
@@ -85,8 +85,7 @@ public class FunIncAUtil {
                             if (namedElement instanceof FunIncAVarDef) { // declaration in let expressions
                                 if (e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset()) // possible let-expressions in rhs are excluded
                                     resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncAParamDef
-                                    && funParentE == funParentNamedElement) {
+                            } else if (namedElement instanceof FunIncAParamDef) {
                                 resCandidates.add(namedElement);
                             } else if (namedElement instanceof FunIncAPatternVarDef) {
                                 FunIncAMatchCase matchCaseParent = PsiTreeUtil.getParentOfType(

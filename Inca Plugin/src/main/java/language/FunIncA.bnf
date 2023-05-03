@@ -184,7 +184,7 @@ FunType ::= AtomicType '=>' Type {pin = 2}
 AtomicType ::= TupleType | 'Any' | 'Nothing' | 'Unit' | PrimitiveType | SetType | ConstructorType | ScalaType | TypeNameRef
 ConstructorType ::= TypeNameRef '[' TypeList ']'
 private TypeList ::= Type (',' Type)*
-TupleType ::= '(' (Type (',' Type)*)? ')'
+TupleType ::= '(' TypeList? ')'
 // option ::= 'Option' '[' type_annotation ']' {pin = 1}
 SetType ::= 'Set' '[' Type ']' {pin = 1}
 TypeNameRef ::= id

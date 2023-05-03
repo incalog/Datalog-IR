@@ -1394,7 +1394,7 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '(' (Type (',' Type)*)? ')'
+  // '(' TypeList? ')'
   public static boolean TupleType(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TupleType")) return false;
     if (!nextTokenIs(b, PARENS_OPEN)) return false;
@@ -1407,44 +1407,11 @@ public class FunIncAParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (Type (',' Type)*)?
+  // TypeList?
   private static boolean TupleType_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TupleType_1")) return false;
-    TupleType_1_0(b, l + 1);
+    TypeList(b, l + 1);
     return true;
-  }
-
-  // Type (',' Type)*
-  private static boolean TupleType_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "TupleType_1_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = Type(b, l + 1);
-    r = r && TupleType_1_0_1(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // (',' Type)*
-  private static boolean TupleType_1_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "TupleType_1_0_1")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!TupleType_1_0_1_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "TupleType_1_0_1", c)) break;
-    }
-    return true;
-  }
-
-  // ',' Type
-  private static boolean TupleType_1_0_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "TupleType_1_0_1_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, COMMA);
-    r = r && Type(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
   }
 
   /* ********************************************************** */

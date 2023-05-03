@@ -157,22 +157,29 @@ public class FunIncATypechecker {
                         .create();
                 return new AnyType();
             }
-            Type type = typecheckExp(set, holder);
-            if (!(type instanceof SetType))
+            Type setType = typecheckExp(set, holder);
+            if (!(setType instanceof SetType))
                 return new AnyType();
-            SetType setType = (SetType) type;
+            Type setContentType = ((SetType) setType).setType;
             if (exp instanceof FunIncATupleExp) {
-                if (!(setType.setType instanceof TupleType)) {
+                if (!(setContentType instanceof TupleType)) {
                     return new AnyType();
                 }
                 int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
-                if (index < ((TupleType) setType.setType).types.size() && index != -1) {
-                    return ((TupleType) setType.setType).types.get(index);
+                if (index < ((TupleType) setContentType).types.size() && index != -1) {
+                    return ((TupleType) setContentType).types.get(index);
                 } else {
                     return new AnyType();
                 }
+            } else if (setContentType instanceof TupleType) { // set content is tuple, but expression is not a tuple
+                int m = ((TupleType) setContentType).types.size();
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                        "Set contains " + m + "-ary tuples, but test expression is " + 1 + "-ary")
+                        .range(exp)
+                        .create();
+                return new AnyType();
             } else {
-                return setType.setType;
+                return setContentType;
             }
 
         } else if (element instanceof FunIncAPatternVarDef) {
@@ -356,7 +363,11 @@ public class FunIncATypechecker {
                 FunIncASetMemberExp setMemberParent = PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class);
                 FunIncASetComprehensionExp setComprehensionParent =
                         PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class);
-                boolean isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false); // TODO Nullpointer
+                boolean isDefinition = false;
+                if (setComprehensionParent != null && setMemberParent != null) {
+                    isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false);
+                }
+
                 FunIncACallExp callParent = PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class);
                 if ((setMemberParent != null) &&
                         (setComprehensionParent != null) &&
