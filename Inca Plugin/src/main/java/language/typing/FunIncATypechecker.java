@@ -63,49 +63,56 @@ public class FunIncATypechecker {
             FunIncAVarDef varDef = (FunIncAVarDef) element;
             PsiElement parent = varDef.getParent();
             if (parent instanceof FunIncASingleBinding) {
-                FunIncASingleBinding binding = (FunIncASingleBinding) parent;
-                Type inferredType = typecheckExp(binding.getExpList().get(0), holder);
-                if (binding.getType() == null) {
+                FunIncASingleBinding singleBinding = (FunIncASingleBinding) parent;
+                Type inferredType = typecheckExp(singleBinding.getExpList().get(0), holder);
+                if (singleBinding.getType() == null) {
                     return inferredType;
                 } else {
-                    Type expectedType = PsiToTypeConverter.convert(binding.getType());
+                    Type expectedType = PsiToTypeConverter.convert(singleBinding.getType());
                     if (expectedType instanceof UnitType) {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                                "Cannot assign Type Unit to " + binding.getVarDef().getName(),
-                                binding.getType(),
+                                "Cannot assign Type Unit to " + singleBinding.getVarDef().getName(),
+                                singleBinding.getType(),
                                 holder);
                         expectedType = new AnyType();
                     }
                     if (!FunIncATypeUtil.subtype(inferredType, expectedType)) {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + expectedType + ", but got " + inferredType,
-                                binding.getType(),
+                                singleBinding.getType(),
                                 holder);
                     }
                     return expectedType;
                 }
             } else if (parent instanceof FunIncAMultipleBindings) {
-                FunIncAMultipleBindings binding = (FunIncAMultipleBindings) parent;
-                if (binding.getExpList() == null) { // has not been bound yet
+                FunIncAMultipleBindings multipleBindings = (FunIncAMultipleBindings) parent;
+                if (multipleBindings.getExpList() == null) { // has not been bound yet
                     return new AnyType();
                 }
-                Type inferredType = typecheckExp(binding.getExpList().get(0), holder);
+                Type inferredType = typecheckExp(multipleBindings.getExpList().get(0), holder);
                 if (!(inferredType instanceof TupleType)) {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected Tuple type, but got " + inferredType,
-                            binding.getExpList().get(0),
+                            multipleBindings.getExpList().get(0),
                             holder);
                     return new AnyType();
                 }
-                int index = binding.getVarDefList().indexOf(element); // position of the VarDef in question
-                TupleType inferredTupleType = (TupleType) inferredType;
-                if (binding.getType() == null) { // no expected types
-                    if (index < inferredTupleType.types.size())
+                int index = multipleBindings.getVarDefList().indexOf(element); // position of the VarDef in question
+                TupleType inferredTupleType = (TupleType) inferredType; // inferred types are definitely a tuple
+                int n = inferredTupleType.types.size();
+                int m = multipleBindings.getVarDefList().size();
+                if (m != n) // error when number of inferred types does not match with number of bound variables
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot assign " + n + "-ary tuple to " + m + " variables",
+                            multipleBindings.getExpList().get(0),
+                            holder);
+                if (multipleBindings.getType() == null) { // no expected types provided
+                    if (index < m)
                         return inferredTupleType.types.get(index);
                     else
                         return new AnyType(); // nothing bound to that VarDef
                 } else { // expected types are given
-                    Type expectedType = PsiToTypeConverter.convert(binding.getType());
+                    Type expectedType = PsiToTypeConverter.convert(multipleBindings.getType());
                     if (expectedType instanceof TupleType) {
                         TupleType expectedTupleType = (TupleType) expectedType;
                         if (index < expectedTupleType.types.size()) { // this VarDef has an expected type
@@ -113,7 +120,7 @@ public class FunIncATypechecker {
                             if (expectedTypeIndex instanceof UnitType) {
                                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                         "Cannot assign Type Unit to " + varDef.getName(),
-                                        binding.getType().getAtomicType().getTupleType().getTypeList().get(index),
+                                        multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index),
                                 holder);
                             }
                             if (index < inferredTupleType.types.size()) {
@@ -121,7 +128,7 @@ public class FunIncATypechecker {
                                 if (!expectedTypeIndex.equals(inferredTypeIndex)) {
                                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                             "Expected " + expectedTypeIndex + ", but got " + inferredTypeIndex,
-                                            binding.getType().getAtomicType().getTupleType().getTypeList().get(index),
+                                            multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index),
                                             holder);
                                 }
                             }
@@ -407,7 +414,7 @@ public class FunIncATypechecker {
                 }
             } else if (letExp.getMultipleBindings() != null) {
                 FunIncAMultipleBindings multiple = letExp.getMultipleBindings();
-                if (multiple.getType() != null) {
+                if (multiple.getType() != null) { // expected types are provided
                     validateType(multiple.getType(), holder);
                     Type type = PsiToTypeConverter.convert(multiple.getType());
                     if (type instanceof TupleType) {
@@ -454,7 +461,7 @@ public class FunIncATypechecker {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Type cast of " + expectedType + " is not compatible with inferred type " +
                                 inferredType + " of expression " + cast.getExp().getText(),
-                        exp.getTextRange(),
+                        exp,
                         holder);
             return expectedType;
 
