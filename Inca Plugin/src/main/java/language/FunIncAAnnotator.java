@@ -3,6 +3,7 @@ package language;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import language.psi.*;
 import language.typing.FunIncATypeUtil;
@@ -11,14 +12,33 @@ import language.typing.PsiToTypeConverter;
 import language.typing.types.Type;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
-// import static language.types.TypeContext.*;
+import java.util.*;
 
 public class FunIncAAnnotator implements Annotator {
+
+    private static Map<TextRange, Set<String>> annotationMap;
+
+    public static void newAnnotation(HighlightSeverity hs, String message, PsiElement e, AnnotationHolder holder) {
+        newAnnotation(hs, message, e.getTextRange(), holder);
+    }
+
+    public static void newAnnotation(HighlightSeverity hs, String message, TextRange textRange, AnnotationHolder holder) {
+        Set<String> annos = annotationMap.get(textRange);
+        if (annos == null) { // no annotations yet for that specific text range
+            annotationMap.put(textRange, new HashSet<>(Collections.singletonList(message)));
+            holder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+        } else { // this text range already displays annotations
+            if (!annos.contains(message)) {
+                annos.add(message);
+                holder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+            }
+        }
+    }
+
     @Override
     public void annotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
+
+        annotationMap = new HashMap<>();
 
         if (element instanceof FunIncAFunDef) {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);
