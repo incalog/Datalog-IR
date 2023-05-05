@@ -18,19 +18,21 @@ public class FunIncAAnnotator implements Annotator {
 
     private static Map<TextRange, Set<String>> annotationMap;
 
-    public static void newAnnotation(HighlightSeverity hs, String message, PsiElement e, AnnotationHolder holder) {
-        newAnnotation(hs, message, e.getTextRange(), holder);
+    private static AnnotationHolder annotationHolder;
+
+    public static void newAnnotation(HighlightSeverity hs, String message, PsiElement e) {
+        newAnnotation(hs, message, e.getTextRange());
     }
 
-    public static void newAnnotation(HighlightSeverity hs, String message, TextRange textRange, AnnotationHolder holder) {
+    public static void newAnnotation(HighlightSeverity hs, String message, TextRange textRange) {
         Set<String> annos = annotationMap.get(textRange);
         if (annos == null) { // no annotations yet for that specific text range
             annotationMap.put(textRange, new HashSet<>(Collections.singletonList(message)));
-            holder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+            annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
         } else { // this text range already displays annotations
             if (!annos.contains(message)) {
                 annos.add(message);
-                holder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+                annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
             }
         }
     }
@@ -39,6 +41,7 @@ public class FunIncAAnnotator implements Annotator {
     public void annotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
 
         annotationMap = new HashMap<>();
+        annotationHolder = holder;
 
         if (element instanceof FunIncAFunDef) {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);

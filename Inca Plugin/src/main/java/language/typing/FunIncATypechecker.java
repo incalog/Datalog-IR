@@ -44,8 +44,7 @@ public class FunIncATypechecker {
             if (paramDef.getType() == null) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Missing type annotation",
-                        paramDef.getId(),
-                        holder);
+                        paramDef.getId());
                 return new AnyType();
             }
             return PsiToTypeConverter.convert(paramDef.getType());
@@ -72,15 +71,13 @@ public class FunIncATypechecker {
                     if (expectedType instanceof UnitType) {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Cannot assign Type Unit to " + singleBinding.getVarDef().getName(),
-                                singleBinding.getType(),
-                                holder);
+                                singleBinding.getType());
                         expectedType = new AnyType();
                     }
                     if (!FunIncATypeUtil.subtype(inferredType, expectedType)) {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + expectedType + ", but got " + inferredType,
-                                singleBinding.getType(),
-                                holder);
+                                singleBinding.getType());
                     }
                     return expectedType;
                 }
@@ -93,8 +90,7 @@ public class FunIncATypechecker {
                 if (!(inferredType instanceof TupleType)) {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected Tuple type, but got " + inferredType,
-                            multipleBindings.getExpList().get(0),
-                            holder);
+                            multipleBindings.getExpList().get(0));
                     return new AnyType();
                 }
                 int index = multipleBindings.getVarDefList().indexOf(element); // position of the VarDef in question
@@ -104,8 +100,7 @@ public class FunIncATypechecker {
                 if (m != n) // error when number of inferred types does not match with number of bound variables
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot assign " + n + "-ary tuple to " + m + " variables",
-                            multipleBindings.getExpList().get(0),
-                            holder);
+                            multipleBindings.getExpList().get(0));
                 if (multipleBindings.getType() == null) { // no expected types provided
                     if (index < m)
                         return inferredTupleType.types.get(index);
@@ -120,16 +115,14 @@ public class FunIncATypechecker {
                             if (expectedTypeIndex instanceof UnitType) {
                                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                         "Cannot assign Type Unit to " + varDef.getName(),
-                                        multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index),
-                                holder);
+                                        multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index));
                             }
                             if (index < inferredTupleType.types.size()) {
                                 Type inferredTypeIndex = inferredTupleType.types.get(index);
                                 if (!expectedTypeIndex.equals(inferredTypeIndex)) {
                                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                             "Expected " + expectedTypeIndex + ", but got " + inferredTypeIndex,
-                                            multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index),
-                                            holder);
+                                            multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index));
                                 }
                             }
                             return expectedTypeIndex;
@@ -155,8 +148,7 @@ public class FunIncATypechecker {
             if (varRef.getName().equals(set.getText())) { // breaks infinite loop in case the set variable has the same name as the element varRef
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Unresolved name",
-                        varRef,
-                        holder);
+                        varRef);
                 return new AnyType();
             }
             Type setType = typecheckExp(set, holder);
@@ -177,8 +169,7 @@ public class FunIncATypechecker {
                 int m = ((TupleType) setContentType).types.size();
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Set contains " + m + "-ary tuples, but test expression is " + 1 + "-ary",
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             } else {
                 return setContentType;
@@ -251,8 +242,7 @@ public class FunIncATypechecker {
         }
         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                 "Unknown type reference",
-                element,
-                holder);
+                element);
         return new AnyType();
     }
 
@@ -264,8 +254,7 @@ public class FunIncATypechecker {
         } catch (NullPointerException e) {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Missing type",
-                    type,
-                    holder);
+                    type);
             return;
         }
         if (ty instanceof FunIncAFunType) {
@@ -291,8 +280,7 @@ public class FunIncATypechecker {
         } catch (NullPointerException e) {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Missing type",
-                    type,
-                    holder);
+                    type);
             return;
         }
         String tyText = ty.getText();
@@ -313,16 +301,14 @@ public class FunIncATypechecker {
             if (result.length == 0) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Type " + tyText + " is not defined",
-                        ty,
-                        holder);
+                        ty);
                 return;
             } else if (result.length == 1) {
                 return;
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Ambiguous reference name " + tyText,
-                        ty,
-                        holder);
+                        ty);
                 return;
             }
         } else if (ty instanceof FunIncAConstructorType) {
@@ -333,23 +319,20 @@ public class FunIncATypechecker {
             if (result.length == 0) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Type " + tyText + " is not defined",
-                        typeNameRef,
-                        holder);
+                        typeNameRef);
                 return;
             } else if (result.length == 1) {
                 return;
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Ambiguous reference name " + tyText,
-                        typeNameRef,
-                        holder);
+                        typeNameRef);
                 return;
             }
         } else {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Unknown type " + tyText,
-                    ty,
-                    holder);
+                    ty);
             return;
         }
     }
@@ -381,8 +364,7 @@ public class FunIncATypechecker {
                 } else {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Unresolved name " + varExp.getName(),
-                            varExp,
-                            holder);
+                            varExp);
                     return new AnyType();
                 }
             } else if (result.length == 1){
@@ -395,8 +377,7 @@ public class FunIncATypechecker {
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Ambiguous reference name " + varExp.getName(),
-                        varExp,
-                        holder);
+                        varExp);
                 return new AnyType();
             }
 
@@ -423,13 +404,11 @@ public class FunIncATypechecker {
                         if (n != m)
                             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                     "Cannot assign " + n + "-ary tuple to " + m + " variables",
-                                    multiple.getType(),
-                                    holder);
+                                    multiple.getType());
                     } else {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Cannot assign expression of type " + type + " to multiple variables",
-                                multiple.getType(),
-                                holder);
+                                multiple.getType());
                     }
                 }
                 if (multiple.getExpList() == null || multiple.getExpList().size() == 1) {
@@ -452,8 +431,7 @@ public class FunIncATypechecker {
             } catch (NullPointerException e) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Missing Type",
-                        cast,
-                        holder);
+                        cast);
                 return new AnyType();
             }
             Type inferredType = typecheckExp(ex, holder);
@@ -461,8 +439,7 @@ public class FunIncATypechecker {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Type cast of " + expectedType + " is not compatible with inferred type " +
                                 inferredType + " of expression " + cast.getExp().getText(),
-                        exp,
-                        holder);
+                        exp);
             return expectedType;
 
         } else if (exp instanceof FunIncAIfExp) {
@@ -472,8 +449,7 @@ public class FunIncATypechecker {
             if (!(condType instanceof BooleanType)) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Expected Boolean condition, but got " + condType,
-                        cond,
-                        holder);
+                        cond);
             }
             Type thenType = typecheckExp(ifExp.getExpList().get(1), holder);
             Type elseType = typecheckExp(ifExp.getExpList().get(2), holder);
@@ -506,8 +482,7 @@ public class FunIncATypechecker {
             if (funExp == null) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Missing function expression for function call",
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             }
 
@@ -520,8 +495,7 @@ public class FunIncATypechecker {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Function " + funExp.getText() + " expects " + funType.typeVars.size() + " type " +
                                     "arguments, but found " + concreteTypes.size() + " type arguments in call",
-                            callExp,
-                            holder);
+                            callExp);
                 int i = 0; // index for assigning types in the substitution map
                 for (Type type : funType.typeVars) { // bulding the substitution map
                     if (type instanceof ParametricType) {
@@ -547,16 +521,14 @@ public class FunIncATypechecker {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + funType.paramTypes.size() + " arguments, but got "
                                         + argTypes.size(),
-                                callExp.getCallExpListList().get(i),
-                                holder);
+                                callExp.getCallExpListList().get(i));
                     } else {
                         for (int j = 0; j < funType.paramTypes.size(); j++) {
                             if (!FunIncATypeUtil.subtype(argTypes.get(j), funType.paramTypes.get(j))) {
                                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                         "Expected argument of type " + funType.paramTypes.get(j)
                                                 + ", but got argument of type " + argTypes.get(j),
-                                        argExps.get(j),
-                                        holder);
+                                        argExps.get(j));
                             }
                         }
                     }
@@ -569,8 +541,7 @@ public class FunIncATypechecker {
                     TextRange warningRange = new TextRange(beginning, end);
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected function type at function position of call, but got " + returnType,
-                            warningRange,
-                            holder);
+                            warningRange);
                     return returnType;
                 }
             }
@@ -595,8 +566,7 @@ public class FunIncATypechecker {
                     // So when there is no data definition found, TypeRef references a parametric type.
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot match on parametric type " + matcheeType,
-                            matchee,
-                            holder);
+                            matchee);
                     List<Type> caseTypes = new ArrayList<>();
                     for (FunIncAMatchCase matchCase : cases)
                         caseTypes.add(typecheckExp(matchCase.getExp(), holder));
@@ -605,8 +575,7 @@ public class FunIncATypechecker {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot match on type " + matcheeType + ", ambiguous definition of type " +
                                     matcheeType,
-                            matchee,
-                            holder);
+                            matchee);
                     List<Type> caseTypes = new ArrayList<>();
                     for (FunIncAMatchCase matchCase : cases)
                         caseTypes.add(typecheckExp(matchCase.getExp(), holder));
@@ -629,8 +598,7 @@ public class FunIncATypechecker {
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot match on type " + matcheeType,
-                        matchee,
-                        holder);
+                        matchee);
                 List<Type> caseTypes = new ArrayList<>();
                 for (FunIncAMatchCase matchCase : cases)
                     caseTypes.add(typecheckExp(matchCase.getExp(), holder));
@@ -665,8 +633,7 @@ public class FunIncATypechecker {
                     } else {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Arithmetic operator - cannot be used" + " with type " + eType,
-                                exp,
-                                holder);
+                                exp);
                         return new AnyType();
                     }
                 case "!":
@@ -675,15 +642,13 @@ public class FunIncATypechecker {
                     } else {
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Logic operator ! cannot be used" + " with type " + eType,
-                                exp,
-                                holder);
+                                exp);
                         return new AnyType();
                     }
                 default:
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Operation " + op + " is not supported",
-                            exp,
-                            holder);
+                            exp);
                     return new AnyType();
             }
         } else if (exp instanceof FunIncABaseApplyMethodExp) {
@@ -719,8 +684,7 @@ public class FunIncATypechecker {
                 default:
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Operation " + op + " is not supported",
-                            exp,
-                            holder);
+                            exp);
                     return new AnyType();
             }
 
@@ -742,8 +706,7 @@ public class FunIncATypechecker {
             if (!(setType instanceof SetType)) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Required set type, but got " + setType,
-                        set,
-                        holder);
+                        set);
                 setContentType = new AnyType();
             } else {
                 setContentType = ((SetType) setType).setType;
@@ -757,23 +720,20 @@ public class FunIncATypechecker {
                 if (n != m)
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Set contains " + m + "-ary tuples, but test expression is " + n + "-ary",
-                            memberExp,
-                            holder);
+                            memberExp);
                 for (int i = 0; i < Math.min(n,m); i++) {
                     Type expType = ((TupleType) typeTuple).types.get(i);
                     Type setTupleType = ((TupleType) setContentType).types.get(i);
                     if (! FunIncATypeUtil.subtype(expType, setTupleType))
                         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                                 "Expected " + setTupleType + ", but got " + expType,
-                                tupleExp.get(i),
-                                holder);
+                                tupleExp.get(i));
                 }
             }
             if (! FunIncATypeUtil.subtype(typeTuple, setContentType))
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Expected " + setContentType + ", but got " + typeTuple,
-                        tuple,
-                        holder);
+                        tuple);
             return new BooleanType();
 
         } else if (exp instanceof FunIncASetComprehensionExp) {
@@ -782,8 +742,7 @@ public class FunIncATypechecker {
             if (n == 0) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Incomplete set comprehension",
-                        setComprehensionExp,
-                        holder);
+                        setComprehensionExp);
                 return new SetType(new NothingType());
             }
             FunIncAExp build = setComprehensionExp.getExpList().get(0);
@@ -791,8 +750,7 @@ public class FunIncATypechecker {
             if (n == 1) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Missing predicates",
-                        setComprehensionExp,
-                        holder);
+                        setComprehensionExp);
                 return new SetType(new NothingType());
             }
             List<FunIncAExp> predicates = setComprehensionExp.getExpList().subList(1, setComprehensionExp.getExpList().size());
@@ -801,8 +759,7 @@ public class FunIncATypechecker {
                 if (! FunIncATypeUtil.subtype(type, new BooleanType())) {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Comprehension predicate must have Boolean type, but got " + type,
-                            pred,
-                            holder);
+                            pred);
                 }
             }
             return new SetType(buildType);
@@ -820,8 +777,7 @@ public class FunIncATypechecker {
             } catch (NullPointerException e) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Incomplete fold expression",
-                        foldExp,
-                        holder);
+                        foldExp);
                 return new AnyType();
             }
             Type initType = typecheckExp(init, holder);
@@ -833,8 +789,7 @@ public class FunIncATypechecker {
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Can only fold over sets, but got " + setType,
-                        set,
-                        holder);
+                        set);
                 setContentType = new NothingType();
             }
             Type foldType;
@@ -854,15 +809,13 @@ public class FunIncATypechecker {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
                                     ", but " + op.getText() + " has type " + opType,
-                            op,
-                            holder);
+                            op);
                 }
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
                                 ", but " + op.getText() + " has type " + opType,
-                        op,
-                        holder);
+                        op);
             }
             return foldType;
         }
@@ -902,8 +855,7 @@ public class FunIncATypechecker {
                     // only if there are 0 or more than 2 results, where none belong to dataDef
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "No constructor " + constructorName + " of type " + dataDef.getName() + " found",
-                            constructorPat.getConstructorRef(),
-                            holder);
+                            constructorPat.getConstructorRef());
                     caseTypes.add(typecheckExp(e, holder));
                     continue;
                 }
@@ -911,22 +863,19 @@ public class FunIncATypechecker {
                     // this constructor was already used in a match case
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Duplicate constructor pattern " + constructorName,
-                            constructorPat.getConstructorRef(),
-                            holder);
+                            constructorPat.getConstructorRef());
                 if (constructorDef.getTypeList().size() != constructorPat.getPatternVarDefList().size())
                     // number of parameters does not match
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Wrong number of constructor arguments, expected " +
                                     constructorDef.getTypeList().size() + " but got " +
                                     constructorPat.getPatternVarDefList().size(),
-                            constructorPat,
-                            holder);
+                            constructorPat);
                 caseTypes.add(typecheckExp(e, holder));
             } else { // pattern is not instance of FuncIncaConstructorPattern
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot match pattern " + pat.getText() + " against matchee of type " + dataDef.getName(),
-                        pat,
-                        holder);
+                        pat);
 
                 caseTypes.add(typecheckExp(e, holder));
             }
@@ -939,8 +888,7 @@ public class FunIncATypechecker {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Pattern match must be complete but missed the following constructors: " +
                             missingConstructors.substring(0, missingConstructors.length() - 2),
-                    exp,
-                    holder);
+                    exp);
         }
         return FunIncATypeUtil.join(caseTypes);
     }
@@ -992,8 +940,7 @@ public class FunIncATypechecker {
                 if (!seenConstructors.add(constructorName)) // this constructor was already used in a match case
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Duplicate constructor pattern " + constructorName,
-                            constructorPat.getConstructorRef(),
-                            holder);
+                            constructorPat.getConstructorRef());
                 if (availableConstructors.get(constructorName) != null) { // seen constructor is available
                     FunType constructorDef = (FunType) availableConstructors.get(constructorName);
                     if (constructorDef.paramTypes.size() != constructorPat.getPatternVarDefList().size())
@@ -1002,23 +949,20 @@ public class FunIncATypechecker {
                                 "Wrong number of constructor arguments, expected " +
                                         constructorDef.paramTypes.size() + " but got " +
                                         constructorPat.getPatternVarDefList().size(),
-                                constructorPat,
-                                holder);
+                                constructorPat);
                     caseTypes.add(typecheckExp(e, holder));
                 } else { // seen constructor is not available
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Cannot match pattern " + pat.getText() +
                                     " against matchee of type " + dataDef.getName(),
-                            constructorPat.getConstructorRef(),
-                            holder);
+                            constructorPat.getConstructorRef());
                     caseTypes.add(typecheckExp(e, holder));
                 }
             } else { // pattern is not instance of FuncIncaConstructorPattern
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot match pattern " + pat.getText() +
                                 " against matchee of type " + dataDef.getName(),
-                        pat,
-                        holder);
+                        pat);
                 caseTypes.add(typecheckExp(e, holder));
             }
         }
@@ -1028,8 +972,7 @@ public class FunIncATypechecker {
         if (!missingConstructors.isEmpty())
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Pattern must be complete but missed the following constructors: " + missingConstructors,
-                    exp,
-                    holder);
+                    exp);
 
         return FunIncATypeUtil.join(caseTypes);
     }
@@ -1041,8 +984,7 @@ public class FunIncATypechecker {
             } else { // rhs not a numeric type
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot use arithmetic operator " + op + " with types " + lhs + " and " + rhs,
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             }
         } else if (lhs.isDoubleType()) {
@@ -1053,8 +995,7 @@ public class FunIncATypechecker {
             } else { // rhs not a numeric type
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot use arithmetic operator " + op + " with types " + lhs + " and " + rhs,
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             }
         } else if (lhs.isLongType()) {
@@ -1065,15 +1006,13 @@ public class FunIncATypechecker {
             } else { // rhs is not a numeric type
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot use arithmetic operator " + op + " with types " + lhs + " and " + rhs,
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             }
         } else { // lhs not a numeric type
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Cannot use arithmetic operator " + op + " with types " + lhs + " and " + rhs,
-                    exp,
-                    holder);
+                    exp);
             return new AnyType();
         }
     }
@@ -1088,8 +1027,7 @@ public class FunIncATypechecker {
         }
         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                 "Cannot use logic operator " + op + " with types " + lhs + " and " + rhs,
-                exp,
-                holder);
+                exp);
         return new BooleanType();
     }
 
@@ -1106,15 +1044,13 @@ public class FunIncATypechecker {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot perform " + opName + " on sets holding " + "different types: "
                                 + lhsSetType + " and " + rhsSetType,
-                        exp,
-                        holder);
+                        exp);
                 return new AnyType();
             }
         } else {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Cannot perform " + opName + " on non set types: " + lhs + " and " + rhs,
-                    exp,
-                    holder);
+                    exp);
             return new AnyType();
         }
     }
