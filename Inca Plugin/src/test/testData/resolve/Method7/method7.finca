@@ -1,0 +1,6 @@
+module method7
+
+def <resolved>x(x:Int):Int=x
+def y(x:Double):Double=x
+
+@main def main(x:Long,y:Long): Double = <ref>x(1) + y(1)

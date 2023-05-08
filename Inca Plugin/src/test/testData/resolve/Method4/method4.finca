@@ -1,4 +1,4 @@
 module method4
 
 def x<resolved>(y: String): String = y
-def y(x: Int): String = <ref>x()
+def y(x: Int): String = <ref>x("hello")

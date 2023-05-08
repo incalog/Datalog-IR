@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 /**
- * General util class. Provides methods for finding named nodes in the Psi tree.
+ * General util class. Provides methods for finding Named Elements in the Psi tree.
  */
 public class FunIncAUtil {
     /*
@@ -37,6 +37,7 @@ public class FunIncAUtil {
      * */
     public static List<PsiNamedElement> findDefinitionNode(@Nullable FunIncAFile file, @Nullable String name, @Nullable PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
+        List<PsiNamedElement> resCandidates = new ArrayList<>();
         if (file == null)
             return new ArrayList<>();
         final FunIncASetComprehensionExp setParent = PsiTreeUtil.getParentOfType(e, FunIncASetComprehensionExp.class);
@@ -52,11 +53,20 @@ public class FunIncAUtil {
 
         Collection<PsiNamedElement> namedElements = PsiTreeUtil.findChildrenOfType(file, elementClass);
 
-        if (isSetComprehension && name != null) { // TODO own function for readability
+        if (name == null)
+            return (List<PsiNamedElement>) namedElements;
+
+        // resolving a reference from the inside of a set comprehension
+        if (isSetComprehension) {
             // finding candidates for resolving references
-            List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
                 if (name.equals(namedElement.getName())) {
+                    // possible variable definitions outside of the SetComprehension
+                    if (namedElement instanceof FunIncADecl) {
+                        if (isDefinitionNode(namedElement, e))
+                            resCandidates.add(namedElement);
+                    }
+                    // possible variable definitions inside the SetComprehensionExp
                     if (namedElement instanceof FunIncAVarRefExp) {
                         FunIncASetComprehensionExp namedElementSetCompParent =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class);
@@ -66,7 +76,8 @@ public class FunIncAUtil {
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncACallExp.class);
                         boolean isDefinition = false;// namedElement is only considered a definition if it is within a SetMemberExp within a SetComprehensionExp
                         if (namedElementSetCompParent != null && namedElementSetMemberParent != null)
-                            isDefinition = PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementSetMemberParent, false);
+                            isDefinition =
+                                    PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementSetMemberParent, false);
                         boolean isPartOfCallExp = false; // excludes VarRefExp in CallExp within nested set comprehensions from being considered definitions
                         if (namedElementCallParent != null)
                             isPartOfCallExp = PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementCallParent, false);
@@ -77,34 +88,6 @@ public class FunIncAUtil {
                             // declarations with FuncIncaVar in predicates can only be member-expressions
                             resCandidates.add(namedElement);
                         }
-                    }
-                    if (namedElement instanceof FunIncADecl) { // every other possible variable definition
-                        FunIncAFunDef funParentNamedElement = PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
-                        FunIncAFunDef funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
-                        if (funParentNamedElement == funParentE) { // declaration of e must be within the same function definition
-                            if (namedElement instanceof FunIncAVarDef) { // declaration in let expressions
-                                if (e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset()) // possible let-expressions in rhs are excluded
-                                    resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncAParamDef) {
-                                resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncAPatternVarDef) {
-                                FunIncAMatchCase matchCaseParent = PsiTreeUtil.getParentOfType(
-                                        namedElement, FunIncAMatchCase.class);
-                                if (PsiTreeUtil.isAncestor(matchCaseParent, e, true))
-                                    resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncADataConstructorDef) {
-                                resCandidates.add(namedElement);
-                            } else if (namedElement instanceof FunIncATypeVarDef
-                                    && e instanceof FunIncATypeNameRef) {
-                                resCandidates.add(namedElement);
-                            }
-                        } else if (namedElement instanceof FunIncAFunDef) {
-                            if (PsiTreeUtil.getParentOfType(e, FunIncACallExp.class) != null) // only resolve to FunDef if e is part of a function call
-                                resCandidates.add(namedElement);
-                        } else if (namedElement instanceof FunIncADataDef) {
-                            resCandidates.add(namedElement);
-                        }
-
                     }
                 }
             }
@@ -153,84 +136,103 @@ public class FunIncAUtil {
                             res.add(firstDef);
                         }
                     }
+                } else { // res was not empty
+                    // parameter definitions shadow function definitions and constructor definitions
+                    if (res.size() > 1) {
+                        boolean containsParameter = false;
+                        for (PsiNamedElement candidate : res)
+                            if (candidate instanceof FunIncAParamDef) {
+                                containsParameter = true;
+                                break;
+                            }
+                        List<PsiNamedElement> tmp = new ArrayList<>();
+                        if (containsParameter) {
+                            for (PsiNamedElement candidate : res)
+                                if(!(candidate instanceof FunIncAFunDef
+                                        || candidate instanceof FunIncADataConstructorDef))
+                                    tmp.add(candidate);
+                            res = tmp;
+                        }
+                    }
                 }
             }
 
 
         } else { // if e is not in a set comprehension proceed as normal and check all found named elements
             for (PsiNamedElement namedElement : namedElements) {
-
-                if (name == null) {
-                    res.add(namedElement);
-                    continue;
-                }
-
                 if (name.equals(namedElement.getName())) {
-
-                    PsiNamedElement funParentNamedElement =
-                            PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
-                    PsiNamedElement funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
-                    boolean isFunCall = false; // flag, that indicates if e is a part of a FunCallExp (function or argument)
-                    boolean isCalledFunction = false; // flag, that indicates if e is the function called in the expression
-                    FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
-                    if (funCall != null) { // is e part of a function call?
-                        isFunCall = true;
-                        PsiElement fun = funCall.getFirstChild();
-                        if (PsiTreeUtil.isAncestor(fun, e, false)) {
-                            // is e part of the first child of the FunCallExp, first child being the called function
-                            isCalledFunction = true;
-                        }
-                    }
-                    if (PsiTreeUtil.getParentOfType(e, FunIncAFoldExp.class) != null)
-                        isFunCall = true;
-
-                    if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
-                        if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true) &&
-                                funParentNamedElement == funParentE) {
-                            res.add(namedElement);
-                        }
-                    } else if (namedElement instanceof FunIncAPatternVarDef) { // declaration is in pattern match case
-                        FunIncAMatchCase matchCaseParent =
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncAMatchCase.class);
-                        if (PsiTreeUtil.isAncestor(matchCaseParent, e, false)) {
-                            res.add(namedElement);
-                        }
-                    } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter
-                        FunIncAParamDef paramDef = (FunIncAParamDef) namedElement;
-                        if (isCalledFunction) {
-                            if (paramDef.getType().getFunType() != null) {
-                                if (funParentNamedElement == funParentE) {
-                                    res.add(namedElement);
-                                }
-                            }
-                        } else if (funParentNamedElement == funParentE) {
-                            res.add(namedElement);
-                        }
-                    } else if (namedElement instanceof FunIncATypeVarDef // declaration is a type variable
-                            && e instanceof FunIncATypeNameRef) { // can only be referenced by type name refs
-                        FunIncADataDef dataDefParentE = PsiTreeUtil.getParentOfType(e, FunIncADataDef.class);
-                        FunIncADataDef dataDefParentNamedElement =
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncADataDef.class);
-                        if (dataDefParentE != null && dataDefParentE == dataDefParentNamedElement) {
-                            // TypeVarDef in DataDef
-                            res.add(namedElement);
-                        } else if (funParentE != null && funParentNamedElement == funParentE) {
-                            // TypeVarDef in FunDef
-                            res.add(namedElement);
-                        }
-                    } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
-                        res.add(namedElement);
-                    } else if (namedElement instanceof FunIncADataDef // declaration is a data definition
-                            && e instanceof FunIncATypeNameRef) {
-                        res.add(namedElement);
-                    } else if (namedElement instanceof FunIncADataConstructorDef) { // declaration is a constructor
-                        if (e instanceof FunIncAConstructorRef || isFunCall)
-                            res.add(namedElement);
-                    }
+                    if (isDefinitionNode(namedElement, e))
+                        resCandidates.add(namedElement);
                 }
+            }
+            // parameter definitions shadow function definitions and data constructor definitions
+            if (resCandidates.size() > 1) {
+                boolean containsParameter = false;
+                for (PsiNamedElement candidate : resCandidates)
+                    if (candidate instanceof FunIncAParamDef) {
+                        containsParameter = true;
+                        break;
+                    }
+                if (containsParameter) {
+                    for (PsiNamedElement candidate : resCandidates)
+                        if(!(candidate instanceof FunIncAFunDef
+                                || candidate instanceof FunIncADataConstructorDef))
+                            res.add(candidate);
+                } else
+                    res = resCandidates;
+            } else {
+                res = resCandidates;
             }
         }
         return res;
     }
 
+    private static boolean isDefinitionNode(PsiNamedElement namedElement, PsiElement e) {
+
+        if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
+            if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true)) {
+                return true;
+            }
+        } else if (namedElement instanceof FunIncAPatternVarDef) { // declaration is in pattern match case
+            FunIncAMatchCase matchCaseParent =
+                    PsiTreeUtil.getParentOfType(namedElement, FunIncAMatchCase.class);
+            if (PsiTreeUtil.isAncestor(matchCaseParent, e, false)) {
+                return true;
+            }
+        } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter
+            FunIncAFunDef funParentNamedElement =
+                    PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+            FunIncAFunDef funParentE =
+                    PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
+            if (funParentNamedElement == funParentE) {
+                return true;
+            }
+        } else if (namedElement instanceof FunIncATypeVarDef // declaration is a type variable
+                && e instanceof FunIncATypeNameRef) { // can only be referenced by type name refs
+            FunIncADataDef dataDefParentE =
+                    PsiTreeUtil.getParentOfType(e, FunIncADataDef.class);
+            FunIncADataDef dataDefParentNamedElement =
+                    PsiTreeUtil.getParentOfType(namedElement, FunIncADataDef.class);
+            FunIncAFunDef funParentNamedElement =
+                    PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+            FunIncAFunDef funParentE =
+                    PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
+            if (dataDefParentE != null && dataDefParentE == dataDefParentNamedElement) {
+                // TypeVarDef in DataDef
+                return true;
+            } else if (funParentE != null && funParentNamedElement == funParentE) {
+                // TypeVarDef in FunDef
+                return true;
+            }
+        } else if (namedElement instanceof FunIncAFunDef){ // declaration is a function definition
+            return true;
+        } else if (namedElement instanceof FunIncADataDef // declaration is a data definition
+                && e instanceof FunIncATypeNameRef) {
+            return true;
+        } else if (namedElement instanceof FunIncADataConstructorDef) { // declaration is a constructor
+            return true;
+        }
+        // if these cases are not true, then namedElement cannot be a definition of e
+        return false;
+    }
 }

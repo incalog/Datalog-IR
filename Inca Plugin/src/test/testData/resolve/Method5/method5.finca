@@ -1,0 +1,6 @@
+module method5
+
+def <resolved>foo(x:Int):Int=x
+def bar(x:Double):Double=x
+
+@main def main(): Boolean = <ref>foo == bar

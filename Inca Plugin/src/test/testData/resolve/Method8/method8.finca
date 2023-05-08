@@ -1,0 +1,5 @@
+module method8
+
+def s: Set[(Int,Int)=>Int] = {}
+def <resolved>f(x:Int,y:Int): Int = x+y
+def main(): Boolean = <ref>f in s()
