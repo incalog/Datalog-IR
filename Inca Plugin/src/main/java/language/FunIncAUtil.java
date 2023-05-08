@@ -165,23 +165,25 @@ public class FunIncAUtil {
                     continue;
                 }
 
-                PsiNamedElement funParentNamedElement =
-                        PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
-                PsiNamedElement funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
-                boolean isFunCall = false;
-                boolean isCallingFunction = false;
-                FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
-                if (funCall != null) { // is e part of a function call?
-                    isFunCall = true;
-                    PsiElement fun = funCall.getFirstChild();
-                    if (PsiTreeUtil.isAncestor(fun, e, false)) {
-                        isCallingFunction = true;
-                    }
-                }
-                if (PsiTreeUtil.getParentOfType(e, FunIncAFoldExp.class) != null)
-                    isFunCall = true;
-
                 if (name.equals(namedElement.getName())) {
+
+                    PsiNamedElement funParentNamedElement =
+                            PsiTreeUtil.getParentOfType(namedElement, FunIncAFunDef.class);
+                    PsiNamedElement funParentE = PsiTreeUtil.getParentOfType(e, FunIncAFunDef.class);
+                    boolean isFunCall = false; // flag, that indicates if e is a part of a FunCallExp (function or argument)
+                    boolean isCalledFunction = false; // flag, that indicates if e is the function called in the expression
+                    FunIncACallExp funCall = PsiTreeUtil.getParentOfType(e, FunIncACallExp.class);
+                    if (funCall != null) { // is e part of a function call?
+                        isFunCall = true;
+                        PsiElement fun = funCall.getFirstChild();
+                        if (PsiTreeUtil.isAncestor(fun, e, false)) {
+                            // is e part of the first child of the FunCallExp, first child being the called function
+                            isCalledFunction = true;
+                        }
+                    }
+                    if (PsiTreeUtil.getParentOfType(e, FunIncAFoldExp.class) != null)
+                        isFunCall = true;
+
                     if (namedElement instanceof FunIncAVarDef) { // declaration is in let-exp
                         if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true) &&
                                 funParentNamedElement == funParentE) {
@@ -195,7 +197,7 @@ public class FunIncAUtil {
                         }
                     } else if (namedElement instanceof FunIncAParamDef) { // declaration is a parameter
                         FunIncAParamDef paramDef = (FunIncAParamDef) namedElement;
-                        if (isCallingFunction) {
+                        if (isCalledFunction) {
                             if (paramDef.getType().getFunType() != null) {
                                 if (funParentNamedElement == funParentE) {
                                     res.add(namedElement);
@@ -218,10 +220,12 @@ public class FunIncAUtil {
                         }
                     } else if (namedElement instanceof FunIncAFunDef && isFunCall){ // declaration is a function definition
                         res.add(namedElement);
-                    } else if (namedElement instanceof FunIncADataDef) { // declaration is a type name
+                    } else if (namedElement instanceof FunIncADataDef // declaration is a data definition
+                            && e instanceof FunIncATypeNameRef) {
                         res.add(namedElement);
                     } else if (namedElement instanceof FunIncADataConstructorDef) { // declaration is a constructor
-                        res.add(namedElement);
+                        if (e instanceof FunIncAConstructorRef || isFunCall)
+                            res.add(namedElement);
                     }
                 }
             }
