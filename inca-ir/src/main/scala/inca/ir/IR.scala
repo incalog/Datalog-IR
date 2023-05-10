@@ -38,7 +38,6 @@ object IR extends IR:
   trait Atom
   trait Term
 
-
 trait DisjunctionIR extends IR:
   override val name: String = "Disjunction"
   override def language: Language = super.language + DisjunctionIR
@@ -55,7 +54,7 @@ trait BooleanIR extends IR:
 
 object BooleanIR extends BooleanIR:
   case object TBoolean extends IR.Type
-
+  // I'm confused about this... What should this atom represent ?
   case class BoolAtom(t: IR.Term) extends IR.Atom
   case class BoolAnd(t1: IR.Term, t2: IR.Term) extends IR.Term
   case class BoolOr(t1: IR.Term, t2: IR.Term) extends IR.Term
@@ -69,7 +68,9 @@ trait TupleIR extends IR:
 
 object TupleIR extends TupleIR:
   case class TTuple(tys: Seq[IR.Type]) extends IR.Type
+  // TODO: This should be a term, since we can view a tuple as a constant
   case class TupleAtom(ts: Seq[IR.Term]) extends IR.Atom
+  case class TupleRead(t: IR.Term, index: Int) extends IR.Term
 
 
 trait SetIR extends IR:
@@ -81,3 +82,5 @@ object SetIR extends SetIR:
   case class TSet(ty: IR.Type) extends IR.Type
 
   case class SetAtom(ts: Seq[IR.Term]) extends IR.Atom
+
+  // Set comprehension etc. ?
