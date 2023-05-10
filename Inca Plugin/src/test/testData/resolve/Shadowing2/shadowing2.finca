@@ -1,0 +1,3 @@
+module shadowing2
+
+def main(x: Boolean): Int = let <resolved>x = 1 in <ref>x

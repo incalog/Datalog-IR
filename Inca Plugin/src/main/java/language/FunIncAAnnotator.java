@@ -39,14 +39,13 @@ public class FunIncAAnnotator implements Annotator {
 
     @Override
     public void annotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
-
         annotationMap = new HashMap<>();
         annotationHolder = holder;
 
         if (element instanceof FunIncAFunDef) {
             FunIncAFunDef funDef = ((FunIncAFunDef) element);
             PsiElement root = funDef.getContainingFile();
-            List<PsiElement> rootChildren = List.of(root.getChildren());
+/*            List<PsiElement> rootChildren = List.of(root.getChildren());
             for (PsiElement child : rootChildren) {
                 if (child != funDef && child instanceof FunIncAFunDef
                         && funDef.getName().equals(((FunIncAFunDef) child).getName())) {
@@ -56,6 +55,7 @@ public class FunIncAAnnotator implements Annotator {
                             .create();
                 }
             }
+            */
             FunIncAExp body = funDef.getExp();
             FunIncAType expected = funDef.getType();
             if (expected != null)
@@ -84,7 +84,7 @@ public class FunIncAAnnotator implements Annotator {
         if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             List<FunIncADataConstructorDef> constructors = dataDef.getDataConstructorDefList();
-            PsiElement root = dataDef.getContainingFile();
+/*            PsiElement root = dataDef.getContainingFile();
             List<PsiElement> rootChildren = List.of(root.getChildren());
             for (PsiElement child : rootChildren) {
                 if (child instanceof FunIncAFunDef) {
@@ -105,6 +105,7 @@ public class FunIncAAnnotator implements Annotator {
                             .create();
                 }
             }
+            */
             for (FunIncADataConstructorDef cons : constructors) {
                 if (cons.getTypeList() != null)
                     FunIncATypechecker.validateTypes(cons.getTypeList(), holder);

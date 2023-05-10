@@ -1,5 +1,6 @@
 package language;
 
+import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.psi.*;
 import language.psi.*;
 import com.intellij.openapi.project.Project;
@@ -37,7 +38,6 @@ public class FunIncAUtil {
      * */
     public static List<PsiNamedElement> findDefinitionNode(@Nullable FunIncAFile file, @Nullable String name, @Nullable PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
-        List<PsiNamedElement> resCandidates = new ArrayList<>();
         if (file == null)
             return new ArrayList<>();
         final FunIncASetComprehensionExp setParent = PsiTreeUtil.getParentOfType(e, FunIncASetComprehensionExp.class);
@@ -59,6 +59,7 @@ public class FunIncAUtil {
         // resolving a reference from the inside of a set comprehension
         if (isSetComprehension) {
             // finding candidates for resolving references
+            List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
                 if (name.equals(namedElement.getName())) {
                     // possible variable definitions outside of the SetComprehension
@@ -137,22 +138,10 @@ public class FunIncAUtil {
                         }
                     }
                 } else { // res was not empty
-                    // parameter definitions shadow function definitions and constructor definitions
+                    // only definitions outside of set comprehension
+                    // shadowing when more than 1 definition was found
                     if (res.size() > 1) {
-                        boolean containsParameter = false;
-                        for (PsiNamedElement candidate : res)
-                            if (candidate instanceof FunIncAParamDef) {
-                                containsParameter = true;
-                                break;
-                            }
-                        List<PsiNamedElement> tmp = new ArrayList<>();
-                        if (containsParameter) {
-                            for (PsiNamedElement candidate : res)
-                                if(!(candidate instanceof FunIncAFunDef
-                                        || candidate instanceof FunIncADataConstructorDef))
-                                    tmp.add(candidate);
-                            res = tmp;
-                        }
+                        res = shadowing(res, e);
                     }
                 }
             }
@@ -162,27 +151,11 @@ public class FunIncAUtil {
             for (PsiNamedElement namedElement : namedElements) {
                 if (name.equals(namedElement.getName())) {
                     if (isDefinitionNode(namedElement, e))
-                        resCandidates.add(namedElement);
+                        res.add(namedElement);
                 }
             }
-            // parameter definitions shadow function definitions and data constructor definitions
-            if (resCandidates.size() > 1) {
-                boolean containsParameter = false;
-                for (PsiNamedElement candidate : resCandidates)
-                    if (candidate instanceof FunIncAParamDef) {
-                        containsParameter = true;
-                        break;
-                    }
-                if (containsParameter) {
-                    for (PsiNamedElement candidate : resCandidates)
-                        if(!(candidate instanceof FunIncAFunDef
-                                || candidate instanceof FunIncADataConstructorDef))
-                            res.add(candidate);
-                } else
-                    res = resCandidates;
-            } else {
-                res = resCandidates;
-            }
+            // shadowing
+            res = shadowing(res, e);
         }
         return res;
     }
@@ -235,4 +208,85 @@ public class FunIncAUtil {
         // if these cases are not true, then namedElement cannot be a definition of e
         return false;
     }
+
+    private static List<PsiNamedElement> shadowing(List<PsiNamedElement> definitionNodes, PsiElement e) {
+        if (e instanceof FunIncATypeNameRef) {
+            List<PsiNamedElement> dataDef = new ArrayList<>();
+            List<PsiNamedElement> typeVar = new ArrayList<>();
+            for (PsiNamedElement node : definitionNodes)
+                if (node instanceof FunIncADataDef)
+                    dataDef.add(node);
+                else if (node instanceof FunIncATypeVarDef)
+                    typeVar.add(node);
+            // data definitions shadow type variables with the same name
+            if (!dataDef.isEmpty())
+                return dataDef;
+            else
+                return typeVar;
+        } else if (e instanceof FunIncAVarRefExp) {
+            List<PsiNamedElement> varDef = new ArrayList<>();
+            List<PsiNamedElement> param = new ArrayList<>();
+            List<PsiNamedElement> funcs = new ArrayList<>();
+            List<PsiNamedElement> patternVar = new ArrayList<>();
+            for (PsiNamedElement node : definitionNodes)
+                if (node instanceof FunIncAVarDef)
+                    varDef.add(node);
+                else if (node instanceof FunIncAParamDef)
+                    param.add(node);
+                else if (node instanceof FunIncAFunDef || node instanceof FunIncADataConstructorDef)
+                    funcs.add(node);
+                else if (node instanceof FunIncAPatternVarDef)
+                    patternVar.add(node);
+
+            if (!varDef.isEmpty() && patternVar.isEmpty()) {
+                int n = varDef.size();
+                if (n == 1)
+                    return varDef;
+                else {
+                    //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    //        "Shadows previous definition of " + e.getText(),
+                    //        varDef.get(n-1));
+                    return Collections.singletonList(varDef.get(n-1));
+                }
+            }
+            else if (varDef.isEmpty() && !patternVar.isEmpty()) {
+                int n = patternVar.size();
+                if (n == 1)
+                    return patternVar;
+                else {
+                    //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    //        "Shadows previous definition of " + e.getText(),
+                    //        patternVar.get(n-1));
+                    return Collections.singletonList(patternVar.get(n-1));
+                }
+            }
+            else if (!varDef.isEmpty() && !patternVar.isEmpty()) {
+                int n = varDef.size();
+                int m = patternVar.size();
+                PsiNamedElement lastVarDef = varDef.get(n-1);
+                PsiNamedElement lastPatVar = patternVar.get(m-1);
+                PsiNamedElement lastDef;
+                if (lastPatVar.getTextRange().getStartOffset() < lastVarDef.getTextRange().getStartOffset())
+                    lastDef = lastVarDef;
+                else
+                    lastDef = lastPatVar;
+                //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                //        "Shadows previous definition of " + e.getText(),
+                //        lastDef);
+                return Arrays.asList(lastDef);
+            }
+            else if (!param.isEmpty())
+                return param;
+            else
+                return funcs;
+        } else if (e instanceof FunIncAConstructorRef) {
+            List<PsiNamedElement> cons = new ArrayList<>();
+            for (PsiNamedElement node : definitionNodes)
+                if (node instanceof FunIncADataConstructorDef)
+                    cons.add(node);
+            return cons;
+        }
+        return new ArrayList<>();
+    }
+
 }
