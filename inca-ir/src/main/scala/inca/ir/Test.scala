@@ -1,11 +1,29 @@
 package inca.ir
 @main
 def test() = {
-  val module = Module(Name("Test"), TupleIR.language, Seq(IR.Relation(
-    Name("rel"), Seq(IR.Param(Name("a"), TupleIR.TTuple(Seq(IR.TInt, BooleanIR.TBoolean)))),
-    Seq()
+  val boolIR = new BooleanIR {}
+  println("Source IR: " + boolIR)
+  val module = Module(Name("Test"), boolIR.language, Seq(boolIR.Relation(
+    Name("rel"),
+    Seq(boolIR.Param(Name("a"), boolIR.TBoolean)),
+    Seq(
+      boolIR.Body(Seq(
+        boolIR.BoolAtom(
+          boolIR.BoolAnd(
+            boolIR.BoolNot(
+              boolIR.Var(Name("a"))
+            ),
+            boolIR.BoolOr(
+              boolIR.Var(Name("a")), boolIR.BoolFalse
+            )
+          )
+        )
+      )
+    )
+    )
   )))
   println(module)
-  val lowering = new TupleToPure(module)
+  val baseIR = new IR {}
+  val lowering = new BooleanLowering(module)(baseIR)
   println(lowering.lower)
 }
