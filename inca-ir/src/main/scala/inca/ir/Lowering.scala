@@ -2,7 +2,11 @@ package inca.ir
 
 import scala.collection.immutable.Seq
 
-trait Lowering[S <: IR, T <: IR](module: Module)(val src: S, val trg: T):
+trait Lowering[S <: IR, T <: IR]:
+  val src: S
+  val trg: T
+  def module: Module
+
   def loweredIRs: Set[IR]
 
   def lower: Module = {
@@ -35,6 +39,7 @@ trait Lowering[S <: IR, T <: IR](module: Module)(val src: S, val trg: T):
     case src.Num(value) => trg.Num(value)
     case src.Var(name) => trg.Var(name)
     case src.Add(lhs, rhs) => trg.Add(lowerTerm(lhs), lowerTerm(rhs))
+    case src.Mul(lhs, rhs) => trg.Mul(lowerTerm(lhs), lowerTerm(rhs))
     case src.Abs(t) => trg.Abs(lowerTerm(t))
     case src.Min(lhs, rhs) => trg.Min(lowerTerm(lhs), lowerTerm(rhs))
   }
@@ -44,7 +49,7 @@ trait Lowering[S <: IR, T <: IR](module: Module)(val src: S, val trg: T):
   }
 
 
-class BooleanLowering[S <: BooleanIR, T <: IR](module: Module)(override val src: S, override val trg: T) extends Lowering[S, T](module)(src, trg):
+trait BooleanLowering[S <: BooleanIR, T <: IR] extends Lowering[S, T]:
   override def loweredIRs: Set[IR] = Set(new BooleanIR {})
 
   override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
@@ -66,7 +71,7 @@ class BooleanLowering[S <: BooleanIR, T <: IR](module: Module)(override val src:
     case _ => super.lowerType(ty)
   }
 
-class DisjunctionLowering[S <: DisjunctionIR, T <: IR](module: Module)(override val src: S, override val trg: T) extends Lowering[S, T](module)(src, trg):
+trait DisjunctionLowering[S <: DisjunctionIR, T <: IR] extends Lowering[S, T]:
   type Alternatives[A] = Seq[A]
 
   override def loweredIRs: Set[IR] = Set(new DisjunctionIR {})
@@ -81,4 +86,27 @@ class DisjunctionLowering[S <: DisjunctionIR, T <: IR](module: Module)(override 
     alternativeAtoms.map(atoms => {
       trg.Body(atoms.flatMap(lowerAtom))
     })
+  }
+
+trait BooleanToDisjunctionLowering[S <: BooleanIR & DisjunctionIR, T <: DisjunctionIR] extends BooleanLowering[S, T]:
+  override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
+    // Preserve disjunctions
+    case src.Disjunction(as1, as2) => Seq(trg.Disjunction(as1.flatMap(lowerAtom), as2.flatMap(lowerAtom)))
+    case _ => super.lowerAtom(atom)
+  }
+
+trait DisjunctionToBooleanLowering[S <: BooleanIR & DisjunctionIR, T <: BooleanIR] extends DisjunctionLowering[S, T]:
+  // Preserve all boolean atoms and terms
+  override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
+    case src.BoolAtom(t) => Seq(trg.BoolAtom(lowerTerm(t)))
+    case _ => super.lowerAtom(atom)
+  }
+
+  override def lowerTerm(term: src.Term): trg.Term = term match {
+    case src.BoolFalse => trg.BoolFalse
+    case src.BoolTrue => trg.BoolTrue
+    case src.BoolAnd(t1, t2) => trg.BoolAnd(lowerTerm(t1), lowerTerm(t2))
+    case src.BoolNot(t) => trg.BoolNot(trg.Add(lowerTerm(t), trg.Num(-1)))
+    case src.BoolOr(t1, t2) => trg.BoolOr(lowerTerm(t1), lowerTerm(t2))
+    case _ => super.lowerTerm(term)
   }
