@@ -1,13 +1,15 @@
 package inca.ir
 
-trait Lowering[S <: IR, T <: IR](module: Module)(val trg: T):
-  val src: S = module.lang.features.find(ir => ir.isInstanceOf[S]).get.asInstanceOf[S]
+import scala.collection.immutable.Seq
+
+trait Lowering[S <: IR, T <: IR](module: Module)(val src: S, val trg: T):
+  def loweredIRs: Set[IR]
 
   def lower: Module = {
     // our current module language must at least include the features of the target language
     module.lang.includes(trg.requires)
 
-    Module(module.name, module.lang, module.contents.flatMap {
+    Module(module.name, module.lang -- loweredIRs, module.contents.flatMap {
       case rel: src.Relation => lowerRelation(rel)
       case other => println("Other: " + other + "   " + other.getClass)
         Seq()
@@ -42,7 +44,8 @@ trait Lowering[S <: IR, T <: IR](module: Module)(val trg: T):
   }
 
 
-class BooleanLowering[T <: IR](module: Module)(override val trg: T) extends Lowering[BooleanIR, T](module)(trg):
+class BooleanLowering[S <: BooleanIR, T <: IR](module: Module)(override val src: S, override val trg: T) extends Lowering[S, T](module)(src, trg):
+  override def loweredIRs: Set[IR] = Set(new BooleanIR {})
 
   override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
     case src.BoolAtom(t) => Seq(trg.Eq(trg.Num(1), lowerTerm(t)))
@@ -61,4 +64,21 @@ class BooleanLowering[T <: IR](module: Module)(override val trg: T) extends Lowe
   override def lowerType(ty: src.Type): Seq[trg.Type] = ty match {
     case src.TBoolean => Seq(trg.TInt)
     case _ => super.lowerType(ty)
+  }
+
+class DisjunctionLowering[S <: DisjunctionIR, T <: IR](module: Module)(override val src: S, override val trg: T) extends Lowering[S, T](module)(src, trg):
+  type Alternatives[A] = Seq[A]
+
+  override def loweredIRs: Set[IR] = Set(new DisjunctionIR {})
+
+  override def lowerBody(body: src.Body): Seq[trg.Body] = {
+    // flatten all disjunctions
+    val alternativeAtoms: Alternatives[Seq[src.Atom]] = body.atoms.foldLeft[Seq[Seq[src.Atom]]](Seq(Seq())) {
+        case (res, src.Disjunction(as1, as2)) => res.map(_ ++ as1) ++ res.map(_ ++ as2)
+        case (res, a) => res.map(_ ++ Seq(a))
+    }
+    // translate the remaining atoms and generate a body for each alternative
+    alternativeAtoms.map(atoms => {
+      trg.Body(atoms.flatMap(lowerAtom))
+    })
   }
