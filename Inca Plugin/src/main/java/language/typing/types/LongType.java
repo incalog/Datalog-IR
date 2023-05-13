@@ -10,4 +10,9 @@ public class LongType implements Type {
     public boolean isLongType() {
         return true;
     }
+
+    @Override
+    public boolean isNumericType() {
+        return true;
+    }
 }

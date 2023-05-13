@@ -59,16 +59,16 @@ public class FunIncAAnnotator implements Annotator {
             FunIncAExp body = funDef.getExp();
             FunIncAType expected = funDef.getType();
             if (expected != null)
-                FunIncATypechecker.validateType(expected, holder);
+                FunIncATypechecker.validateType(expected);
             Type expectedType = PsiToTypeConverter.convert(expected);
             for (FunIncAParamDef paramDef : funDef.getParamDefList()) // annotate all parameter types
                 if (paramDef.getType() != null)
-                    FunIncATypechecker.validateType(paramDef.getType(), holder);
+                    FunIncATypechecker.validateType(paramDef.getType());
 
             if (body == null) { // do not annotate if function has no body
                 return;
             }
-            Type resolvedType = FunIncATypechecker.typecheckExp(body, holder);
+            Type resolvedType = FunIncATypechecker.typecheckExp(body);
             if (expected == null) {
                 holder.newAnnotation(HighlightSeverity.ERROR, "Missing return type")
                         .range(funDef)
@@ -108,7 +108,7 @@ public class FunIncAAnnotator implements Annotator {
             */
             for (FunIncADataConstructorDef cons : constructors) {
                 if (cons.getTypeList() != null)
-                    FunIncATypechecker.validateTypes(cons.getTypeList(), holder);
+                    FunIncATypechecker.validateTypes(cons.getTypeList());
             }
         }
 

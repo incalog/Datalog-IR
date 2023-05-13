@@ -103,7 +103,6 @@
   methods("VarRefExp|TypeNameRef|ConstructorRef")=[getReference]
 
   extends(".*Exp") = Exp
-  extends(".Type") = Type
 }
 
 Module ::= 'module' id Import* ModuleContent* {pin = 1}

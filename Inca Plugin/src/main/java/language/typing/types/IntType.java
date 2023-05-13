@@ -10,4 +10,9 @@ public class IntType implements Type {
     public boolean isIntType() {
         return true;
     }
+
+    @Override
+    public boolean isNumericType() {
+        return true;
+    }
 }

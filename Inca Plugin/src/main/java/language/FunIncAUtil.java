@@ -66,26 +66,19 @@ public class FunIncAUtil {
                     if (namedElement instanceof FunIncADecl) {
                         if (isDefinitionNode(namedElement, e))
                             resCandidates.add(namedElement);
-                    }
-                    // possible variable definitions inside the SetComprehensionExp
-                    if (namedElement instanceof FunIncAVarRefExp) {
+                    } else if (namedElement instanceof FunIncAVarRefExp) {
+                        // possible variable definitions inside the SetComprehensionExp
                         FunIncASetComprehensionExp namedElementSetCompParent =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class);
                         FunIncASetMemberExp namedElementSetMemberParent =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class);
-                        FunIncACallExp namedElementCallParent =
-                                PsiTreeUtil.getParentOfType(namedElement, FunIncACallExp.class);
                         boolean isDefinition = false;// namedElement is only considered a definition if it is within a SetMemberExp within a SetComprehensionExp
                         if (namedElementSetCompParent != null && namedElementSetMemberParent != null)
                             isDefinition =
                                     PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementSetMemberParent, false);
-                        boolean isPartOfCallExp = false; // excludes VarRefExp in CallExp within nested set comprehensions from being considered definitions
-                        if (namedElementCallParent != null)
-                            isPartOfCallExp = PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementCallParent, false);
                         if (namedElementSetCompParent == setParent
                                 && namedElementSetMemberParent != null
-                                && isDefinition
-                                && !isPartOfCallExp) {
+                                && isDefinition) {
                             // declarations with FuncIncaVar in predicates can only be member-expressions
                             resCandidates.add(namedElement);
                         }
@@ -110,33 +103,12 @@ public class FunIncAUtil {
                     // element, since the variable n2 is first introduced in "(n2,n3) in set1" and n2 in "(n1,n2)"
                     // references the first n2.
                     PsiNamedElement firstDef = resCandidates.get(0);
-                    if (PsiTreeUtil.isAncestor(setParent.getExpList().get(0), firstDef, false)) {
-                        if (resCandidates.size() > 1) {
-                            resCandidates.remove(0);
-                            firstDef = resCandidates.get(0);
-                        } else { // otherwise there is no valid definition of e
-                            return res;
-                        }
-                    }
                     for (PsiNamedElement candidate : resCandidates) {
                         if (candidate.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
                             firstDef = candidate;
                     }
                     if (firstDef != e)
                         res.add(firstDef);
-                    else {
-                        FunIncASetMemberExp memberParent = PsiTreeUtil.getParentOfType(e, FunIncASetMemberExp.class);
-                        if (resCandidates.size() > 1 &&
-                                PsiTreeUtil.isAncestor(memberParent, setParent, true)) {
-                            resCandidates.remove(e);
-                            firstDef = resCandidates.get(0);
-                            for (PsiNamedElement candidate : resCandidates) {
-                                if (candidate.getTextRange().getStartOffset() < firstDef.getTextRange().getStartOffset())
-                                    firstDef = candidate;
-                            }
-                            res.add(firstDef);
-                        }
-                    }
                 } else { // res was not empty
                     // only definitions outside of set comprehension
                     // shadowing when more than 1 definition was found

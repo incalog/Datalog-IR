@@ -28,6 +28,9 @@ public interface Type {
     default boolean isStringType() {
         return false;
     }
+    default boolean isNumericType() {
+        return false;
+    }
     default boolean isSetType() {return false;}
 
 }

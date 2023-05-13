@@ -10,4 +10,9 @@ public class DoubleType implements Type {
     public boolean isDoubleType() {
         return true;
     }
+
+    @Override
+    public boolean isNumericType() {
+        return true;
+    }
 }
