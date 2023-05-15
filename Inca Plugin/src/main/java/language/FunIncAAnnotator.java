@@ -25,14 +25,16 @@ public class FunIncAAnnotator implements Annotator {
     }
 
     public static void newAnnotation(HighlightSeverity hs, String message, TextRange textRange) {
-        Set<String> annos = annotationMap.get(textRange);
-        if (annos == null) { // no annotations yet for that specific text range
-            annotationMap.put(textRange, new HashSet<>(Collections.singletonList(message)));
-            annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
-        } else { // this text range already displays annotations
-            if (!annos.contains(message)) {
-                annos.add(message);
+        if (annotationHolder != null && annotationMap != null) {
+            Set<String> annos = annotationMap.get(textRange);
+            if (annos == null) { // no annotations yet for that specific text range
+                annotationMap.put(textRange, new HashSet<>(Collections.singletonList(message)));
                 annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+            } else { // this text range already displays annotations
+                if (!annos.contains(message)) {
+                    annos.add(message);
+                    annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+                }
             }
         }
     }

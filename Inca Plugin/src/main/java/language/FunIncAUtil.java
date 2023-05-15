@@ -215,9 +215,9 @@ public class FunIncAUtil {
                 if (n == 1)
                     return varDef;
                 else {
-                    //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                    //        "Shadows previous definition of " + e.getText(),
-                    //        varDef.get(n-1));
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Shadows previous definition of " + e.getText(),
+                            varDef.get(n-1));
                     return Collections.singletonList(varDef.get(n-1));
                 }
             }
@@ -226,9 +226,9 @@ public class FunIncAUtil {
                 if (n == 1)
                     return patternVar;
                 else {
-                    //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                    //        "Shadows previous definition of " + e.getText(),
-                    //        patternVar.get(n-1));
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Shadows previous definition of " + e.getText(),
+                            patternVar.get(n-1));
                     return Collections.singletonList(patternVar.get(n-1));
                 }
             }
@@ -242,9 +242,9 @@ public class FunIncAUtil {
                     lastDef = lastVarDef;
                 else
                     lastDef = lastPatVar;
-                //FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                //        "Shadows previous definition of " + e.getText(),
-                //        lastDef);
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Shadows previous definition of " + e.getText(),
+                        lastDef);
                 return Arrays.asList(lastDef);
             }
             else if (!param.isEmpty())
