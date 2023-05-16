@@ -94,6 +94,9 @@ trait BooleanDisjunctionIR extends BooleanIR, DisjunctionIR:
   override def language: Language = super.language + new BooleanIR {} + new DisjunctionIR {}
   override def requires: Language = Language()
 
+trait BooleanToDisjunctionLowering[S <: DisjunctionIR & BooleanIR, T <: DisjunctionIR] extends BooleanLowering[S, T] with PreserveDisjunction[S, T]
+
+trait DisjunctionToBooleanLowering[S <: BooleanIR & DisjunctionIR, T <: BooleanIR] extends DisjunctionLowering[S, T] with PreserveBoolean[S, T]
 
 def lowerCombinedIR(): Seq[Module] = {
   val baseIR = new IR {}

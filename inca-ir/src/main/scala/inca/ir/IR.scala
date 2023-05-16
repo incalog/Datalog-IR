@@ -2,7 +2,7 @@ package inca.ir
 
 case class Language(features: Set[IR]):
   def +(feature: IR): Language = Language(features + feature)
-  def --(features: Set[IR]): Language = Language(features -- features)
+  def --(features: Set[IR]): Language = Language(this.features -- features)
   def includes(that: Language): Boolean = that.features.subsetOf(this.features)
 
 object Language:

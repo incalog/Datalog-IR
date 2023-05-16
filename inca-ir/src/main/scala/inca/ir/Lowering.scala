@@ -88,14 +88,14 @@ trait DisjunctionLowering[S <: DisjunctionIR, T <: IR] extends Lowering[S, T]:
     })
   }
 
-trait BooleanToDisjunctionLowering[S <: BooleanIR & DisjunctionIR, T <: DisjunctionIR] extends BooleanLowering[S, T]:
+trait PreserveDisjunction[S <: DisjunctionIR, T <: DisjunctionIR] extends Lowering[S, T]:
   override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
     // Preserve disjunctions
     case src.Disjunction(as1, as2) => Seq(trg.Disjunction(as1.flatMap(lowerAtom), as2.flatMap(lowerAtom)))
     case _ => super.lowerAtom(atom)
   }
 
-trait DisjunctionToBooleanLowering[S <: BooleanIR & DisjunctionIR, T <: BooleanIR] extends DisjunctionLowering[S, T]:
+trait PreserveBoolean[S <: BooleanIR, T <: BooleanIR] extends Lowering[S, T]:
   // Preserve all boolean atoms and terms
   override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
     case src.BoolAtom(t) => Seq(trg.BoolAtom(lowerTerm(t)))
