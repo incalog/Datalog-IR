@@ -91,7 +91,7 @@ def lowerBoolIR(): Seq[Module] = {
 
 trait BooleanDisjunctionIR extends BooleanIR, DisjunctionIR:
   override val name: String = "BooleanDisjunction"
-  override def language: Language = super.language + new BooleanIR {} + new DisjunctionIR {}
+  //override def language: Language = super.language + new BooleanIR {} + new DisjunctionIR {}
   override def requires: Language = Language()
 
 trait BooleanToDisjunctionLowering[S <: DisjunctionIR & BooleanIR, T <: DisjunctionIR] extends BooleanLowering[S, T] with PreserveDisjunction[S, T]

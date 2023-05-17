@@ -15,8 +15,7 @@ trait Lowering[S <: IR, T <: IR]:
 
     Module(module.name, module.lang -- loweredIRs, module.contents.flatMap {
       case rel: src.Relation => lowerRelation(rel)
-      case other => println("Other: " + other + "   " + other.getClass)
-        Seq()
+      case other => throw MatchException("Other: " + other + "   " + other.getClass)
     })
   }
 
@@ -76,8 +75,12 @@ trait DisjunctionLowering[S <: DisjunctionIR, T <: IR] extends Lowering[S, T]:
 
   override def loweredIRs: Set[IR] = Set(new DisjunctionIR {})
 
+  var alternativeAtoms: Alternatives[Seq[src.Atom]] = Alternatives()
+
   override def lowerBody(body: src.Body): Seq[trg.Body] = {
     // flatten all disjunctions
+    val res = trg.Body(body.atoms.flatMap(lowerAtom))
+
     val alternativeAtoms: Alternatives[Seq[src.Atom]] = body.atoms.foldLeft[Seq[Seq[src.Atom]]](Seq(Seq())) {
         case (res, src.Disjunction(as1, as2)) => res.map(_ ++ as1) ++ res.map(_ ++ as2)
         case (res, a) => res.map(_ ++ Seq(a))
@@ -87,6 +90,9 @@ trait DisjunctionLowering[S <: DisjunctionIR, T <: IR] extends Lowering[S, T]:
       trg.Body(atoms.flatMap(lowerAtom))
     })
   }
+
+  // Override this to resolve the disjunction
+  override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = super.lowerAtom(atom)
 
 trait PreserveDisjunction[S <: DisjunctionIR, T <: DisjunctionIR] extends Lowering[S, T]:
   override def lowerAtom(atom: src.Atom): Seq[trg.Atom] = atom match {
