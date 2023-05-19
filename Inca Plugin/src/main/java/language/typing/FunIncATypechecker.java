@@ -228,16 +228,13 @@ public class FunIncATypechecker {
      */
     public static Type typeOfTypeDef(@NotNull PsiElement element) {
         if (element instanceof FunIncATypeVarDef){
-            String name = ((FunIncATypeVarDef) element).getName();
+            FunIncATypeVarDef typeVarDef = (FunIncATypeVarDef) element;
+            String name = typeVarDef.getName();
             return new ParametricType(name);
         }  else if (element instanceof FunIncADataDef) {
             FunIncADataDef dataDef = (FunIncADataDef) element;
             String name = dataDef.getName();
-            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
-            if (typeVars.isEmpty())
-                return new TypeRef(name);
-            else
-                return new ConstructorType(name, typeVars);
+            return new TypeRef(name);
         }
         FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                 "Unknown type reference",
@@ -342,21 +339,20 @@ public class FunIncATypechecker {
             // call getTypeOfVarRef
             FunIncAVarRefExp varExp = (FunIncAVarRefExp) exp;
             FunIncAReference reference = (FunIncAReference) varExp.getReference();
-            ResolveResult[] result = reference.multiResolve(true); // beginning of loop
+            ResolveResult[] result = reference.multiResolve(true);
             if (result.length == 0) {
                 FunIncASetMemberExp setMemberParent = PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class);
-                FunIncASetComprehensionExp setComprehensionParent =
+                FunIncASetComprehensionExp setCompParent =
                         PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class);
                 boolean isDefinition = false;
-                if (setComprehensionParent != null && setMemberParent != null) {
-                    isDefinition = PsiTreeUtil.isAncestor(setComprehensionParent, setMemberParent, false);
+                if (setCompParent != null && setMemberParent != null) {
+                    isDefinition = PsiTreeUtil.isAncestor(setCompParent, setMemberParent, false);
                 }
-
                 FunIncACallExp callParent = PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class);
-                if ((setMemberParent != null) &&
-                        (setComprehensionParent != null) &&
-                        (callParent == null) &&
-                        isDefinition) {
+                boolean isPartOfCallExp = false;
+                if (callParent != null)
+                    isPartOfCallExp = PsiTreeUtil.isAncestor(setCompParent, callParent, false);
+                if (isDefinition && !isPartOfCallExp) {
                     // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
                     // and not a reference, except varExp it is a variable in a function call
                     return typeOfVarDef(varExp);
@@ -509,6 +505,14 @@ public class FunIncATypechecker {
                 }
                 funExpType = FunIncATypeUtil.substitute(funExpType, substMap);
             }
+            if (funExpType instanceof FunType &&
+                    ((FunType) funExpType).typeVars.isEmpty() &&
+                    !callExp.getTypeList().isEmpty()) {
+                // no type variables in function, but there are types in the call expression
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Function " + funExp.getText() + " does not have type variables",
+                        callExp);
+            }
             Type returnType = funExpType;
             int n = callExp.getCallExpListList().size(); // n holds the number of function call
             for (int i = 0; i < n; i++) {
@@ -521,14 +525,13 @@ public class FunIncATypechecker {
                                 "Expected " + funType.paramTypes.size() + " arguments, but got "
                                         + argTypes.size(),
                                 callExp.getCallExpListList().get(i));
-                    } else {
-                        for (int j = 0; j < funType.paramTypes.size(); j++) {
-                            if (!FunIncATypeUtil.subtype(argTypes.get(j), funType.paramTypes.get(j))) {
-                                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                                        "Expected argument of type " + funType.paramTypes.get(j)
-                                                + ", but got argument of type " + argTypes.get(j),
-                                        argExps.get(j));
-                            }
+                    }
+                    for (int j = 0; j < Math.min(funType.paramTypes.size(), argTypes.size()); j++) {
+                        if (!FunIncATypeUtil.subtype(argTypes.get(j), funType.paramTypes.get(j))) {
+                            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                    "Expected argument of type " + funType.paramTypes.get(j)
+                                            + ", but got argument of type " + argTypes.get(j),
+                                    argExps.get(j));
                         }
                     }
                     returnType = funType.returnType;
@@ -586,14 +589,34 @@ public class FunIncATypechecker {
             } else if (matcheeType instanceof ConstructorType) {
                 ConstructorType constructorType = (ConstructorType) matcheeType;
                 String dataName = constructorType.name;
-                PsiFile file = matchee.getContainingFile();
-                Collection<FunIncADataDef> dataDefs = PsiTreeUtil.findChildrenOfType(file, FunIncADataDef.class);
-                for (FunIncADataDef dataDef : dataDefs) {
-                    if (dataName.equals(dataDef.getName())) {
-                        return typecheckConstructorMatch(exp, cases, dataDef, constructorType);
-                    }
+                PsiFile root = matchee.getContainingFile();
+                List<PsiElement> rootChildren = List.of(root.getChildren());
+                List<FunIncADataDef> dataDefs = new ArrayList<>();
+                for (PsiElement child : rootChildren) {
+                    if (child instanceof FunIncADataDef && dataName.equals(((FunIncADataDef) child).getName()))
+                        dataDefs.add((FunIncADataDef) child);
                 }
-
+                if (dataDefs.isEmpty()) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "No definition for matchee type " + matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                } else if (dataDefs.size() == 1) {
+                    FunIncADataDef dataDef = dataDefs.get(0);
+                    return typecheckConstructorMatch(exp, cases, dataDef, constructorType);
+                } else if (dataDefs.size() > 1) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot match on type " + matcheeType + ", ambiguous definition of type " +
+                                    matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                }
             } else {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot match on type " + matcheeType,
@@ -802,8 +825,8 @@ public class FunIncATypechecker {
                 List<Type> paramTypes = ((FunType) opType).paramTypes;
                 Type returnType = ((FunType) opType).returnType;
                 if (paramTypes.size() != 2
-                        || !FunIncATypeUtil.subtype(paramTypes.get(0), foldType)
-                        || !FunIncATypeUtil.subtype(paramTypes.get(1), foldType)
+                        || !FunIncATypeUtil.subtype(foldType, paramTypes.get(0))
+                        || !FunIncATypeUtil.subtype(foldType, paramTypes.get(1))
                         || !FunIncATypeUtil.subtype(returnType, foldType)) {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
@@ -822,7 +845,7 @@ public class FunIncATypechecker {
     }
 
 
-    private static Type typecheckTypeNameMatch (PsiElement exp,
+    private static Type typecheckTypeNameMatch (PsiElement matchExp,
                                                 List<FunIncAMatchCase> cases,
                                                 FunIncADataDef dataDef) {
         Set<FunIncADataConstructorDef> seenConstructors = new HashSet<>();
@@ -839,7 +862,7 @@ public class FunIncATypechecker {
                 caseTypes.add(new AnyType());
                 continue;
             }
-            FunIncAExp e = matchCase.getExp();
+            FunIncAExp exp = matchCase.getExp();
             if (pat instanceof FunIncAConstructorPat) {
                 FunIncAConstructorPat constructorPat = (FunIncAConstructorPat) pat;
                 String constructorName = constructorPat.getConstructorRef().getText();
@@ -849,12 +872,12 @@ public class FunIncATypechecker {
                 for (ResolveResult res : result)
                     if (availableConstructors.contains(res.getElement()))
                         constructorDef = (FunIncADataConstructorDef) res.getElement();
-                if (constructorDef == null) {
-                    // only if there are 0 or more than 2 results, where none belong to dataDef
+                if (constructorDef == null || result.length > 1) {
+                    // only if there are 0 or more than 1 result, where none belong to dataDef
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "No constructor " + constructorName + " of type " + dataDef.getName() + " found",
                             constructorPat.getConstructorRef());
-                    caseTypes.add(typecheckExp(e));
+                    caseTypes.add(typecheckExp(exp));
                     continue;
                 }
                 if (!seenConstructors.add(constructorDef))
@@ -869,13 +892,13 @@ public class FunIncATypechecker {
                                     constructorDef.getTypeList().size() + " but got " +
                                     constructorPat.getPatternVarDefList().size(),
                             constructorPat);
-                caseTypes.add(typecheckExp(e));
+                caseTypes.add(typecheckExp(exp));
             } else { // pattern is not instance of FuncIncaConstructorPattern
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Cannot match pattern " + pat.getText() + " against matchee of type " + dataDef.getName(),
                         pat);
 
-                caseTypes.add(typecheckExp(e));
+                caseTypes.add(typecheckExp(exp));
             }
         }
         availableConstructors.removeAll(seenConstructors);
@@ -886,7 +909,7 @@ public class FunIncATypechecker {
             FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                     "Pattern match must be complete but missed the following constructors: " +
                             missingConstructors.substring(0, missingConstructors.length() - 2),
-                    exp);
+                    matchExp);
         }
         return FunIncATypeUtil.join(caseTypes);
     }

@@ -53,11 +53,8 @@ public class FunIncAUtil {
 
         Collection<PsiNamedElement> namedElements = PsiTreeUtil.findChildrenOfType(file, elementClass);
 
-        if (name == null)
-            return (List<PsiNamedElement>) namedElements;
-
         // resolving a reference from the inside of a set comprehension
-        if (isSetComprehension) {
+        if (isSetComprehension && name != null) {
             // finding candidates for resolving references
             List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
@@ -72,14 +69,20 @@ public class FunIncAUtil {
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetComprehensionExp.class);
                         FunIncASetMemberExp namedElementSetMemberParent =
                                 PsiTreeUtil.getParentOfType(namedElement, FunIncASetMemberExp.class);
+                        FunIncACallExp namedElementCallParent =
+                                PsiTreeUtil.getParentOfType(namedElement, FunIncACallExp.class);
                         boolean isDefinition = false;// namedElement is only considered a definition if it is within a SetMemberExp within a SetComprehensionExp
                         if (namedElementSetCompParent != null && namedElementSetMemberParent != null)
                             isDefinition =
                                     PsiTreeUtil.isAncestor(namedElementSetCompParent, namedElementSetMemberParent, false);
+                        boolean isPartOfCallExp = false; // excludes VarRefExp in CallExp within set comprehensions from being considered definitions
+                        if (namedElementCallParent != null)
+                            isPartOfCallExp = PsiTreeUtil.isAncestor(namedElementSetMemberParent, namedElementCallParent, false);
                         if (namedElementSetCompParent == setParent
                                 && namedElementSetMemberParent != null
-                                && isDefinition) {
-                            // declarations with FuncIncaVar in predicates can only be member-expressions
+                                && isDefinition
+                                && !isPartOfCallExp) {
+                        // declarations with FuncIncaVar in predicates can only be member-expressions
                             resCandidates.add(namedElement);
                         }
                     }
@@ -121,7 +124,9 @@ public class FunIncAUtil {
 
         } else { // if e is not in a set comprehension proceed as normal and check all found named elements
             for (PsiNamedElement namedElement : namedElements) {
-                if (name.equals(namedElement.getName())) {
+                if (name == null)
+                    res.add(namedElement);
+                else if (name.equals(namedElement.getName())) {
                     if (isDefinitionNode(namedElement, e))
                         res.add(namedElement);
                 }
@@ -212,9 +217,13 @@ public class FunIncAUtil {
 
             if (!varDef.isEmpty() && patternVar.isEmpty()) {
                 int n = varDef.size();
-                if (n == 1)
+                if (n == 1) {
+                    if (!param.isEmpty())
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Shadows previous definition of " + e.getText(),
+                                varDef.get(0));
                     return varDef;
-                else {
+                } else {
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Shadows previous definition of " + e.getText(),
                             varDef.get(n-1));

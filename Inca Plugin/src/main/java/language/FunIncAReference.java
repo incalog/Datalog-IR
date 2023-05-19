@@ -45,6 +45,7 @@ public class FunIncAReference extends PsiReferenceBase<PsiElement> implements Ps
             return null;
     }
 
+    // this method is provided by the interface PsiReference and will help with basic code completion
     public Object @NotNull [] getVariants(){
         if (PsiTreeUtil.getParentOfType(myElement, FunIncAExp.class) == null) {
             return new Object[]{};
@@ -55,11 +56,7 @@ public class FunIncAReference extends PsiReferenceBase<PsiElement> implements Ps
         for(final PsiNamedElement namedElement : namedElements){
             final String name = namedElement.getName();
             if (name == null) { continue; }
-            final PsiFile psiFile = namedElement.getContainingFile();
-            final String type;
-            // TODO type
-            type = "";
-            variants.add(LookupElementBuilder.create(name).withIcon(FunIncAIcons.FILE).withTypeText(type));
+            variants.add(LookupElementBuilder.create(name));
         }
         return variants.toArray();
     }
