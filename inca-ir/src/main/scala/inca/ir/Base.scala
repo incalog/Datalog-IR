@@ -1,14 +1,7 @@
 package inca.ir
 
-case class Language(features: Set[IR]):
-  def +(feature: IR): Language = Language(features + feature)
-  def --(features: Set[IR]): Language = Language(this.features -- features)
-  def includes(that: Language): Boolean = that.features.subsetOf(this.features)
-
-object Language:
-  val Datalog: Language = new Language(Set())
-  def apply(features: IR*) = new Language(Set(features:_*))
-
+import inca.ir.*
+import inca.ir.extensions.*
 
 case class Name(name: String) {
   override def toString: String = name
@@ -24,6 +17,29 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) {
 trait ModuleEntry
 
 
+
+trait Atom
+trait Term
+trait Type
+
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
+  override def toString: String =
+    s"$name${params.mkString("(", ", ", ")")} ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
+
+case class Param(name: Name, ty: Type):
+  override def toString: String = s"$name: $ty"
+
+case class Body(atoms: Seq[Atom]):
+  override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
+
+case class Var(name: Name) extends Term:
+  override def toString: String = s"$name"
+
+case class Call(name: Name, terms: Seq[Term]) extends Atom:
+  override def toString: String = s"$name${terms.mkString("(", ", ", ")")})"
+
+case object TInt extends Type
+
 trait IR:
   val name: String = "Datalog"
 
@@ -38,28 +54,13 @@ trait IR:
   /** The target IR of this language. */
   def requires: Language = Language.Datalog
 
-  trait Type
-  case object TInt extends Type
-
-  case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
-    override def toString: String =
-      s"$name${params.mkString("(", ", ", ")")} ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
-
-  case class Param(name: Name, ty: Type):
-    override def toString: String = s"$name: $ty"
-
-  case class Body(atoms: Seq[Atom]):
-    override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
-
-  trait Atom
-  trait Term
+  // TODO: Move this to an IR-extension
+  /*case object TInt extends Type
 
   case class Eq(lhs: Term, rhs: Term) extends Atom:
     override def toString: String = s"$lhs == $rhs"
   case class Neq(lhs: Term, rhs: Term) extends Atom:
     override def toString: String = s"$lhs != $rhs"
-  case class Call(name: Name, terms: Seq[Term]) extends Atom:
-    override def toString: String = s"$name${terms.mkString("(", ", ", ")")})"
 
   case class Num(value: Int) extends Term:
     override def toString: String = s"$value"
@@ -73,20 +74,14 @@ trait IR:
   case class Abs(t: Term) extends Term:
     override def toString: String = s"abs($t)"
   case class Min(lhs: Term, rhs: Term) extends Term:
-    override def toString: String = s"min($lhs, $rhs)"
+    override def toString: String = s"min($lhs, $rhs)"*/
   //case class Max(lhs: Term, rhs: Term) extends Term
   //case class Sub(lhs: Term, rhs: Term) extends Term
   //case class Div(lhs: Term, rhs: Term) extends Term
 
-trait DisjunctionIR extends IR:
-  override val name: String = "Disjunction"
-  override def language: Language = super.language + new DisjunctionIR {}
-  override def requires: Language = Language()
 
-  case class Disjunction(as1: Seq[Atom], as2: Seq[Atom]) extends Atom:
-    override def toString: String = s"${as1.mkString("(", ", ", ")")} v ${as2.mkString("(", ", ", ")")}"
 
-trait BooleanIR extends IR:
+/*trait BooleanIR extends IR:
   override val name: String = "Boolean"
   override def language: Language = super.language + new BooleanIR {}
   override def requires: Language = Language()
@@ -125,6 +120,6 @@ trait SetIR extends IR:
 
   case class Set(ts: Seq[Term]) extends Term
   case class SetUnion(t1: Term, t2: Term) extends Term
-  case class SetIntersection(t1: Term, t2: Term) extends Term
+  case class SetIntersection(t1: Term, t2: Term) extends Term*/
 
   // Set comprehension etc. ?

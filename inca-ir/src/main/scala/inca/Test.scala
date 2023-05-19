@@ -1,11 +1,15 @@
 package inca.ir
+
+import inca.ir.extensions.*
+import inca.ir.lowering.DisjunctionLowering
+
 @main
 def test() = {
-  val mods1 = lowerBoolIR()
+  //val mods1 = lowerBoolIR()
   val mods2 = lowerDisjunctionIR()
-  val mods3 = lowerCombinedIR()
+  //val mods3 = lowerCombinedIR()
 
-  (mods1 ++ mods2 ++ mods3).foreach { m =>
+  (mods2).foreach { m =>
     println()
     println(m)
     println()
@@ -15,31 +19,37 @@ def test() = {
 def lowerDisjunctionIR(): Seq[Module] = {
   val disjunctionIR = new DisjunctionIR {}
 
-  val mod = Module(Name("Test"), Language(disjunctionIR), Seq(disjunctionIR.Relation(
-    Name("rel"),
-    Seq(disjunctionIR.Param(Name("a"), disjunctionIR.TInt)),
+  val mod = Module(Name("Test"), Language(disjunctionIR), Seq(Relation(
+    Name("R"),
+    Seq(Param(Name("a"), TInt)),
     Seq(
-      disjunctionIR.Body(Seq(
-        disjunctionIR.Call(Name("a"), Seq(disjunctionIR.Num(4))),
-        disjunctionIR.Call(Name("b"), Seq(disjunctionIR.Var(Name("c")))),
-        disjunctionIR.Disjunction(
+      Body(Seq(
+        Call(Name("A"), Seq(Var(Name("a")))),
+        Call(Name("B"), Seq(Var(Name("a")))),
+        Disjunction(
           Seq(
-            disjunctionIR.Call(Name("d"), Seq(disjunctionIR.Num(5))),
-            disjunctionIR.Call(Name("e"), Seq(disjunctionIR.Var(Name("f"))))
+            Call(Name("C"), Seq(Var(Name("a")))),
+            Call(Name("D"), Seq(Var(Name("a"))))
           ),
           Seq(
-            disjunctionIR.Call(Name("g"), Seq(disjunctionIR.Num(6))),
-            disjunctionIR.Call(Name("h"), Seq(disjunctionIR.Var(Name("i"))))
+            Call(Name("Y"), Seq(Var(Name("a"))))
           ),
         ),
-        disjunctionIR.Disjunction(
+        Disjunction(
           Seq(
-            disjunctionIR.Call(Name("j"), Seq(disjunctionIR.Num(7))),
-            disjunctionIR.Call(Name("k"), Seq(disjunctionIR.Var(Name("f"))))
+            Call(Name("H"), Seq(Var(Name("a")))),
+            Call(Name("I"), Seq(Var(Name("a"))))
           ),
           Seq(
-            disjunctionIR.Call(Name("l"), Seq(disjunctionIR.Num(8))),
-            disjunctionIR.Call(Name("m"), Seq(disjunctionIR.Var(Name("n"))))
+            Disjunction(
+              Seq(
+                Call(Name("J"), Seq(Var(Name("a")))),
+                Call(Name("K"), Seq(Var(Name("a"))))
+              ),
+              Seq(
+                Call(Name("L"), Seq(Var(Name("a"))))
+              ),
+            ),
           ),
         )
       ))
@@ -47,19 +57,15 @@ def lowerDisjunctionIR(): Seq[Module] = {
   )))
 
   val baseIR = new IR {}
-  val lowering = new DisjunctionLowering[DisjunctionIR, IR]:
-    override val src: DisjunctionIR = disjunctionIR
-    override val trg: IR = baseIR
-    override def module: Module = mod
-
-  Seq(mod, lowering.lower)
+  val lowering = new DisjunctionLowering[DisjunctionIR, IR](disjunctionIR, baseIR) {}
+  Seq(mod, lowering.lower(mod))
 }
 
 
-def lowerBoolIR(): Seq[Module] = {
+/*def lowerBoolIR(): Seq[extensions.Module] = {
   val boolIR = new BooleanIR {}
 
-  val mod = Module(Name("Test"), Language(boolIR), Seq(boolIR.Relation(
+  val mod = extensions.Module(Name("Test"), Language(boolIR), Seq(boolIR.Relation(
     Name("rel"),
     Seq(boolIR.Param(Name("a"), boolIR.TBoolean)),
     Seq(
@@ -83,7 +89,7 @@ def lowerBoolIR(): Seq[Module] = {
   val lowering = new BooleanLowering[BooleanIR, IR]:
     override val src: BooleanIR = boolIR
     override val trg: IR = baseIR
-    override def module: Module = mod
+    override def module: extensions.Module = mod
 
   Seq(mod, lowering.lower)
 }
@@ -98,7 +104,7 @@ trait BooleanToDisjunctionLowering[S <: DisjunctionIR & BooleanIR, T <: Disjunct
 
 trait DisjunctionToBooleanLowering[S <: BooleanIR & DisjunctionIR, T <: BooleanIR] extends DisjunctionLowering[S, T] with PreserveBoolean[S, T]
 
-def lowerCombinedIR(): Seq[Module] = {
+def lowerCombinedIR(): Seq[extensions.Module] = {
   val baseIR = new IR {}
   val boolIR = new BooleanIR {}
   val disjunctionIR = new DisjunctionIR {}
@@ -106,7 +112,7 @@ def lowerCombinedIR(): Seq[Module] = {
 
   val language = Language(disjunctionIR, boolIR)
 
-  val mod = Module(Name("Test"), language, Seq(combinedIR.Relation(
+  val mod = extensions.Module(Name("Test"), language, Seq(combinedIR.Relation(
     Name("rel"),
     Seq(combinedIR.Param(Name("a"), combinedIR.TInt)),
     Seq(
@@ -148,27 +154,27 @@ def lowerCombinedIR(): Seq[Module] = {
   val loweringBool1 = new BooleanToDisjunctionLowering[BooleanDisjunctionIR, DisjunctionIR]:
     override val src: BooleanDisjunctionIR = combinedIR
     override val trg: DisjunctionIR = disjunctionIR
-    override def module: Module = mod
+    override def module: extensions.Module = mod
 
   val loweredMod1 = loweringBool1.lower
 
   val loweringDisjunction1 = new DisjunctionLowering[DisjunctionIR, IR]:
     override val src: DisjunctionIR = disjunctionIR
     override val trg: IR = baseIR
-    override def module: Module = loweredMod1
+    override def module: extensions.Module = loweredMod1
 
 
   val loweringDisjunction2 = new DisjunctionToBooleanLowering[BooleanDisjunctionIR, BooleanIR]:
     override val src: BooleanDisjunctionIR = combinedIR
     override val trg: BooleanIR = boolIR
-    override def module: Module = mod
+    override def module: extensions.Module = mod
 
   val loweredMod2 = loweringDisjunction2.lower
 
   val loweringBool2 = new BooleanLowering[BooleanIR, IR]:
     override val src: BooleanIR = boolIR
     override val trg: IR = baseIR
-    override def module: Module = loweredMod2
+    override def module: extensions.Module = loweredMod2
 
   Seq(mod, loweredMod1, loweringDisjunction1.lower, loweredMod2, loweringBool2.lower)
-}
+}*/
