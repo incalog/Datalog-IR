@@ -1,12 +1,12 @@
 package inca.ir
 
 import inca.ir.extensions.*
-import inca.ir.lowering.DisjunctionLowering
+import inca.ir.lowering.{DisjunctionLowering, TupleLowering}
 
 @main
 def test() = {
   //val mods1 = lowerBoolIR()
-  val mods2 = lowerDisjunctionIR()
+  val mods2 = lowerTupleIR()
   //val mods3 = lowerCombinedIR()
 
   (mods2).foreach { m =>
@@ -56,8 +56,27 @@ def lowerDisjunctionIR(): Seq[Module] = {
     )
   )))
 
-  val baseIR = new IR {}
-  val lowering = new DisjunctionLowering[DisjunctionIR, IR](disjunctionIR, baseIR) {}
+  val baseIR = new BaseIR {}
+  val lowering = new DisjunctionLowering[DisjunctionIR, BaseIR](disjunctionIR, baseIR) {}
+  Seq(mod, lowering.lower(mod))
+}
+
+def lowerTupleIR(): Seq[Module] = {
+  val tupleIR = new TupleIR {}
+
+  val mod = Module(Name("Test"), Language(tupleIR), Seq(Relation(
+    Name("R"),
+    Seq(Param(Name("a"), TTuple(Seq(TInt, TTuple(Seq(TInt, TInt)))))),
+    Seq(
+      Body(Seq(
+          Call(Name("Test"), Seq(Tuple(Seq(Var(Name("x")), Var(Name("y"))))))
+      ))
+    )
+    )
+  ))
+
+  val baseIR = new BaseIR {}
+  val lowering = new TupleLowering[TupleIR, BaseIR](tupleIR, baseIR) {}
   Seq(mod, lowering.lower(mod))
 }
 

@@ -3,17 +3,17 @@ package inca.ir
 import inca.ir.*
 import inca.ir.extensions.*
 
-case class Name(name: String) {
+case class Name(name: String):
   override def toString: String = name
-}
+  def byAppending(suffix: String): Name = Name(this.name + suffix)
 
-case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) {
+case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]):
   override def toString: String = {
     val features = if lang.features.nonEmpty then s"(with ${lang.features.map(_.name).mkString(",")})" else ""
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
-}
+
 trait ModuleEntry
 
 
@@ -36,15 +36,15 @@ case class Var(name: Name) extends Term:
   override def toString: String = s"$name"
 
 case class Call(name: Name, terms: Seq[Term]) extends Atom:
-  override def toString: String = s"$name${terms.mkString("(", ", ", ")")})"
+  override def toString: String = s"$name${terms.mkString("(", ", ", ")")}"
 
 case object TInt extends Type
 
-trait IR:
+trait BaseIR:
   val name: String = "Datalog"
 
   override def equals(obj: Any): Boolean = obj match
-    case that: IR => this.name == that.name
+    case that: BaseIR => this.name == that.name
     case _ => false
 
   override def hashCode(): Int = name.hashCode
