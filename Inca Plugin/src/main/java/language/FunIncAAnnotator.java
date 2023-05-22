@@ -3,7 +3,6 @@ package language;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import language.psi.*;
 import language.typing.FunIncATypeUtil;
@@ -16,24 +15,20 @@ import java.util.*;
 
 public class FunIncAAnnotator implements Annotator {
 
-    private static Map<TextRange, Set<String>> annotationMap;
+    private static Map<PsiElement, Set<String>> annotationMap;
 
     private static AnnotationHolder annotationHolder;
 
     public static void newAnnotation(HighlightSeverity hs, String message, PsiElement e) {
-        newAnnotation(hs, message, e.getTextRange());
-    }
-
-    public static void newAnnotation(HighlightSeverity hs, String message, TextRange textRange) {
         if (annotationHolder != null && annotationMap != null) {
-            Set<String> annos = annotationMap.get(textRange);
-            if (annos == null) { // no annotations yet for that specific text range
-                annotationMap.put(textRange, new HashSet<>(Collections.singletonList(message)));
-                annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
-            } else { // this text range already displays annotations
+            Set<String> annos = annotationMap.get(e);
+            if (annos == null) { // no annotations yet for that specific element
+                annotationMap.put(e, new HashSet<>(Collections.singletonList(message)));
+                annotationHolder.newAnnotation(hs, message).range(e).create(); // annotation is displayed
+            } else { // this element already displays annotations
                 if (!annos.contains(message)) {
                     annos.add(message);
-                    annotationHolder.newAnnotation(hs, message).range(textRange).create(); // annotation is displayed
+                    annotationHolder.newAnnotation(hs, message).range(e).create(); // annotation is displayed
                 }
             }
         }

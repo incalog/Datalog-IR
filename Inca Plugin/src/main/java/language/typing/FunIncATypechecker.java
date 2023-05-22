@@ -43,7 +43,7 @@ public class FunIncATypechecker {
             if (paramDef.getType() == null) {
                 FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                         "Missing type annotation",
-                        paramDef.getId());
+                        paramDef);
                 return new AnyType();
             }
             return PsiToTypeConverter.convert(paramDef.getType());
@@ -536,14 +536,9 @@ public class FunIncATypechecker {
                     }
                     returnType = funType.returnType;
                 } else {
-                    String callExpText = callExp.getText();
-                    int callTextLength = callExpText.indexOf("(");
-                    int beginning = callExp.getTextRange().getStartOffset();
-                    int end = beginning + callTextLength - 1;
-                    TextRange warningRange = new TextRange(beginning, end);
                     FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
                             "Expected function type at function position of call, but got " + returnType,
-                            warningRange);
+                            callExp);
                     return returnType;
                 }
             }
