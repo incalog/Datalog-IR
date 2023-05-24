@@ -55,7 +55,7 @@ public class FunIncATypechecker {
                 typeVariables = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
             }
             List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
-            Type returnType = typeOfTypeDef(constructorDef.getParent());
+            Type returnType = typeOfTypeDef(dataDef);
             return new FunType(typeVariables, paramTypes, returnType);
         } else if (element instanceof FunIncAVarDef) {
             FunIncAVarDef varDef = (FunIncAVarDef) element;
@@ -87,21 +87,13 @@ public class FunIncATypechecker {
                 }
                 Type inferredType = typecheckExp(multipleBindings.getExpList().get(0));
                 if (!(inferredType instanceof TupleType)) {
-                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                            "Expected Tuple type, but got " + inferredType,
-                            multipleBindings.getExpList().get(0));
                     return new AnyType();
                 }
                 int index = multipleBindings.getVarDefList().indexOf(element); // position of the VarDef in question
                 TupleType inferredTupleType = (TupleType) inferredType; // inferred types are definitely a tuple
-                int n = inferredTupleType.types.size();
-                int m = multipleBindings.getVarDefList().size();
-                if (m != n) // error when number of inferred types does not match with number of bound variables
-                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                            "Cannot assign " + n + "-ary tuple to " + m + " variables",
-                            multipleBindings.getExpList().get(0));
+                int n = multipleBindings.getVarDefList().size(); // number of variables bound
                 if (multipleBindings.getType() == null) { // no expected types provided
-                    if (index < m)
+                    if (index < n)
                         return inferredTupleType.types.get(index);
                     else
                         return new AnyType(); // nothing bound to that VarDef
@@ -380,16 +372,45 @@ public class FunIncATypechecker {
             FunIncALetExp letExp = (FunIncALetExp) exp;
             if (letExp.getSingleBinding() != null) {
                 FunIncASingleBinding single = letExp.getSingleBinding();
+                FunIncAExp bound = single.getExpList().get(0);
+                FunIncAExp body = single.getExpList().get(1);
+                if (bound != null)
+                    typecheckExp(bound);
+                else
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing binding in Let expression",
+                            single);
                 if (single.getType() != null)
                     validateType(single.getType());
-                if (single.getExpList() == null || single.getExpList().size() == 1) { // if letExp doesn't have a body return Any
+                if (body == null) { // if letExp doesn't have a body return AnyType
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing body of Let expression",
+                            single);
                     return new AnyType();
                 } else {
-                    FunIncAExp body = single.getExpList().get(single.getExpList().size() - 1);
                     return typecheckExp(body);
                 }
             } else if (letExp.getMultipleBindings() != null) {
                 FunIncAMultipleBindings multiple = letExp.getMultipleBindings();
+                FunIncAExp bound = multiple.getExpList().get(0);
+                FunIncAExp body = multiple.getExpList().get(1);
+                if (bound != null) {
+                    Type boundType = typecheckExp(bound);
+                    if (boundType instanceof TupleType) {
+                        int n = ((TupleType) boundType).types.size();
+                        int m = multiple.getVarDefList().size();
+                        if (n != m)
+                            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                    "Cannot assign " + n + "-ary tuple to " + m + " variables",
+                                    bound);
+                    } else
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected Tuple type, but got " + boundType,
+                                bound);
+                } else
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing binding in Let expression",
+                            multiple);
                 if (multiple.getType() != null) { // expected types are provided
                     validateType(multiple.getType());
                     Type type = PsiToTypeConverter.convert(multiple.getType());
@@ -406,14 +427,16 @@ public class FunIncATypechecker {
                                 multiple.getType());
                     }
                 }
-                if (multiple.getExpList() == null || multiple.getExpList().size() == 1) {
+                if (body == null) {
                     // if letExp doesn't have a body return Any
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing body in Let expression",
+                            multiple);
                     return new AnyType();
                 } else {
-                    FunIncAExp body = multiple.getExpList().get(multiple.getExpList().size() - 1);
                     return typecheckExp(body);
                 }
-            } else {
+            } else { // neither single binding nor multiple bindings (not possible)
                 return new AnyType();
             }
 
@@ -504,14 +527,6 @@ public class FunIncATypechecker {
                     }
                 }
                 funExpType = FunIncATypeUtil.substitute(funExpType, substMap);
-            }
-            if (funExpType instanceof FunType &&
-                    ((FunType) funExpType).typeVars.isEmpty() &&
-                    !callExp.getTypeList().isEmpty()) {
-                // no type variables in function, but there are types in the call expression
-                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
-                        "Function " + funExp.getText() + " does not have type variables",
-                        callExp);
             }
             Type returnType = funExpType;
             int n = callExp.getCallExpListList().size(); // n holds the number of function call
