@@ -183,12 +183,12 @@ public class FunIncATypechecker {
             }
             int index = pattern.getPatternVarDefList().indexOf(patternVarDef);
             List<FunIncAType> typeList = constructorDef.getTypeList();
+            Type patternVarType = PsiToTypeConverter.convert(typeList.get(index));
             List<FunIncATypeVarDef> typeVarDefList = ((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList();
             if (typeVarDefList != null) { // if data def has parametric types
                 FunIncAMatchExp matchExp = PsiTreeUtil.getParentOfType(patternVarDef, FunIncAMatchExp.class);
                 Type matcheeType = typecheckExp(matchExp.getExp());
                 if (matcheeType instanceof ConstructorType) {
-                    Type patternVarType = PsiToTypeConverter.convert(typeList.get(index));
                     Map<String, Type> substMap = new HashMap<>();
                     int i = 0;
                     for (FunIncATypeVarDef typeVarDef : typeVarDefList) {
@@ -204,7 +204,7 @@ public class FunIncATypechecker {
                 } // else: matcheeType not a ConstructorType, returning the unsubstituted parametric type is just fine
             }
             if (typeList.size() > index) {
-                return PsiToTypeConverter.convert(typeList.get(index));
+                return patternVarType;
             } else {
                 return new AnyType();
             }
