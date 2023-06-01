@@ -40,6 +40,12 @@ case class Call(name: Name, terms: Seq[Term]) extends Atom:
 
 case object TInt extends Type
 
+case class Eq(lhs: Term, rhs: Term) extends Atom:
+  override def toString: String = s"$lhs == $rhs"
+
+case class Neq(lhs: Term, rhs: Term) extends Atom:
+  override def toString: String = s"$lhs != $rhs"
+
 trait BaseIR:
   val name: String = "Datalog"
 

@@ -8,7 +8,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, override val trg: T) extends Lowering[S, T](src, trg) {
   override def loweredIRs: Set[BaseIR] = Set(new TupleIR {})
 
-  // TODO: Implement
+  // TODO: Implement in multiple steps. Each step should unfold one Tuple layer.
 
   override def visitParam(param: Param): Seq[Param] =
     val tys = visitType(param.ty)
@@ -22,12 +22,12 @@ case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, overrid
     case _ => super.visitType(ty)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    // TODO: not enough. I need to think more about all the different cases
+    // TODO: We need type information here to unpack eq atoms
     case Project(t, idx) => visitTerm(t) match
-        case Seq(Var(name)) => Seq(Var(name.byAppending("$_" + idx)))
-        case ts: Seq[Term] if idx <= ts.size => ???
-        case ts: Seq[Term] if idx > ts.size => throw IllegalArgumentException(s"Projection index $idx out of bounds!")
-        case _ => throw IllegalArgumentException(s"Can not project unknown term: $term")
+
+        case ts: Seq[Term] if idx <= ts.size => Seq(ts(idx))
+        case ts: Seq[Term] if idx > ts.size => throw IllegalStateException(s"Projection index $idx out of bounds!")
+        case _ => throw IllegalStateException(s"Can not project unknown term: $term")
     case Tuple(ts) => ts.flatMap(visitTerm)
     case _ => super.visitTerm(term)
 }
