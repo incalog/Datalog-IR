@@ -8,6 +8,8 @@ enum Demand:
   case Bound
   case Free
 
+// TODO: Is there any case, where we need to store the name of the pattern for the input guard ?
+//  It might make our live easier when we compute the full demand transformation, but it should not be require per se
 case class InputGuard(demand: Seq[Demand]) extends Atom
 case class InputPattern(patternName: Name, params: Seq[Param]) extends ModuleEntry
 
