@@ -9,6 +9,7 @@ case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, overrid
   override def loweredIRs: Set[BaseIR] = Set(new TupleIR {})
 
   // TODO: Implement in multiple steps. Each step should unfold one Tuple layer.
+  // TODO: A typechecker would be useful to track the datatype of variables
 
   override def visitParam(param: Param): Seq[Param] =
     val tys = visitType(param.ty)

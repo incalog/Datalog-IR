@@ -2,6 +2,8 @@ package inca.ir.extensions
 
 import inca.ir.{BaseIR, Language, Term, Type}
 
+// TODO Discuss: Do we want to include SetComprehension in the IR ?
+
 case class TSet(ty: Type) extends Type:
   override def toString: String = s"Set[$ty]"
 

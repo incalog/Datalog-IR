@@ -35,6 +35,6 @@ trait BaseIRVisitor:
   }
 
   def visitType(ty: Type): Seq[Type] = ty match {
-    case TInt => Seq(TInt)
+    case TAny => Seq(TAny)
     case _ => throw IllegalArgumentException(s"Can not visit unknown type: $ty")
   }
