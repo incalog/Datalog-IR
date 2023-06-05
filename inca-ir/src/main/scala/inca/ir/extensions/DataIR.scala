@@ -15,28 +15,8 @@ case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends Module
 
 case class Construct(name: Name, data: Seq[Term]) extends Term
 
-case class Binding(name: Name, vars: Seq[Var])
-case class Case(binding: Binding, body: Body)
+case class Case(name: Name, vars: Seq[Var], body: Term) // TODO Discuss: Seq[Atom] or Body ?
 case class Match(data: Term, cases: Seq[Case]) extends Atom
-
-
-/* We could write code such as:
-Outdated:
-
-data LinkedList = Empty | Cons Int LinkedList
-
-R(x: TInt, y: TInt, z: TData("LinkedList")) :-
-  a = Construct("Empty", Seq()) // -> We might compile this to a scala object
-  z = Construct("Cons", Seq(4, a))
-
-  Match(z, "Cons", Seq(n, t))
-
-  // 1. Use typechecker to find out which case we are matching
-  // 2. Scala could look like this:
-  // ((z: Any) => z.asInstanceOf["LinkedList"].caseName == "Cons)(z)
-  // n = ((z: Any) => z.asInstanceOf["LinkedList"].data(0))(z)
-  // t = ((z: Any) => z.asInstanceOf["LinkedList"].data(1))(z)
-*/
 
 
 trait DataIR extends BaseIR:

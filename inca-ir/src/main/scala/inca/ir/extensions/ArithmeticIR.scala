@@ -3,8 +3,7 @@ package inca.ir.extensions
 import inca.ir.*
 
 
-// TODO Discuss: Do we want to support doubles ? or do we want to split the IR in Int and double IR or
-//  do we want to make the IR generic in the number type ?
+// TODO Discuss: Do we want to support doubles ? or do we want to split the IR in Int and double IR ?
 
 // TODO: With the design below we probably want a cast term as well. Something such as asInt, asDouble or we do it
 //  implicitly.
@@ -39,4 +38,4 @@ case class GT(lhs: Term, rhs: Term) extends Term:
 trait ArithmeticIR extends BaseIR:
   override val name: String = "Arithmetic"
   override def language: Language = super.language + new ArithmeticIR {}
-  override def requires: Language = Language()
+  override def requires: Language = Language(new PrimitiveIR {})

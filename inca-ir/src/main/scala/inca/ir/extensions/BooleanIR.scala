@@ -25,4 +25,4 @@ case object BoolFalse extends Term:
 trait BooleanIR extends BaseIR:
   override val name: String = "Boolean"
   override def language: Language = super.language + new BooleanIR {}
-  override def requires: Language = Language()
+  override def requires: Language = Language(new PrimitiveIR {})

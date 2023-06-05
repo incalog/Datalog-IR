@@ -3,6 +3,8 @@ package inca.ir.extensions
 import inca.ir.{BaseIR, Language, Term, Type}
 
 // TODO Discuss: Do we want to include SetComprehension in the IR ?
+//  We most certainly need type information to defunctionalize
+//  How do we encode empty sets ?
 
 case class TSet(ty: Type) extends Type:
   override def toString: String = s"Set[$ty]"

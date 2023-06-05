@@ -35,8 +35,15 @@ case class Body(atoms: Seq[Atom]):
 case class Var(name: Name) extends Term:
   override def toString: String = s"$name"
 
-case class Call(name: Name, terms: Seq[Term]) extends Atom:
-  override def toString: String = s"$name${terms.mkString("(", ", ", ")")}"
+case class Call(name: Name, args: Seq[Term]) extends Atom:
+  override def toString: String = s"$name${args.mkString("(", ", ", ")")}"
+
+case class ExtensionalCall(name: Name, args: Seq[Term], neg: Boolean = false) extends Atom:
+  override def toString: String =
+    if (neg)
+      s"ext !$name${args.mkString("(", ", ", ")")}"
+    else
+      s"ext $name${args.mkString("(", ", ", ")")}"
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs == $rhs"
