@@ -17,7 +17,7 @@ case class Construct(name: Name, data: Seq[Term]) extends Term
 
 case class Binding(name: Name, vars: Seq[Var])
 case class Case(binding: Binding, body: Body)
-case class Match(data: Term, caseName: Name, caseVars: Seq[Var]) extends Atom
+case class Match(data: Term, cases: Seq[Case]) extends Atom
 
 
 /* We could write code such as:
