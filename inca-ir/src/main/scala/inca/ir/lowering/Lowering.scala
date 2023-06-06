@@ -8,7 +8,8 @@ trait Lowering[S <: BaseIR, T <: BaseIR](val src: S, val trg: T) extends IRVisit
   def loweredIRs: Set[BaseIR] = Set()
 
   def lower(module: Module): Module = {
-    assert(module.lang.includes(trg.requires))
+    if (!module.lang.includes(trg.requires))
+      throw new IllegalArgumentException(s"Module $module misses required features: ${trg.requires.features}")
     visit(Module(module.name, module.lang -- loweredIRs, module.contents))
   }
 }

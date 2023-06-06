@@ -2,14 +2,28 @@ package inca.ir
 
 import inca.ir.extensions.*
 import inca.ir.lowering.{DisjunctionLowering, TupleLowering}
+import inca.ir.typing.{CompilationMessage, Typechecker}
+
+import scala.collection.immutable.Seq
+
+val typechecker = new Typechecker {}
+
+
+case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+
+def stopIfNeeded(): Unit = {
+  val errors = typechecker.getErrors
+  if (errors.nonEmpty)
+    throw Failed(errors)
+}
 
 @main
 def test() = {
-  //val mods1 = lowerBoolIR()
+  val mods1 = lowerTupleIR()
   val mods2 = lowerDisjunctionIR()
   //val mods3 = lowerCombinedIR()
 
-  (mods2).foreach { m =>
+  Seq(mods1, mods2).flatten.foreach { m =>
     println()
     println(m)
     println()
@@ -64,20 +78,36 @@ def lowerDisjunctionIR(): Seq[Module] = {
 def lowerTupleIR(): Seq[Module] = {
   val tupleIR = new TupleIR {}
 
-  val mod = Module(Name("Test"), Language(tupleIR), Seq(Relation(
-    Name("R"),
-    Seq(Param(Name("a"), TTuple(Seq(TAny, TTuple(Seq(TAny, TAny)))))),
-    Seq(
-      Body(Seq(
-          Call(Name("Test"), Seq(Tuple(Seq(Var(Name("x")), Var(Name("y"))))))
-      ))
-    )
+  val mod = Module(Name("Test"), Language(tupleIR), Seq(
+
+    Relation(
+      Name("R"),
+      Seq(Param(Name("a"), TTuple(Seq(TAny, TTuple(Seq(TAny, TAny))))), Param(Name("b"), TAny)),
+      Seq(
+        Body(Seq(
+            Call(Name("Test"), Seq(Tuple(Seq(Var("b"), Project(Var("a"), 1)))))
+        ))
+      )
+    ),
+
+    Relation(
+      Name("Test"),
+      Seq(Param(Name("a"), TTuple(Seq(TAny, TTuple(Seq(TAny, TAny)))))),
+      Seq(
+        Body(Seq(
+        ))
+      )
     )
   ))
+
+
+  typechecker.typecheck(mod)
+  stopIfNeeded()
 
   val baseIR = new BaseIR {}
   val lowering = new TupleLowering[TupleIR, BaseIR](tupleIR, baseIR) {}
   Seq(mod, lowering.lower(mod))
+  Seq(mod)
 }
 
 

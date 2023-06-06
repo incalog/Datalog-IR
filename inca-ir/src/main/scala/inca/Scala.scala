@@ -1,6 +1,5 @@
 package inca
 
-// compilation target
 object Scala:
   trait Tree
 

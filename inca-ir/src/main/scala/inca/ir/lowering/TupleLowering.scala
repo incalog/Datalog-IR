@@ -1,6 +1,6 @@
 package inca.ir.lowering
 
-import inca.ir.{Atom, BaseIR, Body, Param, TInt, Term, Type, Var, extensions}
+import inca.ir.*
 import inca.ir.extensions.{Project, TTuple, Tuple, TupleIR}
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
@@ -24,11 +24,14 @@ case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, overrid
 
   override def visitTerm(term: Term): Seq[Term] = term match
     // TODO: We need type information here to unpack eq atoms
-    case Project(t, idx) => visitTerm(t) match
-
-        case ts: Seq[Term] if idx <= ts.size => Seq(ts(idx))
-        case ts: Seq[Term] if idx > ts.size => throw IllegalStateException(s"Projection index $idx out of bounds!")
-        case _ => throw IllegalStateException(s"Can not project unknown term: $term")
+    case Project(t, idx) => visitTerm(t) match {
+      case Seq(v@Var(name)) =>
+        println(s"Var $name with type: ${t.typ}")
+        Seq()
+      case ts: Seq[Term] if idx <= ts.size => Seq(ts(idx))
+      case ts: Seq[Term] if idx > ts.size => throw IllegalArgumentException(s"Projection index $idx out of bounds!")
+      case _ => throw IllegalStateException(s"Can not project unknown term: $term")
+    }
     case Tuple(ts) => ts.flatMap(visitTerm)
     case _ => super.visitTerm(term)
 }

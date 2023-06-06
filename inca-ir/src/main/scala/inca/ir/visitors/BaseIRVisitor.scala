@@ -12,7 +12,7 @@ trait BaseIRVisitor:
 
   def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match {
     case rel: Relation => visitRelation(rel)
-    case _ => throw IllegalArgumentException(s"Can not visit unknown object: $moduleEntry")
+    case _ => throw IllegalStateException(s"Can not visit unknown entry: $moduleEntry")
   }
 
   def visitRelation(relation: Relation): Seq[Relation] =
@@ -25,16 +25,20 @@ trait BaseIRVisitor:
     Seq(Body(body.atoms.flatMap(visitAtom)))
 
   def visitAtom(atom: Atom): Seq[Atom] = Seq(atom match {
-    case Call(name, terms) => Call(name, terms.flatMap(visitTerm))
-    case _ => throw IllegalArgumentException(s"Can not visit unknown atom: $atom")
+    case Call(name, args) => Call(name, args.flatMap(visitTerm))
+    case NegCall(name, args) => NegCall(name, args.flatMap(visitTerm))
+    case ExtensionalCall(name, args) => ExtensionalCall(name, args.flatMap(visitTerm))
+    case Eq(lhs, rhs) => Eq(visitTerm(lhs).head, visitTerm(rhs).head)
+    case Neq(lhs, rhs) => Neq(visitTerm(lhs).head, visitTerm(rhs).head)
+    case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
   })
 
   def visitTerm(term: Term): Seq[Term] = term match {
     case Var(name) => Seq(Var(name))
-    case _ => throw IllegalArgumentException(s"Can not visit unknown term: $term")
+    case _ => throw IllegalStateException(s"Can not visit unknown term: $term")
   }
 
   def visitType(ty: Type): Seq[Type] = ty match {
     case TAny => Seq(TAny)
-    case _ => throw IllegalArgumentException(s"Can not visit unknown type: $ty")
+    case _ => throw IllegalStateException(s"Can not visit unknown type: $ty")
   }

@@ -8,14 +8,14 @@ case class TData(name: Name) extends Type:
 case class CaseDefinition(name: Name, args: Seq[Type]):
   override def toString: String = s"""$name ${args.mkString(" ")}"""
 
-case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry:
+case class DataDefinition(override val name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry(name):
   //private lazy val caseMap: Map[Name, Case] = cases.map(c => c.name -> c).toMap
   //def getCaseByName(name: Name): Option[Case] = caseMap.get(name)
   override def toString: String = s"""data $name = ${cases.mkString("|")}"""
 
 case class Construct(name: Name, data: Seq[Term]) extends Term
 
-case class Case(name: Name, vars: Seq[Var], body: Term) // TODO Discuss: Seq[Atom] or Body ?
+case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]) // TODO Discuss: or Body or Term ?
 case class Match(data: Term, cases: Seq[Case]) extends Atom
 
 

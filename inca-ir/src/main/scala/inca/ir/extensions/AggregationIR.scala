@@ -3,9 +3,10 @@ package inca.ir.extensions
 import inca.Scala
 import inca.ir.*
 
+// TODO Discuss: Does this belong to PrimitiveIR ?
 case class Aggregation(out: Term, fun: Scala.Fun, patternName: Name, args: Seq[Term], aggregatedColumn: Int)
 
-// We probably want this because viatra has built-in support
+// We probably want this because viatra has built-in support for count aggregations
 // case class CountAggregation(out: Term, patternName: Name, args: Seq[Term])
 
 trait AggregationIR extends BaseIR:
