@@ -94,8 +94,9 @@ trait BaseIRTypechecker extends TypeContext:
         // lookup was a param
         ty
       case (None, Some(ty)) =>
+        // variable does not exist, but we inferred a type
         bindVar(name, v, ty)
-        ty // variable does not exist, but we inferred a type
+        ty
       case (None, None) =>
           error(s"Unbound variable $name", term)
           TAny

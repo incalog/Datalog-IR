@@ -9,6 +9,7 @@ case class Aggregation(out: Term, fun: Scala.Fun, patternName: Name, args: Seq[T
 // We probably want this because viatra has built-in support for count aggregations
 // case class CountAggregation(out: Term, patternName: Name, args: Seq[Term])
 
+// Rename AggregationScalaIR
 trait AggregationIR extends BaseIR:
   override val name: String = "Aggregation"
   override def language: Language = super.language + new AggregationIR {}

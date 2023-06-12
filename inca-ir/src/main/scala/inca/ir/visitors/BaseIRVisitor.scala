@@ -19,26 +19,27 @@ trait BaseIRVisitor:
     Seq(Relation(relation.name, relation.params.flatMap(visitParam), relation.bodies.flatMap(visitBody)))
 
   def visitParam(param: Param): Seq[Param] =
-    Seq(Param(param.name, visitType(param.ty).head))
+    Seq(Param(param.name, visitType(param.ty)))
 
   def visitBody(body: Body): Seq[Body] =
     Seq(Body(body.atoms.flatMap(visitAtom)))
 
-  def visitAtom(atom: Atom): Seq[Atom] = Seq(atom match {
-    case Call(name, args) => Call(name, args.flatMap(visitTerm))
-    case NegCall(name, args) => NegCall(name, args.flatMap(visitTerm))
-    case ExtensionalCall(name, args) => ExtensionalCall(name, args.flatMap(visitTerm))
-    case Eq(lhs, rhs) => Eq(visitTerm(lhs).head, visitTerm(rhs).head)
-    case Neq(lhs, rhs) => Neq(visitTerm(lhs).head, visitTerm(rhs).head)
+  def visitAtom(atom: Atom): Seq[Atom] = atom match {
+    case Call(name, args) => Seq(Call(name, args.flatMap(visitTerm)))
+    case NegCall(name, args) => Seq(NegCall(name, args.flatMap(visitTerm)))
+    case ExtensionalCall(name, args) => Seq(ExtensionalCall(name, args.flatMap(visitTerm)))
+    // TODO: Check that lhs and rhs has the same size
+    case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
+    case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
     case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
-  })
+  }
 
   def visitTerm(term: Term): Seq[Term] = term match {
     case Var(name) => Seq(Var(name))
     case _ => throw IllegalStateException(s"Can not visit unknown term: $term")
   }
 
-  def visitType(ty: Type): Seq[Type] = ty match {
-    case TAny => Seq(TAny)
+  def visitType(ty: Type): Type = ty match {
+    case TAny => TAny
     case _ => throw IllegalStateException(s"Can not visit unknown type: $ty")
   }

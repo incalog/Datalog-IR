@@ -12,6 +12,6 @@ trait TupleIRVisitor extends BaseIRVisitor:
     case Tuple(ts) => Seq(Tuple(ts.flatMap(visitTerm)))
     case _ => super.visitTerm(term)
 
-  override def visitType(ty: Type): Seq[Type] = ty match
-    case TTuple(tys) => Seq(TTuple(tys.flatMap(visitType)))
+  override def visitType(ty: Type): Type = ty match
+    case TTuple(tys) => TTuple(tys.map(visitType))
     case _ => super.visitType(ty)

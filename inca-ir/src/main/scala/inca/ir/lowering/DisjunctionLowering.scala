@@ -28,7 +28,7 @@ case class DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR](override val src
       alternativeAtoms = lhsAtoms ++ rhsAtoms
       Seq(Disjunction(lhs, rhs))
     case _ =>
-      val a = super.visitAtom(atom)
-      alternativeAtoms = alternativeAtoms.map(_.appendedAll(a))
-      a
+      val as = super.visitAtom(atom)
+      alternativeAtoms = alternativeAtoms.map(_ ++ as)
+      as
 }

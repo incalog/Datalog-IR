@@ -85,7 +85,8 @@ def lowerTupleIR(): Seq[Module] = {
       Seq(Param(Name("a"), TTuple(Seq(TAny, TTuple(Seq(TAny, TAny))))), Param(Name("b"), TAny)),
       Seq(
         Body(Seq(
-            Call(Name("Test"), Seq(Tuple(Seq(Var("b"), Project(Var("a"), 1)))))
+            Eq(Var("x"), Var("a")),
+            Call(Name("Test"), Seq(Tuple(Seq(Project(Project(Var("a"), 1), 1), Project(Var("a"), 1)))))
         ))
       )
     ),
@@ -107,7 +108,6 @@ def lowerTupleIR(): Seq[Module] = {
   val baseIR = new BaseIR {}
   val lowering = new TupleLowering[TupleIR, BaseIR](tupleIR, baseIR) {}
   Seq(mod, lowering.lower(mod))
-  Seq(mod)
 }
 
 
