@@ -6,12 +6,16 @@ import inca.ir.lowering.TupleLowering.separator
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
-case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-class TupleLoweringTest extends AnyFunSuiteLike {
+class TupleLoweringTest extends AnyFunSuiteLike:
+  case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+
   val baseIR: BaseIR = new BaseIR {}
   val tupleIR: TupleIR = new TupleIR {}
-  val lowering: TupleLowering[TupleIR, BaseIR] = new TupleLowering[TupleIR, BaseIR](tupleIR, baseIR) {}
+  val lowering: TupleLowering[TupleIR, BaseIR] = new TupleLowering[TupleIR, BaseIR] {
+    override def src: TupleIR = tupleIR
+    override def trg: BaseIR = baseIR
+  }
 
   val typechecker: Typechecker = new Typechecker {}
 
@@ -22,7 +26,7 @@ class TupleLoweringTest extends AnyFunSuiteLike {
   }
 
   test("Param lower to Base") {
-    val mod = Module("Test", Language(tupleIR), Seq(
+    val mod = Module("Test", tupleIR.language, Seq(
       Relation(
         "R",
         Seq(
@@ -86,7 +90,7 @@ class TupleLoweringTest extends AnyFunSuiteLike {
   }
 
   test("Term lower to Base") {
-    val mod = Module("Test", Language(tupleIR), Seq(
+    val mod = Module("Test", tupleIR.language, Seq(
       Relation(
         "R",
         Seq(
@@ -153,7 +157,7 @@ class TupleLoweringTest extends AnyFunSuiteLike {
   }
 
   test("Equality lower to Base") {
-    val mod = Module("Test", Language(tupleIR), Seq(
+    val mod = Module("Test", tupleIR.language, Seq(
       Relation(
         "R",
         Seq(
@@ -188,7 +192,7 @@ class TupleLoweringTest extends AnyFunSuiteLike {
   }
 
   test("Param project nested lower to Base") {
-    val mod = Module("Test", Language(tupleIR), Seq(
+    val mod = Module("Test", tupleIR.language, Seq(
       Relation(
         "R",
         Seq(
@@ -255,4 +259,3 @@ class TupleLoweringTest extends AnyFunSuiteLike {
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
-}

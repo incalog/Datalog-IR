@@ -9,9 +9,9 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 object TupleLowering:
   val separator: String = "_"
 
-case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, override val trg: T) extends Lowering[S, T](src, trg) {
+trait TupleLowering[S <: TupleIR, T <: BaseIR] extends Lowering[S, T] {
 
-  override def loweredIRs: Set[BaseIR] = Set(new TupleIR {})
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new TupleIR {})
 
   private def flatten(name: Name, typ: Type): Seq[(Name, Type)] = typ match {
     case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
@@ -23,16 +23,11 @@ case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, overrid
   private def flatten(param: Param): Seq[Param] =
     flatten(param.name, param.ty).map { case (n, t) => Param(n, t) }
 
-  private def size(ty: Type): Int = ty match {
-    case TTuple(tys) => tys.map(size).sum
-    case _ => 1
-  }
-
   override def visitParam(param: Param): Seq[Param] = flatten(param)
 
   override def visitTerm(term: Term): Seq[Term] = term match
     case Project(t, idx) =>
-      val tty: TTuple = t.typ match {
+      val tupleTy: TTuple = t.typ match {
         case Some(ty@TTuple(tys)) if idx <= tys.size =>
           ty
         case Some(ty@TTuple(tys)) if idx > tys.size =>
@@ -42,8 +37,7 @@ case class TupleLowering[S <: TupleIR, T <: BaseIR](override val src: S, overrid
         case None =>
           throw IllegalStateException(s"Untyped term $t")
       }
-      val sizeOfProjectedElement = size(tty.tys(idx))
-      val endIndex = idx + sizeOfProjectedElement
+      val endIndex = idx + tupleTy.tys(idx).size
       visitTerm(t) match {
         case ts: Seq[Term] if endIndex <= ts.size =>
           ts.slice(idx, endIndex)

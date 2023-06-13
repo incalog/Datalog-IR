@@ -4,6 +4,7 @@ import inca.ir.{Term, Type, Atom, BaseIR, Language}
 
 case class TTuple(tys: Seq[Type]) extends Type:
   override def toString: String = tys.mkString("(", ", ", ")")
+  override def size: Int = tys.map(_.size).sum
 
 case class Tuple(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("(", ", ", ")")

@@ -26,7 +26,9 @@ trait ModuleEntry(val name: Name) extends SourceLocation
 
 trait Atom extends SourceLocation
 trait Term extends Typeable[Type] with SourceLocation
-trait Type extends SourceLocation
+
+trait Type extends SourceLocation:
+  def size: Int = 1
 
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String =

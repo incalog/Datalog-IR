@@ -19,7 +19,7 @@ def stopIfNeeded(): Unit = {
 
 @main
 def test() = {
-  val mods1 = lowerTupleIR()
+  /*val mods1 = lowerTupleIR()
   val mods2 = lowerDisjunctionIR()
   //val mods3 = lowerCombinedIR()
 
@@ -27,10 +27,10 @@ def test() = {
     println()
     println(m)
     println()
-  }
+  }*/
 }
 
-def lowerDisjunctionIR(): Seq[Module] = {
+/*def lowerDisjunctionIR(): Seq[Module] = {
   val disjunctionIR = new DisjunctionIR {}
 
   val mod = Module(Name("Test"), Language(disjunctionIR), Seq(Relation(
@@ -101,14 +101,13 @@ def lowerTupleIR(): Seq[Module] = {
     )
   ))
 
-
   typechecker.typecheck(mod)
   stopIfNeeded()
 
   val baseIR = new BaseIR {}
   val lowering = new TupleLowering[TupleIR, BaseIR](tupleIR, baseIR) {}
   Seq(mod, lowering.lower(mod))
-}
+}*/
 
 
 /*def lowerBoolIR(): Seq[extensions.Module] = {

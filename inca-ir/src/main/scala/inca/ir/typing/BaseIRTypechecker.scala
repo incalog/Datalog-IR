@@ -32,9 +32,7 @@ trait BaseIRTypechecker extends TypeContext:
     relation.bodies.foreach(typecheck)
   }
 
-  def typecheck(body: Body): Unit = {
-    body.atoms.foreach(typecheck)
-  }
+  def typecheck(body: Body): Unit = body.atoms.foreach(typecheck)
 
   def typecheck(atom: Atom): Unit = {
 

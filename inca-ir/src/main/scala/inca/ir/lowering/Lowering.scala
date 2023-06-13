@@ -4,7 +4,10 @@ import inca.ir.{Atom, Body, Call, BaseIR, Module}
 import inca.ir.visitors.IRVisitor
 
 // TODO: Do we still need S and T ??
-trait Lowering[S <: BaseIR, T <: BaseIR](val src: S, val trg: T) extends IRVisitor {
+trait Lowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
+  def src: S
+  def trg: T
+
   def loweredIRs: Set[BaseIR] = Set()
 
   def lower(module: Module): Module = {

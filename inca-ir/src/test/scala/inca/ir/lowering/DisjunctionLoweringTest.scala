@@ -9,12 +9,15 @@ import scala.collection.immutable.Seq
 class DisjunctionLoweringTest extends AnyFunSuiteLike:
   val baseIR: BaseIR = new BaseIR {}
   val disjunctionIR: DisjunctionIR = new DisjunctionIR {}
-  val lowering: DisjunctionLowering[DisjunctionIR, BaseIR] = new DisjunctionLowering[DisjunctionIR, BaseIR](disjunctionIR, baseIR) {}
+  val lowering: DisjunctionLowering[DisjunctionIR, BaseIR] = new DisjunctionLowering[DisjunctionIR, BaseIR] {
+    override def src: DisjunctionIR = disjunctionIR
+    override def trg: BaseIR = baseIR
+  }
 
   test("Simple lower to BaseIR") {
     val mod = Module(
       "Test",
-      Language(disjunctionIR),
+      disjunctionIR.language,
       Seq(
         Relation("R",
           Seq(
@@ -69,7 +72,7 @@ class DisjunctionLoweringTest extends AnyFunSuiteLike:
   test("Nested lower to BaseIR") {
     val mod = Module(
       "Test",
-      Language(disjunctionIR),
+      disjunctionIR.language,
       Seq(
         Relation("R",
           Seq(

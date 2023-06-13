@@ -6,6 +6,6 @@ case class Language(features: Set[BaseIR]):
   def includes(that: Language): Boolean = that.features.subsetOf(this.features)
 
 object Language:
-  val Datalog: Language = new Language(Set())
+  val Datalog: Language = new Language(Set(new BaseIR {}))
   def apply(features: BaseIR*) = new Language(Set(features:_*) + new BaseIR {})
 
