@@ -78,7 +78,7 @@ trait BaseIRTypechecker extends TypeContext:
         val rhsTy = typecheck(rhs)
         assertSubtype(lhsTy, rhsTy, atom)
       case _ =>
-        throw IllegalArgumentException(s"Can not typecheck unknown atom: $atom")
+        throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
     }
   }
 
@@ -86,50 +86,36 @@ trait BaseIRTypechecker extends TypeContext:
 
   protected[typing] def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match {
     case v@Var(name) => (lookupVar(name), inferred) match {
-      case (Some((_, ty)), Some(expectedTy)) =>
-        // existing variable
-        assertSubtype(ty, expectedTy)
+      case (Some((_, ty)), _) => // lookup was a bound variable or a param
         ty
-      case (Some((_, ty)), _) =>
-        // lookup was a param
-        ty
-      case (None, Some(ty)) =>
-        // variable does not exist, but we inferred a type
+      case (None, Some(ty)) => // inferred a type for an unbound variable
         bindVar(name, v, ty)
         ty
-      case (None, None) =>
-          error(s"Unbound variable $name", term)
-          TAny
+      case (None, None) => // unbound variable, but we got not infer a type
+        error(s"Unbound variable $name", term)
+        TAny
     }
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
+  }
+
+  protected[typing] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
+    case (_, TAny) => true
+    case _ => false
   }
 
   protected[typing] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
     if (!subtype(ty1, ty2))
       error(s"Expected $ty1 but got: $ty2", location: _*)
 
-  protected[typing] def subtype(ty1: Type, ty2: Type): Boolean = {
-    ty1 == ty2
-  }
-
-
   protected[typing] def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
-    // TODO: Complete this
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
-        println("Reassing type: " + inferred + "   " + annotated)
-        //if (!subtype(inferred, annotated))
-        //  error(s"Inferred type $inferred, but expected annotated type $annotated", term)
+        if (!subtype(inferred, annotated))
+          error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>
         term.typed(inferred)
         inferred
     }
   }
-
-  /*def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
-    // TODO: Complete this
-    val newTarget = computeTarget
-    newTarget
-  }*/
