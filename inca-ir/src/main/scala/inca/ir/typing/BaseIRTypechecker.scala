@@ -109,7 +109,6 @@ trait BaseIRTypechecker extends TypeContext:
       error(s"Expected $ty1 but got: $ty2", location: _*)
 
   protected[typing] def subtype(ty1: Type, ty2: Type): Boolean = {
-    // TODO: Implement correctly
     ty1 == ty2
   }
 

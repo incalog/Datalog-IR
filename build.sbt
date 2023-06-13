@@ -9,7 +9,11 @@ Test / parallelExecution := false
 val truediffVersion = "0.1.5-SNAPSHOT"
 
 lazy val inca_ir = (project in file("inca-ir")).settings(
-  scalaVersion := "3.1.2"
+  scalaVersion := "3.1.2",
+
+  libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+  )
 )
 
 

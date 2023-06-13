@@ -3,7 +3,7 @@ package inca.ir.lowering
 import inca.ir.{Atom, Body, BaseIR}
 import inca.ir.extensions.{Disjunction, DisjunctionIR}
 
-case class DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR](override val src: S, override val trg: T) extends Lowering[S, T](src, trg) {
+case class DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR](override val src: S, override val trg: T) extends Lowering[S, T](src, trg):
   override def loweredIRs: Set[BaseIR] = Set(new DisjunctionIR {})
 
   type Alternatives[A] = Seq[A]
@@ -31,4 +31,3 @@ case class DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR](override val src
       val as = super.visitAtom(atom)
       alternativeAtoms = alternativeAtoms.map(_ ++ as)
       as
-}

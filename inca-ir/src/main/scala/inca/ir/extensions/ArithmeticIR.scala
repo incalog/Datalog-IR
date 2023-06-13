@@ -38,4 +38,4 @@ case class GT(lhs: Term, rhs: Term) extends Term:
 trait ArithmeticIR extends BaseIR:
   override val name: String = "Arithmetic"
   override def language: Language = super.language + new ArithmeticIR {}
-  override def requires: Language = Language(new PrimitiveIR {})
+  override def requires: Language = Language(new PrimitiveScalaIR {})

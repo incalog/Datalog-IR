@@ -5,6 +5,10 @@ import inca.ir.extensions.*
 import inca.ir.typing.Typeable
 import inca.ir.util.SourceLocation
 
+import scala.language.implicitConversions
+
+implicit def string2name(string: String): Name = Name(string)
+
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
   def byAppending(suffix: String): Name = Name(this.name + suffix)
@@ -38,7 +42,7 @@ case class Var(name: Name) extends Term with Var.Target:
   override def toString: String = s"$name"
 
 object Var {
-  def apply(name: String): Var = new Var(Name(name))
+  //def apply(name: String): Var = new Var(Name(name))
   trait Target extends SourceLocation
 }
 

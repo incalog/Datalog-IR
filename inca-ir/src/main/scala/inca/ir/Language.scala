@@ -7,5 +7,5 @@ case class Language(features: Set[BaseIR]):
 
 object Language:
   val Datalog: Language = new Language(Set())
-  def apply(features: BaseIR*) = new Language(Set(features:_*))
+  def apply(features: BaseIR*) = new Language(Set(features:_*) + new BaseIR {})
 

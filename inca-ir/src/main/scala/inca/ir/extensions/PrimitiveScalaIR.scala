@@ -12,8 +12,8 @@ case class Application(out: Term, fun: Scala.Fun, args: Seq[Term]) extends Atom
 
 
 //Rename PrimitiveScalaIR
-trait PrimitiveIR extends BaseIR:
-  override val name: String = "Primitive"
-  override def language: Language = super.language + new PrimitiveIR {}
+trait PrimitiveScalaIR extends BaseIR:
+  override val name: String = "PrimitiveScala"
+  override def language: Language = super.language + new PrimitiveScalaIR {}
   // This IR is not reducible
   override def requires: Language = Language(this)

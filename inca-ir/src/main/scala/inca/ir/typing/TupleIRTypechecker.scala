@@ -17,3 +17,11 @@ trait TupleIRTypechecker extends BaseIRTypechecker:
     case Tuple(ts) => TTuple(ts.map(typecheck))
     case _ => super.typecheckInternal(term, inferred)
   }
+
+  override protected[typing] def subtype(ty1: Type, ty2:  Type): Boolean = (ty1, ty2) match {
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
+      tys1.zip(tys2).forall { case (ty1, ty2)  => subtype(ty1, ty2) }
+    case _ =>
+      super.subtype(ty1, ty2)
+  }
+
