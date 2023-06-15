@@ -1,7 +1,7 @@
 package inca.ir.extension.block
 
 import inca.ir.*
-import inca.ir.extensions.*
+import inca.ir.extension.*
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -10,7 +10,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
   val baseIR = new BaseIR {}
-  val blockIR: extension.block.IR = IR
+  val blockIR: block.IR = IR
   val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
     override def src = blockIR
     override def trg = baseIR

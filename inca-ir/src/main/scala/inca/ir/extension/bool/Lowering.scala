@@ -1,12 +1,13 @@
 package inca.ir.extension.bool
 
-import inca.ir.extension.block.Block
-import inca.ir.extensions.{ArithmeticIR, Disjunction, IntNum, Max, Min, Sub}
+import inca.ir.extension.*
+import inca.ir.extension.disjunction.Disjunction
+import inca.ir.extensions.{ArithmeticIR, IntNum, Max, Min, Sub}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Var}
 
 
-trait Lowering[S <: IR, T <: BaseIR with ArithmeticIR] extends BaseLowering[S, T]:
+trait Lowering[S <: IR with not.IR, T <: BaseIR with ArithmeticIR] extends not.Lowering[S, T]:
 
   private var freshCount = 0
   def freshName(): Name =
@@ -35,10 +36,10 @@ trait Lowering[S <: IR, T <: BaseIR with ArithmeticIR] extends BaseLowering[S, T
     case AtomAsBool(a) =>
       val x = freshName()
       Seq(
-        Block(Seq(Disjunction(
+        block.Block(Seq(Disjunction(Seq(
           Seq(a, Eq(Var(x), TrueNum)),
           Seq(Not(a), Eq(Var(x), FalseNum))
-        )), Var(x)))
+        ))), Var(x)))
     case BoolAnd(t1, t2) =>
       for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
         yield Min(v1, v2)
@@ -50,3 +51,7 @@ trait Lowering[S <: IR, T <: BaseIR with ArithmeticIR] extends BaseLowering[S, T
         yield Sub(IntNum(1), v)
     case BoolTrue => Seq(TrueNum)
     case BoolFalse => Seq(FalseNum)
+
+  override def negateAtom(atom: Atom): Atom = atom match
+    case BoolAtom(t) => BoolAtom(BoolNot(t))
+    case _ => super.negateAtom(atom)

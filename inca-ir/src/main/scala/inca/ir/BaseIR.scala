@@ -57,6 +57,9 @@ case class NegCall(name: Name, args: Seq[Term]) extends Atom:
 case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}"
 
+case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
+  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}"
+
 case class Eq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs == $rhs"
 

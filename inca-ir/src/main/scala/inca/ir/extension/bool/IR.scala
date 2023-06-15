@@ -1,12 +1,14 @@
 package inca.ir.extension.bool
 
 import inca.ir.*
-import inca.ir.extensions.{ArithmeticIR, DisjunctionIR}
+import inca.ir.extension.*
+import inca.ir.extension.disjunction.IR
+import inca.ir.extensions.ArithmeticIR
 
 trait IR extends BaseIR:
   override val name: String = "Boolean"
   override def language: Language = super.language + IR
-  override def requires: Language = Language(ArithmeticIR, extension.block.IR, DisjunctionIR)
+  override def requires: Language = Language(ArithmeticIR, block.IR, IR, not.IR)
 object IR extends IR { }
 
 case object TBoolean extends Type

@@ -1,10 +1,12 @@
 package inca.ir.lowering
 
-import inca.ir.{Atom, Body, BaseIR}
-import inca.ir.extensions.{Disjunction, DisjunctionIR}
+import inca.ir.extension.disjunction.{Disjunction, IR}
+import inca.ir.{Atom, BaseIR, Body}
 
-trait DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR] extends BaseLowering[S, T]:
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new DisjunctionIR {})
+import scala.collection.mutable.ListBuffer
+
+trait DisjunctionLowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
 
   type Alternatives[A] = Seq[A]
   private var alternativeAtoms: Alternatives[Seq[Atom]] = Seq()
@@ -16,17 +18,19 @@ trait DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR] extends BaseLowering[
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Disjunction(as1, as2) =>
+    case Disjunction(ass) =>
       val before = alternativeAtoms
-      val lhs = as1.flatMap(visitAtom)
-      val lhsAtoms = alternativeAtoms
 
-      alternativeAtoms = before
-      val rhs = as2.flatMap(visitAtom)
-      val rhsAtoms = alternativeAtoms
+      val alternatives: ListBuffer[Seq[Atom]] = ListBuffer.empty
+      val rss = ass.map { as =>
+        val rs = as.flatMap(visitAtom)
+        alternatives ++= alternativeAtoms
+        alternativeAtoms = before
+        rs
+      }
 
-      alternativeAtoms = lhsAtoms ++ rhsAtoms
-      Seq(Disjunction(lhs, rhs))
+      alternativeAtoms = alternatives.toSeq
+      Seq(Disjunction(rss))
     case _ =>
       val as = super.visitAtom(atom)
       alternativeAtoms = alternativeAtoms.map(_ ++ as)

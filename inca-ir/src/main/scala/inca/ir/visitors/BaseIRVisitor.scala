@@ -28,6 +28,7 @@ trait BaseIRVisitor:
     case Call(name, args) => Seq(Call(name, args.flatMap(visitTerm)))
     case NegCall(name, args) => Seq(NegCall(name, args.flatMap(visitTerm)))
     case ExtensionalCall(name, args) => Seq(ExtensionalCall(name, args.flatMap(visitTerm)))
+    case NegExtensionalCall(name, args) => Seq(NegExtensionalCall(name, args.flatMap(visitTerm)))
     // TODO: Check that lhs and rhs has the same size
     case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
     case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)

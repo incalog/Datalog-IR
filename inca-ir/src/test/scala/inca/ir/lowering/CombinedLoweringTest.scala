@@ -1,6 +1,7 @@
 package inca.ir.lowering
 
 import inca.ir.*
+import inca.ir.extension.disjunction.{Disjunction, IR}
 import inca.ir.extensions.*
 import inca.ir.lowering.TupleLowering.separator
 import inca.ir.typing.{CompilationMessage, Typechecker}
@@ -10,12 +11,12 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 class CombinedLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  trait TupleDisjunctionIR extends TupleIR, DisjunctionIR:
+  trait TupleDisjunctionIR extends TupleIR, IR:
     override val name: String = "TupleDisjunction"
 
   val baseIR: BaseIR = new BaseIR {}
   val tupleIR: TupleIR = new TupleIR {}
-  val disjunctionIR: DisjunctionIR = new DisjunctionIR {}
+  val disjunctionIR: IR = new IR {}
   val tupleDisjunctionIR: TupleDisjunctionIR = new TupleDisjunctionIR {}
 
   val typechecker: Typechecker = new Typechecker {}
@@ -38,12 +39,12 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       override def src: TupleDisjunctionIR = tupleDisjunctionIR
       override def trg: BaseIR = baseIR
     }*/
-    val tupleLowering: TupleLowering[TupleDisjunctionIR, DisjunctionIR] = new TupleLowering[TupleDisjunctionIR, DisjunctionIR] {
+    val tupleLowering: TupleLowering[TupleDisjunctionIR, IR] = new TupleLowering[TupleDisjunctionIR, IR] {
       override def src: TupleDisjunctionIR = tupleDisjunctionIR
-      override def trg: DisjunctionIR = disjunctionIR
+      override def trg: IR = disjunctionIR
     }
-    val disjunctionLowering: DisjunctionLowering[DisjunctionIR, BaseIR] = new DisjunctionLowering[DisjunctionIR, BaseIR] {
-      override def src: DisjunctionIR = disjunctionIR
+    val disjunctionLowering: DisjunctionLowering[IR, BaseIR] = new DisjunctionLowering[IR, BaseIR] {
+      override def src: IR = disjunctionIR
       override def trg: BaseIR = baseIR
     }
 
@@ -146,9 +147,9 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
 
   test("Disjunction Tuple to Disjunction") {
     // Tuple lowering to DisjunctionIR
-    val lowering: TupleLowering[TupleDisjunctionIR, DisjunctionIR] = new TupleLowering[TupleDisjunctionIR, DisjunctionIR] {
+    val lowering: TupleLowering[TupleDisjunctionIR, IR] = new TupleLowering[TupleDisjunctionIR, IR] {
       override def src: TupleDisjunctionIR = tupleDisjunctionIR
-      override def trg: DisjunctionIR = disjunctionIR
+      override def trg: IR = disjunctionIR
     }
 
     val mod = Module("Test", tupleDisjunctionIR.language, Seq(
