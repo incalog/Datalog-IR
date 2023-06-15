@@ -29,13 +29,20 @@ case class Div(lhs: Term, rhs: Term) extends Term:
 case class Sub(lhs: Term, rhs: Term) extends Term:
   override def toString: String = s"$lhs - $rhs"
 
-case class LT(lhs: Term, rhs: Term) extends Term:
+case class Min(lhs: Term, rhs: Term) extends Term:
+  override def toString: String = s"min($lhs, $rhs)"
+
+case class Max(lhs: Term, rhs: Term) extends Term:
+  override def toString: String = s"max($lhs, $rhs)"
+
+case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"
 
-case class GT(lhs: Term, rhs: Term) extends Term:
+case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
 
+object ArithmeticIR extends ArithmeticIR { }
 trait ArithmeticIR extends BaseIR:
   override val name: String = "Arithmetic"
-  override def language: Language = super.language + new ArithmeticIR {}
+  override def language: Language = super.language + ArithmeticIR
   override def requires: Language = Language(new PrimitiveScalaIR {})

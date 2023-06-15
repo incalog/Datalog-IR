@@ -9,7 +9,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 object TupleLowering:
   val separator: String = "_"
 
-trait TupleLowering[S <: TupleIR, T <: BaseIR] extends Lowering[S, T] {
+trait TupleLowering[S <: TupleIR, T <: BaseIR] extends BaseLowering[S, T] {
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new TupleIR {})
 

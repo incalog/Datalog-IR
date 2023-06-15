@@ -4,7 +4,7 @@ import inca.ir.{Atom, Body, Call, BaseIR, Module}
 import inca.ir.visitors.IRVisitor
 
 // TODO: Do we still need S and T ??
-trait Lowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
+trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
   def src: S
   def trg: T
 
@@ -13,6 +13,8 @@ trait Lowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
   def lower(module: Module): Module = {
     if (!module.lang.includes(trg.requires))
       throw new IllegalArgumentException(s"Module $module misses required features: ${trg.requires.features}")
-    visit(Module(module.name, module.lang -- loweredIRs, module.contents))
+    val loweredLang = module.lang -- loweredIRs
+    println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
+    visit(Module(module.name, loweredLang, module.contents))
   }
 }

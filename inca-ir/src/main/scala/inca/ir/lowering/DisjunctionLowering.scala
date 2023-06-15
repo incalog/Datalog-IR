@@ -3,7 +3,7 @@ package inca.ir.lowering
 import inca.ir.{Atom, Body, BaseIR}
 import inca.ir.extensions.{Disjunction, DisjunctionIR}
 
-trait DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR] extends Lowering[S, T]:
+trait DisjunctionLowering[S <: DisjunctionIR, T <: BaseIR] extends BaseLowering[S, T]:
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new DisjunctionIR {})
 
   type Alternatives[A] = Seq[A]
