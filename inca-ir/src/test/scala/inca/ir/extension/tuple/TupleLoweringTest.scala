@@ -1,19 +1,21 @@
-package inca.ir.lowering
+package inca.ir.extension.tuple
 
 import inca.ir.*
+import inca.ir.extension.tuple
+import inca.ir.extension.tuple.{IR, Project, TTuple}
 import inca.ir.extensions.*
-import inca.ir.lowering.TupleLowering.separator
+import Lowering.separator
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-class TupleLoweringTest extends AnyFunSuiteLike:
+class LoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
   val baseIR: BaseIR = new BaseIR {}
-  val tupleIR: TupleIR = new TupleIR {}
-  val lowering: TupleLowering[TupleIR, BaseIR] = new TupleLowering[TupleIR, BaseIR] {
-    override def src: TupleIR = tupleIR
+  val tupleIR: IR = IR
+  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
+    override def src: IR = tupleIR
     override def trg: BaseIR = baseIR
   }
 
@@ -100,7 +102,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
         Seq(
           Body(Seq(
             Call("S", Seq(
-              Tuple(Seq(
+              tuple.Tuple(Seq(
                 Var("b"),
                 Var("b")
               ))
@@ -202,7 +204,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
         Seq(
           Body(Seq(
             Call("Test", Seq(
-              Tuple(Seq(
+              tuple.Tuple(Seq(
                 Project(Project(Var("a"), 1), 1),
                 Project(Var("a"), 1)
               ))

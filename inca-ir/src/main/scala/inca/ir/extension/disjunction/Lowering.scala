@@ -1,11 +1,12 @@
-package inca.ir.lowering
+package inca.ir.extension.disjunction
 
 import inca.ir.extension.disjunction.{Disjunction, IR}
+import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body}
 
 import scala.collection.mutable.ListBuffer
 
-trait DisjunctionLowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
+trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
 
   type Alternatives[A] = Seq[A]

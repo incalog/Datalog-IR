@@ -1,5 +1,6 @@
 package inca.ir.typing
-import inca.ir.extensions.{Project, TTuple, Tuple}
+
+import inca.ir.extension.tuple.{Project, TTuple, Tuple}
 import inca.ir.{TAny, Term, Type}
 
 trait TupleIRTypechecker extends BaseIRTypechecker:

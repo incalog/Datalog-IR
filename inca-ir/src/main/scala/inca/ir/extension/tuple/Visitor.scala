@@ -1,12 +1,13 @@
-package inca.ir.visitors
+package inca.ir.extension.tuple
 
 import inca.ir
-import inca.ir.extensions.*
 import inca.ir.*
+import inca.ir.extensions.*
+import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
 
-trait TupleIRVisitor extends BaseIRVisitor:
+trait Visitor extends BaseIRVisitor:
   override def visitTerm(term: Term): Seq[Term] = term match
     case Project(t, idx) => Seq(Project(visitTerm(t).head, idx))
     case Tuple(ts) => Seq(Tuple(ts.flatMap(visitTerm)))

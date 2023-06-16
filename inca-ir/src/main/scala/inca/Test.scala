@@ -1,7 +1,6 @@
 package inca.ir
 
 import inca.ir.extensions.*
-import inca.ir.lowering.{DisjunctionLowering, TupleLowering}
 import inca.ir.typing.{CompilationMessage, Typechecker}
 
 import scala.collection.immutable.Seq

@@ -1,6 +1,12 @@
-package inca.ir.extensions
+package inca.ir.extension.tuple
 
-import inca.ir.{Term, Type, Atom, BaseIR, Language}
+import inca.ir.*
+
+object IR extends IR { }
+trait IR extends BaseIR:
+  override val name: String = "Tuple"
+  override def language: Language = super.language + IR
+  override def requires: Language = Language()
 
 case class TTuple(tys: Seq[Type]) extends Type:
   override def toString: String = tys.mkString("(", ", ", ")")
@@ -12,7 +18,3 @@ case class Tuple(ts: Seq[Term]) extends Term:
 case class Project(t: Term, idx: Int) extends Term:
   override def toString: String = s"$t._$idx"
 
-trait TupleIR extends BaseIR:
-  override val name: String = "Tuple"
-  override def language: Language = super.language + new TupleIR {}
-  override def requires: Language = Language()

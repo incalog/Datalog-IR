@@ -1,17 +1,18 @@
-package inca.ir.lowering
+package inca.ir.extension.tuple
 
 import inca.ir.*
-import inca.ir.extensions.{Project, TTuple, Tuple, TupleIR}
-import inca.ir.lowering.TupleLowering.separator
+import inca.ir.extension.tuple.{IR, Project, TTuple, Tuple}
+import inca.ir.lowering.BaseLowering
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
-object TupleLowering:
+object Lowering:
   val separator: String = "_"
 
-trait TupleLowering[S <: TupleIR, T <: BaseIR] extends BaseLowering[S, T] {
+import Lowering.separator
+trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] {
 
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new TupleIR {})
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
 
   private def flatten(name: Name, typ: Type): Seq[(Name, Type)] = typ match {
     case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>

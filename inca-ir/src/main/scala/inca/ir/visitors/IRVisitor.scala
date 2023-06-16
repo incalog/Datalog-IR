@@ -1,7 +1,7 @@
 package inca.ir.visitors
 
-import inca.ir.extension.disjunction.Visitor
+import inca.ir.extension.*
 
 trait IRVisitor extends BaseIRVisitor
-  with Visitor
-  with TupleIRVisitor
+  with tuple.Visitor
+  with disjunction.Visitor

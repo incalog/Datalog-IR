@@ -1,6 +1,6 @@
-package inca.ir.lowering
+package inca.ir.extension.disjunction
 
-import inca.ir.extension.disjunction.{Disjunction, IR}
+import inca.ir.extension.disjunction.{Disjunction, IR, Lowering}
 import inca.ir.{Var, *}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -9,7 +9,7 @@ import scala.collection.immutable.Seq
 class DisjunctionLoweringTest extends AnyFunSuiteLike:
   val baseIR: BaseIR = new BaseIR {}
   val disjunctionIR: IR = new IR {}
-  val lowering: DisjunctionLowering[IR, BaseIR] = new DisjunctionLowering[IR, BaseIR] {
+  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
     override def src: IR = disjunctionIR
     override def trg: BaseIR = baseIR
   }
