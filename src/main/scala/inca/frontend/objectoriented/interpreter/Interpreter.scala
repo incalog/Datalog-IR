@@ -2,10 +2,13 @@ package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core.{ExprStmt, Expression, FieldAssignStmt, IfStmt, MethodDef, Module, Name, Param, ReturnStmt, Statement, VarAssignStmt, VarDeclareStmt, VarPhiAssignStmt}
 
-trait Interpreter {
+class Interpreter(module: Module) {
   private type Environment = Map[Name, Value]
 
-  var store: Store
+  // TODO: Class table
+  // TODO: Method table
+
+  var store: Store = new SimpleStore()
   var env: Environment = Map()
 
   def scopedEnv[A](f: => A): A = {
@@ -16,20 +19,6 @@ trait Interpreter {
     } finally {
       this.env = oldenv
     }
-  }
-
-  def interp(module: Module, input: Seq[Value]): Unit = {
-    // Note: Our Datalog translation does currently only support scala values as input
-    val mainMethods = module.classes.flatMap { c =>
-      c.methods.filter { m =>
-        m.isMain
-      }
-    }
-    if (mainMethods.isEmpty)
-      throw new IllegalArgumentException("Missing program entry point!")
-    if (mainMethods.size > 1)
-      throw new IllegalArgumentException("Ambiguous program entry point!")
-    interp(mainMethods.head, input)
   }
 
   // TODO: Might change Unit return type for fixpoints
@@ -65,15 +54,29 @@ trait Interpreter {
         else
           interp(maybeExpression.get)
       // Add value to store and update environment
-      val idx = store.malloc()
-      store.updated(idx, expr)
-      env += name -> idx
+      val addr = store.malloc()
+      store.update(addr, expr)
+      env += name -> addr
     case VarAssignStmt(targetName, expression) =>
-      // TODO: Var assign
-      interp(expression)
-    case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
+      val addr = env.get(targetName) match {
+        case Some(Address(index)) => index
+        case Some(v) => throw new IllegalArgumentException(s"Expected address, but got: $v")
+        case None => throw new IllegalArgumentException(s"Can not assign to undeclared variable $targetName")
+      }
+      // It should be save to just override the value inside the store
+      store.update(addr, interp(expression))
+
+      //val addr = store.malloc()
+      //store.update(addr, expr)
+      //env += targetName -> interp(expression)
+    case VarPhiAssignStmt(_, _, _, _, _) =>
       throw new IllegalStateException("Found unexpected phi node during interpretation!")
-    case IfStmt(cnd, thn, els) => ???
+    case IfStmt(cnd, thn, els) =>
+      interp(cnd) match {
+        case ScalaValue(true) => thn.foreach(interp)
+        case ScalaValue(false) => els.foreach(interp)
+        case _ => throw new IllegalStateException(s"Unexpected condition value $cnd")
+      }
   }
 
   def interp(expr: Expression): Value = ???
