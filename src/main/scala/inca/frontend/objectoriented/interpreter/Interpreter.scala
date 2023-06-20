@@ -1,12 +1,16 @@
 package inca.frontend.objectoriented.interpreter
 
-import inca.frontend.objectoriented.core.{ExprStmt, Expression, FieldAssignStmt, IfStmt, MethodDef, Module, Name, Param, ReturnStmt, Statement, VarAssignStmt, VarDeclareStmt, VarPhiAssignStmt}
+import inca.frontend.objectoriented.core._
 
 class Interpreter(module: Module) {
   private type Environment = Map[Name, Value]
 
-  // TODO: Class table
-  // TODO: Method table
+  // TODO: Do we need these ? We implicitly resolved these references after typechecking
+  /*val classTable: Map[Name, ClassDef] = module.classes.map(c => c.name -> c).toMap
+  val methodTable: Map[(Name, Name), Seq[MethodDef]] = module.classes.flatMap { c =>
+    c.methods.groupBy(_.name).map { case (methodName, methods) =>
+      (c.name, methodName) -> methods
+  }}.toMap*/
 
   var store: Store = new SimpleStore()
   var env: Environment = Map()
@@ -28,6 +32,7 @@ class Interpreter(module: Module) {
       throw new IllegalArgumentException(s"Expected ${params.size} arguments, but got ${args.size}")
 
     // bind input arguments to variables
+    // TODO: Either bind immutable variables the same way and handle the case correctly or move this to the store
     params.zip(args).foreach {
       case (Param(name, _), v) => env += name -> v
     }
@@ -42,18 +47,22 @@ class Interpreter(module: Module) {
       // TODO: Assign object
       interp(recv)
       interp(expression)
-    case VarDeclareStmt(name, _, maybeExpression, true) =>
+    /*case VarDeclareStmt(name, _, maybeExpression, true) =>
       val exp = maybeExpression.getOrElse(
         throw new IllegalArgumentException("Can not bind immutable local variable without value!")
       )
-      env += name -> interp(exp)
-    case VarDeclareStmt(name, _, maybeExpression, false) =>
+      env += name -> interp(exp)*/
+    case VarDeclareStmt(name, _, maybeExpression, immutable) =>
+      // TODO: Currently this stores everything in the store.
+      //    Do we want to save immutable ScalaValues in the environment directly ?
       val expr =
-        if (maybeExpression.isEmpty)
+        if (maybeExpression.isEmpty && immutable)
+          throw new IllegalArgumentException(s"Can not bind immutable local variable $name without a value!")
+        else if (maybeExpression.isEmpty)
           Address.nullPtr
         else
           interp(maybeExpression.get)
-      // Add value to store and update environment
+      // Add value to the store and update the environment
       val addr = store.malloc()
       store.update(addr, expr)
       env += name -> addr
@@ -63,21 +72,51 @@ class Interpreter(module: Module) {
         case Some(v) => throw new IllegalArgumentException(s"Expected address, but got: $v")
         case None => throw new IllegalArgumentException(s"Can not assign to undeclared variable $targetName")
       }
-      // It should be save to just override the value inside the store
       store.update(addr, interp(expression))
-
-      //val addr = store.malloc()
-      //store.update(addr, expr)
-      //env += targetName -> interp(expression)
     case VarPhiAssignStmt(_, _, _, _, _) =>
       throw new IllegalStateException("Found unexpected phi node during interpretation!")
     case IfStmt(cnd, thn, els) =>
-      interp(cnd) match {
-        case ScalaValue(true) => thn.foreach(interp)
-        case ScalaValue(false) => els.foreach(interp)
+      interp(cnd).asBool match {
+        case Some(true) => thn.foreach(interp)
+        case Some(false) => els.foreach(interp)
         case _ => throw new IllegalStateException(s"Unexpected condition value $cnd")
       }
   }
 
-  def interp(expr: Expression): Value = ???
+  def interp(expr: Expression): Value = expr match {
+    case VarReadExpr(targetName) =>
+      env.get(targetName) match {
+        case Some(Address(index)) =>
+          store.lookup(index) match {
+            case Some(value) => value
+            case None => throw new IllegalArgumentException(s"Illegal reference to address $index")
+          }
+        case Some(value) => value
+        case None => throw new IllegalArgumentException(s"Undeclared variable $targetName")
+      }
+    case FieldReadExpr(recv, targetName) => ???
+    case constr@ConstructorExpr(classRef, args) =>
+      constr.target match {
+        case Some(ConstructorDef(_, _, params, body)) =>
+          // TODO: bind params + interp body (inside a new scope)
+          ???
+        case None => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
+      }
+    case SuperExpr(args) => ???
+    case MethodCallExpr(recv, fun, args, isFix) => ???
+    case TypeCastExpr(recv, toTyp) => ???
+    case InstanceOfExpr(recv, ofTyp) => ???
+    case NullExpr() => ???
+    case TupleReadExpr(recv, index) => ???
+    case TupleExpr(exps) => ???
+    case SetExpr(exps, tty) => ???
+    case SetMemberExpr(name, recv, predicate) => ???
+    case SetComprehension(member, body) => ???
+    case SetFold(recv, projection, opClass, opMethod, neutral) => ???
+    case BaseLitExpr(code) => ???
+    case BaseApplyExpr(fun, args) => ???
+    case BaseApplyInfixExpr(left, op, right) => ???
+    case BaseApplyMethodExpr(recv, method, args) => ???
+    case BaseApplyUnaryExpr(op, exp) => ???
+  }
 }
