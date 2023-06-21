@@ -2,18 +2,12 @@ package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
 
+import scala.annotation.tailrec
+
 // TODO: Currently we store everything in the store. We might optimize that
 class Interpreter(module: Module) {
   private type Environment = Map[Name, Value]
 
-  // TODO: Do we need these ? We implicitly resolved these references after typechecking
-  /*val classTable: Map[Name, ClassDef] = module.classes.map(c => c.name -> c).toMap
-  val methodTable: Map[(Name, Name), Seq[MethodDef]] = module.classes.flatMap { c =>
-    c.methods.groupBy(_.name).map { case (methodName, methods) =>
-      (c.name, methodName) -> methods
-  }}.toMap*/
-
-  var store: Store = new SimpleStore()
   var env: Environment = Map()
 
   private def scopedEnv[A](f: => A): A = {
@@ -25,6 +19,11 @@ class Interpreter(module: Module) {
       this.env = oldenv
     }
   }
+
+  var store: Store = new SimpleStore()
+
+  // lookup table for dynamic dispatching
+  private val dispatchTable = DispatchTable(module.classes)
 
   private def bindParams(params: Seq[Param], args: Seq[Value]): Unit = {
     if (params.size != args.size)
@@ -56,6 +55,7 @@ class Interpreter(module: Module) {
     case None => throw new IllegalArgumentException(s"Can not assign to undeclared variable $name")
   }
 
+  @tailrec
   private def resolveBool(value: Value): Boolean = value match {
     case ScalaValue(true) => true
     case ScalaValue(false) => false
@@ -83,6 +83,17 @@ class Interpreter(module: Module) {
   def interp(main: MethodDef, args: Seq[Value]): Unit = scopedEnv {
     bindParams(main.params, args)
     main.body.foreach(interp)
+  }
+
+  def interp(stmts: Seq[Statement]): Option[Value] = stmts match {
+    case Nil =>
+      None
+    case s :: rest =>
+      val res = interp(s)
+      if (res.isDefined)
+        res
+      else
+        interp(rest)
   }
 
   def interp(stmt: Statement): Option[Value] = stmt match {
@@ -117,16 +128,10 @@ class Interpreter(module: Module) {
     case VarPhiAssignStmt(_, _, _, _, _) =>
       throw new IllegalStateException("Found unexpected phi node during interpretation!")
     case IfStmt(cnd, thn, els) =>
-      resolveBool(interp(cnd)) match {
-        case Some(true) =>
-          thn.foreach(interp)
-          None
-        case Some(false) =>
-          els.foreach(interp)
-          None
-        case _ =>
-          throw new IllegalStateException(s"Unexpected condition value $cnd")
-      }
+      if (resolveBool(interp(cnd)))
+        interp(thn)
+      else
+        interp(els)
   }
 
   def interp(expr: Expression): Value = expr match {
@@ -140,6 +145,7 @@ class Interpreter(module: Module) {
       }
       ???
     case constr@ConstructorExpr(classRef, args) =>
+      // we can lookup the constructor directly without using the dispatch table
       constr.target match {
         case Some(ConstructorDef(_, _, params, body)) => scopedEnv {
           bindParams(params, args.map(interp))
@@ -153,13 +159,24 @@ class Interpreter(module: Module) {
                 throw new IllegalArgumentException(s"Unresolved classRef $classRef")
             }
           bindVar(Name("this"), obj)
-          body.foreach(interp)
+          interp(body)
           obj
         }
-        case None => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
+        case _ => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
       }
     case SuperExpr(args) => ???
-    case MethodCallExpr(recv, fun, args, isFix) => ???
+    case m@MethodCallExpr(recv, fun, args, isFix) =>
+      val recvValue = interp(recv)
+      val className = Name("A") // TODO: Get runtime type of recv object
+      dispatchTable.lookup(className, fun) match {
+        case Some(MethodDef(_, _, _, params, outType, body)) =>
+          bindParams(params, args.map(interp))
+          // TODO: Handle unit here
+          interp(body)
+        case None => throw new IllegalArgumentException(s"No matching method found with name $fun")
+      }
+
+
     case TypeCastExpr(recv, toTyp) => ???
     case InstanceOfExpr(recv, ofTyp) => ???
     case NullExpr() => Address.nullPtr
