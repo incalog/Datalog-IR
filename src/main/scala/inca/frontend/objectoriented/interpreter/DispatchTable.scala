@@ -3,11 +3,11 @@ package inca.frontend.objectoriented.interpreter
 import inca.frontend.objectoriented.core._
 
 case class DispatchTable(classes: Seq[ClassDef]) {
-  private val table = determineDispatchTable(classes)
+  private val table = generateDispatchTable(classes)
 
   def lookup(className: Name, methodName: Name): Option[MethodDef] = table.get((className, methodName))
 
-  private def determineDispatchTable(classes: Seq[ClassDef]): Map[(Name, Name), MethodDef] = {
+  private def generateDispatchTable(classes: Seq[ClassDef]): Map[(Name, Name), MethodDef] = {
     def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[(String, ClassDef), (ClassDef, MethodDef)] = {
       val methods = implClass.content.flatMap {
         case m: MethodDef if !m.isStatic => Some((m.name.raw, classDef) -> (implClass, m))

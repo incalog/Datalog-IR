@@ -29,46 +29,23 @@ class Interpreter(module: Module) {
     if (params.size != args.size)
       throw new IllegalArgumentException(s"Expected ${params.size} arguments, but got ${args.size}")
     // bind input arguments to variables
-    params.zip(args).foreach { case (Param(name, _), arg) => bindVar(name, arg) }
-  }
-
-  private def bindVar(name: Name, value: Value): Unit = {
-    val addr = store.malloc()
-    store.update(addr, value)
-    env += name -> addr
-  }
-
-  private def updateVar(name: Name, value: Value): Unit = {
-    store.update(lookupAddr(name), value)
-  }
-
-  private def lookupVar(name: Name): Value = {
-    store.lookup(lookupAddr(name)) match {
-      case Some(value) => value
-      case None => throw new IllegalArgumentException(s"Could not lookup variable $name")
+    params.zip(args).foreach { case (Param(name, _), arg) =>
+      arg match {
+        case obj@(ObjectValue(_, _, _) | StructuralObjectValue(_ , _)) =>
+          throw new RuntimeException(s"Debugging: binding parameter object $obj")
+        case _ =>
+          env += name -> arg
+      }
     }
   }
 
-  private def lookupAddr(name: Name): Int = env.get(name) match {
-    case Some(Address(index)) => index
-    case Some(v) => throw new IllegalArgumentException(s"Expected address, but got: $v")
-    case None => throw new IllegalArgumentException(s"Can not assign to undeclared variable $name")
-  }
-
   @tailrec
-  private def resolveBool(value: Value): Boolean = value match {
-    case ScalaValue(true) => true
-    case ScalaValue(false) => false
-    case Address(index) => resolveBool(store.lookup(index) match {
+  private def resolve(value: Value): Value = value match {
+    case Address(index) => resolve(store.lookup(index) match {
       case Some(value) => value
-      case None => throw new IllegalArgumentException("")
+      case None => throw new IllegalStateException(s"Could not resolve address $index")
     })
-    case _ => throw new IllegalArgumentException("")
-  }
-
-
-  private def resolveObject(value: Value) = {
-
+    case _ => value
   }
 
   private var nextId: Int = 0
@@ -103,47 +80,58 @@ class Interpreter(module: Module) {
     case ReturnStmt(expression) =>
       Some(interp(expression))
     case FieldAssignStmt(recv, name, expression) =>
-      // TODO: Assign object
-      interp(recv)
-      interp(expression)
+      val addr = interp(recv) match {
+        case a: Address => a
+        case v => throw new IllegalArgumentException(s"Expected address but found $v")
+      }
+      val assignValue = interp(expression)
+      resolve(addr) match {
+        case obj@(ObjectValue(_, _, _) | StructuralObjectValue(_, _)) => obj.updateObject(name.raw, assignValue)
+        case v => throw new IllegalStateException(s"Expected object but found $v")
+      }
       None
-    /*case VarDeclareStmt(name, _, maybeExpression, true) =>
-      val exp = maybeExpression.getOrElse(
-        throw new IllegalArgumentException("Can not bind immutable local variable without value!")
-      )
-      env += name -> interp(exp)*/
     case VarDeclareStmt(name, _, maybeExpression, immutable) =>
-      val expr =
-        if (maybeExpression.isEmpty && immutable)
-          throw new IllegalArgumentException(s"Can not bind immutable local variable $name without a value!")
-        else if (maybeExpression.isEmpty)
-          Address.nullPtr
-        else
-          interp(maybeExpression.get)
-      bindVar(name, expr)
+      if (maybeExpression.isEmpty && immutable)
+        throw new IllegalArgumentException(s"Can not bind immutable local variable $name without a value!")
+      else if (maybeExpression.isEmpty)
+        env += name -> Address.nullPtr
+      else
+        interp(maybeExpression.get) match {
+          case obj@(ObjectValue(_, _, _) | StructuralObjectValue(_, _)) =>
+            throw new RuntimeException(s"Debugging: Should not happen: $obj")
+          case value => env += name -> value
+        }
       None
-    case VarAssignStmt(targetName, expression) =>
-      updateVar(targetName, interp(expression))
+    case VarAssignStmt(name, expression) =>
+      env += name -> interp(expression)
       None
     case VarPhiAssignStmt(_, _, _, _, _) =>
       throw new IllegalStateException("Found unexpected phi node during interpretation!")
     case IfStmt(cnd, thn, els) =>
-      if (resolveBool(interp(cnd)))
-        interp(thn)
-      else
-        interp(els)
+      interp(cnd).asBoolean match {
+        case Some(true) => interp(thn)
+        case Some(false) => interp(els)
+        case None => throw new IllegalStateException(s"Expected a boolean condition!")
+      }
   }
 
   def interp(expr: Expression): Value = expr match {
-    case VarReadExpr(targetName) =>
-      lookupVar(targetName)
-    case FieldReadExpr(recv, targetName) =>
-      interp(recv) match {
-        case ObjectValue(cls, id, fvals) => ???
-        case StructuralObjectValue(cls, fvals) => ???
-        case _ =>
+    case VarReadExpr(name) => env.get(name) match {
+        case Some(v) => v
+        case None => throw new IllegalArgumentException(s"Can not read undeclared variable $name")
       }
-      ???
+    case FieldReadExpr(recv, targetName) =>
+      val addr = interp(recv) match {
+        case a: Address => a
+        case v => throw new IllegalArgumentException(s"Expected address but found $v")
+      }
+      resolve(addr).asObject match {
+        case Some((cls, _, fields)) => fields.get(targetName.raw) match {
+          case Some(value) => value
+          case None => throw new IllegalStateException(s"Field not found $targetName for instance of class $cls")
+        }
+        case v => throw new IllegalStateException(s"Expected object but found $v")
+      }
     case constr@ConstructorExpr(classRef, args) =>
       // we can lookup the constructor directly without using the dispatch table
       constr.target match {
@@ -152,31 +140,41 @@ class Interpreter(module: Module) {
           val obj =
             classRef.target match {
               case Some(classDef) if classDef.isCaseClass =>
-                StructuralObjectValue(classRef.name.raw, params.map(_ => Address.nullPtr))
+                StructuralObjectValue(classRef.name.raw, params.map(p => p.name.raw -> Address.nullPtr).toMap)
               case Some(_) =>
-                ObjectValue(classRef.name.raw, freshId(), params.map(_ => Address.nullPtr))
+                ObjectValue(classRef.name.raw, freshId(), params.map(p => p.name.raw -> Address.nullPtr).toMap)
               case None =>
                 throw new IllegalArgumentException(s"Unresolved classRef $classRef")
             }
-          bindVar(Name("this"), obj)
+          // store the object
+          val index = store.malloc()
+          store.update(index, obj)
+          val addr = Address(index)
+          // bind this and interpret the constructor body
+          env += Name("this") -> addr
           interp(body)
-          obj
+          // return the address to the object
+          addr
         }
         case _ => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
       }
     case SuperExpr(args) => ???
-    case m@MethodCallExpr(recv, fun, args, isFix) =>
-      val recvValue = interp(recv)
-      val className = Name("A") // TODO: Get runtime type of recv object
+    case MethodCallExpr(recv, fun, args, isFix) =>
+      val className = interp(recv).asObject match {
+        case Some((cls, _, _)) => Name(cls)
+        case None => throw new IllegalArgumentException(s"Expected address but found $v")
+      }
       dispatchTable.lookup(className, fun) match {
-        case Some(MethodDef(_, _, _, params, outType, body)) =>
+        case Some(MethodDef(_, _, _, params, _, body)) => scopedEnv {
           bindParams(params, args.map(interp))
-          // TODO: Handle unit here
-          interp(body)
+          // well-typed programs always return a value
+          interp(body) match {
+            case Some(value) => value
+            case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+          }
+        }
         case None => throw new IllegalArgumentException(s"No matching method found with name $fun")
       }
-
-
     case TypeCastExpr(recv, toTyp) => ???
     case InstanceOfExpr(recv, ofTyp) => ???
     case NullExpr() => Address.nullPtr
