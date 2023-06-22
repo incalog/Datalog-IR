@@ -225,10 +225,9 @@ class Interpreter(module: Module) {
     case SetComprehension(member, body) => ???
     case SetFold(recv, projection, opClass, opMethod, neutral) => ???
 
-    // Use scala reflection for those
     case BaseLitExpr(code) =>
       ScalaValue(scalaInterpreter.interp(code.syntax))
-    case BaseApplyExpr(fun, args) => ???
+    case BaseApplyExpr(fun, args) =>
       val argVals = args.map(a => resolve(interp(a)).asScala)
       ScalaValue(scalaInterpreter.interpClosure(fun.syntax, argVals:_*))
     case BaseApplyInfixExpr(left, op, right) =>

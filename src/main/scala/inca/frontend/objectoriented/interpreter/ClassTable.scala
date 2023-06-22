@@ -16,13 +16,6 @@ case class ClassTable(classDefs: Seq[ClassDef]) {
     }
   }
 
-  def isCaseClass(className: Name): Boolean = {
-    lookup(className) match {
-      case Some(classDef) => classDef.isCaseClass
-      case None => throw new ClassNotFoundException(s"Did not find class $className")
-    }
-  }
-
   def transitiveCollectFields(className: Name): Seq[FieldDef] = {
     lookup(className) match {
       case Some(classDef) => classDef.fields ++ classDef.parentClassRefs.flatMap(ref => transitiveCollectFields(ref.name))
