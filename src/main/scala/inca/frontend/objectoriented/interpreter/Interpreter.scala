@@ -1,9 +1,11 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
-import inca.util.Scala
 
 import scala.annotation.tailrec
+import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
+
+final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
 class Interpreter(module: Module) {
   private val scalaInterpreter = new ScalaInterpreter {}
@@ -14,17 +16,20 @@ class Interpreter(module: Module) {
 
   private def newCallframe[A](f: => A): A = {
     val oldenv = this.env
+    this.env = Map()
+    //println(s"old env: ", oldenv)
     try {
       val v = f
       v
     } finally {
+      //println(s"new env: ", env)
       this.env = oldenv
     }
   }
 
   var store: Store = new SimpleStore()
 
-  // lookup table for dynamic dispatching
+  private val classTable = ClassTable(module.classes)
   private val dispatchTable = DispatchTable(module.classes)
 
   private def bindParams(params: Seq[Param], args: Seq[Value]): Unit = {
@@ -43,6 +48,7 @@ class Interpreter(module: Module) {
 
   @tailrec
   private def resolve(value: Value): Value = value match {
+    case Address(-1) => value
     case Address(index) => resolve(store.lookup(index) match {
       case Some(value) => value
       case None => throw new IllegalStateException(s"Could not resolve address $index")
@@ -58,7 +64,6 @@ class Interpreter(module: Module) {
     newId
   }
 
-  // TODO: Might change Unit return type for fixpoints
   def interp(main: MethodDef, args: Seq[Value]): Value = newCallframe {
     bindParams(main.params, args)
     interp(main.body).getOrElse(Value.unit)
@@ -137,51 +142,82 @@ class Interpreter(module: Module) {
     case constr@ConstructorExpr(classRef, args) =>
       // we can lookup the constructor directly without using the dispatch table
       constr.target match {
-        case Some(ConstructorDef(_, _, params, body)) => newCallframe {
-          bindParams(params, args.map(interp))
-          val obj =
-            classRef.target match {
-              case Some(classDef) if classDef.isCaseClass =>
-                StructuralObjectValue(classRef.name.raw, params.map(p => p.name.raw -> Address.nullPtr).toMap)
-              case Some(_) =>
-                ObjectValue(classRef.name.raw, freshId(), params.map(p => p.name.raw -> Address.nullPtr).toMap)
-              case None =>
-                throw new IllegalArgumentException(s"Unresolved classRef $classRef")
+        case Some(ConstructorDef(_, _, params, body)) =>
+          val argVals = args.map(interp)
+
+          newCallframe {
+            val fields = classTable.transitiveCollectFields(classRef.name)
+            val fieldVals = fields.map { f =>
+              f.name.raw -> (if (f.body.isDefined) interp(f.body.get) else Address.nullPtr)
+            }.toMap
+
+            val obj = classTable.lookup(classRef.name) match {
+              case Some(classDef) if classDef.isCaseClass => StructuralObjectValue(classRef.name.raw, fieldVals)
+              case Some(_) => ObjectValue(classRef.name.raw, freshId(), fieldVals)
+              case None => throw new IllegalArgumentException(s"Unresolved classRef $classRef")
             }
-          // store the object
-          val index = store.malloc()
-          store.update(index, obj)
-          val addr = Address(index)
-          // bind this and interpret the constructor body
-          env += Name("this") -> addr
-          interp(body)
-          // return the address to the object
-          addr
+
+            bindParams(params, argVals)
+
+            // store the object
+            val index = store.malloc()
+            store.update(index, obj)
+            val addr = Address(index)
+
+            env += Name("this") -> addr
+
+            interp(body)
+            // return the address to the object
+            addr
         }
         case _ => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
       }
-    case SuperExpr(args) => ???
+    case superExpr@SuperExpr(args) =>
+      val (classDef, constructorDef) = superExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $superExpr"))
+      // TODO: Lookup constructor for classDef. Has the typechecker already done this ?
+      ???
     case MethodCallExpr(recv, fun, args, isFix) =>
+      // TODO: Support isFix
       val recvAddr = interp(recv)
       val className = resolve(recvAddr).asObject match {
         case Some((cls, _, _)) => Name(cls)
         case None => throw new IllegalArgumentException(s"Expected address but found $recv")
       }
       dispatchTable.lookup(className, fun) match {
-        case Some(MethodDef(_, _, _, params, _, body)) => newCallframe {
-          bindParams(params, args.map(interp))
-          env += Name("this") -> recvAddr
-          // well-typed programs always return a value
-          interp(body) match {
-            case Some(value) => value
-            case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+        case Some(MethodDef(_, _, _, params, _, body)) =>
+          val argVals = args.map(interp)
+          newCallframe {
+            bindParams(params, argVals)
+            env += Name("this") -> recvAddr
+            // well-typed programs always return a value
+            interp(body) match {
+              case Some(value) => value
+              case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+            }
           }
-        }
         case None => throw new IllegalArgumentException(s"No matching method found with name $fun")
       }
-    case TypeCastExpr(recv, toTyp) => ???
-    case InstanceOfExpr(recv, ofTyp) => ???
-    case NullExpr() => Address.nullPtr
+    case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
+      val addr = interp(recv)
+      val obj = resolve(addr)
+      obj.asObject match {
+        case Some((cls, _, _)) if classTable.isSubclassOf(Name(cls), ofName) => addr
+        case Some(_) => throw TypeCastException(obj, ofName.raw)
+        case None => throw new IllegalArgumentException(s"Can not call asInstanceOf on none object expression $recv")
+      }
+    case TypeCastExpr(_, ofTyp) =>
+      throw new UnsupportedOperationException(s"asInstanceOf is only supported for class types, but got $ofTyp")
+    case InstanceOfExpr(recv, TClass(ClassRef(ofName))) =>
+      resolve(interp(recv)).asObject match {
+        case Some((cls, _, _)) => ScalaValue(classTable.isSubclassOf(Name(cls), ofName))
+        case None => throw new IllegalArgumentException(s"Can not call isInstanceOf on none object expression $recv")
+      }
+    case InstanceOfExpr(_, ofTyp) =>
+      throw new UnsupportedOperationException(s"isInstanceOf is only supported for class types, but got $ofTyp")
+    case NullExpr() =>
+      Address.nullPtr
+
+    // TODO:
     case TupleReadExpr(recv, index) => ???
     case TupleExpr(exps) => ???
     case SetExpr(exps, tty) => ???
@@ -193,20 +229,41 @@ class Interpreter(module: Module) {
     case BaseLitExpr(code) =>
       ScalaValue(scalaInterpreter.interp(code.syntax))
     case BaseApplyExpr(fun, args) => ???
+      val argVals = args.map(a => resolve(interp(a)).asScala)
+      ScalaValue(scalaInterpreter.interpClosure(fun.syntax, argVals:_*))
     case BaseApplyInfixExpr(left, op, right) =>
-      val lhs = interp(left).asScala
-      val rhs = interp(right).asScala
-      val lhsTy = left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")).asScala
-      val rhsTy = right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")).asScala
+      val lhs = resolve(interp(left)).asScala
+      val rhs = resolve(interp(right)).asScala
+      val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))
+      val rhsTy = typeToScala(right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")))
       val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
-      val closure = scalaInterpreter.interp(code).asInstanceOf[Function2[Any, Any, Any]]
-      ScalaValue(closure(lhs, rhs))
-    case BaseApplyMethodExpr(recv, method, args) => ???
+      ScalaValue(scalaInterpreter.interpClosure(code, lhs, rhs))
+    case BaseApplyMethodExpr(recv, method, args) =>
+      val argVals = (recv +: args.getOrElse(Seq())).map(e => resolve(interp(e)).asScala)
+      val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
+        val paramName = "arg$" + ix // TODO: use gensym fresh here
+        param"${meta.Term.Name(paramName)}: ${typeToScala(argTyp)}"
+      }.toList
+      val scalaArgs = paramsTyped.map(p => meta.Term.Name(p.name.value))
+      val methodName = meta.Term.Name(method.raw)
+      val code = s"(..$paramsTyped) => ${scalaArgs.head}.$methodName(..${scalaArgs.tail})"
+      ScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
-      val value = interp(exp).asScala
-      val valueTy = exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")).asScala
+      val value = resolve(interp(exp)).asScala
+      val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
       val code = s"((value: $valueTy) => $op value)"
-      val closure = scalaInterpreter.interp(code).asInstanceOf[Function1[Any, Any]]
-      ScalaValue(closure(value))
+      ScalaValue(scalaInterpreter.interpClosure(code, value))
+  }
+
+  private def typeToScala(typ: Type): meta.Type = {
+    // TODO: We might want to make this more precise and refactor it
+    //  This is basically the asScala method of a Type for our Interpreter
+    typ match {
+      case TScala(ty) => typ.asScala
+      case TClass(_) | TNull | TAny => t"Any"
+      case TTuple(ts) => ???
+      case TSet(ty) => ???
+    }
   }
 }

@@ -30,4 +30,55 @@ class InterpreterTest extends AnyFunSuite {
     val res = runProg("objectoriented/unittests/Fib.oinca", Seq(11))
     assertResult(89)(res.asScala)
   }
+
+  test("Fac") {
+    val res = runProg("objectoriented/unittests/Fact.oinca", Seq(5))
+    assertResult(120)(res.asScala)
+  }
+
+  test("Equals") {
+    val res = runProg("objectoriented/unittests/Equals.oinca", Seq())
+    assertResult(true)(res.asScala)
+  }
+
+  test("InstanceOf") {
+    val res = runProg("objectoriented/unittests/InstanceOf.oinca", Seq())
+    assertResult(true)(res.asScala)
+  }
+
+  test("TypeCast") {
+    val res = runProg("objectoriented/unittests/TypeCast.oinca", Seq())
+    assertResult(true)(res.asScala)
+  }
+
+  test("TypeCast failure") {
+    val caught = intercept[TypeCastException] {
+      runProg("objectoriented/unittests/TypeCastFail.oinca", Seq())
+    }
+    caught.obj.asObject match {
+      case Some((cls, _, _)) => assertResult("A")(cls)
+      case None => assert(false)
+    }
+    assertResult("B")(caught.typ)
+  }
+
+  test("FieldAccess") {
+    val res = runProg("objectoriented/unittests/field/FieldAccess.oinca", Seq(16, 8))
+    assertResult(2)(res.asScala)
+  }
+
+  test("FieldAccessNested") {
+    val res = runProg("objectoriented/unittests/field/FieldAccessNested.oinca", Seq())
+    assertResult(3)(res.asScala)
+  }
+
+  test("FieldDeclare") {
+    val res = runProg("objectoriented/unittests/field/FieldDeclare.oinca", Seq())
+    assertResult(3)(res.asScala)
+  }
+
+  test("FieldInheritance") {
+    val res = runProg("objectoriented/unittests/field/FieldInheritance.oinca", Seq())
+    assertResult(10)(res.asScala)
+  }
 }

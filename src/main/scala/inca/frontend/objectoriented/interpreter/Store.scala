@@ -32,11 +32,12 @@ class SimpleStore(maxSize: Int = 1024) extends Store {
     memory.update(index, v)
   }
 
-  override def lookup(index: Int): Option[Value] =
+  override def lookup(index: Int): Option[Value] = {
     if (index >= 0 && index < maxSize)
       Some(memory(index))
     else
       None
+  }
 
   override def gc(liveRefs: Set[Int]): Unit = ???
 }
