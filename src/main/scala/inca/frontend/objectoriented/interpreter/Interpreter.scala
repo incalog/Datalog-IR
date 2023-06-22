@@ -1,16 +1,18 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
+import inca.util.Scala
 
 import scala.annotation.tailrec
 
-// TODO: Currently we store everything in the store. We might optimize that
 class Interpreter(module: Module) {
+  private val scalaInterpreter = new ScalaInterpreter {}
+
   private type Environment = Map[Name, Value]
 
   var env: Environment = Map()
 
-  private def scopedEnv[A](f: => A): A = {
+  private def newCallframe[A](f: => A): A = {
     val oldenv = this.env
     try {
       val v = f
@@ -57,9 +59,9 @@ class Interpreter(module: Module) {
   }
 
   // TODO: Might change Unit return type for fixpoints
-  def interp(main: MethodDef, args: Seq[Value]): Unit = scopedEnv {
+  def interp(main: MethodDef, args: Seq[Value]): Value = newCallframe {
     bindParams(main.params, args)
-    main.body.foreach(interp)
+    interp(main.body).getOrElse(Value.unit)
   }
 
   def interp(stmts: Seq[Statement]): Option[Value] = stmts match {
@@ -135,7 +137,7 @@ class Interpreter(module: Module) {
     case constr@ConstructorExpr(classRef, args) =>
       // we can lookup the constructor directly without using the dispatch table
       constr.target match {
-        case Some(ConstructorDef(_, _, params, body)) => scopedEnv {
+        case Some(ConstructorDef(_, _, params, body)) => newCallframe {
           bindParams(params, args.map(interp))
           val obj =
             classRef.target match {
@@ -160,13 +162,15 @@ class Interpreter(module: Module) {
       }
     case SuperExpr(args) => ???
     case MethodCallExpr(recv, fun, args, isFix) =>
-      val className = interp(recv).asObject match {
+      val recvAddr = interp(recv)
+      val className = resolve(recvAddr).asObject match {
         case Some((cls, _, _)) => Name(cls)
-        case None => throw new IllegalArgumentException(s"Expected address but found $v")
+        case None => throw new IllegalArgumentException(s"Expected address but found $recv")
       }
       dispatchTable.lookup(className, fun) match {
-        case Some(MethodDef(_, _, _, params, _, body)) => scopedEnv {
+        case Some(MethodDef(_, _, _, params, _, body)) => newCallframe {
           bindParams(params, args.map(interp))
+          env += Name("this") -> recvAddr
           // well-typed programs always return a value
           interp(body) match {
             case Some(value) => value
@@ -186,10 +190,23 @@ class Interpreter(module: Module) {
     case SetFold(recv, projection, opClass, opMethod, neutral) => ???
 
     // Use scala reflection for those
-    case BaseLitExpr(code) => ???
+    case BaseLitExpr(code) =>
+      ScalaValue(scalaInterpreter.interp(code.syntax))
     case BaseApplyExpr(fun, args) => ???
-    case BaseApplyInfixExpr(left, op, right) => ???
+    case BaseApplyInfixExpr(left, op, right) =>
+      val lhs = interp(left).asScala
+      val rhs = interp(right).asScala
+      val lhsTy = left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")).asScala
+      val rhsTy = right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")).asScala
+      val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
+      val closure = scalaInterpreter.interp(code).asInstanceOf[Function2[Any, Any, Any]]
+      ScalaValue(closure(lhs, rhs))
     case BaseApplyMethodExpr(recv, method, args) => ???
-    case BaseApplyUnaryExpr(op, exp) => ???
+    case BaseApplyUnaryExpr(op, exp) =>
+      val value = interp(exp).asScala
+      val valueTy = exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")).asScala
+      val code = s"((value: $valueTy) => $op value)"
+      val closure = scalaInterpreter.interp(code).asInstanceOf[Function1[Any, Any]]
+      ScalaValue(closure(value))
   }
 }
