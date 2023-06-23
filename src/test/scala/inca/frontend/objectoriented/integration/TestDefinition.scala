@@ -269,31 +269,37 @@ object TestDefinition {
     TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
   }
 
-  def caseClassTests: Seq[TestDefinition[SetResult[Any]]] = {
+  def caseClassTest: TestDefinition[Boolean] = {
     implicit val subdir: Option[String] = Some("unittests/caseclass")
+    TestDefinition("CaseClass", "A", "main", Seq(), true)
+  }
+
+  def caseClassTransitiveClosureTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/caseclass")
+    TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult(
+      TupleResult("X", "X"), TupleResult("X", "Y"), TupleResult("X", "Z"), TupleResult("X", "W"),
+      TupleResult("Y", "X"), TupleResult("Y", "Y"), TupleResult("Y", "Z"), TupleResult("Y", "W"),
+      TupleResult("Z", "X"), TupleResult("Z", "Y"), TupleResult("Z", "Z"), TupleResult("Z", "W"),
+      TupleResult("A", "W"),
+      TupleResult("B", "A"), TupleResult("B", "C"), TupleResult("B", "W")
+    ))
+  }
+
+  def foldSetTests: Seq[TestDefinition[Int]] = {
+    implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
-      TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult(
-        TupleResult("X", "X"), TupleResult("X", "Y"), TupleResult("X", "Z"), TupleResult("X", "W"),
-        TupleResult("Y", "X"), TupleResult("Y", "Y"), TupleResult("Y", "Z"), TupleResult("Y", "W"),
-        TupleResult("Z", "X"), TupleResult("Z", "Y"), TupleResult("Z", "Z"), TupleResult("Z", "W"),
-        TupleResult("A", "W"),
-        TupleResult("B", "A"), TupleResult("B", "C"), TupleResult("B", "W")
-      )),
+      TestDefinition("SetFoldMax", "Num", "main", Seq(), 16),
+      TestDefinition("SetFoldSum", "Num", "main", Seq(), 23),
+      TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), 5),
+      TestDefinition("SetFoldSumObject", "Num", "main", Seq(), 15),
+      TestDefinition("SetFoldTupleField", "Num", "main", Seq(), 5),
+      TestDefinition("SetFoldNull", "Num", "main", Seq(), 7)
     )
   }
 
-  def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
+  def foldSetProjectionTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
-    Seq(
-      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
-      TestDefinition("SetFoldSumProjection", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4))),
-      TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
-      TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
-    )
+    TestDefinition("SetFoldSumProjection", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4)))
   }
 
   def transitiveClosureTest: TestDefinition[SetResult[Any]] = {

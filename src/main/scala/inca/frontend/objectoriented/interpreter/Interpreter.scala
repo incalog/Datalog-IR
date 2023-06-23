@@ -1,6 +1,7 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
+import inca.util.TupleOps
 
 import scala.annotation.tailrec
 import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
@@ -8,6 +9,9 @@ import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
 class Interpreter(module: Module) {
+  // TODO: Support fixpoint
+  // TODO: Support mono types
+
   private val scalaInterpreter = new ScalaInterpreter {}
 
   private type Environment = Map[Name, Value]
@@ -17,12 +21,10 @@ class Interpreter(module: Module) {
   private def newCallframe[A](f: => A): A = {
     val oldenv = this.env
     this.env = Map()
-    //println(s"old env: ", oldenv)
     try {
       val v = f
       v
     } finally {
-      //println(s"new env: ", env)
       this.env = oldenv
     }
   }
@@ -244,18 +246,83 @@ class Interpreter(module: Module) {
       val argVals = exps.map(interp)
       TupleValue(argVals)
 
-    case SetExpr(exps, tty) =>
+    case SetExpr(exps, _) =>
       SetValue(exps.map(interp))
-    case SetMemberExpr(name, recv, predicate) => ???
+    case SetMemberExpr(name, recv, predicate) =>
+      val values = resolve(interp(recv)) match {
+        case SetValue(vals) => vals
+        case v => throw new IllegalStateException(s"Set expected, but $v found")
+      }
+      val bindings = values.flatMap { v =>
+        env += name -> v
 
-    case SetComprehension(member, body) => ???
-    case SetFold(recv, projection, opClass, opMethod, neutral) => ???
+        val cond = if (predicate.isDefined) interp(predicate.get) else ScalaValue(true)
+        resolve(cond).asBoolean match {
+          case Some(true) => Some((name, v))
+          case Some(false) => None
+          case _ => throw new IllegalStateException(s"Boolean condition expected for set member $expr")
+        }
+      }
+      ScalaValue(bindings)
+    case SetComprehension(member, body) =>
+      def processMember(memExprs: Seq[Expression]): Seq[Value] = {
+        memExprs match {
+          case Nil => Seq(interp(body))
+          case head::tail =>
+            interp(head) match {
+              case ScalaValue(bindings: Seq[(Name, Value)]) =>
+                bindings.flatMap { case (name, value) =>
+                  // Important: bind the first variable, before we interp the next member
+                  env += name -> value
+                  processMember(tail)
+                }
+              case _ => throw new IllegalStateException(s"Unexpected interpretation of SetMember $head")
+            }
+        }
+      }
 
+      SetValue(processMember(member))
+    case SetFold(recv, projection, opClass, opMethod, neutral) =>
+      // TODO: projection
+      val classDef = classTable.lookup(opClass.name).getOrElse(throw new IllegalStateException(s"Class not found $opClass"))
+      val methods = classDef.methods.filter(_.name == opMethod)
+      if (methods.size > 1)
+        throw new IllegalStateException(s"Ambiguous method $opMethod for class $opClass in fold $expr")
+      else if (methods.size < 1)
+        throw new IllegalStateException(s"No method $opMethod found for class $opClass in fold $expr")
+
+      val foldMethod = methods.head
+      val neutralVal = interp(neutral)
+      val recvVal = resolve(interp(recv)) match {
+        case s: SetValue => s
+        case v => throw new IllegalStateException(s"Set expected, but $v found")
+      }
+      recvVal.values.fold(neutralVal) { case (acc, current) =>
+        newCallframe {
+          bindParams(foldMethod.params, Seq(acc, current))
+          interp(foldMethod.body) match {
+            case Some(value) => value
+            case None => throw new IllegalStateException("Can not fold over Unit values!")
+          }
+        }
+      }
     case BaseLitExpr(code) =>
       ScalaValue(scalaInterpreter.interp(code.syntax))
     case BaseApplyExpr(fun, args) =>
-      val argVals = args.map(a => resolve(interp(a)).asScala)
-      ScalaValue(scalaInterpreter.interpClosure(fun.syntax, argVals:_*))
+      val argVals = args.map(e => resolve(interp(e)).asScala)
+      val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
+        ("arg$" + ix, s"${typeToScala(argTyp)}")
+      }.toList
+      val scalaArgs = paramsTyped.map(_._1)
+      val code = s"((${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")}) => $fun(${scalaArgs.mkString(", ")}))"
+      ScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
+    case BaseApplyInfixExpr(left, op, right)
+      if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
+      (resolve(interp(left)), resolve(interp(right))) match {
+        case (SetValue(v1), SetValue(v2)) => SetValue((v1.toSet ++ v2.toSet).toSeq)
+        case _ => throw new IllegalStateException("Union on unsupported values!")
+      }
     case BaseApplyInfixExpr(left, op, right) =>
       val lhs = resolve(interp(left)).asScala
       val rhs = resolve(interp(right)).asScala
@@ -267,16 +334,17 @@ class Interpreter(module: Module) {
       val argVals = (recv +: args.getOrElse(Seq())).map(e => resolve(interp(e)).asScala)
       val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
         val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
-        param"${meta.Term.Name("arg$" + ix)}: ${typeToScala(argTyp)}"
+        ("arg$" + ix, s"${typeToScala(argTyp)}")
       }.toList
-      val scalaArgs = paramsTyped.map(p => meta.Term.Name(p.name.value))
-      val methodName = meta.Term.Name(method.raw)
-      val code = s"(..$paramsTyped) => ${scalaArgs.head}.$methodName(..${scalaArgs.tail})"
+      val scalaArgs = paramsTyped.map(_._1)
+      val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
+      val closureBody = s"${scalaArgs.head}.${method.raw}(${scalaArgs.tail.mkString(", ")}"
+      val code = s"($closureParams => $closureBody)"
       ScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
       val value = resolve(interp(exp)).asScala
       val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
-      val code = s"((value: $valueTy) => $op value)"
+      val code = s"((value: $valueTy) => ${op.syntax} value)"
       ScalaValue(scalaInterpreter.interpClosure(code, value))
   }
 
@@ -284,10 +352,10 @@ class Interpreter(module: Module) {
     // TODO: We might want to make this more precise and refactor it
     //  This is basically the asScala method of a Type but for our Interpreter and not for PSystem
     typ match {
-      case TScala(ty) => typ.asScala
+      case TScala(_) => typ.asScala
       case TClass(_) | TNull | TAny => t"Any"
-      case TTuple(ts) => t"Seq[Any]"
-      case TSet(ty) => ???
+      case TTuple(_) => t"Seq[Any]"
+      case TSet(_) => t"Set[Any]"
     }
   }
 }

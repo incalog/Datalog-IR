@@ -157,11 +157,19 @@ class DatalogTest extends AnyFunSuite {
   }*/
 
   test("Case Class") {
-    performTests(caseClassTests: _*)
+    performTests(caseClassTest)
+  }
+
+  test("Case Class - Transitive Closure") {
+    performTests(caseClassTransitiveClosureTest)
   }
 
   test("Set fold") {
     performTests(foldSetTests: _*)
+  }
+
+  test("Set fold - Projection") {
+    performTests(foldSetProjectionTest)
   }
 
   test("CGFVisitor") {

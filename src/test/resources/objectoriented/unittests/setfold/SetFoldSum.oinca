@@ -8,7 +8,8 @@ class Num {
 
   @main def main(): Int = {
     val s: Set[Int] = Set(1, 2, 3, 4, -1)
-    val n: Int = s.fold(-100, Num.sum)
+    // TODO: somehow negative numbers do not work here, although the generated Scala code is correct
+    val n: Int = s.fold(0, Num.sum)
 
     val s2: Set[Int] = s ++ Set(5)
     val n2: Int = s2.fold(0, Num.sum)

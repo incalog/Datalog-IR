@@ -147,4 +147,47 @@ class InterpreterTest extends AnyFunSuite {
   test("Tuple Example") {
     performTests(tupleTest)
   }
+
+  test("Case Class") {
+    performTests(caseClassTest)
+  }
+
+  // Does not terminate because of fixpoint
+  /*test("Case Class - Transitive Closure") {
+    performTests(caseClassTransitiveClosureTest)
+  }*/
+
+  test("Set Simple Example") {
+    performTests(simpleSetTests: _*)
+  }
+
+  test("Set Tuple Example") {
+    performTests(tupleSetTest)
+  }
+
+  test("Set Union Example") {
+    performTests(unionSetTest: _*)
+  }
+
+  test("Set Advanced Example") {
+    performTests(advancedSetTest: _*)
+  }
+
+  test("Set Comprehension Example") {
+    performTests(comprehensionSetTest: _*)
+  }
+
+  // Does not terminate, because of fixpoint
+  /*test("Set Recursive Example") {
+    performTests(recursiveSetTest)
+  }*/
+
+  test("Set fold") {
+    performTests(foldSetTests: _*)
+  }
+
+  // TODO: support this ?
+  /*test("Set fold - Projection") {
+    performTests(foldSetProjectionTest)
+  }*/
 }
