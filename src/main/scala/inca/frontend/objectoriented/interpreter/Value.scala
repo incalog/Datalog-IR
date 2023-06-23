@@ -17,6 +17,7 @@ final case class ScalaValue(v: Any) extends Value {
 }
 final case class Tuple(values: Seq[Value]) extends Value {
   override def isUnit: Boolean = values.isEmpty
+  override def asScala: Any = if (isUnit) () else this
 }
 //final case class Set(values: Seq[Value])
 final case class ObjectValue(cls: String, id: Int, var fvals: Map[String, Value]) extends Value {

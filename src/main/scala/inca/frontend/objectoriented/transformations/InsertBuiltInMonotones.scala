@@ -1,7 +1,7 @@
-package inca.frontend.objectoriented.lowering.preprocessing
+package inca.frontend.objectoriented.transformations
 
 import inca.frontend.objectoriented.core.{ClassDef, ClassRef, ConstructorExpr, Expression, MethodDef, Module, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TSet, TTuple, TUnit, Type}
-import inca.frontend.objectoriented.lowering.preprocessing.InsertBuiltInMonotones.monoMapName
+import inca.frontend.objectoriented.transformations.InsertBuiltInMonotones.monoMapName
 
 
 object InsertBuiltInMonotones {
@@ -20,7 +20,7 @@ object InsertBuiltInMonotones {
 class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   var buildInMonotones: Map[String, ClassDef] = Map()
 
-  override private[lowering] def transModuleInternal(module: Module): Module = {
+  override private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
     val transClasses = classes.map(transClass)
 

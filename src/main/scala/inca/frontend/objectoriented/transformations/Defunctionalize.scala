@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.lowering.preprocessing
+package inca.frontend.objectoriented.transformations
 
 import inca.frontend.objectoriented.core._
 import inca.runtime.context.DataModel
@@ -113,7 +113,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
   var usedVars: Map[Name, Type] = Map()
 
-  override private[lowering] def transModuleInternal(module: Module): Module = {
+  override private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
     // make sure the defun class name is unique
     gensym.register(module.usedModuleNames.map(_.raw))
@@ -122,17 +122,17 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     Module(name, imports, transClasses ++ auxClassDefs ++ defnClassDefs.values)
   }
 
-  override private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
     usedVars = Map(Name("this") -> classDef.typ)
     super.transMethodInternal(methodDef, classDef)
   }
 
-  override private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
+  override private[transformations] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
     usedVars = Map(Name("this") -> classDef.typ)
     super.transConstructorInternal(constructorDef, classDef)
   }
 
-  override private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
+  override private[transformations] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
     // TODO: We might need to transform maps as well
     // Transform: set fields to object set fields
     case FieldDef(annos, vis, name, tySet@TSet(_), body, immutable) =>
@@ -143,7 +143,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       super.transFieldInternal(f, classDef)
   }
 
-  override private[lowering] def transParamInternal(param: Param): Param = param match {
+  override private[transformations] def transParamInternal(param: Param): Param = param match {
     // Transform: set params to object set params
     case Param(name, typ) if typ.asSet.isDefined =>
       val newTyp = genDefunClassDef(typ).typ
@@ -154,7 +154,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       Param(name, clearType(ty))
   }
 
-  override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
+  override private[transformations] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case ExprStmt(expression) =>
       Seq(ExprStmt(sanitize(expression)))
     case FieldAssignStmt(recv, name, expression) =>

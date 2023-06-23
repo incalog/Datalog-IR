@@ -93,7 +93,7 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("Var Assignment Example") {
-    performTests(varAssignmentTest)
+    performTests(assignmentTest)
   }
 
   test("If Constant Example") {

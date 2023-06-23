@@ -48,7 +48,7 @@ class Interpreter(module: Module) {
 
   @tailrec
   private def resolve(value: Value): Value = value match {
-    case Address(-1) => value
+    case Address.nullPtr => value
     case Address(index) => resolve(store.lookup(index) match {
       case Some(value) => value
       case None => throw new IllegalStateException(s"Could not resolve address $index")
@@ -198,28 +198,41 @@ class Interpreter(module: Module) {
         case None => throw new IllegalArgumentException(s"No matching method found with name $fun")
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
-      val addr = interp(recv)
-      val obj = resolve(addr)
-      obj.asObject match {
-        case Some((cls, _, _)) if classTable.isSubclassOf(Name(cls), ofName) => addr
-        case Some(_) => throw TypeCastException(obj, ofName.raw)
-        case None => throw new IllegalArgumentException(s"Can not call asInstanceOf on none object expression $recv")
+      interp(recv) match {
+        case addr@Address.nullPtr => addr
+        case addr =>
+          val obj = resolve(addr)
+          obj.asObject match {
+            case Some((cls, _, _)) if classTable.isSubclassOf(Name(cls), ofName) => addr
+            case Some(_) => throw TypeCastException(obj, ofName.raw)
+            case None => throw new IllegalArgumentException(s"Can not call asInstanceOf on none object expression $recv")
+          }
       }
     case TypeCastExpr(_, ofTyp) =>
       throw new UnsupportedOperationException(s"asInstanceOf is only supported for class types, but got $ofTyp")
     case InstanceOfExpr(recv, TClass(ClassRef(ofName))) =>
-      resolve(interp(recv)).asObject match {
-        case Some((cls, _, _)) => ScalaValue(classTable.isSubclassOf(Name(cls), ofName))
-        case None => throw new IllegalArgumentException(s"Can not call isInstanceOf on none object expression $recv")
+      interp(recv) match {
+        case Address.nullPtr => ScalaValue(true)
+        case addr => resolve(addr).asObject match {
+          case Some((cls, _, _)) => ScalaValue(classTable.isSubclassOf(Name(cls), ofName))
+          case None => throw new IllegalArgumentException(s"Can not call isInstanceOf on none object expression $recv")
+        }
       }
     case InstanceOfExpr(_, ofTyp) =>
       throw new UnsupportedOperationException(s"isInstanceOf is only supported for class types, but got $ofTyp")
     case NullExpr() =>
       Address.nullPtr
+    case TupleReadExpr(recv, Index(ix)) =>
+      resolve(interp(recv)) match {
+        case Tuple(values) if (ix < values.size) => values(ix)
+        case Tuple(_) => throw new IllegalArgumentException(s"Index $ix ouf of bounds for tuple $recv")
+        case other => throw new IllegalStateException(s"Expected tuple but got $other")
+      }
+    case TupleExpr(exps) =>
+      val argVals = exps.map(interp)
+      Tuple(argVals)
 
     // TODO:
-    case TupleReadExpr(recv, index) => ???
-    case TupleExpr(exps) => ???
     case SetExpr(exps, tty) => ???
     case SetMemberExpr(name, recv, predicate) => ???
     case SetComprehension(member, body) => ???

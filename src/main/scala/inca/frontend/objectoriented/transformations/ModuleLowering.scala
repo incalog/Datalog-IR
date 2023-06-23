@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.lowering.preprocessing
+package inca.frontend.objectoriented.transformations
 
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
@@ -11,14 +11,14 @@ import inca.frontend.objectoriented.core._
  */
 trait ModuleLowering {
 
-  private[lowering] def preserveLoc[U <: SourceLocation](loc: U)(f: U => U): U = {
+  private[transformations] def preserveLoc[U <: SourceLocation](loc: U)(f: U => U): U = {
     val transLoc = f(loc)
     transLoc.startIndex = loc.startIndex
     transLoc.endIndex = loc.endIndex
     transLoc
   }
 
-  private[lowering] def preserveLocs[U <: SourceLocation](loc: U)(f: U => Seq[U]): Seq[U] = {
+  private[transformations] def preserveLocs[U <: SourceLocation](loc: U)(f: U => Seq[U]): Seq[U] = {
     f(loc).map { transLoc =>
       transLoc.startIndex = loc.startIndex
       transLoc.endIndex = loc.endIndex
@@ -48,42 +48,42 @@ trait ModuleLowering {
 
   // Override these methods in a subclass to customize the behaviour.
 
-  private[lowering] def transModuleInternal(module: Module): Module = {
+  private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
     val transClasses = classes.map(transClass)
     Module(name, imports, transClasses)
   }
 
-  private[lowering] def transClassInternal(classDef: ClassDef): ClassDef = {
+  private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
     val ClassDef(annos, vis, name, parents, content) = classDef
     val newContent = content.map(c => transContent(c, classDef))
     ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
   }
 
-  private[lowering] def transParamInternal(param: Param): Param =
+  private[transformations] def transParamInternal(param: Param): Param =
     Param(param.name, transType(param.typ))
 
-  private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
+  private[transformations] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
     val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
     val newBody = if (body.isDefined) Some(transExpression(body.get).head) else None
     FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
-  private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+  private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
     val MethodDef(annos, vis, name, params, outType, body) = methodDef
     val newParams = transParams(params)
     val newBody = transStatements(body)
     MethodDef(annos, vis, name, newParams, transType(outType), newBody)
   }
 
-  private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
+  private[transformations] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
     val ConstructorDef(annos, vis, params, body) = constructorDef
     val newParams = transParams(params)
     val newBody = transStatements(body)
     ConstructorDef(annos, vis, newParams, newBody)
   }
 
-  private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = Seq(stmt match {
+  private[transformations] def transStatementInternal(stmt: Statement): Seq[Statement] = Seq(stmt match {
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       val exprOption = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get).head) else None
       VarDeclareStmt(name, transType(typ), exprOption, immutable)
@@ -104,7 +104,7 @@ trait ModuleLowering {
       throw new RuntimeException(s"Can not transform statement: $s")
   })
 
-  private[lowering] def transExpressionInternal(expression: Expression): Seq[Expression] = Seq(expression match {
+  private[transformations] def transExpressionInternal(expression: Expression): Seq[Expression] = Seq(expression match {
     case FieldReadExpr(recv, targetName) =>
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
@@ -155,7 +155,7 @@ trait ModuleLowering {
       throw new RuntimeException(s"Can not transform expression: $expr")
   })
 
-  private[lowering] def transTypeInternal(typ: Type): Type = {
+  private[transformations] def transTypeInternal(typ: Type): Type = {
     typ match {
       case TAny => TAny
       case TNull => TNull

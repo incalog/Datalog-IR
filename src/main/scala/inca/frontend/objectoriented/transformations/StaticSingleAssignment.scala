@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.lowering.preprocessing
+package inca.frontend.objectoriented.transformations
 
 import inca.frontend.objectoriented.core._
 import inca.util.Gensym

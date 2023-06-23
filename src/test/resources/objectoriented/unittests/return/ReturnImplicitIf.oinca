@@ -5,7 +5,7 @@ class ReturnTest {
     def main(cond: Boolean): Int = {
         // TODO: Is this a good idea ? It would probably be nicer to make if an expr, so that a variable can be assigned
         //  to it
-        // This generates a VarPhiAssignment as last statement, that we want to ignore
+        // This generates a VarPhiAssignment after SSA as last statement, that we want to ignore
         var a: Int = 0
         if (!cond) {
             a = 4

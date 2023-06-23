@@ -143,9 +143,9 @@ object TestDefinition {
     TestDefinition("Mutability", "A", "main", Seq(), true)
   }
 
-  def varAssignmentTest: TestDefinition[Boolean] = {
+  def assignmentTest: TestDefinition[Boolean] = {
     implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("VarAssignment", "A", "main", Seq(q"3"), true)
+    TestDefinition("Assignment", "A", "main", Seq(q"3"), true)
   }
 
   def ifConstantTests: Seq[TestDefinition[Boolean]] = {
