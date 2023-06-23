@@ -224,7 +224,7 @@ class Interpreter(module: Module) {
       Address.nullPtr
     case TupleReadExpr(recv, Index(ix)) =>
       resolve(interp(recv)) match {
-        case Tuple(values) if (ix < values.size) => values(ix)
+        case Tuple(values) if ix > 0 && ix <= values.size => values(ix-1)
         case Tuple(_) => throw new IllegalArgumentException(s"Index $ix ouf of bounds for tuple $recv")
         case other => throw new IllegalStateException(s"Expected tuple but got $other")
       }

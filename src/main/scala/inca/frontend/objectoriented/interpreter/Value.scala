@@ -17,7 +17,15 @@ final case class ScalaValue(v: Any) extends Value {
 }
 final case class Tuple(values: Seq[Value]) extends Value {
   override def isUnit: Boolean = values.isEmpty
-  override def asScala: Any = if (isUnit) () else this
+
+  private def fullFlatten(s: Seq[Any]): Seq[Any] = s.flatten {
+    case s: Seq[_] => fullFlatten(s)
+    case v => Seq(v)
+  }
+
+  // We flatten tuples when compiling to Datalog. To get "correct" results in our test cases, we therefore flatten
+  // tuple values of this interpreter as values, when converting them to scala.
+  override def asScala: Any = if (isUnit) () else fullFlatten(values.map(_.asScala))
 }
 //final case class Set(values: Seq[Value])
 final case class ObjectValue(cls: String, id: Int, var fvals: Map[String, Value]) extends Value {
