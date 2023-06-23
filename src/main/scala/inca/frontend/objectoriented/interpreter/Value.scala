@@ -7,6 +7,7 @@ sealed trait Value {
   def asObject: Option[(String, Option[Int], Map[String, Value])] = None
   def updateObject(fname: String, fval: Value): Unit = {}
 }
+
 final case class ScalaValue(v: Any) extends Value {
   override def asBoolean: Option[Boolean] = v match {
     case b: Boolean => Some(b)
@@ -15,7 +16,8 @@ final case class ScalaValue(v: Any) extends Value {
 
   override def asScala: Any = v
 }
-final case class Tuple(values: Seq[Value]) extends Value {
+
+final case class TupleValue(values: Seq[Value]) extends Value {
   override def isUnit: Boolean = values.isEmpty
 
   private def fullFlatten(s: Seq[Any]): Seq[Any] = s.flatten {
@@ -25,21 +27,27 @@ final case class Tuple(values: Seq[Value]) extends Value {
 
   // We flatten tuples when compiling to Datalog. To get "correct" results in our test cases, we therefore flatten
   // tuple values of this interpreter as values, when converting them to scala.
-  override def asScala: Any = if (isUnit) () else fullFlatten(values.map(_.asScala))
+  override def asScala: Any = fullFlatten(values.map(_.asScala))
 }
-//final case class Set(values: Seq[Value])
+
+final case class SetValue(values: Seq[Value]) extends Value {
+  override def asScala: Any = values.map(_.asScala).toSet
+}
+
 final case class ObjectValue(cls: String, id: Int, var fvals: Map[String, Value]) extends Value {
   override def asObject: Option[(String, Option[Int], Map[String, Value])] = Some(cls, Some(id), fvals)
   override def updateObject(fname: String, fval: Value): Unit = fvals += fname -> fval
   // TODO: Figure out what to do here
   override def asScala: Any = this
 }
+
 final case class StructuralObjectValue(cls: String, var fvals: Map[String, Value]) extends Value {
   override def asObject: Option[(String, Option[Int], Map[String, Value])] = Some(cls, None, fvals)
   override def updateObject(fname: String, fval: Value): Unit = fvals += fname -> fval
   // TODO: Figure out what to do here
   override def asScala: Any = this
 }
+
 final case class Address(index: Int) extends Value
 
 
@@ -48,5 +56,5 @@ object Address {
 }
 
 object Value {
-  val unit: Tuple = Tuple(Seq())
+  val unit: TupleValue = TupleValue(Seq())
 }

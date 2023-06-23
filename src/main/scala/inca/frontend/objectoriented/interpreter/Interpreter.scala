@@ -236,17 +236,18 @@ class Interpreter(module: Module) {
       Address.nullPtr
     case TupleReadExpr(recv, Index(ix)) =>
       resolve(interp(recv)) match {
-        case Tuple(values) if ix > 0 && ix <= values.size => values(ix-1)
-        case Tuple(_) => throw new IllegalArgumentException(s"Index $ix ouf of bounds for tuple $recv")
+        case TupleValue(values) if ix > 0 && ix <= values.size => values(ix-1)
+        case TupleValue(_) => throw new IllegalArgumentException(s"Index $ix ouf of bounds for tuple $recv")
         case other => throw new IllegalStateException(s"Expected tuple but got $other")
       }
     case TupleExpr(exps) =>
       val argVals = exps.map(interp)
-      Tuple(argVals)
+      TupleValue(argVals)
 
-    // TODO:
-    case SetExpr(exps, tty) => ???
+    case SetExpr(exps, tty) =>
+      SetValue(exps.map(interp))
     case SetMemberExpr(name, recv, predicate) => ???
+
     case SetComprehension(member, body) => ???
     case SetFold(recv, projection, opClass, opMethod, neutral) => ???
 
