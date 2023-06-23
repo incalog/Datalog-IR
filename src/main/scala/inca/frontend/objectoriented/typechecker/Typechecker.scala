@@ -329,6 +329,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case TClass(ref) =>
           // 'this' classRef will always be resolved at this point
           val clazz = ref.target.get
+          // Fixme: We only allow inheritance of a single class here
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
             error(s"Missing parent class for class '${clazz.name}'", expression)

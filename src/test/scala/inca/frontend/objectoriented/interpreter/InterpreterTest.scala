@@ -173,4 +173,8 @@ class InterpreterTest extends AnyFunSuite {
   test("Tuple") {
     assertResult(Seq(true, true, true))(runProg("objectoriented/unittests/Tuple.oinca", Seq()))
   }
+
+  test("Super") {
+    assertResult(10)(runProg("objectoriented/unittests/Super.oinca", Seq()))
+  }
 }
