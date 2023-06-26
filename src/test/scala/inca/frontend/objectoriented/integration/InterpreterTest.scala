@@ -86,8 +86,7 @@ class InterpreterTest extends AnyFunSuite {
       performTests(typeCastFailureTest)
     }
     caught.obj.asObject match {
-      case Some((cls, _, _)) => assertResult("A")(cls)
-      case None => assert(false)
+      case (cls, _, _) => assertResult("A")(cls)
     }
     assertResult("B")(caught.typ)
   }
