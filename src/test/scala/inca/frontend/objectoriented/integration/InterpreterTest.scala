@@ -151,10 +151,10 @@ class InterpreterTest extends AnyFunSuite {
     performTests(caseClassTest)
   }
 
-  // Does not terminate because of fixpoint
-  /*test("Case Class - Transitive Closure") {
+  // Set - Fixpoint
+  test("Case Class - Transitive Closure") {
     performTests(caseClassTransitiveClosureTest)
-  }*/
+  }
 
   test("Set Simple Example") {
     performTests(simpleSetTests: _*)
@@ -176,10 +176,10 @@ class InterpreterTest extends AnyFunSuite {
     performTests(comprehensionSetTest: _*)
   }
 
-  // Does not terminate, because of fixpoint
-  /*test("Set Recursive Example") {
+  // Set - Fixpoint
+  test("Set Recursive Example") {
     performTests(recursiveSetTest)
-  }*/
+  }
 
   test("Set fold") {
     performTests(foldSetTests: _*)

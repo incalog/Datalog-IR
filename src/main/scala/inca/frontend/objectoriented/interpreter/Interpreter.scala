@@ -2,7 +2,6 @@ package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
 
-import scala.annotation.tailrec
 import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
@@ -12,6 +11,15 @@ class Interpreter(module: Module) {
   // TODO: Support mono types
 
   private val scalaInterpreter = new ScalaInterpreter {}
+
+  def join(s1: Set[Value], s2: Set[Value]): MaybeChanged[Set[Value]] = {
+    val res = s1 ++ s2
+    if (res == s1)
+      Unchanged(res)
+    else
+      Changed(res)
+  }
+  private val stack = new StackImpl[(Name, Seq[Value]), Set[Value]]()(join)
 
   private type Environment = Map[Name, Value]
 
@@ -112,7 +120,6 @@ class Interpreter(module: Module) {
       constr.target match {
         case Some(ConstructorDef(_, _, params, body)) =>
           val argVals = args.map(interp)
-
           newScope {
             val className = classRef.name
             val fields = classTable.transitiveCollectFields(className)
@@ -159,35 +166,27 @@ class Interpreter(module: Module) {
       val recvObj = interp(recv)
       val (className, _, _) = recvObj.asObject
       dispatchTable.lookup(Name(className), fun) match {
-        case Some(MethodDef(_, _, _, params, _, body)) =>
-          val argVals = args.map(interp)
-          newScope {
-            bindParams(params, argVals)
-            env += Name("this") -> recvObj
-            // well-typed programs always return a value
+        case Some(MethodDef(_, _, _, params, outType, body)) =>
+            val result = stack.fix((fun, recvObj +: args.map(interp)), Set()) {
+              case (_, _ :: argVals) => newScope {
+                bindParams(params, argVals)
+                env += Name("this") -> recvObj
 
-            interp(body) match {
-              case Some(value) => value
-              case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
-            }
+                val res = interp(body)
 
-            // TODO: Put this in a function
-            /*push(???)
-            if (continue ...)
-            try {
-              interp(body) match {
-                case Some(value) => value
-                case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+                // well-typed programs always return a value
+                res match {
+                  case Some(SetValue(values)) => values
+                  case Some(value) => Set(value)
+                  case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+                }
               }
-            } finally {
-              pop(???)
-              if (unstable)
-                interp(body) again // TODO: Call the function here
-            }*/
-
-
-          }
-        case None => throw new IllegalArgumentException(s"No matching method found with name $fun")
+            }
+            if (outType.isInstanceOf[TSet])
+              SetValue(result)
+            else
+              result.head
+        case _ => throw new IllegalStateException(s"Could not lookup method $fun")
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
       interp(recv) match {
