@@ -185,6 +185,10 @@ class InterpreterTest extends AnyFunSuite {
     performTests(foldSetTests: _*)
   }
 
+  test("Abstract syntax graph") {
+    performTests(abstractSyntaxGraphTest)
+  }
+
   // TODO: support this ?
   /*test("Set fold - Projection") {
     performTests(foldSetProjectionTest)

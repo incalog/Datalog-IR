@@ -5,12 +5,15 @@ import inca.frontend.objectoriented.core._
 case class DispatchTable(classes: Seq[ClassDef]) {
   private val table = generateDispatchTable(classes)
 
-  def lookup(className: Name, methodName: Name): Option[MethodDef] = table.get((className, methodName))
+  def lookup(className: Name, methodName: Name): MethodDef = table.get((className, methodName)) match {
+    case Some(value) => value
+    case _ => throw new IllegalStateException(s"Could not lookup method $className.$methodName")
+  }
 
   private def generateDispatchTable(classes: Seq[ClassDef]): Map[(Name, Name), MethodDef] = {
     def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[(String, ClassDef), (ClassDef, MethodDef)] = {
       val methods = implClass.content.flatMap {
-        case m: MethodDef if !m.isStatic => Some((m.name.raw, classDef) -> (implClass, m))
+        case m: MethodDef if !m.isStatic || (classDef == implClass) => Some((m.name.raw, classDef) -> (implClass, m))
         case _ => None
       }.toMap
 

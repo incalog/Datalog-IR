@@ -21,8 +21,7 @@ trait Stack[In, Out] {
   def height: Int
 
   @tailrec
-  final def fix(in: In, default: => Out)(f: In => Out): Out =
-    push(in) match {
+  final def fix(in: In, default: => Out)(f: In => Out): Out = push(in) match {
     case Recurrent(previousOut) =>
       previousOut.getOrElse(default)
     case Continue =>
@@ -34,8 +33,7 @@ trait Stack[In, Out] {
   }
 
   val DEBUG: Boolean = false
-  def stackHeightIndent: String = "  " * height
-  def debug(msg: String): Unit = if (DEBUG) println(stackHeightIndent + msg)
+  def debug(msg: String): Unit = if (DEBUG) println("  " * height + msg)
 }
 
 class StackImpl[In, Out](implicit join: ((Out, Out) => MaybeChanged[Out])) extends Stack[In, Out] {

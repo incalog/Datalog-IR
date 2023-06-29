@@ -45,11 +45,17 @@ final class ObjectValue(val cls: String, val id: Int, var fvals: Map[String, Val
   override def asScala: Any = this
   def isStructural: Boolean = id == 0
   def isNull: Boolean = id == -1
+  var isMono: Boolean = false
 
   override def equals(obj: Any): Boolean = obj match {
-    case ObjectValue(_, -1, _) => this.isNull
-    case ObjectValue(cls, 0, fvals) => this.cls == cls && this.fvals == fvals
-    case ObjectValue(_, id, _) => this.id == id
+    case obj : ObjectValue if obj.isNull => this.isNull
+    case obj : ObjectValue if obj.isStructural => cls == obj.cls && fvals == obj.fvals
+    // Mono types must be stable. It would be enough to just check the result field
+    case obj : ObjectValue if obj.isMono => cls == obj.cls && id == obj.id && fvals == obj.fvals
+    // Checking fvals guarantees that we do not terminate if we mutate inside a fixpoint
+    case ObjectValue(cls, id, fvals) => this.cls == cls && this.id == id && this.fvals == fvals
+    //this.cls == cls && this.id == id
+    case _ => false
   }
 
   override def hashCode(): Int =

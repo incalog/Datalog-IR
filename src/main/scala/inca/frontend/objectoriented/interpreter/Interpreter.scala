@@ -7,7 +7,8 @@ import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
 class Interpreter(module: Module) {
-  // TODO: Support fixpoint
+  println("The module: ", module)
+  // TODO: Support fixpoint for Unit
   // TODO: Support mono types
 
   private val scalaInterpreter = new ScalaInterpreter {}
@@ -38,6 +39,18 @@ class Interpreter(module: Module) {
 
   private val classTable = ClassTable(module.classes)
   private val dispatchTable = DispatchTable(module.classes)
+
+  val monoResultVarName = "result"
+
+  private def hasMonoType(expr: Expression): Boolean = {
+    expr.typ match {
+      case Some(TClass(ref)) => ref.target match {
+        case Some(classDef) => classDef.isMonotoneClass
+        case None => throw new IllegalStateException(s"Unresolved classRef $ref")
+      }
+      case None => throw new IllegalStateException(s"Untyped expression $expr")
+    }
+  }
 
   private def bindParams(params: Seq[Param], args: Seq[Value]): Unit = {
     if (params.size != args.size)
@@ -127,12 +140,24 @@ class Interpreter(module: Module) {
               f.name.raw -> (if (f.body.isDefined) interp(f.body.get) else Value.NULL)
             }.toMap
 
-            val id = classTable.lookup(className) match {
-              case Some(classDef) if classDef.isCaseClass => 0
-              case Some(_) => freshId()
+            val classDef = classTable.lookup(className) match {
+              case Some(classDef) => classDef
               case None => throw new IllegalArgumentException(s"Unresolved class $className")
             }
-            val obj = ObjectValue(className.raw, id, fieldVals)
+
+            // Add monotone result field
+            val monoField = if (classDef.isMonotoneClass) {
+              val initMethod = dispatchTable.lookup(classDef.name, Name("init"))
+              Some(monoResultVarName -> interp(initMethod.body).get)
+            } else {
+              None
+            }
+
+            val id = if (classDef.isCaseClass) 0 else freshId()
+            val obj = ObjectValue(className.raw, id, fieldVals ++ monoField)
+
+            if (classDef.isMonotoneClass)
+              obj.isMono = true
 
             bindParams(params, argVals)
             env += Name("this") -> obj
@@ -161,32 +186,62 @@ class Interpreter(module: Module) {
         case None =>
           throw new IllegalArgumentException(s"Unresolved constructor $superExpr")
       }
+    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
+      val recvObj = interp(recv)
+      val (className, _, fvals) = recvObj.asObject
+
+      def runMethod(name: String, args: Seq[Value]): Value = {
+        val method = dispatchTable.lookup(Name(className), Name(name))
+        newScope {
+          bindParams(method.params, args)
+          if (!method.isStatic)
+            env += Name("this") -> recvObj
+          interp(method.body).get
+        }
+      }
+
+      val addMethod = dispatchTable.lookup(Name(className), meth)
+      val argVals = args.map(interp)
+
+      newScope {
+        bindParams(addMethod.params, argVals)
+        env += Name("this") -> recvObj
+        val liftVal = runMethod("lift", argVals)
+        val joinVal = runMethod("join", Seq(fvals(monoResultVarName), liftVal))
+        recvObj.updateObject(monoResultVarName, joinVal)
+      }
+      Value.UNIT
     case MethodCallExpr(recv, fun, args, isFix) =>
       // TODO: Support isFix
       val recvObj = interp(recv)
       val (className, _, _) = recvObj.asObject
       dispatchTable.lookup(Name(className), fun) match {
-        case Some(MethodDef(_, _, _, params, outType, body)) =>
-            val result = stack.fix((fun, recvObj +: args.map(interp)), Set()) {
-              case (_, _ :: argVals) => newScope {
+        case methodDef@MethodDef(_, _, _, params, outType, body) =>
+            val initialArgs = args.map(interp)
+            // TODO: Add mono types to args
+            val result = stack.fix((fun, recvObj +: initialArgs), Set()) {
+              case (_, recvVal :: argVals) => newScope {
                 bindParams(params, argVals)
-                env += Name("this") -> recvObj
+
+                if (!methodDef.isStatic)
+                  env += Name("this") -> recvVal
 
                 val res = interp(body)
 
                 // well-typed programs always return a value
                 res match {
                   case Some(SetValue(values)) => values
+                  //case Some(ScalaValue(s: Set[Value])) => s
                   case Some(value) => Set(value)
                   case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
                 }
               }
             }
+            println("The result: ", fun, initialArgs, result)
             if (outType.isInstanceOf[TSet])
               SetValue(result)
             else
               result.head
-        case _ => throw new IllegalStateException(s"Could not lookup method $fun")
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
       interp(recv) match {
@@ -275,7 +330,7 @@ class Interpreter(module: Module) {
         }
       }
     case BaseLitExpr(code) =>
-      ScalaValue(scalaInterpreter.interp(code.syntax))
+      packInScalaValue(scalaInterpreter.interp(code.syntax))
     case BaseApplyExpr(fun, args) =>
       val argVals = args.map(e => interp(e).asScala)
       val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
@@ -284,7 +339,7 @@ class Interpreter(module: Module) {
       }.toList
       val scalaArgs = paramsTyped.map(_._1)
       val code = s"((${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")}) => $fun(${scalaArgs.mkString(", ")}))"
-      ScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
+      packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       (interp(left), interp(right)) match {
@@ -297,7 +352,7 @@ class Interpreter(module: Module) {
       val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))
       val rhsTy = typeToScala(right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")))
       val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
-      ScalaValue(scalaInterpreter.interpClosure(code, lhs, rhs))
+      packInScalaValue(scalaInterpreter.interpClosure(code, lhs, rhs))
     case BaseApplyMethodExpr(recv, method, args) =>
       val argVals = (recv +: args.getOrElse(Seq())).map(e => interp(e).asScala)
       val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
@@ -306,14 +361,24 @@ class Interpreter(module: Module) {
       }.toList
       val scalaArgs = paramsTyped.map(_._1)
       val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
-      val closureBody = s"${scalaArgs.head}.${method.raw}(${scalaArgs.tail.mkString(", ")}"
+      val argS = if (args.isDefined)
+        scalaArgs.tail.mkString("(", ", ", ")")
+      else
+        ""
+      val closureBody = s"${scalaArgs.head}.${method.raw}$argS"
       val code = s"($closureParams => $closureBody)"
-      ScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
+      packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
       val value = interp(exp).asScala
       val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
       val code = s"((value: $valueTy) => ${op.syntax} value)"
-      ScalaValue(scalaInterpreter.interpClosure(code, value))
+      packInScalaValue(scalaInterpreter.interpClosure(code, value))
+  }
+
+  // only pack pure scala values inside a ScalaValue
+  private def packInScalaValue(value: Any) = value match {
+    case value: Value => value
+    case _ => ScalaValue(value)
   }
 
   private def typeToScala(typ: Type): meta.Type = {

@@ -43,7 +43,7 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
     if (monoCls.isEmpty) {
       val tys = tyParams.map(transType)
       monoCls = Some(ClassDef(
-        // hardcore the map types for now
+        // hardcode the map types for now
         Seq(MonotoneMapAnnotation(tys)),
         None,
         Name(clsName),
