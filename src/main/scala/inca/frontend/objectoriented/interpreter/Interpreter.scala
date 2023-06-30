@@ -8,8 +8,8 @@ final case class TypeCastException(obj: Value, typ: String) extends RuntimeExcep
 
 class Interpreter(module: Module) {
   println("The module: ", module)
-  // TODO: Correctly support fixpoint for Unit
-  // TODO: Support more mono types (Mono Map)
+  // FIXME: Is fixpoint for Unit correctly implemented with the exception ?
+  // TODO: Support MonoMap
 
   private val scalaInterpreter = new ScalaInterpreter {}
 
@@ -361,10 +361,7 @@ class Interpreter(module: Module) {
       packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
-      (interp(left), interp(right)) match {
-        case (SetValue(v1), SetValue(v2)) => SetValue(v1 ++ v2)
-        case _ => throw new IllegalStateException("Union on unsupported values!")
-      }
+      SetValue(interp(left).asSet ++ interp(right).asSet)
     case BaseApplyInfixExpr(left, op, right) =>
       val lhs = interp(left).asScala
       val rhs = interp(right).asScala
@@ -380,13 +377,13 @@ class Interpreter(module: Module) {
       }.toList
       val scalaArgs = paramsTyped.map(_._1)
       val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
-      val argS = if (args.isDefined)
-        scalaArgs.tail.mkString("(", ", ", ")")
-      else
-        ""
-      val closureBody = s"${scalaArgs.head}.${method.raw}$argS"
-      val code = s"($closureParams => $closureBody)"
-      packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
+      val closureBody = if (args.isDefined) {
+        val argS = scalaArgs.tail.mkString("(", ", ", ")")
+        s"${scalaArgs.head}.${method.raw}$argS"
+      } else {
+        s"${scalaArgs.head}.${method.raw}"
+      }
+      packInScalaValue(scalaInterpreter.interpClosure(s"($closureParams => $closureBody)", argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
       val value = interp(exp).asScala
       val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
@@ -394,23 +391,19 @@ class Interpreter(module: Module) {
       packInScalaValue(scalaInterpreter.interpClosure(code, value))
   }
 
-  // only pack pure scala values inside a ScalaValue
+  // only pack 'pure' scala values aka. no values inside a ScalaValue
   private def packInScalaValue(value: Any) = value match {
     case value: Value => value
     case _ => ScalaValue(value)
   }
 
   private def typeToScala(typ: Type): meta.Type = {
-    // TODO: We want to make this more precise and refactor it
+    // TODO: We might want to make this more precise and refactor it
     //  This is basically the asScala method of a Type but for our Interpreter and not for PSystem
     typ match {
       case TScala(_) => typ.asScala
       case TClass(_) | TNull | TAny => t"Any"
-      case TTuple(ts) =>
-        val tys = ts.map(typeToScala)//.mkString(", ")
-        meta.Type.Tuple(tys.toList)
-        //meta.Type.Name(s"scala.Tuple${ts.size}[$tys]")
-        //t"Seq[Any]"
+      case TTuple(ts) => meta.Type.Tuple(ts.map(typeToScala).toList)
       case TSet(_) => t"Set[Any]"
     }
   }
