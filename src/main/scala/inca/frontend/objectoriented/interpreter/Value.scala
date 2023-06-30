@@ -27,9 +27,11 @@ final case class TupleValue(values: Seq[Value]) extends Value {
     case v => Seq(v)
   }
 
-  // We flatten tuples when compiling to Datalog. To get "correct" results in our test cases, we therefore flatten
-  // tuple values of this interpreter as values, when converting them to scala.
-  override def asScala: Any = fullFlatten(values.map(_.asScala))
+  //override def asScala: Any = fullFlatten(values.map(_.asScala))
+  override def asScala: Product = {
+    val clazz = Class.forName("scala.Tuple" + values.size)
+    clazz.getConstructors.apply(0).newInstance(values: _*).asInstanceOf[Product]
+  }
   override def asTuple: Seq[Value] = values
 }
 

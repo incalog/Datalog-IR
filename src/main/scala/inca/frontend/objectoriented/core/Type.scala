@@ -11,6 +11,7 @@ sealed trait Type extends SourceLocation {
   def flatten: Seq[Type]
   def asScala: meta.Type
   def asSet: Option[TSet] = None
+  def isUnit: Boolean = false
   override def toString: String = prettyprint
 }
 
@@ -51,6 +52,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
     else
       t"(..${ts.map(_.asScala).toList})"
   }
+  override def isUnit: Boolean = ts.isEmpty
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {

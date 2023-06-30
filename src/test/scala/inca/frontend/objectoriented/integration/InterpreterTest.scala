@@ -1,7 +1,7 @@
 package inca.frontend.objectoriented.integration
 
 import inca.frontend.objectoriented.integration.TestDefinition._
-import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaInterpreter, ScalaValue, TypeCastException}
+import inca.frontend.objectoriented.interpreter.{Interpreter, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, TupleValue, TypeCastException, Value}
 import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.AddMissingDefinitions
 import inca.frontend.objectoriented.typechecker.Typechecker
@@ -13,6 +13,25 @@ class InterpreterTest extends AnyFunSuite {
   val parser: Parser = new Parser {}
   val typechecker: Typechecker = new Typechecker {}
   val scalaInterpreter: ScalaInterpreter = new ScalaInterpreter {}
+
+  // The TestDefinition expects seqs instead of tuples, because Datalog flatten tuples.
+  // Therefore we convert tuples to seqs and unpack ScalaValues.
+  private def convertResultToScala(res: Any): Any = res match {
+    case ScalaValue(v) => v match {
+      case p : Product => p.productIterator.map(convertResultToScala)
+      case _ => v
+    }
+    case TupleValue(values) => values.map(convertResultToScala)
+    case SetValue(values) => values.map(convertResultToScala)
+    case value: ObjectValue => value
+    case _ => res
+  }
+
+  // Since Datalog flatten tuples, the TestDefinition expects a flat seq as result.
+  private def fullFlatten(seq: Seq[Any]): Seq[Any] = seq flatten {
+    case seq: Seq[Any] => fullFlatten(seq)
+    case nonSeq => Seq(nonSeq)
+  }
 
   def runProg(path: String, mainClass: String, mainMethod: String, args: Seq[Any]): Any = {
     val code = FileUtil.readFile(path)
@@ -34,7 +53,11 @@ class InterpreterTest extends AnyFunSuite {
     }
 
     val res = new Interpreter(mod).interp(main, args.map(ScalaValue))
-    res.asScala
+    // transform tuples to seq for checking the result
+    convertResultToScala(res) match {
+      case s: Seq[Any] => fullFlatten(s)
+      case r => r
+    }
   }
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
@@ -189,8 +212,30 @@ class InterpreterTest extends AnyFunSuite {
     performTests(abstractSyntaxGraphTest)
   }
 
-  // TODO: support this ?
+  // TODO: Projection is not a feature we explored in the Paper.
+  //  It is low priority and not really required with mono types.
   /*test("Set fold - Projection") {
     performTests(foldSetProjectionTest)
   }*/
+
+  test("CGFVisitor") {
+    performTests(cfgVisitorTest)
+  }
+
+  // TODO: Support mono map
+  /*test("While lang case study") {
+    performTests(whileLangTest)
+  }*/
+
+  test("Binary Tree Example") {
+    performTests(binaryTreeTest)
+  }
+
+  test("Tree Example") {
+    performTests(treeTest)
+  }
+
+  test("DoubleLinkedList Example") {
+    performTests(doubleLinkedTest)
+  }
 }

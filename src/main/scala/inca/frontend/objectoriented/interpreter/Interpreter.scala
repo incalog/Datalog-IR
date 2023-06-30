@@ -8,8 +8,8 @@ final case class TypeCastException(obj: Value, typ: String) extends RuntimeExcep
 
 class Interpreter(module: Module) {
   println("The module: ", module)
-  // TODO: Support fixpoint for Unit
-  // TODO: Support mono types
+  // TODO: Correctly support fixpoint for Unit
+  // TODO: Support more mono types (Mono Map)
 
   private val scalaInterpreter = new ScalaInterpreter {}
 
@@ -40,7 +40,7 @@ class Interpreter(module: Module) {
   private val classTable = ClassTable(module.classes)
   private val dispatchTable = DispatchTable(module.classes)
 
-  val monoResultVarName = "result"
+  val monoStateVarName = "state"
 
   private def hasMonoType(expr: Expression): Boolean = {
     expr.typ match {
@@ -118,6 +118,45 @@ class Interpreter(module: Module) {
   }
 
   def interp(expr: Expression): Value = expr match {
+    // Handle the mono cases first
+    case FieldReadExpr(recv, Name("result")) if hasMonoType(recv) =>
+      val recvObj = interp(recv)
+      val (className, _, fvals) = recvObj.asObject
+
+      def monoJoin(v1: Value, v2: Value): Value = {
+        val method = dispatchTable.lookup(Name(className), Name("join"))
+        newScope {
+          bindParams(method.params, Seq(v1, v2))
+          interp(method.body).get
+        }
+      }
+
+      val stateValues = fvals(monoStateVarName).asSet
+      stateValues.tail.fold(stateValues.head) { case (agg, cur) => monoJoin(agg, cur) }
+    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
+      val recvObj = interp(recv)
+      val (className, _, fvals) = recvObj.asObject
+
+      def monoLift(args: Seq[Value]): Value = {
+        val method = dispatchTable.lookup(Name(className), Name("lift"))
+        newScope {
+          bindParams(method.params, args)
+          env += Name("this") -> recvObj
+          interp(method.body).get
+        }
+      }
+
+      val addMethod = dispatchTable.lookup(Name(className), meth)
+      val argVals = args.map(interp)
+
+      newScope {
+        bindParams(addMethod.params, argVals)
+        env += Name("this") -> recvObj
+        val newState = fvals(monoStateVarName).asSet + monoLift(argVals)
+        recvObj.updateObject(monoStateVarName, SetValue(newState))
+      }
+      Value.UNIT
+
     case VarReadExpr(name) => env.get(name) match {
         case Some(v) => v
         case None => throw new IllegalArgumentException(s"Can not read undeclared variable $name")
@@ -148,7 +187,7 @@ class Interpreter(module: Module) {
             // Add monotone result field
             val monoField = if (classDef.isMonotoneClass) {
               val initMethod = dispatchTable.lookup(classDef.name, Name("init"))
-              Some(monoResultVarName -> interp(initMethod.body).get)
+              Some(monoStateVarName -> SetValue(Set(interp(initMethod.body).get)))
             } else {
               None
             }
@@ -186,39 +225,14 @@ class Interpreter(module: Module) {
         case None =>
           throw new IllegalArgumentException(s"Unresolved constructor $superExpr")
       }
-    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
-      val recvObj = interp(recv)
-      val (className, _, fvals) = recvObj.asObject
-
-      def runMethod(name: String, args: Seq[Value]): Value = {
-        val method = dispatchTable.lookup(Name(className), Name(name))
-        newScope {
-          bindParams(method.params, args)
-          if (!method.isStatic)
-            env += Name("this") -> recvObj
-          interp(method.body).get
-        }
-      }
-
-      val addMethod = dispatchTable.lookup(Name(className), meth)
-      val argVals = args.map(interp)
-
-      newScope {
-        bindParams(addMethod.params, argVals)
-        env += Name("this") -> recvObj
-        val liftVal = runMethod("lift", argVals)
-        val joinVal = runMethod("join", Seq(fvals(monoResultVarName), liftVal))
-        recvObj.updateObject(monoResultVarName, joinVal)
-      }
-      Value.UNIT
     case MethodCallExpr(recv, fun, args, isFix) =>
-      // TODO: Support isFix
       val recvObj = interp(recv)
       val (className, _, _) = recvObj.asObject
+
       dispatchTable.lookup(Name(className), fun) match {
         case methodDef@MethodDef(_, _, _, params, outType, body) =>
             val initialArgs = args.map(interp)
-            // TODO: Add mono types to args
+
             val result = stack.fix((fun, recvObj +: initialArgs), Set()) {
               case (_, recvVal :: argVals) => newScope {
                 bindParams(params, argVals)
@@ -237,8 +251,8 @@ class Interpreter(module: Module) {
                 }
               }
             }
-            println("The result: ", fun, initialArgs, result)
-            if (outType.isInstanceOf[TSet])
+            // TODO: Support Unit by some other way that is not abusing the set semantics
+            if (outType.isInstanceOf[TSet] || outType.isUnit)
               SetValue(result)
             else
               result.head
@@ -387,7 +401,11 @@ class Interpreter(module: Module) {
     typ match {
       case TScala(_) => typ.asScala
       case TClass(_) | TNull | TAny => t"Any"
-      case TTuple(_) => t"Seq[Any]"
+      case TTuple(ts) =>
+        val tys = ts.map(typeToScala)//.mkString(", ")
+        meta.Type.Tuple(tys.toList)
+        //meta.Type.Name(s"scala.Tuple${ts.size}[$tys]")
+        //t"Seq[Any]"
       case TSet(_) => t"Set[Any]"
     }
   }
