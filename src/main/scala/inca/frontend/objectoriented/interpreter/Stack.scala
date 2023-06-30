@@ -7,6 +7,8 @@ trait MaybeChanged[Out]
 case class Unchanged[Out](result: Out) extends MaybeChanged[Out]
 case class Changed[Out](result: Out) extends MaybeChanged[Out]
 
+case class RecurrentCall() extends Exception
+
 trait Stack[In, Out] {
   trait PushResult
   case class Recurrent(previousOut: Option[Out]) extends PushResult

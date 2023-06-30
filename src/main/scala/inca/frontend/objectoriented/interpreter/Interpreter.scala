@@ -233,29 +233,34 @@ class Interpreter(module: Module) {
         case methodDef@MethodDef(_, _, _, params, outType, body) =>
             val initialArgs = args.map(interp)
 
-            val result = stack.fix((fun, recvObj +: initialArgs), Set()) {
-              case (_, recvVal :: argVals) => newScope {
-                bindParams(params, argVals)
+            try {
+              val result = stack.fix((fun, recvObj +: initialArgs), if (isFix) throw RecurrentCall() else Set()) {
+                case (_, recvVal :: argVals) => newScope {
+                  bindParams(params, argVals)
 
-                if (!methodDef.isStatic)
-                  env += Name("this") -> recvVal
+                  if (!methodDef.isStatic)
+                    env += Name("this") -> recvVal
 
-                val res = interp(body)
+                  val res = interp(body)
 
-                // well-typed programs always return a value
-                res match {
-                  case Some(SetValue(values)) => values
-                  //case Some(ScalaValue(s: Set[Value])) => s
-                  case Some(value) => Set(value)
-                  case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+                  // well-typed programs always return a value
+                  res match {
+                    case Some(SetValue(values)) => values
+                    //case Some(ScalaValue(s: Set[Value])) => s
+                    case Some(value) => Set(value)
+                    case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
+                  }
                 }
               }
+
+              if (outType.isInstanceOf[TSet])
+                SetValue(result)
+              else
+                result.head
+            } catch {
+              case RecurrentCall() => Value.UNIT
+              case e => throw e
             }
-            // TODO: Support Unit by some other way that is not abusing the set semantics
-            if (outType.isInstanceOf[TSet] || outType.isUnit)
-              SetValue(result)
-            else
-              result.head
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
       interp(recv) match {
