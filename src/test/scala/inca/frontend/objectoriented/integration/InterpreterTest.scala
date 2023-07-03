@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.integration
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.frontend.objectoriented.interpreter.{Interpreter, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, TupleValue, TypeCastException, Value}
 import inca.frontend.objectoriented.parser.Parser
-import inca.frontend.objectoriented.transformations.AddMissingDefinitions
+import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.util.FileUtil
 import org.scalatest.Assertion
@@ -36,6 +36,7 @@ class InterpreterTest extends AnyFunSuite {
   def runProg(path: String, mainClass: String, mainMethod: String, args: Seq[Any]): Any = {
     val code = FileUtil.readFile(path)
     var mod = Parser.parse(code)
+    mod = InsertBuiltInMonotones.transformModule(mod)
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
 
@@ -52,7 +53,7 @@ class InterpreterTest extends AnyFunSuite {
       throw new IllegalArgumentException(s"Method $mainMethod for class $mainClass is not a main method!")
     }
 
-    val res = new Interpreter(mod).interp(main, args.map(ScalaValue))
+    val res = new Interpreter(mod).run(main, args.map(ScalaValue))
     // transform tuples to seq for checking the result
     convertResultToScala(res) match {
       case s: Seq[Any] => fullFlatten(s)
@@ -237,5 +238,9 @@ class InterpreterTest extends AnyFunSuite {
 
   test("DoubleLinkedList Example") {
     performTests(doubleLinkedTest)
+  }
+
+  test("While lang case study") {
+    performTests(whileLangTest)
   }
 }

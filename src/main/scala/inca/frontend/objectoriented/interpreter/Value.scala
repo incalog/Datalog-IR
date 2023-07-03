@@ -72,6 +72,10 @@ object ObjectValue {
   def apply(name: String, id: Int, fvals: Map[String, Value]): ObjectValue = new ObjectValue(name, id, fvals)
 }
 
+object SetValue {
+  def apply(): SetValue = new SetValue(Set())
+}
+
 object Value {
   val UNIT: TupleValue = TupleValue(Seq())
   val NULL: ObjectValue = ObjectValue("Null", -1, Map())

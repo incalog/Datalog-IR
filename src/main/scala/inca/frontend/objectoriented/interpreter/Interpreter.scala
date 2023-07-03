@@ -1,6 +1,7 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
+import inca.frontend.objectoriented.interpreter
 
 import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 
@@ -8,19 +9,26 @@ final case class TypeCastException(obj: Value, typ: String) extends RuntimeExcep
 
 class Interpreter(module: Module) {
   println("The module: ", module)
-  // FIXME: Is fixpoint for Unit correctly implemented with the exception ?
+  // FIXME: Is fixpoint correctly implemented with the exception (I know that we don't need this for sets) ?
   // TODO: Support MonoMap
 
   private val scalaInterpreter = new ScalaInterpreter {}
 
-  def join(s1: Set[Value], s2: Set[Value]): MaybeChanged[Set[Value]] = {
-    val res = s1 ++ s2
-    if (res == s1)
-      Unchanged(res)
-    else
-      Changed(res)
+  def join(v1: Value, v2: Value): MaybeChanged[Value] = {
+    (v1, v2) match {
+      case (SetValue(s1), SetValue(s2)) =>
+        val res = SetValue(s1 ++ s2)
+        if (res == v1)
+          Unchanged(res)
+        else
+          Changed(res)
+      case (Value.UNIT, Value.UNIT) =>
+        Unchanged(Value.UNIT)
+      case (_, _) =>
+        throw new IllegalStateException(s"Can not join $v1 and $v2")
+    }
   }
-  private val stack = new StackImpl[(Name, Seq[Value]), Set[Value]]()(join)
+  private val stack = new StackImpl[(Name, Seq[Value]), Value]()(join)
 
   private type Environment = Map[Name, Value]
 
@@ -52,6 +60,16 @@ class Interpreter(module: Module) {
     }
   }
 
+  private def hasMonoMapType(expr: Expression): Boolean = {
+    expr.typ match {
+      case Some(TClass(ref)) => ref.target match {
+        case Some(classDef) => classDef.isMonotoneMapClass
+        case None => throw new IllegalStateException(s"Unresolved classRef $ref")
+      }
+      case None => throw new IllegalStateException(s"Untyped expression $expr")
+    }
+  }
+
   private def bindParams(params: Seq[Param], args: Seq[Value]): Unit = {
     if (params.size != args.size)
       throw new IllegalArgumentException(s"Expected ${params.size} arguments, but got ${args.size}")
@@ -69,32 +87,32 @@ class Interpreter(module: Module) {
     nextId
   }
 
-  def interp(main: MethodDef, args: Seq[Value]): Value = newScope {
+  def run(main: MethodDef, args: Seq[Value]): Value = newScope {
     bindParams(main.params, args)
-    interp(main.body).getOrElse(Value.UNIT)
+    run(main.body).getOrElse(Value.UNIT)
   }
 
-  def interp(stmts: Seq[Statement]): Option[Value] = stmts match {
+  def run(stmts: Seq[Statement]): Option[Value] = stmts match {
     case Nil =>
       None
     case s :: rest =>
-      val res = interp(s)
+      val res = run(s)
       if (res.isDefined)
         res
       else
-        interp(rest)
+        run(rest)
   }
 
-  def interp(stmt: Statement): Option[Value] = stmt match {
+  def run(stmt: Statement): Option[Value] = stmt match {
     case ExprStmt(expression) =>
-      interp(expression)
+      eval(expression)
       None
     case ReturnStmt(expression) =>
-      Some(interp(expression))
+      Some(eval(expression))
     case FieldAssignStmt(recv, name, expression) =>
-      val obj = interp(recv)
+      val obj = eval(recv)
       obj.asObject match {
-        case _ => obj.updateObject(name.raw, interp(expression))
+        case _ => obj.updateObject(name.raw, eval(expression))
       }
       None
     case VarDeclareStmt(name, _, maybeExpression, immutable) =>
@@ -103,38 +121,42 @@ class Interpreter(module: Module) {
       else if (maybeExpression.isEmpty)
         env += name -> Value.NULL
       else
-        env += name -> interp(maybeExpression.get)
+        env += name -> eval(maybeExpression.get)
       None
     case VarAssignStmt(name, expression) =>
-      env += name -> interp(expression)
+      env += name -> eval(expression)
       None
     case VarPhiAssignStmt(_, _, _, _, _) =>
       throw new IllegalStateException("Found unexpected phi node during interpretation!")
     case IfStmt(cnd, thn, els) =>
-      if (interp(cnd).asBoolean)
-        interp(thn)
+      if (eval(cnd).asBoolean)
+        run(thn)
       else
-        interp(els)
+        run(els)
   }
 
-  def interp(expr: Expression): Value = expr match {
+  def eval(expr: Expression): Value = expr match {
     // Handle the mono cases first
     case FieldReadExpr(recv, Name("result")) if hasMonoType(recv) =>
-      val recvObj = interp(recv)
+      val recvObj = eval(recv)
       val (className, _, fvals) = recvObj.asObject
 
       def monoJoin(v1: Value, v2: Value): Value = {
         val method = dispatchTable.lookup(Name(className), Name("join"))
         newScope {
           bindParams(method.params, Seq(v1, v2))
-          interp(method.body).get
+          run(method.body).get
         }
       }
 
       val stateValues = fvals(monoStateVarName).asSet
-      stateValues.tail.fold(stateValues.head) { case (agg, cur) => monoJoin(agg, cur) }
+      val initMethod = dispatchTable.lookup(Name(className), Name("init"))
+      val initValue = run(initMethod.body).get
+      stateValues.fold(initValue) { case (agg, cur) => monoJoin(agg, cur) }
+    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoMapType(recv) =>
+      ???
     case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
-      val recvObj = interp(recv)
+      val recvObj = eval(recv)
       val (className, _, fvals) = recvObj.asObject
 
       def monoLift(args: Seq[Value]): Value = {
@@ -142,12 +164,12 @@ class Interpreter(module: Module) {
         newScope {
           bindParams(method.params, args)
           env += Name("this") -> recvObj
-          interp(method.body).get
+          run(method.body).get
         }
       }
 
       val addMethod = dispatchTable.lookup(Name(className), meth)
-      val argVals = args.map(interp)
+      val argVals = args.map(eval)
 
       newScope {
         bindParams(addMethod.params, argVals)
@@ -162,7 +184,7 @@ class Interpreter(module: Module) {
         case None => throw new IllegalArgumentException(s"Can not read undeclared variable $name")
       }
     case FieldReadExpr(recv, targetName) =>
-      val (cls, _, fields) = interp(recv).asObject
+      val (cls, _, fields) = eval(recv).asObject
       fields.get(targetName.raw) match {
         case Some(value) => value
         case None => throw new IllegalStateException(s"Field not found $targetName for instance of class $cls")
@@ -171,12 +193,12 @@ class Interpreter(module: Module) {
       // we can lookup the constructor directly without using the dispatch table
       constr.target match {
         case Some(ConstructorDef(_, _, params, body)) =>
-          val argVals = args.map(interp)
+          val argVals = args.map(eval)
           newScope {
             val className = classRef.name
             val fields = classTable.transitiveCollectFields(className)
             val fieldVals = fields.map { f =>
-              f.name.raw -> (if (f.body.isDefined) interp(f.body.get) else Value.NULL)
+              f.name.raw -> (if (f.body.isDefined) eval(f.body.get) else Value.NULL)
             }.toMap
 
             val classDef = classTable.lookup(className) match {
@@ -186,8 +208,7 @@ class Interpreter(module: Module) {
 
             // Add monotone result field
             val monoField = if (classDef.isMonotoneClass) {
-              val initMethod = dispatchTable.lookup(classDef.name, Name("init"))
-              Some(monoStateVarName -> SetValue(Set(interp(initMethod.body).get)))
+              Some(monoStateVarName -> SetValue())
             } else {
               None
             }
@@ -201,7 +222,7 @@ class Interpreter(module: Module) {
             bindParams(params, argVals)
             env += Name("this") -> obj
 
-            interp(body)
+            run(body)
             obj
           }
         case _ => throw new IllegalArgumentException(s"No matching constructor found for ${classRef.name}")
@@ -209,7 +230,7 @@ class Interpreter(module: Module) {
     case superExpr@SuperExpr(args) =>
       superExpr.target match {
         case Some((_, ConstructorDef(_, _, params, body))) =>
-          val argVals = args.map(interp)
+          val argVals = args.map(eval)
 
           val thisObj = env.get(Name("this")) match {
             case Some(value) => value
@@ -219,51 +240,78 @@ class Interpreter(module: Module) {
           newScope {
             bindParams(params, argVals)
             env += Name("this") -> thisObj
-            interp(body)
+            run(body)
             thisObj
           }
         case None =>
           throw new IllegalArgumentException(s"Unresolved constructor $superExpr")
       }
     case MethodCallExpr(recv, fun, args, isFix) =>
-      val recvObj = interp(recv)
+      val recvObj = eval(recv)
       val (className, _, _) = recvObj.asObject
+      val initialArgs = args.map(eval)
 
       dispatchTable.lookup(Name(className), fun) match {
         case methodDef@MethodDef(_, _, _, params, outType, body) =>
-            val initialArgs = args.map(interp)
 
-            try {
-              val result = stack.fix((fun, recvObj +: initialArgs), if (isFix) throw RecurrentCall() else Set()) {
-                case (_, recvVal :: argVals) => newScope {
-                  bindParams(params, argVals)
+          def runMethod(recvObj: Value, argVals: Seq[Value]): Value = newScope {
+            bindParams(params, argVals)
+            if (!methodDef.isStatic)
+              env += Name("this") -> recvObj
+            // well-typed programs always return a value
+            run(body) match {
+              case Some(value) => value
+              case None => throw new IllegalStateException(s"Method $fun needs to return a value !")
+            }
+          }
 
-                  if (!methodDef.isStatic)
-                    env += Name("this") -> recvVal
+          /*
+          try {
+            val result = stack.fix((fun, recvObj +: initialArgs), if (isFix) throw RecurrentCall() else Set()) {
+              case (_, recvVal :: argVals) => newScope {
+                bindParams(params, argVals)
 
-                  val res = interp(body)
+                if (!methodDef.isStatic)
+                  env += Name("this") -> recvVal
 
-                  // well-typed programs always return a value
-                  res match {
-                    case Some(SetValue(values)) => values
-                    //case Some(ScalaValue(s: Set[Value])) => s
-                    case Some(value) => Set(value)
-                    case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
-                  }
+                val res = run(body)
+
+                // well-typed programs always return a value
+                res match {
+                  case Some(SetValue(values)) => values
+                  case Some(value) => Set(value)
+                  case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
                 }
               }
-
-              if (outType.isInstanceOf[TSet])
-                SetValue(result)
-              else
-                result.head
-            } catch {
-              case RecurrentCall() => Value.UNIT
-              case e => throw e
             }
+
+            if (outType.isInstanceOf[TSet])
+              SetValue(result)
+            else
+              result.head
+          } catch {
+            case RecurrentCall() => Value.UNIT
+            case e => throw e
+          }
+           */
+
+          val isUnitFixPoint = isFix && outType.isUnit
+          val needsFix = isUnitFixPoint || outType.isInstanceOf[TSet]
+          val default = if (isUnitFixPoint) Value.UNIT else SetValue()
+          try {
+            if (needsFix)
+              stack.fix((fun, recvObj +: initialArgs), throw RecurrentCall(default)) {
+                case (_, recvVal :: argVals) => runMethod(recvVal, argVals)
+              }
+            else
+              runMethod(recvObj, initialArgs)
+          } catch {
+            case RecurrentCall(default: Value) => default
+            case e => throw e
+          }
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
-      interp(recv) match {
+      eval(recv) match {
         case Value.NULL => Value.NULL
         case obj => obj.asObject match {
           case (cls, _, _) if classTable.isSubclassOf(Name(cls), ofName) => obj
@@ -273,7 +321,7 @@ class Interpreter(module: Module) {
     case TypeCastExpr(_, ofTyp) =>
       throw new UnsupportedOperationException(s"asInstanceOf is only supported for class types, but got $ofTyp")
     case InstanceOfExpr(recv, TClass(ClassRef(ofName))) =>
-      interp(recv) match {
+      eval(recv) match {
         case Value.NULL => Value.TRUE
         case obj =>
           val (clsName, _, _) = obj.asObject
@@ -285,48 +333,48 @@ class Interpreter(module: Module) {
     case NullExpr() =>
       Value.NULL
     case TupleReadExpr(recv, Index(ix)) =>
-      interp(recv).asTuple match {
+      eval(recv).asTuple match {
         case values if ix > 0 && ix <= values.size => values(ix-1)
         case _ => throw new IllegalArgumentException(s"Index $ix ouf of bounds for tuple $recv")
       }
     case TupleExpr(exps) =>
-      val argVals = exps.map(interp)
+      val argVals = exps.map(eval)
       TupleValue(argVals)
 
     case SetExpr(exps, _) =>
-      SetValue(exps.map(interp).toSet)
+      SetValue(exps.map(eval).toSet)
 
     case SetComprehension(Seq(), _) =>
       SetValue(Set())
     case SetComprehension(Seq(SetMemberExpr(name, set, None)), body) =>
-      val vals = interp(set).asSet
+      val vals = eval(set).asSet
       // Note: Do not open a new scope, since our Datalog compiler does not support scoping here
       val computedVals = for (v <- vals) yield {
         env += name -> v
         // flatten potential nested set results
-        interp(body) match {
+        eval(body) match {
           case SetValue(values) => values
           case v => Seq(v)
         }
       }.toSeq
       SetValue(computedVals.flatten)
     case SetComprehension(Seq(SetMemberExpr(name, set, Some(pred))), body) =>
-      val vals = interp(set).asSet
+      val vals = eval(set).asSet
       def filter(v: Value): Boolean = {
         env += name -> v
-        interp(pred).asBoolean
+        eval(pred).asBoolean
       }
 
       val computedVals = for (v <- vals if filter(v)) yield {
         env += name -> v
-        interp(body) match {
+        eval(body) match {
           case SetValue(values) => values
           case v => Seq(v)
         }
       }.toSeq
       SetValue(computedVals.flatten)
     case SetComprehension(mem::rest, body) =>
-      interp(SetComprehension(Seq(mem), SetComprehension(rest, body)))
+      eval(SetComprehension(Seq(mem), SetComprehension(rest, body)))
 
     case SetFold(recv, projection, opClass, opMethod, neutral) =>
       // TODO: projection
@@ -338,11 +386,11 @@ class Interpreter(module: Module) {
         throw new IllegalStateException(s"No method $opMethod found for class $opClass in fold $expr")
 
       val foldMethod = methods.head
-      val setVals = interp(recv).asSet
-      setVals.fold(interp(neutral)) { case (acc, current) =>
+      val setVals = eval(recv).asSet
+      setVals.fold(eval(neutral)) { case (acc, current) =>
         newScope {
           bindParams(foldMethod.params, Seq(acc, current))
-          interp(foldMethod.body) match {
+          run(foldMethod.body) match {
             case Some(value) => value
             case None => throw new IllegalStateException("Can not fold over Unit values!")
           }
@@ -351,7 +399,7 @@ class Interpreter(module: Module) {
     case BaseLitExpr(code) =>
       packInScalaValue(scalaInterpreter.interp(code.syntax))
     case BaseApplyExpr(fun, args) =>
-      val argVals = args.map(e => interp(e).asScala)
+      val argVals = args.map(e => eval(e).asScala)
       val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
         val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
         ("arg$" + ix, s"${typeToScala(argTyp)}")
@@ -361,16 +409,16 @@ class Interpreter(module: Module) {
       packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
-      SetValue(interp(left).asSet ++ interp(right).asSet)
+      SetValue(eval(left).asSet ++ eval(right).asSet)
     case BaseApplyInfixExpr(left, op, right) =>
-      val lhs = interp(left).asScala
-      val rhs = interp(right).asScala
+      val lhs = eval(left).asScala
+      val rhs = eval(right).asScala
       val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))
       val rhsTy = typeToScala(right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")))
       val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
       packInScalaValue(scalaInterpreter.interpClosure(code, lhs, rhs))
     case BaseApplyMethodExpr(recv, method, args) =>
-      val argVals = (recv +: args.getOrElse(Seq())).map(e => interp(e).asScala)
+      val argVals = (recv +: args.getOrElse(Seq())).map(e => eval(e).asScala)
       val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
         val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
         ("arg$" + ix, s"${typeToScala(argTyp)}")
@@ -385,7 +433,7 @@ class Interpreter(module: Module) {
       }
       packInScalaValue(scalaInterpreter.interpClosure(s"($closureParams => $closureBody)", argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
-      val value = interp(exp).asScala
+      val value = eval(exp).asScala
       val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
       val code = s"((value: $valueTy) => ${op.syntax} value)"
       packInScalaValue(scalaInterpreter.interpClosure(code, value))
