@@ -135,31 +135,51 @@ class Interpreter(module: Module) {
         run(els)
   }
 
+  def monoJoin(monoClassName: Name, v1: Value, v2: Value): Value = {
+    val method = dispatchTable.lookup(monoClassName, Name("join"))
+    newScope {
+      bindParams(method.params, Seq(v1, v2))
+      run(method.body).get
+    }
+  }
+
   def eval(expr: Expression): Value = expr match {
+    // Handle mono map
+    case MethodCallExpr(recv, Name("get"), Seq(keyExpr), _) if hasMonoMapType(recv) =>
+      val (className, _, fvals) = eval(recv).asObject
+      val classDef = classTable.lookup(Name(className))
+      val Some((_, TClass(ClassRef(monoValueClass)))) = classDef.montoneTypes
+
+      val keyValue = eval(keyExpr)
+      val stateValues = fvals(monoStateVarName).asSet.flatMap {
+        // TODO: We only support Map with a single value type
+        case TupleValue(key :: Seq(value)) if key == keyValue => Some(value)
+        case _ => None
+      }
+      val initMethod = dispatchTable.lookup(monoValueClass, Name("init"))
+      val initValue = newScope { run(initMethod.body).get }
+      stateValues.fold(initValue) { case (agg, cur) => monoJoin(monoValueClass, agg, cur) }
+
+    case MethodCallExpr(recv, Name("keys"), args, _) if hasMonoMapType(recv) =>
+      val (_, _, fvals) = eval(recv).asObject
+      SetValue(fvals(monoStateVarName).asSet.map { case TupleValue(key :: _) => key })
+
     // Handle the mono cases first
     case FieldReadExpr(recv, Name("result")) if hasMonoType(recv) =>
       val recvObj = eval(recv)
       val (className, _, fvals) = recvObj.asObject
 
-      def monoJoin(v1: Value, v2: Value): Value = {
-        val method = dispatchTable.lookup(Name(className), Name("join"))
-        newScope {
-          bindParams(method.params, Seq(v1, v2))
-          run(method.body).get
-        }
-      }
-
       val stateValues = fvals(monoStateVarName).asSet
       val initMethod = dispatchTable.lookup(Name(className), Name("init"))
-      val initValue = run(initMethod.body).get
-      stateValues.fold(initValue) { case (agg, cur) => monoJoin(agg, cur) }
-    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoMapType(recv) =>
-      ???
+      val initValue = newScope { run(initMethod.body).get }
+      stateValues.fold(initValue) { case (agg, cur) => monoJoin(Name(className), agg, cur) }
     case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
       val recvObj = eval(recv)
       val (className, _, fvals) = recvObj.asObject
 
-      def monoLift(args: Seq[Value]): Value = {
+      def monoLift(args: Seq[Value]): Value = if (hasMonoMapType(recv)) {
+        args.head
+      } else {
         val method = dispatchTable.lookup(Name(className), Name("lift"))
         newScope {
           bindParams(method.params, args)
@@ -201,10 +221,7 @@ class Interpreter(module: Module) {
               f.name.raw -> (if (f.body.isDefined) eval(f.body.get) else Value.NULL)
             }.toMap
 
-            val classDef = classTable.lookup(className) match {
-              case Some(classDef) => classDef
-              case None => throw new IllegalArgumentException(s"Unresolved class $className")
-            }
+            val classDef = classTable.lookup(className)
 
             // Add monotone result field
             val monoField = if (classDef.isMonotoneClass) {
@@ -378,7 +395,7 @@ class Interpreter(module: Module) {
 
     case SetFold(recv, projection, opClass, opMethod, neutral) =>
       // TODO: projection
-      val classDef = classTable.lookup(opClass.name).getOrElse(throw new IllegalStateException(s"Class not found $opClass"))
+      val classDef = classTable.lookup(opClass.name)
       val methods = classDef.methods.filter(_.name == opMethod)
       if (methods.size > 1)
         throw new IllegalStateException(s"Ambiguous method $opMethod for class $opClass in fold $expr")

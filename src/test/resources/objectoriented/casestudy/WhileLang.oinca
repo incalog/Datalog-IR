@@ -239,7 +239,7 @@ class Visitor {
 case class MConstant extends BalancedMonotone[MConstant, MConstant] {
     @static
     def init(): MConstant = {
-        new NoConstant()
+        new BotConstant()
     }
 
     @static
@@ -284,10 +284,24 @@ case class NoConstant extends MConstant {
     }
 }
 
+case class BotConstant extends MConstant {
+    @override
+    def stringValue(): String = {
+        "BotConstant"
+    }
+
+    @override
+    def joined(that: MConstant): MConstant = {
+        that
+    }
+}
+
 case class SomeConstant(val value: Int) extends MConstant {
     @override
     def joined(that: MConstant): MConstant = {
         if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].value == this.value) {
+            this
+        } else if (that.isInstanceOf[BotConstant]) {
             this
         } else {
             new NoConstant()
