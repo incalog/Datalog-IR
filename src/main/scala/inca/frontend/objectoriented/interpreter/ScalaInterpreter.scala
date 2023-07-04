@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.interpreter
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.util.Collect
 
-import scala.collection.mutable
+import scala.collection.{MapView, mutable}
 import scala.reflect.runtime.{currentMirror, universe}
 import scala.tools.reflect.ToolBox
 import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
@@ -61,27 +61,23 @@ trait CollectScalaCode extends Collect[(Expression, String)] {
 case class ScalaInterpreter(module: Module, precomputeScalaTerms: Boolean = true) {
   protected var imports: mutable.ListBuffer[meta.Import] = mutable.ListBuffer()
 
-  val codeCache: Map[Expression, String] = (new CollectScalaCode {})(module).map {
-    case (expr, code) => expr -> code
-  }.toMap
-
-  val codeResultCache: Map[Expression, Any] = codeCache.map {
-    case (expr, code) => expr -> ScalaInterpreter.run(code)
+  private val collectScalaCode = new CollectScalaCode {}
+  private val codeResultCache: MapView[Expression, Any] = {
+    // MapView recomputes the values each time a key is accessed
+    val lazyResults = collectScalaCode(module).toMap.view.mapValues(ScalaInterpreter.run)
+    // Run all expressions by creating a map a second time
+    if (precomputeScalaTerms)
+      lazyResults.toMap.view
+    else
+      lazyResults
   }
 
-  def eval(expr: Expression): Any = if (precomputeScalaTerms)
-      codeResultCache.get(expr) match {
-        case Some(value) => value
-        case None => throw new IllegalArgumentException(s"Uncached result for expression $expr")
-      }
-    else
-      codeCache.get(expr) match {
-        case Some(value) => ScalaInterpreter.run(value)
-        case None => throw new IllegalArgumentException(s"Uncached code for expression $expr")
-      }
+  def eval(expr: Expression): Any = codeResultCache.get(expr) match {
+    case Some(value) => value
+    case None => throw new IllegalArgumentException(s"Uncached result for expression $expr")
+  }
 
-  def evalClosure(expr: Expression, args: Any*): Any =
-    ScalaInterpreter.callClosure(eval(expr), args:_*)
+  def evalClosure(expr: Expression, args: Any*): Any = ScalaInterpreter.callClosure(eval(expr), args:_*)
 }
 
 object ScalaInterpreter {
