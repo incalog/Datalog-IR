@@ -69,8 +69,7 @@ case class ScalaInterpreter(module: Module, precomputeScalaTerms: Boolean = true
     case (expr, code) => expr -> ScalaInterpreter.run(code)
   }
 
-  def eval(expr: Expression): Any = {
-    if (precomputeScalaTerms)
+  def eval(expr: Expression): Any = if (precomputeScalaTerms)
       codeResultCache.get(expr) match {
         case Some(value) => value
         case None => throw new IllegalArgumentException(s"Uncached result for expression $expr")
@@ -80,36 +79,9 @@ case class ScalaInterpreter(module: Module, precomputeScalaTerms: Boolean = true
         case Some(value) => ScalaInterpreter.run(value)
         case None => throw new IllegalArgumentException(s"Uncached code for expression $expr")
       }
-  }
 
-  def callClosure(closure: Any, args: Any*): Any = {
-    closure match {
-      case c: Function0[Any] => c()
-      case c: Function1[Any, Any] => c(args(0))
-      case c: Function2[Any, Any, Any] => c(args(0), args(1))
-      case c: Function3[Any, Any, Any, Any] => c(args(0), args(1), args(2))
-      case c: Function4[Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3))
-      case c: Function5[Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4))
-      case c: Function6[Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5))
-      case c: Function7[Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6))
-      case c: Function8[Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7))
-      case c: Function9[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8))
-      case c: Function10[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9))
-      case c: Function11[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10))
-      case c: Function12[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11))
-      case c: Function13[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12))
-      case c: Function14[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13))
-      case c: Function15[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14))
-      case c: Function16[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15))
-      case c: Function17[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16))
-      case c: Function18[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17))
-      case c: Function19[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18))
-      case c: Function20[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19))
-      case c: Function21[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19), args(20))
-      case c: Function22[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19), args(20), args(21))
-      case _ => throw new IllegalArgumentException(s"Unsupported closure: $closure(..$args)")
-    }
-  }
+  def evalClosure(expr: Expression, args: Any*): Any =
+    ScalaInterpreter.callClosure(eval(expr), args:_*)
 }
 
 object ScalaInterpreter {
@@ -118,5 +90,32 @@ object ScalaInterpreter {
   def run(code: String): Any = {
     val tree = toolbox.parse(code)
     toolbox.eval(tree)
+  }
+
+  def callClosure(closure: Any, args: Any*): Any = closure match {
+    case c: Function0[Any] => c()
+    case c: Function1[Any, Any] => c(args(0))
+    case c: Function2[Any, Any, Any] => c(args(0), args(1))
+    case c: Function3[Any, Any, Any, Any] => c(args(0), args(1), args(2))
+    case c: Function4[Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3))
+    case c: Function5[Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4))
+    case c: Function6[Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5))
+    case c: Function7[Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6))
+    case c: Function8[Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7))
+    case c: Function9[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8))
+    case c: Function10[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9))
+    case c: Function11[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10))
+    case c: Function12[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11))
+    case c: Function13[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12))
+    case c: Function14[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13))
+    case c: Function15[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14))
+    case c: Function16[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15))
+    case c: Function17[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16))
+    case c: Function18[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17))
+    case c: Function19[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18))
+    case c: Function20[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19))
+    case c: Function21[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19), args(20))
+    case c: Function22[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19), args(20), args(21))
+    case _ => throw new IllegalArgumentException(s"Unsupported closure: $closure(..$args)")
   }
 }

@@ -415,26 +415,24 @@ class Interpreter(module: Module) {
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       SetValue(eval(left).asSet ++ eval(right).asSet)
-    case BaseLitExpr(code) =>
+    case BaseLitExpr(_) =>
       packInScalaValue(scalaInterpreter.eval(expr))
-    case BaseApplyExpr(fun, args) =>
+    case BaseApplyExpr(_, args) =>
       val argVals = args.map(e => eval(e).asScala)
-      val closure = scalaInterpreter.eval(expr)
-      packInScalaValue(scalaInterpreter.callClosure(closure, argVals:_*))
-    case BaseApplyInfixExpr(left, op, right) =>
-      val closure = scalaInterpreter.eval(expr)
-      packInScalaValue(scalaInterpreter.callClosure(closure, eval(left).asScala, eval(right).asScala))
-    case BaseApplyMethodExpr(recv, method, args) =>
+      packInScalaValue(scalaInterpreter.evalClosure(expr, argVals:_*))
+    case BaseApplyInfixExpr(left, _, right) =>
+      val lhs = eval(left).asScala
+      val rhs = eval(right).asScala
+      packInScalaValue(scalaInterpreter.evalClosure(expr, lhs, rhs))
+    case BaseApplyMethodExpr(recv, _, args) =>
       val argVals = (recv +: args.getOrElse(Seq())).map(e => eval(e).asScala)
-      val closure = scalaInterpreter.eval(expr)
-      packInScalaValue(scalaInterpreter.callClosure(closure, argVals:_*))
-    case BaseApplyUnaryExpr(op, exp) =>
+      packInScalaValue(scalaInterpreter.evalClosure(expr, argVals:_*))
+    case BaseApplyUnaryExpr(_, exp) =>
       val value = eval(exp).asScala
-      val closure = scalaInterpreter.eval(expr)
-      packInScalaValue(scalaInterpreter.callClosure(closure, value))
+      packInScalaValue(scalaInterpreter.evalClosure(expr, value))
   }
 
-  // only pack 'pure' scala values aka. no values inside a ScalaValue
+  // only pack 'pure' scala values aka. no Values inside a ScalaValue
   private def packInScalaValue(value: Any) = value match {
     case value: Value => value
     case _ => ScalaValue(value)
