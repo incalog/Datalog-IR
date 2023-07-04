@@ -12,7 +12,6 @@ import org.scalatest.funsuite.AnyFunSuite
 class InterpreterTest extends AnyFunSuite {
   val parser: Parser = new Parser {}
   val typechecker: Typechecker = new Typechecker {}
-  val scalaInterpreter: ScalaInterpreter = new ScalaInterpreter {}
 
   // The TestDefinition expects seqs instead of tuples, because Datalog flatten tuples.
   // Therefore we convert tuples to seqs and unpack ScalaValues.
@@ -63,11 +62,12 @@ class InterpreterTest extends AnyFunSuite {
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
-      val input = test.input.map(arg => scalaInterpreter.interp(arg.syntax))
+      val input = test.input.map(arg => ScalaInterpreter.run(arg.syntax))
       val actual = runProg(test.filePath, test.mainClass, test.mainMethod, input)
       assert(actual == test.expectedResult)
     }
   }
+
 
   test("Base Examples") {
     performTests(baseTests: _*)
@@ -171,15 +171,6 @@ class InterpreterTest extends AnyFunSuite {
     performTests(tupleTest)
   }
 
-  test("Case Class") {
-    performTests(caseClassTest)
-  }
-
-  // Set - Fixpoint
-  test("Case Class - Transitive Closure") {
-    performTests(caseClassTransitiveClosureTest)
-  }
-
   test("Set Simple Example") {
     performTests(simpleSetTests: _*)
   }
@@ -200,21 +191,26 @@ class InterpreterTest extends AnyFunSuite {
     performTests(comprehensionSetTest: _*)
   }
 
-  // Set - Fixpoint
   test("Set Recursive Example") {
     performTests(recursiveSetTest)
+  }
+
+  /*test("Set Empty Example") {
+    performTests(emptySetTest)
+  }*/
+
+  test("Case Class") {
+    performTests(caseClassTest)
+  }
+
+  test("Case Class - Transitive Closure") {
+    performTests(caseClassTransitiveClosureTest)
   }
 
   test("Set fold") {
     performTests(foldSetTests: _*)
   }
 
-  test("Abstract syntax graph") {
-    performTests(abstractSyntaxGraphTest)
-  }
-
-  // TODO: Projection is not a feature we explored in the Paper.
-  //  It is low priority and not really required with mono types.
   /*test("Set fold - Projection") {
     performTests(foldSetProjectionTest)
   }*/
@@ -223,10 +219,9 @@ class InterpreterTest extends AnyFunSuite {
     performTests(cfgVisitorTest)
   }
 
-  // TODO: Support mono map
-  /*test("While lang case study") {
+  test("While lang case study") {
     performTests(whileLangTest)
-  }*/
+  }
 
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
@@ -240,7 +235,19 @@ class InterpreterTest extends AnyFunSuite {
     performTests(doubleLinkedTest)
   }
 
-  test("While lang case study") {
-    performTests(whileLangTest)
+  test("Transitive closure") {
+    performTests(transitiveClosureTest)
+  }
+
+  test("No Demand") {
+    performTests(noDemandTest)
+  }
+
+  test("Abstract Syntax Graph") {
+    performTests(abstractSyntaxGraphTest)
+  }
+
+  test("Loop") {
+    performTests(loopTest)
   }
 }

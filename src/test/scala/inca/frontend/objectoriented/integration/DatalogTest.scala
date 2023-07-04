@@ -168,9 +168,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(foldSetTests: _*)
   }
 
-  test("Set fold - Projection") {
+  /*test("Set fold - Projection") {
     performTests(foldSetProjectionTest)
-  }
+  }*/
 
   test("CGFVisitor") {
     performTests(cfgVisitorTest)

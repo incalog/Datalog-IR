@@ -1,26 +1,88 @@
 package inca.frontend.objectoriented.interpreter
 
+import inca.frontend.objectoriented.core._
+import inca.frontend.objectoriented.util.Collect
+
 import scala.collection.mutable
 import scala.reflect.runtime.{currentMirror, universe}
 import scala.tools.reflect.ToolBox
+import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 
-trait ScalaInterpreter {
-  private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
+trait CollectScalaCode extends Collect[(Expression, String)] {
+  private def typeToScala(typ: Type): meta.Type = {
+    typ match {
+      case TScala(_) => typ.asScala
+      case TClass(_) | TNull | TAny => t"Any"
+      case TTuple(ts) => meta.Type.Tuple(ts.map(typeToScala).toList)
+      case TSet(_) => t"Set[Any]"
+    }
+  }
 
+  override def collectExpression(expr: Expression): Seq[(Expression, String)] = (expr match {
+    case BaseLitExpr(code) =>
+      Seq((expr, code.syntax))
+    case BaseApplyExpr(fun, args) =>
+      val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
+        ("arg$" + ix, s"${typeToScala(argTyp)}")
+      }.toList
+      val scalaArgs = paramsTyped.map(_._1)
+      val code = s"((${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")}) => $fun(${scalaArgs.mkString(", ")}))"
+      super.collectExpression(expr) ++ Seq((expr, code))
+    case BaseApplyInfixExpr(left, op, right) =>
+      val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))
+      val rhsTy = typeToScala(right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")))
+      val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
+      Seq((expr, code))
+    case BaseApplyMethodExpr(recv, method, args) =>
+      val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
+        ("arg$" + ix, s"${typeToScala(argTyp)}")
+      }.toList
+      val scalaArgs = paramsTyped.map(_._1)
+      val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
+      val closureBody = if (args.isDefined) {
+        val argS = scalaArgs.tail.mkString("(", ", ", ")")
+        s"${scalaArgs.head}.${method.raw}$argS"
+      } else {
+        s"${scalaArgs.head}.${method.raw}"
+      }
+      val code = s"($closureParams => $closureBody)"
+      Seq((expr, code))
+    case BaseApplyUnaryExpr(op, exp) =>
+      val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
+      val code = s"((value: $valueTy) => ${op.syntax} value)"
+      Seq((expr, code))
+    case _ =>
+      Seq()
+  }) ++ super.collectExpression(expr)
+}
+
+case class ScalaInterpreter(module: Module, precomputeScalaTerms: Boolean = true) {
   protected var imports: mutable.ListBuffer[meta.Import] = mutable.ListBuffer()
 
-  def interp(code: String): Any = {
-    //println("Interp: ", code)
-    val tree = toolbox.parse(code)
-    toolbox.eval(tree)
+  val codeCache: Map[Expression, String] = (new CollectScalaCode {})(module).map {
+    case (expr, code) => expr -> code
+  }.toMap
+
+  val codeResultCache: Map[Expression, Any] = codeCache.map {
+    case (expr, code) => expr -> ScalaInterpreter.run(code)
   }
 
-  def interpClosure(code: String, args: Any*): Any = {
-    val closure = interp(code)
-    callClosure(closure, args)
+  def eval(expr: Expression): Any = {
+    if (precomputeScalaTerms)
+      codeResultCache.get(expr) match {
+        case Some(value) => value
+        case None => throw new IllegalArgumentException(s"Uncached result for expression $expr")
+      }
+    else
+      codeCache.get(expr) match {
+        case Some(value) => ScalaInterpreter.run(value)
+        case None => throw new IllegalArgumentException(s"Uncached code for expression $expr")
+      }
   }
 
-  private def callClosure(closure: Any, args: Seq[Any]): Any = {
+  def callClosure(closure: Any, args: Any*): Any = {
     closure match {
       case c: Function0[Any] => c()
       case c: Function1[Any, Any] => c(args(0))
@@ -47,5 +109,14 @@ trait ScalaInterpreter {
       case c: Function22[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any] => c(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10), args(11), args(12), args(13), args(14), args(15), args(16), args(17), args(18), args(19), args(20), args(21))
       case _ => throw new IllegalArgumentException(s"Unsupported closure: $closure(..$args)")
     }
+  }
+}
+
+object ScalaInterpreter {
+  private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
+
+  def run(code: String): Any = {
+    val tree = toolbox.parse(code)
+    toolbox.eval(tree)
   }
 }

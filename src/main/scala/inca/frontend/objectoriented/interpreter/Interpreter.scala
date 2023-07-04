@@ -8,11 +8,10 @@ import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
 class Interpreter(module: Module) {
-  println("The module: ", module)
+  // println(module)
   // FIXME: Is fixpoint correctly implemented with the exception (I know that we don't need this for sets) ?
-  // TODO: Support MonoMap
 
-  private val scalaInterpreter = new ScalaInterpreter {}
+  private val scalaInterpreter = new ScalaInterpreter(module: Module)
 
   def join(v1: Value, v2: Value): MaybeChanged[Value] = {
     (v1, v2) match {
@@ -413,63 +412,31 @@ class Interpreter(module: Module) {
           }
         }
       }
-    case BaseLitExpr(code) =>
-      packInScalaValue(scalaInterpreter.interp(code.syntax))
-    case BaseApplyExpr(fun, args) =>
-      val argVals = args.map(e => eval(e).asScala)
-      val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
-        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
-        ("arg$" + ix, s"${typeToScala(argTyp)}")
-      }.toList
-      val scalaArgs = paramsTyped.map(_._1)
-      val code = s"((${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")}) => $fun(${scalaArgs.mkString(", ")}))"
-      packInScalaValue(scalaInterpreter.interpClosure(code, argVals:_*))
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       SetValue(eval(left).asSet ++ eval(right).asSet)
+    case BaseLitExpr(code) =>
+      packInScalaValue(scalaInterpreter.eval(expr))
+    case BaseApplyExpr(fun, args) =>
+      val argVals = args.map(e => eval(e).asScala)
+      val closure = scalaInterpreter.eval(expr)
+      packInScalaValue(scalaInterpreter.callClosure(closure, argVals:_*))
     case BaseApplyInfixExpr(left, op, right) =>
-      val lhs = eval(left).asScala
-      val rhs = eval(right).asScala
-      val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))
-      val rhsTy = typeToScala(right.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $right")))
-      val code = s"((left: $lhsTy, right: $rhsTy) => left $op right)"
-      packInScalaValue(scalaInterpreter.interpClosure(code, lhs, rhs))
+      val closure = scalaInterpreter.eval(expr)
+      packInScalaValue(scalaInterpreter.callClosure(closure, eval(left).asScala, eval(right).asScala))
     case BaseApplyMethodExpr(recv, method, args) =>
       val argVals = (recv +: args.getOrElse(Seq())).map(e => eval(e).asScala)
-      val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
-        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $arg"))
-        ("arg$" + ix, s"${typeToScala(argTyp)}")
-      }.toList
-      val scalaArgs = paramsTyped.map(_._1)
-      val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
-      val closureBody = if (args.isDefined) {
-        val argS = scalaArgs.tail.mkString("(", ", ", ")")
-        s"${scalaArgs.head}.${method.raw}$argS"
-      } else {
-        s"${scalaArgs.head}.${method.raw}"
-      }
-      packInScalaValue(scalaInterpreter.interpClosure(s"($closureParams => $closureBody)", argVals:_*))
+      val closure = scalaInterpreter.eval(expr)
+      packInScalaValue(scalaInterpreter.callClosure(closure, argVals:_*))
     case BaseApplyUnaryExpr(op, exp) =>
       val value = eval(exp).asScala
-      val valueTy = typeToScala(exp.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $exp")))
-      val code = s"((value: $valueTy) => ${op.syntax} value)"
-      packInScalaValue(scalaInterpreter.interpClosure(code, value))
+      val closure = scalaInterpreter.eval(expr)
+      packInScalaValue(scalaInterpreter.callClosure(closure, value))
   }
 
   // only pack 'pure' scala values aka. no values inside a ScalaValue
   private def packInScalaValue(value: Any) = value match {
     case value: Value => value
     case _ => ScalaValue(value)
-  }
-
-  private def typeToScala(typ: Type): meta.Type = {
-    // TODO: We might want to make this more precise and refactor it
-    //  This is basically the asScala method of a Type but for our Interpreter and not for PSystem
-    typ match {
-      case TScala(_) => typ.asScala
-      case TClass(_) | TNull | TAny => t"Any"
-      case TTuple(ts) => meta.Type.Tuple(ts.map(typeToScala).toList)
-      case TSet(_) => t"Set[Any]"
-    }
   }
 }
