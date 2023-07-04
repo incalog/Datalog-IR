@@ -1,9 +1,6 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
-import inca.frontend.objectoriented.interpreter
-
-import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
@@ -13,25 +10,23 @@ class Interpreter(module: Module) {
 
   private val scalaInterpreter = new ScalaInterpreter(module: Module)
 
-  def join(v1: Value, v2: Value): MaybeChanged[Value] = {
-    (v1, v2) match {
-      case (SetValue(s1), SetValue(s2)) =>
-        val res = SetValue(s1 ++ s2)
-        if (res == v1)
-          Unchanged(res)
-        else
-          Changed(res)
-      case (Value.UNIT, Value.UNIT) =>
-        Unchanged(Value.UNIT)
-      case (_, _) =>
-        throw new IllegalStateException(s"Can not join $v1 and $v2")
-    }
+  def join(v1: Value, v2: Value): MaybeChanged[Value] = (v1, v2) match {
+    case (SetValue(s1), SetValue(s2)) =>
+      val res = SetValue(s1 ++ s2)
+      if (res == v1)
+        Unchanged(res)
+      else
+        Changed(res)
+    case (Value.UNIT, Value.UNIT) =>
+      Unchanged(Value.UNIT)
+    case (_, _) =>
+      throw new IllegalStateException(s"Can not join $v1 and $v2")
   }
+
   private val stack = new StackImpl[(Name, Seq[Value]), Value]()(join)
 
   private type Environment = Map[Name, Value]
-
-  var env: Environment = Map()
+  private var env: Environment = Map()
 
   private def newScope[A](f: => A): A = {
     val oldenv = this.env
@@ -47,7 +42,7 @@ class Interpreter(module: Module) {
   private val classTable = ClassTable(module.classes)
   private val dispatchTable = DispatchTable(module.classes)
 
-  val monoStateVarName = "state"
+  private val monoStateVarName: String = "state"
 
   private def hasMonoType(expr: Expression): Boolean = {
     expr.typ match {
@@ -281,36 +276,6 @@ class Interpreter(module: Module) {
             }
           }
 
-          /*
-          try {
-            val result = stack.fix((fun, recvObj +: initialArgs), if (isFix) throw RecurrentCall() else Set()) {
-              case (_, recvVal :: argVals) => newScope {
-                bindParams(params, argVals)
-
-                if (!methodDef.isStatic)
-                  env += Name("this") -> recvVal
-
-                val res = run(body)
-
-                // well-typed programs always return a value
-                res match {
-                  case Some(SetValue(values)) => values
-                  case Some(value) => Set(value)
-                  case None => throw new IllegalArgumentException(s"Missing return value for method $fun")
-                }
-              }
-            }
-
-            if (outType.isInstanceOf[TSet])
-              SetValue(result)
-            else
-              result.head
-          } catch {
-            case RecurrentCall() => Value.UNIT
-            case e => throw e
-          }
-           */
-
           val isUnitFixPoint = isFix && outType.isUnit
           val needsFix = isUnitFixPoint || outType.isInstanceOf[TSet]
           val default = if (isUnitFixPoint) Value.UNIT else SetValue()
@@ -433,8 +398,8 @@ class Interpreter(module: Module) {
   }
 
   // only pack 'pure' scala values aka. no Values inside a ScalaValue
-  private def packInScalaValue(value: Any) = value match {
+  private def packInScalaValue(scalaValue: Any) = scalaValue match {
     case value: Value => value
-    case _ => ScalaValue(value)
+    case _ => ScalaValue(scalaValue)
   }
 }
