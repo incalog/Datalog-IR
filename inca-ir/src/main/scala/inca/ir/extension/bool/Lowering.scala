@@ -30,15 +30,13 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with ArithmeticIR] extends not.L
   val TrueNum = IntNum(1)
   val FalseNum = IntNum(0)
 
-  def Not(a: Atom): Atom = ???
-
   def lowerTerm(term: BoolTerm): Seq[Term] = term match
     case AtomAsBool(a) =>
       val x = freshName()
       Seq(
         block.Block(Seq(Disjunction(Seq(
           Seq(a, Eq(Var(x), TrueNum)),
-          Seq(Not(a), Eq(Var(x), FalseNum))
+          Seq(negateAtom(a), Eq(Var(x), FalseNum))
         ))), Var(x)))
     case BoolAnd(t1, t2) =>
       for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
