@@ -9,13 +9,11 @@ import scala.tools.reflect.ToolBox
 import scala.meta.{XtensionQuasiquoteTermParam, XtensionQuasiquoteType}
 
 trait CollectScalaCode extends Collect[(Expression, String)] {
-  private def typeToScala(typ: Type): meta.Type = {
-    typ match {
-      case TScala(_) => typ.asScala
-      case TClass(_) | TNull | TAny => t"Any"
-      case TTuple(ts) => meta.Type.Tuple(ts.map(typeToScala).toList)
-      case TSet(_) => t"Set[Any]"
-    }
+  private def typeToScala(typ: Type): meta.Type = typ match {
+    case TScala(_) => typ.asScala
+    case TClass(_) | TNull | TAny => t"Any"
+    case TTuple(ts) => meta.Type.Tuple(ts.map(typeToScala).toList)
+    case TSet(_) => t"Set[Any]"
   }
 
   override def collectExpression(expr: Expression): Seq[(Expression, String)] = (expr match {
@@ -27,7 +25,9 @@ trait CollectScalaCode extends Collect[(Expression, String)] {
         ("arg$" + ix, s"${typeToScala(argTyp)}")
       }.toList
       val scalaArgs = paramsTyped.map(_._1)
-      val code = s"((${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")}) => $fun(${scalaArgs.mkString(", ")}))"
+      val closureParams = s"(${paramsTyped.map(p => s"${p._1}: ${p._2}").mkString(", ")})"
+      val closureBody = s"$fun(${scalaArgs.mkString(", ")})"
+      val code = s"($closureParams => $closureBody)"
       super.collectExpression(expr) ++ Seq((expr, code))
     case BaseApplyInfixExpr(left, op, right) =>
       val lhsTy = typeToScala(left.typ.getOrElse(throw new IllegalStateException(s"Untyped expression $left")))

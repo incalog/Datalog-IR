@@ -6,7 +6,6 @@ final case class TypeCastException(obj: Value, typ: String) extends RuntimeExcep
 
 class Interpreter(module: Module) {
   // println(module)
-  // FIXME: Is fixpoint correctly implemented with the exception (I know that we don't need this for sets) ?
 
   private val scalaInterpreter = new ScalaInterpreter(module: Module)
 
