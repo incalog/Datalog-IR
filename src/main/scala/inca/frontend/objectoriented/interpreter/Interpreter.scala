@@ -2,6 +2,8 @@ package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
 
+import scala.util.{Failure, Success, Try}
+
 final case class TypeCastException(obj: Value, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
 class Interpreter(module: Module) {
@@ -12,7 +14,7 @@ class Interpreter(module: Module) {
   def join(v1: Value, v2: Value): MaybeChanged[Value] = (v1, v2) match {
     case (SetValue(s1), SetValue(s2)) =>
       val res = SetValue(s1 ++ s2)
-      if (res == v1)
+      if (res.size == s1.size)
         Unchanged(res)
       else
         Changed(res)
@@ -20,6 +22,17 @@ class Interpreter(module: Module) {
       Unchanged(Value.UNIT)
     case (_, _) =>
       throw new IllegalStateException(s"Can not join $v1 and $v2")
+  }
+
+  private def joinComputations[A](f: => A)(g: => A)(j: (A, A) => MaybeChanged[A]): A = {
+    val fRes = Try(f)
+    val gRes = Try(g)
+    (fRes, gRes) match {
+      case (Success(v1), Success(v2)) => j(v1, v2).get
+      case (Failure(RecurrentCall), Success(v2)) => v2
+      case (Success(v1), Failure(RecurrentCall)) => v1
+      case (r1, r2) => r1.get
+    }
   }
 
   private val stack = new StackImpl[(Name, Seq[Value]), Value]()(join)
@@ -276,18 +289,17 @@ class Interpreter(module: Module) {
           }
 
           val isUnitFixPoint = isFix && outType.isUnit
-          val needsFix = isUnitFixPoint || outType.isInstanceOf[TSet]
-          val default = if (isUnitFixPoint) Value.UNIT else SetValue()
-          try {
-            if (needsFix)
-              stack.fix((fun, recvObj +: initialArgs), throw RecurrentCall(default)) {
-                case (_, recvVal :: argVals) => runMethod(recvVal, argVals)
-              }
-            else
+          if (isUnitFixPoint) {
+            // unit join f
+            stack.fix((fun, recvObj +: initialArgs), throw RecurrentCall) {
+              case (_, recvVal :: argVals) => joinComputations[Value](Value.UNIT)(runMethod(recvVal, argVals))(join)
+            }
+          } else if (outType.isInstanceOf[TSet]) {
+            stack.fix((fun, recvObj +: initialArgs), throw RecurrentCall) {
+              case (_, recvVal :: argVals) => runMethod(recvVal, argVals)
+            }
+          } else {
               runMethod(recvObj, initialArgs)
-          } catch {
-            case RecurrentCall(default: Value) => default
-            case e => throw e
           }
       }
     case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
@@ -378,7 +390,7 @@ class Interpreter(module: Module) {
       }
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
-      SetValue(eval(left).asSet ++ eval(right).asSet)
+      joinComputations(eval(left))(eval(right))(join)
     case BaseLitExpr(_) =>
       packInScalaValue(scalaInterpreter.eval(expr))
     case BaseApplyExpr(_, args) =>

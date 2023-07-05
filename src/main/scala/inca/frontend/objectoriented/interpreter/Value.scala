@@ -38,6 +38,7 @@ final case class TupleValue(values: Seq[Value]) extends Value {
 final case class SetValue(values: Set[Value]) extends Value {
   override def asScala: Any = values.map(_.asScala).toSet
   override def asSet: Set[Value] = values
+  def size: Int = values.size
 }
 
 final class ObjectValue(val cls: String, val id: Int, var fvals: Map[String, Value]) extends Value {

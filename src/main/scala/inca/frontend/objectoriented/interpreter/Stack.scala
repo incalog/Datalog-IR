@@ -3,11 +3,17 @@ package inca.frontend.objectoriented.interpreter
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-trait MaybeChanged[Out]
-case class Unchanged[Out](result: Out) extends MaybeChanged[Out]
-case class Changed[Out](result: Out) extends MaybeChanged[Out]
+trait MaybeChanged[Out] {
+  def get(): Out
+}
+case class Unchanged[Out](result: Out) extends MaybeChanged[Out] {
+  override def get(): Out = result
+}
+case class Changed[Out](result: Out) extends MaybeChanged[Out] {
+  override def get(): Out = result
+}
 
-case class RecurrentCall[Out](default: Out) extends Exception
+case object RecurrentCall extends Exception
 
 trait Stack[In, Out] {
   trait PushResult
