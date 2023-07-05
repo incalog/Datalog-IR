@@ -36,6 +36,7 @@ case class Min(lhs: Term, rhs: Term) extends Term:
 case class Max(lhs: Term, rhs: Term) extends Term:
   override def toString: String = s"max($lhs, $rhs)"
 
+// TODO: Shouldn't this be Terms as well ?
 case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"
 

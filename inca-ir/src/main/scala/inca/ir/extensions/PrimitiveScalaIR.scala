@@ -11,7 +11,6 @@ case class Constant(value: Scala.Term) extends Term
 case class Application(out: Term, fun: Scala.Fun, args: Seq[Term]) extends Atom
 
 
-//Rename PrimitiveScalaIR
 trait PrimitiveScalaIR extends BaseIR:
   override val name: String = "PrimitiveScala"
   override def language: Language = super.language + new PrimitiveScalaIR {}

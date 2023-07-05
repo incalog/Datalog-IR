@@ -21,5 +21,11 @@ object Scala:
   case class Var(x: String) extends Term:
     override def toString: String = x
 
+  trait Literal[T](x: T) extends Term:
+    override def toString: String = x.toString
+
+  case class IntLiteral(x: Int) extends Literal[Int](x)
+  case class DoubleLiteral(x: Double) extends Literal[Double](x)
+
   // TODO: Fill the signature
   case class Fun() extends Term
