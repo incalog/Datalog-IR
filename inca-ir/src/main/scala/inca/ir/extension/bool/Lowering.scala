@@ -1,14 +1,13 @@
 package inca.ir.extension.bool
 
 import inca.ir.extension.*
-import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub}
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Var}
 
 
-trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR] extends not.Lowering[S, T]:
+trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR] extends not.Lowering[S, T]:
 
   private var freshCount = 0
   def freshName(): Name =

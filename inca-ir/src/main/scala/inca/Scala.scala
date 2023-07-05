@@ -28,4 +28,4 @@ object Scala:
   case class DoubleLiteral(x: Double) extends Literal[Double](x)
 
   // TODO: Fill the signature
-  case class Fun() extends Term
+  case class Fun(name: String, args: Seq[Term]) extends Term
