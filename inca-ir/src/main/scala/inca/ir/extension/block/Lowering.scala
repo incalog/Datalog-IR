@@ -1,6 +1,5 @@
 package inca.ir.extension.block
 
-import inca.ir.extensions.ArithmeticIR
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, Term}
 

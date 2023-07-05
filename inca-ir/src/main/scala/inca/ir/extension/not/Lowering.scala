@@ -2,7 +2,6 @@ package inca.ir.extension.not
 
 import inca.ir.*
 import inca.ir.extension.*
-import inca.ir.extensions.ArithmeticIR
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
 

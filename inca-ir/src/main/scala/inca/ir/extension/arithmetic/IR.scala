@@ -1,6 +1,7 @@
-package inca.ir.extensions
+package inca.ir.extension.arithmetic
 
 import inca.ir.*
+import inca.ir.extensions.PrimitiveScalaIR
 
 
 // TODO Discuss: Do we want to support doubles din this IR or do we want to split the IR in Int and double IR ?
@@ -41,8 +42,8 @@ case class LT(lhs: Term, rhs: Term) extends Atom:
 case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
 
-object ArithmeticIR extends ArithmeticIR { }
-trait ArithmeticIR extends BaseIR:
+object IR extends IR { }
+trait IR extends BaseIR:
   override val name: String = "Arithmetic"
-  override def language: Language = super.language + ArithmeticIR
+  override def language: Language = super.language + IR
   override def requires: Language = Language(new PrimitiveScalaIR {})
