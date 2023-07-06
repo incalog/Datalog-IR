@@ -363,6 +363,6 @@ object TestDefinition {
 
   def measurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
-    TestDefinition("Path", "Graph", "main", Seq(q"12"), SetResult())
+    TestDefinition("Path_right", "Graph", "main", Seq(q"12"), SetResult())
   }
 }

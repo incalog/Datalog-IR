@@ -15,9 +15,10 @@ import scala.meta.XtensionQuasiquoteTerm
 
 object PathBenchmark {
   // TODO what graph
+  val recursive = "right"
   def options: ObjectOptions = ObjectOptions()
 
-  val progPath: String = "objectoriented/measurements/Path.oinca"
+  val progPath: String = s"objectoriented/measurements/Path_$recursive.oinca"
   val typechecker = new Typechecker {}
 
   val resultPath: String = "benchmark/objectoriented"
@@ -25,7 +26,7 @@ object PathBenchmark {
 
   // 1 -> .. 10 -> endNode  endNode -> 10
   val configs = for (i <- 10 until 10000 by 1000) yield {
-    Config(0, 5, s"PATH_${i}", i)
+    Config(5, 20, s"PATH_${i}", i)
   }
 
   private def toCSV(vals: Seq[(Int, IndexedSeq[Long])]): CSV = {
@@ -50,7 +51,7 @@ object PathBenchmark {
       val datalog = new ObjectOrientedDatalog(module)
 
       val start = System.nanoTime()
-      datalog.run("Graph", "main", meta.Lit.Int(c.endNode))
+      datalog.measure("Graph", "main", meta.Lit.Int(c.endNode))
       val diff = System.nanoTime() - start
       println("Benchmark diff: " + diff.toDouble/1000000d)
 
@@ -107,11 +108,11 @@ object PathBenchmark {
     val datalogMeasurements = for (c <- configs) yield {
       c.endNode -> measureDatalog(c)
     }
-    FileUtil.writeFile(s"$resultPath/Path_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
 
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c)
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 }

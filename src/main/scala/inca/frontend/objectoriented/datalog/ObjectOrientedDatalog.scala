@@ -43,6 +43,26 @@ final class ObjectOrientedDatalog(compiled: CompiledObjectModule) extends Datalo
     rel.slice(numInputArgs, numArgs)
   }
 
+  def measure(clazz: String, mainMethod: String, terms: meta.Term*): Long = {
+    measure(ObjectOrientedInput(terms, compiled, clazz + "$" + mainMethod))
+  }
+
+  private def measure(input: ObjectOrientedInput): Long = {
+    val (change, diffables) =
+      if (lastSeenChange.isDefined) {
+        val newChange = (input.change, input.diffables)
+        determineChanges(lastSeenChange.get, newChange)
+      } else {
+        // only load the inheritance edb if we have no previous input
+        val newEDB = EDBChange(input.change.es, input.change.insertions ++ input.inheritanceEDB, input.change.deletions)
+        (newEDB, input.diffables)
+      }
+
+    lastSeenChange = Some((change, diffables))
+
+    measure(input.args, change)
+  }
+
   private def determineChanges(lastChange: DiffableChange, newChange: DiffableChange): DiffableChange = {
     val (lastEDBChange, lastDiffables) = lastChange
     val (newEDBChange, newDiffables) = newChange

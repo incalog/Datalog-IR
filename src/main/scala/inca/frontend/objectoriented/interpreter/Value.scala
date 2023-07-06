@@ -1,13 +1,19 @@
 package inca.frontend.objectoriented.interpreter
 
+import inca.frontend.objectoriented.interpreter.Value.NULL
+
 sealed trait Value {
   def isUnit: Boolean = false
+  def isNull: Boolean = this match {
+    case ObjectValue(NULL.`oid`) => true
+    case _ => false
+  }
+
   def asBoolean: Boolean = throw new IllegalStateException(s"Expected boolean but got $this")
   def asScala: Any = this
   def asTuple: Seq[Value] = throw new IllegalStateException(s"Expected tuple but got $this")
-  def asObject: (String, Int, Map[String, Value]) = throw new IllegalStateException(s"Expected object but got $this")
+  def asObject(heap: RuntimeHeap): Object = throw new IllegalStateException(s"Expected object but got $this")
   def asSet: Set[Value] = throw new IllegalStateException(s"Expected set but got $this")
-  def updateObject(fname: String, fval: Value): Unit = {}
 }
 
 final case class ScalaValue(v: Any) extends Value {
@@ -21,11 +27,6 @@ final case class ScalaValue(v: Any) extends Value {
 
 final case class TupleValue(values: Seq[Value]) extends Value {
   override def isUnit: Boolean = values.isEmpty
-
-  private def fullFlatten(s: Seq[Any]): Seq[Any] = s.flatten {
-    case s: Seq[_] => fullFlatten(s)
-    case v => Seq(v)
-  }
 
   //override def asScala: Any = fullFlatten(values.map(_.asScala))
   override def asScala: Product = {
@@ -41,29 +42,31 @@ final case class SetValue(values: Set[Value]) extends Value {
   def size: Int = values.size
 }
 
-final class ObjectValue(val cls: String, val id: Int, var fvals: Map[String, Value]) extends Value {
-  override def asObject: (String, Int, Map[String, Value]) = (cls, id, fvals)
-  override def updateObject(fname: String, fval: Value): Unit = fvals += fname -> fval
-
+final case class ObjectValue(id: Int) extends Value {
   override def asScala: Any = this
-  def isStructural: Boolean = id == 0
-  def isNull: Boolean = id == -1
-  var isMono: Boolean = false
+  override def asObject(heap: RuntimeHeap): Object = heap(id)
+}
+final case class StructuralObjectValue(o: Object) extends Value {
+  override def asScala: Any = this
+  override def asObject(heap: RuntimeHeap): Object = o
+}
+
+final class Object(val cls: String, val oid: Int, val fvals: Map[String, Value], val isStructural: Boolean, val isMono: Boolean) {
+  def isNull: Boolean = oid == 0
+
+  def asValue: Value =
+    if (isStructural)
+      StructuralObjectValue(this)
+    else
+      ObjectValue(oid)
+
+  def updated(fname: String, v: Value) =
+    new Object(cls, oid, fvals + (fname -> v), isStructural, isMono)
 
   override def equals(obj: Any): Boolean = obj match {
-    case obj : ObjectValue if obj.isNull => this.isNull
-    case obj : ObjectValue if obj.isStructural => cls == obj.cls && fvals == obj.fvals
-    // Mono types must be stable. It would be enough to just check the result field
-    case obj : ObjectValue if obj.isMono => cls == obj.cls && id == obj.id && fvals == obj.fvals
-    // Checking fvals guarantees that we do not terminate to early if we mutate inside a fixpoint using monotones
-    // If we do not check the fields we can use normal mutation in fixpoints
-    case ObjectValue(cls, id, fvals) =>
-      // Monotones must be stable
-      def getMonoFields(fields: Map[String, Value]): Map[String, Value] = fields.filter {
-        case (_, obj: ObjectValue) => obj.isMono
-        case _ => false
-      }
-      this.cls == cls && this.id == id && getMonoFields(this.fvals) == getMonoFields(fvals)
+    case obj : Object if obj.isNull => this.isNull
+    case obj : Object if obj.isStructural => cls == obj.cls && fvals == obj.fvals
+    case obj : Object => cls == obj.cls && oid == obj.oid && fvals == obj.fvals
     case _ => false
   }
 
@@ -71,12 +74,14 @@ final class ObjectValue(val cls: String, val id: Int, var fvals: Map[String, Val
     if (this.isStructural)
       fvals.hashCode()
     else
-      id
+      oid
+
+  override def toString: String = s"$cls($oid, $isStructural, $isMono, $fvals)"
 }
 
-object ObjectValue {
-  def unapply(obj: ObjectValue): Option[(String, Int, Map[String, Value])] = Some((obj.cls, obj.id, obj.fvals))
-  def apply(name: String, id: Int, fvals: Map[String, Value]): ObjectValue = new ObjectValue(name, id, fvals)
+object Object {
+  def unapply(obj: Object): Option[(String, Int, Map[String, Value])] = Some((obj.cls, obj.oid, obj.fvals))
+  def apply(name: String, id: Int, fvals: Map[String, Value], isStructural: Boolean, isMono: Boolean): Object = new Object(name, id, fvals, isStructural, isMono)
 }
 
 object SetValue {
@@ -85,7 +90,7 @@ object SetValue {
 
 object Value {
   val UNIT: TupleValue = TupleValue(Seq())
-  val NULL: ObjectValue = ObjectValue("Null", -1, Map())
+  val NULL: Object = Object("Null", 0, Map(), false, false)
   val TRUE: ScalaValue = ScalaValue(true)
   val FALSE: ScalaValue = ScalaValue(false)
 }
