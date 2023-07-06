@@ -34,6 +34,7 @@ final class ObjectOrientedDatalog(compiled: CompiledObjectModule) extends Datalo
     update(change)
 
     val rel = read(input.args)
+
     throwTypeCastExceptionIfRequired()
 
     // truncate the output to exclude the input parameter

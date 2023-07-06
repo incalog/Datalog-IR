@@ -211,4 +211,8 @@ class DatalogTest extends AnyFunSuite {
   /*test("Primitive Monotone") {
     performTests(primitiveMonotone)
   }*/
+
+  test("Path measurement") {
+    performTests(measurementTest)
+  }
 }

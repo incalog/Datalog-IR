@@ -55,9 +55,15 @@ final class ObjectValue(val cls: String, val id: Int, var fvals: Map[String, Val
     case obj : ObjectValue if obj.isStructural => cls == obj.cls && fvals == obj.fvals
     // Mono types must be stable. It would be enough to just check the result field
     case obj : ObjectValue if obj.isMono => cls == obj.cls && id == obj.id && fvals == obj.fvals
-    // Checking fvals guarantees that we do not terminate if we mutate inside a fixpoint
-    case ObjectValue(cls, id, fvals) => this.cls == cls && this.id == id && this.fvals == fvals
-    //this.cls == cls && this.id == id
+    // Checking fvals guarantees that we do not terminate to early if we mutate inside a fixpoint using monotones
+    // If we do not check the fields we can use normal mutation in fixpoints
+    case ObjectValue(cls, id, fvals) =>
+      // Monotones must be stable
+      def getMonoFields(fields: Map[String, Value]): Map[String, Value] = fields.filter {
+        case (_, obj: ObjectValue) => obj.isMono
+        case _ => false
+      }
+      this.cls == cls && this.id == id && getMonoFields(this.fvals) == getMonoFields(fvals)
     case _ => false
   }
 

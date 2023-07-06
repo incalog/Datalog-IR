@@ -250,4 +250,8 @@ class InterpreterTest extends AnyFunSuite {
   test("Loop") {
     performTests(loopTest)
   }
+
+  test("Path measurement") {
+    performTests(measurementTest)
+  }
 }

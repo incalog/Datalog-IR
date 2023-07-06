@@ -7,6 +7,7 @@ case class Path(val from: String, val to: String) {
 }
 
 class Graph {
+    //var x: Int = 0
     val edges: Set[Edge] = Set(
       new Edge("X", "Y"),
       new Edge("Y", "Z"),
@@ -32,6 +33,8 @@ class Graph {
     }
 
     def path(x: String): Set[Path] = {
+        //this.x = this.x + 1
+        //`println`(this.x)
         // this function does not terminate if an alloc count or a changing timestamp is introduced
         // a case class should introduce neither of them
         (for (d <- this.edges if d.from == x) yield new Path(d.from, d.to))

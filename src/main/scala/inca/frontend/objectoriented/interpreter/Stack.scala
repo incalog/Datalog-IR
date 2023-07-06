@@ -4,13 +4,13 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 trait MaybeChanged[Out] {
-  def get(): Out
+  def get: Out
 }
 case class Unchanged[Out](result: Out) extends MaybeChanged[Out] {
-  override def get(): Out = result
+  override def get: Out = result
 }
 case class Changed[Out](result: Out) extends MaybeChanged[Out] {
-  override def get(): Out = result
+  override def get: Out = result
 }
 
 case object RecurrentCall extends Exception

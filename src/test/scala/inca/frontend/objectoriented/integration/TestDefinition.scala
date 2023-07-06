@@ -360,4 +360,9 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("graphs")
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
   }
+
+  def measurementTest: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("measurements")
+    TestDefinition("Path", "Graph", "main", Seq(q"12"), SetResult())
+  }
 }

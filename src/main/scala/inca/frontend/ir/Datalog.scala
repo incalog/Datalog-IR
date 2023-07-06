@@ -15,25 +15,27 @@ class Datalog(compiled: CompiledModule) {
   protected val (engine, database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
   def update(change: EDBChange): Unit = {
-    database.processEditScript(change.es)
+    engine.delayUpdatePropagation(() => {
+      database.processEditScript(change.es)
 
-    change.insertions.foreach {
-      case rel: UnitRelation =>
-        database.insert(rel.name, Tuples.flatTupleOf())
-      case rel: Relation =>
-        rel.entries.foreach { tuple =>
-          database.insert(rel.name, Tuples.flatTupleOf(rel.flattenEntry(tuple): _*))
-        }
-    }
+      change.insertions.foreach {
+        case rel: UnitRelation =>
+          database.insert(rel.name, Tuples.flatTupleOf())
+        case rel: Relation =>
+          rel.entries.foreach { tuple =>
+            database.insert(rel.name, Tuples.flatTupleOf(rel.flattenEntry(tuple): _*))
+          }
+      }
 
-    change.deletions.foreach {
-      case rel: UnitRelation =>
-        database.delete(rel.name, Tuples.flatTupleOf())
-      case rel: Relation =>
-        rel.entries.foreach { tuple =>
-          database.delete(rel.name, Tuples.flatTupleOf(rel.flattenEntry(tuple): _*))
-        }
-    }
+      change.deletions.foreach {
+        case rel: UnitRelation =>
+          database.delete(rel.name, Tuples.flatTupleOf())
+        case rel: Relation =>
+          rel.entries.foreach { tuple =>
+            database.delete(rel.name, Tuples.flatTupleOf(rel.flattenEntry(tuple): _*))
+          }
+      }
+    })
   }
 
   def readAll: Seq[Relation] = {
@@ -41,7 +43,36 @@ class Datalog(compiled: CompiledModule) {
     pattern.map(n => read(UnitRelation(n)))
   }
 
+  /*def measureRead(input: Relation): (Relation, Double) = {
+    val pattern = compiled.psystemModule.patterns.getOrElse(input.name, return UnitRelation(input.name))
+    val specification: Specification = pattern()
+    val matcher: Query.Matcher = specification.getMatcher(engine)
+    val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
+
+    val output =
+      if (input.size > 0)
+        input.entries.flatMap { t =>
+          val inputMatch = toQueryMatch(input.parameterNames, parameterNames.size, input.flattenEntry(t), specification)
+          val start = System.nanoTime()
+          val res = matcher.getAllMatches(inputMatch).asScala
+          val diff = System.nanoTime() - start
+          res
+          //res, diff)
+        }
+      else {
+        val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), specification)
+        println("Get all matches....")
+        val start = System.nanoTime()
+        val res = matcher.getAllMatches(queryMatch).asScala
+        val diff = System.nanoTime() - start
+        println("Diff: " + diff.toDouble/1000000d)
+        res
+      }
+    Relation.fromQueryMatches(input.name, parameterNames, output)
+  }*/
+
   def read(input: Relation): Relation = {
+    println("The input: ", input)
     val pattern = compiled.psystemModule.patterns.getOrElse(input.name, return UnitRelation(input.name))
     val specification: Specification = pattern()
     val matcher: Query.Matcher = specification.getMatcher(engine)
