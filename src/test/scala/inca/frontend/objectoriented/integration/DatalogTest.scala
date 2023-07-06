@@ -213,6 +213,10 @@ class DatalogTest extends AnyFunSuite {
   }*/
 
   test("Path measurement") {
-    performTests(measurementTest)
+    performTests(pathMeasurementTest)
+  }
+
+  test("Path with dummy measurement") {
+    performTests(pathWithDummyMeasurementTest)
   }
 }

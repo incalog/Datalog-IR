@@ -15,7 +15,7 @@ import scala.meta.XtensionQuasiquoteTerm
 
 object PathBenchmark {
   // TODO what graph
-  val recursive = "right"
+  val recursive = "left"
   def options: ObjectOptions = ObjectOptions()
 
   val progPath: String = s"objectoriented/measurements/Path_$recursive.oinca"
@@ -25,7 +25,7 @@ object PathBenchmark {
   case class Config(warmup: Int, runs: Int, name: String, endNode: Int)
 
   // 1 -> .. 10 -> endNode  endNode -> 10
-  val configs = for (i <- 10 until 10000 by 1000) yield {
+  val configs = for (i <- 10 until 140 by 20) yield {
     Config(5, 20, s"PATH_${i}", i)
   }
 

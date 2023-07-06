@@ -2,10 +2,10 @@ module GraphTest
 
 class Graph {
     def line(from: Int, to: Int): Set[(Int, Int)] = {
-        if (from == to-1)
-            Set((from, to))
-        else
+        if (from < to)
             Set((from, from + 1)) ++ this.line(from + 1, to)
+        else
+            Set((from, to))
     }
 
     def loop(from: Int, to: Int): Set[(Int, Int)] = {

@@ -361,8 +361,14 @@ object TestDefinition {
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
   }
 
-  def measurementTest: TestDefinition[Any] = {
+  // TODO: Fix expected result
+  def pathMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
-    TestDefinition("Path_right", "Graph", "main", Seq(q"12"), SetResult())
+    TestDefinition("Path_left", "Graph", "main", Seq(q"10"), SetResult())
+  }
+
+  def pathWithDummyMeasurementTest: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("measurements")
+    TestDefinition("Path_left_dummy", "Graph", "main", Seq(q"10", q"100"), SetResult())
   }
 }

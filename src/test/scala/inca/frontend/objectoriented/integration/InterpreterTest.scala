@@ -65,6 +65,7 @@ class InterpreterTest extends AnyFunSuite {
     tests.map { test =>
       val input = test.input.map(arg => ScalaInterpreter.run(arg.syntax))
       val actual = runProg(test.filePath, test.mainClass, test.mainMethod, input)
+      print(actual.asInstanceOf[Set[Any]].size)
       assert(actual == test.expectedResult)
     }
   }
@@ -252,6 +253,10 @@ class InterpreterTest extends AnyFunSuite {
   }
 
   test("Path measurement") {
-    performTests(measurementTest)
+    performTests(pathMeasurementTest)
+  }
+
+  test("Path with dummy measurement") {
+    performTests(pathWithDummyMeasurementTest)
   }
 }
