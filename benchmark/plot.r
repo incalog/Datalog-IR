@@ -53,8 +53,6 @@ pathDatalogRight <- colMeans(readTime("Path_Datalog_right_recursive.csv"))
 pathInterpLeft <- colMeans(readTime("Path_Interpreter_left_recursive.csv"))
 pathInterpRight <- colMeans(readTime("Path_Interpreter_right_recursive.csv"))
 
-
-
 pdf(file = paste(graphpath, "Path-left-recrusive.pdf", sep="/"))
 plot(data.matrix(pathDatalogLeft),
      main = "(A) Measuring execution time of left-recursive path example",
@@ -86,6 +84,74 @@ plot(data.matrix(pathDatalogRight),
      lwd = 1.5
 )
 lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
+axis(1, at = c(1:7), labels = seq(10, 140, by = 20))
+legend("topright", legend=c("datalog", "interpreter"),
+       col=c(color2, color3), lty=1:1, lwd = 3)
+dev.off()
+
+
+
+pathDatalogHeapLeft <- colMeans(readTime("Path_Datalog_left_recursive_dummy.csv"))
+#pathDatalogHeapRight <- colMeans(readTime("Path_Datalog_right_recursive_dummy.csv"))
+pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_dummy.csv"))
+#pathInterpHeapRight <- colMeans(readTime("Path_Interpreter_right_recursive_dummy.csv"))
+
+
+pdf(file = paste(graphpath, "Path-left-recrusive-heap.pdf", sep="/"))
+plot(data.matrix(pathDatalogHeapLeft),
+     main = "(A) Measuring execution time of left-recursive path example",
+     type = "o",
+     col = color2,
+     ylab = "Running time (ms)",
+     xlab = "Heap size",
+     xaxt = "n",
+     ylim = c(0, 25000), # TODO change regarding upper bound of measurevalues
+     lwd = 1.5
+)
+lines(data.matrix(pathInterpHeapLeft), type = "o", col = color3, lwd = 1.5)
+axis(1, at = c(1:10), labels = seq(10, 50000, by = 5000))
+legend("topright", legend=c("datalog", "interpreter"),
+       col=c(color2, color3), lty=1:1, lwd = 3)
+dev.off()
+
+
+#pdf(file = paste(graphpath, "Path-right-recrusive-heap.pdf", sep="/"))
+#plot(data.matrix(pathDatalogHeapRight),
+#     main = "(A) Measuring execution time of left-recursive path example",
+#     type = "o",
+#     col = color2,
+#     ylab = "Running time (ms)",
+#     xlab = "Heap size",
+#     xaxt = "n",
+#     ylim = c(0, 25000), # TODO change regarding upper bound of measurevalues
+#     lwd = 1.5
+#)
+#lines(data.matrix(pathInterpHeapRight), type = "o", col = color3, lwd = 1.5)
+#axis(1, at = c(1:10), labels = seq(10, 50000, by = 5000))
+#legend("topright", legend=c("datalog", "interpreter"),
+#       col=c(color2, color3), lty=1:1, lwd = 3)
+#dev.off()
+
+
+
+#pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_dummy.csv"))
+pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycle.csv"))
+#pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_dummy.csv"))
+pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycle.csv"))
+
+
+pdf(file = paste(graphpath, "Path-left-recrusive-heap.pdf", sep="/"))
+plot(data.matrix(pathDatalogCycleRight),
+     main = "(A) Measuring execution time of left-recursive path example",
+     type = "o",
+     col = color2,
+     ylab = "Running time (ms)",
+     xlab = "X",
+     xaxt = "n",
+     ylim = c(0, 25000), # TODO change regarding upper bound of measurevalues
+     lwd = 1.5
+)
+lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
 axis(1, at = c(1:7), labels = seq(10, 140, by = 20))
 legend("topright", legend=c("datalog", "interpreter"),
        col=c(color2, color3), lty=1:1, lwd = 3)

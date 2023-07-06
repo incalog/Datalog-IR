@@ -3,7 +3,7 @@ module GraphTest
 class Graph {
     def line(from: Int, to: Int): Set[(Int, Int)] = {
         if (from < to-1)
-            this.line(from + 1, to) ++ Set((from, from + 1))
+            Set((from, from + 1)) ++ this.line(from + 1, to)
         else
             Set((from, to))
     }
@@ -12,17 +12,23 @@ class Graph {
         this.line(from, to) ++ Set((to, from))
     }
 
-    // TODO: parameter for dummy objects in heap
+    def cycles(offset: Int, count: Int): Set[(Int, Int)] = {
+        if (count <= 1)
+            Set((offset, offset))
+        else
+            this.loop(offset, offset+count) ++ this.cycles(offset+count, count-1)
+    }
+
     @main
     def main(endNode: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
-      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.loop(10, endNode)
+      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.cycles(10, endNode)
       for (e <- edges; r <- g.path(e._1, edges)) yield (e._1, r)
     }
 
     def path(x: Int, edges: Set[(Int, Int)]): Set[Int] = {
-        (for (y <- this.path(x, edges); i <- edges if i._1 == y) yield i._2)
-        ++
         (for (d <- edges if d._1 == x) yield d._2)
+        ++
+        (for (i <- edges if i._1 == x; y <- this.path(i._2, edges)) yield y)
     }
 }

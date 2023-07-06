@@ -5,7 +5,7 @@ class Dummy(val id: Int) {}
 class Graph {
     def line(from: Int, to: Int): Set[(Int, Int)] = {
         if (from < to-1)
-            this.line(from + 1, to) ++ Set((from, from + 1))
+            Set((from, from + 1)) ++ this.line(from + 1, to)
         else
             Set((from, to))
     }
@@ -19,7 +19,6 @@ class Graph {
             // Prevent Datalog from optimizing this code away
             val d: Dummy = new Dummy(1)
             this.generateDummy(start+1, end)
-            // Always 1
             return d.id
         }
         return 1
@@ -34,8 +33,8 @@ class Graph {
     }
 
     def path(x: Int, edges: Set[(Int, Int)]): Set[Int] = {
-        (for (y <- this.path(x, edges); i <- edges if i._1 == y) yield i._2)
-        ++
         (for (d <- edges if d._1 == x) yield d._2)
+        ++
+        (for (i <- edges if i._1 == x; y <- this.path(i._2, edges)) yield y)
     }
 }
