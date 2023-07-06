@@ -1,7 +1,7 @@
 package inca.frontend.objectoriented.integration
 
 import inca.frontend.objectoriented.integration.TestDefinition._
-import inca.frontend.objectoriented.interpreter.{Interpreter, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, TupleValue, TypeCastException, Value}
+import inca.frontend.objectoriented.interpreter.{Interpreter, Object, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, StructuralObjectValue, TupleValue, TypeCastException, Value}
 import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
@@ -23,6 +23,7 @@ class InterpreterTest extends AnyFunSuite {
     case TupleValue(values) => values.map(convertResultToScala)
     case SetValue(values) => values.map(convertResultToScala)
     case value: ObjectValue => value
+    case value: StructuralObjectValue => value
     case _ => res
   }
 
@@ -109,9 +110,8 @@ class InterpreterTest extends AnyFunSuite {
     val caught = intercept[TypeCastException] {
       performTests(typeCastFailureTest)
     }
-    caught.obj.asObject match {
-      case (cls, _, _) => assertResult("A")(cls)
-    }
+    val Object(cls, _, _) = caught.obj
+    assertResult("A")(cls)
     assertResult("B")(caught.typ)
   }
 
