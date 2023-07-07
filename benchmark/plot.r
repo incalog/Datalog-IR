@@ -52,6 +52,8 @@ pathDatalogLeft <- colMeans(readTime("Path_Datalog_left_recursive.csv"))
 pathDatalogRight <- colMeans(readTime("Path_Datalog_right_recursive.csv"))
 pathInterpLeft <- colMeans(readTime("Path_Interpreter_left_recursive.csv"))
 pathInterpRight <- colMeans(readTime("Path_Interpreter_right_recursive.csv"))
+pathIrLeft <- colMeans(readTime("Path_IR_left_recursive.csv"))
+pathIrRight <- colMeans(readTime("Path_IR_right_recursive.csv"))
 
 pdf(file = paste(graphpath, "Path-left-recrusive.pdf", sep="/"))
 plot(data.matrix(pathDatalogLeft),
@@ -65,9 +67,10 @@ plot(data.matrix(pathDatalogLeft),
      lwd = 1.5
 )
 lines(data.matrix(pathInterpLeft), type = "o", col = color3, lwd = 1.5)
+lines(data.matrix(pathIrLeft), type = "o", col = color4, lwd = 1.5)
 axis(1, at = c(1:7), labels = seq(10, 140, by = 20))
-legend("topright", legend=c("datalog", "interpreter"),
-       col=c(color2, color3), lty=1:1, lwd = 3)
+legend("topright", legend=c("OODL-datalog", "OODL-Interpreter", "Datalog"),
+       col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
 
 
@@ -84,9 +87,10 @@ plot(data.matrix(pathDatalogRight),
      lwd = 1.5
 )
 lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
+lines(data.matrix(pathIrRight), type = "o", col = color4, lwd = 1.5)
 axis(1, at = c(1:7), labels = seq(10, 140, by = 20))
-legend("topright", legend=c("datalog", "interpreter"),
-       col=c(color2, color3), lty=1:1, lwd = 3)
+legend("topright", legend=c("OODL-datalog", "OODL-Interpreter", "Datalog"),
+       col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
 
 
