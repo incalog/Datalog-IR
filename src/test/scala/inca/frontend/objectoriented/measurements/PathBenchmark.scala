@@ -4,7 +4,7 @@ import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.ir.EDBChange
+import inca.frontend.ir.{EDBChange, Relation, Relation1, Relation2, Relation3, Datalog => DatalogAPI}
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaValue, Value}
@@ -12,8 +12,6 @@ import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
 import inca.util.measurement.MemoryUtil
-import inca.frontend.ir.{ Datalog => DatalogAPI }
-import inca.frontend.ir.Relation2
 
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
@@ -122,10 +120,9 @@ object PathBenchmark {
     }
   }
 
-  private def measureDatalogIR(c: Config, module: CompiledModule, edb: EDBChange): IndexedSeq[Long]  = {
+  private def measureDatalogIR(c: Config, module: CompiledModule, edb: EDBChange, input: Relation): IndexedSeq[Long]  = {
     // TODO: To make the measurement fair, we would actually need to generate the data
     //  inside the program as well
-    val input = Relation2("path", Seq("X", "Y"), Seq())
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog IR ${c.name}: ${i + 1}")
@@ -140,7 +137,8 @@ object PathBenchmark {
       val datalog: DatalogAPI = new DatalogAPI(module)
 
       //datalog.update(edb)
-      //println(datalog.read(input).size)
+      //println(datalog.read(input))
+      //System.exit(1)
 
       val start = System.nanoTime()
       datalog.measure(input, edb)
@@ -162,11 +160,21 @@ object PathBenchmark {
 
     val prog = progFolder + s"Path_$recursive.oinca"
 
-    // IR
-    val irMeasurements = for (c <- configs) yield {
+    // IR with graph in edb
+    //val input = Relation2("path", Seq("X", "Y"), Seq())
+    /*val irMeasurements = for (c <- configs) yield {
       // Note: Make sure this code produces the same graph as the program
+      println("Edges: ", PathIRModule.input(c.endNode))
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.input(c.endNode))))
-      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb)
+      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb, input)
+    }
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
+
+    // IR with computed graph
+    val irMeasurements = for (c <- configs) yield {
+      val input = Relation3("main", Seq("e", "X", "Y"), Seq(Seq(c.endNode, null, null)))
+      val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bff", Seq("e"), Seq(Seq(c.endNode)))))
+      c.endNode -> measureDatalogIR(c, PathIRModule.moduleWithInputComputation(recursive), edb, input)
     }
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
 
@@ -205,7 +213,6 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_dummy.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-
   def runPathWithCycles() = {
     val configs = for (i <- Seq(15, 7, 5, 3, 2, 1)) yield {
       PathCycleConfig(warmups, runs, s"PATH_CYCLES_${i}", 150, i)
@@ -213,10 +220,11 @@ object PathBenchmark {
     val prog = progFolder + s"Path_${recursive}_cycles.oinca"
 
     // IR
+    val input = Relation2("path", Seq("X", "Y"), Seq())
     val irMeasurements = for (c <- configs) yield {
       // Note: Make sure this code produces the same graph as the program
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.inputWithCycle(c.cycleStep, c.endNode))))
-      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb)
+      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb, input)
     }
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive_cycles.csv", csvToString(toCSV(irMeasurements)))
 
