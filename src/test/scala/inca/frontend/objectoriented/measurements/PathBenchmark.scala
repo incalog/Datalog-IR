@@ -10,14 +10,15 @@ import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaValue, Value}
 import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
+import inca.util.measurement.MemoryUtil
 
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 object PathBenchmark {
   // TODO what graph
   val recursive = "right"
-  val warmups = 0
-  val runs = 1
+  val warmups = 5
+  val runs = 3
 
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
@@ -61,7 +62,8 @@ object PathBenchmark {
       println("diff: " + diff.toDouble/1000000d)
 
       EnginePool.disposeAllEngines()
-      System.gc()
+      //System.gc()
+      MemoryUtil.collectGarbage()
 
       diff
     }
@@ -103,7 +105,8 @@ object PathBenchmark {
       println("diff: " + diff.toDouble/1000000d)
 
       EnginePool.disposeAllEngines()
-      System.gc()
+      //System.gc()
+      MemoryUtil.collectGarbage()
 
       diff
     }
@@ -146,21 +149,20 @@ object PathBenchmark {
 
 
   def runPathWithCycles() = {
-    // 1 -> .. 10 -> endNode  endNode -> 10
-    val configs = for (i <- 10 until 140 by 20) yield {
+    val configs = for (i <- 10 until 21 by 2) yield {
       PathConfig(warmups, runs, s"PATH_CYCLES_${i}", i)
     }
-
     val prog = progFolder + s"Path_${recursive}_cycles.oinca"
-    val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
-    }
-    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
 
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
+
+    val datalogMeasurements = for (c <- configs) yield {
+      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
   }
 
   def main(args: Array[String]): Unit = {

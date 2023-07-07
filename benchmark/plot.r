@@ -134,15 +134,15 @@ dev.off()
 
 
 
-#pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_dummy.csv"))
-pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycle.csv"))
-#pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_dummy.csv"))
-pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycle.csv"))
+#pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_cycles.csv"))
+pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycles.csv"))
+#pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_cycles.csv"))
+pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycles.csv"))
 
 
-pdf(file = paste(graphpath, "Path-left-recrusive-heap.pdf", sep="/"))
+pdf(file = paste(graphpath, "Path-right-recrusive-cycles.pdf", sep="/"))
 plot(data.matrix(pathDatalogCycleRight),
-     main = "(A) Measuring execution time of left-recursive path example",
+     main = "(A) Measuring execution time of right-recursive path example",
      type = "o",
      col = color2,
      ylab = "Running time (ms)",
@@ -152,7 +152,7 @@ plot(data.matrix(pathDatalogCycleRight),
      lwd = 1.5
 )
 lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
-axis(1, at = c(1:7), labels = seq(10, 140, by = 20))
+axis(1, at = c(1:6), labels = seq(10, 21, by = 2))
 legend("topright", legend=c("datalog", "interpreter"),
        col=c(color2, color3), lty=1:1, lwd = 3)
 dev.off()
