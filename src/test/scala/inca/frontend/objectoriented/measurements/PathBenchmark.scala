@@ -61,7 +61,10 @@ object PathBenchmark {
       println(s"Run Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
 
-      //println(datalog.run("Graph", "main", args:_*).size)
+      val run = datalog.run("Graph", "main", args:_*)
+      println(run.size)
+      //println(run)
+      //System.exit()
 
       val start = System.nanoTime()
       datalog.measure("Graph", "main", args:_*)
@@ -137,6 +140,7 @@ object PathBenchmark {
       val datalog: DatalogAPI = new DatalogAPI(module)
 
       //datalog.update(edb)
+      //println(datalog.read(input).size)
       //println(datalog.read(input))
       //System.exit(1)
 
@@ -171,12 +175,12 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // IR with computed graph
-    val irMeasurements = for (c <- configs) yield {
+    /*val irMeasurements = for (c <- configs) yield {
       val input = Relation3("main", Seq("e", "X", "Y"), Seq(Seq(c.endNode, null, null)))
       val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bff", Seq("e"), Seq(Seq(c.endNode)))))
       c.endNode -> measureDatalogIR(c, PathIRModule.moduleWithInputComputation(recursive), edb, input)
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
@@ -241,9 +245,33 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
+  def runPathWithCyclesWorstCase() = {
+    // number of nodes should be: n * k + (sum i=(k+1) to n (n-i))
+    // where k is the last node that is fully connected
+    val configs = for (i <- 120 until 0 by -17) yield {
+      PathCycleConfig(warmups, runs, s"PATH_CYCLES_${i}", 120, i)
+    }
+    val prog = progFolder + s"Path_${recursive}_cycles_worstcase.oinca"
+
+    // TODO: Support IR
+
+    // OODL
+    val datalogMeasurements = for (c <- configs) yield {
+      c.cycleStep -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.cycleStep)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
+
+    // OODL - Interp
+    val interpreterMeasurements = for (c <- configs) yield {
+      c.cycleStep -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles_worstcase.csv", csvToString(toCSV(interpreterMeasurements)))
+  }
+
   def main(args: Array[String]): Unit = {
-    runPath()
+    //runPath()
     //runPathWithAllocation()
     //runPathWithCycles()
+    runPathWithCyclesWorstCase()
   }
 }
