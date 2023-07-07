@@ -1,16 +1,23 @@
 package inca.frontend.objectoriented.measurements
 
+import inca.backend.ir.Datalog
+import inca.backend.optimize.Optimization
+import inca.backend.transform.Transformation
 import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
-import inca.compiler.Compiler
+import inca.compiler.{CompiledModule, Compiler, Options, SourceLocation}
+import inca.frontend.ir.{EDBChange, Relation1}
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaValue, Value}
 import inca.runtime.EnginePool
+import inca.runtime.context.DataModel
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
 import inca.util.measurement.MemoryUtil
+import inca.frontend.ir.{ Datalog => DatalogAPI }
+import inca.frontend.ir.Relation2
 
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
@@ -51,11 +58,16 @@ object PathBenchmark {
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.run("Graph", "main", args:_*)
+      datalog.measure("Graph", "main", args:_*)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
       println(s"Run Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
+
+      //println(datalog.run("Graph", "main", args:_*).size)
 
       val start = System.nanoTime()
       datalog.measure("Graph", "main", args:_*)
@@ -94,7 +106,10 @@ object PathBenchmark {
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Interpreter ${c.name}: ${i + 1}")
-      new Interpreter(mod).run(main, args) // Seq(ScalaValue(c.endNode))
+      new Interpreter(mod).run(main, args)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
       println(s"Run Interpreter ${c.name}: ${i + 1}")
@@ -113,6 +128,99 @@ object PathBenchmark {
     }
   }
 
+  private def pathIrModule: CompiledModule = new CompiledModule {
+    override val options: Options = new Options {
+      override def optimizations: Seq[Optimization] = Seq()
+      override def transformations: Seq[Transformation] = Seq()
+      override def stopOnError: Boolean = true
+      override def stopOnWarning: Boolean = true
+      override def withOptimizations(opts: Seq[Optimization]): Options = ???
+      override def withTransformations(trans: Seq[Transformation]): Options = ???
+    }
+
+    override def name: Datalog.Name = "Path"
+    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+    override def dataModel: DataModel = new DataModel()
+
+    override def ir: Datalog.Module = Datalog.Module("Path", Seq(), Seq(
+      Datalog.Pattern(None, "path",
+        Seq(
+          Datalog.Param("x", Datalog.TScalaInt),
+          Datalog.Param("y", Datalog.TScalaInt)
+        ),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.ExtensionalCall("edge", Seq(Datalog.Var("x"), Datalog.Var("y")))
+          )),
+          Datalog.Body(
+            // TODO: Does that make sense ? Datalogs execution order is not fixed
+            if (recursive == "left") {
+              Seq(
+                Datalog.Call("path", Seq(Datalog.Var("z"), Datalog.Var("y"))),
+                Datalog.ExtensionalCall("edge", Seq(Datalog.Var("x"), Datalog.Var("z")))
+              )
+            } else {
+              Seq(
+                Datalog.ExtensionalCall("edge", Seq(Datalog.Var("x"), Datalog.Var("z"))),
+                Datalog.Call("path", Seq(Datalog.Var("z"), Datalog.Var("y")))
+              )
+            }
+          )
+        )
+      )
+    ), Seq())
+  }
+
+  private def measureDatalogIR(c: Config, edb: EDBChange): IndexedSeq[Long]  = {
+    // TODO: To make the measurement fair, we would actually need to generate the data
+    //  inside the program as well
+    val input = Relation2("path", Seq("X", "Y"), Seq())
+
+    for (i <- 0 until c.warmup) yield {
+      println(s"Warmup Datalog IR ${c.name}: ${i + 1}")
+      val datalog: DatalogAPI = new DatalogAPI(pathIrModule)
+      datalog.measure(input, edb)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
+    }
+    for (i <- 0 until c.runs) yield {
+      println(s"Run Datalog IR ${c.name}: ${i + 1}")
+      val datalog: DatalogAPI = new DatalogAPI(pathIrModule)
+
+      //datalog.update(edb)
+      //println(datalog.read(input).size)
+
+      val start = System.nanoTime()
+      datalog.measure(input, edb)
+      val diff = System.nanoTime() - start
+      println("diff: " + diff.toDouble / 1000000d)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
+
+      diff
+    }
+  }
+
+  private def line(from: Int, to: Int): Set[Seq[Int]] = {
+    if (from < to - 1)
+      Set(Seq(from, from + 1)) ++ line(from + 1, to)
+    else
+      Set(Seq(from, to))
+  }
+
+  private def loop(from: Int, to: Int): Set[Seq[Int]] = {
+    line(from, to) ++ Set(Seq(to, from))
+  }
+
+  private def cycles(current: Int, step: Int, endNode: Int): Set[Seq[Int]] = {
+    if (current < endNode)
+      loop(current, current + step) ++ cycles(current + step, step, endNode)
+    else
+      line(current, endNode) ++ Set(Seq(endNode, current))
+  }
+
   def runPath() = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 140 by 20) yield {
@@ -120,11 +228,23 @@ object PathBenchmark {
     }
 
     val prog = progFolder + s"Path_$recursive.oinca"
+
+    // IR
+    val irMeasurements = for (c <- configs) yield {
+      // Note: Make sure this code produces the same graph as the program
+      val edges = line(1, 10) ++ loop(10, c.endNode)
+      val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), edges)))
+      c.endNode -> measureDatalogIR(c, edb)
+    }
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
+
+    // OODL
     val datalogMeasurements = for (c <- configs) yield {
       c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
 
+    // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
     }
@@ -137,11 +257,16 @@ object PathBenchmark {
     }
     val prog = progFolder + s"Path_${recursive}_dummy.oinca"
 
+    // IR
+    // There is no concept of objects or allocation in pure Datalog
+
+    // OODL
     val datalogMeasurements = for (c <- configs) yield {
       c.heapSize -> measureDatalog(c, prog, Seq(q"50", meta.Lit.Int(c.heapSize)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_dummy.csv", csvToString(toCSV(datalogMeasurements)))
 
+    // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
       c.heapSize -> measureInterpreter(c, prog, Seq(ScalaValue(50), ScalaValue(c.heapSize)))
     }
@@ -155,18 +280,31 @@ object PathBenchmark {
     }
     val prog = progFolder + s"Path_${recursive}_cycles.oinca"
 
-    val interpreterMeasurements = for (c <- configs) yield {
-      c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
+    // IR
+    val irMeasurements = for (c <- configs) yield {
+      // Note: Make sure this code produces the same graph as the program
+      val edges = line(1, 10) ++ cycles(10, c.cycleStep, c.endNode)
+      val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), edges)))
+      c.endNode -> measureDatalogIR(c, edb)
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive_cycles.csv", csvToString(toCSV(irMeasurements)))
 
+    // OODL
     val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.cycleStep)))
+      c.cycleStep -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.cycleStep)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
+
+    // OODL - Interp
+    val interpreterMeasurements = for (c <- configs) yield {
+      c.cycleStep -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   def main(args: Array[String]): Unit = {
-    runPathWithCycles()
+    runPath()
+    //runPathWithAllocation()
+    //runPathWithCycles()
   }
 }
