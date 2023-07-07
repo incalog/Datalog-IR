@@ -259,4 +259,8 @@ class InterpreterTest extends AnyFunSuite {
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
   }
+
+  test("Path with cycle measurement") {
+    performTests(pathWithCycleMeasurementTest)
+  }
 }

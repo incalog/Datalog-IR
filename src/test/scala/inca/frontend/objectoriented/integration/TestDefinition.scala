@@ -371,4 +371,9 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_left_dummy", "Graph", "main", Seq(q"10", q"100"), SetResult())
   }
+
+  def pathWithCycleMeasurementTest: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("measurements")
+    TestDefinition("Path_right_cycles", "Graph", "main", Seq(q"12", q"1"), SetResult())
+  }
 }

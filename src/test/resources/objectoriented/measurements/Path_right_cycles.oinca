@@ -12,17 +12,27 @@ class Graph {
         this.line(from, to) ++ Set((to, from))
     }
 
-    def cycles(offset: Int, count: Int): Set[(Int, Int)] = {
+    // Add a loop after each step
+    def cycles(current: Int, step: Int, endNode: Int): Set[(Int, Int)] = {
+        if (current < endNode)
+            this.loop(current, current+step) ++ this.cycles(current+step, step, endNode)
+        else
+            this.line(current, endNode) ++ Set((endNode, current))
+    }
+
+    // Appends the same loop graph over and over
+    // Size of the graph is bigger than endNode size
+    /*def cycles(offset: Int, count: Int): Set[(Int, Int)] = {
         if (count <= 1)
             Set((offset, offset))
         else
             this.loop(offset, offset+count) ++ this.cycles(offset+count, count-1)
-    }
+    }*/
 
     @main
-    def main(endNode: Int): Set[(Int, Int)] = {
+    def main(endNode: Int, step: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
-      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.cycles(10, endNode)
+      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.cycles(10, step, endNode)
       for (e <- edges; r <- g.path(e._1, edges)) yield (e._1, r)
     }
 

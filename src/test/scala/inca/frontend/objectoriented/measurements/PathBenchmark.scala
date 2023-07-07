@@ -17,8 +17,8 @@ import scala.meta.{Term, XtensionQuasiquoteTerm}
 object PathBenchmark {
   // TODO what graph
   val recursive = "right"
-  val warmups = 5
-  val runs = 3
+  val warmups = 0
+  val runs = 1
 
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
@@ -30,6 +30,7 @@ object PathBenchmark {
   }
   case class PathConfig(warmup: Int, runs: Int, name: String, endNode: Int) extends Config
   case class PathAllocationConfig(warmup: Int, runs: Int, name: String, heapSize: Int) extends Config
+  case class PathCycleConfig(warmup: Int, runs: Int, name: String, endNode: Int, cycleStep: Int) extends Config
 
 
   def options: ObjectOptions = ObjectOptions()
@@ -149,18 +150,18 @@ object PathBenchmark {
 
 
   def runPathWithCycles() = {
-    val configs = for (i <- 10 until 21 by 2) yield {
-      PathConfig(warmups, runs, s"PATH_CYCLES_${i}", i)
+    val configs = for (i <- Seq(15, 7, 5, 3, 2, 1)) yield {
+      PathCycleConfig(warmups, runs, s"PATH_CYCLES_${i}", 150, i)
     }
     val prog = progFolder + s"Path_${recursive}_cycles.oinca"
 
     val interpreterMeasurements = for (c <- configs) yield {
-      c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
+      c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
 
     val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
+      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.cycleStep)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
   }

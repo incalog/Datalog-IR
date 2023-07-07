@@ -146,13 +146,14 @@ plot(data.matrix(pathDatalogCycleRight),
      type = "o",
      col = color2,
      ylab = "Running time (ms)",
-     xlab = "X",
+     xlab = "Number of cycles",
      xaxt = "n",
-     ylim = c(0, 25000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 80000), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
-axis(1, at = c(1:6), labels = seq(10, 21, by = 2))
+axis(1, at = c(1:6), labels = list(10, 20, 30, 50, 75, 150))
+  #seq(10, 21, by = 2))
 legend("topright", legend=c("datalog", "interpreter"),
        col=c(color2, color3), lty=1:1, lwd = 3)
 dev.off()
