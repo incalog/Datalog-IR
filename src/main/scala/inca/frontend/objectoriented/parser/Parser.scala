@@ -284,9 +284,12 @@ trait Parser {
     inParentheses(seq0(P.defer(expr).backtrack | doNotCare | agg , min = 2)).mapWithLoc(TupleExpr(_))
   }
 
-  protected[frontend] lazy val setExpr: P[SetExpr] =
+  protected[frontend] lazy val setExpr: P[Expression] =
     (keyword(SET) *> inBrackets(atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
       case (tty, exps) => SetExpr(exps, tty)
+    }.backtrack |
+    (keyword(SET) *> op('.') *> op("from") *> inBrackets(atomicTypeAnno) ~ inParentheses(identifier)).mapWithLoc {
+      case (tty, name) => SetFromEdb(name, tty)
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =

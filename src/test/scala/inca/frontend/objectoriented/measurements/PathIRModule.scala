@@ -59,7 +59,6 @@ object PathIRModule {
             Datalog.ExtensionalCall("edge", Seq(Datalog.Var("x"), Datalog.Var("y")))
           )),
           Datalog.Body(
-            // TODO: Does that make sense ? Datalogs execution order is not fixed
             if (recursive == "left") {
               Seq(
                 Datalog.Call("path", Seq(Datalog.Var("x"), Datalog.Var("z"))),

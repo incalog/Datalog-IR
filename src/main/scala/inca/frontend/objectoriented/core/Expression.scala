@@ -132,6 +132,13 @@ case class SetFold(recv: Expression, projection: Seq[Expression], opClass: Class
     s"$recv.fold($neutral, ${opClass.name}.$opMethod, ${projection.mkString("(", ", ", ")")}))"
 }
 
+case class SetFromEdb(edbName: Name, tty: Type) extends Expression {
+  override def vars: Map[Name, Option[Type]] = Map.empty
+
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"Set.from[${tty.prettyprint}]($edbName)"
+}
+
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
   def vars: Map[Name, Option[Type]] = Map()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
