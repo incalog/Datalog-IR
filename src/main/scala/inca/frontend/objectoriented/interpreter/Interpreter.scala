@@ -5,7 +5,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class TypeCastException(obj: Object, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
-class Interpreter(module: Module) {
+class Interpreter(module: Module, edb: Map[String, Value]) {
   // println(module)
 
   private val scalaInterpreter = new ScalaInterpreter(module: Module)
@@ -425,6 +425,8 @@ class Interpreter(module: Module) {
     case BaseApplyUnaryExpr(_, exp) =>
       val value = eval(exp).asScala
       packInScalaValue(scalaInterpreter.evalClosure(expr, value))
+    case SetFromEdb(name, tty) =>
+      ???
   }
 
   // only pack 'pure' scala values aka. no Values inside a ScalaValue

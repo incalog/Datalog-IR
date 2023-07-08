@@ -162,7 +162,7 @@ object PathBenchmark {
 
   def runPath() = {
     // 1 -> .. 10 -> endNode  endNode -> 10
-    val configs = for (i <- 130 until 140 by 20) yield {
+    val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
     }
 
@@ -174,7 +174,7 @@ object PathBenchmark {
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.input(c.endNode))))
       c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))
 
     // IR with computed graph
     /*val irMeasurements = for (c <- configs) yield {
