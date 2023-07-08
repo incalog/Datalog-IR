@@ -59,10 +59,11 @@ object PathBenchmark {
     }
     for (i <- 0 until c.runs) yield {
       println(s"Run Datalog ${c.name}: ${i + 1}")
+
       val datalog = new ObjectOrientedDatalog(module)
 
-      val run = datalog.run("Graph", "main", args:_*)
-      println(run.size)
+      //val run = datalog.run("Graph", "main", args:_*)
+      //println(run.size)
       //println(run)
       //System.exit()
 
