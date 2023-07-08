@@ -47,14 +47,14 @@ object PathBenchmark {
     header +: rows
   }
 
-  private def measureDatalog(c: Config, prog: String, args: Seq[Term]): IndexedSeq[Long] = {
+  private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     val module = Compiler.compileObject(code, options)
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("Graph", "main", args:_*)
+      datalog.measure("Graph", "main", edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -64,13 +64,14 @@ object PathBenchmark {
 
       val datalog = new ObjectOrientedDatalog(module)
 
+      //datalog.update(EDBChange.insertions(edb))
       //val run = datalog.run("Graph", "main", args:_*)
       //println(run.size)
       //println(run)
       //System.exit()
 
       val start = System.nanoTime()
-      datalog.measure("Graph", "main", args:_*)
+      datalog.measure("Graph", "main", edb, args:_*)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
 
@@ -143,8 +144,8 @@ object PathBenchmark {
       val datalog: DatalogAPI = new DatalogAPI(module)
 
       //datalog.update(edb)
-      //println(datalog.read(input).size)
-      //println(datalog.read(input))
+      //println(datalog.read(Relation2(name, Seq("X", "Y"), Seq())).size)
+      //println(datalog.read(Relation2(name, Seq("X", "Y"), Seq())))
       //System.exit(1)
 
       val start = System.nanoTime()
@@ -168,17 +169,15 @@ object PathBenchmark {
     val prog = progFolder + s"Path_$recursive$edbEdgesSuffix.oinca"
 
     // IR with graph in edb
-    //val input = Relation2("path", Seq("X", "Y"), Seq())
-    /*val irMeasurements = for (c <- configs) yield {
+    val irMeasurements = for (c <- configs) yield {
       // Note: Make sure this code produces the same graph as the program
-      println("Edges: ", PathIRModule.input(c.endNode))
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.input(c.endNode))))
-      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb, input)
+      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
 
     // IR with computed graph
-    val irMeasurements = for (c <- configs) yield {
+    /*val irMeasurements = for (c <- configs) yield {
       if (edbEdges) {
         val edges = PathIRModule.input(c.endNode)
         val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("X", "Y"), edges)))
@@ -188,22 +187,23 @@ object PathBenchmark {
         c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "main", edb)
       }
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
+      val edb = Relation.from("edbEdges", Seq("x", "y"), PathIRModule.input(c.endNode))
+      c.endNode -> measureDatalog(c, prog, Seq(edb), Seq(meta.Lit.Int(c.endNode)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
-    val interpreterMeasurements = for (c <- configs) yield {
+    /*val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))*/
   }
 
-  def runPathWithAllocation() = {
+  /*def runPathWithAllocation() = {
     val configs = for (i <- 10 until 50000 by 5000) yield {
       PathAllocationConfig(warmups, runs, s"PATH_ALLOC_${i}", i)
     }
@@ -274,12 +274,12 @@ object PathBenchmark {
       c.cycleStep -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
     }
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_cycles_worstcase.csv", csvToString(toCSV(interpreterMeasurements)))
-  }
+  }*/
 
   def main(args: Array[String]): Unit = {
-    //runPath()
+    runPath()
     //runPathWithAllocation()
     //runPathWithCycles()
-    runPathWithCyclesWorstCase()
+    //runPathWithCyclesWorstCase()
   }
 }

@@ -567,6 +567,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val codeSource = s"{$paramString;\n$leftName ${op.tree} $rightName}"
           typecheckDecodeScala(codeSource, expression)
       }
+    case SetFromEdb(edbName, tty) =>
+      typecheck(tty)
+      TSet(tty)
   }
 
   def typecheckDecodeScala(codeSource: String, loc: SourceLocation): Type = {

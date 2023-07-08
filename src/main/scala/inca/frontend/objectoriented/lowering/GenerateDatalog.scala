@@ -1268,6 +1268,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
 
+    case SetFromEdb(edbName, tty) =>
+      val outVars = tty.flatten.map(_ => Datalog.Var(gensym.fresh("edb")))
+      val edbCall = Datalog.ExtensionalCall(edbName.raw, outVars)
+      Seq((outVars, Seq(edbCall)))
     case exps =>
       throw new IllegalArgumentException(s"Expression not supported $exps")
   }

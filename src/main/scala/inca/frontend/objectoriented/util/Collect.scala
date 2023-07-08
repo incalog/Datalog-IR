@@ -77,5 +77,6 @@ trait Collect[R] {
     case BaseApplyMethodExpr(recv, _, Some(args)) => collectExpression(recv) ++ args.flatMap(collectExpression)
     case BaseApplyMethodExpr(recv, _, None) => collectExpression(recv)
     case BaseApplyUnaryExpr(_, exp) => collectExpression(exp)
+    case SetFromEdb(_, tty) => collectType(tty)
   }
 }

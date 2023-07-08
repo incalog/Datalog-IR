@@ -151,6 +151,8 @@ trait ModuleLowering {
       NullExpr()
     case BaseLitExpr(code) =>
       BaseLitExpr(code)
+    case SetFromEdb(edbName, tty) =>
+      SetFromEdb(edbName, transType(tty))
     case expr =>
       throw new RuntimeException(s"Can not transform expression: $expr")
   })

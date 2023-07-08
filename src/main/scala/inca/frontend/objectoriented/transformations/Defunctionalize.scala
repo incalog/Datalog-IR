@@ -282,6 +282,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       TupleReadExpr(sanitize(recv), index)
     case TupleExpr(exps) =>
       TupleExpr(exps.map(sanitize(_)))
+    case SetFromEdb(edbName, tty) =>
+      unapply(SetFromEdb(edbName, clearType(tty)), requiresTrueSet, expression.typ)
     case _ => clearExpression(expression)
   }
   }
