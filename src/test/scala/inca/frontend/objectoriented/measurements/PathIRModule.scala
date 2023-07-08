@@ -23,16 +23,32 @@ object PathIRModule {
     line(from, to) ++ Set(Seq(to, from))
   }
 
-  def cycles(current: Int, step: Int, endNode: Int): Set[Seq[Int]] = {
+  /*def cycles(current: Int, step: Int, endNode: Int): Set[Seq[Int]] = {
     if (current < endNode)
       loop(current, current + step) ++ cycles(current + step, step, endNode)
     else
       line(current, endNode) ++ Set(Seq(endNode, current))
+  }*/
+
+  def fullyConnect(current: Int, startNode: Int, endNode: Int): Set[Seq[Int]] = {
+    if (endNode > startNode)
+      Set(Seq(current, endNode)) ++ fullyConnect(current, startNode, endNode - 1)
+    else
+      Set(Seq(current, endNode))
+  }
+
+  def cycles(current: Int, step: Int, startNode: Int, endNode: Int): Set[Seq[Int]] = {
+    if (current < endNode)
+      this.cycles(current + step, step, startNode, endNode) ++ fullyConnect(current, startNode, endNode)
+    else if (current == endNode)
+      this.line(startNode, endNode) ++ fullyConnect(current, startNode, endNode)
+    else
+      this.line(startNode, endNode)
   }
 
   def input(endNode: Int): Seq[Seq[Int]] = (line(1, 10) ++ loop(10, endNode)).toSeq
 
-  def inputWithCycle(cycleStep: Int, endNode: Int): Seq[Seq[Int]] = (line(1, 10) ++ cycles(10, cycleStep, endNode)).toSeq
+  def inputWithCycle(cycleStep: Int, endNode: Int): Seq[Seq[Int]] = cycles(1, cycleStep, 1, endNode).toSeq
 
   def module(recursive: String): CompiledModule = new CompiledModule {
     override val options: Options = new Options {
@@ -76,7 +92,7 @@ object PathIRModule {
     ), Seq())
   }
 
-  def moduleWithInputComputation(recursive: String): CompiledModule = new CompiledModule {
+  /*def moduleWithInputComputation(recursive: String): CompiledModule = new CompiledModule {
     override val options: Options = new Options {
       override def optimizations: Seq[Optimization] = Seq()
       override def transformations: Seq[Transformation] = Seq(DeriveDemandPatterns, DemandTransformation)
@@ -223,5 +239,5 @@ object PathIRModule {
         )
       ).addHint(MagicSetHints.Main(Seq(true, false, false)))
     ), Seq())
-  }
+  }*/
 }

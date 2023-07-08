@@ -425,7 +425,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
     case BaseApplyUnaryExpr(_, exp) =>
       val value = eval(exp).asScala
       packInScalaValue(scalaInterpreter.evalClosure(expr, value))
-    case SetFromEdb(name, tty) =>
+    case SetFromEdb(name, _) =>
       edb.getOrElse(name.raw, throw new IllegalStateException(s"Could not find edb entry: $name"))
   }
 

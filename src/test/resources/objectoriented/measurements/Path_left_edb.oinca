@@ -1,7 +1,5 @@
 module GraphTest
 
-// Fast interpretation
-
 class Graph {
     @main
     def main(): Set[(Int, Int)] = {
@@ -10,23 +8,21 @@ class Graph {
     }
 
     def path(x: Int): Set[Int] = {
-        (for (d <- Set.from[(Int, Int)](edbEdges) if d._1 == x) yield d._2)
+        (for (y <- this.path(x); i <- Set.from[(Int, Int)](edbEdges) if i._1 == y) yield i._2)
         ++
-        (for (i <- Set.from[(Int, Int)](edbEdges) if i._1 == x; y <- this.path(i._2)) yield y)
+        (for (d <- Set.from[(Int, Int)](edbEdges) if d._1 == x) yield d._2)
     }
 }
 
-
-// Slow interpretation, since we evaluate path on each iteration
 /*class Graph {
     @main
-    def main(): Set[(Int, Int)] = {
+    def main(endNode: Int): Set[(Int, Int)] = {
       new Graph().path()
     }
 
     def path(): Set[(Int,Int)] = {
         Set.from[(Int, Int)](edbEdges)
         ++
-        (for (e <- Set.from[(Int, Int)](edbEdges); p <- this.path() if e._2 == p._1) yield (e._1, p._2))
+        (for (p <- this.path(); e <- Set.from[(Int, Int)](edbEdges) if e._2 == p._1) yield (e._1, p._2))
     }
 }*/
