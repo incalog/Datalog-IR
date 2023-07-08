@@ -5,7 +5,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class TypeCastException(obj: Object, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
-class Interpreter(module: Module, edb: Map[String, Value]) {
+class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
   // println(module)
 
   private val scalaInterpreter = new ScalaInterpreter(module: Module)

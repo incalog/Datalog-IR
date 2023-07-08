@@ -169,12 +169,12 @@ object PathBenchmark {
     val prog = progFolder + s"Path_$recursive$edbEdgesSuffix.oinca"
 
     // IR with graph in edb
-    val irMeasurements = for (c <- configs) yield {
+    /*val irMeasurements = for (c <- configs) yield {
       // Note: Make sure this code produces the same graph as the program
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.input(c.endNode))))
       c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // IR with computed graph
     /*val irMeasurements = for (c <- configs) yield {

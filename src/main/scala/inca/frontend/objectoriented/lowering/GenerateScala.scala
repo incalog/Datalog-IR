@@ -401,7 +401,9 @@ class GenerateScala {
           case e => e
       }.asInstanceOf[Seq[$aggType]].fold($neutralTerm)($methodRef)
       """*/
-
+    case SetFromEdb(name, tty) =>
+      // TODO: Give scala access to edb
+      q"""Set[${tty.asScala}]()"""
     case _ =>
       throw new IllegalArgumentException(s"Expression '$expr' can not be translated to scala.")
   }
