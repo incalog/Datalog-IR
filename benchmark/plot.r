@@ -65,7 +65,7 @@ plot(data.matrix(pathDatalogEDBRight),
      ylab = "Running time (ms)",
      xlab = "X",
      xaxt = "n",
-     ylim = c(0, 10000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 15000), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 #lines(data.matrix(pathInterpEDBRight), type = "o", col = color3, lwd = 1.5)

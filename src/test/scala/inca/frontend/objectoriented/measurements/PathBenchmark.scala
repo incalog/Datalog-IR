@@ -7,7 +7,7 @@ import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.ir.{EDBChange, Relation, Relation1, Relation2, Relation3, Datalog => DatalogAPI}
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
-import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaValue, Value}
+import inca.frontend.objectoriented.interpreter.{Interpreter, ScalaValue, SetValue, TupleValue, Value}
 import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
@@ -68,7 +68,7 @@ object PathBenchmark {
       //val run = datalog.run("Graph", "main", args:_*)
       //println(run.size)
       //println(run)
-      //System.exit()
+      //System.exit(1)
 
       val start = System.nanoTime()
       datalog.measure("Graph", "main", edb, args:_*)
@@ -82,7 +82,7 @@ object PathBenchmark {
     }
   }
 
-  private def measureInterpreter(c: Config, prog: String, args: Seq[Value]): IndexedSeq[Long] = {
+  private def measureInterpreter(c: Config, prog: String, edb: Map[String, Value], args: Seq[Value]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     var mod = Parser.parse(code)
     mod = InsertBuiltInMonotones.transformModule(mod)
@@ -106,21 +106,19 @@ object PathBenchmark {
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Interpreter ${c.name}: ${i + 1}")
-      new Interpreter(mod).run(main, args)
+      new Interpreter(mod, edb).run(main, args)
 
-      EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
       println(s"Run Interpreter ${c.name}: ${i + 1}")
-      val interp = new Interpreter(mod)
+      val interp = new Interpreter(mod, edb)
 
       val start = System.nanoTime()
       interp.run(main, args)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
 
-      EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
 
       diff
@@ -190,17 +188,19 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // OODL
-    val datalogMeasurements = for (c <- configs) yield {
+    /*val datalogMeasurements = for (c <- configs) yield {
       val edb = Relation.from("edbEdges", Seq("x", "y"), PathIRModule.input(c.endNode))
       c.endNode -> measureDatalog(c, prog, Seq(edb), Seq(meta.Lit.Int(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(datalogMeasurements)))*/
 
     // OODL - Interp
-    /*val interpreterMeasurements = for (c <- configs) yield {
-      c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
+    val interpreterMeasurements = for (c <- configs) yield {
+      val edges = PathIRModule.input(c.endNode)
+      val edb = Map("edbEdges" -> SetValue(edges.map(is => TupleValue(is.map(ScalaValue))).toSet))
+      c.endNode -> measureInterpreter(c, prog, edb, Seq(ScalaValue(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   /*def runPathWithAllocation() = {

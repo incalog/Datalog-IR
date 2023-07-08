@@ -426,7 +426,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
       val value = eval(exp).asScala
       packInScalaValue(scalaInterpreter.evalClosure(expr, value))
     case SetFromEdb(name, tty) =>
-      ???
+      edb.getOrElse(name.raw, throw new IllegalStateException(s"Could not find edb entry: $name"))
   }
 
   // only pack 'pure' scala values aka. no Values inside a ScalaValue
