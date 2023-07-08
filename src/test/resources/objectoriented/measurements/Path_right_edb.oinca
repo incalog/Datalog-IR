@@ -4,13 +4,12 @@ class Graph {
     @main
     def main(endNode: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
-      val edges: Set[(Int, Int)] = Set.from[(Int, Int)](edbEdges)
-      for (e <- edges; r <- g.path(e._1, edges)) yield (e._1, r)
+      for (e <- Set.from[(Int, Int)](edbEdges); r <- g.path(e._1)) yield (e._1, r)
     }
 
-    def path(x: Int, edges: Set[(Int, Int)]): Set[Int] = {
-        (for (d <- edges if d._1 == x) yield d._2)
+    def path(x: Int): Set[Int] = {
+        (for (d <- Set.from[(Int, Int)](edbEdges) if d._1 == x) yield d._2)
         ++
-        (for (i <- edges if i._1 == x; y <- this.path(i._2, edges)) yield y)
+        (for (i <- Set.from[(Int, Int)](edbEdges) if i._1 == x; y <- this.path(i._2)) yield y)
     }
 }
