@@ -17,7 +17,9 @@ import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 object PathBenchmark {
   // TODO what graph
-  val recursive = "left"
+  val recursive = "right"
+  val edbEdges = true
+  def edbEdgesSuffix: String = if (edbEdges) "_edb" else ""
   val warmups = 0
   val runs = 1
 
@@ -124,14 +126,14 @@ object PathBenchmark {
     }
   }
 
-  private def measureDatalogIR(c: Config, module: CompiledModule, edb: EDBChange, input: Relation): IndexedSeq[Long]  = {
+  private def measureDatalogIR(c: Config, module: CompiledModule, name: String, edb: EDBChange): IndexedSeq[Long]  = {
     // TODO: To make the measurement fair, we would actually need to generate the data
     //  inside the program as well
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog IR ${c.name}: ${i + 1}")
       val datalog: DatalogAPI = new DatalogAPI(module)
-      datalog.measure(input, edb)
+      datalog.measure(name, edb)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -146,7 +148,7 @@ object PathBenchmark {
       //System.exit(1)
 
       val start = System.nanoTime()
-      datalog.measure(input, edb)
+      datalog.measure(name, edb)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble / 1000000d)
 
@@ -159,11 +161,11 @@ object PathBenchmark {
 
   def runPath() = {
     // 1 -> .. 10 -> endNode  endNode -> 10
-    val configs = for (i <- 10 until 140 by 20) yield {
+    val configs = for (i <- 130 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
     }
 
-    val prog = progFolder + s"Path_$recursive.oinca"
+    val prog = progFolder + s"Path_$recursive$edbEdgesSuffix.oinca"
 
     // IR with graph in edb
     //val input = Relation2("path", Seq("X", "Y"), Seq())
@@ -176,24 +178,29 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
 
     // IR with computed graph
-    /*val irMeasurements = for (c <- configs) yield {
-      val input = Relation3("main", Seq("e", "X", "Y"), Seq(Seq(c.endNode, null, null)))
-      val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bff", Seq("e"), Seq(Seq(c.endNode)))))
-      c.endNode -> measureDatalogIR(c, PathIRModule.moduleWithInputComputation(recursive), edb, input)
+    val irMeasurements = for (c <- configs) yield {
+      if (edbEdges) {
+        val edges = PathIRModule.input(c.endNode)
+        val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("X", "Y"), edges)))
+        c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
+      } else {
+        val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bff", Seq("e"), Seq(Seq(c.endNode)))))
+        c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "main", edb)
+      }
     }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
       c.endNode -> measureDatalog(c, prog, Seq(meta.Lit.Int(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Seq(ScalaValue(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   def runPathWithAllocation() = {
@@ -229,7 +236,7 @@ object PathBenchmark {
     val irMeasurements = for (c <- configs) yield {
       // Note: Make sure this code produces the same graph as the program
       val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("x", "y"), PathIRModule.inputWithCycle(c.cycleStep, c.endNode))))
-      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), edb, input)
+      c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
     }
     FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}_recursive_cycles.csv", csvToString(toCSV(irMeasurements)))
 

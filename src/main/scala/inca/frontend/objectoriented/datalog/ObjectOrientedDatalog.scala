@@ -60,7 +60,7 @@ final class ObjectOrientedDatalog(compiled: CompiledObjectModule) extends Datalo
 
     lastSeenChange = Some((change, diffables))
 
-    measure(input.args, change)
+    measure(input.args.name, change)
   }
 
   private def determineChanges(lastChange: DiffableChange, newChange: DiffableChange): DiffableChange = {

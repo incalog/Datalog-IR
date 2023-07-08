@@ -43,7 +43,7 @@ class Datalog(compiled: CompiledModule) {
     pattern.map(n => read(UnitRelation(n)))
   }
 
-  def measure(input: Relation, change: EDBChange): Long = {
+  def measure(name: String, change: EDBChange): Long = {
     engine.delayUpdatePropagation(() => {
       database.processEditScript(change.es)
 
@@ -65,7 +65,7 @@ class Datalog(compiled: CompiledModule) {
           }
       }*/
     })
-    val pattern = compiled.psystemModule.patterns.getOrElse(input.name, throw new IllegalStateException("Undefined relation"))
+    val pattern = compiled.psystemModule.patterns.getOrElse(name, throw new IllegalStateException("Undefined relation"))
     val specification: Specification = pattern()
 
     val start = System.nanoTime()
