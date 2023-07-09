@@ -16,7 +16,7 @@ import inca.util.measurement.MemoryUtil
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 object PathBenchmark {
-  val recursive = "left"
+  val recursive = "right"
   def edb: Boolean = false
   def edbEdgesSuffix: String = if (edb) "_edb" else ""
   val warmups = 0
@@ -63,11 +63,11 @@ object PathBenchmark {
 
       val datalog = new ObjectOrientedDatalog(module)
 
-      //datalog.update(EDBChange.insertions(edb))
-      //val run = datalog.run("Graph", "main", args:_*)
-      //println(run.size)
-      //println(run)
-      //System.exit(1)
+      datalog.update(EDBChange.insertions(edb))
+      val run = datalog.run("Graph", "main", args:_*)
+      println(run.size)
+      println(run)
+      System.exit(1)
 
       val start = System.nanoTime()
       datalog.measure("Graph", "main", edb, args:_*)
@@ -263,7 +263,7 @@ object PathBenchmark {
 
   def runPathWithoutEDB() = {
     // 1 -> .. 10 -> endNode  endNode -> 10
-    val configs = for (i <- 10 until 20 by 20) yield {
+    val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
     }
 
@@ -289,10 +289,32 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
+  def runPathWithNodes() = {
+    // 1 -> .. 10 -> endNode  endNode -> 10
+    val configs = for (i <- 50 until 60 by 20) yield {
+      PathConfig(warmups, runs, s"PATH_${i}", i)
+    }
+
+    val prog = progFolder + s"Path_${recursive}_node.oinca"
+
+    // OODL
+    val datalogMeasurements = for (c <- configs) yield {
+      c.endNode -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Datalog_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(datalogMeasurements)))
+
+    // OODL - Interp
+    val interpreterMeasurements = for (c <- configs) yield {
+      c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode)))
+    }
+    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
+  }
+
   def main(args: Array[String]): Unit = {
     //runPath()
     //runPathWithAllocation()
     //runPathWithCycles()
-    runPathWithoutEDB()
+    //runPathWithoutEDB()
+    runPathWithNodes()
   }
 }
