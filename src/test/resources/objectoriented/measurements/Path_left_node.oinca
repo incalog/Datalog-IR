@@ -10,7 +10,7 @@ class Graph {
             Set((new Node(from), new Node(to)))
     }
 
-    def loop(from: Int, to: Int): Set[(Node, Node)] = {
+    def loop(from: Int, step: Int, to: Int): Set[(Node, Node)] = {
         this.line(from, to) ++ Set((new Node(to), new Node(from)))
     }
 
@@ -22,8 +22,8 @@ class Graph {
     }
 
     def path(edges: Set[(Node, Node)]): Set[(Node, Node)] = {
-        edges
+        (for (p <- this.path(edges); e <- edges if e._2.id == p._1.id) yield (e._1, p._2))
         ++
-        (for (e <- edges; p <- this.path(edges) if e._2.id == p._1.id) yield (e._1, p._2))
+        edges
     }
 }

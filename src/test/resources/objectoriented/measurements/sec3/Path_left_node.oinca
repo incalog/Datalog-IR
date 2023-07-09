@@ -1,0 +1,35 @@
+module GraphTest
+
+class Node(val id: Int) {}
+
+class Graph {
+    def line(from: Int, to: Int): Set[(Node, Node)] = {
+        if (from < to-1)
+            this.line(from + 1, to) ++ Set((new Node(from), new Node(from + 1)))
+        else
+            Set((new Node(from), new Node(to)))
+    }
+
+    def loop(from: Int, to: Int, step: Int): Set[(Node, Node)] = {
+        if (from < to) {
+            this.loop(from + step, to, step) ++ this.line(from, from+step) ++ Set((new Node(from + step), new Node(from)))
+        } else if (from == to) {
+            Set((new Node(from), new Node(from-step)))
+        } else {
+            this.line(to, from)
+        }
+    }
+
+    @main
+    def main(endNode: Int, step: Int): Set[(Int, Int)] = {
+      val g: Graph = new Graph()
+      val edges: Set[(Node, Node)] = g.loop(0, endNode, step)
+      for (e <- g.path(edges)) yield (e._1.id, e._2.id)
+    }
+
+    def path(edges: Set[(Node, Node)]): Set[(Node, Node)] = {
+        edges
+        ++
+        (for (p <- this.path(edges); e <- edges if e._2.id == p._1.id) yield (e._1, p._2))
+    }
+}
