@@ -1,0 +1,199 @@
+module ASG
+
+class Visitor {
+  def visitProg(n: Prog): Unit = { }
+  def visitDef(d: Def): Unit = { }
+  def visitNum(n: Num, d: Def): Unit = { }
+  def visitVar(v: Var, d: Def): Unit = { }
+}
+
+class Prog(val defs: `List[Any]`) {
+  def forEach(list: `List[Any]`, v: Visitor, i: Int, size: Int): Unit = {
+    if (i >= size) return
+    val ele: Def = list.`apply`(i).asInstanceOf[Def]
+    ele.accept(v)
+    this.forEach(list, v, i+1, size)
+  }
+
+  def accept(v: Visitor): Unit = {
+    val defs: `List[Any]` = this.defs
+    this.forEach(defs, v, 0, defs.`size`)
+    v.visitProg(this)
+  }
+}
+
+class Def(val name: String, val exp: Exp) {
+  def accept(v: Visitor): Unit = {
+    v.visitDef(this)
+    this.exp.accept(v, this)
+  }
+}
+
+class Exp {
+  def accept(v: Visitor, d: Def): Unit = {}
+}
+class Num(val value: Int) extends Exp {
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitNum(this, d)
+  }
+}
+class Var(val name: String) extends Exp {
+  var target: Def = null
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitVar(this, d)
+  }
+}
+
+class NameAnalysis(val prog: Prog) extends Visitor {
+  def findByName(list: `List[Any]`, name: String, i: Int, size: Int): Def = {
+    if (i >= size) return null
+    val ele: Def = list.`apply`(i).asInstanceOf[Def]
+    if (ele.name == name) return ele
+    this.findByName(list, name, i+1, size)
+  }
+
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val defs: `List[Any]` = this.prog.defs
+    v.target = this.findByName(defs, v.name, 0, defs.`size`)
+  }
+}
+
+case class Edge(val from: Def, val to: Def) { }
+
+class DependencyAnalysis extends Visitor {
+  // mono.Set[Edge]
+  // var edges: Set[Edge]
+  val edges: MonotoneSet = new MonotoneSet()
+
+  // hack to retrieve a Datalog set from this.edges
+  def edgeSet(): Set[Edge] = {
+    val set: `scala.collection.immutable.Set[Any]` = this.edges.get()
+    val list: `scala.collection.immutable.Vector[Any]` = set.`toVector`
+    this.edgeSetIter(list, 0)
+  }
+  def edgeSetIter(list: `scala.collection.immutable.Vector[Any]`, ix: Int): Set[Edge] = {
+    val e: Edge = list.`apply`(ix).asInstanceOf[Edge]
+    if (ix == list.`size` - 1) {
+      Set(e)
+    } else {
+      Set(e) ++ this.edgeSetIter(list, ix + 1)
+    }
+  }
+
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null) {
+      this.edges += new Edge(d, trg)
+      fix trg.accept(this)
+    }
+  }
+
+  def directDependencies(d: Def): Set[Def] = {
+    for (e <- this.edgeSet() if e.from == d) yield e.to
+  }
+
+  def dependencies(d1: Def): Set[Def] = {
+    this.directDependencies(d1) ++
+    for (d2 <- this.directDependencies(d1);
+         d3 <- this.dependencies(d2))
+      yield d3
+  }
+}
+
+// mono.Set[A] ~> Relation[A]
+// mono.Map[A,B] ~> Relation[A,B]
+// mono.List[A] ~> Relation[Int,A], Int->A
+
+// mono.Avg
+
+// Map[A,Set[B]]
+// ~> Relation[A, Set[B]], A->Set[B]
+// ~> Relation[A, Relation[B]], A->Relation[B]
+// ~> Relation[A, B]
+
+class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
+    @static
+    def init(): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`()
+    }
+
+    @static
+    def join(m1: `scala.collection.immutable.Set[Any]`, m2: `scala.collection.immutable.Set[Any]`): `scala.collection.immutable.Set[Any]` = {
+        m1 ++ m2
+    }
+
+    def lift(element: Any): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`(element)
+    }
+
+    def get(): `scala.collection.immutable.Set[Any]` = {
+        this.result
+    }
+}
+
+class ReachVisitor extends Visitor {
+  val reachable: MonotoneSet = new MonotoneSet()
+
+  @override def visitDef(d: Def): Unit = {
+    this.reachable += d
+  }
+
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null)
+        fix trg.accept(this)
+  }
+}
+
+class Mapper {
+  def mapName(s: `Seq[Any]`, i: Int, size: Int): Set[String] = {
+    val ele: Def = s.`apply`(i).asInstanceOf[Def]
+    if (i == size-1) {
+        return Set(ele.name)
+    } else {
+        return Set(ele.name) ++ this.mapName(s, i+1, size)
+    }
+  }
+
+  def mapNameSet(s: Set[Def]): Set[String] = {
+    for (d <- s) yield d.name
+  }
+}
+
+class Main {
+  @main
+  def main(): Set[String] = {
+    // This is hard to construct from an EDB
+    // 1. We can not input objects directly
+    // 2. We can not create objects in a set comprehension
+    // We can only create the data inside the program or adapt the set comprehension to correctly thread the counter
+    val d1: Def = new Def("a", new Var("c"))
+    val d2: Def = new Def("b", new Num(2))
+    val d3: Def = new Def("c", new Var("a"))
+    val d4: Def = new Def("d", new Var("b"))
+    val main: Def = new Def("main", new Var("c"))
+    val prog: Prog = new Prog(`List[Any]`(d1, d2, d3, d4, main))
+
+    val resolving: NameAnalysis = new NameAnalysis(prog)
+    prog.accept(resolving)
+    // Var.target is now defined for all Var objects
+
+    // this loops in Scala when prog is recursive, but always computes in Datalog
+    //val reaching: ReachVisitor = new ReachVisitor()
+    //main.accept(reaching)
+    // reaching.reachable contains three definitions: d1, d3, main
+
+    // these results remain the same in OODL even after changing d1
+    //   val d1 = new Def("a", new Var("c"))
+    // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
+
+    //val result: `scala.collection.immutable.Set[Any]` = reaching.reachable.get()
+    val mapper: Mapper = new Mapper()
+    //mapper.mapName(result.`toSeq`, 0, result.`size`)
+
+    val depending: DependencyAnalysis = new DependencyAnalysis()
+    main.accept(depending)
+    val depResult: Set[Def] = depending.dependencies(main)
+    mapper.mapNameSet(depResult)
+  }
+}
