@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.measurements
 
+import inca.backend.optimize.EliminateNonproductiveRelations
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.ir.{EDBChange, Relation, Relation2, Datalog => DatalogAPI}
 import inca.frontend.objectoriented.compiler.ObjectOptions
@@ -30,7 +31,7 @@ object ASGBenchmark {
   case class ASGConfig(warmup: Int, runs: Int, name: String, id: Int) extends Config
 
 
-  def options: ObjectOptions = ObjectOptions()
+  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
   val typechecker = new Typechecker {}
 
   private def toCSV(vals: Seq[(Int, IndexedSeq[Long])]): CSV = {
@@ -48,7 +49,7 @@ object ASGBenchmark {
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("Main", "main", edb, args:_*)
+      datalog.measure("ProgEntry", "main", edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -59,13 +60,13 @@ object ASGBenchmark {
       val datalog = new ObjectOrientedDatalog(module)
 
       //datalog.update(EDBChange.insertions(edb))
-      //val run = datalog.run("Main", "main", args:_*)
+      //val run = datalog.run("ProgEntry", "main", args:_*)
       //println(run.size)
       //println(run)
       //System.exit(1)
 
       val start = System.nanoTime()
-      datalog.measure("Main", "main", edb, args:_*)
+      datalog.measure("ProgEntry", "main", edb, args:_*)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
 
@@ -83,7 +84,7 @@ object ASGBenchmark {
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
 
-    val mainClass = "Main"
+    val mainClass = "ProgEntry"
     val mainMethod = "main"
     val mainClasses = mod.classes.filter(_.name.raw == mainClass)
     val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == mainMethod))
@@ -126,10 +127,10 @@ object ASGBenchmark {
     val prog = progFolder + s"AbstractSyntaxGraph.oinca"
 
     // OODL
-    val datalogMeasurements = for (c <- configs) yield {
+    /*val datalogMeasurements = for (c <- configs) yield {
       c.id -> measureDatalog(c, prog, Seq(), Seq())
     }
-    FileUtil.writeFile(s"$resultPath/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))*/
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {

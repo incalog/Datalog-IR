@@ -92,7 +92,7 @@ object PathIRModule {
     ), Seq())
   }
 
-  /*def moduleWithInputComputation(recursive: String): CompiledModule = new CompiledModule {
+  def moduleWithInputComputation(recursive: String): CompiledModule = new CompiledModule {
     override val options: Options = new Options {
       override def optimizations: Seq[Optimization] = Seq()
       override def transformations: Seq[Transformation] = Seq(DeriveDemandPatterns, DemandTransformation)
@@ -239,5 +239,5 @@ object PathIRModule {
         )
       ).addHint(MagicSetHints.Main(Seq(true, false, false)))
     ), Seq())
-  }*/
+  }
 }

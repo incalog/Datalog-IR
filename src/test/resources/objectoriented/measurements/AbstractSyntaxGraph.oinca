@@ -166,65 +166,43 @@ class Mapper {
   def mapNameSet(s: Set[Def]): Set[String] = {
     for (d <- s) yield d.name
   }
+
+  def constructObjects(vars: `List[String]`, start: Int, end: Int): `List[Any]` = {
+    if (start <= 1) {
+        val a: String = vars.`apply`(start)
+        val d: Def = new Def(a, new Num(start+1))
+        `List[Any]`(d) ++ this.constructObjects(vars, start+1, end)
+    } else {
+        if (start < end - 2) {
+            val a: String = vars.`apply`(start)
+            val b: String = vars.`apply`(start-1)
+            val c: String = vars.`apply`(start-2)
+            val d: Def = new Def(c, new Add(new Var(a), new Var(b)))
+            `List[Any]`(d) ++ this.constructObjects(vars, start+1, end)
+        } else {
+            `List[Any]`()
+        }
+    }
+  }
 }
 
-class Main {
+class ProgEntry {
   @main
   def main(): Set[String] = {
-    // This is hard to construct from an EDB
-    // 1. We can not input objects directly
-    // 2. We can not create objects in a set comprehension
-    // We can only create the data inside the program or adapt OODL to allow inserting objects in the EDB
+    // we can not input objects from the outside. Therefore we need to construct the data inside the program.
 
-    val a: Def = new Def("a", new Add(new Num(1), new Num(2)))
-    val b: Def = new Def("b", new Add(new Num(3), new Var("a")))
-    val c: Def = new Def("c", new Add(new Var("a"), new Var("b")))
+    val mapper: Mapper = new Mapper()
 
-    val d: Def = new Def("d", new Add(new Var("b"), new Var("c")))
-    val e: Def = new Def("e", new Add(new Var("c"), new Var("d")))
-    val f: Def = new Def("f", new Add(new Var("d"), new Var("e")))
+    val vars: `List[String]` = `List[String]`("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
+    val s: Int = vars.`size`
+    val defs: `List[Any]` = mapper.constructObjects(vars, 0, s)
 
-    val g: Def = new Def("g", new Add(new Var("e"), new Var("f")))
-    val h: Def = new Def("h", new Add(new Var("f"), new Var("g")))
-    val i: Def = new Def("i", new Add(new Var("g"), new Var("h")))
+    val main: Def = new Def("main", new Add(new Var(vars.`apply`(s-1)), new Var(vars.`apply`(s-2))))
 
-    val j: Def = new Def("j", new Add(new Var("h"), new Var("i")))
-    val k: Def = new Def("k", new Add(new Var("i"), new Var("j")))
-    val l: Def = new Def("l", new Add(new Var("j"), new Var("k")))
-
-    val m: Def = new Def("m", new Add(new Var("k"), new Var("l")))
-    val n: Def = new Def("n", new Add(new Var("l"), new Var("m")))
-    val o: Def = new Def("o", new Add(new Var("m"), new Var("n")))
-
-    val p: Def = new Def("p", new Add(new Var("n"), new Var("o")))
-    val q: Def = new Def("q", new Add(new Var("o"), new Var("p")))
-    val main: Def = new Def("main", new Add(new Var("q"), new Var("p")))
-
-    // Prevent reflective compilation failure
-    val list1: `List[Any]` = `List[Any]`(a, b, c, d, e)
-    val list2: `List[Any]` = `List[Any]`(f, g, h, i, j)
-    val list3: `List[Any]` = `List[Any]`(k, l, m, n, o)
-    val list4: `List[Any]` = `List[Any]`(p, q, main)
-
-    val prog: Prog = new Prog(list1 ++ list2 ++ list3 ++ list4)
-    //`println`("Run the program")
+    val prog: Prog = new Prog(defs ++ `List[Any]`(main))
 
     val resolving: NameAnalysis = new NameAnalysis(prog)
     prog.accept(resolving)
-    // Var.target is now defined for all Var objects
-
-    // this loops in Scala when prog is recursive, but always computes in Datalog
-    //val reaching: ReachVisitor = new ReachVisitor()
-    //main.accept(reaching)
-    // reaching.reachable contains three definitions: d1, d3, main
-
-    // these results remain the same in OODL even after changing d1
-    //   val d1 = new Def("a", new Var("c"))
-    // which makes prog cylcic: main -> d3 -> d1 -> d3 -> ...
-
-    //val result: `scala.collection.immutable.Set[Any]` = reaching.reachable.get()
-    val mapper: Mapper = new Mapper()
-    //mapper.mapName(result.`toSeq`, 0, result.`size`)
 
     val depending: DependencyAnalysis = new DependencyAnalysis()
     main.accept(depending)
