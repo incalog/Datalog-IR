@@ -109,9 +109,10 @@ object ASGBenchmark {
       val interp = new Interpreter(mod, edb)
 
       val start = System.nanoTime()
-      interp.run(main, args)
+      val res = interp.run(main, args)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
+      println(res)
 
       MemoryUtil.collectGarbage()
 
