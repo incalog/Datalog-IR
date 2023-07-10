@@ -31,7 +31,7 @@ object ASGBenchmark {
   case class ASGConfig(warmup: Int, runs: Int, name: String, endNode: Int, step: Int) extends Config
 
 
-  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
+  def options: ObjectOptions = ObjectOptions()
   val typechecker = new Typechecker {}
 
   private def toCSV(vals: Seq[(Int, IndexedSeq[Long])]): CSV = {
@@ -59,14 +59,14 @@ object ASGBenchmark {
 
       val datalog = new ObjectOrientedDatalog(module)
 
-      datalog.update(EDBChange.insertions(edb))
+      /*datalog.update(EDBChange.insertions(edb))
       val run = datalog.run("ProgEntry", "main", args:_*)
       datalog.readAll.foreach { rel =>
         println()
         println(rel.asTable)
       }
-      //println(run)
-      //System.exit(1)
+      println(run)
+      System.exit(1)*/
 
       val start = System.nanoTime()
       datalog.measure("ProgEntry", "main", edb, args:_*)
@@ -113,12 +113,12 @@ object ASGBenchmark {
       val interp = new Interpreter(mod, edb)
 
       val start = System.nanoTime()
-      val res = interp.run(main, args)
+      interp.run(main, args)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
-      println(res.asSet.size)
+      /*println(res.asSet.size)
       println(res.asSet)
-      System.exit(1)
+      System.exit(1)*/
 
       MemoryUtil.collectGarbage()
 

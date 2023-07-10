@@ -154,19 +154,6 @@ class ReachVisitor extends Visitor {
 }
 
 class Mapper {
-    def mapName(s: `Seq[Any]`, i: Int, size: Int): Set[String] = {
-        val ele: Def = s.`apply`(i).asInstanceOf[Def]
-        if (i == size-1) {
-            return Set(ele.name)
-        } else {
-            return Set(ele.name) ++ this.mapName(s, i+1, size)
-        }
-    }
-
-    def mapNameSet(s: Set[Def]): Set[String] = {
-        for (d <- s) yield d.name
-    }
-
     def mkDef(i: Int): Def = {
       val n: Int = i+1
       new Def("a" + i.`toString`, new Add(new Var("a" + n.`toString`), new Num(i)))
@@ -178,7 +165,7 @@ class Mapper {
         val ds: `List[Any]` = this.line(i + 1, to)
         d +: ds
       } else {
-        `List[Any]`()
+        `Nil`
       }
     }
 
@@ -197,7 +184,7 @@ class Mapper {
 
 class ProgEntry {
   @main
-  def main(endNode: Int, step: Int): Set[String] = {
+  def main(endNode: Int, step: Int): Unit = {
     // we can not input objects from the outside. Therefore we need to construct the data inside the program.
 
     val mapper: Mapper = new Mapper()
@@ -210,8 +197,8 @@ class ProgEntry {
     prog.accept(resolving)
 
     val depending: DependencyAnalysis = new DependencyAnalysis()
-    main.accept(depending)
-    val depResult: Set[Def] = depending.dependencies(main)
-    mapper.mapNameSet(depResult)
+    prog.accept(depending)
+    //main.accept(depending)
+    //val depResult: Set[Def] = depending.dependencies(main)
   }
 }

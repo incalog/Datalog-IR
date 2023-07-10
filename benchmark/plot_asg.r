@@ -49,45 +49,22 @@ msToS <- function(ms) {
 }
 
 
-pathNodeLeft <- colMeans(readTime("Path_Interpreter_left_recursive_node.csv"))
-pathNodeRight <- colMeans(readTime("Path_Interpreter_right_recursive_node.csv"))
-pathInterpLeft <- colMeans(readTime("Path_Interpreter_left_recursive.csv"))
-pathInterpRight <- colMeans(readTime("Path_Interpreter_right_recursive.csv"))
-pathIrLeft <- colMeans(readTime("Path_IR_left_recursive.csv"))
-pathIrRight <- colMeans(readTime("Path_IR_right_recursive.csv"))
+asgInterp <- colMeans(readTime("ASG_Interpreter.csv"))
+asgDatalog <- colMeans(readTime("ASG_Datalog.csv"))
 
-pdf(file = paste(graphpath, "Path-left-recrusive.pdf", sep="/"))
-plot(data.matrix(pathIrLeft),
-     main = "(A) Measuring execution time of left-recursive path example",
+pdf(file = paste(graphpath, "AbstractSyntaxGraph.pdf", sep="/"))
+plot(data.matrix(asgDatalog),
+     main = "(A) Measuring execution time of ASG example",
      type = "o",
      col = color2,
-     ylab = "Running time (s)",
+     ylab = "Running time (ms)",
      xlab = "Number of nodes",
      xaxt = "n",
-     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 60000), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
-lines(data.matrix(pathInterpLeft), type = "o", col = color3, lwd = 1.5)
-lines(data.matrix(pathNodeLeft), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
-legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
+lines(data.matrix(asgInterp), type = "o", col = color3, lwd = 1.5)
+axis(1, at = c(1:8), labels = seq(10, 160, by = 20))
+legend("topleft", legend=c("Datalog", "Interpreter"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
-
-#pdf(file = paste(graphpath, "Path-right-recrusive.pdf", sep="/"))
-#plot(data.matrix(pathIrRight),
-#     main = "(A) Measuring execution time of right-recursive path example",
-#     type = "o",
-#     col = color2,
-#     ylab = "Running time (s)",
-#     xlab = "Number of nodes",
-#     xaxt = "n",
-#     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
-#     lwd = 1.5
-#)
-#lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
-#lines(data.matrix(pathNodeRight), type = "o", col = color4, lwd = 1.5)
-#axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
-#legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
-#       col=c(color2, color3, color4), lty=1:1, lwd = 3)
-#dev.off()*/

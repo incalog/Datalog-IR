@@ -16,9 +16,7 @@ import inca.util.measurement.MemoryUtil
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 object PathBenchmark {
-  val recursive = "left"
-  def edb: Boolean = false
-  def edbEdgesSuffix: String = if (edb) "_edb" else ""
+  def edbEdgesSuffix: String ="_edb"
   val warmups = 0
   val runs = 1
 
@@ -162,7 +160,7 @@ object PathBenchmark {
     }
   }
 
-  def runPath() = {
+  def runPath(recursive: String) = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -207,7 +205,7 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathWithAllocation() = {
+  def runPathWithAllocation(recursive: String) = {
     val configs = for (i <- 10 until 50000 by 5000) yield {
       PathAllocationConfig(warmups, runs, s"PATH_ALLOC_${i}", i)
     }
@@ -229,7 +227,7 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive_dummy.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathWithCycles() = {
+  def runPathWithCycles(recursive: String) = {
     // number of nodes should be: n * k + (sum i=(k+1) to n (n-i))
     // where k is the last node that is fully connected
 
@@ -266,7 +264,7 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathWithoutEDB() = {
+  def runPathWithoutEDB(recursive: String) = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -294,7 +292,7 @@ object PathBenchmark {
     FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathWithNodes() = {
+  def runPathWithNodes(recursive: String) = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 50 until 60 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -346,12 +344,22 @@ object PathBenchmark {
   }
 
   def main(args: Array[String]): Unit = {
-    //runPath()
-    //runPathWithAllocation()
-    //runPathWithCycles()
-    //runPathWithoutEDB()
-    //runPathWithNodes()
     runSec3("left")
     runSec3("right")
+
+    runPath("left")
+    runPath("right")
+
+    runPathWithAllocation("left")
+    runPathWithAllocation("right")
+
+    runPathWithCycles("left")
+    runPathWithCycles("right")
+
+    runPathWithoutEDB("left")
+    runPathWithoutEDB("right")
+
+    runPathWithNodes("left")
+    runPathWithNodes("right")
   }
 }
