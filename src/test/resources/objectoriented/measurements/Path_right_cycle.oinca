@@ -1,0 +1,36 @@
+class Graph {
+    def line(from: Int, to: Int): Set[(Int, Int)] = {
+        if (from < to-1)
+            Set((from, from + 1)) ++ this.line(from + 1, to)
+        else
+            Set((from, to))
+    }
+
+    def fullyConnect(current: Int, startNode: Int, endNode: Int): Set[(Int, Int)] = {
+        if (endNode > startNode)
+          this.fullyConnect(current, startNode, endNode - 1) ++ Set((current, endNode))
+        else
+          Set((current, endNode))
+    }
+
+    def cycles(current: Int, step: Int, startNode: Int, endNode: Int): Set[(Int, Int)] = {
+        if (current < endNode)
+          this.cycles(current + step, step, startNode, endNode) ++ this.fullyConnect(current, startNode, endNode)
+        else if (current == endNode)
+          this.line(startNode, endNode) ++ this.fullyConnect(current, startNode, endNode)
+        else
+          this.line(startNode, endNode)
+    }
+
+    @main
+    def main(endNode: Int, cycleStep: Int): Set[(Int, Int)] = {
+      val g: Graph = new Graph()
+      for (e <- g.path(this.cycles(1, cycleStep, 1, endNode))) yield (e._1, e._2)
+    }
+
+     def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {
+         edges
+         ++
+         (for (e <- edges; p <- this.path(edges) if e._2 == p._1) yield (e._1, p._2))
+     }
+}

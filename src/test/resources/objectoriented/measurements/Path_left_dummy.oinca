@@ -3,7 +3,7 @@ module GraphTest
 class Dummy(val id: Int) {}
 
 class Graph {
-    /*def line(from: Int, to: Int): Set[(Int, Int)] = {
+    def line(from: Int, to: Int): Set[(Int, Int)] = {
         if (from < to-1)
             this.line(from + 1, to) ++ Set((from, from + 1))
         else
@@ -12,7 +12,7 @@ class Graph {
 
     def loop(from: Int, to: Int): Set[(Int, Int)] = {
         this.line(from, to) ++ Set((to, from))
-    }*/
+    }
 
     def generateDummy(start: Int, end: Int): Int = {
         if (start < end) {
@@ -29,7 +29,7 @@ class Graph {
     def main(numDummyObjs: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
       val i: Int = g.generateDummy(0, numDummyObjs)
-      for (e <- g.path(Set.from[(Int, Int)](edbEdges))) yield (e._1, e._2)
+      for (e <- g.path(g.line(1, 10) ++ g.loop(10, 50))) yield (e._1, e._2)
     }
 
     def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {

@@ -2,7 +2,7 @@ module GraphTest
 
 // Fast interpretation
 
-class Graph {
+/*class Graph {
     @main
     def main(): Set[(Int, Int)] = {
       val g: Graph = new Graph()
@@ -13,6 +13,20 @@ class Graph {
         (for (d <- Set.from[(Int, Int)](edbEdges) if d._1 == x) yield d._2)
         ++
         (for (i <- Set.from[(Int, Int)](edbEdges) if i._1 == x; y <- this.path(i._2)) yield y)
+    }
+}*/
+
+class Graph {
+    @main
+    def main(): Set[(Int, Int)] = {
+      val g: Graph = new Graph()
+      for (e <- g.path(Set.from[(Int, Int)](edbEdges))) yield (e._1, e._2)
+    }
+
+    def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {
+        edges
+        ++
+        (for (e <- edges; p <- this.path(edges) if e._2 == p._1) yield (e._1, p._2))
     }
 }
 

@@ -1,7 +1,7 @@
 wd <- getwd()
 # TODO change paths
-datapath <- paste(wd, "benchmark/objectoriented/edb", sep="/")
-graphpath <- paste(wd, "benchmark/objectoriented/graphs/edb", sep="/")
+datapath <- paste(wd, "benchmark/objectoriented/no_edb", sep="/")
+graphpath <- paste(wd, "benchmark/objectoriented/graphs/no_edb", sep="/")
 
 color1 <- rgb(255/256, 255/256, 204/256)
 color2 <- rgb(161/256, 218/256, 180/256)
@@ -48,7 +48,7 @@ msToS <- function(ms) {
   ms / 1000
 }
 
-##### Path from EDB
+##### Path
 
 pathDatalogEDBLeft <- colMeans(readTime("Path_Datalog_left_recursive.csv"))
 pathDatalogEDBRight <- colMeans(readTime("Path_Datalog_right_recursive.csv"))
@@ -94,7 +94,7 @@ legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
 dev.off()
 
 
-### Path from edb with allocation
+### Path with allocation
 
 pathDatalogHeapLeft <- colMeans(readTime("Path_Datalog_left_recursive_alloc.csv"))
 pathDatalogHeapRight <- colMeans(readTime("Path_Datalog_right_recursive_alloc.csv"))
@@ -138,47 +138,47 @@ legend("topright", legend=c("OODL-Datalog", "Interpreter"),
 dev.off()
 
 
-### Path from EDB with cycles
+### Path with cycles
 
-pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_cycles.csv"))
-pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycles.csv"))
-pathInterpCycleLeft <- colMeans(readTime("Path_Interpreter_left_recursive_cycles.csv"))
-pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycles.csv"))
-pathIrCycleLeft <- colMeans(readTime("Path_IR_left_recursive_cycles.csv"))
-pathIrCycleRight <- colMeans(readTime("Path_IR_right_recursive_cycles.csv"))
+#pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_cycles.csv"))
+#pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycles.csv"))
+#pathInterpCycleLeft <- colMeans(readTime("Path_Interpreter_left_recursive_cycles.csv"))
+#pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycles.csv"))
+#pathIrCycleLeft <- colMeans(readTime("Path_IR_left_recursive_cycles.csv"))
+#pathIrCycleRight <- colMeans(readTime("Path_IR_right_recursive_cycles.csv"))
 
-pdf(file = paste(graphpath, "Path-right-recrusive-cycles.pdf", sep="/"))
-plot(data.matrix(pathDatalogCycleRight),
-     main = "(A) Measuring execution time of right-recursive path example (8 nodes)",
-     type = "o",
-     col = color2,
-     ylab = "Running time (s)",
-     xlab = "Number of cycles",
-     xaxt = "n",
-     ylim = c(0, 70), # TODO change regarding upper bound of measurevalues
-     lwd = 1.5
-)
-lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
-lines(data.matrix(pathIrCycleRight), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:4), labels = list(8, 16, 32, 64))
-legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
-       col=c(color2, color3, color4), lty=1:1, lwd = 3)
-dev.off()
+#pdf(file = paste(graphpath, "Path-right-recrusive-cycles.pdf", sep="/"))
+#plot(data.matrix(pathDatalogCycleRight),
+#     main = "(A) Measuring execution time of right-recursive path example (8 nodes)",
+#     type = "o",
+#     col = color2,
+#     ylab = "Running time (s)",
+#     xlab = "Number of cycles",
+#     xaxt = "n",
+#     ylim = c(0, 70), # TODO change regarding upper bound of measurevalues
+#     lwd = 1.5
+#)
+#lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
+#lines(data.matrix(pathIrCycleRight), type = "o", col = color4, lwd = 1.5)
+#axis(1, at = c(1:4), labels = list(8, 16, 32, 64))
+#legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
+#       col=c(color2, color3, color4), lty=1:1, lwd = 3)
+#dev.off()
 
-pdf(file = paste(graphpath, "Path-left-recrusive-cycles.pdf", sep="/"))
-plot(data.matrix(pathDatalogCycleLeft),
-     main = "(A) Measuring execution time of left-recursive path example (40 nodes)",
-     type = "o",
-     col = color2,
-     ylab = "Running time (s)",
-     xlab = "Number of cycles",
-     xaxt = "n",
-     ylim = c(0, 30), # TODO change regarding upper bound of measurevalues
-     lwd = 1.5
-)
-lines(data.matrix(pathInterpCycleLeft), type = "o", col = color3, lwd = 1.5)
-lines(data.matrix(pathIrCycleLeft), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:4), labels = list(200, 400, 800, 1600))
-legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
-       col=c(color2, color3, color4), lty=1:1, lwd = 3)
-dev.off()
+#pdf(file = paste(graphpath, "Path-left-recrusive-cycles.pdf", sep="/"))
+#plot(data.matrix(pathDatalogCycleLeft),
+#     main = "(A) Measuring execution time of left-recursive path example (40 nodes)",
+#     type = "o",
+#     col = color2,
+#     ylab = "Running time (s)",
+#     xlab = "Number of cycles",
+#     xaxt = "n",
+#     ylim = c(0, 30), # TODO change regarding upper bound of measurevalues
+#     lwd = 1.5
+#)
+#lines(data.matrix(pathInterpCycleLeft), type = "o", col = color3, lwd = 1.5)
+#lines(data.matrix(pathIrCycleLeft), type = "o", col = color4, lwd = 1.5)
+#axis(1, at = c(1:4), labels = list(200, 400, 800, 1600))
+#legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
+#       col=c(color2, color3, color4), lty=1:1, lwd = 3)
+#dev.off()

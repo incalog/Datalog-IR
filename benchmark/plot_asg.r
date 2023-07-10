@@ -19,7 +19,7 @@ read <- function(fileName) {
 readMeasurement <- function(fileName) {
   csv <- read(fileName)
   vals <- csv$measurement
-  valsInMs <- nsToMs(vals)
+  valsInMs <- msToS(nsToMs(vals))
   return(valsInMs)
 }
 
@@ -35,7 +35,7 @@ readSteps <- function(fileName) {
 
 readTime <- function(fileName) {
   csv <- read(fileName)
-  return(nsToMs(csv))
+  return(msToS(nsToMs(csv)))
 }
 
 
@@ -57,14 +57,14 @@ plot(data.matrix(asgDatalog),
      main = "(A) Measuring execution time of ASG example",
      type = "o",
      col = color2,
-     ylab = "Running time (ms)",
+     ylab = "Running time (s)",
      xlab = "Number of nodes",
      xaxt = "n",
-     ylim = c(0, 80000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 90), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(asgInterp), type = "o", col = color3, lwd = 1.5)
-axis(1, at = c(1:11), labels = seq(10, 510, by = 50))
+axis(1, at = c(1:12), labels = seq(10, 520, by = 50))
 legend("topleft", legend=c("Datalog", "Interpreter"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()

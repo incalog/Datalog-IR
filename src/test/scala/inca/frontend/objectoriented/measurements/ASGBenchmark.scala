@@ -124,7 +124,7 @@ case class ASGBenchmark(val warmups: Int, val runs: Int) {
   }
 
   def run() = {
-    val configs = for (i <- 10 until 510 by 50) yield {
+    val configs = for (i <- 10 until 520 by 50) yield {
       ASGConfig(warmups, runs, s"ASG", i, 10)
     }
 

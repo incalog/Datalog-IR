@@ -3,6 +3,17 @@ module GraphTest
 class Dummy(val id: Int) {}
 
 class Graph {
+    def line(from: Int, to: Int): Set[(Int, Int)] = {
+        if (from < to-1)
+            Set((from, from + 1)) ++ this.line(from + 1, to)
+        else
+            Set((from, to))
+    }
+
+    def loop(from: Int, to: Int): Set[(Int, Int)] = {
+        this.line(from, to) ++ Set((to, from))
+    }
+
     def generateDummy(start: Int, end: Int): Int = {
         if (start < end) {
             // Prevent Datalog from optimizing this code away
@@ -17,20 +28,21 @@ class Graph {
     def main(numDummyObjs: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
       val i: Int = g.generateDummy(0, numDummyObjs)
-      for (e <- Set.from[(Int, Int)](edbEdges); r <- g.path(e._1)) yield (e._1, r)
+      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.loop(10, 50)
+      for (e <- edges; r <- g.path(e._1, edges)) yield (e._1, r)
      }
 
-     def path(x: Int): Set[Int] = {
-         (for (d <- Set.from[(Int, Int)](edbEdges) if d._1 == x) yield d._2)
+     def path(x: Int, edges: Set[(Int, Int)]): Set[Int] = {
+         (for (d <- edges if d._1 == x) yield d._2)
          ++
-         (for (i <- Set.from[(Int, Int)](edbEdges) if i._1 == x; y <- this.path(i._2)) yield y)
+         (for (i <- edges if i._1 == x; y <- this.path(i._2, edges)) yield y)
      }*/
 
      @main
      def main(numDummyObjs: Int): Set[(Int, Int)] = {
        val g: Graph = new Graph()
        val i: Int = g.generateDummy(0, numDummyObjs)
-       for (e <- g.path(Set.from[(Int, Int)](edbEdges))) yield (e._1, e._2)
+       for (e <- g.path(g.line(1, 10) ++ g.loop(10, 50))) yield (e._1, e._2)
      }
 
      def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {

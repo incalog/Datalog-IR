@@ -12,7 +12,7 @@ class Graph {
         this.line(from, to) ++ Set((to, from))
     }
 
-    @main
+    /*@main
     def main(endNode: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
       val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.loop(10, endNode)
@@ -23,5 +23,17 @@ class Graph {
         (for (d <- edges if d._1 == x) yield d._2)
         ++
         (for (i <- edges if i._1 == x; y <- this.path(i._2, edges)) yield y)
-    }
+    }*/
+
+     @main
+     def main(endNode: Int): Set[(Int, Int)] = {
+       val g: Graph = new Graph()
+       for (e <- g.path(g.line(1, 10) ++ g.loop(10, endNode))) yield (e._1, e._2)
+     }
+
+     def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {
+         edges
+         ++
+         (for (e <- edges; p <- this.path(edges) if e._2 == p._1) yield (e._1, p._2))
+     }
 }

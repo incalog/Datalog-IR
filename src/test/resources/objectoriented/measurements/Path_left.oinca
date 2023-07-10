@@ -15,13 +15,12 @@ class Graph {
     @main
     def main(endNode: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
-      val edges: Set[(Int, Int)] = g.line(1, 10) ++ g.loop(10, endNode)
-      for (e <- edges; r <- g.path(e._1, edges)) yield (e._1, r)
+      for (e <- g.path(g.line(1, 10) ++ g.loop(10, endNode))) yield (e._1, e._2)
     }
 
-    def path(x: Int, edges: Set[(Int, Int)]): Set[Int] = {
-        (for (y <- this.path(x, edges); i <- edges if i._1 == y) yield i._2)
+    def path(edges: Set[(Int, Int)]): Set[(Int, Int)] = {
+        (for (p <- this.path(edges); e <- edges if e._2 == p._1) yield (e._1, p._2))
         ++
-        (for (d <- edges if d._1 == x) yield d._2)
+        edges
     }
 }

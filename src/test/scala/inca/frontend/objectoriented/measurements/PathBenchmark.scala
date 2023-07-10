@@ -172,19 +172,6 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     }
     FileUtil.writeFile(s"$resultPath/edb/Path_IR_${recursive}_recursive.csv", csvToString(toCSV(irMeasurements)))
 
-    // IR with computed graph
-    /*val irMeasurements = for (c <- configs) yield {
-      if (edbEdges) {
-        val edges = PathIRModule.input(c.endNode)
-        val edb = EDBChange.insertions(Seq(Relation2("edge", Seq("X", "Y"), edges)))
-        c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "path", edb)
-      } else {
-        val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bff", Seq("e"), Seq(Seq(c.endNode)))))
-        c.endNode -> measureDatalogIR(c, PathIRModule.module(recursive), "main", edb)
-      }
-    }
-    FileUtil.writeFile(s"$resultPath/Path_IR_${recursive}${edbEdgesSuffix}_recursive.csv", csvToString(toCSV(irMeasurements)))*/
-
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
       val edb = Relation.from("edbEdges", Seq("x", "y"), PathIRModule.input(c.endNode))
@@ -287,12 +274,31 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode)))
     }
-    FileUtil.writeFile(s"$resultPath/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
+  }
+
+  def runPathAllocationWithoutEDB(recursive: String) = {
+    val configs = for (i <- 10 until 50000 by 5000) yield {
+      PathAllocationConfig(warmups, runs, s"PATH_ALLOC_${i}", i)
+    }
+    val prog = progFolder + s"Path_${recursive}_dummy.oinca"
+
+    // OODL
+    val datalogMeasurements = for (c <- configs) yield {
+      c.heapSize -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.heapSize)))
+    }
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_Datalog_${recursive}_recursive_alloc.csv", csvToString(toCSV(datalogMeasurements)))
+
+    // OODL - Interp
+    val interpreterMeasurements = for (c <- configs) yield {
+      c.heapSize -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.heapSize)))
+    }
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_alloc.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   def runPathNodesWithoutEDB(recursive: String) = {
     // 1 -> .. 10 -> endNode  endNode -> 10
-    val configs = for (i <- 50 until 60 by 20) yield {
+    val configs = for (i <- 10 until 160 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
     }
 
@@ -309,6 +315,42 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode)))
     }
     FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_nodes.csv", csvToString(toCSV(interpreterMeasurements)))
+  }
+
+  def runPathCyclesWithoutEDB(recursive: String) = {
+    // number of nodes should be: n * k + (sum i=(k+1) to n (n-i))
+    // where k is the last node that is fully connected
+
+    // Good for right config
+    val configs =
+      if (recursive == "right") {
+        for (i <- Seq(8, 4, 2, 1)) yield
+          PathCycleConfig(warmups, runs, s"PATH_CYCLES_${i}", 8, i)
+      } else {
+        for (i <- Seq(8, 4, 2, 1)) yield
+          PathCycleConfig(warmups, runs, s"PATH_CYCLES_${i}", 40, i)
+      }
+    val prog = progFolder + s"Path_${recursive}_cycle.oinca"
+
+    // IR
+    val irMeasurements = for (c <- configs) yield {
+      // Note: Make sure this code produces the same graph as the program
+      val edb = EDBChange.insertions(Seq(Relation1("ext_input$main$bbff", Seq("e", "s"), Seq(Seq(c.endNode, c.cycleStep)))))
+      c.endNode -> measureDatalogIR(c, PathIRModule.moduleWithCycleInputComputation(recursive), "path", edb)
+    }
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_IR_${recursive}_recursive_cycles.csv", csvToString(toCSV(irMeasurements)))
+
+    // OODL
+    val datalogMeasurements = for (c <- configs) yield {
+      c.cycleStep -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.cycleStep)))
+    }
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_Datalog_${recursive}_recursive_cycles.csv", csvToString(toCSV(datalogMeasurements)))
+
+    // OODL - Interp
+    val interpreterMeasurements = for (c <- configs) yield {
+      c.cycleStep -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.cycleStep)))
+    }
+    FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   def runSec3(recursive: String) = {
@@ -342,11 +384,18 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
   }
 
   def run(recursive: String): Unit = {
-    //runSec3(recursive)
-    //runPathWithEDB(recursive)
-    //runPathAllocationWithEDB(recursive)
+    runSec3(recursive)
+
+    runPathWithEDB(recursive)
+    runPathWithoutEDB(recursive)
+
+    runPathAllocationWithEDB(recursive)
+    runPathAllocationWithoutEDB(recursive)
+
     runPathCyclesWithEDB(recursive)
-    /*runPathWithoutEDB(recursive)
-    runPathNodesWithoutEDB(recursive)*/
+    runPathCyclesWithoutEDB(recursive)
+
+    // There is no way to put node objects in the edb
+    runPathNodesWithoutEDB(recursive)
   }
 }

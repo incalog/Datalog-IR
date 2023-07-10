@@ -2,11 +2,14 @@ package inca.frontend.objectoriented.measurements
 
 object Benchmark {
   def main(args: Array[String]): Unit = {
-    val pathBenchmark = PathBenchmark(warmups = 0, runs = 1)
-    pathBenchmark.run("left")
-    pathBenchmark.run("right")
+    val warmups = 0
+    val runs = 1
 
-    //val asgBenchmark = ASGBenchmark(warmups = 0, runs = 1)
+    //val asgBenchmark = ASGBenchmark(warmups, runs)
     //asgBenchmark.run()
+
+    val pathBenchmark = PathBenchmark(warmups, runs)
+    //pathBenchmark.run("left")
+    pathBenchmark.run("right")
   }
 }
