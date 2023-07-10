@@ -20,6 +20,8 @@ object DemandTransformation extends Transformation {
 
   def extensionalInputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternExtensionalPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
 
+//  private val extractCandidates: ListBuffer[Seq[Atom]] = ListBuffer.empty
+
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
     val gensym = new Gensym(Seq())
@@ -48,6 +50,38 @@ object DemandTransformation extends Transformation {
 
       Module(mod.name, mod.imports, filteredPats, mod.scalaContent)
     }
+
+//    def extract(pats: Seq[Pattern], candidates: Vector[Seq[Atom]]): Seq[Pattern] = {
+//      val candidatesSorted = candidates.sortBy(- _.size)
+//      var result = pats
+//      for (c <- candidatesSorted)
+//        result = extract(result, c)
+//      result
+//    }
+//
+//    def extract(pats: Seq[Pattern], candidate: Seq[Atom]): Seq[Pattern] = {
+//      var found = 0
+//      val name = gensym.fresh("extracted")
+//      val vars = CollectVars.transBody(Body(candidate)).distinct
+//      val extractedPattern = Pattern(None, name, vars.map(Param(_, TAny)), Seq(Body(candidate)))
+//      val extracted = pats.map { p =>
+//        val bs = for (b <- p.bodies) yield {
+//          b.atoms.indexOfSlice(candidate) match {
+//            case -1 => b
+//            case ix =>
+//              val pre = b.atoms.slice(0, ix)
+//              val extractCall = Call(name)
+//              val post = b.atoms.slice(ix + 1, b.atoms.size)
+//          }
+//        }
+//        p.copy(bodies = bs)
+//      }
+//      if (found > 1) {
+//        ???
+//      } else {
+//        pats
+//      }
+//    }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
       if (pat.hasHint(MagicSetHints.DemandPatternsKey)) {
@@ -162,7 +196,10 @@ object DemandTransformation extends Transformation {
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
-                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                val ignoreCall = atom.hints.contains(MagicSetHints.IgnoreCallKey)
+                if (ignoreCall || name != pat.name) {
+                  Seq() // ignore this call
+                } else {
                   val callAdornment = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
                   if (callAdornment.adorn.contains(demandPat)) {
                     val bindings = boundIndices.map { i =>
@@ -171,15 +208,18 @@ object DemandTransformation extends Transformation {
                     val prefixAtoms = body.atoms.take(atomix)
                     // check if every param is bound, else we do not generate rule
                     val inputPatternBody = Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body)
-                    if (allParamsBound(inputPatternBody, (boundParams ++ dummyParam)))
+                    if (allParamsBound(inputPatternBody, (boundParams ++ dummyParam))) {
+//                      println(s"Prefix size ${prefixAtoms.size}: ${prefixAtoms.mkString("; ")}")
+//                      val extractCandidate = body.atoms.slice(0, atomix)
+//                      extractCandidates += extractCandidate
+//                      println(s"Extract candidate size ${extractCandidate.size}: ${extractCandidate.mkString("; ")}")
                       Seq(inputPatternBody)
-                    else
+                    } else {
                       Seq()
+                    }
                   } else {
                     Seq()
                   }
-                } else {
-                  Seq()
                 }
               case _ => Seq()
             }

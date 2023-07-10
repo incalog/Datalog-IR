@@ -16,6 +16,7 @@ object FileUtil {
     file.createNewFile()
     val writer = new PrintWriter(file)
     writer.write(content)
+    writer.write("\n")
     writer.close()
   }
 }
