@@ -89,6 +89,11 @@ object InlineSimpleRelations extends Optimization {
           body_.atoms
         }
 
+      case Call(name, args, trans, neg) if name == inline.name =>
+        // need to retain inline for transitive and negative calls
+        retainInlined += name
+        Seq(Seq(atom))
+
       case Computed(_, CountAggregation(name, _)) if name == inline.name =>
         retainInlined += name
         Seq(Seq(atom))
