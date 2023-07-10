@@ -19,7 +19,7 @@ read <- function(fileName) {
 readMeasurement <- function(fileName) {
   csv <- read(fileName)
   vals <- csv$measurement
-  valsInMs <- nsToMs(vals)
+  valsInMs <- msToS(nsToMs(vals))
   return(valsInMs)
 }
 
@@ -35,7 +35,7 @@ readSteps <- function(fileName) {
 
 readTime <- function(fileName) {
   csv <- read(fileName)
-  return(nsToMs(csv))
+  return(msToS(nsToMs(csv)))
 }
 
 
@@ -44,6 +44,9 @@ nsToMs <- function(ns) {
   ns / 1000000
 }
 
+msToS <- function(ms) {
+  ms / 1000
+}
 
 
 pathNodeLeft <- colMeans(readTime("Path_Interpreter_left_recursive_node.csv"))
@@ -61,13 +64,13 @@ plot(data.matrix(pathIrLeft),
      ylab = "Running time (ms)",
      xlab = "Number of nodes",
      xaxt = "n",
-     ylim = c(0, 70000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(pathInterpLeft), type = "o", col = color3, lwd = 1.5)
 lines(data.matrix(pathNodeLeft), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:6), labels = seq(10, 120, by = 20))
-legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter with Nodes"),
+axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
+legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
 
@@ -79,12 +82,12 @@ plot(data.matrix(pathIrRight),
      ylab = "Running time (ms)",
      xlab = "Number of nodes",
      xaxt = "n",
-     ylim = c(0, 70000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
 lines(data.matrix(pathNodeRight), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:6), labels = seq(10, 120, by = 20))
-legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter with Nodes"),
+axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
+legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()

@@ -19,8 +19,8 @@ object PathBenchmark {
   val recursive = "left"
   def edb: Boolean = false
   def edbEdgesSuffix: String = if (edb) "_edb" else ""
-  val warmups = 5
-  val runs = 10
+  val warmups = 0
+  val runs = 1
 
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"

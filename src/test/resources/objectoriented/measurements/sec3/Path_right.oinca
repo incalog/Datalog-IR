@@ -12,7 +12,7 @@ class Graph {
       	if (from < to) {
         	this.line(from, from+step) ++ Set((from + step, from)) ++ this.loop(from + step, to, step)
         } else if (from == to) {
-			Set((from, from-step))
+			Set((from, from-step)) ++ Set((from, 0))
         } else {
       		this.line(to, from)
         }

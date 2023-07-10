@@ -382,6 +382,17 @@ object PathIRModule {
               Datalog.Computed(Datalog.True, Datalog.Evaluation(
                 Seq(Datalog.Var("from") -> Datalog.TScalaInt, Datalog.Var("to") -> Datalog.TScalaInt),
                 Datalog.TScalaInt,
+                Scala(q"(f: Int, t: Int) => f == t")
+              )),
+              Datalog.Eq(Datalog.Var("out$1"), Datalog.Var("from")),
+              Datalog.Eq(Datalog.Var("out$2"), Datalog.IntConstant(0))
+            )
+          ),
+          Datalog.Body(
+            Seq(
+              Datalog.Computed(Datalog.True, Datalog.Evaluation(
+                Seq(Datalog.Var("from") -> Datalog.TScalaInt, Datalog.Var("to") -> Datalog.TScalaInt),
+                Datalog.TScalaInt,
                 Scala(q"(f: Int, t: Int) => f > t")
               )),
               Datalog.Call("line", Seq(Datalog.Var("to"), Datalog.Var("from"), Datalog.Var("out$1"), Datalog.Var("out$2")))

@@ -14,7 +14,7 @@ class Graph {
         if (from < to) {
             this.loop(from + step, to, step) ++ this.line(from, from+step) ++ Set((new Node(from + step), new Node(from)))
         } else if (from == to) {
-            Set((new Node(from), new Node(from-step)))
+            Set((new Node(from), new Node(from-step))) ++ Set((new Node(from), new Node(0)))
         } else {
             this.line(to, from)
         }
