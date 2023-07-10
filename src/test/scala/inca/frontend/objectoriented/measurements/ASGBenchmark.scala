@@ -16,10 +16,7 @@ import inca.util.measurement.MemoryUtil
 
 import scala.meta.Term
 
-object ASGBenchmark {
-  val warmups = 0
-  val runs = 1
-
+case class ASGBenchmark(val warmups: Int, val runs: Int) {
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
 
@@ -127,7 +124,7 @@ object ASGBenchmark {
   }
 
   def run() = {
-    val configs = for (i <- 10 until 160 by 20) yield {
+    val configs = for (i <- 10 until 510 by 50) yield {
       ASGConfig(warmups, runs, s"ASG", i, 10)
     }
 
@@ -144,9 +141,5 @@ object ASGBenchmark {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
     FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
-  }
-
-  def main(args: Array[String]): Unit = {
-    run()
   }
 }

@@ -1,7 +1,7 @@
 wd <- getwd()
 # TODO change paths
-datapath <- paste(wd, "benchmark/objectoriented", sep="/")
-graphpath <- paste(wd, "benchmark/objectoriented/graphs", sep="/")
+datapath <- paste(wd, "benchmark/objectoriented/edb", sep="/")
+graphpath <- paste(wd, "benchmark/objectoriented/graphs/edb", sep="/")
 
 color1 <- rgb(255/256, 255/256, 204/256)
 color2 <- rgb(161/256, 218/256, 180/256)
@@ -47,12 +47,12 @@ nsToMs <- function(ns) {
 
 ##### Path from EDB
 
-pathDatalogEDBLeft <- colMeans(readTime("Path_Datalog_left_edb_recursive.csv"))
-pathDatalogEDBRight <- colMeans(readTime("Path_Datalog_right_edb_recursive.csv"))
-pathInterpEDBLeft <- colMeans(readTime("Path_Interpreter_left_edb_recursive.csv"))
-pathInterpEDBRight <- colMeans(readTime("Path_Interpreter_right_edb_recursive.csv"))
-pathIrEDBLeft <- colMeans(readTime("Path_IR_left_edb_recursive.csv"))
-pathIrEDBRight <- colMeans(readTime("Path_IR_right_edb_recursive.csv"))
+pathDatalogEDBLeft <- colMeans(readTime("Path_Datalog_left_recursive.csv"))
+pathDatalogEDBRight <- colMeans(readTime("Path_Datalog_right_recursive.csv"))
+pathInterpEDBLeft <- colMeans(readTime("Path_Interpreter_left_recursive.csv"))
+pathInterpEDBRight <- colMeans(readTime("Path_Interpreter_right_recursive.csv"))
+pathIrEDBLeft <- colMeans(readTime("Path_IR_left_recursive.csv"))
+pathIrEDBRight <- colMeans(readTime("Path_IR_right_recursive.csv"))
 
 pdf(file = paste(graphpath, "Path-right-edb-recrusive.pdf", sep="/"))
 plot(data.matrix(pathDatalogEDBRight),
@@ -93,10 +93,10 @@ dev.off()
 
 ### Path from edb with allocation
 
-pathDatalogHeapLeft <- colMeans(readTime("Path_Datalog_left_recursive_dummy.csv"))
-pathDatalogHeapRight <- colMeans(readTime("Path_Datalog_right_recursive_dummy.csv"))
-pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_dummy.csv"))
-pathInterpHeapRight <- colMeans(readTime("Path_Interpreter_right_recursive_dummy.csv"))
+pathDatalogHeapLeft <- colMeans(readTime("Path_Datalog_left_recursive_alloc.csv"))
+pathDatalogHeapRight <- colMeans(readTime("Path_Datalog_right_recursive_alloc.csv"))
+pathInterpHeapLeft <- colMeans(readTime("Path_Interpreter_left_recursive_alloc.csv"))
+pathInterpHeapRight <- colMeans(readTime("Path_Interpreter_right_recursive_alloc.csv"))
 
 
 pdf(file = paste(graphpath, "Path-left-recrusive-heap.pdf", sep="/"))
@@ -137,12 +137,12 @@ dev.off()
 
 ### Path from EDB with cycles
 
-pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_edb_recursive_cycles.csv"))
-pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_edb_recursive_cycles.csv"))
-pathInterpCycleLeft <- colMeans(readTime("Path_Interpreter_left_edb_recursive_cycles.csv"))
-pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_edb_recursive_cycles.csv"))
-pathIrCycleLeft <- colMeans(readTime("Path_IR_left_edb_recursive_cycles.csv"))
-pathIrCycleRight <- colMeans(readTime("Path_IR_right_edb_recursive_cycles.csv"))
+pathDatalogCycleLeft <- colMeans(readTime("Path_Datalog_left_recursive_cycles.csv"))
+pathDatalogCycleRight <- colMeans(readTime("Path_Datalog_right_recursive_cycles.csv"))
+pathInterpCycleLeft <- colMeans(readTime("Path_Interpreter_left_recursive_cycles.csv"))
+pathInterpCycleRight <- colMeans(readTime("Path_Interpreter_right_recursive_cycles.csv"))
+pathIrCycleLeft <- colMeans(readTime("Path_IR_left_recursive_cycles.csv"))
+pathIrCycleRight <- colMeans(readTime("Path_IR_right_recursive_cycles.csv"))
 
 pdf(file = paste(graphpath, "Path-right-recrusive-cycles.pdf", sep="/"))
 plot(data.matrix(pathDatalogCycleRight),
@@ -157,7 +157,7 @@ plot(data.matrix(pathDatalogCycleRight),
 )
 lines(data.matrix(pathInterpCycleRight), type = "o", col = color3, lwd = 1.5)
 lines(data.matrix(pathIrCycleRight), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:4), labels = list(1, 2, 4, 8))
+axis(1, at = c(1:4), labels = list(8, 16, 32, 64))
 legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
@@ -175,7 +175,7 @@ plot(data.matrix(pathDatalogCycleLeft),
 )
 lines(data.matrix(pathInterpCycleLeft), type = "o", col = color3, lwd = 1.5)
 lines(data.matrix(pathIrCycleLeft), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:4), labels = list(5, 10, 20, 40))
+axis(1, at = c(1:4), labels = list(200, 400, 800, 1600))
 legend("topright", legend=c("OODL-Datalog", "OODL-Interpreter", "Datalog"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()

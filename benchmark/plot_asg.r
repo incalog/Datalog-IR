@@ -60,11 +60,11 @@ plot(data.matrix(asgDatalog),
      ylab = "Running time (ms)",
      xlab = "Number of nodes",
      xaxt = "n",
-     ylim = c(0, 60000), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 80000), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(asgInterp), type = "o", col = color3, lwd = 1.5)
-axis(1, at = c(1:8), labels = seq(10, 160, by = 20))
+axis(1, at = c(1:11), labels = seq(10, 510, by = 50))
 legend("topleft", legend=c("Datalog", "Interpreter"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
