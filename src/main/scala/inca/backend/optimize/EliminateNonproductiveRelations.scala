@@ -44,6 +44,7 @@ object EliminateNonproductiveRelations extends Optimization {
 
     override def optimizeAtom(atom: Atom): Seq[Atom] = atom match {
       case Call(name, _, _, false) if !productivePats.contains(name) =>
+        println(atom)
         throwBodyMustFail()
       case _ => Seq(atom)
     }

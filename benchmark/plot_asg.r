@@ -1,7 +1,7 @@
 wd <- getwd()
 # TODO change paths
-datapath <- paste(wd, "benchmark/objectoriented/sec3", sep="/")
-graphpath <- paste(wd, "benchmark/objectoriented/graphs/sec3", sep="/")
+datapath <- paste(wd, "benchmark/objectoriented/asg", sep="/")
+graphpath <- paste(wd, "benchmark/objectoriented/graphs/asg", sep="/")
 
 color1 <- rgb(255/256, 255/256, 204/256)
 color2 <- rgb(161/256, 218/256, 180/256)
@@ -19,7 +19,7 @@ read <- function(fileName) {
 readMeasurement <- function(fileName) {
   csv <- read(fileName)
   vals <- csv$measurement
-  valsInMs <- msToS(nsToMs(vals))
+  valsInMs <- nsToMs(vals)
   return(valsInMs)
 }
 
@@ -35,7 +35,7 @@ readSteps <- function(fileName) {
 
 readTime <- function(fileName) {
   csv <- read(fileName)
-  return(msToS(nsToMs(csv)))
+  return(nsToMs(csv))
 }
 
 
@@ -74,20 +74,20 @@ legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as obje
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
 
-pdf(file = paste(graphpath, "Path-right-recrusive.pdf", sep="/"))
-plot(data.matrix(pathIrRight),
-     main = "(A) Measuring execution time of right-recursive path example",
-     type = "o",
-     col = color2,
-     ylab = "Running time (s)",
-     xlab = "Number of nodes",
-     xaxt = "n",
-     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
-     lwd = 1.5
-)
-lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
-lines(data.matrix(pathNodeRight), type = "o", col = color4, lwd = 1.5)
-axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
-legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
-       col=c(color2, color3, color4), lty=1:1, lwd = 3)
-dev.off()
+#pdf(file = paste(graphpath, "Path-right-recrusive.pdf", sep="/"))
+#plot(data.matrix(pathIrRight),
+#     main = "(A) Measuring execution time of right-recursive path example",
+#     type = "o",
+#     col = color2,
+#     ylab = "Running time (s)",
+#     xlab = "Number of nodes",
+#     xaxt = "n",
+#     ylim = c(0, 260), # TODO change regarding upper bound of measurevalues
+#     lwd = 1.5
+#)
+#lines(data.matrix(pathInterpRight), type = "o", col = color3, lwd = 1.5)
+#lines(data.matrix(pathNodeRight), type = "o", col = color4, lwd = 1.5)
+#axis(1, at = c(1:8), labels = seq(10, 150, by = 20))
+#legend("topleft", legend=c("Datalog", "Interpreter", "Interpreter, nodes as objects"),
+#       col=c(color2, color3, color4), lty=1:1, lwd = 3)
+#dev.off()*/

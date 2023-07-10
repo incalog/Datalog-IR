@@ -28,7 +28,7 @@ object ASGBenchmark {
     val runs: Int
     val name: String
   }
-  case class ASGConfig(warmup: Int, runs: Int, name: String, id: Int) extends Config
+  case class ASGConfig(warmup: Int, runs: Int, name: String, endNode: Int, step: Int) extends Config
 
 
   def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
@@ -59,9 +59,12 @@ object ASGBenchmark {
 
       val datalog = new ObjectOrientedDatalog(module)
 
-      //datalog.update(EDBChange.insertions(edb))
-      //val run = datalog.run("ProgEntry", "main", args:_*)
-      //println(run.size)
+      datalog.update(EDBChange.insertions(edb))
+      val run = datalog.run("ProgEntry", "main", args:_*)
+      datalog.readAll.foreach { rel =>
+        println()
+        println(rel.asTable)
+      }
       //println(run)
       //System.exit(1)
 
@@ -113,7 +116,9 @@ object ASGBenchmark {
       val res = interp.run(main, args)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
-      println(res)
+      println(res.asSet.size)
+      println(res.asSet)
+      System.exit(1)
 
       MemoryUtil.collectGarbage()
 
@@ -122,21 +127,23 @@ object ASGBenchmark {
   }
 
   def run() = {
-    val configs = Seq(ASGConfig(warmups, runs, s"ASG", 1))
+    val configs = for (i <- 10 until 160 by 20) yield {
+      ASGConfig(warmups, runs, s"ASG", i, 10)
+    }
 
     val prog = progFolder + s"AbstractSyntaxGraph.oinca"
 
     // OODL
-    /*val datalogMeasurements = for (c <- configs) yield {
-      c.id -> measureDatalog(c, prog, Seq(), Seq())
+    val datalogMeasurements = for (c <- configs) yield {
+      c.endNode -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
-      c.id -> measureInterpreter(c, prog, Map(), Seq())
+      c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/ASG_Datalog.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
   def main(args: Array[String]): Unit = {

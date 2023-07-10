@@ -12,7 +12,7 @@ class Graph {
       	if (from < to) {
         	this.line(from, from+step) ++ Set((from + step, from)) ++ this.loop(from + step, to, step)
         } else if (from == to) {
-			Set((from, from-step)) ++ Set((from, 0))
+			Set((from-step, from))
         } else {
       		this.line(to, from)
         }
@@ -21,7 +21,7 @@ class Graph {
     @main
     def main(endNode: Int, step: Int): Set[(Int, Int)] = {
       val g: Graph = new Graph()
-      val edges: Set[(Int, Int)] = g.loop(0, endNode, step)
+      val edges: Set[(Int, Int)] = g.loop(0, endNode, step) ++ Set((endNode, 0))
       for (e <- g.path(edges)) yield (e._1, e._2)
     }
 

@@ -373,19 +373,8 @@ object PathIRModule {
                 Datalog.TScalaInt,
                 Scala(q"(f: Int, s: Int) => f - s")
               )),
-              Datalog.Eq(Datalog.Var("out$1"), Datalog.Var("from")),
-              Datalog.Eq(Datalog.Var("out$2"), Datalog.Var("from$1"))
-            )
-          ),
-          Datalog.Body(
-            Seq(
-              Datalog.Computed(Datalog.True, Datalog.Evaluation(
-                Seq(Datalog.Var("from") -> Datalog.TScalaInt, Datalog.Var("to") -> Datalog.TScalaInt),
-                Datalog.TScalaInt,
-                Scala(q"(f: Int, t: Int) => f == t")
-              )),
-              Datalog.Eq(Datalog.Var("out$1"), Datalog.Var("from")),
-              Datalog.Eq(Datalog.Var("out$2"), Datalog.IntConstant(0))
+              Datalog.Eq(Datalog.Var("out$1"), Datalog.Var("from$1")),
+              Datalog.Eq(Datalog.Var("out$2"), Datalog.Var("from"))
             )
           ),
           Datalog.Body(
@@ -400,6 +389,8 @@ object PathIRModule {
           )
         )
       ),
+      // TODO: Add cylce to 0 from endNode
+      // TODO: Reverse node from to from-step
       Datalog.Pattern(None, "edge",
         Seq(
           Datalog.Param("endNode", Datalog.TScalaInt),
@@ -411,6 +402,12 @@ object PathIRModule {
           Datalog.Body(
             Seq(
               Datalog.Call("loop", Seq(Datalog.IntConstant(0), Datalog.Var("endNode"), Datalog.Var("step"), Datalog.Var("x"), Datalog.Var("y"))),
+            )
+          ),
+          Datalog.Body(
+            Seq(
+              Datalog.Eq(Datalog.Var("x"), Datalog.Var("endNode")),
+              Datalog.Eq(Datalog.Var("y"), Datalog.IntConstant(0)),
             )
           )
         )
