@@ -7,7 +7,7 @@ import inca.ir.{Atom, BaseIR, Body}
 import scala.collection.mutable.ListBuffer
 
 trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
   type Alternatives[A] = Seq[A]
   private var alternativeAtoms: Alternatives[Seq[Atom]] = Seq()

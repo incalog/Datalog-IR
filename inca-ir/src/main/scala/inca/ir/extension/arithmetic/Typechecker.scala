@@ -21,11 +21,18 @@ trait Typechecker extends BaseIRTypechecker:
       typecheck(rhs)
     case _ => super.typecheck(atom)
 
+  private def typecheckInfixOp(ty1: Type, ty2: Type) = {
+    // TODO: We might implement better typechecking here
+    join(ty1, ty2)
+  }
+
   override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
-    case Add(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
-    case Sub(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
-    case Mul(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
-    case Div(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
-    case Min(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
-    case Max(lhs, rhs) => join(typecheck(lhs), typecheck(rhs))
+    case Add(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case Sub(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case Mul(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case Div(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case Min(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case Max(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+    case IntNum(_) => TInt
+    case DoubleNum(_) => TDouble
     case _ => super.typecheckInternal(term, inferred)

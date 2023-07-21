@@ -1,16 +1,17 @@
 package inca.ir.extension.arithmetic
 
 import inca.Scala
-import inca.ir.{Atom, Name, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 import inca.ir.extension.*
-import inca.ir.Eq
 import inca.ir.extension.bool.BoolTrue
+import inca.ir.extension.arithmetic.IR
 import inca.ir.extensions.{Application, Constant, PrimitiveScalaIR}
 import inca.ir.lowering.BaseLowering
 
 
-trait Lowering[S <: IR, T <: PrimitiveScalaIR with block.IR with bool.IR] extends BaseLowering[S, T] {
-  
+trait Lowering[S <: IR, T <: PrimitiveScalaIR with block.IR] extends BaseLowering[S, T] {
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+
   private var freshCount = 0
   def freshName(): Name =
     val x = IR.name + "$" + freshCount
@@ -40,10 +41,10 @@ trait Lowering[S <: IR, T <: PrimitiveScalaIR with block.IR with bool.IR] extend
     case LT(lhs, rhs) =>
       val (x, appl) = app("<", lhs, rhs)
       // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
-      Seq(Eq(BoolTrue, x))
+      Seq(Eq(Constant(Scala.BoolLiteral(true)), x))
     case GT(lhs, rhs) =>
       val (x, appl) = app(">", lhs, rhs)
-      Seq(Eq(BoolTrue, x))
+      Seq(Eq(Constant(Scala.BoolLiteral(true)), x))
     case _ =>
       super.visitAtom(atom)
 

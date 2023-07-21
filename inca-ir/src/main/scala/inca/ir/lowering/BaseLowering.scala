@@ -11,6 +11,8 @@ trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
   def loweredIRs: Set[BaseIR] = Set()
 
   def lower(module: Module): Module = {
+    println(module.lang)
+    println(trg.requires)
     if (!module.lang.includes(trg.requires))
       throw new IllegalArgumentException(s"Module $module misses required features: ${trg.requires.features}")
     val loweredLang = module.lang -- loweredIRs

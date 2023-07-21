@@ -15,6 +15,6 @@ trait PrimitiveScalaIR extends BaseIR:
   override val name: String = "PrimitiveScala"
   override def language: Language = super.language + new PrimitiveScalaIR {}
   // This IR is not reducible
-  override def requires: Language = Language(this)
+  override def requires: Language = Language(new PrimitiveScalaIR {})
 
 object PrimitiveScalaIR extends PrimitiveScalaIR { }

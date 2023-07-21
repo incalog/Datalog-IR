@@ -45,7 +45,7 @@ case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
 
 object IR extends IR { }
-trait IR extends BaseIR:
+trait IR extends BaseIR with PrimitiveScalaIR:
   override val name: String = "Arithmetic"
   override def language: Language = super.language + IR
-  override def requires: Language = Language(PrimitiveScalaIR, block.IR, bool.IR)
+  override def requires: Language = Language(PrimitiveScalaIR)

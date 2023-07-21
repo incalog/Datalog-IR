@@ -24,6 +24,7 @@ object Scala:
   trait Literal[T](x: T) extends Term:
     override def toString: String = x.toString
 
+  case class BoolLiteral(x: Boolean) extends Literal[Boolean](x)
   case class IntLiteral(x: Int) extends Literal[Int](x)
   case class DoubleLiteral(x: Double) extends Literal[Double](x)
 
