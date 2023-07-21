@@ -8,7 +8,7 @@ case class TPrimitive(ty: Scala.Type) extends Type
 
 // TODO: Eval instead of Constant and Application ?
 case class Constant(value: Scala.Term) extends Term
-case class Application(out: Term, fun: Scala.Fun, args: Seq[Term]) extends Atom
+case class Application(out: Term, fun: Scala.Term, args: Seq[Term]) extends Atom
 
 
 trait PrimitiveScalaIR extends BaseIR:
@@ -16,3 +16,5 @@ trait PrimitiveScalaIR extends BaseIR:
   override def language: Language = super.language + new PrimitiveScalaIR {}
   // This IR is not reducible
   override def requires: Language = Language(this)
+
+object PrimitiveScalaIR extends PrimitiveScalaIR { }

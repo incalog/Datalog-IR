@@ -15,6 +15,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
     override def src = blockIR
     override def trg = baseIR
   }
+  val typecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {
     val errors = typechecker.getErrors
@@ -25,9 +26,11 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")
   def module(language: Language, atoms: Seq[Atom]): Module =
-    Module("Test", language, Seq(
+    val mod = Module("Test", language, Seq(
       Relation("test", Seq(), Seq(Body(atoms)))
     ))
+    typecker.typecheck(mod)
+    mod
 
   test("simple 1") {
     val mBlock = module(blockIR.language, Seq(

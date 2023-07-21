@@ -58,6 +58,8 @@ trait BaseIRTypechecker extends TypeContext:
         typecheckCall(name, args)
       case ExtensionalCall(name, args) =>
         typecheckCall(name, args)
+      case NegExtensionalCall(name, args) =>
+        typecheckCall(name, args)
       case Eq(lhs, rhs) =>
         (lhs, rhs) match {
           case (v@Var(name), _) =>
@@ -82,7 +84,7 @@ trait BaseIRTypechecker extends TypeContext:
 
   def typecheck(term: Term): Type = assignType(term)(typecheckInternal(term, term.typ))
 
-  protected[typing] def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match {
+  protected[ir] def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match {
     case v@Var(name) => (lookupVar(name), inferred) match {
       case (Some((_, ty)), _) => // lookup was a bound variable or a param
         ty
@@ -96,16 +98,32 @@ trait BaseIRTypechecker extends TypeContext:
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
   }
 
-  protected[typing] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
+  protected[ir] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
     case (_, TAny) => true
     case _ => false
   }
 
-  protected[typing] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
+  protected[ir] def join(ty1: Type, ty2: Type): Type =
+    if (subtype(ty1, ty2))
+      ty2
+    else if (subtype(ty2, ty1))
+      ty1
+    else
+      TAny
+
+  protected[ir] def meet(ty1: Type, ty2: Type): Type =
+    if (subtype(ty1, ty2))
+      ty1
+    else if (subtype(ty2, ty1))
+      ty2
+    else
+      TAny // TODO: We probably want TNothing here
+
+  protected[ir] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
     if (!subtype(ty1, ty2))
       error(s"Expected $ty1 but got: $ty2", location: _*)
 
-  protected[typing] def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
+  protected[ir] def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>

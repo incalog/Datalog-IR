@@ -3,7 +3,7 @@ package inca.ir.extensions
 import inca.Scala
 import inca.ir.*
 
-case class Aggregation(out: Term, fun: Scala.Fun, patternName: Name, args: Seq[Term], aggregatedColumn: Int)
+case class Aggregation(out: Term, fun: Scala.Term, patternName: Name, args: Seq[Term], aggregatedColumn: Int)
 
 // We probably want this because viatra has built-in support for count aggregations
 case class CountAggregation(out: Term, patternName: Name, args: Seq[Term])

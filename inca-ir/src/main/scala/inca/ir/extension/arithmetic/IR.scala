@@ -2,6 +2,8 @@ package inca.ir.extension.arithmetic
 
 import inca.ir.*
 import inca.ir.extensions.PrimitiveScalaIR
+import inca.ir.extension.block
+import inca.ir.extension.bool
 
 
 // TODO Discuss: Do we want to support doubles din this IR or do we want to split the IR in Int and double IR ?
@@ -36,7 +38,6 @@ case class Min(lhs: Term, rhs: Term) extends Term:
 case class Max(lhs: Term, rhs: Term) extends Term:
   override def toString: String = s"max($lhs, $rhs)"
 
-// TODO: Shouldn't this be Terms as well ?
 case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"
 
@@ -47,4 +48,4 @@ object IR extends IR { }
 trait IR extends BaseIR:
   override val name: String = "Arithmetic"
   override def language: Language = super.language + IR
-  override def requires: Language = Language(new PrimitiveScalaIR {})
+  override def requires: Language = Language(PrimitiveScalaIR, block.IR, bool.IR)

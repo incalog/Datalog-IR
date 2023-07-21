@@ -28,4 +28,23 @@ object Scala:
   case class DoubleLiteral(x: Double) extends Literal[Double](x)
 
   // TODO: Fill the signature
-  case class Fun(name: String, args: Seq[Term]) extends Term
+  case class Id(x: String) extends Term:
+    override def toString: String = x
+
+  case class Lam(params: Seq[(String, Option[Type])], t: Term) extends Term:
+    override def toString: String = {
+      val paramsString = params.map { case (name, ty) =>
+        if (ty.nonEmpty)
+          s"$name: ${ty.get}"
+        else
+          s"$name"
+      }
+      s"(${paramsString.mkString(", ")}) => $t"
+    }
+
+  case class App(fun: Term, args: Seq[Term]) extends Term:
+    override def toString: String = s"($fun)(${args.mkString(", ")})"
+
+  case class AppInfix(t1: Term, op: String, t2: Term) extends Term:
+    override def toString: String = s"$t1 $op $t2"
+
