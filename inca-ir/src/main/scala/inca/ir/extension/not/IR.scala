@@ -1,7 +1,7 @@
 package inca.ir.extension.not
 
 import inca.ir.*
-import inca.ir.extensions.PrimitiveScalaIR
+import inca.ir.extension.primitiveScala.IR
 
 /** Introduces a block {atoms, t} that allows atoms embedded in terms t.
  *  The lowering will lift these atoms to the surrounding rule body.

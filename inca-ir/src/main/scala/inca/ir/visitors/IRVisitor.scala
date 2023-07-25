@@ -9,4 +9,5 @@ trait IRVisitor extends BaseIRVisitor
   with bool.Visitor
   with not.Visitor
   with arithmetic.Visitor
+  with primitiveScala.Visitor
 

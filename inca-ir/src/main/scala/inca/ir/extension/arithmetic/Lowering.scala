@@ -5,11 +5,12 @@ import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 import inca.ir.extension.*
 import inca.ir.extension.bool.BoolTrue
 import inca.ir.extension.arithmetic.IR
-import inca.ir.extensions.{Application, Constant, PrimitiveScalaIR}
+import inca.ir.extension.primitiveScala.{Application, Constant, IR => ScalaIR}
+import inca.ir.extension.primitiveScala
 import inca.ir.lowering.BaseLowering
 
 
-trait Lowering[S <: IR, T <: PrimitiveScalaIR with block.IR] extends BaseLowering[S, T] {
+trait Lowering[S <: IR, T <: ScalaIR with block.IR] extends BaseLowering[S, T] {
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
   private var freshCount = 0
@@ -39,22 +40,34 @@ trait Lowering[S <: IR, T <: PrimitiveScalaIR with block.IR] extends BaseLowerin
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case LT(lhs, rhs) =>
-      val (x, appl) = app("<", lhs, rhs)
-      // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
-      Seq(Eq(Constant(Scala.BoolLiteral(true)), x))
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) =>
+        val (x, appl) = app("<", l, r)
+        // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
+        Eq(Constant(Scala.BoolLiteral(true)), x)
+      }
     case GT(lhs, rhs) =>
-      val (x, appl) = app(">", lhs, rhs)
-      Seq(Eq(Constant(Scala.BoolLiteral(true)), x))
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) =>
+        val (x, appl) = app(">", l, r)
+        // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
+        Eq(Constant(Scala.BoolLiteral(true)), x)
+      }
     case _ =>
       super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case IntNum(i) => Seq(Constant(Scala.IntLiteral(i)))
-    case DoubleNum(d) => Seq(Constant(Scala.DoubleLiteral(d)))
-    case Add(lhs, rhs) => Seq(blockApp("+", lhs, rhs))
-    case Sub(lhs, rhs) => Seq(blockApp("-", lhs, rhs))
-    case Mul(lhs, rhs) => Seq(blockApp("*", lhs, rhs))
-    case Div(lhs, rhs) => Seq(blockApp("/", lhs, rhs))
-    case _ => super.visitTerm(term)
+    case IntNum(i) =>
+      Seq(Constant(Scala.IntLiteral(i)))
+    case DoubleNum(d) =>
+      Seq(Constant(Scala.DoubleLiteral(d)))
+    case Add(lhs, rhs) =>
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("+", l, r)}
+    case Sub(lhs, rhs) =>
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("-", l, r)}
+    case Mul(lhs, rhs) =>
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("*", l, r)}
+    case Div(lhs, rhs) =>
+      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("/", l, r)}
+    case _ =>
+      super.visitTerm(term)
   }
 }

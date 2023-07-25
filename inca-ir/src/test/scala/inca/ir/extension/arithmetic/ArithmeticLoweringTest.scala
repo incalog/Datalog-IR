@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic
 
 import inca.ir.*
 import inca.ir.extension.*
-import inca.ir.extensions.PrimitiveScalaIR
+import inca.ir.extension.primitiveScala.{ IR => ScalaIR}
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -16,7 +16,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 class ArithmeticLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  trait Stage1IR extends PrimitiveScalaIR with block.IR:
+  trait Stage1IR extends ScalaIR with block.IR:
     override val name: String = "TrgIR"
     override def language: Language = super.language
     override def requires: Language = Language(IR)
@@ -28,9 +28,9 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
     override def src = arithmeticIR
     override def trg = stage1IR
   }
-  val stage2lowering: block.Lowering[Stage1IR, PrimitiveScalaIR] = new block.Lowering[Stage1IR, PrimitiveScalaIR] {
+  val stage2lowering: block.Lowering[Stage1IR, ScalaIR] = new block.Lowering[Stage1IR, ScalaIR] {
     override def src = stage1IR
-    override def trg = PrimitiveScalaIR
+    override def trg = ScalaIR
   }
   val typecker = new Typechecker {}
 
@@ -61,6 +61,8 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
       atom(4), atom(5),
       Eq(term(3), term(6))
     ))
+    println(mAdd)
+    println()
     println(lowered)
     //assertResult(bAdd)(lowered)
   }
