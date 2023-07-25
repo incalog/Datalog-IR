@@ -11,10 +11,7 @@ class NotLoweringTest extends AnyFunSuiteLike:
 
   val baseIR = new BaseIR {}
   val notIR: not.IR = IR
-  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
-    override def src = notIR
-    override def trg = baseIR
-  }
+  val lowering = Lowering(notIR, baseIR)
   val typecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {

@@ -9,7 +9,13 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 object Lowering:
   val separator: String = "_"
 
+  def apply[S <: IR, T <: BaseIR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
+    override def src: S = srcIR
+    override def trg: T = trgIR
+  }
+
 import Lowering.separator
+
 trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] {
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})

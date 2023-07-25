@@ -11,10 +11,8 @@ class BlockLoweringTest extends AnyFunSuiteLike:
 
   val baseIR = new BaseIR {}
   val blockIR: block.IR = IR
-  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
-    override def src = blockIR
-    override def trg = baseIR
-  }
+  val lowering = Lowering(blockIR, baseIR)
+
   val typecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {

@@ -6,6 +6,11 @@ import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Var}
 
+object Lowering:
+  def apply[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
+    override def src: S = srcIR
+    override def trg: T = trgIR
+  }
 
 trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR] extends not.Lowering[S, T]:
 
@@ -16,6 +21,8 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
     Name(x)
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+
+  override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(arithmetic.IR, block.IR, disjunction.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case BoolAtom(t) =>

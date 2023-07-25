@@ -3,10 +3,9 @@ package inca.ir.extension.arithmetic
 import inca.ir.*
 import inca.ir.extension.block
 import inca.ir.extension.bool
-import inca.ir.extension.primitiveScala
 
 
-// TODO Discuss: Do we want to support doubles din this IR or do we want to split the IR in Int and double IR ?
+// TODO Discuss: Do we want to support doubles in this IR or do we want to split the IR in Int and double IR ?
 
 // TODO: With the design below we probably want a cast term as well. Something such as asInt, asDouble or we do it
 //  implicitly.
@@ -45,7 +44,7 @@ case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
 
 object IR extends IR { }
-trait IR extends primitiveScala.IR:
+trait IR extends BaseIR:
   override val name: String = "Arithmetic"
   override def language: Language = super.language + IR
   override def requires: Language = Language(IR)

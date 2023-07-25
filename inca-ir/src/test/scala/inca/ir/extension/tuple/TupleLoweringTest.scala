@@ -14,10 +14,7 @@ class LoweringTest extends AnyFunSuiteLike:
 
   val baseIR: BaseIR = new BaseIR {}
   val tupleIR: IR = IR
-  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
-    override def src: IR = tupleIR
-    override def trg: BaseIR = baseIR
-  }
+  val lowering = Lowering(tupleIR, baseIR)
 
   val typechecker: Typechecker = new Typechecker {}
 

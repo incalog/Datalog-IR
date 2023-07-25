@@ -9,10 +9,7 @@ import scala.collection.immutable.Seq
 class DisjunctionLoweringTest extends AnyFunSuiteLike:
   val baseIR: BaseIR = new BaseIR {}
   val disjunctionIR: IR = new IR {}
-  val lowering: Lowering[IR, BaseIR] = new Lowering[IR, BaseIR] {
-    override def src: IR = disjunctionIR
-    override def trg: BaseIR = baseIR
-  }
+  val lowering = Lowering(disjunctionIR, baseIR)
 
   test("Simple lower to BaseIR") {
     val mod = Module(

@@ -29,25 +29,8 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
   }
 
   test("Disjunction Tuple to Base") {
-    /*
-    // We could use mixin inheritance to lower two IRs at once
-    trait TupleDisjunctionLowering[S <: DisjunctionIR & TupleIR, T <: BaseIR] extends Lowering[S, T]
-      with TupleLowering[S, T]
-      with DisjunctionLowering[S, T]
-
-    val tupleDisjunctionIR: TupleDisjunctionIR = new TupleDisjunctionIR {}
-    val lowering: TupleDisjunctionLowering[TupleDisjunctionIR, BaseIR] = new TupleDisjunctionLowering[TupleDisjunctionIR, BaseIR] {
-      override def src: TupleDisjunctionIR = tupleDisjunctionIR
-      override def trg: BaseIR = baseIR
-    }*/
-    val tupleLowering: tuple.Lowering[TupleDisjunctionIR, disjunction.IR] = new tuple.Lowering {
-      override def src = tupleDisjunctionIR
-      override def trg = disjunctionIR
-    }
-    val disjunctionLowering: disjunction.Lowering[disjunction.IR, BaseIR] = new disjunction.Lowering {
-      override def src = disjunctionIR
-      override def trg = baseIR
-    }
+    val tupleLowering = tuple.Lowering(tupleDisjunctionIR, disjunctionIR)
+    val disjunctionLowering = disjunction.Lowering(disjunctionIR, baseIR)
 
     val mod = Module("Test", tupleDisjunctionIR.language, Seq(
       Relation(
@@ -148,10 +131,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
 
   test("Disjunction Tuple to Disjunction") {
     // Tuple lowering to DisjunctionIR
-    val lowering: tuple.Lowering[TupleDisjunctionIR, disjunction.IR] = new tuple.Lowering {
-      override def src = tupleDisjunctionIR
-      override def trg = disjunctionIR
-    }
+    val lowering = tuple.Lowering(tupleDisjunctionIR, disjunctionIR)
 
     val mod = Module("Test", tupleDisjunctionIR.language, Seq(
       Relation(

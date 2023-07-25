@@ -8,31 +8,24 @@ import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-// TODO: Add support for Visiting PrimitiveIR
 // TODO: Discuss: LT, GT how do we handle the scala boolean return ?
-// TODO: Discuss: for required parameter to be correct arithmetic IR needs to extend
-//  PrimitiveScalaIR. block.IR is per se not required, but its nice to have to express infix operators.
-//  Thats why lower produces a result with a block inside. Is this required or not ?
+// TODO: block.IR is per se not required, but its nice to have to express infix operators.
+//  Thats why lower produces a result with a block inside. This is not nice, since we need to
+//  create a new intermediate IR for this.
 
 class ArithmeticLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  trait Stage1IR extends ScalaIR with block.IR:
-    override val name: String = "TrgIR"
+  trait Stage1IR extends BaseIR with ScalaIR with block.IR:
+    override val name: String = "ScalaBlock"
     override def language: Language = super.language
     override def requires: Language = Language(IR)
   object Stage1IR extends Stage1IR {}
 
-  val stage1IR = Stage1IR
   val arithmeticIR: arithmetic.IR = IR
-  val stage1lowering: Lowering[IR, Stage1IR] = new Lowering[IR, Stage1IR] {
-    override def src = arithmeticIR
-    override def trg = stage1IR
-  }
-  val stage2lowering: block.Lowering[Stage1IR, ScalaIR] = new block.Lowering[Stage1IR, ScalaIR] {
-    override def src = stage1IR
-    override def trg = ScalaIR
-  }
+  val stage1lowering = ScalaLowering(arithmeticIR, Stage1IR)
+  val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
+
   val typecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {

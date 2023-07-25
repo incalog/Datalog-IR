@@ -1,17 +1,24 @@
 package inca.ir.extension.arithmetic
 
 import inca.Scala
-import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Eq, Language, Name, Term, Type, Var}
 import inca.ir.extension.*
 import inca.ir.extension.bool.BoolTrue
 import inca.ir.extension.arithmetic.IR
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala, IR as ScalaIR}
-import inca.ir.extension.primitiveScala
 import inca.ir.lowering.BaseLowering
 
 
-trait Lowering[S <: IR, T <: ScalaIR with block.IR] extends BaseLowering[S, T] {
+object ScalaLowering:
+  def apply[S <: IR, T <: BaseIR with ScalaIR with block.IR](srcIR: S, trgIR: T): ScalaLowering[S, T] = new ScalaLowering[S, T] {
+    override def src: S = srcIR
+    override def trg: T = trgIR
+  }
+
+trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends BaseLowering[S, T] {
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+
+  override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(ScalaIR)
 
   private var freshCount = 0
   def freshName(): Name =
