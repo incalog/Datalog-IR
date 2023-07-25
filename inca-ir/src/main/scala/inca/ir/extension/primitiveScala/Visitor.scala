@@ -18,7 +18,7 @@ trait Visitor extends BaseIRVisitor:
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case c@Constant(_) => Seq(c)
+    case c@Constant(value) => Seq(Constant(value))
     case _ => super.visitTerm(term)
 
   override def visitType(ty: Type): Type = ty match

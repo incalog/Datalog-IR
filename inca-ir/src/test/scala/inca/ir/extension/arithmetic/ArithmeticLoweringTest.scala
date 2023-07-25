@@ -1,8 +1,9 @@
 package inca.ir.extension.arithmetic
 
+import inca.Scala
 import inca.ir.*
 import inca.ir.extension.*
-import inca.ir.extension.primitiveScala.{ IR => ScalaIR}
+import inca.ir.extension.primitiveScala.{Application, Constant, IR as ScalaIR}
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -53,17 +54,28 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
     val mAdd = module(arithmeticIR.language, Seq(
       Eq(term(0), IntNum(4)),
       Eq(term(1), IntNum(2)),
-      Eq(Var("x"), Add(term(0), term(1)))
+      Eq(term(2), Add(term(0), term(1)))
     ))
     val lowered = stage2lowering.lower(stage1lowering.lower(mAdd))
-    val bAdd = module(stage1IR.language, Seq(
-      atom(1), atom(2),
-      atom(4), atom(5),
-      Eq(term(3), term(6))
+
+    val intTy = Scala.TypeName("Int")
+    val lam = Scala.Lam(
+      Seq("lhs" -> Some(intTy), "rhs" -> Some(intTy)),
+      Scala.AppInfix(Scala.Id("lhs"), "+", Scala.Id("rhs"))
+    )
+    val tmpVar = Var("Arithmetic$0")
+
+    val bAdd = module(ScalaIR.language, Seq(
+      Eq(term(0), Constant(Scala.IntLiteral(4))),
+      Eq(term(1), Constant(Scala.IntLiteral(2))),
+      Application(tmpVar, lam, Seq(term(0), term(1))),
+      Eq(term(2), tmpVar)
     ))
-    println(mAdd)
+    /*println(mAdd)
     println()
     println(lowered)
-    //assertResult(bAdd)(lowered)
+    println()
+    println(bAdd)*/
+    assertResult(bAdd)(lowered)
   }
 

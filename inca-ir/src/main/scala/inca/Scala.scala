@@ -7,7 +7,7 @@ object Scala:
 
   case class TypeName(s: String) extends Type:
     override def toString: String = s
-
+  
   case class FunType(args: Seq[Type], ret: Type) extends Type:
     override def toString: String = s"(${args.mkString(", ")}) => $ret"
 

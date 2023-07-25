@@ -67,7 +67,7 @@ trait BaseIRTypechecker extends TypeContext:
             lhs.typed(rhsTy) // assign the expected type
             typecheck(lhs)
           case (_, v@Var(name)) =>
-            val lhsTy = typecheck(rhs)
+            val lhsTy = typecheck(lhs)
             rhs.typed(lhsTy) // assign the expected type
             typecheck(rhs)
           case _ =>

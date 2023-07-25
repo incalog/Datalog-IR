@@ -11,6 +11,7 @@ trait IR extends BaseIR:
 case class TTuple(tys: Seq[Type]) extends Type:
   override def toString: String = tys.mkString("(", ", ", ")")
   override def size: Int = tys.map(_.size).sum
+  override def flatten: Seq[Type] = tys.flatMap(_.flatten)
 
 case class Tuple(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("(", ", ", ")")

@@ -5,7 +5,7 @@ import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 import inca.ir.extension.*
 import inca.ir.extension.bool.BoolTrue
 import inca.ir.extension.arithmetic.IR
-import inca.ir.extension.primitiveScala.{Application, Constant, IR => ScalaIR}
+import inca.ir.extension.primitiveScala.{Application, Constant, TScala, IR as ScalaIR}
 import inca.ir.extension.primitiveScala
 import inca.ir.lowering.BaseLowering
 
@@ -19,36 +19,51 @@ trait Lowering[S <: IR, T <: ScalaIR with block.IR] extends BaseLowering[S, T] {
     freshCount += 1
     Name(x)
 
-  private def lamOp(op: String, lhs: (String, Option[Type]), rhs: (String, Option[Type])): Scala.Term =
-    Scala.Lam(
-      // TODO: Add type information
-      Seq("lhs" -> None, "rhs" -> None),
-      Scala.AppInfix(Scala.Id("lhs"), "+", Scala.Id("rhs"))
-    )
+  // TODO: How do we handle this best so that it is extensible ?
+  private def asScala(ty: Option[Type]): Option[Scala.Type] = ty match
+    //case Some(TAny) => Some(Scala.TypeName("Any"))
+    case Some(TInt) => Some(Scala.TypeName("Int"))
+    case Some(TDouble) => Some(Scala.TypeName("Double"))
+    case Some(TScala(ty)) => Some(ty)
+    case None => None
 
-  private def app(op: String, lhs: Term, rhs: Term): (Var, Application) = {
+  private def lamOp(op: String, lhs: (String, Option[Scala.Type]), rhs: (String, Option[Scala.Type])): Scala.Term =
+    Scala.Lam(Seq(lhs, rhs), Scala.AppInfix(Scala.Id(lhs._1), op, Scala.Id(rhs._1)))
+
+  private def app(op: String, lhsParam: (Term, Option[Type]), rhsParam: (Term, Option[Type])): (Var, Application) = {
     val x = Var(freshName())
-    // TODO: We need something like `asScala`. How do we handle this best so that it is extensible
-    val appl = Application(x, lamOp("+", "lhs" -> None, "rhs" -> None), Seq(lhs, rhs))
+    val (lhs, lhsTy) = lhsParam
+    val (rhs, rhsTy) = rhsParam
+    val calc = lamOp(op, "lhs" -> asScala(lhsTy), "rhs" -> asScala(rhsTy))
+    val appl = Application(x, calc, Seq(lhs, rhs))
     (x, appl)
   }
 
-  private def blockApp(op: String, lhs: Term, rhs: Term): Term = {
+  private def blockApp(op: String, lhs: (Term, Option[Type]), rhs: (Term, Option[Type])): Term = {
     val (x, appl) = app(op, lhs, rhs)
     block.Block(Seq(appl), x)
   }
 
+  private def typedParams(t: Term): Seq[(Term, Option[Type])] = {
+    val ty = t.typ match
+      case Some(ty) => ty.flatten
+      case None => Seq()
+
+    for ((t, i) <- visitTerm(t).zipWithIndex)
+      yield t -> ty.lift(i)
+  }
+
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case LT(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) =>
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) =>
         val (x, appl) = app("<", l, r)
-        // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
+        // TODO: We get back a scala bool here...
         Eq(Constant(Scala.BoolLiteral(true)), x)
       }
     case GT(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) =>
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) =>
         val (x, appl) = app(">", l, r)
-        // TODO: BoolTrue is probably not what we want, we get back a scala bool here...
+        // TODO: We get back a scala bool here...
         Eq(Constant(Scala.BoolLiteral(true)), x)
       }
     case _ =>
@@ -60,13 +75,13 @@ trait Lowering[S <: IR, T <: ScalaIR with block.IR] extends BaseLowering[S, T] {
     case DoubleNum(d) =>
       Seq(Constant(Scala.DoubleLiteral(d)))
     case Add(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("+", l, r)}
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("+", l, r) }
     case Sub(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("-", l, r)}
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("-", l, r) }
     case Mul(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("*", l, r)}
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("*", l, r) }
     case Div(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(rhs)).map { case (l, r) => blockApp("/", l, r)}
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("/", l, r) }
     case _ =>
       super.visitTerm(term)
   }

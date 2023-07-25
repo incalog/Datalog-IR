@@ -29,6 +29,7 @@ trait Term extends Typeable[Type] with SourceLocation
 
 trait Type extends SourceLocation:
   def size: Int = 1
+  def flatten: Seq[Type] = Seq(this)
 
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String =
