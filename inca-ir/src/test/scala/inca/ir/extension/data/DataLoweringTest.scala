@@ -21,7 +21,7 @@ class DataLoweringTest extends AnyFunSuiteLike:
 
   val dataIR: IR = IR
   val stage1lowering = ScalaLowering(dataIR, Stage1IR)
-  //val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
+  val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
 
   val typechecker = new Typechecker {}
 
@@ -56,4 +56,8 @@ class DataLoweringTest extends AnyFunSuiteLike:
     println(mData)
     println()
     println(stage1lowering.lower(mData))
+    val res = stage2lowering.lower(stage1lowering.lower(mData))
+    println(res)
+    typechecker.typecheck(res)
+    stopIfNeeded()
   }

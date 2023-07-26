@@ -12,13 +12,14 @@ trait Visitor extends BaseIRVisitor:
     case Application(out, fun, args) =>
       // TODO: We might want to support tuples here
       //  We could automatically flatten scala tuples here
-      val newOut = visitTerm(out).head
       val newArgs = args.flatMap(visitTerm)
-      Seq(Application(newOut, fun, newArgs))
+      visitTerm(out).map { o =>
+        Application(o, fun, newArgs)
+      }
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case c@Constant(value) => Seq(Constant(value))
+    case Constant(value) => Seq(Constant(value))
     case _ => super.visitTerm(term)
 
   override def visitType(ty: Type): Type = ty match

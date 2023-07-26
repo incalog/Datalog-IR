@@ -92,3 +92,8 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
     case _ =>
       super.visitTerm(term)
   }
+
+  override def visitType(ty: Type): Type = ty match
+    case TInt => TScala(Scala.TypeName("Int"))
+    case TDouble => TScala(Scala.TypeName("Double"))
+    case _ => super.visitType(ty)

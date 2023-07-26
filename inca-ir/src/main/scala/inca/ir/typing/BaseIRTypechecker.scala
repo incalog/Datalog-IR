@@ -47,13 +47,18 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def typecheck(atom: Atom): Unit = {
 
     def typecheckCall(name: Name, args: Seq[Term]): Unit = {
-      val argTys = args.map(typecheck)
       lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
-          if (argTys.size != params.size) {
-            error(s"Expected ${params.size} arguments but got: ${argTys.size}", atom)
+          if (args.size != params.size) {
+            error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
           } else {
             val paramTys = params.map(_.ty)
+            // Assign a type to each call parameter in case the variable is unbound
+            args.zip(paramTys).foreach {
+              case (v@Var(name), ty) if lookupVar(name).isEmpty => v.typed(ty)
+              case v => // Nothing
+            }
+            val argTys = args.map(typecheck)
             args.zip(argTys).zip(paramTys).foreach { case ((a, aTy), pTy) =>
               assertSubtype(pTy, aTy, a, atom)
             }
@@ -101,7 +106,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case (None, Some(ty)) => // inferred a type for an unbound variable
         bindVar(name, v, ty)
         ty
-      case (None, None) => // unbound variable, but we got not infer a type
+      case (None, None) => // unbound variable, but we could not infer a type
         error(s"Unbound variable $name", term)
         TAny
     }

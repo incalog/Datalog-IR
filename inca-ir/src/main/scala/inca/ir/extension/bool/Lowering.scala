@@ -1,10 +1,10 @@
 package inca.ir.extension.bool
 
 import inca.ir.extension.*
-import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub}
+import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub, TInt}
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Eq, Name, Term, Var}
+import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 
 object Lowering:
   def apply[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
@@ -60,3 +60,7 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
   override def negateAtom(atom: Atom): Atom = atom match
     case BoolAtom(t) => BoolAtom(BoolNot(t))
     case _ => super.negateAtom(atom)
+
+  override def visitType(ty: Type): Type = ty match
+    case TBoolean => TInt
+    case _ => super.visitType(ty)

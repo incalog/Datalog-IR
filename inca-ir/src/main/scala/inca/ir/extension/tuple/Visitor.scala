@@ -9,7 +9,7 @@ import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Project(t, idx) => Seq(Project(visitTerm(t).head, idx))
+    case Project(t, idx) => visitTerm(t).map(pt => Project(pt, idx))
     case Tuple(ts) => Seq(Tuple(ts.flatMap(visitTerm)))
     case _ => super.visitTerm(term)
 

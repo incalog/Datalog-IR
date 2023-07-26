@@ -1,6 +1,6 @@
 package inca.ir.extension.bool
 
-import inca.ir.{Atom, Term}
+import inca.ir.{Atom, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 
 trait Visitor extends BaseIRVisitor:
@@ -27,5 +27,9 @@ trait Visitor extends BaseIRVisitor:
     case BoolNot(t) =>
       for (v <- visitTerm(t))
         yield BoolNot(v)
-    case BoolTrue => Seq(term)
-    case BoolFalse => Seq(term)
+    case BoolTrue => Seq(BoolTrue)
+    case BoolFalse => Seq(BoolFalse)
+
+  override def visitType(ty: Type): Type = ty match
+    case TBoolean => TBoolean
+    case _ => super.visitType(ty)

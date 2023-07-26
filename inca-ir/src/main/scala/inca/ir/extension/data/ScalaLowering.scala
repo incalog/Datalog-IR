@@ -36,7 +36,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
       cases.map { case CaseDefinition(caseName, args) =>
         val dataTy = visitType(TData(dataName))
         val name = relationName(dataName, caseName)
-        val columns = args.zipWithIndex.map { case (ty, i) => Param(s"arg$i", ty) }
+        val columns = args.zipWithIndex.map { case (ty, i) => Param(s"arg$i", visitType(ty)) }
         val outColumn = Param("out", dataTy)
 
         val argVars = columns.map(p => Var(p.name))

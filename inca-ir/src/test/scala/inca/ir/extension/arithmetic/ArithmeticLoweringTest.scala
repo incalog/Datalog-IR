@@ -38,18 +38,22 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
   def term(i: Int): Term = Var(s"x_$i")
   def module(language: Language, atoms: Seq[Atom]): Module =
     val mod = Module("Test", language, Seq(
-      Relation("test", Seq(), Seq(Body(atoms)))
+      Relation("test", Seq(), Seq(Body(atoms))),
+      //Relation("test2", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq())))
     ))
     typechecker.typecheck(mod)
-    stopIfNeeded()
+    //stopIfNeeded()
     mod
 
   test("simple 1") {
+    //val t = term(3)
     val mAdd = module(arithmeticIR.language, Seq(
       Eq(term(0), IntNum(4)),
       Eq(term(1), IntNum(2)),
-      Eq(term(2), Add(term(0), term(1)))
+      Eq(term(2), Add(term(0), term(1))),
+      //Call("test2", Seq(term(1), t))
     ))
+    //println(t.typ)
     val lowered = stage2lowering.lower(stage1lowering.lower(mAdd))
 
     val intTy = Scala.TypeName("Int")
@@ -65,11 +69,12 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
       Application(tmpVar, lam, Seq(term(0), term(1))),
       Eq(term(2), tmpVar)
     ))
-    /*println(mAdd)
+    println(mAdd)
     println()
     println(lowered)
     println()
-    println(bAdd)*/
+    println(bAdd)
+
     assertResult(bAdd)(lowered)
   }
 

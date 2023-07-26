@@ -1,7 +1,7 @@
 package inca.ir.extension.arithmetic
 
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{Atom, Term}
+import inca.ir.{Atom, Term, Type}
 
 trait Visitor extends BaseIRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
@@ -15,3 +15,8 @@ trait Visitor extends BaseIRVisitor:
     case Mul(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Mul.apply)
     case Div(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Div.apply)
     case _ => super.visitTerm(term)
+
+  override def visitType(ty: Type): Type = ty match
+    case TInt => TInt
+    case TDouble => TDouble
+    case _ => super.visitType(ty)
