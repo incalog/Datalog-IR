@@ -15,7 +15,7 @@ object ScalaLowering:
     override def trg: T = trgIR
   }
 
-trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends BaseLowering[S, T] {
+trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends BaseLowering[S, T]:
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
   override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(ScalaIR)
@@ -92,4 +92,3 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
     case _ =>
       super.visitTerm(term)
   }
-}

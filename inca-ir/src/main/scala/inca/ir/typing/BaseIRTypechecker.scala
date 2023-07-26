@@ -1,13 +1,21 @@
 package inca.ir.typing
 
-import inca.ir.extensions.DataDefinition
 import inca.ir.util.SourceLocation
 import inca.ir.*
+import inca.ir.extension.data.DataDefinition
 import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
 
-trait BaseIRTypechecker extends TypeContext:
+trait BaseIRTypechecker extends BaseIRTypeContext:
+
+  // Always process Relations last
+  implicit def ordering[A <: ModuleEntry]: Ordering[A] = (x: A, y: A) => (x, y) match
+    case (r1: Relation, r2: Relation) => 0
+    case (_, r2: Relation) => -1
+    case (r1: Relation, _) => 1
+    case _ => 0
+
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
     program.foreach(typecheck)
@@ -15,8 +23,8 @@ trait BaseIRTypechecker extends TypeContext:
 
   def typecheck(module: Module): Unit = scopedTypeContext {
     // TODO: Bind EDB entries
-    module.contents.foreach(bindModuleEntry)
-    module.contents.foreach(typecheck)
+    module.contents.sorted.foreach(bindModuleEntry)
+    module.contents.sorted.foreach(typecheck)
   }
 
   def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match {
@@ -32,7 +40,9 @@ trait BaseIRTypechecker extends TypeContext:
     relation.bodies.foreach(typecheck)
   }
 
-  def typecheck(body: Body): Unit = body.atoms.foreach(typecheck)
+  def typecheck(body: Body): Unit = scopedTypeContext {
+    body.atoms.foreach(typecheck)
+  }
 
   def typecheck(atom: Atom): Unit = {
 

@@ -22,9 +22,9 @@ trait TypeIO:
   private val errors: ListBuffer[CompilationMessage] = ListBuffer()
   private val warnings: ListBuffer[CompilationMessage] = ListBuffer()
 
-  protected def error(msg: String, sourceLocations: SourceLocation*): Unit =
+  def error(msg: String, sourceLocations: SourceLocation*): Unit =
     errors += CompilationMessage(msg, sourceLocations, CompilationMessage.ERROR)
-  protected def warn(msg: String, sourceLocations: SourceLocation*): Unit =
+  def warn(msg: String, sourceLocations: SourceLocation*): Unit =
     warnings += CompilationMessage(msg, sourceLocations, CompilationMessage.WARNING)
 
   def getErrors: List[CompilationMessage] = errors.toList

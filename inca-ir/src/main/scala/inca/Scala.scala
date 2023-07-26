@@ -27,6 +27,7 @@ object Scala:
   case class BoolLiteral(x: Boolean) extends Literal[Boolean](x)
   case class IntLiteral(x: Int) extends Literal[Int](x)
   case class DoubleLiteral(x: Double) extends Literal[Double](x)
+  case class StringLiteral(x: String) extends Literal[String](x)
 
   // TODO: Fill the signature
   case class Id(x: String) extends Term:
@@ -48,4 +49,6 @@ object Scala:
 
   case class AppInfix(t1: Term, op: String, t2: Term) extends Term:
     override def toString: String = s"$t1 $op $t2"
+
+  case class Select(t: Term, name: String) extends Term
 

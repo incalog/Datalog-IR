@@ -22,7 +22,7 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
-  override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(arithmetic.IR, block.IR, disjunction.IR)
+  override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(arithmetic.IR, block.IR, disjunction.IR, not.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case BoolAtom(t) =>

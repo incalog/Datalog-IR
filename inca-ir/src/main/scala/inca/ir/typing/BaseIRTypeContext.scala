@@ -2,10 +2,10 @@ package inca.ir.typing
 
 import inca.ir.{Module, ModuleEntry, Name, Relation, Type, Var}
 
-class TypeContext extends TypeIO:
-  private var modules: Map[Name, Module] = Map()
-  private var entries: Map[Name, ModuleEntry] = Map()
-  private var vars: Map[Name, (Var.Target, Type)] = Map()
+trait BaseIRTypeContext extends TypeIO:
+  var modules: Map[Name, Module] = Map()
+  var entries: Map[Name, ModuleEntry] = Map()
+  var vars: Map[Name, (Var.Target, Type)] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val modulesSaved = modules
@@ -41,10 +41,6 @@ class TypeContext extends TypeIO:
     vars += (name -> (decl, ty))
   }
 
-  def lookupModuleEntry(name: Name): Option[ModuleEntry] = {
-    entries.get(name)
-  }
+  def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
 
-  def lookupVar(name: Name): Option[(Var.Target, Type)] = {
-    vars.get(name)
-  }
+  def lookupVar(name: Name): Option[(Var.Target, Type)] = vars.get(name)

@@ -26,7 +26,7 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
   val stage1lowering = ScalaLowering(arithmeticIR, Stage1IR)
   val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
 
-  val typecker = new Typechecker {}
+  val typechecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {
     val errors = typechecker.getErrors
@@ -40,7 +40,8 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
     val mod = Module("Test", language, Seq(
       Relation("test", Seq(), Seq(Body(atoms)))
     ))
-    typecker.typecheck(mod)
+    typechecker.typecheck(mod)
+    stopIfNeeded()
     mod
 
   test("simple 1") {

@@ -1,6 +1,8 @@
-package inca.ir.extensions
+package inca.ir.extension.data
+
+import inca.ir.*
+
 import scala.language.implicitConversions
-import inca.ir.{Atom, BaseIR, Body, Language, ModuleEntry, Name, Term, Type, Var}
 
 case class TData(name: Name) extends Type:
   override def toString: String = s"$name"
@@ -18,7 +20,8 @@ case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]) // TODO Discuss: or
 case class Match(matchee: Term, cases: Seq[Case]) extends Atom
 
 
-trait DataIR extends BaseIR:
+object IR extends IR { }
+trait IR extends BaseIR:
   override val name: String = "Data"
-  override def language: Language = super.language + new DataIR {}
+  override def language: Language = super.language + new IR {}
   override def requires: Language = Language()
