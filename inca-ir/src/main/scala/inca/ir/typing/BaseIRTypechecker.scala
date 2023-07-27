@@ -77,11 +77,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         (lhs, rhs) match {
           case (v@Var(name), _) =>
             val rhsTy = typecheck(rhs)
-            lhs.typed(rhsTy) // assign the expected type
+            // assign the expected type for unbound vars
+            if (lookupVar(name).isEmpty)
+              lhs.typed(rhsTy)
             typecheck(lhs)
           case (_, v@Var(name)) =>
             val lhsTy = typecheck(lhs)
-            rhs.typed(lhsTy) // assign the expected type
+            // assign the expected type for unbound vars
+            if (lookupVar(name).isEmpty)
+              rhs.typed(lhsTy)
             typecheck(rhs)
           case _ =>
             assertSubtype(typecheck(lhs), typecheck(rhs))

@@ -44,7 +44,11 @@ case class Body(atoms: Seq[Atom]):
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
 
 case class Var(name: Name) extends Term with Var.Target:
-  override def toString: String = s"$name"
+  override def toString: String =
+    if (typ.isEmpty)
+      s"$name"
+    else
+      s"$name: ${typ.get}"
   override def vars: Seq[Var] = Seq(this)
 
 object Var {

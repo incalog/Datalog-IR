@@ -71,6 +71,7 @@ object Lowering:
     override def trg: T = trgIR
   }
 
+// This implements Proposal 2:
 trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR] extends BaseLowering[S, T]:
   override def loweredIRs: immutable.Set[BaseIR] = super.loweredIRs ++ immutable.Set(IR)
 
@@ -123,16 +124,18 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR] extends B
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
+    case Set(Seq()) => ??? // TODO: Handle empty Set
     case Set(ts) =>
       val dependentVars = term.vars
       val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
-      val (outVar, relation) = freshSetRelation(dependentVars, ts, ty)
+      val (outVar, relation) = freshSetRelation(dependentVars, ts.flatMap(visitTerm), ty)
       setRelations :+= relation
       Seq(block.Block(
-        Seq(Call(relation.name, dependentVars :+ outVar)),
+        Seq(Call(relation.name, dependentVars.flatMap(visitTerm) :+ outVar)),
         outVar
       ))
     case SetIntersection(_, _) => ???
+      // TODO: Handle Set Intersection + include base case for empty set
     case SetUnion(_, _) => ???
     case _ => super.visitTerm(term)
 

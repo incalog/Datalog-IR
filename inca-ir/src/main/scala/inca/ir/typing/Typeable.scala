@@ -5,7 +5,7 @@ trait Typeable[T]:
 
   def typed(ty: T): this.type = {
     if (this.typ.nonEmpty)
-      throw new IllegalArgumentException(s"May not overwrite annotated type.")
+      throw new IllegalArgumentException(s"May not overwrite annotated type ${this.typ} for $this.")
     this.typ = Some(ty)
     this
   }

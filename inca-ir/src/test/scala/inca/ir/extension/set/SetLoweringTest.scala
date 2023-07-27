@@ -45,19 +45,24 @@ class SetLoweringTest extends AnyFunSuite {
 
     val lowerings = Seq(lowering, blockLowering, disjunctionLowering)
     var module = mod
+    printModule(module)
     typecheck(module)
     printModule(module)
+    println("----------------")
 
     lowerings.map { lr =>
       module = lr.lower(module)
       printModule(module)
-      //typecheck(module)
+      typecheck(module)
+      printModule(module)
+      println("----------------")
       module
     }
   }
 
   test("Simple test") {
-    val mainRelation = Relation("main", Seq(param(0), param(1), param(2)), Seq(
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam), Seq(
       Body(Seq(
         Eq(Var("y"), term(0)),
         Eq(Var("x"), Set(Seq(Var("y"), term(1), term(2))))
