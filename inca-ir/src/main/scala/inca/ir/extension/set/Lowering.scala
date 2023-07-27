@@ -48,5 +48,7 @@ package inca.ir.extension.set
  * Disadvantage: If the set contains tuple of size n we might end up passing around n values.
  * I'm still not sure if there are cases where this does not work...
  *
- *
+ * Problem: Eq / Neq does not work anymore
+ * Before: Set(1,2) == Set(2,4) // False
+ * After: 1 == 2 v 1 == 4 v 2 == 2 v 2 == 4 // One body is executed although no body should be executed
  */
