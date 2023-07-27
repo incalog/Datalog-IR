@@ -28,21 +28,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   }
 
   def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match {
-      case relation: Relation => typecheck(relation)
+      case relation: Relation => scopedTypeContext { typecheck(relation) }
       case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
   }
 
-  def typecheck(relation: Relation): Unit = scopedTypeContext {
+  def typecheck(relation: Relation): Unit = {
     // bind parameters
     relation.params.foreach { param =>
       bindVar(param.name, param, param.ty)
     }
-    relation.bodies.foreach(typecheck)
+    relation.bodies.foreach(b => scopedTypeContext { typecheck(b) })
   }
 
-  def typecheck(body: Body): Unit = scopedTypeContext {
-    body.atoms.foreach(typecheck)
-  }
+  def typecheck(body: Body): Unit = body.atoms.foreach(typecheck)
 
   def typecheck(atom: Atom): Unit = {
 
@@ -115,6 +113,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected[ir] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
     case (_, TAny) => true
+    case (TNothing, _) => true
     case _ => false
   }
 
@@ -126,13 +125,17 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     else
       TAny
 
+  protected[ir] def join(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
+
   protected[ir] def meet(ty1: Type, ty2: Type): Type =
     if (subtype(ty1, ty2))
       ty1
     else if (subtype(ty2, ty1))
       ty2
     else
-      TAny // TODO: We probably want TNothing here
+      TNothing
+
+  protected def meet(tys: Iterable[Type]): Type = tys.foldLeft[Type](TAny)(meet)
 
   protected[ir] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
     if (!subtype(ty1, ty2))

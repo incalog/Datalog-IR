@@ -42,5 +42,6 @@ trait BaseIRVisitor:
 
   def visitType(ty: Type): Type = ty match {
     case TAny => TAny
+    case TNothing => TNothing
     case _ => throw IllegalStateException(s"Can not visit unknown type: $ty")
   }

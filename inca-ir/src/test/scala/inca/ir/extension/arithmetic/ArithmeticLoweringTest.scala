@@ -22,8 +22,7 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
     override def requires: Language = Language(IR)
   object Stage1IR extends Stage1IR {}
 
-  val arithmeticIR: arithmetic.IR = IR
-  val stage1lowering = ScalaLowering(arithmeticIR, Stage1IR)
+  val stage1lowering = ScalaLowering(IR, Stage1IR)
   val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
 
   val typechecker = new Typechecker {}
@@ -47,7 +46,7 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
 
   test("simple 1") {
     //val t = term(3)
-    val mAdd = module(arithmeticIR.language, Seq(
+    val mAdd = module(IR.language, Seq(
       Eq(term(0), IntNum(4)),
       Eq(term(1), IntNum(2)),
       Eq(term(2), Add(term(0), term(1))),
@@ -69,11 +68,11 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
       Application(tmpVar, lam, Seq(term(0), term(1))),
       Eq(term(2), tmpVar)
     ))
-    println(mAdd)
+    /*println(mAdd)
     println()
     println(lowered)
     println()
-    println(bAdd)
+    println(bAdd)*/
 
     assertResult(bAdd)(lowered)
   }

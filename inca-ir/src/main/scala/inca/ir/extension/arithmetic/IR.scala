@@ -19,23 +19,16 @@ case class IntNum(value: Int) extends Term:
 case class DoubleNum(value: Double) extends Term:
   override def toString: String = s"$value"
 
-case class Add(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"$lhs + $rhs"
+trait BinOp(lhs: Term, rhs: Term, op: String) extends Term:
+  override def toString: String = s"$lhs $op $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
-case class Mul(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"$lhs * $rhs"
-
-case class Div(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"$lhs * $rhs"
-
-case class Sub(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"$lhs - $rhs"
-
-case class Min(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"min($lhs, $rhs)"
-
-case class Max(lhs: Term, rhs: Term) extends Term:
-  override def toString: String = s"max($lhs, $rhs)"
+case class Add(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "+")
+case class Sub(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "-")
+case class Mul(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "*")
+case class Div(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "/")
+case class Min(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
+case class Max(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
 
 case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"

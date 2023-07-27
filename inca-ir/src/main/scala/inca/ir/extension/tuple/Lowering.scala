@@ -16,11 +16,12 @@ object Lowering:
 
 import Lowering.separator
 
-trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] {
+trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
 
   private def flatten(name: Name, typ: Type): Seq[(Name, Type)] = typ match {
+    // TODO: Use gensym
     case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
       flatten(Name(name.name + separator + ix), visitType(ty))
     }
@@ -59,4 +60,3 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] {
       val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")))
       vars.map { case (n, _) => Var(n) }
     case _ => super.visitTerm(term)
-}

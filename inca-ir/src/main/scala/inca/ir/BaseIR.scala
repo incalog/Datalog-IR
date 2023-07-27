@@ -8,6 +8,7 @@ import inca.ir.util.SourceLocation
 import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
+implicit def name2string(name: Name): String = name.toString
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
@@ -25,7 +26,8 @@ trait ModuleEntry(val name: Name) extends SourceLocation
 
 
 trait Atom extends SourceLocation
-trait Term extends Typeable[Type] with SourceLocation
+trait Term extends Typeable[Type] with SourceLocation:
+  def vars: Seq[Var] = Seq()
 
 trait Type extends SourceLocation:
   def size: Int = 1
@@ -43,6 +45,7 @@ case class Body(atoms: Seq[Atom]):
 
 case class Var(name: Name) extends Term with Var.Target:
   override def toString: String = s"$name"
+  override def vars: Seq[Var] = Seq(this)
 
 object Var {
   //def apply(name: String): Var = new Var(Name(name))
@@ -68,6 +71,7 @@ case class Neq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs != $rhs"
 
 case object TAny extends Type
+case object TNothing extends Type
 
 //case object TInt extends Type
 
@@ -79,11 +83,10 @@ trait BaseIR:
     case _ => false
 
   override def hashCode(): Int = name.hashCode
-
   override def toString: String = language.toString
 
   /** The IR language. Subclasses should override with `super.language + IRExtension` */
   def language: Language = Language.Datalog
   /** The target IR of this language. */
   def requires: Language = Language.Datalog
-
+object BaseIR extends BaseIR {}

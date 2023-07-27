@@ -10,5 +10,6 @@ trait IRVisitor extends BaseIRVisitor
   with not.Visitor
   with arithmetic.Visitor
   with data.Visitor
+  with set.Visitor
   with primitiveScala.Visitor
 

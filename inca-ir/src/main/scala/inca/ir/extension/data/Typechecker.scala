@@ -8,6 +8,8 @@ import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, Type}
 trait Typechecker extends BaseIRTypechecker with TypeContext:
   override def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match
     case (TData(name1), TData(name2)) => name1 == name2
+    case (TData(_), _) => false
+    case (_, TData(_)) => false
     case _ => super.subtype(ty1, ty2)
 
   override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match

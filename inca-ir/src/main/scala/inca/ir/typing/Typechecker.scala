@@ -9,5 +9,6 @@ trait Typechecker extends BaseIRTypechecker
   with arithmetic.Typechecker
   with data.Typechecker
   with not.Typechecker
+  with set.Typechecker
   with primitiveScala.Typechecker
 

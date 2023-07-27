@@ -15,7 +15,9 @@ case class TTuple(tys: Seq[Type]) extends Type:
 
 case class Tuple(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("(", ", ", ")")
+  override def vars: Seq[Var] = ts.flatMap(_.vars)
 
 case class Project(t: Term, idx: Int) extends Term:
   override def toString: String = s"$t._$idx"
+  override def vars: Seq[Var] = t.vars
 

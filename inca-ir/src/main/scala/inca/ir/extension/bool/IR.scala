@@ -21,12 +21,15 @@ case class AtomAsBool(a: Atom) extends BoolTerm:
 
 case class BoolAnd(t1: Term, t2: Term) extends BoolTerm:
   override def toString: String = s"$t1 && $t2"
+  override def vars: Seq[Var] = t1.vars ++ t2.vars
 
 case class BoolOr(t1: Term, t2: Term) extends BoolTerm:
   override def toString: String = s"$t1 || $t2"
+  override def vars: Seq[Var] = t1.vars ++ t2.vars
 
 case class BoolNot(t: Term) extends BoolTerm:
   override def toString: String = s"!$t"
+  override def vars: Seq[Var] = t.vars
 
 case object BoolTrue extends BoolTerm:
   override def toString: String = "true"

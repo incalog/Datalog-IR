@@ -13,7 +13,8 @@ case class CaseDefinition(name: Name, args: Seq[Type]):
 case class DataDefinition(override val name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry(name):
   override def toString: String = s"""data $name = ${cases.mkString("|")}"""
 
-case class Construct(name: Name, data: Seq[Term]) extends Term
+case class Construct(name: Name, data: Seq[Term]) extends Term:
+  override def vars: Seq[Var] = data.flatMap(_.vars)
 
 case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]) // TODO Discuss: or Body or Term ?
 // We could lower this to disjunctionIR first
