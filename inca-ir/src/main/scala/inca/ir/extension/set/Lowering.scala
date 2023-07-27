@@ -45,6 +45,7 @@ package inca.ir.extension.set
  * Instead of representing Set with ADT Ids, we pass around the values of a set directly.
  * I don't think we need a prefix here, since we just pass the concrete set value to the helper
  * relations.
+ * Disadvantage: If the set contains tuple of size n we might end up passing around n values.
  * I'm still not sure if there are cases where this does not work...
  *
  *

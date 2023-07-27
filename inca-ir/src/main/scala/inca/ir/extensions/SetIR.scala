@@ -23,8 +23,6 @@ case class SetMember(t1: Term, t2: Term) extends Atom
 
 case class NotSetMember(t1: Term, t2: Term) extends Atom
 
-case object EmptySet extends Term
-
 trait SetIR extends BaseIR:
   override val name: String = "Set"
   override def language: Language = super.language + new SetIR {}
