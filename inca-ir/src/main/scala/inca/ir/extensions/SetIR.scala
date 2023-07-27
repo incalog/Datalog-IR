@@ -1,9 +1,10 @@
 package inca.ir.extensions
 
-import inca.ir.{BaseIR, Language, Term, Type}
+import inca.ir.{BaseIR, Language, Term, Type, Atom}
 
+// TODO: Lowering should include not IR
 // TODO Discuss: Do we want to include SetComprehension in the IR ?
-//  We most need type information to defunctionalize
+//  We need type information to defunctionalize
 //  How do we encode empty sets ?
 
 case class TSet(ty: Type) extends Type:
@@ -18,9 +19,14 @@ case class SetUnion(t1: Term, t2: Term) extends Term:
 case class SetIntersection(t1: Term, t2: Term) extends Term:
   override def toString: String = t1.toString + " ∩ " + t2
 
-// Set Member atom
+case class SetMember(t1: Term, t2: Term) extends Atom
+
+case class NotSetMember(t1: Term, t2: Term) extends Atom
+
+case object EmptySet extends Term
 
 trait SetIR extends BaseIR:
   override val name: String = "Set"
   override def language: Language = super.language + new SetIR {}
   override def requires: Language = Language()
+object SetIR extends SetIR {}

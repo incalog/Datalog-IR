@@ -40,6 +40,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
         val outColumn = Param("out", dataTy)
 
         val argVars = columns.map(p => Var(p.name))
+        // TODO: We want to generate some kind of ID here
         /*val combine = columns.fold[Scala.Term](StringLiteral("")) { case (acc, Param(name, ty)) =>
           val toStringApp = Application(
             Var("t$0"),
