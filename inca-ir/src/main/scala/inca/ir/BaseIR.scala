@@ -36,6 +36,7 @@ trait Type extends SourceLocation:
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String =
     s"$name${params.mkString("(", ", ", ")")} ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
+  def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target:
   override def toString: String = s"$name: $ty"

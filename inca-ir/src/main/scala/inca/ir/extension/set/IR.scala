@@ -12,6 +12,8 @@ case class TSet(ty: Type) extends Type:
 case class Set(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("Set(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
+object Set:
+  def from(ts: Term*): Set = new Set(ts)
 
 case class SetUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = t1.toString + " ∪ " + t2
