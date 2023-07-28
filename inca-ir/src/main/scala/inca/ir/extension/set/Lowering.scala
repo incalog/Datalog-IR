@@ -35,7 +35,8 @@ package inca.ir.extension.set
  *
  * 2. How do we know when we can use "real" set relations instead of ADT values ?
  * We don't know when a value is a return value. Do we just let the user handle this
- * manually ?
+ * manually ? We do now it for set union call and the like. Do we require adornment information ?
+ * Is adornment information enough ?
  *
  *
  *

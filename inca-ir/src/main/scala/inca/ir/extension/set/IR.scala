@@ -25,6 +25,9 @@ case class SetIntersection(t1: Term, t2: Term) extends Term:
 
 case class SetMember(t1: Term, t2: Term) extends Atom
 
+// TODO: Discuss: Do we want something like this ?
+//case class SetFold(t1: Term, neutral: Scala.Term fun: Scala.Term)
+
 trait IR extends BaseIR:
   override val name: String = "Set"
   override def language: Language = super.language + new IR {}
