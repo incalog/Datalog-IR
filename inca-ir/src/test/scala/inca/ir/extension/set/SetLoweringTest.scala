@@ -81,7 +81,9 @@ class SetLoweringTest extends AnyFunSuite {
       Body(Seq(
         Eq(Var("y"), term(0)),
         Eq(Var("z"), Set(Seq(Var("y"), term(2)))),
-        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2))))
+        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))),
+        Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
+        Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
       ))
     ))
 

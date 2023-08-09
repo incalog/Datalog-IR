@@ -31,7 +31,7 @@ package inca.ir.extension.set
  * 1. Equality will not work:
  * E.g y == 1, x == Set(y, 2), x == Set(1,2)
  * This will generate two different ADT cases: Set$0(y) and Set$1. These cases are
- * different although the elements are the same.
+ * different although the elements are the same. We could implement equality by aggregation
  *
  * 2. How do we know when we can use "real" set relations instead of ADT values ?
  * We don't know when a value is a return value. Do we just let the user handle this
@@ -183,7 +183,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize {
     term match
-      case Set(Seq()) => ??? // TODO: Handle empty Set
+      case Set(Seq()) => Seq(Var("EMPTY")) // TODO: Handle empty Set correctly
       case Set(ts) => ts.flatMap(visitTerm)
       case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) =>
         val setTy = innerSetType(term.typ.get)
@@ -194,12 +194,20 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
           Var(outVar)
         ))
       case SetUnion(t1, t2) => refunctionalizeTerm(t1) ++ refunctionalizeTerm(t2)
-      case SetIntersection(t1, t2) => ???
+      case SetIntersection(t1, t2) =>
+        val lhsTerms = refunctionalizeTerm(t1)
+        val rhsTerms = refunctionalizeTerm(t2)
+        val baseCase = refunctionalizeTerm(Set.empty)
+        lhsTerms.flatMap { lhs =>
+          rhsTerms.map { rhs =>
+            block.Block(Seq(Eq(lhs, rhs)), lhs)
+          }
+        } ++ baseCase
       case _ => visitTerm(term)
   }
 
   private def defunctionalizeTerm(term: Term): Seq[Term] = {
-    val dependentVars = term.vars
+    val dependentVars = term.vars.distinct
     val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
     val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
     setDefunRelations :+= relation
@@ -243,13 +251,13 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   override def visitTerm(term: Term): Seq[Term] = term match
     case Set(Seq()) => ??? // TODO: Handle empty Set
-    case Set(_) | SetUnion(_, _) =>
+    case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
       if (defunctionalize)
         defunctionalizeTerm(term)
       else
         refunctionalizeTerm(term)
     // TODO: Handle Set Intersection + include base case for empty set
-    case SetIntersection(t1, t2) => ???
+    //case SetIntersection(t1, t2) => ???
     // Group relations with the same signature for aggregations like so:
     // aggregateSet(x, ....) :- set$0(x, ....) or set$1(x, ....)
     case _ => super.visitTerm(term)

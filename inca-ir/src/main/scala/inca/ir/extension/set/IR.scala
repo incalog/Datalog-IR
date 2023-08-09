@@ -14,6 +14,7 @@ case class Set(ts: Seq[Term]) extends Term:
   override def vars: Seq[Var] = ts.flatMap(_.vars)
 object Set:
   def from(ts: Term*): Set = new Set(ts)
+  def empty: Set = new Set(Seq())
 
 case class SetUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = t1.toString + " ∪ " + t2
@@ -26,6 +27,7 @@ case class SetIntersection(t1: Term, t2: Term) extends Term:
 case class SetMember(t1: Term, t2: Term) extends Atom
 
 // TODO: Discuss: Do we want something like this ?
+//  Probably yes, since we do not now the relation a set is defunctionalized to
 //case class SetFold(t1: Term, neutral: Scala.Term fun: Scala.Term)
 
 trait IR extends BaseIR:
