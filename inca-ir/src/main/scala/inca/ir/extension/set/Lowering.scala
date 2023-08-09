@@ -1,5 +1,12 @@
 package inca.ir.extension.set
 
+// TODO: Include prefix or demand placeholder
+// TODO: Add aggregation expression
+// TODO: Support set member
+// TODO: Propagate hints correctly
+// TODO: Refunctionalization hint is not working...
+// TODO: What do we do about equality checks on sets ?
+
 /* I'll briefly sketch two different, but similar approaches of how first-class sets
  * (without the empty set) could be handled. Both approaches have their problems that I
  * still need to figure out:
@@ -75,7 +82,7 @@ package inca.ir.extension.set
 import inca.ir
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ModuleEntry, Name, Neq, Param, Relation, Term, Type, Var, string2name}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Hints, ModuleEntry, Name, Neq, Param, Relation, Term, Type, Var, string2name}
 import inca.ir.extension.set.Set
 import inca.ir.extension.disjunction
 import inca.ir.extension.block
@@ -101,11 +108,6 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   var setDefunCases: Seq[CaseDefinition] = Seq()
   var setDefunGroupRelations: Map[Type, (String, Seq[Relation])] = Map()
 
-  private def innerSetType(typ: Type) = typ match {
-    case TSet(ty) => ty
-    case ty => throw IllegalStateException(s"Expected Set, but got $ty")
-  }
-
   private def freshSetRelation(dependencies: Seq[Var], args: Seq[Term], outTyp: Type): Relation = gensym.scoped {
     // TODO: Prefix or let demand transformation handle it aka. depend on demand IR and insert a placeholder
     val dependentParams = dependencies.map { v =>
@@ -114,7 +116,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     val setName = gensym.fresh("set")
     val outName = gensym.fresh("return")
     val outVar = Var(outName)
-    val outParam = Param(outName, innerSetType(outTyp))
+    val outParam = Param(outName, refunctionalize { visitType(outTyp) })
     val setParam = Param(setName, visitType(outTyp))
     val rel = Relation(
       gensym.freshGlobal(IR.name.toLowerCase() + "Rel"),
@@ -125,15 +127,6 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     )
     rel
   }
-
-  private def visitSetCompare(lhs: Term, rhs: Term): Unit = (lhs.typ, rhs.typ) match
-    // TODO: We need to check if a variable is bound
-    //case (None, _) => throw IllegalStateException(s"Untyped expression $lhs")
-    //case (_, None) => throw IllegalStateException(s"Untyped expression $rhs")
-    //case (Some(TSet(_)), Some(TSet(_))) => throw IllegalStateException("Can not compare sets for equality!")
-    // TODO: We could let the body fail here
-    //case (Some(TSet(_)), _) | (_, Some(TSet(_))) => throw IllegalStateException("Can not compare sets for equality!")
-    case _ => // nothing
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = {
     val defunTyName = gensym.fresh("DefunSet")
@@ -159,13 +152,25 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     }
     rels ++ setDefunRelations ++ groupDefunRelations
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Eq(lhs, rhs) =>
+  override def visitParam(param: Param): Seq[Param] = refunctionalizeIfRequired(param) { super.visitParam(param) }
+
+  override def visitAtom(atom: Atom): Seq[Atom] = {
+    refunctionalizeIfRequired(atom) { visitSetAtom(atom) }
+  }
+
+  private def visitSetAtom(atom: Atom): Seq[Atom] = atom match
+    /*case Eq(lhs, rhs) =>
       visitSetCompare(lhs, rhs)
       super.visitAtom(atom)
     case Neq(lhs, rhs) =>
       visitSetCompare(lhs, rhs)
-      super.visitAtom(atom)
+      super.visitAtom(atom)*/
+    // TODO: How do I best handle this without overriding all cases that we possible don't know yet ?
+    //  We could add a Disjunction(terms), but this would just move the problem ?
+    case Eq(lhs, rhs) =>
+      visitTerm(lhs).map { l =>
+        Disjunction.apply(visitTerm(rhs).map(r => Seq(Eq(l, r))))
+      }
     case SetMember(t1, t2) =>
       // TODO: Fix this
       visitTerm(t1).zip(visitTerm(t2)).map(Eq.apply)
@@ -181,12 +186,20 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       defunctionalize = true
     }
 
+  private def refunctionalizeIfRequired[A](hint: Hints)(f: => A) =
+    if hint.hasHint(Hints.RefunctionalizeKey) then
+      refunctionalize { f }
+    else
+      f
+
+  private def emptySet: Term = Var("EMPTY") // TODO: Handle empty Set correctly
+
   private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize {
     term match
-      case Set(Seq()) => Seq(Var("EMPTY")) // TODO: Handle empty Set correctly
+      case Set(Seq()) => Seq(this.emptySet)
       case Set(ts) => ts.flatMap(visitTerm)
       case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) =>
-        val setTy = innerSetType(term.typ.get)
+        val setTy = visitType(term.typ.get)
         val (groupRelName, _) = setDefunGroupRelations(setTy)
         val outVar = gensym.fresh("return")
         Seq(block.Block(
@@ -233,7 +246,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     //  Solution:
     //   Each module should additionally include the "class" hierarchy.
     //   Subtype(Type, Type) extends ModuleEntry ??
-    val setTy = innerSetType(ty)
+    val setTy = refunctionalize { visitType(ty) }
     val (groupRelName, groupRelations) = setDefunGroupRelations.getOrElse(setTy, (gensym.fresh("setGroupRel"), Seq()))
     setDefunGroupRelations += setTy -> (groupRelName, groupRelations :+ relation)
 
@@ -249,19 +262,24 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     ))
   }
 
-  override def visitTerm(term: Term): Seq[Term] = term match
-    case Set(Seq()) => ??? // TODO: Handle empty Set
+  private def visitSetTerm(term: Term) = term match
     case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
       if (defunctionalize)
         defunctionalizeTerm(term)
       else
+        //println(term)
+        //println(refunctionalizeTerm(term))
+        //println()
         refunctionalizeTerm(term)
-    // TODO: Handle Set Intersection + include base case for empty set
-    //case SetIntersection(t1, t2) => ???
     // Group relations with the same signature for aggregations like so:
-    // aggregateSet(x, ....) :- set$0(x, ....) or set$1(x, ....)
+    // aggregateSet(x, ..., #) :- set$0(x, ..., return) or set$1(x, ..., return)
     case _ => super.visitTerm(term)
 
-  override def visitType(ty: Type): Type = ty match
-    case TSet(ty) => setDefunType.get
+  override def visitTerm(term: Term): Seq[Term] = refunctionalizeIfRequired(term) { this.visitSetTerm(term) }
+
+  private def visitSetType(ty: Type) = ty match
+    case TSet(_) if defunctionalize => setDefunType.get
+    case TSet(tty) => super.visitType(tty)
     case _ => super.visitType(ty)
+
+  override def visitType(ty: Type): Type = refunctionalizeIfRequired(ty) { this.visitSetType(ty) }

@@ -21,15 +21,15 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     s"module $name $features\n$con"
   }
 
-trait ModuleEntry(val name: Name) extends SourceLocation
+trait ModuleEntry(val name: Name) extends SourceLocation with Hints
 
 
 
-trait Atom extends SourceLocation
-trait Term extends Typeable[Type] with SourceLocation:
+trait Atom extends SourceLocation with Hints
+trait Term extends Typeable[Type] with SourceLocation with Hints:
   def vars: Seq[Var] = Seq()
 
-trait Type extends SourceLocation:
+trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
@@ -38,10 +38,10 @@ case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Bod
     s"$name${params.mkString("(", ", ", ")")} ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
   def signature: Seq[Type] = params.map(_.ty)
 
-case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target:
+case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
   override def toString: String = s"$name: $ty"
 
-case class Body(atoms: Seq[Atom]):
+case class Body(atoms: Seq[Atom]) extends Hints:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
 
 case class Var(name: Name) extends Term with Var.Target:

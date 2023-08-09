@@ -32,7 +32,13 @@ trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
     case _ => super.visitModuleEntry(moduleEntry)
 
   override def visitRelation(relation: Relation): Seq[Relation] =
-    Seq(Relation(relation.name, relation.params.flatMap(visitParam), relation.bodies.flatMap(b => gensym.scoped { visitBody(b) })))
+    Seq(
+      Relation(
+        relation.name,
+        relation.params.flatMap(visitParam),
+        relation.bodies.flatMap(b => gensym.scoped { visitBody(b) })
+      ).withHints(relation)
+    )
 
   override def visitParam(param: Param): Seq[Param] = {
     gensym.register(param.name)
