@@ -404,4 +404,9 @@ object TestDefinition {
     TestDefinition("WithInheritance", "A", "main", Seq(), true)
   }
 
+  def CustomClassAsType: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("CustomClassAsType", "A", "main", Seq(), true)
+  }
+
 }

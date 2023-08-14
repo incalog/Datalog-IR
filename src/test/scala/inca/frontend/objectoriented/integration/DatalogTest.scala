@@ -242,4 +242,8 @@ class DatalogTest extends AnyFunSuite {
     performTests(GenericsWithInheritance)
   }
 
+  test("Custom Class as Type") {
+    performTests(CustomClassAsType)
+  }
+
 }
