@@ -1,0 +1,21 @@
+module SimpleGenericClass
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T]: T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        val newA1 = new A[Int](1)
+        return (newA1.a == 1)
+    }
+}
+
+

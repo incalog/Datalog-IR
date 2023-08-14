@@ -376,4 +376,27 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_right_cycles", "Graph", "main", Seq(q"12", q"1"), SetResult())
   }
+
+
+  // for testing implementation of generics
+  def simpleGenericClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("SimpleGenericClass", "A", "main", Seq(), true)
+  }
+
+  def instancesWithDifferentTypes: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InstancesWithDifferentTypes", "A", "main", Seq(), true)
+  }
+
+  def linkedList: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("LinkedList", "LinkedList", "main", Seq(), Seq(2))
+  }
+
+  def multipleGenericTypes: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("MultipleGenericTypes", "A", "main", Seq(), true)
+  }
+
 }

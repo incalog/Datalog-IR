@@ -1,0 +1,94 @@
+module LinkedListTest
+
+// works without generics
+/*
+class Node {
+    var value: Int
+    var next: Node
+
+    def this(value: Int, next: Node) = {
+        this.value = value
+        this.next = next
+    }
+}
+
+class LinkedList {
+    var head: Node
+
+    def this() = {
+        this.head = null
+    }
+
+    def insert(value: Int): Int = {
+        return this.insert(value,this.head)
+    }
+
+    def insert(value: Int, node: Node): Int = {
+        if (node == null) {
+            this.head = new Node(value, null)
+            return 1
+        }
+        if (node.next == null){
+            node.next = new Node(value, null)
+            return 1
+        }
+        else {
+            return this.insert(value, node.next)
+        }
+    }
+
+    @main
+    def main(): Int = {
+        val lst: LinkedList = new LinkedList()
+        val res1: Int = lst.insert(1)
+        val res2: Int = lst.insert(2)
+        return res1 + res2
+    }
+}
+*/
+
+
+
+class Node[T] {
+    var value: T
+    var next: Node
+
+    def this(value: T, next: Node) = {
+        this.value = value
+        this.next = next
+    }
+}
+
+class LinkedList[T] {
+    var head: Node[T]
+
+    def this() = {
+        this.head = null
+    }
+
+    def insert(value: T): Int = {
+        return this.insert(value,this.head)
+    }
+
+    def insert(value: T, node: Node): Int = {
+        if (node == null) {
+            this.head = new Node(value, null)
+            return 1
+        }
+        if (node.next == null){
+            node.next = new Node(value, null)
+            return 1
+        }
+        else {
+            return this.insert(value, node.next)
+        }
+    }
+
+    @main
+    def main(): Int = {
+        val lst: LinkedList[Int] = new LinkedList()
+        val res1: Int = lst.insert(1)
+        val res2: Int = lst.insert(2)
+        return res1 + res2
+    }
+}

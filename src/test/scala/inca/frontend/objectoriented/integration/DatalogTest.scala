@@ -219,4 +219,24 @@ class DatalogTest extends AnyFunSuite {
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
   }
+
+
+  // Tests for generics
+  test("Simple Generic Class") {
+    performTests(simpleGenericClass)
+  }
+
+  test("Instances with Different Types") {
+    performTests(instancesWithDifferentTypes)
+  }
+
+  test("Linked List") {
+    performTests(linkedList)
+  }
+
+  test("Class with Multiple Generic Types") {
+    performTests(multipleGenericTypes)
+  }
+
+
 }
