@@ -230,7 +230,7 @@ class DatalogTest extends AnyFunSuite {
     performTests(instancesWithDifferentTypes)
   }
 
-  test("Linked List") {
+  test("Generic Linked List") {
     performTests(linkedList)
   }
 
@@ -238,5 +238,8 @@ class DatalogTest extends AnyFunSuite {
     performTests(multipleGenericTypes)
   }
 
+  test("Generics with Inheritance") {
+    performTests(GenericsWithInheritance)
+  }
 
 }

@@ -399,4 +399,9 @@ object TestDefinition {
     TestDefinition("MultipleGenericTypes", "A", "main", Seq(), true)
   }
 
+  def GenericsWithInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("WithInheritance", "A", "main", Seq(), true)
+  }
+
 }

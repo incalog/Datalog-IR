@@ -1,0 +1,42 @@
+module WithInheritance
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T]: T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1 = new A[Int](1)
+        val B1 = new B[Int](0,1)
+        val C1 = new C[Int, Boolean](1, true)
+        return (A1.a == 1) && ((B1.a == 0) && (B1.b == 1)) && ((C1.c == 1) && C1.c)
+    }
+}
+
+
+class B[T] extends A[T] {
+    val b: T
+
+    def this(value: T, value2: T) = {
+        super(value)
+        this.b = value2
+    }
+}
+
+
+class C[T1,T2] extends A[T1] {
+    val c: T2
+
+    def this(value: T1, value2: T2) = {
+        super(value)
+        this.c = value2
+    }
+
+}
