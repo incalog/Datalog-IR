@@ -538,8 +538,7 @@ trait Parser {
     val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericType ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-    val head_cont = (header ~ content)
-    head_cont.mapWithLoc { case ((((visibility, caseAnno), (nameWithGenericType, fieldConstr)), parents), content) =>
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (nameWithGenericType, fieldConstr)), parents), content) =>
       val name = nameWithGenericType._1
       val genericTypeName = nameWithGenericType._2
       // Generate a primary constructor if required
@@ -567,7 +566,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
-      // TODO give ClassDef genericType(Name) ?!
+      // TODO give ClassDef genericType(Name)
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
@@ -589,7 +588,7 @@ trait Parser {
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
-          println(s"## mapWithLoc: u ${u}")
+          println(s"## mapWithLoc: u = ${u}")
           u
 
       }
