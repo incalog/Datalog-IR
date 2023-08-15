@@ -7,14 +7,15 @@ class A[T] {
         this.a = value
     }
 
-    def get[T]: T = {
+    def get[T](): T = {
         return this.a
     }
 
     @main
     def main(): Boolean = {
-        val newA1 = new A[B](new B[Int](1))
-        return (newA1.a.b == 1)
+        val A1 = new A[B[Int]](new B[Int](1))
+        val C1 = new C[Int](new B[Int](0))
+        return (A1.a.b == 1) && (C1.c.b == 0)
     }
 }
 
@@ -25,8 +26,19 @@ class B[T] {
         this.b = value
     }
 
-    def get[T]: T = {
+    def get[T](): T = {
         return this.b
     }
 }
 
+class C[T] {
+    val c: B[T]
+
+    def this(value: B[T]) = {
+        this.c = value
+    }
+
+    def get[T](): B[T] = {
+        return this.c
+    }
+}

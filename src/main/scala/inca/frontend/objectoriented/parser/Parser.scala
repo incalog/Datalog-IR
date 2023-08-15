@@ -186,9 +186,13 @@ trait Parser {
 
   protected[frontend] val typeAnno: P[Type] =
     monoMapType | setType | atomicTypeAnno
+    //  | inBrackets(monoMapType) | inBrackets(setType) | inBrackets(atomicTypeAnno)
+
+//  protected[frontend] val genericTypeAnno: P[(Type,Type)] =
+//    (typeAnno ~ inBrackets(typeAnno))
 
   val nameWithType: P[(Name, Type)] =
-    spaced(identifier ~ (op(':') *> typeAnno))
+    spaced(identifier ~ (op(':') *> typeAnno)) // TODO | spaced(identifier ~ (op(':') *> genericTypeAnno))
 
   private lazy val assignmentOp: P[AssignmentOp] = (
       op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
@@ -479,13 +483,14 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
-      <* keyword(DEF)).backtrack ~ identifier ~ defParams)
+      <* keyword(DEF)).backtrack ~ identifier ~ inBrackets(identifier).? ~ defParams)
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
+        // TODO give MethodDef genericTypeName -> change MethodDef in Core
         case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content))
       }
     }
@@ -531,17 +536,14 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    // optional: generic type
-    val genericType = inBrackets(identifier).?
+    val genericType = inBrackets(identifier).?      // optional: generic type
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
     val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericType ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (nameWithGenericType, fieldConstr)), parents), content) =>
-      val name = nameWithGenericType._1
-      val genericTypeName = nameWithGenericType._2
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name,genericTypeName), fieldConstr)), parents), content) =>
 
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
@@ -568,7 +570,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
-      // TODO give ClassDef genericTypeName
+      // TODO give ClassDef genericTypeName -> change ClassDef in Core
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
@@ -590,7 +592,6 @@ trait Parser {
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
-          println(s"## mapWithLoc: u = ${u}")
           u
 
       }
