@@ -531,13 +531,17 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
+    val genericType = inBrackets(identifier)
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericType ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-    (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
+    val head_cont = (header ~ content)
+    head_cont.mapWithLoc { case ((((visibility, caseAnno), (nameWithGenericType, fieldConstr)), parents), content) =>
+      val name = nameWithGenericType._1
+      val genericTypeName = nameWithGenericType._2
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
         content
@@ -563,6 +567,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
+      // TODO give ClassDef genericType(Name) ?!
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
@@ -578,14 +583,17 @@ trait Parser {
   }
 
   implicit class Ploc[T](p: => P[T]) {
-    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] = {
       indexed(p).map {
         case ((start, t), end) =>
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
+          println(s"## mapWithLoc: u ${u}")
           u
+
       }
+    }
 
     def flatMapWithLoc[U <: SourceLocation](f: T => P0[U]): P[U] =
       indexed(p).flatMap {
