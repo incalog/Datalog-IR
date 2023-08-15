@@ -161,6 +161,10 @@ trait Parser {
   protected[frontend] def setType: P[TSet] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
+  protected[frontend] def genericType: P[TGeneric] =
+    (atomicTypeAnno ~ inBrackets(identifier)).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
+  // TODO added a new Type TGeneric(Type, Name) but does that make sense? simpler solution?
+
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
 
@@ -184,15 +188,14 @@ trait Parser {
       tupleType
     )
 
-  protected[frontend] val typeAnno: P[Type] =
-    monoMapType | setType | atomicTypeAnno
-    //  | inBrackets(monoMapType) | inBrackets(setType) | inBrackets(atomicTypeAnno)
+  // added genericType before atomicTypeAnno
+  protected[frontend] val typeAnno: P[Type] = {
+    monoMapType | setType | genericType | atomicTypeAnno
+  }
 
-//  protected[frontend] val genericTypeAnno: P[(Type,Type)] =
-//    (typeAnno ~ inBrackets(typeAnno))
 
   val nameWithType: P[(Name, Type)] =
-    spaced(identifier ~ (op(':') *> typeAnno)) // TODO | spaced(identifier ~ (op(':') *> genericTypeAnno))
+    spaced(identifier ~ (op(':') *> typeAnno))
 
   private lazy val assignmentOp: P[AssignmentOp] = (
       op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
@@ -486,12 +489,12 @@ trait Parser {
       <* keyword(DEF)).backtrack ~ identifier ~ inBrackets(identifier).? ~ defParams)
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
         // TODO give MethodDef genericTypeName -> change MethodDef in Core
-        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content))
+        case _ => pass(MethodDef(anno, visibility, funcName /*, genericTypeName*/, params, typeAnno, content))
       }
     }
   }
@@ -592,6 +595,7 @@ trait Parser {
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
+          println(s"mapWithLoc: u = ${u.toString}")
           u
 
       }

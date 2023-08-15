@@ -94,7 +94,7 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }
 }
 
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name /*TODO , genericTypeName: Option[Name]*/, params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap

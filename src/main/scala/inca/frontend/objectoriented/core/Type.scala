@@ -94,3 +94,13 @@ case class TSet(ty: Type) extends Type {
   override def flatten: Seq[Type] = ty.flatten
   override def asSet: Option[TSet] = Some(this)
 }
+
+
+// TODO
+case class TGeneric(ty: Type, genericTy: Name) extends Type {
+  override def prettyprint: Signature = ???
+
+  override def flatten: Seq[Type] = ???
+
+  override def asScala: meta.Type = ???
+}

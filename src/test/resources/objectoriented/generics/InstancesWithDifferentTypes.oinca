@@ -13,8 +13,8 @@ class A[T] {
 
     @main
     def main(): Boolean = {
-        val newA1 = new A[Int](1)
-        val newA2 = new A[String]("Hello")
+        val newA1: A[Int] = new A[Int](1)
+        val newA2: A[String] = new A[String]("Hello")
 
         return (newA1.a == 1) && (newA2.a == "Hello")
     }
