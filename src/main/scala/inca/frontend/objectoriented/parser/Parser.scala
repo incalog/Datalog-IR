@@ -151,6 +151,9 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
+  protected[frontend] val genericTypeParameter: P[Name] =
+    inBrackets(identifier) // TODO Type instead of Name ?
+
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
@@ -162,8 +165,9 @@ trait Parser {
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
   protected[frontend] def genericType: P[TGeneric] =
-    (atomicTypeAnno ~ inBrackets(identifier)).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
-  // TODO added a new Type TGeneric(Type, Name) but does that make sense? simpler solution?
+    (atomicTypeAnno ~ genericTypeParameter).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
+  // TODO added a new Type TGeneric(Type, Name), but does that make sense? simpler solution?
+
 
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
@@ -188,10 +192,11 @@ trait Parser {
       tupleType
     )
 
+
   // added genericType before atomicTypeAnno
   protected[frontend] val typeAnno: P[Type] = {
-    monoMapType | setType | genericType | atomicTypeAnno
-  }
+    monoMapType | setType | genericType /*| inBrackets(atomicTypeAnno)*/ | atomicTypeAnno
+  } // TODO ?
 
 
   val nameWithType: P[(Name, Type)] =
@@ -233,8 +238,10 @@ trait Parser {
 
   private def varDeclareStmt(immutable: Boolean): P[VarDeclareStmt] = {
     val kw = if (immutable) VAL else VAR
+    println("varDeclareStmt")
     (keyword(kw) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
+        println(s"varDeclareStmt: typeAnno = $typeAnno")
         VarDeclareStmt(name, typeAnno, valueExpr, immutable)
     }
   }
@@ -254,6 +261,7 @@ trait Parser {
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
 
+  // TODO add support for generics, this is also used for constructor calls...
   private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
     (identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr))))
 
@@ -276,7 +284,7 @@ trait Parser {
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
-      val constr = ConstructorExpr(ClassRef(name), argList)
+      val constr = ConstructorExpr(ClassRef(name), argList) // TODO give generic typeparameter
       constr.tyParams = tyParams.getOrElse(Seq())
       constr
     }
@@ -486,7 +494,7 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
-      <* keyword(DEF)).backtrack ~ identifier ~ inBrackets(identifier).? ~ defParams)
+      <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameter.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
     functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
@@ -539,14 +547,14 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val genericType = inBrackets(identifier).?      // optional: generic type
+    val genericType = genericTypeParameter.?      // optional: generic type
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
     val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericType ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name,genericTypeName), fieldConstr)), parents), content) =>
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeName), fieldConstr)), parents), content) =>
 
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
