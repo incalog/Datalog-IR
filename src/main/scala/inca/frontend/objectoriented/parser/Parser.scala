@@ -531,7 +531,8 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val genericType = inBrackets(identifier)
+    // optional: generic type
+    val genericType = inBrackets(identifier).?
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
@@ -541,6 +542,7 @@ trait Parser {
       (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (nameWithGenericType, fieldConstr)), parents), content) =>
       val name = nameWithGenericType._1
       val genericTypeName = nameWithGenericType._2
+
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
         content
@@ -566,7 +568,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
-      // TODO give ClassDef genericType(Name)
+      // TODO give ClassDef genericTypeName
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
