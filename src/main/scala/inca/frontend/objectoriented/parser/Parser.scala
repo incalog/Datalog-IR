@@ -151,9 +151,14 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
-  protected[frontend] val genericTypeParameter: P[Name] = {
-    inBrackets(identifier) // TODO Type instead of Name ? & Support multiple generic parameters -> Seq
-    // inBrackets(seq0(P.defer(identifier), min=1))
+  protected[frontend] val genericTypeParameter: P[Seq[Name]] = {
+    // inBrackets(identifier) // Support multiple generic parameters -> Seq
+    inBrackets(seq0(P.defer(identifier), min=1))
+  }
+
+  protected[frontend] val typesForGenerics: P[Seq[Type]] = {
+    // TODO Version with Type instead of Name for concrete Instances` Type Annotations, Constructors,...
+    inBrackets(seq0(P.defer(typeAnno), min = 1))
   }
 
   /** Helper for the Type like TAny. */
@@ -169,7 +174,7 @@ trait Parser {
   protected[frontend] def genericType: P[TGeneric] =
     (atomicTypeAnno ~ genericTypeParameter).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
   // TODO added a new Type TGeneric(Type, Name), but does that make sense? simpler solution?
-
+  //  used Parameters not concrete Types here
 
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
@@ -265,8 +270,8 @@ trait Parser {
 
   // TODO add support for generics, this is also used for constructor calls...
   private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
-    ((identifier.soft ~ (inBrackets(seq0(P.defer(typeAnno))).? | genericTypeParameter.?) ~ inParentheses(seq0(P.defer(expr))))
-  //TODO change genericTypeParameter to return P[Seq[Type]] ????
+    identifier.soft ~ (inBrackets(seq0(P.defer(typeAnno))).? | typesForGenerics.?) ~ inParentheses(seq0(P.defer(expr)))
+  //TODO change genericTypeParameter to return P[Seq[Type]] ???? -> No, new version with Type instead of Name
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
