@@ -151,8 +151,10 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
-  protected[frontend] val genericTypeParameter: P[Name] =
-    inBrackets(identifier) // TODO Type instead of Name ?
+  protected[frontend] val genericTypeParameter: P[Name] = {
+    inBrackets(identifier) // TODO Type instead of Name ? & Support multiple generic parameters -> Seq
+    // inBrackets(seq0(P.defer(identifier), min=1))
+  }
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
@@ -193,7 +195,7 @@ trait Parser {
     )
 
 
-  // added genericType before atomicTypeAnno
+  // added genericType before atomicTypeAnno -> allows annotating of the form Class[Type]
   protected[frontend] val typeAnno: P[Type] = {
     monoMapType | setType | genericType /*| inBrackets(atomicTypeAnno)*/ | atomicTypeAnno
   } // TODO ?
@@ -263,7 +265,8 @@ trait Parser {
 
   // TODO add support for generics, this is also used for constructor calls...
   private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
-    (identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr))))
+    ((identifier.soft ~ (inBrackets(seq0(P.defer(typeAnno))).? | genericTypeParameter.?) ~ inParentheses(seq0(P.defer(expr))))
+  //TODO change genericTypeParameter to return P[Seq[Type]] ????
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
@@ -284,7 +287,7 @@ trait Parser {
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
-      val constr = ConstructorExpr(ClassRef(name), argList) // TODO give generic typeparameter
+      val constr = ConstructorExpr(ClassRef(name), argList) // TODO give type for generic typeparameter
       constr.tyParams = tyParams.getOrElse(Seq())
       constr
     }
@@ -603,7 +606,7 @@ trait Parser {
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
-          println(s"mapWithLoc: u = ${u.toString}")
+          println(s"mapWithLoc: u = ${u}")
           u
 
       }
