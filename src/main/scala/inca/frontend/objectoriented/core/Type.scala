@@ -97,7 +97,7 @@ case class TSet(ty: Type) extends Type {
 
 
 // TODO
-case class TGeneric(ty: Type, genericTyParam: Seq[Name]) extends Type {
+case class TGeneric(ty: Type, genericTyParam: Seq[Type]) extends Type {
   override def prettyprint: Signature = s"${ty.prettyprint}[${genericTyParam.toString}]"
 
   override def flatten: Seq[Type] = ???
