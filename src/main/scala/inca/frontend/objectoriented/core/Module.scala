@@ -75,7 +75,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name 
     } else
       s""
     val genericTypeParam = if (isGeneric) s"[${this.genericTypeName.get}]" else ""
-    s"""$annoPrefix$indent${visS}class $name $genericTypeParam $parentClassesS {$contentS\n$indent}""".stripMargin
+    s"""$annoPrefix$indent${visS}class $name$genericTypeParam $parentClassesS {$contentS\n$indent}""".stripMargin
   }
   override def toString: String = prettyprint("")
 }
@@ -117,7 +117,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val outS = outType.prettyprint
     val genericTypeParam = if (isGeneric) s"[${this.genericTypeName.get}]" else ""
 
-    s"""$annoPrefix$indent${visS}def $name $genericTypeParam ($paramsS): $outS = {
+    s"""$annoPrefix$indent${visS}def $name$genericTypeParam($paramsS): $outS = {
        |$bodyS
        |$indent}""".stripMargin
   }
