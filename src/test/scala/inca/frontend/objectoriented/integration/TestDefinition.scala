@@ -409,4 +409,10 @@ object TestDefinition {
     TestDefinition("CustomClassAsType", "A", "main", Seq(), true)
   }
 
+  def UnknownTypeParameter: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("UnknownTypeParameter", "A", "main", Seq(), None)
+  }
+
+
 }

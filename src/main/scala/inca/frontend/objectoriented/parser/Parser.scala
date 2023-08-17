@@ -198,6 +198,7 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] = {
     monoMapType | setType | atomicTypeAnno /*| genericType */
   } // TODO ? /*| inBrackets(atomicTypeAnno)*/
+    //  problem: parsing typeannotations with generic types does not work
 
 
   val nameWithType: P[(Name, Type)] =
@@ -623,6 +624,7 @@ trait Parser {
           up.map { u =>
             u.startIndex = start
             u.endIndex = end
+            println(s"flatMapWithLoc: u = ${u}")
             u
           }
       }

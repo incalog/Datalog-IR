@@ -1,9 +1,9 @@
-module InstancesWithDifferentTypes
+module UnknownTypeParameter
 
 class A[T] {
-    val a: T
+    val a: T2
 
-    def this(value: T) = {
+    def this(value: T2) = {
         this.a = value
     }
 
@@ -14,8 +14,7 @@ class A[T] {
     @main
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
-        val A2: A[String] = new A[String]("Hello")
-
-        return (A1.a == 1) && (A2.a == "Hello")
+        val res: Int = A1.get[Int]()
+        return res == 1
     }
 }

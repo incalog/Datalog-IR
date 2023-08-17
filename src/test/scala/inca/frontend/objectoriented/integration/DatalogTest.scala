@@ -246,4 +246,16 @@ class DatalogTest extends AnyFunSuite {
     performTests(CustomClassAsType)
   }
 
+  test("Unknown Type-parameter") {
+    assertThrows[Exception](
+      performTests(UnknownTypeParameter)
+    )
+//    TODO maybe create own Exception to assert error like above ?
+//    val caught = intercept[Exception] {
+//      performTests(UnknownTypeParameter)
+//    }
+//    assert(caught.??? == ???)
+
+  }
+
 }
