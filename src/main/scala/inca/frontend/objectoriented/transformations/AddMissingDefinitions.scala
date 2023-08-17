@@ -31,7 +31,7 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
   }
 
   override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    val MethodDef(annos, vis, name, params, outType, content) = methodDef
+    val MethodDef(annos, vis, name, params, outType, content, genericTypeParams) = methodDef
     val missingReturn = generateReturnStatement(content)
     super.transMethodInternal(MethodDef(annos, vis, name, params, outType, content.dropRight(1) ++ missingReturn), classDef)
   }

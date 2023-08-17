@@ -171,8 +171,10 @@ trait Parser {
 //  // TODO
 
 
-  protected[frontend] val classRef: P[ClassRef] =
+  protected[frontend] val classRef: P[ClassRef] = {
     identifier.mapWithLoc(ClassRef)
+    // (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
+  }
 
   protected[frontend] val classType: P[TClass] =
     classRef.mapWithLoc(TClass)
@@ -251,10 +253,10 @@ trait Parser {
 
   private def varDeclareStmt(immutable: Boolean): P[VarDeclareStmt] = {
     val kw = if (immutable) VAL else VAR
-    println("varDeclareStmt")
+    //println("varDeclareStmt")
     (keyword(kw) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
-        println(s"varDeclareStmt: typeAnno = $typeAnno")
+        // println(s"varDeclareStmt: typeAnno = $typeAnno")
         VarDeclareStmt(name, typeAnno, valueExpr, immutable)
     }
   }
@@ -559,14 +561,14 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val genericType = genericTypeParameter.?      // optional: generic type
+    val genericTypes = genericTypeParameter.?      // optional: generic type
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericType ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericTypes ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeName), fieldConstr)), parents), content) =>
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeNames), fieldConstr)), parents), content) =>
 
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
@@ -593,8 +595,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
-      // TODO give ClassDef genericTypeName -> change ClassDef in Core
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten, genericTypeNames)
     }
   }
 
@@ -615,7 +616,7 @@ trait Parser {
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
-          println(s"mapWithLoc: u = ${u}")
+          //println(s"mapWithLoc: u = ${u}")
           u
 
       }
@@ -628,7 +629,7 @@ trait Parser {
           up.map { u =>
             u.startIndex = start
             u.endIndex = end
-            println(s"flatMapWithLoc: u = ${u}")
+            //println(s"flatMapWithLoc: u = ${u}")
             u
           }
       }
