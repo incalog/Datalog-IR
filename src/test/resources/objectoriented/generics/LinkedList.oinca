@@ -86,7 +86,7 @@ class LinkedList[T] {
 
     @main
     def main(): Int = {
-        val lst: LinkedList[Int] = new LinkedList()
+        val lst: LinkedList[Int] = new LinkedList[Int]()
         val res1: Int = lst.insert(1)
         val res2: Int = lst.insert(2)
         return res1 + res2

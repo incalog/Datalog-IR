@@ -166,9 +166,9 @@ trait Parser {
   protected[frontend] def setType: P[TSet] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
-  protected[frontend] def genericType: P[TGeneric] =
-    (classType ~ typesForGenerics).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
-  // TODO added a new Type TGeneric(Type, Seq[Name]), but does that make sense? simpler solution?
+//  protected[frontend] def genericType: P[TGeneric] =
+//    (atomicTypeAnno ~ typesForGenerics).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
+//  // TODO
 
 
   protected[frontend] val classRef: P[ClassRef] =
@@ -195,19 +195,25 @@ trait Parser {
     )
 
 
-  protected[frontend] val typeAnno: P[Type] = {
-    monoMapType | setType | atomicTypeAnno /*| genericType */
-  } // TODO ? /*| inBrackets(atomicTypeAnno)*/
-    //  problem: parsing typeannotations with generic types does not work
 
+
+  protected[frontend] val typeAnno: P[Type] = {
+     monoMapType | setType | (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
+       case (t1, None) => t1
+       case (t1, Some(t2)) => TGeneric(t1, t2)
+     }
+    // monoMapType | setType | atomicTypeAnno | genericType
+  } // parsing typeannotations with generic types does not work like this
+
+  protected[frontend] def typesForGenerics: P[Seq[Type]] = {
+    // with Type instead of Name for concrete Instances` Type Annotations, Constructors, Method Calls,...
+    inBrackets(seq0(P.defer(typeAnno), min = 1))
+  }
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
 
-  protected[frontend] val typesForGenerics: P[Seq[Type]] = {
-    // with Type instead of Name for concrete Instances` Type Annotations, Constructors, Method Calls,...
-    inBrackets(seq0(P.defer(typeAnno), min = 1))
-  }
+
 
   private lazy val assignmentOp: P[AssignmentOp] = (
       op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
@@ -268,10 +274,8 @@ trait Parser {
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
 
-  // TODO add support for generics, this is also used for constructor calls...
   private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
     identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr)))
-  //TODO does | typesForGenerics.? make sense here ? -> Or change return Type to include another Option[...] for typparameter?
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
