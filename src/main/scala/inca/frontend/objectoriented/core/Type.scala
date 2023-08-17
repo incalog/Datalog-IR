@@ -21,7 +21,7 @@ object Type {
     case TNull => "Null"
     case TTuple(ts) => "Tuple_" + ts.map(suffix).mkString("_")
     case TScala(ty) => ty.syntax
-    case TClass(ClassRef(Name(raw))) => raw
+    case TClass(ClassRef(Name(raw),genericType)) => raw
     case TSet(ty) => "Set_" + suffix(ty)
   }
 }
@@ -82,6 +82,9 @@ object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
 case class TClass(ref: ClassRef) extends Type {
+  println("TClass")
+  println(s"### ${ref.name} ${ref.typesForTypeparameters}")
+
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.objectoriented.Identity" //t"truechange.URI"
@@ -98,6 +101,10 @@ case class TSet(ty: Type) extends Type {
 
 // TODO
 case class TGeneric(ty: Type, genericTyParam: Seq[Type]) extends Type {
+  println("TGeneric")
+  println(s"### $ty")
+  println(s"### $genericTyParam")
+
   override def prettyprint: Signature = s"${ty.prettyprint}[${genericTyParam.map(t => t.prettyprint)}]"
 
   override def flatten: Seq[Type] = ???

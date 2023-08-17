@@ -56,7 +56,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case TScala(Scala(metaTy)) =>
       // TODO: Support supertypes for scala types
       Seq()
-    case TClass(ClassRef(Name(raw))) =>
+    case TClass(ClassRef(Name(raw),_)) =>
       dataModel.directNodeSupertypes.get(SortType(raw))
         .map(s => TClass(ClassRef(Name(s.name)))).toSeq
     case TSet(ty) =>
@@ -249,7 +249,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldReadExpr(sanitize(recv), targetName)
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
-    case ConstructorExpr(ClassRef(name), args) =>
+    case ConstructorExpr(ClassRef(name, typesForTypeparameters), args) =>
       ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
     case SuperExpr(args) =>
       SuperExpr(args.map(sanitize(_)))
@@ -261,8 +261,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       InstanceOfExpr(sanitize(recv), clearType(ofTyp))
     case SetExpr(exps, tty) =>
       unapply(SetExpr(exps.map(sanitize(_)), if (tty.isDefined) Some(clearType(tty.get)) else None), requiresTrueSet, expression.typ)
-    case SetFold(recv, projection, ClassRef(name), opMethod, neutral) =>
-      SetFold(sanitize(recv, requiresTrueSet = true), projection.map(sanitize(_)), ClassRef(name), opMethod, sanitize(neutral))
+    case SetFold(recv, projection, ClassRef(name, typesForTypeparameters), opMethod, neutral) =>
+      SetFold(sanitize(recv, requiresTrueSet = true), projection.map(sanitize(_)), ClassRef(name, typesForTypeparameters), opMethod, sanitize(neutral))
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(sanitize(predicate.get)) else None
       SetMemberExpr(name, sanitize(recv, requiresTrueSet = true), pred)

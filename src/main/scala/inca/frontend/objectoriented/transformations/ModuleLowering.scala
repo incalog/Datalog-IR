@@ -109,8 +109,8 @@ trait ModuleLowering {
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
-    case constr@ConstructorExpr(ClassRef(name), args) =>
-      val newConstr = ConstructorExpr(ClassRef(name), transExpressions(args))
+    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), args) =>
+      val newConstr = ConstructorExpr(ClassRef(name,typesForTypeparameters), transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
       newConstr
     case SuperExpr(args) =>
@@ -130,8 +130,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
-    case SetFold(recv, projection, ClassRef(name), method, neutral) =>
-      SetFold(transExpression(recv).head, transExpressions(projection), ClassRef(name), method, transExpression(neutral).head)
+    case SetFold(recv, projection, ClassRef(name,typesForTypeparameters), method, neutral) =>
+      SetFold(transExpression(recv).head, transExpressions(projection), ClassRef(name,typesForTypeparameters), method, transExpression(neutral).head)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>
@@ -165,8 +165,8 @@ trait ModuleLowering {
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
-      case tcls@TClass(ClassRef(name)) =>
-        val ty = TClass(ClassRef(name))
+      case tcls@TClass(ClassRef(name,typesForTypeparameters)) =>
+        val ty = TClass(ClassRef(name,typesForTypeparameters))
         ty.tyParams = tcls.tyParams.map(transType)
         ty
     }

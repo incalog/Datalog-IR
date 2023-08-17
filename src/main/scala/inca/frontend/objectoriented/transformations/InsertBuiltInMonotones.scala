@@ -31,7 +31,7 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
       name
     else
       name + tyParams.map {
-        case ty@TClass(ClassRef(clsName)) => monomorphClassName(clsName.raw, ty.tyParams)
+        case ty@TClass(ClassRef(clsName,_)) => monomorphClassName(clsName.raw, ty.tyParams)
         case ty => ty.toString.replace("`", "")
       }.mkString("$", "$", "")
 
@@ -74,16 +74,16 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   }
 
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case constr@ConstructorExpr(ClassRef(name), args) =>
+    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), args) =>
       // Monomorph constructor expression
-      Seq(ConstructorExpr(ClassRef(Name(monomorphClassName(name.raw, constr.tyParams))), transExpressions(args)))
+      Seq(ConstructorExpr(ClassRef(Name(monomorphClassName(name.raw, constr.tyParams)),typesForTypeparameters), transExpressions(args)))
     case _ =>
       super.transExpressionInternal(expression)
   }
 
   override def transTypeInternal(typ: Type): Type = {
     typ match {
-      case tyCls@TClass(ClassRef(name)) if name.raw == monoMapName.raw =>
+      case tyCls@TClass(ClassRef(name,typesForTypeparameters)) if name.raw == monoMapName.raw =>
         createBuildInMonotone(name, tyCls.tyParams)
       case _ =>
         super.transTypeInternal(typ)

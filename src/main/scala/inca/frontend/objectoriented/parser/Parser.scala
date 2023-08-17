@@ -172,8 +172,8 @@ trait Parser {
 
 
   protected[frontend] val classRef: P[ClassRef] = {
-    identifier.mapWithLoc(ClassRef)
-    // (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
+    //identifier.mapWithLoc(ClassRef)
+    (identifier ~ typesForGenerics.?).mapWithLoc(t => ClassRef(t._1,t._2))
   }
 
   protected[frontend] val classType: P[TClass] =
