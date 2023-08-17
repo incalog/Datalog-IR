@@ -55,7 +55,7 @@ trait ModuleLowering {
   }
 
   private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
-    val ClassDef(annos, vis, name, parents, content) = classDef
+    val ClassDef(annos, vis, name, parents, content, typeParam) = classDef
     val newContent = content.map(c => transContent(c, classDef))
     ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
   }
@@ -70,7 +70,7 @@ trait ModuleLowering {
   }
 
   private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    val MethodDef(annos, vis, name, params, outType, body) = methodDef
+    val MethodDef(annos, vis, name, params, outType, body, genericTypeParams) = methodDef
     val newParams = transParams(params)
     val newBody = transStatements(body)
     MethodDef(annos, vis, name, newParams, transType(outType), newBody)

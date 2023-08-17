@@ -18,7 +18,7 @@ object AddMissingDefinitions {
 class AddMissingDefinitions(val module: Module) extends ModuleLowering {
 
   override def transClassInternal(classDef: ClassDef): ClassDef = {
-    val ClassDef(annos, vis, name, parents, content) = classDef
+    val ClassDef(annos, vis, name, parents, content, typeParam) = classDef
     val missingConstructor = generateMissingConstructor(classDef)
     super.transClassInternal(ClassDef(annos, vis, name, parents, content ++ missingConstructor))
   }
