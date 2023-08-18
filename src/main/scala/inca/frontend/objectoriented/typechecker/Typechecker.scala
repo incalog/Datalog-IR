@@ -613,9 +613,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // Get the signature of the top most implementation
     // Note: we compile the parent class type into the signature as well. This way we don't get conflicts if an
     // unrelated class implements a method with the same signature.
+
+    // TODO add generic Types
     val types = callables.headOption match {
-      case Some((cls: ClassDef, MethodDef(_ , _, _, params, outType, _))) => cls.typ +: params.map(_.typ) :+ outType
-      case Some((cls: ClassDef, ConstructorDef(_, _, params, _))) => cls.typ +: params.map(_.typ)
+      case Some((cls: ClassDef, MethodDef(_ , _, _, params, outType, _, genericTypesParams))) => cls.typ +: params.map(_.typ) :+ outType
+      case Some((cls: ClassDef, ConstructorDef(_, _, params, genericTypesParams))) => cls.typ +: params.map(_.typ)
       case None => Seq()
     }
 
