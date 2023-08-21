@@ -83,7 +83,7 @@ object TScalaAny extends TScala(Scala(t"Any"))
 
 case class TClass(ref: ClassRef) extends Type {
   println("TClass")
-  println(s"### ${ref.name} ${ref.typesForTypeparameters}")
+  println(s"### ${ref.name} ${ref.genericTypeParams}")
 
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
@@ -100,14 +100,14 @@ case class TSet(ty: Type) extends Type {
 
 
 // TODO
-case class TGeneric(ty: Type, genericTyParam: Seq[Type]) extends Type {
-  println("TGeneric")
-  println(s"### $ty")
-  println(s"### $genericTyParam")
-
-  override def prettyprint: Signature = s"${ty.prettyprint}[${genericTyParam.map(t => t.prettyprint)}]"
-
-  override def flatten: Seq[Type] = ???
-
-  override def asScala: meta.Type = ???
-}
+//case class TGeneric(ty: Type, genericTyParam: Seq[Type]) extends Type {
+//  println("TGeneric")
+//  println(s"### $ty")
+//  println(s"### $genericTyParam")
+//
+//  override def prettyprint: Signature = s"${ty.prettyprint}[${genericTyParam.map(t => t.prettyprint)}]"
+//
+//  override def flatten: Seq[Type] = ???
+//
+//  override def asScala: meta.Type = ???
+//}

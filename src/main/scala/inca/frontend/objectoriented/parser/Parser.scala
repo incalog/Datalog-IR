@@ -173,7 +173,7 @@ trait Parser {
 
   protected[frontend] val classRef: P[ClassRef] = {
     //identifier.mapWithLoc(ClassRef)
-    (identifier ~ typesForGenerics.?).mapWithLoc(t => ClassRef(t._1,t._2))
+    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
   }
 
   protected[frontend] val classType: P[TClass] =
@@ -202,7 +202,7 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] = {
      monoMapType | setType | (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
        case (t1, None) => t1
-       case (t1, Some(t2)) => TGeneric(t1, t2)
+       // case (t1, Some(t2)) => TGeneric(t1, t2)
      }
     // monoMapType | setType | atomicTypeAnno | genericType
   } // parsing typeannotations with generic types does not work like this
