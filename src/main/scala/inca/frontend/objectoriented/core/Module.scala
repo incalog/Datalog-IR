@@ -60,7 +60,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }.headOption
 
   def typ: TClass = {
-    val ref = ClassRef(name, genericTypeName)
+    val ref = ClassRef(name, genericTypeParams)
     ref.target = Some(this)
     TClass(ref)
   }

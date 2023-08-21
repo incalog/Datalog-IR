@@ -515,7 +515,7 @@ trait Parser {
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content, genericTypeName))
+        case _ => pass(MethodDef(anno, visibility, funcName,genericTypeName, params, typeAnno, content))
       }
     }
   }
