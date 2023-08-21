@@ -60,8 +60,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }.headOption
 
   def typ: TClass = {
-    // TODO include generic Type
-    val ref = ClassRef(name)
+    val ref = ClassRef(name, genericTypeName)
     ref.target = Some(this)
     TClass(ref)
   }
@@ -81,8 +80,8 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   override def toString: String = prettyprint("")
 }
 
-case class ClassRef(name: Name/*, genericTypeName: Option[Seq[Name]] = None*/) extends SourceLocation with Resolvable[ClassDef] {
-  override def toString: String = name.toString
+case class ClassRef(name: Name, genericTypeParams: Option[Seq[Name]] = None) extends SourceLocation with Resolvable[ClassDef] {
+  override def toString: String = name.toString + s"[${genericTypeParams.toString}]"
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],

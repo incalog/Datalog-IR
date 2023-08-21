@@ -173,7 +173,7 @@ trait Parser {
 
   protected[frontend] val classRef: P[ClassRef] = {
     //identifier.mapWithLoc(ClassRef)
-    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1/*,t._2*/))
+    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
   }
 
   protected[frontend] val classType: P[TClass] =
@@ -202,7 +202,7 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] = {
      monoMapType | setType | (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
        case (t1, None) => t1
-       case (t1, Some(t2)) => TGeneric(t1, t2)
+       // case (t1, Some(t2)) => TGeneric(t1, t2)
      }
     // monoMapType | setType | atomicTypeAnno | genericType
   } // parsing typeannotations with generic types does not work like this
@@ -511,11 +511,11 @@ trait Parser {
       <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameter.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeParams), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName, genericTypeParams, params, typeAnno, content))
+        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content, genericTypeName))
       }
     }
   }
