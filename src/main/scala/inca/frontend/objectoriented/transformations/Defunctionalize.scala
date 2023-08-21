@@ -76,11 +76,11 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     val parentRefs = parentClassDefs.map(_.typ.ref)
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), None, Seq(), ty, Seq()) // TODO really not generic?
     val methods = Seq(constr, apply)
 
     val clsName = Name(gensym.fresh("Defun" + Type.suffix(ty)))
-    val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, parentRefs, methods)
+    val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, None, parentRefs, methods) // TODO really not generic?
     defnClassDefs += ty -> clazz
     clazz
   }
@@ -96,7 +96,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     // return the precomputed set
     val ret = ReturnStmt(FieldReadExpr(VarReadExpr(Name("this")), Name("content")))
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), contentType, Seq(ret))
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), None, Seq(), contentType, Seq(ret)) // TODO really not generic?
     // create a default constructor
     val constrParams = constrVars.map { case (subst(name), typ) => Param(name, clearType(typ)) }.toSeq
 
@@ -106,7 +106,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux" + Type.suffix(typ)))
-    val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
+    val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, None, Seq(parent), fields :+ constr :+ apply)  // TODO really not generic?
     auxClassDefs += clazz
     clazz
   }

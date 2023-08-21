@@ -47,17 +47,18 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
         Seq(MonotoneMapAnnotation(tys)),
         None,
         Name(clsName),
+        None,  // TODO really not generic?
         Seq(), // No parent class for now
         Seq(
-          MethodDef(Nil, None, Name("get"), Seq(Param(Name("key"), tys.head)), tys.last, Seq(
+          MethodDef(Nil, None, Name("get"), None, Seq(Param(Name("key"), tys.head)), tys.last, Seq(     // TODO really not generic?
             // We implement this in GenerateDatalog
             ReturnStmt(NullExpr())
           )),
-          MethodDef(Nil, None, Name("keys"), Seq(), TSet(tys.head), Seq(
+          MethodDef(Nil, None, Name("keys"), None, Seq(), TSet(tys.head), Seq(    // TODO really not generic?
             // We implement this in GenerateDatalog
             ReturnStmt(SetExpr(Seq(), tty = Some(tys.head)))
           )),
-          MethodDef(Nil, None, Name("__plus__"), Seq(Param(Name("kv"), TTuple(tys))), TUnit, Seq(
+          MethodDef(Nil, None, Name("__plus__"), None, Seq(Param(Name("kv"), TTuple(tys))), TUnit, Seq(   // TODO really not generic?
             // We implement this in GenerateDatalog
           ))/*,
           MethodDef(Nil, None, Name("values"), Seq(), TSet(tys.last), Seq(

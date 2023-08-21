@@ -172,8 +172,8 @@ trait Parser {
 
 
   protected[frontend] val classRef: P[ClassRef] = {
-    identifier.mapWithLoc(ClassRef)
-    // (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
+    //identifier.mapWithLoc(ClassRef)
+    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1/*,t._2*/))
   }
 
   protected[frontend] val classType: P[TClass] =
@@ -511,11 +511,11 @@ trait Parser {
       <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameter.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeParams), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content, genericTypeName))
+        case _ => pass(MethodDef(anno, visibility, funcName, genericTypeParams, params, typeAnno, content))
       }
     }
   }
@@ -567,7 +567,7 @@ trait Parser {
     val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericTypes ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeNames), fieldConstr)), parents), content) =>
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeParams), fieldConstr)), parents), content) =>
 
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
@@ -585,7 +585,8 @@ trait Parser {
       val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
           case (monotoneName: Name, types: Seq[Type]) =>
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), TUnit, Seq(
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, None, // TODO really not generic?
+                Seq(Param(Name("value"), types.head)), TUnit, Seq(
                 ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
                 ReturnStmt(TupleExpr())
               ))
@@ -594,7 +595,7 @@ trait Parser {
             (None, Some(c), None)
       }.unzip3
 
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten, genericTypeNames)
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
 

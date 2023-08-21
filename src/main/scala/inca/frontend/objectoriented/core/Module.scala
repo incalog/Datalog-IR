@@ -35,7 +35,7 @@ trait ClassContent extends SourceLocation with Annotations {
 }
 
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name , parentClassRefs: Seq[ClassRef], content: Seq[ClassContent], genericTypeName: Option[Seq[Name]] = None)
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Option[Seq[Name]], parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
   extends SourceLocation with Annotations with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
@@ -51,7 +51,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name 
   def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation]) || isMonotoneMapClass
   def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
   def isAbstract: Boolean = annos.contains(AbstractAnnotation)
-  def isGeneric: Boolean = genericTypeName.isDefined
+  def isGeneric: Boolean = genericTypeParams.isDefined
   def isDefunAuxiliary: Boolean = annos.contains(DefunAuxiliaryAnnotation)
   def montoneTypes: Option[(Type, Type)] = annos.flatMap {
     case MonotoneMapAnnotation(types) => Some((types.head, types.last))
@@ -75,7 +75,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name 
       s"""extends ${parentClassRefs.head} $tailS"""
     } else
       s""
-    val genericTypeParam = if (isGeneric) s"[${this.genericTypeName.get}]" else ""
+    val genericTypeParam = if (isGeneric) s"[${this.genericTypeParams.get}]" else ""
     s"""$annoPrefix$indent${visS}class $name$genericTypeParam $parentClassesS {$contentS\n$indent}""".stripMargin
   }
   override def toString: String = prettyprint("")
@@ -97,7 +97,7 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }
 }
 
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement], genericTypeName: Option[Seq[Name]] = None)
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Option[Seq[Name]], params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
@@ -105,7 +105,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
   def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
-  def isGeneric: Boolean = genericTypeName.isDefined
+  def isGeneric: Boolean = genericTypeParams.isDefined
 
   // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
   // to correctly identify matching methods from the parent class.
@@ -116,7 +116,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    val genericTypeParam = if (isGeneric) s"[${this.genericTypeName.get}]" else ""
+    val genericTypeParam = if (isGeneric) s"[${this.genericTypeParams.get}]" else ""
 
     s"""$annoPrefix$indent${visS}def $name$genericTypeParam($paramsS): $outS = {
        |$bodyS
