@@ -88,6 +88,8 @@ import inca.ir.extension.disjunction
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
+import inca.ir.extension.set.Hints.{Refunctionalize, RefunctionalizeKey}
+import inca.util.TupleOps
 
 import scala.collection.immutable
 
@@ -116,7 +118,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     val setName = gensym.fresh("set")
     val outName = gensym.fresh("return")
     val outVar = Var(outName)
-    val outParam = Param(outName, refunctionalize { visitType(outTyp) })
+    val outParam = Param(outName, refunctionalize() { visitType(outTyp) })
     val setParam = Param(setName, visitType(outTyp))
     val rel = Relation(
       gensym.freshGlobal(IR.name.toLowerCase() + "Rel"),
@@ -134,7 +136,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     super.visitModuleEntry(moduleEntry) :+ DataDefinition(defunTyName, setDefunCases)
   }
 
-  override def visitRelation(relation: Relation): Seq[Relation] =
+  override def visitRelation(relation: Relation): Seq[Relation] = {
     val rels = super.visitRelation(relation)
 
     val groupDefunRelations = setDefunGroupRelations.map { case (sig, (groupRelationName, relations)) =>
@@ -151,25 +153,41 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       Relation(groupRelationName, Seq(setParam, outParams), bodies)
     }
     rels ++ setDefunRelations ++ groupDefunRelations
-
-  override def visitParam(param: Param): Seq[Param] = refunctionalizeIfRequired(param) { super.visitParam(param) }
-
-  override def visitAtom(atom: Atom): Seq[Atom] = {
-    refunctionalizeIfRequired(atom) { visitSetAtom(atom) }
   }
 
-  private def visitSetAtom(atom: Atom): Seq[Atom] = atom match
-    /*case Eq(lhs, rhs) =>
-      visitSetCompare(lhs, rhs)
-      super.visitAtom(atom)
-    case Neq(lhs, rhs) =>
-      visitSetCompare(lhs, rhs)
-      super.visitAtom(atom)*/
+  override def visitParam(param: Param): Seq[Param] =
+    param.getHint[Refunctionalize](RefunctionalizeKey) match
+      case Some(_) => refunctionalize() { super.visitParam(param) }
+      case None => super.visitParam(param)
+
+  override def visitAtom(atom: Atom): Seq[Atom] =
+    atom.getHint[Refunctionalize](RefunctionalizeKey) match
+      case Some(Refunctionalize(vars)) => refunctionalize(vars.map(Name.apply)) { visitSetAtom(atom) }
+      case None => visitSetAtom(atom)
+
+  def visitSetAtom(atom: Atom): Seq[Atom] = atom match
     // TODO: How do I best handle this without overriding all cases that we possible don't know yet ?
     //  We could add a Disjunction(terms), but this would just move the problem ?
+    case Call(name, args) =>
+      //println("Call: " + args)
+      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
+      //println("Cases: " + callArgCases)
+      val res = Seq(Disjunction(callArgCases.map(ts => Seq(Call(name, ts)))))
+      //println("res: " + res)
+      res
+    //case NegCall(name, args) =>
+
+    //case ExtensionalCall(name, args) =>
+
+    //case NegExtensionalCall(name, args) =>
+
+    case Neq(lhs, rhs) =>
+      visitTerm(lhs).map { l =>
+        Disjunction(visitTerm(rhs).map(r => Seq(Neq(l, r))))
+      }
     case Eq(lhs, rhs) =>
       visitTerm(lhs).map { l =>
-        Disjunction.apply(visitTerm(rhs).map(r => Seq(Eq(l, r))))
+        Disjunction(visitTerm(rhs).map(r => Seq(Eq(l, r))))
       }
     case SetMember(t1, t2) =>
       // TODO: Fix this
@@ -178,27 +196,29 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   private var defunctionalize = true
 
-  private def refunctionalize[A](f: => A): A = try {
+  private var refunctionalizedVars: immutable.Set[Name] = immutable.Set()
+
+  private def refunctionalize[A](vars: Seq[Name] = Seq())(f: => A): A = {
+    val defunBefore = defunctionalize
+    val refunVarsBefore = refunctionalizedVars
+
+    try {
+      refunctionalizedVars ++= vars
       defunctionalize = false
       val a = f
       a
     } finally {
-      defunctionalize = true
+      defunctionalize = defunBefore
+      refunctionalizedVars = refunVarsBefore
     }
-
-  private def refunctionalizeIfRequired[A](hint: Hints)(f: => A) =
-    if hint.hasHint(Hints.RefunctionalizeKey) then
-      refunctionalize { f }
-    else
-      f
+  }
 
   private def emptySet: Term = Var("EMPTY") // TODO: Handle empty Set correctly
 
-  private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize {
+  private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize() {
     term match
-      case Set(Seq()) => Seq(this.emptySet)
-      case Set(ts) => ts.flatMap(visitTerm)
       case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) =>
+        //  TODO: Only if target of Var is not refunctionalize hint
         val setTy = visitType(term.typ.get)
         val (groupRelName, _) = setDefunGroupRelations(setTy)
         val outVar = gensym.fresh("return")
@@ -206,6 +226,8 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
           Seq(Call(groupRelName, Seq(Var(name), Var(outVar)))),
           Var(outVar)
         ))
+      case Set(Seq()) => Seq(this.emptySet)
+      case Set(ts) => ts.flatMap(visitTerm)
       case SetUnion(t1, t2) => refunctionalizeTerm(t1) ++ refunctionalizeTerm(t2)
       case SetIntersection(t1, t2) =>
         val lhsTerms = refunctionalizeTerm(t1)
@@ -216,70 +238,70 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
             block.Block(Seq(Eq(lhs, rhs)), lhs)
           }
         } ++ baseCase
-      case _ => visitTerm(term)
+      case _ =>
+        throw new IllegalStateException(s"Can not refunctionalize none set term: $term")
   }
 
-  private def defunctionalizeTerm(term: Term): Seq[Term] = {
-    val dependentVars = term.vars.distinct
-    val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
-    val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
-    setDefunRelations :+= relation
-    val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")))
-    val caseName = gensym.freshGlobal(IR.name)
-    setDefunCases :+= CaseDefinition(caseName, dependentTys.map(visitType))
-
-    // we can not identify the specific relation that belongs to a variable,
-    // but we can group set relations with the same type
-
-    // TODO: this is not enough. We would need to group by subtype relation.
-    //  That is:
-    //  for ((k, _) <- setDefunGroupRelations)
-    //    if (subType(setTy, k))
-    //      setDefunGroupRelations += setTy -> (setDefunGroupRelations(setTy)._1, setDefunGroupRelations(setTy)._2 :+ relation)
-    //      setDefunGroupRelations += k -> (setDefunGroupRelations(k)._1, setDefunGroupRelations(k)._2 :+ relation)
-    //  Otherwise code like this will not work:
-    //    x = Set(Int(1), Int(2))
-    //    SomeRel(x: Set[Num]) :- ...
-    //    SomeRel(x)
-    //  The type of x is now Set[Num], that means setGroup$Num is used, but
-    //  x belongs to setGroup$Int.
-    //  Solution:
-    //   Each module should additionally include the "class" hierarchy.
-    //   Subtype(Type, Type) extends ModuleEntry ??
-    val setTy = refunctionalize { visitType(ty) }
-    val (groupRelName, groupRelations) = setDefunGroupRelations.getOrElse(setTy, (gensym.fresh("setGroupRel"), Seq()))
-    setDefunGroupRelations += setTy -> (groupRelName, groupRelations :+ relation)
-
-    val defunVar = Var(gensym.fresh("setObj"))
-    Seq(block.Block(
-      Seq(
-        Eq(defunVar, Construct(caseName, dependentVars)),
-        // TODO: If we manually copy the prefix then we don't need this call
-        //  Otherwise this call should "write" aka. generate demand
-        Call(relation.name, defunVar +: dependentVars.flatMap(visitTerm) :+ Var(gensym.fresh("return")))
-      ),
-      defunVar
-    ))
-  }
-
-  private def visitSetTerm(term: Term) = term match
+  private def defunctionalizeTerm(term: Term): Seq[Term] = term match {
+    case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) => Seq(Var(name))
     case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
-      if (defunctionalize)
-        defunctionalizeTerm(term)
-      else
-        //println(term)
-        //println(refunctionalizeTerm(term))
-        //println()
-        refunctionalizeTerm(term)
-    // Group relations with the same signature for aggregations like so:
-    // aggregateSet(x, ..., #) :- set$0(x, ..., return) or set$1(x, ..., return)
-    case _ => super.visitTerm(term)
+      println("Defun term: " + term)
+      val dependentVars = term.vars.distinct
+      val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
+      val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
+      setDefunRelations :+= relation
+      val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")))
+      val caseName = gensym.freshGlobal(IR.name)
+      setDefunCases :+= CaseDefinition(caseName, dependentTys.map(visitType))
 
-  override def visitTerm(term: Term): Seq[Term] = refunctionalizeIfRequired(term) { this.visitSetTerm(term) }
+      // we can not identify the specific relation that belongs to a variable,
+      // but we can group set relations with the same type
 
-  private def visitSetType(ty: Type) = ty match
+      // TODO: this is not enough. We would need to group by subtype relation.
+      //  That is:
+      //  for ((k, _) <- setDefunGroupRelations)
+      //    if (subType(setTy, k))
+      //      setDefunGroupRelations += setTy -> (setDefunGroupRelations(setTy)._1, setDefunGroupRelations(setTy)._2 :+ relation)
+      //      setDefunGroupRelations += k -> (setDefunGroupRelations(k)._1, setDefunGroupRelations(k)._2 :+ relation)
+      //  Otherwise code like this will not work:
+      //    x = Set(Int(1), Int(2))
+      //    SomeRel(x: Set[Num]) :- ...
+      //    SomeRel(x)
+      //  The type of x is now Set[Num], that means setGroup$Num is used, but
+      //  x belongs to setGroup$Int.
+      //  Solution:
+      //   Each module should additionally include the "class" hierarchy.
+      //   Subtype(Type, Type) extends ModuleEntry ??
+      val setTy = refunctionalize() { visitType(ty) }
+      val (groupRelName, groupRelations) = setDefunGroupRelations.getOrElse(setTy, (gensym.fresh("setGroupRel"), Seq()))
+      setDefunGroupRelations += setTy -> (groupRelName, groupRelations :+ relation)
+
+      val defunVar = Var(gensym.fresh("setObj"))
+      Seq(block.Block(
+        Seq(
+          Eq(defunVar, Construct(caseName, dependentVars)),
+          // TODO: If we manually copy the prefix then we don't need this call
+          //  Otherwise this call should "write" aka. generate demand
+          Call(relation.name, defunVar +: dependentVars.flatMap(visitTerm) :+ Var(gensym.fresh("return")))
+        ),
+        defunVar
+      ))
+    case _ =>
+      throw new IllegalStateException(s"Can not defunctionalize none set term: $term")
+  }
+
+  override def visitTerm(term: Term): Seq[Term] =
+    println("Refun vars: " + refunctionalizedVars)
+    term match
+    case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
+      super.visitTerm(term)
+    case _ if term.typ.exists(_.isInstanceOf[TSet]) =>
+      println("Set term: " + term + " defun: " + defunctionalize)
+      if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
+    case _ =>
+      super.visitTerm(term)
+
+  override def visitType(ty: Type): Type = ty match
     case TSet(_) if defunctionalize => setDefunType.get
     case TSet(tty) => super.visitType(tty)
     case _ => super.visitType(ty)
-
-  override def visitType(ty: Type): Type = refunctionalizeIfRequired(ty) { this.visitSetType(ty) }

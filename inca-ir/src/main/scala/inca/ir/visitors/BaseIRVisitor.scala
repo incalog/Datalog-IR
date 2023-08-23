@@ -31,7 +31,6 @@ trait BaseIRVisitor:
     case NegExtensionalCall(name, args) => Seq(NegExtensionalCall(name, args.flatMap(visitTerm)))
     // TODO: Check that lhs and rhs has the same size
     case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
-      (visitTerm(lhs), visitTerm(rhs)) match
     case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
     case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
   }).map(_.withHints(atom))

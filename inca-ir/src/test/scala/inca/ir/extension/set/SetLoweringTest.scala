@@ -1,7 +1,7 @@
 package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.{Module, Relation, Param, Body, Var, TAny, Eq, Language, BaseIR, string2name}
+import inca.ir.{Module, Relation, Param, Body, Var, TAny, Eq, Neq, Call, Language, BaseIR, string2name}
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.block
@@ -31,6 +31,7 @@ class SetLoweringTest extends AnyFunSuite {
 
 
   def param(i: Int) = Param("p" + i, TAny)
+  def setParam(i: Int) = Param("p" + i, TSet(TAny))
   def term(i: Int) = Var("p" + i)
 
   def lower(mod: Module): Seq[Module] = {
@@ -77,17 +78,24 @@ class SetLoweringTest extends AnyFunSuite {
 
   test("Set union Test") {
     val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize)), Seq(
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
       Body(Seq(
         Eq(Var("y"), term(0)),
         Eq(Var("z"), Set(Seq(Var("y"), term(2)))),
-        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))).addHint(Hints.Refunctionalize),
-        Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
-        Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
+        //Eq(Var("a"), Set.from(term(0), term(1))),
+        // TODO: Test this as arg: Set.from(term(0), term(1))
+        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))).addHint(Hints.Refunctionalize(Seq("x"))),
+        //Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize),
+        //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
+        //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
+      ))
+    ))
+    val testRelation = Relation("test", Seq(param(0), setParam(1), setParam(2)), Seq(
+      Body(Seq(
       ))
     ))
 
-    val mod = Module("Test", IR.language, Seq(mainRelation))
+    val mod = Module("Test", IR.language, Seq(mainRelation, testRelation))
 
     lower(mod)
   }
