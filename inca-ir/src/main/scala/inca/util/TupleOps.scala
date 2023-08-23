@@ -19,7 +19,7 @@ object TupleOps {
     def pel(e: T,
             ll: Seq[Seq[T]],
             a: Seq[Seq[T]] = Nil): Seq[Seq[T]] =
-      ll match {
+      ll.toList match {
         case Nil => a.reverse
         case x :: xs => pel(e, xs, (e +: x) +: a)
       }

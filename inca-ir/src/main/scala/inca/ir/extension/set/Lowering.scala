@@ -82,7 +82,7 @@ package inca.ir.extension.set
 import inca.ir
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Hints, ModuleEntry, Name, Neq, Param, Relation, Term, Type, Var, string2name}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Hints, ModuleEntry, Name, NegCall, ExtensionalCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, string2name}
 import inca.ir.extension.set.Set
 import inca.ir.extension.disjunction
 import inca.ir.extension.block
@@ -169,18 +169,17 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     // TODO: How do I best handle this without overriding all cases that we possible don't know yet ?
     //  We could add a Disjunction(terms), but this would just move the problem ?
     case Call(name, args) =>
-      //println("Call: " + args)
       val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
-      //println("Cases: " + callArgCases)
-      val res = Seq(Disjunction(callArgCases.map(ts => Seq(Call(name, ts)))))
-      //println("res: " + res)
-      res
-    //case NegCall(name, args) =>
-
-    //case ExtensionalCall(name, args) =>
-
-    //case NegExtensionalCall(name, args) =>
-
+      Seq(Disjunction(callArgCases.map(ts => Seq(Call(name, ts)))))
+    case NegCall(name, args) =>
+      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
+      Seq(Disjunction(callArgCases.map(ts => Seq(NegCall(name, ts)))))
+    case ExtensionalCall(name, args) =>
+      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
+      Seq(Disjunction(callArgCases.map(ts => Seq(ExtensionalCall(name, ts)))))
+    case NegExtensionalCall(name, args) =>
+      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
+      Seq(Disjunction(callArgCases.map(ts => Seq(NegExtensionalCall(name, ts)))))
     case Neq(lhs, rhs) =>
       visitTerm(lhs).map { l =>
         Disjunction(visitTerm(rhs).map(r => Seq(Neq(l, r))))
@@ -218,7 +217,6 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize() {
     term match
       case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) =>
-        //  TODO: Only if target of Var is not refunctionalize hint
         val setTy = visitType(term.typ.get)
         val (groupRelName, _) = setDefunGroupRelations(setTy)
         val outVar = gensym.fresh("return")
@@ -290,9 +288,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       throw new IllegalStateException(s"Can not defunctionalize none set term: $term")
   }
 
-  override def visitTerm(term: Term): Seq[Term] =
-    println("Refun vars: " + refunctionalizedVars)
-    term match
+  override def visitTerm(term: Term): Seq[Term] = term match
     case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
       super.visitTerm(term)
     case _ if term.typ.exists(_.isInstanceOf[TSet]) =>

@@ -76,7 +76,7 @@ class SetLoweringTest extends AnyFunSuite {
     lower(mod)
   }*/
 
-  test("Set union Test") {
+  /*test("Set union Test") {
     val outParam = Param("x", TSet(TAny))
     val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
       Body(Seq(
@@ -98,6 +98,44 @@ class SetLoweringTest extends AnyFunSuite {
     val mod = Module("Test", IR.language, Seq(mainRelation, testRelation))
 
     lower(mod)
+  }*/
+
+  test("Set refunctionalize call") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
+      Body(Seq(
+        Eq(Var("y"), term(0)),
+        Eq(Var("z"), Set(Seq(Var("y"), term(2)))),
+        Eq(Var("a"), Set.from(term(0), term(1))),
+        Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize()),
+        //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
+        //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
+      ))
+    ))
+    val testRelation = Relation("test", Seq(param(0), setParam(1).addHint(Hints.Refunctionalize()), setParam(2).addHint(Hints.Refunctionalize())), Seq(
+      Body(Seq(
+      ))
+    ))
+
+    val mod = Module("Test", IR.language, Seq(mainRelation, testRelation))
+
+    lower(mod)
   }
 
+  /*test("Set Member") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
+      Body(Seq(
+        Eq(Var("a"), Set.from(term(0), term(1))),
+        // TODO: Test this as arg: Set.from(term(0), term(1))
+        Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize()),
+        //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
+        //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
+      ))
+    ))
+
+    val mod = Module("Test", IR.language, Seq(mainRelation))
+
+    lower(mod)
+  }*/
 }
