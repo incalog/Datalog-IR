@@ -189,8 +189,11 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
         Disjunction(visitTerm(rhs).map(r => Seq(Eq(l, r))))
       }
     case SetMember(t1, t2) =>
-      // TODO: Fix this
-      visitTerm(t1).zip(visitTerm(t2)).map(Eq.apply)
+      // Always refunctionalize a set to compare it
+      val eqAtoms = for (sTerm <- refunctionalize() { visitTerm(t1) }) yield
+        for (comp <- visitTerm(t2)) yield
+          Eq(sTerm, comp)
+      Seq(Disjunction(eqAtoms))
     case _ => super.visitAtom(atom)
 
   private var defunctionalize = true
