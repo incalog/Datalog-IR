@@ -52,7 +52,7 @@ trait TypeContext extends TypeIO {
       join(ty1, ty2)
     case (_, TNull) => ty1
     case (TNull, _) => ty2
-    case (TClass(ClassRef(name1)), TClass(ClassRef(name2))) =>
+    case (TClass(ClassRef(name1,_)), TClass(ClassRef(name2,_))) =>  //TODO genericTypes
       if (subtype(ty1, ty2))
         ty2
       else if (subtype(ty2, ty1))

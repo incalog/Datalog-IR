@@ -153,7 +153,7 @@ trait Parser {
 
   protected[frontend] val genericTypeParameter: P[Seq[ParamDef]] = {
     // inBrackets(identifier) // Support multiple generic parameters -> Seq
-    inBrackets(seq0(P.defer(identifier), min=1)).mapWithLoc{
+    inBrackets(seq0(P.defer(identifier), min=1)).map{
       sequence => sequence.map{n =>
         ParamDef(n)
       }
@@ -177,7 +177,7 @@ trait Parser {
 
   protected[frontend] val classRef: P[ClassRef] = {
     //identifier.mapWithLoc(ClassRef)
-    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2))
+    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
   }
 
   protected[frontend] val classType: P[TClass] =
@@ -519,7 +519,7 @@ trait Parser {
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName,genericTypeName, params, typeAnno, content))
+        case _ => pass(MethodDef(anno, visibility, funcName,genericTypeName.getOrElse(Seq()), params, typeAnno, content))
       }
     }
   }
@@ -589,7 +589,7 @@ trait Parser {
       val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
           case (monotoneName: Name, types: Seq[Type]) =>
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, None,
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(),
                 Seq(Param(Name("value"), types.head)), TUnit, Seq(
                 ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
                 ReturnStmt(TupleExpr())
@@ -598,8 +598,7 @@ trait Parser {
           case c: ClassRef =>
             (None, Some(c), None)
       }.unzip3
-      // TODO Seq[ParamDef] statt Option[Seq[name]]
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams.getOrElse(Seq()), parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
 

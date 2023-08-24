@@ -82,8 +82,8 @@ object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
 case class TClass(ref: ClassRef) extends Type {
-  println("TClass")
-  println(s"### ${ref.name} ${ref.genericTypeParams}")
+//  println("TClass")
+//  println(s"### ${ref.name} ${ref.genericTypeParams}")
 
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
