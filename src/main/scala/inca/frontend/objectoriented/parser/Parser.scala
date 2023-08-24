@@ -151,7 +151,7 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
-  protected[frontend] val genericTypeParameter: P[Seq[Name]] = {
+  protected[frontend] val genericTypeParameter: P[Seq[ParamDef]] = {
     // inBrackets(identifier) // Support multiple generic parameters -> Seq
     inBrackets(seq0(P.defer(identifier), min=1)).mapWithLoc{
       sequence => sequence.map{
