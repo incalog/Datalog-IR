@@ -153,7 +153,11 @@ trait Parser {
 
   protected[frontend] val genericTypeParameter: P[Seq[Name]] = {
     // inBrackets(identifier) // Support multiple generic parameters -> Seq
-    inBrackets(seq0(P.defer(identifier), min=1))
+    inBrackets(seq0(P.defer(identifier), min=1)).mapWithLoc{
+      sequence => sequence.map{
+        5
+      }
+    }
   }
 
   /** Helper for the Type like TAny. */
@@ -299,7 +303,7 @@ trait Parser {
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
       val constr = ConstructorExpr(ClassRef(name), argList) // TODO give type for generic typeparameter
-      constr.tyParams = tyParams.getOrElse(Seq())
+      constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
       constr
     }
 
@@ -367,8 +371,8 @@ trait Parser {
                   case None => Seq(VarReadExpr(Name("#")))
                 }
                 SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-              case ((name: Name, tyParams: Option[Seq[Type]]), argList: Seq[Expression]) =>
-                MethodCallExpr(prev, name, argList, isFix = fix.isDefined)
+              case ((name: Name, tyParams: Option[Seq[Type]]), argList: Seq[Expression]) =>   // TODO ParamType (nicht die Definition) & Option weg
+                MethodCallExpr(prev, name, argList, isFix = fix.isDefined)                  // TODO MethodCAllExpr anpassen
               case (name: Name, argList: Option[Seq[Expression]]) =>
                 BaseApplyMethodExpr(prev, name, argList)
             }
@@ -585,7 +589,7 @@ trait Parser {
       val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
           case (monotoneName: Name, types: Seq[Type]) =>
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, None, // TODO really not generic?
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, None,
                 Seq(Param(Name("value"), types.head)), TUnit, Seq(
                 ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
                 ReturnStmt(TupleExpr())
@@ -594,7 +598,7 @@ trait Parser {
           case c: ClassRef =>
             (None, Some(c), None)
       }.unzip3
-
+      // TODO Seq[ParamDef] statt Option[Seq[name]]
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }

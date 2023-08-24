@@ -6,16 +6,24 @@ import inca.frontend.objectoriented.core._
 import scala.collection.immutable.MultiDict
 import scala.reflect.ClassTag
 
+/* TODO
+  Methode zum registrieren von Typparametern (ParamDefs)
+  Lookup (auf ParamTypes, zurückgeben ParamDef)
+  scopedTypeContext anpassen
+  Hilfsfunktionen: subtype
+ */
+
 trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
+    // TODO anpassen: speichern & zurücksetzen
     val v = vars
     val c = classDefs
-    val t = f
-    vars = v
+    val t = f   // hier f ausgeführt
+    vars = v    // zurücksetzen
     classDefs = c
     t
   }

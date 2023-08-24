@@ -9,6 +9,15 @@ import java.util.UUID
 import scala.collection.immutable.{AbstractSeq, LinearSeq, MultiDict}
 import scala.util.hashing.MurmurHash3
 
+/* TODO
+    typecheck MethodDef: typparameter typechecken (ParamTypes resolven)
+              ClassDef: "
+    new method typecheck(paramdef)
+    typecheck: MethodCallExpr (in typecheckInternalExpr(expr....))
+               ConstructorExpr (in typecheckInternalExpr(expr....))
+
+ */
+
 private case class InheritanceGraph(classes: Seq[ClassDef]) extends Graph[ClassDef, Option[String]] {
   private val clsMap: Map[Name, ClassDef] = classes.map(c => c.name -> c).toMap
 
