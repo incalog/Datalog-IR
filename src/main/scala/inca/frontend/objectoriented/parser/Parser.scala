@@ -172,7 +172,7 @@ trait Parser {
 
 //  protected[frontend] def genericType: P[TGeneric] =
 //    (atomicTypeAnno ~ typesForGenerics).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
-//  // TODO
+//
 
 
   protected[frontend] val classRef: P[ClassRef] = {
@@ -206,14 +206,18 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] = {
      monoMapType | setType | (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
        case (t1, None) => t1
-       // case (t1, Some(t2)) => TGeneric(t1, t2)
+       case (t1, Some(t2)) => println(t2); t1 //TGeneric(t1, t2)
      }
     // monoMapType | setType | atomicTypeAnno | genericType
-  } // parsing typeannotations with generic types does not work like this
+    // parsing typeannotations with generic types does not work like this
+  }
 
   protected[frontend] def typesForGenerics: P[Seq[Type]] = {
     // with Type instead of Name for concrete Instances` Type Annotations, Constructors, Method Calls,...
-    inBrackets(seq0(P.defer(typeAnno), min = 1))
+    inBrackets(seq0(P.defer(identifier), min = 1)).map{
+      sequ => sequ.map(ParamType)
+
+    }
   }
 
   val nameWithType: P[(Name, Type)] =
@@ -240,7 +244,7 @@ trait Parser {
 //          case varRead@VarReadExpr(name) if isAggAssign =>
 //            pass(ExprStmt(MethodCallExpr(varRead, op.name, Seq(valueExpr))))
           case exp if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(exp, op.name, Seq(valueExpr))))
+            pass(ExprStmt(MethodCallExpr(exp, op.name, Seq(), Seq(valueExpr)))) // TODO really not generic ???
           case _ =>
             fail(s"Can not assign a value to expression: $targetExpr")
         }
@@ -301,9 +305,9 @@ trait Parser {
     variable.mapWithLoc(VarReadExpr.apply)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
-    (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
-      val constr = ConstructorExpr(ClassRef(name), argList) // TODO give type for generic typeparameter
-      constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
+    (keyword(NEW) *> call).mapWithLoc { case ((name, tyArgs), argList) =>
+      val constr = ConstructorExpr(ClassRef(name), tyArgs.getOrElse(Seq()), argList) // TODO give type for generic typeparameter
+      // constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
       constr
     }
 
@@ -352,6 +356,7 @@ trait Parser {
     // same time we allow tuple reads by index on nested structures which might contain tuples
     ((keyword(FIX).?.with1 ~ (tupStart | nestedStart)) ~ nestedPath).mapWithLoc {
       case ((fix, (startExpr, firstIdentifier)), pathIdentifiers) =>
+
         (firstIdentifier ++ pathIdentifiers).foldLeft(startExpr) {
           case (prev, indexedCurrent) =>
             // we need to track the start and end index manually
@@ -371,8 +376,8 @@ trait Parser {
                   case None => Seq(VarReadExpr(Name("#")))
                 }
                 SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-              case ((name: Name, tyParams: Option[Seq[Type]]), argList: Seq[Expression]) =>   // TODO ParamType (nicht die Definition) & Option weg
-                MethodCallExpr(prev, name, argList, isFix = fix.isDefined)                  // TODO MethodCAllExpr anpassen
+              case ((name: Name, tyArgs: Option[Seq[Type]]), argList: Seq[Expression]) =>   // TODO ParamType (nicht die Definition) & Option weg
+                MethodCallExpr(prev, name, tyArgs.getOrElse(Seq()), argList, isFix = fix.isDefined)                  // TODO MethodCallExpr anpassen
               case (name: Name, argList: Option[Seq[Expression]]) =>
                 BaseApplyMethodExpr(prev, name, argList)
             }
@@ -380,6 +385,7 @@ trait Parser {
             nextExpr.endIndex = endIndex
             nextExpr
         }
+
     }
   }
 
@@ -591,7 +597,7 @@ trait Parser {
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
               MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(),
                 Seq(Param(Name("value"), types.head)), TUnit, Seq(
-                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
+                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(), Seq(VarReadExpr(Name("value"))))),
                 ReturnStmt(TupleExpr())
               ))
             ))

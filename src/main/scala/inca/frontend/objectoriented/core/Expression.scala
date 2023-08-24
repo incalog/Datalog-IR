@@ -33,7 +33,7 @@ case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression 
     s"$recv.$targetName"
 }
 
-case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
+case class ConstructorExpr(classRef: ClassRef, tyArgs: Seq[Type], args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
   def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -50,7 +50,7 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(
   }
 }
 
-case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression], isFix: Boolean = false) extends Expression with Resolvable[(ClassDef, MethodDef)] {
+case class MethodCallExpr(recv: Expression, fun: Name, tyArgs: Seq[Type], args: Seq[Expression], isFix: Boolean = false) extends Expression with Resolvable[(ClassDef, MethodDef)] {
   def vars: Map[Name, Option[Type]] = recv.vars ++ args.flatMap(_.vars).toMap
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {

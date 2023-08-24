@@ -189,7 +189,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   def apply(expression: Expression, typ: Option[Type]): Expression = {
     val isSet = typ.exists(_.asSet.isDefined)
     if (isSet)
-      MethodCallExpr(clearExpression(expression), Name("apply"), Seq())
+      MethodCallExpr(clearExpression(expression), Name("apply"), Seq(), Seq())    // TODO really not generic ?
     else
       clearExpression(expression)
   }
@@ -212,7 +212,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
           val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
           val auxClass = genAuxDef(vars, clearType(typ.get), genDefunClassDef(typ.get).typ.ref, expression)
           val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
-          ConstructorExpr(auxClass.typ.ref, args)
+          ConstructorExpr(auxClass.typ.ref, Seq(), args) // TODO really not generic ?
         case _ =>
           throw new IllegalArgumentException(s"Unexpected expression $expression")
       }
@@ -249,12 +249,12 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldReadExpr(sanitize(recv), targetName)
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
-    case ConstructorExpr(ClassRef(name, typesForTypeparameters), args) =>
-      ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
+    case ConstructorExpr(ClassRef(name, typesForTypeparameters), tyArgs, args) =>
+      ConstructorExpr(ClassRef(name), tyArgs, args.map(sanitize(_)))
     case SuperExpr(args) =>
       SuperExpr(args.map(sanitize(_)))
-    case MethodCallExpr(recv, fun, args, isFix) =>
-      unapply(MethodCallExpr(sanitize(recv), fun, args.map(sanitize(_)), isFix), requiresTrueSet, expression.typ)
+    case MethodCallExpr(recv, fun, tyArgs, args, isFix) =>
+      unapply(MethodCallExpr(sanitize(recv), fun, tyArgs, args.map(sanitize(_)), isFix), requiresTrueSet, expression.typ)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(sanitize(recv), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>

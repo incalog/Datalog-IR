@@ -75,9 +75,9 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   }
 
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), args) =>
+    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, args) =>
       // Monomorph constructor expression
-      Seq(ConstructorExpr(ClassRef(Name(monomorphClassName(name.raw, constr.tyParams)),typesForTypeparameters), transExpressions(args)))
+      Seq(ConstructorExpr(ClassRef(Name(monomorphClassName(name.raw, constr.tyParams)),typesForTypeparameters), tyArgs, transExpressions(args)))
     case _ =>
       super.transExpressionInternal(expression)
   }

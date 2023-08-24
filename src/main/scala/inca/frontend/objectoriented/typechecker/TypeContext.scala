@@ -7,10 +7,10 @@ import scala.collection.immutable.MultiDict
 import scala.reflect.ClassTag
 
 /* TODO
-  Methode zum registrieren von Typparametern (ParamDefs)
-  Lookup (auf ParamTypes, zurückgeben ParamDef)
-  scopedTypeContext anpassen
-  Hilfsfunktionen: subtype
+    Methode zum registrieren von Typparametern (ParamDefs)
+    Lookup (auf ParamTypes, zurückgeben ParamDef)
+    scopedTypeContext anpassen
+    Hilfsfunktionen: subtype
  */
 
 trait TypeContext extends TypeIO {

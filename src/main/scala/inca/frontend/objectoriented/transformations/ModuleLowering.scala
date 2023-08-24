@@ -109,14 +109,14 @@ trait ModuleLowering {
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
-    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), args) =>
-      val newConstr = ConstructorExpr(ClassRef(name,typesForTypeparameters), transExpressions(args))
+    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, args) =>
+      val newConstr = ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
       newConstr
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
-    case MethodCallExpr(recv, fun, args, isFix) =>
-      MethodCallExpr(transExpression(recv).head, fun, transExpressions(args), isFix)
+    case MethodCallExpr(recv, fun, tyArgs, args, isFix) =>
+      MethodCallExpr(transExpression(recv).head, fun, tyArgs, transExpressions(args), isFix)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(transExpression(recv).head, transType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>

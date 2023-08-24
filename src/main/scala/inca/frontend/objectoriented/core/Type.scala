@@ -113,7 +113,7 @@ case class TSet(ty: Type) extends Type {
 //}
 
 case class ParamType(name: Name) extends Type with Resolvable[ParamDef] {
-  override def prettyprint: Signature = name.toString
+  override def prettyprint: Signature = "ParamType: " + name.toString
 
   override def flatten: Seq[Type] = Seq(this)
 
