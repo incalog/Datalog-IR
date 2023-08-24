@@ -151,14 +151,7 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
-  protected[frontend] val genericTypeParameter: P[Seq[ParamDef]] = {
-    // inBrackets(identifier) // Support multiple generic parameters -> Seq
-    inBrackets(seq0(P.defer(identifier), min=1)).map{
-      sequence => sequence.map{n =>
-        ParamDef(n)
-      }
-    }
-  }
+
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
@@ -175,9 +168,19 @@ trait Parser {
 //
 
 
+  protected[frontend] val genericTypeParameters: P[Seq[ParamDef]] = {
+    // inBrackets(identifier) // Support multiple generic parameters -> Seq
+    inBrackets(seq0(P.defer(identifier), min = 1)).map {
+      sequence =>
+        sequence.map { n =>
+          ParamDef(n)
+        }
+    }
+  }
+
   protected[frontend] val classRef: P[ClassRef] = {
     //identifier.mapWithLoc(ClassRef)
-    (identifier ~ genericTypeParameter.?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
+    (identifier ~ genericTypeParameters.?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
   }
 
   protected[frontend] val classType: P[TClass] =
@@ -204,17 +207,17 @@ trait Parser {
 
 
   protected[frontend] val typeAnno: P[Type] = {
-     monoMapType | setType | (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
-       case (t1, None) => t1
-       case (t1, Some(t2)) => println(t2); t1 //TGeneric(t1, t2)
-     }
+     monoMapType | setType | atomicTypeAnno //| (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
+//       case (t1, None) => t1
+//       case (t1, Some(t2)) => println(t2); t1 //TGeneric(t1, t2)
+//     }
     // monoMapType | setType | atomicTypeAnno | genericType
     // parsing typeannotations with generic types does not work like this
   }
 
-  protected[frontend] def typesForGenerics: P[Seq[Type]] = {
+  protected[frontend] def genericParameterTypes: P[Seq[ParamType]] = {
     // with Type instead of Name for concrete Instances` Type Annotations, Constructors, Method Calls,...
-    inBrackets(seq0(P.defer(identifier), min = 1)).map{
+    inBrackets(seq0(P.defer(atomicTypeAnno), min = 1)).map{
       sequ => sequ.map(ParamType)
 
     }
@@ -285,7 +288,11 @@ trait Parser {
     (identifier.soft <* P.not(P.char('(')))
 
   private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
-    identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr)))
+    // identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr)))
+    identifier.soft ~ genericParameterTypes.? ~ inParentheses(seq0(P.defer(expr)))
+
+
+
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
@@ -346,7 +353,8 @@ trait Parser {
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
     // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
-    val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | variable | call | tupleIndex | baseApplyMethod)).rep0
+    val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | call.backtrack | variable | tupleIndex | baseApplyMethod)).rep0
+    //val nestedPath =  indexed(op('.') *> (call.backtrack | variable)).rep0
     val nestedStart =  ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
 
     // TODO: This does only allow nested expressions with a fix at the start
@@ -518,7 +526,7 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
-      <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameter.? ~ defParams) // added optional typeparameter
+      <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameters.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
     functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
@@ -570,7 +578,7 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val genericTypes = genericTypeParameter.?      // optional: generic type
+    val genericTypes = genericTypeParameters.?      // optional: generic type
     val parentClassName = keyword(EXTENDS) *> classRef
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))

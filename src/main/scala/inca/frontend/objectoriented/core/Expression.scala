@@ -37,7 +37,8 @@ case class ConstructorExpr(classRef: ClassRef, tyArgs: Seq[Type], args: Seq[Expr
   def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"new $classRef($argsS)"
+    val tyArgsS = if (tyArgs.isEmpty) "" else s"[${tyArgs.map(_.prettyprint).mkString(",")}]"
+    s"new $classRef$tyArgsS($argsS)"
   }
   var tyParams: Seq[Type] = Seq()
 }
@@ -55,7 +56,8 @@ case class MethodCallExpr(recv: Expression, fun: Name, tyArgs: Seq[Type], args: 
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"$recv.$fun($argsS)"
+    val tyArgsS = if (tyArgs.isEmpty) "" else s"[${tyArgs.map(_.prettyprint).mkString(",")}]"
+    s"$recv.$fun$tyArgsS($argsS)"
   }
 }
 

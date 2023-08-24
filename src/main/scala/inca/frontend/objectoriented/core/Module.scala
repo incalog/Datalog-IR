@@ -150,4 +150,4 @@ case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class ParamDef(name: Name) extends SourceLocation
+
