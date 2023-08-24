@@ -154,8 +154,8 @@ trait Parser {
   protected[frontend] val genericTypeParameter: P[Seq[ParamDef]] = {
     // inBrackets(identifier) // Support multiple generic parameters -> Seq
     inBrackets(seq0(P.defer(identifier), min=1)).mapWithLoc{
-      sequence => sequence.map{
-        5
+      sequence => sequence.map{n =>
+        ParamDef(n)
       }
     }
   }

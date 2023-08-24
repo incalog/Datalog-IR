@@ -111,3 +111,12 @@ case class TSet(ty: Type) extends Type {
 //
 //  override def asScala: meta.Type = ???
 //}
+
+case class ParamType(name: Name) extends Type with Resolvable[ParamDef] {
+  override def prettyprint: Signature = name.toString
+
+  override def flatten: Seq[Type] = Seq(this)
+
+  override def asScala: meta.Type = t"Any"  //TODO ???
+
+}
