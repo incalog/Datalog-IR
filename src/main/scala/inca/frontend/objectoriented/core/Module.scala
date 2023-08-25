@@ -81,7 +81,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 }
 
 case class ClassRef(name: Name, genericTypeParams: Seq[GenericParam] = Seq()) extends SourceLocation with Resolvable[ClassDef] {
-  override def toString: String = name.toString + s"[${genericTypeParams.toString}]"
+  override def toString: String = {
+    val genericTypeParamsS = if (genericTypeParams.isEmpty) "" else  s"[${genericTypeParams.toString}]"
+    name.toString + genericTypeParamsS
+  }
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],

@@ -40,7 +40,7 @@ case class ConstructorExpr(classRef: ClassRef, tyArgs: Seq[Type], args: Seq[Expr
     val tyArgsS = if (tyArgs.isEmpty) "" else s"[${tyArgs.map(_.prettyprint).mkString(",")}]"
     s"new $classRef$tyArgsS($argsS)"
   }
-  var tyParams: Seq[Type] = Seq()
+  var tyParams: Seq[Type] = Seq() //ignorieren oder entfernen
 }
 
 case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)] {
