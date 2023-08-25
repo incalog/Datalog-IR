@@ -2,10 +2,9 @@ package inca.ir.extension.set
 
 // TODO: Include prefix or demand placeholder
 // TODO: Add aggregation expression
-// TODO: Support set member
 // TODO: Propagate hints correctly
-// TODO: Refunctionalization hint is not working...
 // TODO: What do we do about equality checks on sets ?
+// TODO: TData match
 
 /* I'll briefly sketch two different, but similar approaches of how first-class sets
  * (without the empty set) could be handled. Both approaches have their problems that I
@@ -74,9 +73,10 @@ package inca.ir.extension.set
  * After: 1 == 2 v 1 == 4 v 2 == 2 v 2 == 4 // One body is executed although no body should be executed
  *
  * Problem 2: Aggregate
- * How do we aggregate over a passed to a program as variable ? We can't.
+ * How do we aggregate over a set passed to a relation as variable ? We can't ?
  * E.g x = Set(1,2,3), aggregate(x, some_aggregation)
- * We don't know by which relation x is represented !
+ * We don't know by which relation x is represented. Could we somehow figure out which
+ * relations belongs to the set ?
  */
 
 import inca.ir
@@ -246,7 +246,6 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   private def defunctionalizeTerm(term: Term): Seq[Term] = term match {
     case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) => Seq(Var(name))
     case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
-      println("Defun term: " + term)
       val dependentVars = term.vars.distinct
       val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
       val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
@@ -295,7 +294,6 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
       super.visitTerm(term)
     case _ if term.typ.exists(_.isInstanceOf[TSet]) =>
-      println("Set term: " + term + " defun: " + defunctionalize)
       if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
     case _ =>
       super.visitTerm(term)
