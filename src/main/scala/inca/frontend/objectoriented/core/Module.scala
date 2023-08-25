@@ -36,6 +36,7 @@ trait ClassContent extends SourceLocation with Annotations {
 
 case class GenericParamDef(name: Name) extends SourceLocation with TName.Target {
   def prettyprint(implicit indent: String): String = name.toString
+  override def toString: String = prettyprint("")
 }
 
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set

@@ -118,11 +118,16 @@ case class TSet(ty: Type) extends Type {
 case class TName(name: Name) extends Type with Resolvable[TName.Target] {
   override def prettyprint: Signature = name.toString
   override def flatten: Seq[Type] = Seq()
-  override def asScala: meta.Type = throw new IllegalArgumentException(s"Can not convert name: ${this.toString} to scala!")
+  override def asScala: meta.Type = t"Any"
 
   def classDef: Option[ClassDef] = this.target match {
       case Some(classDef: ClassDef) => Some(classDef)
       case None => None
+  }
+
+  def genericParamDef: Option[GenericParamDef] = this.target match {
+    case Some(genericParamDef: GenericParamDef) => Some(genericParamDef)
+    case None => None
   }
 }
 

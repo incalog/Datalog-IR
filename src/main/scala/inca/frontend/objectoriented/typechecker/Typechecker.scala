@@ -116,8 +116,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
-    //classDef.genericTypeParams.foreach(param => bindGenericParam(param.name, param)) // TODO typecheck(param) ???
-
+    classDef.genericTypeParams.foreach(p =>  bindGenericParam(p.name, p))
     classDef.fields.foreach(f => typecheck(f, classDef))
     classDef.methods.foreach(m => typecheck(m, classDef))
     classDef.constructors.foreach{ constructor =>
@@ -149,6 +148,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // get all overridden methods and assign them the same signature
     val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
 
+    // TODO: Handle generics in overridden methods
     // make sure all overridden methods share the same parameter names
     overriddenMethods.foreach { case (_, m) =>
       m.params.zip(methodDef.params).foreach { case (p1, p2) =>
@@ -163,10 +163,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     resolveSignatures(overriddenMethods)
 
-    methodDef.genericTypeParams.foreach{ param =>
-      //bindGenericParam(param.name, param)
-      // TODO ??? typecheck(param)
-    }
+    methodDef.genericTypeParams.foreach(p => bindGenericParam(p.name, p))
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
@@ -263,13 +260,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TAny => // nothing
     case TNull => // nothing
     case TScalaInt | TScalaBoolean | TScalaAny | TScalaDouble | TScalaLong | TScala(_) => // nothing
-    /*case paramTy@ParamType(ty) =>
-      // TODO ???
-      typecheck(ty)
-      lookupGenericParam(paramTy) match {
-        case Some(data) => resolveTarget(paramTy)(data)
-        case None => // nothing
-      }*/
+    case tName@TName(name) => lookupName(tName)
     case _ => throw new IllegalArgumentException(s"Type '$typ' is currently unsupported")
   }
 
@@ -619,6 +610,23 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case Right(err) =>
         error(err.getMessage, loc)
         TAny
+    }
+  }
+
+  def lookupName(name: TName): Option[TName.Target] = {
+    val cls = lookupClass(name.name) match {
+      case Some(classDef) =>
+        resolveTarget(name)(classDef)
+        Some(classDef)
+      case None => None
+    }
+    if (cls.isDefined) return cls
+
+    lookupGenericParam(name.name) match {
+      case Some(genericParam) =>
+        resolveTarget(name)(genericParam)
+        Some(genericParam)
+      case None => None
     }
   }
 

@@ -3,6 +3,7 @@ package inca.frontend.objectoriented.typechecker;
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 
+import scala.collection.{AbstractSet, SortedSet, mutable}
 import scala.collection.immutable.MultiDict
 import scala.reflect.ClassTag
 
@@ -17,14 +18,15 @@ trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
-  //private var tyVars: Map[ParamDef, ParamType] = Map()
+  private var genericParams: Map[Name, GenericParamDef] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
-    // TODO anpassen: speichern & zurücksetzen
     val v = vars
     val c = classDefs
+    val ty = genericParams
     val t = f   // hier f ausgeführt
     vars = v    // zurücksetzen
+    genericParams = ty
     classDefs = c
     t
   }
@@ -214,6 +216,25 @@ trait TypeContext extends TypeIO {
     }
   }
 
+  def lookupGenericParam(name: Name): Option[GenericParamDef] = genericParams.get(name)
+
+  def bindGenericParam(name: Name, param: GenericParamDef): Unit = {
+    val shadowedClass = lookupClass(name) match {
+      case cls@Some(_) =>
+        error(s"Generic parameter shadows previously defined class with same name.", name)
+        cls
+      case None =>
+        None
+    }
+    if (shadowedClass.isEmpty) {
+      genericParams.get(name) match {
+        case Some(value) =>
+          error(s"Generic parameter shadows previously defined parameter.", name)
+        case None =>
+          genericParams += name -> param
+      }
+    }
+  }
 
 //  def bindTyVar(name: Name, decl: TName.Target): Unit = {
 //    tyVars.get(name) match {
