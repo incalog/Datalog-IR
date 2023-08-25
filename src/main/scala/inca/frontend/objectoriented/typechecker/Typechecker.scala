@@ -116,6 +116,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
+    classDef.genericTypeParams.foreach(param => bindGenericParam(param.name, param)) // TODO typecheck(param) ???
+
     classDef.fields.foreach(f => typecheck(f, classDef))
     classDef.methods.foreach(m => typecheck(m, classDef))
     classDef.constructors.foreach{ constructor =>
@@ -128,6 +130,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       uninitializedFields = storeUninitializedFields
     }
   }
+
+  def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for paramDef
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ)
@@ -158,6 +162,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
 
     resolveSignatures(overriddenMethods)
+
+    methodDef.genericTypeParams.foreach{ param =>
+      bindGenericParam(param.name, param)
+      // TODO ??? typecheck(param)
+    }
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
@@ -254,6 +263,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TAny => // nothing
     case TNull => // nothing
     case TScalaInt | TScalaBoolean | TScalaAny | TScalaDouble | TScalaLong | TScala(_) => // nothing
+    case paramTy@ParamType(ty) =>
+      // TODO ???
+      typecheck(ty)
+      lookupGenericParam(paramTy) match {
+        case Some(data) => resolveTarget(paramTy)(data)
+        case None => // nothing
+      }
     case _ => throw new IllegalArgumentException(s"Type '$typ' is currently unsupported")
   }
 
@@ -375,7 +391,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           error(s"Can not lookup field '$targetName' for expression of type '$typ'", recv)
           TAny
       }
-    case construtorExpr@ConstructorExpr(className, args) =>
+    case construtorExpr@ConstructorExpr(className, tyArgs, args) =>
+      tyArgs.foreach(param => typecheck(param))
       lookupClassRef(className) match {
         case None => TAny
         case classDefOption@Some(clazz) =>
@@ -383,6 +400,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           lookupConstructor(classDefOption, argTypes, expression) match {
             case Some((cls, constructorDef)) if cls == clazz =>
               resolveTarget(construtorExpr)(constructorDef)
+
+              //val tyParams = tyArgs.map(param => lookupGenericParam(param))
+//              if (tyParams.size != tyArgs.size)
+//                error(???)
+//              val substMap = ???
+//              //TypeUtil.substitute(constructorDef, substMap).asInstanceOf[]
+
+
               clazz.typ
             // we do not allow inheritance of constructors
             case Some(_) =>
@@ -392,7 +417,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               clazz.typ
           }
       }
-    case methodCallExpr@MethodCallExpr(recv, fun, args, _) =>
+
+    case methodCallExpr@MethodCallExpr(recv, fun, _, args, _) =>
       val ty = typecheck(recv) match {
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved

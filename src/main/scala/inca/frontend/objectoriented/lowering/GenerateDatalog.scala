@@ -347,7 +347,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       // coalesced fields if required
       val (coalescedChildCalls, vars) = fieldReadVars.zip(f.typ.flatten).map { case (v, t) =>
         t match {
-          case TClass(ClassRef(_)) =>
+          case TClass(ClassRef(_,_)) =>
             val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
             val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(), Seq(v, coalescedChildVar)))
             (coalescedChildCall, coalescedChildVar)
@@ -430,7 +430,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       //  set. For now a Tuple can only be the outermost type at this source position.
       val isTuple = f.typ.isInstanceOf[TTuple]
       val (vars, comps) = f.typ.flatten.zipWithIndex.map {
-        case (ty@TClass(ClassRef(name)), i) =>
+        case (ty@TClass(ClassRef(name,_)), i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           val childUri = Datalog.Var(gensym.fresh(f.name.raw))
           val call = Datalog.Call(uncoalescedPatName(), Seq(fieldReadVar, childUri))
@@ -839,7 +839,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         }
       }
 
-    case constrExpr@ConstructorExpr(classRef, args) =>
+    case constrExpr@ConstructorExpr(classRef, tyArgs, args) =>
       val classDef = classRef.target.getOrElse(throw new IllegalArgumentException(s"Unresolved classRef ${classRef.name}"))
 
       // constructors are never implicitly inherited !

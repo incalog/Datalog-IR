@@ -17,6 +17,7 @@ trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
+  private var tyVars: Map[ParamDef, ParamType] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     // TODO anpassen: speichern & zurücksetzen
@@ -212,4 +213,29 @@ trait TypeContext extends TypeIO {
       Some(allConstructor.last)
     }
   }
+
+
+//  def bindTyVar(name: Name, decl: TName.Target): Unit = {
+//    tyVars.get(name) match {
+//      case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
+//      case None =>
+//    }
+//    tyVars += name -> decl
+//  }
+//
+//  def lookupTyVar(name: Name): Option[TName.Target] = {
+//    tyVars.get(name) match {
+//      case Some(decl) => Some(decl)
+//      case None =>
+//        error(s"Unbound type variable $name", name)
+//        None
+//    }
+//  }
+
+  def bindGenericParam(name: Name, param: ParamDef): Unit = {
+
+  }
+  def lookupGenericParam(param: ParamType): Option[ParamDef] = ??? // TODO
+
+
 }

@@ -65,6 +65,17 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     TClass(ref)
   }
 
+  def typ(tyArgs: Seq[GenericParam] = Seq()): TClass = {
+    val genericParams = if (tyArgs.isEmpty) {
+      genericTypeParams
+    } else {
+      tyArgs
+    }
+    val ref = ClassRef(name, genericParams)
+    ref.target = Some(this)
+    TClass(ref)
+  }
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val contentS = if (content.isEmpty) "" else

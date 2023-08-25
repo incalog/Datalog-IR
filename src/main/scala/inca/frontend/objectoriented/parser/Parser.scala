@@ -384,8 +384,8 @@ trait Parser {
                   case None => Seq(VarReadExpr(Name("#")))
                 }
                 SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-              case ((name: Name, tyArgs: Option[Seq[Type]]), argList: Seq[Expression]) =>   // TODO ParamType (nicht die Definition) & Option weg
-                MethodCallExpr(prev, name, tyArgs.getOrElse(Seq()), argList, isFix = fix.isDefined)                  // TODO MethodCallExpr anpassen
+              case ((name: Name, tyArgs: Option[Seq[Type]]), argList: Seq[Expression]) =>
+                MethodCallExpr(prev, name, tyArgs.getOrElse(Seq()), argList, isFix = fix.isDefined)
               case (name: Name, argList: Option[Seq[Expression]]) =>
                 BaseApplyMethodExpr(prev, name, argList)
             }
