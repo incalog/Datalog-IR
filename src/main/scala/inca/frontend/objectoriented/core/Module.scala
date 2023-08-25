@@ -80,7 +80,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   override def toString: String = prettyprint("")
 }
 
-case class ClassRef(name: Name, genericTypeParams: Seq[ParamDef] = Seq()) extends SourceLocation with Resolvable[ClassDef] {
+case class ClassRef(name: Name, genericTypeParams: Seq[GenericParam] = Seq()) extends SourceLocation with Resolvable[ClassDef] {
   override def toString: String = name.toString + s"[${genericTypeParams.toString}]"
 }
 

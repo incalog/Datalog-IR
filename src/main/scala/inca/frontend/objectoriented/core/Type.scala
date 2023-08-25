@@ -113,11 +113,13 @@ case class TSet(ty: Type) extends Type {
 //}
 
 
+// TODO Idea: new trait -> ParamDef and ParamType mix it in
+//  -> ClassRef contains instances of this trait -> can ref class [T] and [Int]
+trait GenericParam
 
+case class ParamDef(name: Name) extends SourceLocation with GenericParam
 
-case class ParamDef(name: Name) extends SourceLocation
-
-case class ParamType(ty: Type) extends Type with Resolvable[ParamDef] {
+case class ParamType(ty: Type) extends Type with Resolvable[ParamDef] with GenericParam{
   override def prettyprint: Signature = "ParamType: " + ty.prettyprint
 
   override def flatten: Seq[Type] = Seq(this)

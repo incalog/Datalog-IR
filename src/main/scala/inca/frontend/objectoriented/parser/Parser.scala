@@ -180,7 +180,7 @@ trait Parser {
 
   protected[frontend] val classRef: P[ClassRef] = {
     //identifier.mapWithLoc(ClassRef)
-    (identifier ~ genericTypeParameters.?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
+    (identifier ~ (genericParameterTypes |genericTypeParameters).?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
   }
 
   protected[frontend] val classType: P[TClass] =
