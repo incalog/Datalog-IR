@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.transformations
 
-import inca.frontend.objectoriented.core.{ClassDef, ClassRef, ConstructorExpr, Expression, MethodDef, Module, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TSet, TTuple, TUnit, Type}
+import inca.frontend.objectoriented.core.{ClassDef, ConstructorExpr, Expression, MethodDef, Module, MonotoneMapAnnotation, Name, NullExpr, Param, ReturnStmt, SetExpr, TClass, TName, TSet, TTuple, TUnit, Type}
 import inca.frontend.objectoriented.transformations.InsertBuiltInMonotones.monoMapName
 
 
@@ -31,7 +31,7 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
       name
     else
       name + tyParams.map {
-        case ty@TClass(ClassRef(clsName,_)) => monomorphClassName(clsName.raw, ty.tyParams)
+        case ty@TClass(TName(clsName)) => monomorphClassName(clsName.raw, ty.tyParams)
         case ty => ty.toString.replace("`", "")
       }.mkString("$", "$", "")
 
@@ -75,16 +75,16 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
   }
 
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, args) =>
+    case constr@ConstructorExpr(TName(name), tyArgs, args) =>
       // Monomorph constructor expression
-      Seq(ConstructorExpr(ClassRef(Name(monomorphClassName(name.raw, constr.tyParams)),typesForTypeparameters), tyArgs, transExpressions(args)))
+      Seq(ConstructorExpr(TName(Name(monomorphClassName(name.raw, constr.tyParams))), tyArgs, transExpressions(args)))
     case _ =>
       super.transExpressionInternal(expression)
   }
 
   override def transTypeInternal(typ: Type): Type = {
     typ match {
-      case tyCls@TClass(ClassRef(name,typesForTypeparameters)) if name.raw == monoMapName.raw =>
+      case tyCls@TClass(TName(name)) if name.raw == monoMapName.raw =>
         createBuildInMonotone(name, tyCls.tyParams)
       case _ =>
         super.transTypeInternal(typ)

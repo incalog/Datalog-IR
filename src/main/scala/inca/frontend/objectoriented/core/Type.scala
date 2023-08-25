@@ -13,6 +13,8 @@ sealed trait Type extends SourceLocation {
   def asSet: Option[TSet] = None
   def isUnit: Boolean = false
   override def toString: String = prettyprint
+
+  var tyArgs: Seq[Type] = Seq()
 }
 
 object Type {
@@ -21,7 +23,7 @@ object Type {
     case TNull => "Null"
     case TTuple(ts) => "Tuple_" + ts.map(suffix).mkString("_")
     case TScala(ty) => ty.syntax
-    case TClass(ClassRef(Name(raw),genericType)) => raw
+    case TClass(TName(Name(raw))) => raw
     case TSet(ty) => "Set_" + suffix(ty)
   }
 }
@@ -81,7 +83,7 @@ object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
-case class TClass(ref: ClassRef) extends Type {
+case class TClass(ref: TName) extends Type {
 //  println("TClass")
 //  println(s"### ${ref.name} ${ref.genericTypeParams}")
 
@@ -113,17 +115,17 @@ case class TSet(ty: Type) extends Type {
 //}
 
 
-// TODO Idea: new trait -> ParamDef and ParamType mix it in
-//  -> ClassRef contains instances of this trait -> can ref class [T] and [Int]
-trait GenericParam
+case class TName(name: Name) extends Type with Resolvable[TName.Target] {
+  override def prettyprint: Signature = s"TName($name)"
+  override def flatten: Seq[Type] = Seq()
+  override def asScala: meta.Type = throw new IllegalArgumentException(s"Can not convert name: ${this.toString} to scala!")
 
-case class ParamDef(name: Name) extends SourceLocation with GenericParam
+  def classDef: Option[ClassDef] = this.target match {
+      case Some(classDef: ClassDef) => Some(classDef)
+      case None => None
+  }
+}
 
-case class ParamType(ty: Type) extends Type with Resolvable[ParamDef] with GenericParam{
-  override def prettyprint: Signature = "ParamType: " + ty.prettyprint
-
-  override def flatten: Seq[Type] = Seq(this)
-
-  override def asScala: meta.Type = t"Any"  //TODO ???
-
+object TName {
+  trait Target extends SourceLocation
 }

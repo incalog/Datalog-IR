@@ -17,7 +17,7 @@ trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
-  private var tyVars: Map[ParamDef, ParamType] = Map()
+  //private var tyVars: Map[ParamDef, ParamType] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     // TODO anpassen: speichern & zurücksetzen
@@ -37,7 +37,7 @@ trait TypeContext extends TypeIO {
     case (TClass(ref1), TClass(_)) =>
       val parents = classDefs.get(ref1.name).flatMap { case (_, c) => c.parentClassRefs }
       //val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
-      parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
+      parents.exists { parent => if (parent.target.isDefined) subtype(parent.classDef.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
@@ -53,7 +53,7 @@ trait TypeContext extends TypeIO {
       join(ty1, ty2)
     case (_, TNull) => ty1
     case (TNull, _) => ty2
-    case (TClass(ClassRef(name1,_)), TClass(ClassRef(name2,_))) =>  //TODO genericTypes
+    case (TClass(TName(name1)), TClass(TName(name2))) =>  //TODO genericTypes
       if (subtype(ty1, ty2))
         ty2
       else if (subtype(ty2, ty1))
@@ -142,7 +142,7 @@ trait TypeContext extends TypeIO {
         case c: C if f(c) => Some((clazz.get, c))
         case _ => None
       }
-      val parentContent = clazz.get.parentClassRefs.flatMap(ref => collect(ref.target, f))
+      val parentContent = clazz.get.parentClassRefs.flatMap(ref => collect(ref.classDef, f))
       parentContent ++ content
     }
   }
@@ -231,11 +231,4 @@ trait TypeContext extends TypeIO {
 //        None
 //    }
 //  }
-
-  def bindGenericParam(name: Name, param: ParamDef): Unit = {
-
-  }
-  def lookupGenericParam(param: ParamType): Option[ParamDef] = ??? // TODO
-
-
 }

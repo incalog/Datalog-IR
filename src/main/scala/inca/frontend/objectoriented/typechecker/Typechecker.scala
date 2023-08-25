@@ -116,7 +116,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
-    classDef.genericTypeParams.foreach(param => bindGenericParam(param.name, param)) // TODO typecheck(param) ???
+    //classDef.genericTypeParams.foreach(param => bindGenericParam(param.name, param)) // TODO typecheck(param) ???
 
     classDef.fields.foreach(f => typecheck(f, classDef))
     classDef.methods.foreach(m => typecheck(m, classDef))
@@ -131,7 +131,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for paramDef
+  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for paramDef
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ)
@@ -164,7 +164,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     resolveSignatures(overriddenMethods)
 
     methodDef.genericTypeParams.foreach{ param =>
-      bindGenericParam(param.name, param)
+      //bindGenericParam(param.name, param)
       // TODO ??? typecheck(param)
     }
 
@@ -263,13 +263,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TAny => // nothing
     case TNull => // nothing
     case TScalaInt | TScalaBoolean | TScalaAny | TScalaDouble | TScalaLong | TScala(_) => // nothing
-    case paramTy@ParamType(ty) =>
+    /*case paramTy@ParamType(ty) =>
       // TODO ???
       typecheck(ty)
       lookupGenericParam(paramTy) match {
         case Some(data) => resolveTarget(paramTy)(data)
         case None => // nothing
-      }
+      }*/
     case _ => throw new IllegalArgumentException(s"Type '$typ' is currently unsupported")
   }
 
@@ -353,7 +353,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       classDef.typ match {
         case TClass(ref) =>
           // 'this' classRef will always be resolved at this point
-          val clazz = ref.target.get
+          val clazz = ref.classDef.get
           // Fixme: We only allow inheritance of a single class here
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
@@ -362,7 +362,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            lookupConstructor(parentRef.get.target, args.map(typecheck), expression) match {
+            lookupConstructor(parentRef.get.classDef, args.map(typecheck), expression) match {
               case Some((classDef, constructorDef)) =>
                 resolveTarget(superExpr)((classDef, constructorDef))
                 TUnit
@@ -622,7 +622,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def lookupClassRef(classRef: ClassRef): Option[ClassDef] = {
+  def lookupClassRef(classRef: TName): Option[ClassDef] = {
     lookupClass(classRef.name) match {
       case Some(classDef) =>
         resolveTarget(classRef)(classDef)

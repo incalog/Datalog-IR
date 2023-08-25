@@ -56,9 +56,9 @@ trait Collect[R] {
   def collectExpression(expr: Expression): Seq[R] = expr match {
     case VarReadExpr(_) => Seq()
     case FieldReadExpr(recv, _) => collectExpression(recv)
-    case ConstructorExpr(_, args) => args.flatMap(collectExpression)
+    case ConstructorExpr(_, _, args) => args.flatMap(collectExpression)
     case SuperExpr(args) => args.flatMap(collectExpression)
-    case MethodCallExpr(recv, _, args, _) => collectExpression(recv) ++ args.flatMap(collectExpression)
+    case MethodCallExpr(recv, _, _, args, _) => collectExpression(recv) ++ args.flatMap(collectExpression)
     case TypeCastExpr(recv, toTyp) => collectExpression(recv) ++ collectType(toTyp)
     case InstanceOfExpr(recv, ofTyp) => collectExpression(recv) ++ collectType(ofTyp)
     case NullExpr() => Seq()

@@ -169,7 +169,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }.toMap
 
       val parentMethods = implClass.parentClassRefs.flatMap { ref =>
-        val parentClassDef = ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}"))
+        val parentClassDef = ref.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}"))
         collectMethods(classDef)(parentClassDef)
       }.toMap
       // We rely on the default map collision behaviour to find the concrete implementation class
@@ -347,7 +347,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       // coalesced fields if required
       val (coalescedChildCalls, vars) = fieldReadVars.zip(f.typ.flatten).map { case (v, t) =>
         t match {
-          case TClass(ClassRef(_,_)) =>
+          case TClass(_) =>
             val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
             val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(), Seq(v, coalescedChildVar)))
             (coalescedChildCall, coalescedChildVar)
@@ -430,7 +430,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       //  set. For now a Tuple can only be the outermost type at this source position.
       val isTuple = f.typ.isInstanceOf[TTuple]
       val (vars, comps) = f.typ.flatten.zipWithIndex.map {
-        case (ty@TClass(ClassRef(name,_)), i) =>
+        case (ty@TClass(TName(name)), i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           val childUri = Datalog.Var(gensym.fresh(f.name.raw))
           val call = Datalog.Call(uncoalescedPatName(), Seq(fieldReadVar, childUri))
@@ -526,7 +526,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     def collectFields(classDef: ClassDef): Seq[(ClassDef, FieldDef)] = {
       val fields = classDef.fields.map((classDef, _))
       val parentFields = classDef.parentClassRefs.flatMap(ref =>
-        collectFields(ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
+        collectFields(ref.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
       )
       parentFields ++ fields
     }
@@ -840,7 +840,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
     case constrExpr@ConstructorExpr(classRef, tyArgs, args) =>
-      val classDef = classRef.target.getOrElse(throw new IllegalArgumentException(s"Unresolved classRef ${classRef.name}"))
+      val classDef = classRef.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved classRef ${classRef.name}"))
 
       // constructors are never implicitly inherited !
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
@@ -898,7 +898,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         (Seq(), argCons.flatten ++ Seq(Datalog.Call(constrName, Datalog.Var("this") +: argTerms.flatten)))
       }
 
-    case methodCallExp@MethodCallExpr(recv, fun, args, isFix) =>
+    case methodCallExp@MethodCallExpr(recv, fun, _, args, isFix) =>
       val argRes = args.map(e => transExpression(e))
 
       val (classDef, methodDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
@@ -1307,7 +1307,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     vis.map { case Private => Datalog.Private }
 
   private def transDataType(typ: Type): Datalog.Type = typ match {
-    case TClass(ClassRef(name)) => Datalog.TData(name.raw)
+    case TClass(TName(name)) => Datalog.TData(name.raw)
     case TAny | TNull | TScala(_) => Datalog.TScala(Scala(typ.asScala))
     case TTuple(ts) => Datalog.TScala(Scala(t"(..${ts.map(genScala.transType).toList})"))
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")

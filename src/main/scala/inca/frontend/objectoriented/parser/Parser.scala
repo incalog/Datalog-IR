@@ -64,7 +64,6 @@ trait Parser {
     val PRIVATE: Value    = Value("private")
     val VAR: Value        = Value("var")
     val VAL: Value        = Value("val")
-    val VAG: Value        = Value("vag")
     val WITH: Value       = Value("with")
     val NEW: Value        = Value("new")
     val RETURN: Value     = Value("return")
@@ -167,28 +166,38 @@ trait Parser {
 //    (atomicTypeAnno ~ typesForGenerics).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
 //
 
+  // class A[ParamDef] extends ...
+  // def method[ParamDef](...) = { ... }
+  protected[frontend] def genericParamDefs: P[Seq[GenericParamDef]] = {
+    // TODO: Insert possible type bounds here after the identifier
+    val param = identifier.mapWithLoc(GenericParamDef)
+    inBrackets(seq0(param, min = 1))
+  }
 
-  protected[frontend] val genericTypeParameters: P[Seq[ParamDef]] = {
-    // inBrackets(identifier) // Support multiple generic parameters -> Seq
-    inBrackets(seq0(P.defer(identifier), min = 1)).map {
-      sequence =>
-        sequence.map { n =>
-          ParamDef(n)
-        }
+  protected[frontend] def genericArguments: P[Seq[Type]] =
+    inBrackets(seq0(P.defer(atomicTypeAnno), min = 1))
+
+  // Name[T1, T2, Name[T3], ...]
+  protected[frontend] def nameWithGenericArguments: P[TName] = {
+    (identifier ~ genericArguments.?).mapWithLoc {
+      case (name, tyArgs) =>
+        val tName = TName(name)
+        tName.tyArgs = tyArgs.getOrElse(Seq())
+        tName
     }
   }
 
-  protected[frontend] val classRef: P[ClassRef] = {
-    //identifier.mapWithLoc(ClassRef)
-    (identifier ~ (genericParameterTypes |genericTypeParameters).?).mapWithLoc(t => ClassRef(t._1,t._2.getOrElse(Seq())))
-  }
-
-  protected[frontend] val classType: P[TClass] =
-    classRef.mapWithLoc(TClass)
+  /*protected[frontend] val classRef: P[TName] = {
+    (identifier ~ (genericParameterTypes | genericTypeParameters).?).mapWithLoc {
+      case (name, tyArgs) =>
+        val tName = TName(name)
+        tName.genericTypeParams = tyArgs.getOrElse(Seq())
+    }
+  }*/
 
   protected[frontend] def monoMapType: P[TClass] =
     (keyword(MONOMAP) *> inBrackets(seq0(P.defer(typeAnno), min=2, max=2))).mapWithLoc { typeParams =>
-        val monoMapType = TClass(ClassRef(Name(MONOMAP.toString)))
+        val monoMapType = TClass(TName(Name(MONOMAP.toString)))
         monoMapType.tyParams = typeParams
         monoMapType
     }
@@ -199,7 +208,7 @@ trait Parser {
       simpleType("Null", TNull) |
       simpleType("Unit", TTuple(Seq())) |
       scalaType |
-      classType |
+      nameWithGenericArguments |
       tupleType
     )
 
@@ -213,14 +222,6 @@ trait Parser {
 //     }
     // monoMapType | setType | atomicTypeAnno | genericType
     // parsing typeannotations with generic types does not work like this
-  }
-
-  protected[frontend] def genericParameterTypes: P[Seq[ParamType]] = {
-    // with Type instead of Name for concrete Instances` Type Annotations, Constructors, Method Calls,...
-    inBrackets(seq0(P.defer(atomicTypeAnno), min = 1)).map{
-      sequ => sequ.map(ParamType)
-
-    }
   }
 
   val nameWithType: P[(Name, Type)] =
@@ -287,9 +288,9 @@ trait Parser {
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
 
-  private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
+  private def call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
     // identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr)))
-    identifier.soft ~ genericParameterTypes.? ~ inParentheses(seq0(P.defer(expr)))
+    identifier.soft ~ genericArguments.? ~ inParentheses(seq0(P.defer(expr)))
 
 
 
@@ -313,7 +314,7 @@ trait Parser {
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case ((name, tyArgs), argList) =>
-      val constr = ConstructorExpr(ClassRef(name), tyArgs.getOrElse(Seq()), argList) // TODO give type for generic typeparameter
+      val constr = ConstructorExpr(TName(name), tyArgs.getOrElse(Seq()), argList) // TODO give type for generic typeparameter
       // constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
       constr
     }
@@ -383,7 +384,7 @@ trait Parser {
                   case Some(TupleExpr(proj: Seq[Expression])) => proj
                   case None => Seq(VarReadExpr(Name("#")))
                 }
-                SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
+                SetFold(prev, projection, TName(aggClass), aggMethod, neutral)
               case ((name: Name, tyArgs: Option[Seq[Type]]), argList: Seq[Expression]) =>
                 MethodCallExpr(prev, name, tyArgs.getOrElse(Seq()), argList, isFix = fix.isDefined)
               case (name: Name, argList: Option[Seq[Expression]]) =>
@@ -526,14 +527,14 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
-      <* keyword(DEF)).backtrack ~ identifier ~ genericTypeParameters.? ~ defParams) // added optional typeparameter
+      <* keyword(DEF)).backtrack ~ identifier ~ genericParamDefs.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeNames), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName,genericTypeName.getOrElse(Seq()), params, typeAnno, content))
+        case _ => pass(MethodDef(anno, visibility, funcName, genericTypeNames.getOrElse(Seq()), params, typeAnno, content))
       }
     }
   }
@@ -546,19 +547,9 @@ trait Parser {
     }
   }
 
-  private lazy val fieldDefAggregation: P[FieldDef] = {
-    ((visibility.? <* keyword(VAG)).with1 ~ nameWithType
-      ~ (op('=') *> subinfixExpr)
-      ~ (keyword(WITH) *> (classRef) ~ (op(".") *> identifier))).mapWithLoc {
-      case (((visibility, (name, typeAnno)), valueExpr), (ref, methodName)) =>
-        FieldDef(Seq(), visibility, name, typeAnno, Some(valueExpr), immutable = false)
-    }
-  }
-
   protected[frontend] val fieldDef: P[FieldDef] =
     fieldDefSimple(false).backtrack |
-      fieldDefSimple(true).backtrack |
-      fieldDefAggregation.backtrack
+      fieldDefSimple(true).backtrack
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
@@ -578,8 +569,8 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val genericTypes = genericTypeParameters.?      // optional: generic type
-    val parentClassName = keyword(EXTENDS) *> classRef
+    val genericTypes = genericParamDefs.?      // optional: generic type
+    val parentClassName = keyword(EXTENDS) *> nameWithGenericArguments
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
     val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericTypes ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
@@ -609,7 +600,7 @@ trait Parser {
                 ReturnStmt(TupleExpr())
               ))
             ))
-          case c: ClassRef =>
+          case c: TName =>
             (None, Some(c), None)
       }.unzip3
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams.getOrElse(Seq()), parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)

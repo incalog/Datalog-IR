@@ -57,7 +57,7 @@ trait ModuleLowering {
   private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
     val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
     val newContent = content.map(c => transContent(c, classDef))
-    ClassDef(annos, vis, name, typeParams, parents.map(c => ClassRef(c.name)), newContent)
+    ClassDef(annos, vis, name, typeParams, parents.map(c => TName(c.name)), newContent)
   }
 
   private[transformations] def transParamInternal(param: Param): Param =
@@ -109,8 +109,8 @@ trait ModuleLowering {
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
-    case constr@ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, args) =>
-      val newConstr = ConstructorExpr(ClassRef(name,typesForTypeparameters), tyArgs, transExpressions(args))
+    case constr@ConstructorExpr(TName(name), tyArgs, args) =>
+      val newConstr = ConstructorExpr(TName(name), tyArgs, transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
       newConstr
     case SuperExpr(args) =>
@@ -130,8 +130,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
-    case SetFold(recv, projection, ClassRef(name,typesForTypeparameters), method, neutral) =>
-      SetFold(transExpression(recv).head, transExpressions(projection), ClassRef(name,typesForTypeparameters), method, transExpression(neutral).head)
+    case SetFold(recv, projection, TName(name), method, neutral) =>
+      SetFold(transExpression(recv).head, transExpressions(projection), TName(name), method, transExpression(neutral).head)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>
@@ -165,8 +165,8 @@ trait ModuleLowering {
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
-      case tcls@TClass(ClassRef(name,typesForTypeparameters)) =>
-        val ty = TClass(ClassRef(name,typesForTypeparameters))
+      case tcls@TClass(TName(name)) =>
+        val ty = TClass(TName(name))
         ty.tyParams = tcls.tyParams.map(transType)
         ty
     }

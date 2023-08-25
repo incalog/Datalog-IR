@@ -18,8 +18,11 @@ case class DispatchTable(classes: Seq[ClassDef]) {
       }.toMap
 
       val parentMethods = implClass.parentClassRefs.flatMap { ref =>
-        val parentClassDef = ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}"))
-        collectMethods(classDef)(parentClassDef)
+        ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}")) match {
+          case parentClassDef: ClassDef => collectMethods(classDef)(parentClassDef)
+          case _ => throw new IllegalStateException("Expected class ref, but found generic type")
+        }
+
       }.toMap
       // We rely on the default map collision behaviour to find the concrete implementation class
       parentMethods ++ methods

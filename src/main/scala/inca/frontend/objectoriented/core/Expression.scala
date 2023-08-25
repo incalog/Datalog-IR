@@ -33,7 +33,7 @@ case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression 
     s"$recv.$targetName"
 }
 
-case class ConstructorExpr(classRef: ClassRef, tyArgs: Seq[Type], args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
+case class ConstructorExpr(classRef: TName, tyArgs: Seq[Type], args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
   def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -122,7 +122,7 @@ case class SetComprehension(member: Seq[Expression], body: Expression) extends E
   }
 }
 
-case class SetFold(recv: Expression, projection: Seq[Expression], opClass: ClassRef, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
+case class SetFold(recv: Expression, projection: Seq[Expression], opClass: TName, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
   def vars: Map[Name, Option[Type]] = recv.vars
 
   lazy val aggIndex: Int = projection.indexWhere {

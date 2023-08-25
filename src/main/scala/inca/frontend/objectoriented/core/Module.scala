@@ -34,9 +34,11 @@ trait ClassContent extends SourceLocation with Annotations {
   override def toString: String = prettyprint("")
 }
 
+case class GenericParamDef(name: Name) extends SourceLocation with TName.Target
+
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[ParamDef], parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
-  extends SourceLocation with Annotations with VarReadExpr.Target {
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[GenericParamDef], parentClassRefs: Seq[TName], content: Seq[ClassContent])
+  extends SourceLocation with Annotations with TName.Target with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
     case field: FieldDef => field.name
@@ -60,18 +62,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }.headOption
 
   def typ: TClass = {
-    val ref = ClassRef(name, genericTypeParams)
-    ref.target = Some(this)
-    TClass(ref)
-  }
-
-  def typ(tyArgs: Seq[GenericParam] = Seq()): TClass = {
-    val genericParams = if (tyArgs.isEmpty) {
-      genericTypeParams
-    } else {
-      tyArgs
-    }
-    val ref = ClassRef(name, genericParams)
+    val ref = TName(name)
     ref.target = Some(this)
     TClass(ref)
   }
@@ -91,13 +82,6 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   override def toString: String = prettyprint("")
 }
 
-case class ClassRef(name: Name, genericTypeParams: Seq[GenericParam] = Seq()) extends SourceLocation with Resolvable[ClassDef] {
-  override def toString: String = {
-    val genericTypeParamsS = if (genericTypeParams.isEmpty) "" else  s"[${genericTypeParams.toString}]"
-    name.toString + genericTypeParamsS
-  }
-}
-
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
                     immutable: Boolean)
   extends ClassContent with Resolvable[MethodDef] {
@@ -110,7 +94,7 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }
 }
 
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[ParamDef], params: Seq[Param], outType: Type, body: Seq[Statement])
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[GenericParamDef], params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap

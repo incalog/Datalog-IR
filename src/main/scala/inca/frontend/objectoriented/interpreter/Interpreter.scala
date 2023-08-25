@@ -78,7 +78,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
 
   private def hasMonoType(expr: Expression): Boolean = {
     expr.typ match {
-      case Some(TClass(ref)) => ref.target match {
+      case Some(TClass(ref)) => ref.classDef match {
         case Some(classDef) => classDef.isMonotoneClass
         case None => throw new IllegalStateException(s"Unresolved classRef $ref")
       }
@@ -88,7 +88,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
 
   private def hasMonoMapType(expr: Expression): Boolean = {
     expr.typ match {
-      case Some(TClass(ref)) => ref.target match {
+      case Some(TClass(ref)) => ref.classDef match {
         case Some(classDef) => classDef.isMonotoneMapClass
         case None => throw new IllegalStateException(s"Unresolved classRef $ref")
       }
@@ -164,10 +164,10 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
 
   def eval(expr: Expression): Value = expr match {
     // Handle mono map
-    case MethodCallExpr(recv, Name("get"), Seq(keyExpr), _) if hasMonoMapType(recv) =>
+    case MethodCallExpr(recv, Name("get"), _, Seq(keyExpr), _) if hasMonoMapType(recv) =>
       val Object(className, _, fvals) = eval(recv).asObject(heap)
       val classDef = classTable.lookup(Name(className))
-      val Some((_, TClass(ClassRef(monoValueClass)))) = classDef.montoneTypes
+      val Some((_, TClass(TName(monoValueClass)))) = classDef.montoneTypes
 
       val keyValue = eval(keyExpr)
       val stateValues = fvals(monoStateVarName).asSet.flatMap {
@@ -179,7 +179,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
       val initValue = newScope { run(initMethod.body).get }
       stateValues.fold(initValue) { case (agg, cur) => monoJoin(monoValueClass, agg, cur) }
 
-    case MethodCallExpr(recv, Name("keys"), args, _) if hasMonoMapType(recv) =>
+    case MethodCallExpr(recv, Name("keys"), _, args, _) if hasMonoMapType(recv) =>
       val Object(_, _, fvals) = eval(recv).asObject(heap)
       SetValue(fvals(monoStateVarName).asSet.map { case TupleValue(key :: _) => key })
 
@@ -192,7 +192,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
       val initMethod = dispatchTable.lookup(Name(className), Name("init"))
       val initValue = newScope { run(initMethod.body).get }
       stateValues.fold(initValue) { case (agg, cur) => monoJoin(Name(className), agg, cur) }
-    case MethodCallExpr(recv, meth@Name("__plus__"), args, _) if hasMonoType(recv) =>
+    case MethodCallExpr(recv, meth@Name("__plus__"), _, args, _) if hasMonoType(recv) =>
       val recvObj = eval(recv)
       val obj@Object(className, _, fvals) = recvObj.asObject(heap)
 
@@ -228,7 +228,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
         case Some(value) => value
         case None => throw new IllegalStateException(s"Field not found $targetName for instance of class $cls")
       }
-    case constr@ConstructorExpr(classRef, args) =>
+    case constr@ConstructorExpr(classRef, _, args) =>
       // we can lookup the constructor directly without using the dispatch table
       constr.target match {
         case Some(ConstructorDef(_, _, params, body)) =>
@@ -285,12 +285,12 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
         case None =>
           throw new IllegalArgumentException(s"Unresolved constructor $superExpr")
       }
-    case MethodCallExpr(recv, fun, args, isFix) =>
+    case MethodCallExpr(recv, fun, _, args, isFix) =>
       val v = eval(recv)
       val recvObj@Object(className, _, _) = v.asObject(heap)
       val argVals = args.map(eval)
 
-      val methodDef@MethodDef(_, _, _, params, outType, body) = dispatchTable.lookup(Name(className), fun)
+      val methodDef@MethodDef(_, _, _, _, params, outType, body) = dispatchTable.lookup(Name(className), fun)
 
       def runMethod(recvObj: Value, argVals: Seq[Value]): Value = newScope {
         bindParams(params, argVals)
@@ -318,7 +318,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
           (result, h)
         }._1
       }
-    case TypeCastExpr(recv, TClass(ClassRef(ofName))) =>
+    case TypeCastExpr(recv, TClass(TName(ofName))) =>
       val v = eval(recv)
       if (v.isNull)
         v
@@ -331,7 +331,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
       }
     case TypeCastExpr(_, ofTyp) =>
       throw new UnsupportedOperationException(s"asInstanceOf is only supported for class types, but got $ofTyp")
-    case InstanceOfExpr(recv, TClass(ClassRef(ofName))) =>
+    case InstanceOfExpr(recv, TClass(TName(ofName))) =>
       eval(recv) match {
         case obj if obj.isNull => Value.TRUE
         case obj =>
