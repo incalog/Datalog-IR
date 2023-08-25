@@ -7,7 +7,7 @@ class A[T] {
         this.a = value
     }
 
-    def get[T](): T = {
+    def get(): T = {
         return this.a
     }
 

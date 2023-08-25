@@ -7,14 +7,14 @@ class A[T] {
         this.a = value
     }
 
-    def get[T](): T = {
+    def get(): T = {
         return this.a
     }
 
     @main
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
-        val res: Int = A1.get[Int]()
+        val res: Int = A1.get()
         return (A1.a == 1) && (res == 1)
     }
 }

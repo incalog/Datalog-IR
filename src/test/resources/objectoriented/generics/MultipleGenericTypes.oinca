@@ -9,11 +9,11 @@ class A[T1,T2] {
         this.b = value2
     }
 
-    def getA[T1](): T1 = {
+    def getA(): T1 = {
         return this.a
     }
 
-    def getB[T2](): T2 = {
+    def getB(): T2 = {
         return this.b
     }
 

@@ -384,6 +384,11 @@ object TestDefinition {
     TestDefinition("SimpleGenericClass", "A", "main", Seq(), true)
   }
 
+  def SimpleGenericMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("SimpleGenericMethod", "A", "main", Seq(), true)
+  }
+
   def instancesWithDifferentTypes: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("InstancesWithDifferentTypes", "A", "main", Seq(), true)
@@ -413,6 +418,13 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("UnknownTypeParameter", "A", "main", Seq(), None)
   }
+
+  def GenericParamDuplicate: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("GenericParamDuplicate", "A", "main", Seq(), None)
+  }
+
+
 
 
 }

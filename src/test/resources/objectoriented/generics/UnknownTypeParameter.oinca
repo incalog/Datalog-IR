@@ -1,13 +1,13 @@
 module UnknownTypeParameter
 
 class A[T] {
-    val a: T2
+    val a: T2   // should throw error
 
     def this(value: T2) = {
         this.a = value
     }
 
-    def get[T](): T = {
+    def get(): T = {
         return this.a
     }
 

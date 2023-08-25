@@ -1,0 +1,20 @@
+module GenericParamDuplicate
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T](value: T): T = { // return type T of class and receives other T from Method -> should raise Error
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: String = A1.get[String]("Hello World")
+        return (A1.a == 1) && (res == "Hello World")
+    }
+}

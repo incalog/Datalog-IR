@@ -226,6 +226,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(simpleGenericClass)
   }
 
+  test("Simple Generic Method") {
+    performTests(SimpleGenericMethod)
+  }
+
   test("Instances with Different Types") {
     performTests(instancesWithDifferentTypes)
   }
@@ -257,5 +261,13 @@ class DatalogTest extends AnyFunSuite {
 //    assert(caught.??? == ???)
 
   }
+
+  test("Generic Param Duplicate"){
+    assertThrows[Exception](  // TODO
+      performTests(GenericParamDuplicate)
+    )
+  }
+
+
 
 }

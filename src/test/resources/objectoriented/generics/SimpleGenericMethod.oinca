@@ -1,0 +1,20 @@
+module SimpleGenericMethod
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[A](value: A): A = {
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: String = A1.get[String]("Hello World")
+        return (A1.a == 1) && (res == "Hello World")
+    }
+}
