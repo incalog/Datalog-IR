@@ -34,7 +34,9 @@ trait ClassContent extends SourceLocation with Annotations {
   override def toString: String = prettyprint("")
 }
 
-case class GenericParamDef(name: Name) extends SourceLocation with TName.Target
+case class GenericParamDef(name: Name) extends SourceLocation with TName.Target {
+  def prettyprint(implicit indent: String): String = name.toString
+}
 
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[GenericParamDef], parentClassRefs: Seq[TName], content: Seq[ClassContent])
@@ -76,7 +78,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
       s"""extends ${parentClassRefs.head} $tailS"""
     } else
       s""
-    val genericTypeParam = if (isGeneric) s"[${this.genericTypeParams}]" else ""
+    val genericTypeParam = if (genericTypeParams.nonEmpty) genericTypeParams.mkString("[", ", ", "]") else ""
     s"""$annoPrefix$indent${visS}class $name$genericTypeParam $parentClassesS {$contentS\n$indent}""".stripMargin
   }
   override def toString: String = prettyprint("")
@@ -113,7 +115,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    val genericTypeParam = if (isGeneric) s"[${this.genericTypeParams}]" else ""
+    val genericTypeParam = if (genericTypeParams.nonEmpty) genericTypeParams.mkString("[", ", ", "]") else ""
 
     s"""$annoPrefix$indent${visS}def $name$genericTypeParam($paramsS): $outS = {
        |$bodyS
