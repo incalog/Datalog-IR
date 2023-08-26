@@ -10,7 +10,6 @@ import scala.reflect.ClassTag
 /* TODO
     Methode zum registrieren von Typparametern (ParamDefs)
     Lookup (auf ParamTypes, zurückgeben ParamDef)
-    scopedTypeContext anpassen
     Hilfsfunktionen: subtype
  */
 
@@ -24,8 +23,8 @@ trait TypeContext extends TypeIO {
     val v = vars
     val c = classDefs
     val ty = genericParams
-    val t = f   // hier f ausgeführt
-    vars = v    // zurücksetzen
+    val t = f   // here f executed
+    vars = v    // reset
     genericParams = ty
     classDefs = c
     t
@@ -218,6 +217,7 @@ trait TypeContext extends TypeIO {
 
   def lookupGenericParam(name: Name): Option[GenericParamDef] = genericParams.get(name)
 
+  //TODO bind Type to Name (not GenericParamDef)
   def bindGenericParam(name: Name, param: GenericParamDef): Unit = {
     val shadowedClass = lookupClass(name) match {
       case cls@Some(_) =>
@@ -236,6 +236,8 @@ trait TypeContext extends TypeIO {
     }
   }
 
+// from functional Version:
+//
 //  def bindTyVar(name: Name, decl: TName.Target): Unit = {
 //    tyVars.get(name) match {
 //      case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")

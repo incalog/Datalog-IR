@@ -130,7 +130,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for paramDef
+  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for genericParamDef
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ)

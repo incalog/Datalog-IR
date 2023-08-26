@@ -314,7 +314,7 @@ trait Parser {
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case ((name, tyArgs), argList) =>
-      val constr = ConstructorExpr(TName(name), tyArgs.getOrElse(Seq()), argList) // TODO give type for generic typeparameter
+      val constr = ConstructorExpr(TName(name), tyArgs.getOrElse(Seq()), argList)
       // constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
       constr
     }
@@ -355,7 +355,6 @@ trait Parser {
     val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
     // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
     val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | call.backtrack | variable | tupleIndex | baseApplyMethod)).rep0
-    //val nestedPath =  indexed(op('.') *> (call.backtrack | variable)).rep0
     val nestedStart =  ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
 
     // TODO: This does only allow nested expressions with a fix at the start

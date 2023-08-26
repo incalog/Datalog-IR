@@ -101,19 +101,6 @@ case class TSet(ty: Type) extends Type {
 }
 
 
-// TODO
-//case class TGeneric(ty: Type, genericTyParam: Seq[Type]) extends Type {
-//  println("TGeneric")
-//  println(s"### $ty")
-//  println(s"### $genericTyParam")
-//
-//  override def prettyprint: Signature = s"${ty.prettyprint}[${genericTyParam.map(t => t.prettyprint)}]"
-//
-//  override def flatten: Seq[Type] = ???
-//
-//  override def asScala: meta.Type = ???
-//}
-
 
 case class TName(name: Name) extends Type with Resolvable[TName.Target] {
   override def prettyprint: Signature = name.toString
