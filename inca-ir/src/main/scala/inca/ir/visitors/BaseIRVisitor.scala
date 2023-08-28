@@ -3,6 +3,7 @@ package inca.ir.visitors
 import inca.ir
 import inca.ir.extensions.*
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 
 import scala.collection.immutable.Seq
 
@@ -10,21 +11,24 @@ trait BaseIRVisitor:
   def visit(module: ir.Module): ir.Module =
     ir.Module(module.name, module.lang, module.contents.flatMap(visitModuleEntry))
 
-  def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] =(moduleEntry match {
+  def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
     case rel: Relation => visitRelation(rel)
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $moduleEntry")
-  }).map(_.withHints(moduleEntry))
+  })
 
-  def visitRelation(relation: Relation): Seq[Relation] =
+  def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     Seq(Relation(relation.name, relation.params.flatMap(visitParam), relation.bodies.flatMap(visitBody)))
+  }
 
-  def visitParam(param: Param): Seq[Param] =
-    Seq(Param(param.name, visitType(param.ty)).withHints(param))
+  def visitParam(param: Param): Seq[Param] = preserveHints(param) {
+    Seq(Param(param.name, visitType(param.ty)))
+  }
 
-  def visitBody(body: Body): Seq[Body] =
-    Seq(Body(body.atoms.flatMap(visitAtom)).withHints(body))
+  def visitBody(body: Body): Seq[Body] = preserveHints(body) {
+    Seq(Body(body.atoms.flatMap(visitAtom)))
+  }
 
-  def visitAtom(atom: Atom): Seq[Atom] = (atom match {
+  def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
     case Call(name, args) => Seq(Call(name, args.flatMap(visitTerm)))
     case NegCall(name, args) => Seq(NegCall(name, args.flatMap(visitTerm)))
     case ExtensionalCall(name, args) => Seq(ExtensionalCall(name, args.flatMap(visitTerm)))
@@ -33,15 +37,15 @@ trait BaseIRVisitor:
     case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
     case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
     case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
-  }).map(_.withHints(atom))
+  })
 
-  def visitTerm(term: Term): Seq[Term] = (term match {
+  def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case Var(name) => Seq(Var(name))
     case _ => throw IllegalStateException(s"Can not visit unknown term: $term")
-  }).map(_.withHints(term))
+  })
 
-  def visitType(ty: Type): Type = ty match {
-    case TAny => TAny.withHints(ty)
-    case TNothing => TNothing.withHints(ty)
+  def visitType(ty: Type): Type = preserveHints(ty)(ty match {
+    case TAny => TAny
+    case TNothing => TNothing
     case _ => throw IllegalStateException(s"Can not visit unknown type: $ty")
-  }
+  })

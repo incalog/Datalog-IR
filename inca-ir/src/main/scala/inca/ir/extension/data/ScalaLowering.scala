@@ -2,6 +2,7 @@ package inca.ir.extension.data
 
 import inca.Scala
 import inca.Scala.{App, AppInfix, Id, Lam, Select, StringLiteral}
+import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, Type, Var}
 import inca.ir.extension.{data, *}
 import inca.ir.extension.data.IR
@@ -31,7 +32,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
 
   private def relationName(dataName: Name, caseName: Name) = s"${dataName}_${caseName}"
 
-  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
     case DataDefinition(dataName, cases) =>
       cases.map { case CaseDefinition(caseName, args) =>
         val dataTy = visitType(TData(dataName))
@@ -60,9 +61,9 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
         )*/
         Relation(name, columns :+ outColumn, Seq())
       }
-    case _ => super.visitModuleEntry(moduleEntry)
+    case _ => super.visitModuleEntry(moduleEntry))
 
-  override def visitTerm(term: Term): Seq[Term] = term match
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case Construct(name, data) =>
       val dataName = term.typ match
         case Some(TData(name)) => name
@@ -74,9 +75,9 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
         Seq(Call(relName, data.flatMap(visitTerm) :+ outName)),
         outName
       ))
-    case _ => super.visitTerm(term)
+    case _ => super.visitTerm(term))
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case Match(matchee, cases) =>
       val tys = matchee.typ match
         case Some(ty) => ty.flatten
@@ -91,8 +92,8 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
           Disjunction(alternatives)
         case (_, ty) => throw new IllegalStateException(s"Expected TData, but got $ty")
       }
-    case _ => super.visitAtom(atom)
+    case _ => super.visitAtom(atom))
 
-  override def visitType(ty: Type): Type = ty match
+  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TData(name) => TScala(Scala.TypeName("String"))
-    case _ => super.visitType(ty)
+    case _ => super.visitType(ty))

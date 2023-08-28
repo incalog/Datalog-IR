@@ -1,5 +1,6 @@
 package inca.ir.extension.bool
 
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub, TInt}
 import inca.ir.extension.disjunction.Disjunction
@@ -24,15 +25,15 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
 
   override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(arithmetic.IR, block.IR, disjunction.IR, not.IR)
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+  override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
     case BoolAtom(t) =>
       for (v <- visitTerm(t))
         yield Eq(v, IntNum(1))
-    case _ => super.visitAtom(atom)
+    case _ => super.visitAtom(atom))
 
-  override def visitTerm(term: Term): Seq[Term] = term match
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case term: BoolTerm => lowerTerm(term)
-    case _ => super.visitTerm(term)
+    case _ => super.visitTerm(term))
 
   val TrueNum = IntNum(1)
   val FalseNum = IntNum(0)
@@ -61,6 +62,6 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
     case BoolAtom(t) => BoolAtom(BoolNot(t))
     case _ => super.negateAtom(atom)
 
-  override def visitType(ty: Type): Type = ty match
+  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TBoolean => TInt
-    case _ => super.visitType(ty)
+    case _ => super.visitType(ty))

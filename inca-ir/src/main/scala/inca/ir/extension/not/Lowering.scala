@@ -1,6 +1,7 @@
 package inca.ir.extension.not
 
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
@@ -17,9 +18,11 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
 
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Not(atom) => visitAtom(negateAtom(atom))
-    case _ => super.visitAtom(atom)
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case Not(atom) => visitAtom(negateAtom(atom))
+      case _ => super.visitAtom(atom)
+  }
 
   def negateAtom(atom: Atom): Atom = atom match
     case Call(name, args) => NegCall(name, args)

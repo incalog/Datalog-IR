@@ -49,6 +49,7 @@ object DeriveDemandPatterns extends Transformation {
               val res = atom.asCall match {
                 case Some((name, args)) =>
                   val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
+                  // FIXME: Can we just remove adorned ?
                   val adorned = atom.replaceCall(adornmentName(name, adorn), args)
                   todo += name -> adorn
                   adorned.withHints(atom).addHint(MagicSetHints.Adornment(adorn))
@@ -61,6 +62,7 @@ object DeriveDemandPatterns extends Transformation {
             Body(adornedAtoms).withHints(body)
           }
           // now we can construct the adorned pattern for this specific adornment
+          // FIXME: Can we just remove this adornedPat ?
           val adornedPat =
             Pattern(
               pat.vis,

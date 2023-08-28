@@ -1,6 +1,7 @@
 package inca.ir.extension.arithmetic
 
 import inca.Scala
+import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, BaseIR, Eq, Language, Name, Term, Type, Var}
 import inca.ir.extension.*
 import inca.ir.extension.bool.BoolTrue
@@ -60,7 +61,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
       yield t -> ty.lift(i)
   }
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case LT(lhs, rhs) =>
       typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) =>
         val (x, appl) = app("<", l, r)
@@ -74,9 +75,9 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
         Eq(Constant(Scala.BoolLiteral(true)), x)
       }
     case _ =>
-      super.visitAtom(atom)
+      super.visitAtom(atom))
 
-  override def visitTerm(term: Term): Seq[Term] = term match {
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case IntNum(i) =>
       Seq(Constant(Scala.IntLiteral(i)))
     case DoubleNum(d) =>
@@ -91,9 +92,9 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
       typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("/", l, r) }
     case _ =>
       super.visitTerm(term)
-  }
+  })
 
-  override def visitType(ty: Type): Type = ty match
+  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TInt => TScala(Scala.TypeName("Int"))
     case TDouble => TScala(Scala.TypeName("Double"))
-    case _ => super.visitType(ty)
+    case _ => super.visitType(ty))

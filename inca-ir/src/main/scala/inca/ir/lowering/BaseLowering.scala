@@ -1,5 +1,6 @@
 package inca.ir.lowering
 
+import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, BaseIR, Body, Call, Module, ModuleEntry, Param, Relation, Term, Var, name2string}
 import inca.ir.visitors.IRVisitor
 
@@ -31,14 +32,17 @@ trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
     case r: Relation => gensym.scoped { visitRelation(r) }
     case _ => super.visitModuleEntry(moduleEntry)
 
-  override def visitRelation(relation: Relation): Seq[Relation] =
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     Seq(
       Relation(
         relation.name,
         relation.params.flatMap(visitParam),
-        relation.bodies.flatMap(b => gensym.scoped { visitBody(b) })
-      ).withHints(relation)
+        relation.bodies.flatMap(b => gensym.scoped {
+          visitBody(b)
+        })
+      )
     )
+  }
 
   override def visitParam(param: Param): Seq[Param] = {
     gensym.register(param.name)

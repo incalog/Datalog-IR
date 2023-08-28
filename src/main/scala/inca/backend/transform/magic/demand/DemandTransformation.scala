@@ -125,7 +125,7 @@ object DemandTransformation extends Transformation {
           None
       val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
 
-      // for each body there can be multiple input bodies (due to multiple pattern calls)
+      // for each body  there can be multiple input bodies (due to multiple pattern calls)
       val inputPatterns = patterns.flatMap { p =>
         p.bodies.flatMap { body =>
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>

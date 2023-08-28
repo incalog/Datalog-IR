@@ -1,18 +1,19 @@
 package inca.ir.extension.bool
 
+import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 
 trait Visitor extends BaseIRVisitor:
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case BoolAtom(t) =>
       for (v <- visitTerm(t))
         yield BoolAtom(t)
-    case _ => super.visitAtom(atom)
+    case _ => super.visitAtom(atom))
 
-  override def visitTerm(term: Term): Seq[Term] = term match
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case term: BoolTerm => visitBoolTerm(term)
-    case _ => super.visitTerm(term)
+    case _ => super.visitTerm(term))
 
   def visitBoolTerm(term: BoolTerm): Seq[Term] = term match
     case AtomAsBool(a) =>
@@ -30,6 +31,6 @@ trait Visitor extends BaseIRVisitor:
     case BoolTrue => Seq(BoolTrue)
     case BoolFalse => Seq(BoolFalse)
 
-  override def visitType(ty: Type): Type = ty match
+  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TBoolean => TBoolean
-    case _ => super.visitType(ty)
+    case _ => super.visitType(ty))

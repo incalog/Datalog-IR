@@ -25,4 +25,14 @@ trait Hint {
 }
 object Hint {
   type Key = String
+
+  def preserveHints[T <: Hints](hints: Hints)(f: => Seq[T]): Seq[T] = {
+    val t = f
+    t.map(_.withHints(hints))
+  }
+
+  def preserveHints[T <: Hints](hints: Hints)(f: => T): T = {
+    val t = f
+    t.withHints(hints)
+  }
 }

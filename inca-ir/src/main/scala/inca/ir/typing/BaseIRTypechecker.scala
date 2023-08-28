@@ -7,6 +7,7 @@ import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
 
+// We assume that every variable that is used is introduced beforehand (left-to-right)
 trait BaseIRTypechecker extends BaseIRTypeContext:
 
   // Always process Relations last
