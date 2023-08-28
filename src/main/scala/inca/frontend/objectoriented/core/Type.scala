@@ -25,6 +25,7 @@ object Type {
     case TScala(ty) => ty.syntax
     case TClass(TName(Name(raw))) => raw
     case TSet(ty) => "Set_" + suffix(ty)
+    case TName(n) => n.raw
   }
 }
 
@@ -84,8 +85,6 @@ object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
 case class TClass(ref: TName) extends Type {
-//  println("TClass")
-//  println(s"### ${ref.name} ${ref.genericTypeParams}")
 
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)

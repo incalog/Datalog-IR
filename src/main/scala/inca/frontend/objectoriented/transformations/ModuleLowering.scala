@@ -164,7 +164,10 @@ trait ModuleLowering {
       case TTuple(ts) => TTuple(ts.map(transType))
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
-      case TName(name) => TName(name)
+      case TName(name) =>
+        val ty = TName(name)
+        ty.tyArgs = typ.tyArgs
+        ty
       // TODO: Do we need this
       // create a new ClassRef to invalidate the current target
       case tcls@TClass(TName(name)) =>

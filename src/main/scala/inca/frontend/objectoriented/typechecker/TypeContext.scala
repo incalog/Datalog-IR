@@ -22,10 +22,11 @@ trait TypeContext extends TypeIO {
   def scopedTypeContext[T](f: => T): T = {
     val v = vars
     val c = classDefs
-    val ty = genericParams
+    val params = genericParams
+
     val t = f   // here f executed
     vars = v    // reset
-    genericParams = ty
+    genericParams = params
     classDefs = c
     t
   }
@@ -42,6 +43,7 @@ trait TypeContext extends TypeIO {
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
+    case (TName(n1), TName(n2)) if (lookupGenericParam(n1, suppressError = true).isDefined) => n1 == n2
     case _ => false
   }
 
@@ -104,16 +106,18 @@ trait TypeContext extends TypeIO {
     classDefs += clazz.name -> (module, clazz)
   }
 
-  def lookupClass(name: Name): Option[ClassDef] = classDefs.get(name) match {
+  def lookupClass(name: Name, suppressError: Boolean = false): Option[ClassDef] = classDefs.get(name) match {
     case set if set.size == 1 =>
       Some(set.head._2)
     case set if set.size >= 2 =>
       val modules = set.toSeq.map(_._1)
       val modulesStr = modules.map(_.name).mkString(", ")
-      error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+      if (!suppressError)
+        error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
       None
     case _ =>
-      error(s"Undefined class $name", name)
+      if (!suppressError)
+        error(s"Undefined class $name", name)
       None
   }
 
@@ -215,11 +219,16 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupGenericParam(name: Name): Option[GenericParamDef] = genericParams.get(name)
+  def lookupGenericParam(name: Name, suppressError: Boolean = false): Option[GenericParamDef] = genericParams.get(name) match {
+    case Some(entry) => Some(entry)
+    case None =>
+      if (!suppressError)
+        error(s"Unbound generic parameter $name", name)
+      None
+  }
 
-  //TODO bind Type to Name (not GenericParamDef)
-  def bindGenericParam(name: Name, param: GenericParamDef): Unit = {
-    val shadowedClass = lookupClass(name) match {
+  def bindGenericParam(name: Name, typ: GenericParamDef): Unit = {
+    val shadowedClass = lookupClass(name, true) match {
       case cls@Some(_) =>
         error(s"Generic parameter shadows previously defined class with same name.", name)
         cls
@@ -231,10 +240,14 @@ trait TypeContext extends TypeIO {
         case Some(value) =>
           error(s"Generic parameter shadows previously defined parameter.", name)
         case None =>
-          genericParams += name -> param
+          genericParams += name -> typ
       }
     }
   }
+
+
+
+
 
 // from functional Version:
 //

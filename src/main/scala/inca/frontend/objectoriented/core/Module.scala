@@ -67,7 +67,9 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def typ: TClass = {
     val ref = TName(name)
     ref.target = Some(this)
-    TClass(ref)
+    val tclass = TClass(ref)
+//    tclass.tyArgs = ref.tyArgs
+    tclass
   }
 
   def prettyprint(implicit indent: String): String = {
