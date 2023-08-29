@@ -17,9 +17,12 @@ case class Construct(name: Name, data: Seq[Term]) extends Term:
   override def vars: Seq[Var] = data.flatMap(_.vars)
   override def toString: String = s"$name${data.mkString("(", ", ", ")")}"
 
-case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]) // TODO Discuss: or Body or Term ?
+case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]): // TODO Discuss: or Body or Term ?
+  override def toString: String = s"case $name(${vars.mkString(", ")}) => ${body.mkString(", ")}"
+
 // We could lower this to disjunctionIR first
-case class Match(matchee: Term, cases: Seq[Case]) extends Atom
+case class Match(matchee: Term, cases: Seq[Case]) extends Atom:
+  override def toString: String = s"$matchee match ${cases.mkString("\n\t\t", "\n\t\t", "\n")}"
 
 
 object IR extends IR { }

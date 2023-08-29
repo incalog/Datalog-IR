@@ -50,7 +50,11 @@ class DataLoweringTest extends AnyFunSuiteLike:
         ))
       ),
       Seq(
-        Eq(term(0), Construct("Nil", Seq()))
+        Eq(term(0), Construct("Nil", Seq())),
+        Match(term(0), Seq(
+          Case("Nil", Seq(), Seq(Eq(term(0), term(0)))),
+          Case("Cons", Seq(Var("h"), Var("t")), Seq(Eq(term(0), Var("h"))))
+        ))
       )
     )
     println(mData)

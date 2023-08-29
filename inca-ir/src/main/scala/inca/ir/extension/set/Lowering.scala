@@ -2,7 +2,6 @@ package inca.ir.extension.set
 
 // TODO: Include prefix or demand placeholder
 // TODO: Add aggregation expression
-// TODO: Propagate hints correctly
 // TODO: What do we do about equality checks on sets ?
 // TODO: TData match
 
@@ -130,10 +129,13 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     rel
   }
 
-  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = {
+  override def visit(module: ir.Module): ir.Module = {
     val defunTyName = gensym.fresh("DefunSet")
     setDefunType = Some(TData(defunTyName))
-    super.visitModuleEntry(moduleEntry) :+ DataDefinition(defunTyName, setDefunCases)
+
+    val ir.Module(name, language, content) = super.visit(module)
+
+    ir.Module(name, language, content :+ DataDefinition(defunTyName, setDefunCases))
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
@@ -219,7 +221,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize() {
     term match
-      case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) =>
+      case Var(name) if term.isTypeOf[TSet] =>
         val setTy = visitType(term.typ.get)
         val (groupRelName, _) = setDefunGroupRelations(setTy)
         val outVar = gensym.fresh("return")
@@ -244,7 +246,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   }
 
   private def defunctionalizeTerm(term: Term): Seq[Term] = term match {
-    case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) => Seq(Var(name))
+    case Var(name) if term.isTypeOf[TSet] => Seq(Var(name))
     case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
       val dependentVars = term.vars.distinct
       val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
@@ -290,13 +292,15 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       throw new IllegalStateException(s"Can not defunctionalize none set term: $term")
   }
 
-  override def visitTerm(term: Term): Seq[Term] = term match
-    case Var(name) if term.typ.exists(_.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
-      super.visitTerm(term)
-    case _ if term.typ.exists(_.isInstanceOf[TSet]) =>
-      if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
-    case _ =>
-      super.visitTerm(term)
+  override def visitTerm(term: Term): Seq[Term] = {
+    term match
+      case Var(name) if term.isTypeOf[TSet] && refunctionalizedVars.contains(name) =>
+        super.visitTerm(term)
+      case _ if term.isTypeOf[TSet] =>
+        if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
+      case _ =>
+        super.visitTerm(term)
+  }
 
   override def visitType(ty: Type): Type = ty match
     case TSet(_) if defunctionalize => setDefunType.get

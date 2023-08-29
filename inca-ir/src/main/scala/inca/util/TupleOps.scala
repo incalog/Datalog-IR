@@ -1,6 +1,7 @@
 package inca.util
 
 import scala.annotation.tailrec
+import scala.collection.immutable.MultiDict
 
 object TupleOps {
   /**
@@ -37,5 +38,14 @@ object TupleOps {
         }
     }
     res
+  }
+
+  @scala.annotation.tailrec
+  def transClosure[T](rel: MultiDict[T, T]): MultiDict[T, T] = {
+    val newRel = rel.mapSets { case (src, trg) =>
+      src -> (trg ++ trg.flatMap { s => rel.get(s) })
+    }
+    if (newRel == rel) rel
+    else transClosure(newRel)
   }
 }

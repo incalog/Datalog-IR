@@ -2,7 +2,7 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.BaseIRTypechecker
-import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, Type}
+import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, Type, Var}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:
@@ -19,16 +19,28 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
   override def typecheck(atom: Atom): Unit = atom match
     case Match(matchee, cases) =>
       typecheck(matchee)
-      cases.foreach { case Case(name, vars, body) =>
-        vars.foreach(typecheck)
-        body.foreach(typecheck)
+      cases.foreach {
+        case Case(name, vars, body) =>
+          val argTys = lookupConstruct(name, atom) match
+            case Some((_, CaseDefinition(name, tys))) => tys
+            case None => Seq()
+
+          if (argTys.size != vars.size)
+            error(s"Expected ${argTys.size} arguments, but got ${vars.size}", atom)
+
+          vars.zipWithIndex.foreach {
+            case (v@Var(name), idx) =>
+              val expectedArgTy = argTys(idx)
+              if (lookupVar(name).isEmpty)
+                v.typed(expectedArgTy)
+              assertSubtype(typecheck(v), expectedArgTy)
+          }
+          body.foreach(typecheck)
       }
     case _ => super.typecheck(atom)
 
   override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
-    case Construct(name, data) => lookupConstruct(name) match
+    case Construct(name, data) => lookupConstruct(name, term) match
       case Some((DataDefinition(dataName, _), _)) => TData(dataName)
-      case None =>
-        error(s"Could not find constructor $name", term)
-        TAny
+      case None => TAny
     case _ => super.typecheckInternal(term, inferred)

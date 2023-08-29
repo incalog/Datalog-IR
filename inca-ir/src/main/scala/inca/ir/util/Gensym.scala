@@ -1,4 +1,4 @@
-package inca.ir.lowering
+package inca.ir.util
 
 class Gensym(init: Iterable[String] = Seq.empty) {
   /** map of used symbols, each of which must end with '$' */

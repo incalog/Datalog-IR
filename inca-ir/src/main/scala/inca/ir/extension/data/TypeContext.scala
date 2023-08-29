@@ -2,6 +2,7 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypeContext, BaseIRTypechecker}
+import inca.ir.util.SourceLocation
 import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, Type}
 
 trait TypeContext extends BaseIRTypeContext:
@@ -30,4 +31,9 @@ trait TypeContext extends BaseIRTypeContext:
     caseDefs ++= newCases
   }
 
-  def lookupConstruct(name: Name): Option[(DataDefinition, CaseDefinition)] = caseDefs.get(name)
+  def lookupConstruct(name: Name, locations: SourceLocation*): Option[(DataDefinition, CaseDefinition)] = {
+    val constr = caseDefs.get(name)
+    if (constr.isEmpty)
+      error(s"Could not find constructor $name", locations:_*)
+    constr
+  }

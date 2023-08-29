@@ -87,7 +87,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
         case (d, TData(dataName)) =>
           val alternatives = cases.map { case Case(name, vars, body) =>
             // TODO: We only want to query here, not generate new Data
-            Seq(Call(relationName(dataName, name), vars.flatMap(visitTerm) :+ d))
+            Call(relationName(dataName, name), vars.flatMap(visitTerm) :+ d) +: body
           }
           Disjunction(alternatives)
         case (_, ty) => throw new IllegalStateException(s"Expected TData, but got $ty")

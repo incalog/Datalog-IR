@@ -52,11 +52,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
             error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
           } else {
             val paramTys = params.map(_.ty)
-            // Assign a type to each call parameter in case the variable is unbound
+            // Assign a type to a variable in case it was previously unbound
             args.zip(paramTys).foreach {
               case (v@Var(name), ty) if lookupVar(name).isEmpty => v.typed(ty)
               case v => // Nothing
             }
+            // typecheck all args and thereby bind any missing variables
             val argTys = args.map(typecheck)
             args.zip(argTys).zip(paramTys).foreach { case ((a, aTy), pTy) =>
               assertSubtype(pTy, aTy, a, atom)
