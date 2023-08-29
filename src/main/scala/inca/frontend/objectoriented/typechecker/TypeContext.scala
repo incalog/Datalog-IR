@@ -228,7 +228,7 @@ trait TypeContext extends TypeIO {
   }
 
   def bindGenericParam(name: Name, typ: GenericParamDef): Unit = {
-    val shadowedClass = lookupClass(name, true) match {
+    val shadowedClass = lookupClass(name, suppressError = true) match {
       case cls@Some(_) =>
         error(s"Generic parameter shadows previously defined class with same name.", name)
         cls
@@ -247,24 +247,4 @@ trait TypeContext extends TypeIO {
 
 
 
-
-
-// from functional Version:
-//
-//  def bindTyVar(name: Name, decl: TName.Target): Unit = {
-//    tyVars.get(name) match {
-//      case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
-//      case None =>
-//    }
-//    tyVars += name -> decl
-//  }
-//
-//  def lookupTyVar(name: Name): Option[TName.Target] = {
-//    tyVars.get(name) match {
-//      case Some(decl) => Some(decl)
-//      case None =>
-//        error(s"Unbound type variable $name", name)
-//        None
-//    }
-//  }
 }

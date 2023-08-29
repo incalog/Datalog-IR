@@ -135,7 +135,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for genericParamDef
+  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for genericParamDef ?
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ)
@@ -149,52 +149,56 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
-    // get all overridden methods and assign them the same signature
-    val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
+  def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = {
+    scopedTypeContext {
+      // get all overridden methods and assign them the same signature
+      val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
 
-    // TODO: Handle generics in overridden methods
-    // make sure all overridden methods share the same parameter names
-    overriddenMethods.foreach { case (_, m) =>
-      m.params.zip(methodDef.params).foreach { case (p1, p2) =>
-        if (p1.name.raw != p2.name.raw) {
-          error(s"Overridden methods must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}.", m)
+      // TODO: Handle generics in overridden methods
+      // make sure all overridden methods share the same parameter names
+      overriddenMethods.foreach { case (_, m) =>
+        m.params.zip(methodDef.params).foreach { case (p1, p2) =>
+          if (p1.name.raw != p2.name.raw) {
+            error(s"Overridden methods must use the same parameter names: Expected ${p2.name.raw}, but got ${p1.name.raw}.", m)
+          }
+        }
+        if (m.vis != methodDef.vis) {
+          error(s"Overridden methods must have the same visibility: Exprected ${methodDef.vis} but got ${m.vis}")
         }
       }
-      if (m.vis != methodDef.vis) {
-        error(s"Overridden methods must have the same visibility: Exprected ${methodDef.vis} but got ${m.vis}")
+
+      methodDef.genericTypeParams.foreach(p => bindGenericParam(p.name, p))
+
+      resolveSignatures(overriddenMethods)
+
+      methodDef.params.foreach { p =>
+        typecheck(p.typ)
+        bindVar(p.name, p, p.typ, immutable = true)
       }
-    }
-
-    resolveSignatures(overriddenMethods)
-
-    methodDef.params.foreach { p =>
-      typecheck(p.typ)
-      bindVar(p.name, p, p.typ, immutable = true)
-    }
-    methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
-      if (cs.size > 1)
-        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
-    }
-    methodDef.body.foreach {
-      case ExprStmt(expression) => expression match {
-        case SuperExpr(_) =>
-          error(s"Method '${methodDef.name}' must not contain a super constructor call", expression)
+      methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
+        if (cs.size > 1)
+          error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
+      }
+      methodDef.body.foreach {
+        case ExprStmt(expression) => expression match {
+          case SuperExpr(_) =>
+            error(s"Method '${methodDef.name}' must not contain a super constructor call", expression)
+          case _ => // nothing
+        }
         case _ => // nothing
       }
-      case _ => // nothing
+
+      /*if (!methodDef.returnsUnit && optReturn.isEmpty)
+        throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
+
+      // main method must not use this, since it is static
+      if (!methodDef.isStatic)
+        bindVar(Name("this"), classDef, resolveType(classDef.typ.ref), immutable = true)
+
+      typecheck(methodDef.outType)
+
+      typecheck(methodDef.body, methodDef.outType)(classDef)
     }
-
-    /*if (!methodDef.returnsUnit && optReturn.isEmpty)
-      throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
-
-    // main method must not use this, since it is static
-    if (!methodDef.isStatic)
-      bindVar(Name("this"), classDef, resolveType(classDef.typ.ref), immutable = true)
-
-    typecheck(methodDef.outType)
-
-    typecheck(methodDef.body, methodDef.outType)(classDef)
   }
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
@@ -402,15 +406,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               resolveTarget(construtorExpr)(constructorDef)
 
               if (clazz.genericTypeParams.size != tyArgs.size)
-                error("Unequal sizes of given Types for Generic Parameters and the parameters themselves", expression) // TODO proper english
-
+                error("Too many or too few type arguments", expression)
 
               // TODO everywhere where lookupClassRef also check whether Param -> lookupName
-
-
-              //val tyParams = tyArgs.map(param => lookupGenericParam(param))
-              //val substMap = ???
-              //TypeUtil.substitute(constructorDef, substMap).asInstanceOf[]
 
               val ty = clazz.typ
               ty.tyArgs = tyArgs
@@ -424,7 +422,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           }
       }
 
-    case methodCallExpr@MethodCallExpr(recv, fun, _, args, _) =>
+    case methodCallExpr@MethodCallExpr(recv, fun, tyArgs, args, _) =>
+      tyArgs.foreach(param => typecheck(param))
+
       val ty = typecheck(recv) match {
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
@@ -435,8 +435,24 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               // TODO: We might allow calling static methods in the future
               if (methodDef.isStatic)
                 error(s"Can not call static method '${methodDef.name}' on instance of type '$clazzTyp'", expression)
+              if (methodDef.genericTypeParams.size != tyArgs.size)
+                error("Too many or too few type arguments", expression)
+
+              val outType: Type = methodDef.outType match {
+                case tname@TName(n) =>
+                  val filtered = methodDef.genericTypeParams.filter(param => param.name == n)
+                  filtered.headOption match {
+                    case Some(param) =>
+                      val index = methodDef.genericTypeParams.indexOf(param)
+                      tyArgs.lift(index).getOrElse(tname)
+                    case None => tname
+                  }
+                case _ => methodDef.outType
+              }
+
+
               resolveTarget(methodCallExpr)((clsDef, methodDef))
-              resolveTypeForClass(methodDef.outType, clazzTyp)
+              resolveTypeForClass(outType, clazzTyp)
 
           }
         case typ =>
@@ -630,7 +646,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def lookupName(name: TName): Option[TName.Target] = {
-    val cls = lookupClass(name.name, true) match {
+    val cls = lookupClass(name.name, suppressError = true) match {
       case Some(classDef) =>
         resolveTarget(name)(classDef)
         Some(classDef)
@@ -638,11 +654,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
     if (cls.isDefined) return cls
 
-    lookupGenericParam(name.name) match {
+    lookupGenericParam(name.name, suppressError = true) match {
       case Some(genericParam) =>
         resolveTarget(name)(genericParam)
         Some(genericParam)
-      case None => None
+      case None =>
+        error(s"Unbound Name ${name.name}", name)
+        None
+
     }
   }
 
@@ -673,7 +692,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // Note: we compile the parent class type into the signature as well. This way we don't get conflicts if an
     // unrelated class implements a method with the same signature.
 
-    // TODO add generic Types
+    // TODO add generic Types ?
     val types = callables.headOption match {
       case Some((cls: ClassDef, MethodDef(_ , _, _, _, params, outType, _))) => cls.typ +: params.map(_.typ) :+ outType
       case Some((cls: ClassDef, ConstructorDef(_, _, params, _))) => cls.typ +: params.map(_.typ)
@@ -690,7 +709,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     ref.target = Some(classDef)
     ref.tyArgs.foreach {
       case tname@TName(n) =>
-        (classDef.genericTypeParams.find(param => param.name == n)) match {
+        classDef.genericTypeParams.find(param => param.name == n) match {
           case s@Some(_) => tname.target = s
           case None => lookupClass(n) match {
             case s@Some(value) => tname.target = s
@@ -707,12 +726,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     println("resolveTypeForClass", tclass, tclass.tyArgs)
     typ match {
       case tname@TName(n) => lookupName(tname) match {
-        case Some(paramDef: GenericParamDef) => lookupClass(tclass.ref.name) match {
-          case Some(clazz) =>
-            val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n).get)
-            tclass.tyArgs.lift(index).getOrElse(tname)
-          case None => TAny// nothing
-        }
+        case Some(_: GenericParamDef) =>
+          lookupClass(tclass.ref.name) match {
+            case Some(clazz) =>
+              val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n).get)
+              tclass.tyArgs.lift(index).getOrElse(tname)
+            case None => TAny// nothing
+          }
         case Some(classDef: ClassDef) =>
           val ty = classDef.typ
           ty.tyArgs = tname.tyArgs // TODO nested generics
@@ -723,6 +743,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     }
   }
+
 
   def resolveType(typ: Type): Type = {
     println(typ, typ.tyArgs)
