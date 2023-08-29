@@ -51,13 +51,14 @@ class LinkedList {
 
 class Node[T] {
     var value: T
-    var next: Node
+    var next: Node[T]
 
-    def this(value: T, next: Node) = {
+    def this(value: T, next1: Node[T]) = {
         this.value = value
-        this.next = next
+        this.next = next1
     }
 }
+
 
 class LinkedList[T] {
     var head: Node[T]
@@ -70,13 +71,13 @@ class LinkedList[T] {
         return this.insert(value,this.head)
     }
 
-    def insert(value: T, node: Node): Int = {
+    def insert(value: T, node: Node[T]): Int = {
         if (node == null) {
-            this.head = new Node(value, null)
+            this.head = new Node[T](value, null)
             return 1
         }
         if (node.next == null){
-            node.next = new Node(value, null)
+            node.next = new Node[T](value, null)
             return 1
         }
         else {

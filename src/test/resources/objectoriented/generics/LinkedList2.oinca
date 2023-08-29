@@ -1,0 +1,45 @@
+
+class Node[T2] {
+    var value: T2
+    var next: Node[T2]
+
+    def this(value: T2, next1: Node[T2]) = {
+        this.value = value
+        this.next = next1
+    }
+}
+
+
+class LinkedList[T] {
+    var head: Node[T]
+
+    def this() = {
+        this.head = null
+    }
+
+    def insert(value: T): Int = {
+        return this.insert(value,this.head)
+    }
+
+    def insert(value: T, node: Node[T]): Int = {
+        if (node == null) {
+            this.head = new Node[T](value, null)
+            return 1
+        }
+        if (node.next == null){
+            node.next = new Node[T](value, null)
+            return 1
+        }
+        else {
+            return this.insert(value, node.next)
+        }
+    }
+
+    @main
+    def main(): Int = {
+        val lst: LinkedList[Int] = new LinkedList[Int]()
+        val res1: Int = lst.insert(1)
+        val res2: Int = lst.insert(2)
+        return res1 + res2
+    }
+}

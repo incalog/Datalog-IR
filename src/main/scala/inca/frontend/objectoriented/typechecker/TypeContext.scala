@@ -31,7 +31,9 @@ trait TypeContext extends TypeIO {
     t
   }
 
-  def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
+  def subtype(ty1: Type, ty2: Type): Boolean = {
+    println(ty1,ty2)
+    (convertTName(ty1), convertTName(ty2)) match {
     case (_, TAny) => true
     case (TNull, TNull) => true
     case (TNull, TClass(_)) => true
@@ -44,7 +46,11 @@ trait TypeContext extends TypeIO {
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
     case (TName(n1), TName(n2)) if (lookupGenericParam(n1, suppressError = true).isDefined) => n1 == n2
+//    case (TName(n1), TName(n2)) if (lookupClass(n1, suppressError = true).isDefined) => n1 == n2 // TODO ???
+//    case (TClass(tname: TName), TName(n)) => tname.name == n // TODO ???
+    case (TNull, TName(_)) => true
     case _ => false
+  }
   }
 
   def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
@@ -181,6 +187,7 @@ trait TypeContext extends TypeIO {
     })
   }
 
+  // TODO use genric Types in searching method
   def lookupMethod(clazz: Option[ClassDef], args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
     val allMethods = lookupMethodCandidates(clazz, args, name)
@@ -194,15 +201,32 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupConstructorCandidates(clazz: Option[ClassDef], args: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
+  def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
     collect[ConstructorDef](clazz, c => {
-      c.params.size == args.size && args.zip(c.params).forall { case (t1, p) => subtype(t1, p.typ) }
+      c.params.size == args.size && args.zip(c.params).forall { case (t1, p) =>
+
+        val pTyp: Type = clazz match {
+          case Some(classDef) => p.typ match {
+            case tname@TName(n) =>
+              val filtered = classDef.genericTypeParams.filter(param => param.name == n)
+              filtered.headOption match {
+                case Some(param) =>
+                  val index = classDef.genericTypeParams.indexOf(param)
+                  tyArgs.lift(index).getOrElse(tname)
+                case None => tname
+              }
+            case ty => ty
+          }
+          case None => TAny // error already in collect TODO ???
+        }
+
+        subtype(t1, pTyp) }
     })
   }
 
-  def lookupConstructor(clazz: Option[ClassDef], args: Seq[Type], location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {
+  def lookupConstructor(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    val allConstructor = lookupConstructorCandidates(clazz, args)
+    val allConstructor = lookupConstructorCandidates(clazz, tyArgs, args)
     val ambiguousConstructors = allConstructor.groupBy(_._1).filter(_._2.size > 1)
 
     if (allConstructor.isEmpty) {
@@ -227,10 +251,11 @@ trait TypeContext extends TypeIO {
       None
   }
 
-  def bindGenericParam(name: Name, typ: GenericParamDef): Unit = {
+  def bindGenericParam(name: Name, typ: GenericParamDef, suppressError: Boolean = false): Unit = {
     val shadowedClass = lookupClass(name, suppressError = true) match {
       case cls@Some(_) =>
-        error(s"Generic parameter shadows previously defined class with same name.", name)
+        if (!suppressError)
+          error(s"Generic parameter shadows previously defined class with same name.", name)
         cls
       case None =>
         None
@@ -238,13 +263,27 @@ trait TypeContext extends TypeIO {
     if (shadowedClass.isEmpty) {
       genericParams.get(name) match {
         case Some(value) =>
-          error(s"Generic parameter shadows previously defined parameter.", name)
+          if (!suppressError)
+            error(s"Generic parameter shadows previously defined parameter.", name)
         case None =>
           genericParams += name -> typ
       }
     }
   }
 
+  def convertTName(typ: Type): Type = typ match {
+    case tName@TName(name) =>
+      val cls = lookupClass(name, suppressError = true) match {
+        case Some(classDef) =>
+          //val cls = TClass(tName)
+          val cls = classDef.typ
+          cls.tyArgs = tName.tyArgs
+          Some(cls)
+        case None => None
+      }
+      cls.getOrElse(tName)
+    case _ => typ
+  }
 
 
 }

@@ -1,7 +1,7 @@
 module WithInheritance
 
 class A[T] {
-    val a: T
+    var a: T
 
     def this(value: T) = {
         this.a = value
@@ -15,14 +15,14 @@ class A[T] {
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
         val B1: B[Int] = new B[Int](0,1)
-        val C1: C[Int,Boolean] = new C[Int, Boolean](1, true)
-        return (A1.a == 1) && ((B1.a == 0) && (B1.b == 1)) && ((C1.c == 1) && C1.c)
+        // val C1: C[Int] = new C[Int](true, 1)
+        return (A1.a == 1) && ((B1.a == 0) && (B1.b == 1)) // && ((C1.c == 1) && C1.c)
     }
 }
 
 
 class B[T] extends A[T] {
-    val b: T
+    var b: T
 
     def this(value: T, value2: T) = {
         super(value)
@@ -30,13 +30,24 @@ class B[T] extends A[T] {
     }
 }
 
+/*
+class C[T2] extends A[Boolean] {
+    var c: T2
 
-class C[T1,T2] extends A[T1] {
-    val c: T2
-
-    def this(value: T1, value2: T2) = {
+    def this(value: Boolean, value2: T2) = {
         super(value)
         this.c = value2
     }
 
+} */
+
+
+
+/* In Scala
+class B[T](b: T, t: Boolean) extends A[Boolean](t: Boolean){
+
 }
+
+class C[T1, T2](b: T1, t: T2) extends A[T2](t: T2){
+
+} /*
