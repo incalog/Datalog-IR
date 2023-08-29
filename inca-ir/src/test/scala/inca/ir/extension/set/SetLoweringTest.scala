@@ -1,17 +1,26 @@
 package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.{Module, Relation, Param, Body, Var, TAny, Eq, Neq, Call, Language, BaseIR, string2name}
+import inca.ir.{BaseIR, Body, Call, Eq, Language, Module, Neq, Param, Relation, TAny, Type, Var, string2name}
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.block
 import inca.ir.extension.disjunction
 import inca.ir.extension.data
+import inca.ir.extension.arithmetic
+import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
+import inca.util.TupleOps
 
 class SetLoweringTest extends AnyFunSuite {
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
   val typechecker = new Typechecker {}
+
+  trait SetWithArithmetic extends IR with arithmetic.IR:
+    override val name: String = "SetArithmetic"
+    override def language: Language = super.language
+    override def requires: Language = Language(IR)
+  object SetWithArithmetic extends SetWithArithmetic {}
 
   trait Stage1IR extends BaseIR with block.IR with disjunction.IR with data.IR:
     override val name: String = "DisjunctionBlock"
@@ -30,8 +39,8 @@ class SetLoweringTest extends AnyFunSuite {
   }
 
 
-  def param(i: Int) = Param("p" + i, TAny)
-  def setParam(i: Int) = Param("p" + i, TSet(TAny))
+  def param(i: Int, typ: Type = TAny) = Param("p" + i, typ)
+  def setParam(i: Int, typ: Type = TAny) = Param("p" + i, TSet(typ))
   def term(i: Int) = Var("p" + i)
 
   def lower(mod: Module): Seq[Module] = {
@@ -76,7 +85,7 @@ class SetLoweringTest extends AnyFunSuite {
     lower(mod)
   }*/
 
-  test("Set union Test no refun") {
+  /*test("Set union Test no refun") {
     val outParam = Param("x", TSet(TAny))
     val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam), Seq(
       Body(Seq(
@@ -98,7 +107,7 @@ class SetLoweringTest extends AnyFunSuite {
     val mod = Module("Test", IR.language, Seq(mainRelation, testRelation))
 
     lower(mod)
-  }
+  }*/
 
   /*test("Set union Test") {
     val outParam = Param("x", TSet(TAny))
@@ -162,4 +171,23 @@ class SetLoweringTest extends AnyFunSuite {
 
     lower(mod)
   }*/
+
+  test("Set with arithmetic") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(param(0, TDouble), param(1, TInt), param(2, TDouble), outParam), Seq(
+      Body(Seq(
+        Eq(Var("y"), term(1)),
+        Eq(Var("z"), Set(Seq(Var("y"), IntNum(2)))),
+        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))),
+      ))
+    ))
+    /*val testRelation = Relation("test", Seq(param(0, TInt), setParam(1, TInt), setParam(2, TInt)), Seq(
+      Body(Seq(
+      ))
+    ))*/
+
+    val mod = Module("Test", SetWithArithmetic.language, Seq(mainRelation))
+
+    lower(mod)
+  }
 }

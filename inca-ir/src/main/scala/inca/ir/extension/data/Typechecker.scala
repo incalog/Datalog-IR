@@ -31,6 +31,7 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
           vars.zipWithIndex.foreach {
             case (v@Var(name), idx) =>
               val expectedArgTy = argTys(idx)
+              // Make sure new variables get bound
               if (lookupVar(name).isEmpty)
                 v.typed(expectedArgTy)
               assertSubtype(typecheck(v), expectedArgTy)

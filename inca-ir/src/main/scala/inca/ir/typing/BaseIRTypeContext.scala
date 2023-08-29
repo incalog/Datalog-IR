@@ -1,6 +1,6 @@
 package inca.ir.typing
 
-import inca.ir.{Module, ModuleEntry, Name, Relation, Type, Var}
+import inca.ir.{Module, ModuleEntry, Name, Param, Relation, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
@@ -44,3 +44,7 @@ trait BaseIRTypeContext extends TypeIO:
   def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
 
   def lookupVar(name: Name): Option[(Var.Target, Type)] = vars.get(name)
+
+  def isVarBound(name: Name): Boolean = vars.contains(name)
+
+  def isParam(name: Name): Boolean = vars.get(name).exists(_._1.isInstanceOf[Param])

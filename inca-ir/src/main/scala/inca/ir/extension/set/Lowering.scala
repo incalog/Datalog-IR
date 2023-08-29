@@ -81,13 +81,14 @@ package inca.ir.extension.set
 import inca.ir
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Hints, ModuleEntry, Name, NegCall, ExtensionalCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, string2name}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Hints, ModuleEntry, Name, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, string2name}
 import inca.ir.extension.set.Set
 import inca.ir.extension.disjunction
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.set.Hints.{Refunctionalize, RefunctionalizeKey}
+import inca.ir.typing.Typechecker
 import inca.util.TupleOps
 
 import scala.collection.immutable
@@ -104,10 +105,21 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   override def addedIRs: Predef.Set[BaseIR] = super.addedIRs ++ immutable.Set(disjunction.IR, block.IR, data.IR)
 
-  var setDefunRelations: Seq[Relation] = Seq()
+  var setDefunWriteRelations: Seq[Relation] = Seq()
   var setDefunType: Option[Type] = None
   var setDefunCases: Seq[CaseDefinition] = Seq()
-  var setDefunGroupRelations: Map[Type, (String, Seq[Relation])] = Map()
+
+  // We can not identify the specific relation that belongs to a variable, but we can group set relations with the same
+  // type (or subtype). We can read from this grouped relation instead and filter based on the set object.
+  //
+  // We need to take care of subtypes, because otherwise code like this will not work:
+  //    x = Set(Int(1), Int(2))
+  //    SomeRel(x: Set[Num]) :- ...
+  //    SomeRel(x)
+  //  The type of x is now Set[Num], that means setRead$Num is used, but x belongs to setRead$Int. Therefore setRead$Num
+  //  must include the case for setRead$Int.
+  var setDefunReadRelations: Map[Type, immutable.Set[Relation]] = Map()
+  var setDefunReadRelationNames: Map[Type, String] = Map()
 
   private def freshSetRelation(dependencies: Seq[Var], args: Seq[Term], outTyp: Type): Relation = gensym.scoped {
     // TODO: Prefix or let demand transformation handle it aka. depend on demand IR and insert a placeholder
@@ -141,7 +153,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   override def visitRelation(relation: Relation): Seq[Relation] = {
     val rels = super.visitRelation(relation)
 
-    val groupDefunRelations = setDefunGroupRelations.map { case (sig, (groupRelationName, relations)) =>
+    val groupDefunRelations = setDefunReadRelations.map { case (ty, relations) =>
       val setParamName = "set"
       val outParamName = "out"
       val bodies = relations.map { r =>
@@ -151,10 +163,11 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
         Body(Seq(Call(r.name, args)))
       }
       val setParam = Param(setParamName, setDefunType.get)
-      val outParams = Param(outParamName, sig)
-      Relation(groupRelationName, Seq(setParam, outParams), bodies)
+      val outParams = Param(outParamName, ty)
+      val groupRelationName = setDefunReadRelationNames(ty)
+      Relation(groupRelationName, Seq(setParam, outParams), bodies.toSeq)
     }
-    rels ++ setDefunRelations ++ groupDefunRelations
+    rels ++ setDefunWriteRelations ++ groupDefunRelations
   }
 
   override def visitParam(param: Param): Seq[Param] =
@@ -223,7 +236,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     term match
       case Var(name) if term.isTypeOf[TSet] =>
         val setTy = visitType(term.typ.get)
-        val (groupRelName, _) = setDefunGroupRelations(setTy)
+        val groupRelName = setDefunReadRelationNames(setTy)
         val outVar = gensym.fresh("return")
         Seq(block.Block(
           Seq(Call(groupRelName, Seq(Var(name), Var(outVar)))),
@@ -251,32 +264,37 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       val dependentVars = term.vars.distinct
       val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
       val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
-      setDefunRelations :+= relation
+      setDefunWriteRelations :+= relation
       val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")))
       val caseName = gensym.freshGlobal(IR.name)
       setDefunCases :+= CaseDefinition(caseName, dependentTys.map(visitType))
 
-      // we can not identify the specific relation that belongs to a variable,
-      // but we can group set relations with the same type
-
-      // TODO: this is not enough. We would need to group by subtype relation.
-      //  That is:
-      //  for ((k, _) <- setDefunGroupRelations)
-      //    if (subType(setTy, k))
-      //      setDefunGroupRelations += setTy -> (setDefunGroupRelations(setTy)._1, setDefunGroupRelations(setTy)._2 :+ relation)
-      //      setDefunGroupRelations += k -> (setDefunGroupRelations(k)._1, setDefunGroupRelations(k)._2 :+ relation)
-      //  Otherwise code like this will not work:
-      //    x = Set(Int(1), Int(2))
-      //    SomeRel(x: Set[Num]) :- ...
-      //    SomeRel(x)
-      //  The type of x is now Set[Num], that means setGroup$Num is used, but
-      //  x belongs to setGroup$Int.
-      //  Solution:
-      //   Each module should additionally include the "class" hierarchy.
-      //   Subtype(Type, Type) extends ModuleEntry ??
       val setTy = refunctionalize() { visitType(ty) }
-      val (groupRelName, groupRelations) = setDefunGroupRelations.getOrElse(setTy, (gensym.fresh("setGroupRel"), Seq()))
-      setDefunGroupRelations += setTy -> (groupRelName, groupRelations :+ relation)
+
+      // Group all set relations by their types
+      // We use these aggregated relations to read set
+      setDefunReadRelations.get(setTy) match {
+        case Some(groupRelations) =>
+          setDefunReadRelations += (setTy -> (groupRelations + relation))
+        case None =>
+          setDefunReadRelationNames += (setTy -> gensym.freshGlobal(s"setRead_$setTy"))
+          setDefunReadRelations += setTy -> immutable.Set(relation)
+      }
+
+      // TODO: This will break with tuples. We will need to consider the arity of the type as well
+      setDefunReadRelations = setDefunReadRelations.toSeq.flatMap { case (ty, rels) =>
+        val original = ty -> rels
+        val additional = if (ty == setTy) {
+          Seq()
+        } else if (Typechecker.subtype(ty, setTy)) {
+          Seq(setTy -> (rels + relation))
+        } else if (Typechecker.subtype(setTy, ty)) {
+          Seq(ty -> (rels + relation))
+        } else {
+          Seq()
+        }
+        original +: additional
+      }.groupBy(_._1).view.mapValues(_.flatMap(_._2).toSet).toMap
 
       val defunVar = Var(gensym.fresh("setObj"))
       Seq(block.Block(

@@ -86,22 +86,31 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case NegExtensionalCall(name, args) =>
         typecheckExtensionalCall(name, args)
       case Eq(lhs, rhs) =>
-        (lhs, rhs) match {
-          case (v@Var(name), _) =>
+        (lhs, rhs) match
+          case (Var(name1), Var(name2)) if !isVarBound(name1) && !isVarBound(name2) =>
+            error(s"Can not compare two unbound variables $name1 and $name2", atom)
+          case (Var(name), _) if !isVarBound(name) => // assign rhs to lhs
             val rhsTy = typecheck(rhs)
             // assign the expected type for unbound vars
-            if (lookupVar(name).isEmpty)
-              lhs.typed(rhsTy)
+            lhs.typed(rhsTy)
             typecheck(lhs)
-          case (_, v@Var(name)) =>
+          case (_, Var(name)) if !isVarBound(name) => // assign lhs to rhs
             val lhsTy = typecheck(lhs)
             // assign the expected type for unbound vars
-            if (lookupVar(name).isEmpty)
-              rhs.typed(lhsTy)
+            rhs.typed(lhsTy)
             typecheck(rhs)
-          case _ =>
-            assertSubtype(typecheck(lhs), typecheck(rhs))
-        }
+          case (Var(name), _) if isParam(name) => // return rhs
+            val expected = typecheck(lhs)
+            assertSubtype(typecheck(rhs), expected, atom)
+          case (_, Var(name)) if isParam(name) => // return lhs
+            val expected = typecheck(rhs)
+            assertSubtype(typecheck(lhs), expected, atom)
+          case _ => // Comparison
+            val lhsTy = typecheck(lhs)
+            val rhsTy = typecheck(rhs)
+            if (!subtype(lhsTy, rhsTy) && !subtype(rhsTy, lhsTy)) {
+              warn("Comparing unrelated types will always fail!", atom)
+            }
       case Neq(lhs, rhs) =>
         val lhsTy = typecheck(lhs)
         val rhsTy = typecheck(rhs)

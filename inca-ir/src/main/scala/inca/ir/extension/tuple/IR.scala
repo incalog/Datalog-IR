@@ -1,6 +1,7 @@
 package inca.ir.extension.tuple
 
 import inca.ir.*
+import inca.util.TupleOps
 
 object IR extends IR { }
 trait IR extends BaseIR:

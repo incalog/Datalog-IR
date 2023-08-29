@@ -15,6 +15,8 @@ trait Visitor extends BaseIRVisitor:
     case Sub(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Sub.apply)
     case Mul(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Mul.apply)
     case Div(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Div.apply)
+    case IntNum(value) => Seq(IntNum(value))
+    case DoubleNum(value) => Seq(DoubleNum(value))
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type =  preserveHints(ty)(ty match

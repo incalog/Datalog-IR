@@ -72,6 +72,8 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
       val relName = relationName(dataName, name)
       val outName = Var(freshName())
       Seq(block.Block(
+        // TODO: We want to generate new data here. That is, insert a prefix or demand
+        //  placeholder.
         Seq(Call(relName, data.flatMap(visitTerm) :+ outName)),
         outName
       ))

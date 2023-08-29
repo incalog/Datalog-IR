@@ -6,10 +6,10 @@ import inca.ir.{Atom, TAny, TNothing, Term, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   override def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match
-    case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-    case (TSet(_), _) => false
-    case (_, TSet(_)) => false
-    case _ => super.subtype(ty1, ty2)
+      case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
+      case (TSet(_), _) => false
+      case (_, TSet(_)) => false
+      case _ => super.subtype(ty1, ty2)
 
   override def typecheck(atom: Atom): Unit = atom match
     case SetMember(t1, t2) => (typecheck(t1), typecheck(t2)) match
