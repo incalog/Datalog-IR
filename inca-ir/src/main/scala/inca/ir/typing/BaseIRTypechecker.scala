@@ -65,15 +65,25 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         case _ => error(s"Can not lookup module entry with name: $name", atom)
     }
 
+    def typecheckExtensionalCall(name: Name, args: Seq[Term]): Unit = {
+      args.foreach {
+        case v@Var(name) if lookupVar(name).isEmpty =>
+          warn(s"Unbound variable $name in extensional call, inferring TAny", atom)
+          TAny
+        case v => // Nothing
+      }
+      args.foreach(typecheck)
+    }
+
     atom match {
       case Call(name, args) =>
         typecheckCall(name, args)
       case NegCall(name, args) =>
         typecheckCall(name, args)
       case ExtensionalCall(name, args) =>
-        typecheckCall(name, args)
+        typecheckExtensionalCall(name, args)
       case NegExtensionalCall(name, args) =>
-        typecheckCall(name, args)
+        typecheckExtensionalCall(name, args)
       case Eq(lhs, rhs) =>
         (lhs, rhs) match {
           case (v@Var(name), _) =>
