@@ -93,7 +93,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // type scala top-level definitions
     typecheckTopLevelObject()
 
-    // TODO is that okay to do that here (was fix for unnkown typeparameters in inheritance when superclass was listed first)
+    // TODO is that okay to do that here ? (was fix for unnkown typeparameters in inheritance when superclass was listed first)
     module.classes.foreach(cls => cls.genericTypeParams.foreach(p => bindGenericParam(p.name, p, suppressError = true)))
 
     module.classes.foreach(typecheck)

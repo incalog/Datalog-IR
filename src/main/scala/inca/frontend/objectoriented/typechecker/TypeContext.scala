@@ -165,34 +165,14 @@ trait TypeContext extends TypeIO {
 
 
 
+  // TODO refactor and test whether helpful
 
-  def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
-    val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    var allFields = collect[FieldDef](clazz, f => f.name == name)
-
-    // Special case for monotone classes to satisfy the typechecker
-    if (clazz.isDefined && clazz.get.isMonotoneClass) {
-      val Some((_, resType)) = clazz.get.montoneTypes
-      val resultField = FieldDef(Seq(), None, Name("result"), resType, None, immutable = true)
-      allFields :+= (clazz.get -> resultField)
-    }
-
-    if (allFields.isEmpty) {
-      error(s"Undefined field $clsName.$name", name)
-      None
-    } else if (allFields.size > 1) {
-      val (parentClass, _) = allFields.head
-      error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
-      None
-    } else {
-      allFields.headOption
-    }
-  }
-
-
-
-// TODO refactor and test whether helpful
-  def substMethod(clazz: ClassDef, c: MethodDef): MethodDef = c match {
+  /** substitutes generic parameter occurrences (that are checked coming from expressions) in given [[ClassContent]] c
+   * with type argument given to reference to super class of given [[ClassDef]] clazz
+   *
+   * @return [[ClassContent]] of same class as given c with replaced type parameters
+   */
+  private def substGenericParamForInheritance(clazz: ClassDef, c: ClassContent): ClassContent = c match {
     case MethodDef(annos, vis, name, genericTypeParams, params, outType, body) =>
       val newOutType: Type = outType match {
         case TName(n) =>
@@ -214,8 +194,65 @@ trait TypeContext extends TypeIO {
         case _ => outType
       }
       MethodDef(annos, vis, name, genericTypeParams, params, newOutType, body)
+
+    case FieldDef(annos, vis, name, typ, body, immutable) =>
+      val newType: Type = typ match {
+        case TName(n) =>
+          val newOutTypeSeq: Seq[Option[(Type)]] = clazz.parentClassRefs.map { tName =>
+            lookupClass(tName.name) match {
+              case Some(classDef) =>
+                val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => param.name == n)
+                val index = classDef.genericTypeParams.indexOf(filtered.headOption.getOrElse(None))
+                if (index > -1)
+                  Some(tName.tyArgs(index))
+                else
+                  None
+              case _ => None
+            }
+          }
+          newOutTypeSeq.find(opt => opt.isDefined) match {
+            case Some(value) => value match {
+              case Some(value2) => value2
+              case None => typ
+            }
+            case None => typ
+          }
+        case _ => typ
+      }
+      FieldDef(annos, vis, name, newType, body, immutable)
+
     case other => other
   }
+
+
+  def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
+    val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
+    var allFields = collect[FieldDef](clazz, f => f.name == name)
+
+    // Special case for monotone classes to satisfy the typechecker
+    if (clazz.isDefined && clazz.get.isMonotoneClass) {
+      val Some((_, resType)) = clazz.get.montoneTypes
+      val resultField = FieldDef(Seq(), None, Name("result"), resType, None, immutable = true)
+      allFields :+= (clazz.get -> resultField)
+    }
+
+    if (allFields.isEmpty) {
+      error(s"Undefined field $clsName.$name", name)
+      None
+    } else if (allFields.size > 1) {
+      val (parentClass, _) = allFields.head
+      error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
+      None
+    } else {
+      allFields.headOption match {
+        case Some((classDef: ClassDef, fieldDef: FieldDef)) =>
+          Some(classDef,substGenericParamForInheritance(clazz.getOrElse(classDef),fieldDef).asInstanceOf[FieldDef])
+        case None => None
+      }
+    }
+  }
+
+
 
   def lookupMethodCandidates(clazz: Option[ClassDef], args: Seq[Type], name: Name): Seq[(ClassDef, MethodDef)] = {
     val collected = collect[MethodDef](clazz, m => {
@@ -223,8 +260,8 @@ trait TypeContext extends TypeIO {
     })
 
     // TODO refactor and test whether helpful
-    val substituted: Seq[(ClassDef, MethodDef)] = collected.map(tup => (tup._1,substMethod(clazz.getOrElse(tup._1),tup._2)))
-    //val argParams: Seq[Type, ClassDef, MethodDef] = args.zip(substituted)
+    val substituted: Seq[(ClassDef, MethodDef)] = collected.map(tup => (tup._1,substGenericParamForInheritance(clazz.getOrElse(tup._1),tup._2).asInstanceOf[MethodDef]))
+    // val argParams: Seq[(Type, (ClassDef, MethodDef))] = args.zip(substituted)
 
 
     val zipped: Seq[((ClassDef,MethodDef), Seq[(Type,Param)])] = substituted.indices.map(i =>
@@ -239,7 +276,7 @@ trait TypeContext extends TypeIO {
 //    args.zip(m.params).forall
   }
 
-  // TODO use genric Types in searching method
+  // TODO use generic Types in searching method
   def lookupMethod(clazz: Option[ClassDef], args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
     val allMethods = lookupMethodCandidates(clazz, args, name)

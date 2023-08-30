@@ -16,7 +16,7 @@ class A[T] {
     def main(): Boolean = {
         val a1: A[Int] = new A[Int](1)
         val b1: B[Int,Boolean] = new B[Int,Boolean](0,true)
-        return (b1.get() == 0) && b1.b
+        return (b1.get() == 0) && b1.b && (b1.a == 0)
     }
 }
 
