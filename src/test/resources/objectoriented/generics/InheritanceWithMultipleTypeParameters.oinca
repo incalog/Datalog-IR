@@ -1,4 +1,5 @@
-module WithInheritance
+module InheritanceWithMultipleTypeParameters
+
 
 class A[T] {
     var a: T
@@ -14,19 +15,17 @@ class A[T] {
     @main
     def main(): Boolean = {
         val a1: A[Int] = new A[Int](1)
-        val b1: B[Int] = new B[Int](0,1)
-        return (b1.get() == 0) && (b1.b == 1)
+        val b1: B[Int] = new B[Int,Boolean](0,true)
+        return (b1.get() == 0) && b1.b
     }
 }
 
 
-class B[T] extends A[T] {
-    var b: T
+class B[T1, T2] extends A[T1] {
+    var b: T2
 
-    def this(value: T, value2: T) = {
+    def this(value: T1, value2: T2) = {
         super(value)
         this.b = value2
     }
 }
-
-

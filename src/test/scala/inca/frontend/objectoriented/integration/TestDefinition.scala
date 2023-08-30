@@ -399,6 +399,11 @@ object TestDefinition {
     TestDefinition("LinkedList", "LinkedList", "main", Seq(), Seq(2))
   }
 
+  def LinkedList2: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("SimpleGenericClass", "A", "main", Seq(), 2)
+  }
+
   def multipleGenericTypes: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("MultipleGenericTypes", "A", "main", Seq(), true)
@@ -407,6 +412,16 @@ object TestDefinition {
   def GenericsWithInheritance: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("WithInheritance", "A", "main", Seq(), true)
+  }
+
+  def InheritanceWithFixedTypeParameter: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InheritanceWithFixedTypeParameter", "A", "main", Seq(), true)
+  }
+
+  def InheritanceWithMultipleTypeParameters: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InheritanceWithMultipleTypeParameters", "A", "main", Seq(), true)
   }
 
   def CustomClassAsType: TestDefinition[Any] = {
@@ -423,6 +438,8 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("GenericParamDuplicate", "A", "main", Seq(), None)
   }
+
+
 
 
 

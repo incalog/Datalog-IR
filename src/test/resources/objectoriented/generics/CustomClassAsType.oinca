@@ -13,9 +13,9 @@ class A[T] {
 
     @main
     def main(): Boolean = {
-        val A1: A[B[Int]] = new A[B[Int]](new B[Int](1))
-        val C1: C[Int] = new C[Int](new B[Int](0))
-        return (A1.a.b == 1) && (C1.c.b == 0)
+        val a1: A[B[Int]] = new A[B[Int]](new B[Int](1))
+        val c1: C[Int] = new C[Int](new B[Int](0))
+        return (a1.a.b == 1) && (c1.c.b == 0)
     }
 }
 

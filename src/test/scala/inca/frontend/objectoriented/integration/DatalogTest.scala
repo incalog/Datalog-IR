@@ -234,8 +234,12 @@ class DatalogTest extends AnyFunSuite {
     performTests(instancesWithDifferentTypes)
   }
 
-  test("Generic Linked List") {
+  test("Generic Linked List (nodes use same type parameter)") {
     performTests(linkedList)
+  }
+
+  test("Generic Linked List") {
+    performTests(LinkedList2)
   }
 
   test("Class with Multiple Generic Types") {
@@ -245,6 +249,13 @@ class DatalogTest extends AnyFunSuite {
   test("Generics with Inheritance") {
     performTests(GenericsWithInheritance)
   }
+  test("Inheritance With Fixed Type Parameter") {
+    performTests(InheritanceWithFixedTypeParameter)
+  }
+  test("Inheritance With Multiple Type Parameters") {
+    performTests(InheritanceWithMultipleTypeParameters)
+  }
+
 
   test("Custom Class as Type") {
     performTests(CustomClassAsType)

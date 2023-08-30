@@ -1,3 +1,5 @@
+module LinkedList2
+
 
 class Node[T2] {
     var value: T2
