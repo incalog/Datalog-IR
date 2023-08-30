@@ -32,7 +32,7 @@ trait TypeContext extends TypeIO {
   }
 
   def subtype(ty1: Type, ty2: Type): Boolean = {
-    println(ty1,ty2)
+    //println(ty1,ty2)
     (convertTName(ty1), convertTName(ty2)) match {
     case (_, TAny) => true
     case (TNull, TNull) => true
@@ -144,6 +144,7 @@ trait TypeContext extends TypeIO {
   }
 
   private def collect[C <: ClassContent : ClassTag](clazz: Option[ClassDef], f: C => Boolean): Seq[(ClassDef, C)] = {
+
     if (clazz.isEmpty) {
       val clsName = implicitly[ClassTag[C]].runtimeClass.getSimpleName
       error(s"Undefined class in $clsName lookup!")
@@ -153,10 +154,17 @@ trait TypeContext extends TypeIO {
         case c: C if f(c) => Some((clazz.get, c))
         case _ => None
       }
-      val parentContent = clazz.get.parentClassRefs.flatMap(ref => collect(ref.classDef, f))
+      val parentContent: Seq[(ClassDef, C)] = clazz.get.parentClassRefs.flatMap { ref =>
+        val collected = collect(ref.classDef, f)
+        //println("collected: ", collected)
+        collected
+      }
       parentContent ++ content
     }
   }
+
+
+
 
   def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
@@ -181,10 +189,54 @@ trait TypeContext extends TypeIO {
     }
   }
 
+
+
+// TODO refactor and test whether helpful
+  def substMethod(clazz: ClassDef, c: MethodDef): MethodDef = c match {
+    case MethodDef(annos, vis, name, genericTypeParams, params, outType, body) =>
+      val newOutType: Type = outType match {
+        case TName(n) =>
+          val newOutTypeSeq: Seq[Option[(Type)]] = clazz.parentClassRefs.map { tName =>
+            lookupClass(tName.name) match {
+              case Some(classDef) =>
+                val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => param.name == n)
+                Some(tName.tyArgs(classDef.genericTypeParams.indexOf(filtered.headOption.getOrElse(None))))
+              case _ => None
+            }
+          }
+          newOutTypeSeq.find(opt => opt.isDefined) match {
+            case Some(value) => value match {
+              case Some(value2) => value2
+              case None => outType
+            }
+            case None => outType
+          }
+        case _ => outType
+      }
+      MethodDef(annos, vis, name, genericTypeParams, params, newOutType, body)
+    case other => other
+  }
+
   def lookupMethodCandidates(clazz: Option[ClassDef], args: Seq[Type], name: Name): Seq[(ClassDef, MethodDef)] = {
-    collect[MethodDef](clazz, m => {
-      m.name == name && m.params.size == args.size && args.zip(m.params).forall { case (t1, p) => subtype(t1, p.typ) }
+    val collected = collect[MethodDef](clazz, m => {
+      m.name == name && m.params.size == args.size
     })
+
+    // TODO refactor and test whether helpful
+    val substituted: Seq[(ClassDef, MethodDef)] = collected.map(tup => (tup._1,substMethod(clazz.getOrElse(tup._1),tup._2)))
+    //val argParams: Seq[Type, ClassDef, MethodDef] = args.zip(substituted)
+
+
+    val zipped: Seq[((ClassDef,MethodDef), Seq[(Type,Param)])] = substituted.indices.map(i =>
+     (substituted(i), args.zip(substituted(i)._2.params))
+    )
+    zipped.filter{ tup =>
+      tup._2.forall { case (arg, param) => subtype(arg, param.typ) }
+    }.map(tup => tup._1)
+
+    //substituted.zip(argParams).filter{case (sub,argParam) => subtype(argParam, p.typ)}.map(tup => tup._1)
+    //collected.map(classWithMethod => args.zip(substMethod(classWithMethod._2).params)).filter{ case (t1, p) => subtype(t1, p.typ) }
+//    args.zip(m.params).forall
   }
 
   // TODO use genric Types in searching method
@@ -197,6 +249,7 @@ trait TypeContext extends TypeIO {
       None
     } else {
       // always choose the method lowest in the class hierarchy
+      //println(allMethods.lastOption)
       allMethods.lastOption
     }
   }
@@ -204,6 +257,8 @@ trait TypeContext extends TypeIO {
   def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
     collect[ConstructorDef](clazz, c => {
       c.params.size == args.size && args.zip(c.params).forall { case (t1, p) =>
+
+        //println(p.typ)
 
         val pTyp: Type = clazz match {
           case Some(classDef) => p.typ match {
@@ -217,8 +272,11 @@ trait TypeContext extends TypeIO {
               }
             case ty => ty
           }
-          case None => TAny // error already in collect TODO ???
+          case None =>
+            TAny // error already in collect TODO ???
         }
+
+        //println(pTyp)
 
         subtype(t1, pTyp) }
     })

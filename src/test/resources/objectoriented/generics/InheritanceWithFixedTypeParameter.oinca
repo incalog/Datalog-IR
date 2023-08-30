@@ -1,14 +1,6 @@
 module InheritanceWithFixedTypeParameter
 
-class C[T2] extends A[Boolean] {
-    var c: T2
 
-    def this(value: Boolean, value2: T2) = {
-        super(value)
-        this.c = value2
-    }
-
-}
 
 class A[T] {
     var a: T
@@ -30,7 +22,15 @@ class A[T] {
 }
 
 
+class C[T2] extends A[Boolean] {
+    var c: T2
 
+    def this(value: Boolean, value2: T2) = {
+        super(value)
+        this.c = value2
+    }
+
+}
 
 
 

@@ -93,12 +93,19 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // type scala top-level definitions
     typecheckTopLevelObject()
 
+    // TODO is that okay to do that here (was fix for unnkown typeparameters in inheritance when superclass was listed first)
+    module.classes.foreach(cls => cls.genericTypeParams.foreach(p => bindGenericParam(p.name, p, suppressError = true)))
+
     module.classes.foreach(typecheck)
   }
 
   var uninitializedFields: Map[Name, FieldDef] = Map()
 
   def typecheck(classDef: ClassDef): Unit = {
+    println("classDef", classDef)
+    classDef.parentClassRefs.foreach(superClass =>
+      println("superClass tyArgs", superClass, superClass.tyArgs)
+    )
     classDef.contentMap.foreach {
       case (_, _: Seq[ConstructorDef]) => // nothing
       case (_, cs) if cs.size > 1 =>
@@ -154,6 +161,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = {
+    println("typecheck(methodDef,...) classDef: ", classDef)
     scopedTypeContext {
       // get all overridden methods and assign them the same signature
       val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
@@ -365,7 +373,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            lookupConstructor(parentRef.get.classDef, parentRef.get.tyArgs, args.map(typecheck), expression) match {       // TODO tyArgs
+            lookupConstructor(parentRef.get.classDef, parentRef.get.tyArgs, args.map(typecheck), expression) match {
               case Some((classDef, constructorDef)) =>
                 resolveTarget(superExpr)((classDef, constructorDef))
                 TUnit
@@ -404,7 +412,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
 
-          println("argTypes: " + argTypes)
+          //println("argTypes: " + argTypes)
 
 
           lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {

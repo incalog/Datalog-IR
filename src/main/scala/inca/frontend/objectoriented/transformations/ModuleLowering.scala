@@ -57,7 +57,12 @@ trait ModuleLowering {
   private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
     val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
     val newContent = content.map(c => transContent(c, classDef))
-    ClassDef(annos, vis, name, typeParams, parents.map(c => TName(c.name)), newContent)
+    val parentClasses = parents.map { c =>
+      val tname = TName(c.name)
+      tname.tyArgs = c.tyArgs
+      tname
+    }
+    ClassDef(annos, vis, name, typeParams, parentClasses, newContent)
   }
 
   private[transformations] def transParamInternal(param: Param): Param =
