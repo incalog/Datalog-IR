@@ -11,11 +11,15 @@ class A[T] {
         return this.a
     }
 
+    def get2(value: T): T = {
+        return value
+    }
+
     @main
     def main(): Boolean = {
         val a1: A[Int] = new A[Int](1)
         val b1: B[Int] = new B[Int](0,1)
-        return (b1.get() == 0) && (b1.b == 1) && (b1.a == 0)
+        return (b1.get() == 0) && (b1.b == 1) && (b1.a == 0) // && (b1.get2(true) == true) // should not work but does
     }
 }
 

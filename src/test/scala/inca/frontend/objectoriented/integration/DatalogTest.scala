@@ -255,6 +255,9 @@ class DatalogTest extends AnyFunSuite {
   test("Inheritance With Multiple Type Parameters") {
     performTests(InheritanceWithMultipleTypeParameters)
   }
+  test("Inheritance With Multiple Classes") {
+    performTests(InheritanceWithMultipleClasses)
+  }
 
 
   test("Custom Class as Type") {

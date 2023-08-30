@@ -424,6 +424,11 @@ object TestDefinition {
     TestDefinition("InheritanceWithMultipleTypeParameters", "A", "main", Seq(), true)
   }
 
+  def InheritanceWithMultipleClasses: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InheritanceWithMultipleClasses", "A", "main", Seq(), true)
+  }
+
   def CustomClassAsType: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("CustomClassAsType", "A", "main", Seq(), true)
