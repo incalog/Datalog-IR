@@ -86,7 +86,10 @@ object TScalaAny extends TScala(Scala(t"Any"))
 
 case class TClass(ref: TName) extends Type {
 
-  override def prettyprint: String = "TClass " + ref.toString
+  override def prettyprint: String = {
+    val tyS = if (tyArgs.nonEmpty) tyArgs.mkString("[", ",", "]") else ""
+    "TClass " + ref.toString + tyS
+  }
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.objectoriented.Identity" //t"truechange.URI"
   var tyParams: Seq[Type] = Seq()
@@ -102,7 +105,10 @@ case class TSet(ty: Type) extends Type {
 
 
 case class TName(name: Name) extends Type with Resolvable[TName.Target] {
-  override def prettyprint: Signature = "TName: " + name.toString
+  override def prettyprint: Signature = {
+    val tyS = if (tyArgs.nonEmpty) tyArgs.mkString("[", ",", "]") else ""
+    "TName: " + name.toString + tyS
+  }
   override def flatten: Seq[Type] = Seq()
   override def asScala: meta.Type = t"Any"
 

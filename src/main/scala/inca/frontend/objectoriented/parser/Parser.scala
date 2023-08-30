@@ -602,6 +602,7 @@ trait Parser {
           case c: TName =>
             (None, Some(c), None)
       }.unzip3
+      println("parentClassRefs ", parentClassRefs)
       ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams.getOrElse(Seq()), parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }

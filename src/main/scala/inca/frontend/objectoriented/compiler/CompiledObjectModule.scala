@@ -29,15 +29,17 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
         println(new AbstractSyntaxTree(fun).toGraphViz)
       }
     }
-
+    // TODO generic type arguments of super class lost
     val monotoneModule = InsertBuiltInMonotones.transformModule(fun)
+    println("monotoneModule ", monotoneModule)
     AddMissingDefinitions.transformModule(monotoneModule)
   }
 
   lazy val typed: Module = {
     if (CompilerFlags.DEBUGMODE) {
+      val c = completed
       println("\nTyped Module")
-      println(completed)
+      println(c)
 
       if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
