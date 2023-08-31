@@ -282,6 +282,8 @@ class DatalogTest extends AnyFunSuite {
     )
   }
 
-
+  test("Nested Generics") {
+    performTests(NestedGenerics)
+  }
 
 }
