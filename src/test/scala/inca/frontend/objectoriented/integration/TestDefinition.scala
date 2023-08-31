@@ -444,6 +444,14 @@ object TestDefinition {
     TestDefinition("GenericParamDuplicate", "A", "main", Seq(), None)
   }
 
+  def NestedGenerics: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("NestedGenerics", "A", "main", Seq(), true)
+  }
+
+
+
+
 
 
 
