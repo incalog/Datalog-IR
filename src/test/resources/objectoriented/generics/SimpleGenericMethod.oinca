@@ -23,6 +23,7 @@ class A[T] {
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
         val res: String = A1.get[String,Int]("Hello World")
-        return (A1.a == 1) && (res == "Hello World")
+        val res2: Int = A1.get2[Int](1)
+        return ((A1.a == 1) && (res == "Hello World")) && (res2 == 1)
     }
 }
