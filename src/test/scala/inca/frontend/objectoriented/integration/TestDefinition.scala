@@ -449,12 +449,14 @@ object TestDefinition {
     TestDefinition("NestedGenerics", "A", "main", Seq(), true)
   }
 
+  def NestedGenericsInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("NestedGenericsInheritance", "A", "main", Seq(), true)
+  }
 
-
-
-
-
-
-
+  def GenericMethodInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("GenericMethodInheritance", "A", "main", Seq(), true)
+  }
 
 }

@@ -286,4 +286,12 @@ class DatalogTest extends AnyFunSuite {
     performTests(NestedGenerics)
   }
 
+  test("Nested Generics With Inheritance") {
+    performTests(NestedGenericsInheritance)
+  }
+
+  test("Generic Method Inheritance") {
+    performTests(GenericMethodInheritance)
+  }
+
 }

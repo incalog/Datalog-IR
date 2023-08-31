@@ -1,4 +1,4 @@
-module NestedGenerics
+module NestedGenericsInheritance
 
 class A[T] {
     var a: T
@@ -13,7 +13,8 @@ class A[T] {
     def main(): Boolean = {
       val a1: A[Int] = new A[Int](1)
       val b1: B[A[Int]] = new B[A[Int]](a1)
-      return b1.b.a == 1
+      val c1: C[A[Int]] = new C[A[Int]](a1)
+      return c1.get().get() == 1
     }
 }
 
@@ -24,5 +25,12 @@ class B[T] {
     }
     def get(): T = {
         return this.b
+    }
+}
+
+class C[T] extends B[T] {
+    var c: T
+    def this(value: T) = {
+        this.c = value
     }
 }
