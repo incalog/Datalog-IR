@@ -284,6 +284,7 @@ class DatalogTest extends AnyFunSuite {
     //)
   }
 
+
   test("Generic Param Duplicate"){
     assertThrows[Exception](  // TODO
       performTests(GenericParamDuplicate)
@@ -302,4 +303,31 @@ class DatalogTest extends AnyFunSuite {
     performTests(GenericMethodInheritance)
   }
 
+  test("Inheritance Method with Arguments") {
+    performTests(InheritanceMethodWithArgument)
+  }
+
+  test("Invalid Addition in Method With Argument") {
+    performTests(InvalidAdditionGenericParam)
+  }
+
+  test("Generic Wrong Variable Type Annotation") {
+    performTests(GenericWrongTypeAnnotation)
+  }
+
+  test("Uses own Class as Type Annotation") {
+    performTests(InvalidGenericMethodType)
+  }
+
+  test("Uses own Class as Type Annotation with more Types") {
+    performTests(InvalidGenericMethodType2)
+  }
+
+  test("Generic Method OutType is invalid") {
+    performTests(InvalidGenericMethodOutType)
+  }
+
+  test("Generic Method shadows generic Class type") {
+    performTests(GenericInnerClassShadowing)
+  }
 }

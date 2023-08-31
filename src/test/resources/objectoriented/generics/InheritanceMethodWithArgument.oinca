@@ -1,0 +1,28 @@
+module InheritanceMethodWithArgument
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(value: T, value1: Int): T = {
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val B1: B[Int] = new B[Int](1)
+        val res: Int = B1.get(1, 1)
+        return ((B1.b == 1) && (res == 1))
+    }
+}
+
+class B[T] extends A[T] {
+    val b: T
+
+    def this(value: T) = {
+        this.b = value
+    }
+}

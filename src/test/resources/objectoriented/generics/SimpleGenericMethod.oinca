@@ -15,10 +15,6 @@ class A[T] {
         return value
     }
 
-    /*def get2[T2, A](value: T2): A = {     // should not work
-        return value
-    }*/
-
     @main
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)

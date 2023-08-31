@@ -1,0 +1,21 @@
+module GenericInnerClassShadowing
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T](value: T): T = {     // should not work (T Shadows Generic Class Type T)
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: Int = A1.get[Int](1)
+        val res2: String = A1.get[String]("Hello World!")
+        return (res == 1) && (res2 == "Hello World!")
+    }
+}

@@ -1,4 +1,4 @@
-module SimpleGenericClass
+module GenericVarsWrongTypeAnnotation
 
 class A[T] {
     val a: T
@@ -16,7 +16,7 @@ class A[T] {
         var a1: A[Int]
         a1 = new A[Int](1)
         val res: Int = a1.get()
-        val res2: Int = a1.a
+        val res2: String = a1.a   // should not work (Wrong Type Annotation)
         return (res2 == 1) && (res == 1)
     }
 }

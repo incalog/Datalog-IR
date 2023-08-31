@@ -464,6 +464,39 @@ object TestDefinition {
     TestDefinition("GenericMethodInheritance", "A", "main", Seq(), true)
   }
 
+  def InheritanceMethodWithArgument: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InheritanceMethodWithArgument", "A", "main", Seq(), true)
+  }
 
+  def InvalidAdditionGenericParam: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InvalidAdditionInMethodWithGenericParam", "A", "main", Seq(), true)
+  }
+
+  def GenericWrongTypeAnnotation: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("GenericVarsWrongTypeAnnotation", "A", "main", Seq(), true)
+  }
+
+  def InvalidGenericMethodType: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InvalidGenericMethodType", "A", "main", Seq(), true)
+  }
+
+  def InvalidGenericMethodType2: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InvalidGenericMethodType2", "A", "main", Seq(), true)
+  }
+
+  def InvalidGenericMethodOutType: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("InvalidGenericMethodOutType", "A", "main", Seq(), true)
+  }
+
+  def GenericInnerClassShadowing: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("GenericInnerClassShadowing", "A", "main", Seq(), true)
+  }
 
 }
