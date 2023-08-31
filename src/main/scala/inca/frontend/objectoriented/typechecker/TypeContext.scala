@@ -7,17 +7,12 @@ import scala.collection.{AbstractSet, SortedSet, mutable}
 import scala.collection.immutable.MultiDict
 import scala.reflect.ClassTag
 
-/* TODO
-    Methode zum registrieren von Typparametern (ParamDefs)
-    Lookup (auf ParamTypes, zurückgeben ParamDef)
-    Hilfsfunktionen: subtype
- */
 
 trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
-  private var genericParams: Map[Name, GenericParamDef] = Map()
+  private var genericParams: Map[(Name,ClassDef),GenericParamDef] = Map()   // maps name of generic Param and the Class that declares it to the GenericParamDef
 
   def scopedTypeContext[T](f: => T): T = {
     val v = vars
@@ -31,7 +26,7 @@ trait TypeContext extends TypeIO {
     t
   }
 
-  def subtype(ty1: Type, ty2: Type): Boolean = {
+  def subtype(ty1: Type, ty2: Type, classDefOpt: Option[ClassDef] = None): Boolean = {
     //println(ty1,ty2)
     (convertTName(ty1), convertTName(ty2)) match {
     case (_, TAny) => true
@@ -45,9 +40,11 @@ trait TypeContext extends TypeIO {
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-    case (TName(n1), TName(n2)) if (lookupGenericParam(n1, suppressError = true).isDefined) => n1 == n2
-//    case (TName(n1), TName(n2)) if (lookupClass(n1, suppressError = true).isDefined) => n1 == n2 // TODO ???
-//    case (TClass(tname: TName), TName(n)) => tname.name == n // TODO ???
+    case (TName(n1), TName(n2)) if (classDefOpt.isDefined) =>
+      if (lookupGenericParam(n1, classDefOpt.get, suppressError = true).isDefined)
+        n1 == n2
+      else
+        false
     case (TNull, TName(_)) => true
     case _ => false
   }
@@ -368,15 +365,15 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupGenericParam(name: Name, suppressError: Boolean = false): Option[GenericParamDef] = genericParams.get(name) match {
+  def lookupGenericParam(paramName: Name, classDef: ClassDef, suppressError: Boolean = false): Option[GenericParamDef] = genericParams.get((paramName,classDef)) match {
     case Some(entry) => Some(entry)
     case None =>
       if (!suppressError)
-        error(s"Unbound generic parameter $name", name)
+        error(s"Unbound generic parameter $paramName", paramName)
       None
   }
 
-  def bindGenericParam(name: Name, typ: GenericParamDef, suppressError: Boolean = false): Unit = {
+  def bindGenericParam(name: Name, genericParam: GenericParamDef, classDef: ClassDef, suppressError: Boolean = false): Unit = {
     val shadowedClass = lookupClass(name, suppressError = true) match {
       case cls@Some(_) =>
         if (!suppressError)
@@ -386,12 +383,12 @@ trait TypeContext extends TypeIO {
         None
     }
     if (shadowedClass.isEmpty) {
-      genericParams.get(name) match {
+      genericParams.get((name,classDef)) match {
         case Some(value) =>
           if (!suppressError)
             error(s"Generic parameter shadows previously defined parameter.", name)
         case None =>
-          genericParams += name -> typ
+          genericParams += (name,classDef) -> genericParam
       }
     }
   }
