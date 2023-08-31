@@ -171,13 +171,13 @@ trait TypeContext extends TypeIO {
       val newOutTypeSeq: Seq[Option[Type]] = clazz.parentClassRefs.map { tName =>
         lookupClass(tName.name) match {
           case Some(classDef) =>
-            val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => param.name == n)
+            val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => (param.name == n) && !clazz.genericTypeParams.contains(param))
             val index = classDef.genericTypeParams.indexOf(filtered.headOption.getOrElse(None))
             if (index > -1)
               Some(tName.tyArgs(index))
             else {
-              //Some(substGenericParam(classDef,ty,Some(clazz)))
-              None
+              Some(substGenericParam(classDef,ty,Some(clazz)))
+              // None
             }
           case _ => None
         }
@@ -283,13 +283,19 @@ trait TypeContext extends TypeIO {
   }
 
   def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
-    collect[ConstructorDef](clazz, c => {
-      c.params.size == args.size && args.zip(c.params).forall { case (t1, p) =>
+    val collected = collect[ConstructorDef](clazz, c => {
+      c.params.size == args.size
+    })
 
-        //println(p.typ)
 
+    // TODO refactor and test whether helpful
+    val substituted: Seq[(ClassDef, ConstructorDef)] = collected.map(tup => (tup._1, substGenericParamForInheritance(clazz.getOrElse(tup._1), tup._2).asInstanceOf[ConstructorDef]))
+    val substituted2: Seq[(ClassDef, ConstructorDef)] = substituted.map { tup =>
+      val ConstructorDef(annos,vis,params,body) = tup._2
+      val newParams = params.map{ p =>
         val pTyp: Type = clazz match {
           case Some(classDef) => p.typ match {
+
             case tname@TName(n) =>
               val filtered = classDef.genericTypeParams.filter(param => param.name == n)
               filtered.headOption match {
@@ -300,14 +306,47 @@ trait TypeContext extends TypeIO {
               }
             case ty => ty
           }
+
           case None =>
             TAny // error already in collect TODO ???
         }
+        Param(p.name, pTyp)
+      }
+      (tup._1,ConstructorDef(annos,vis,newParams,body))
 
-        //println(pTyp)
+    }
 
-        subtype(t1, pTyp) }
-    })
+//    val newArgs = args.map{arg =>
+//      clazz match {
+//        case Some(classDef) => arg match {
+//
+//          case tname@TName(n) =>
+//            val filtered = classDef.genericTypeParams.filter(param => param.name == n)
+//            filtered.headOption match {
+//              case Some(param) =>
+//                val index = classDef.genericTypeParams.indexOf(param)
+//                tyArgs.lift(index).getOrElse(tname)
+//              case None => tname
+//            }
+//          case ty => ty
+//        }
+//
+//        case None =>
+//          TAny // error already in collect TODO ???
+//      }
+//    }
+
+    val zipped: Seq[((ClassDef, ConstructorDef), Seq[(Type, Param)])] = substituted2.indices.map(i =>
+      (substituted2(i), args.zip(substituted2(i)._2.params))
+    )
+    zipped.filter { tup =>
+      tup._2.forall { case (arg, param) => subtype(arg, param.typ) }
+    }.map(tup => tup._1)
+
+    //substituted.zip(argParams).filter{case (sub,argParam) => subtype(argParam, p.typ)}.map(tup => tup._1)
+    //collected.map(classWithMethod => args.zip(substMethod(classWithMethod._2).params)).filter{ case (t1, p) => subtype(t1, p.typ) }
+    //    args.zip(m.params).forall
+
   }
 
   def lookupConstructor(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {

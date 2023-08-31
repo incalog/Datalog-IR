@@ -102,10 +102,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   var uninitializedFields: Map[Name, FieldDef] = Map()
 
   def typecheck(classDef: ClassDef): Unit = {
-    println("classDef", classDef)
-    classDef.parentClassRefs.foreach(superClass =>
-      println("superClass tyArgs", superClass, superClass.tyArgs)
-    )
+    //println("classDef", classDef)
+//    classDef.parentClassRefs.foreach(superClass =>
+//      println("superClass tyArgs", superClass, superClass.tyArgs)
+//    )
     classDef.contentMap.foreach {
       case (_, _: Seq[ConstructorDef]) => // nothing
       case (_, cs) if cs.size > 1 =>
@@ -161,7 +161,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = {
-    println("typecheck(methodDef,...) classDef: ", classDef)
+    // println("typecheck(methodDef,...) classDef: ", classDef)
     scopedTypeContext {
       // get all overridden methods and assign them the same signature
       val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
