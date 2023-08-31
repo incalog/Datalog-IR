@@ -439,6 +439,11 @@ object TestDefinition {
     TestDefinition("UnknownTypeParameter", "A", "main", Seq(), None)
   }
 
+  def UnknownTypeParameterScoping: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics")
+    TestDefinition("UnknownTypeParamScoping", "A", "main", Seq(), None)
+  }
+
   def GenericParamDuplicate: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("GenericParamDuplicate", "A", "main", Seq(), None)
@@ -458,5 +463,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("generics")
     TestDefinition("GenericMethodInheritance", "A", "main", Seq(), true)
   }
+
+
 
 }

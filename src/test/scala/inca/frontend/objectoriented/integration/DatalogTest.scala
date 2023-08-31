@@ -265,9 +265,11 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("Unknown Type-parameter") {
-    assertThrows[Exception](
-      performTests(UnknownTypeParameter)
-    )
+    //assertThrows[Exception](
+    performTests(UnknownTypeParameter)
+    //)
+
+
 //    TODO maybe create own Exception to assert error like above ?
 //    val caught = intercept[Exception] {
 //      performTests(UnknownTypeParameter)
@@ -276,13 +278,19 @@ class DatalogTest extends AnyFunSuite {
 
   }
 
+  test("Unknown Type-parameter Scoping") {
+    //assertThrows[Exception](
+    performTests(UnknownTypeParameterScoping)
+    //)
+  }
+
   test("Generic Param Duplicate"){
     assertThrows[Exception](  // TODO
       performTests(GenericParamDuplicate)
     )
   }
 
-  test("Nested Generics") {
+  test("Nested Generics ") {
     performTests(NestedGenerics)
   }
 

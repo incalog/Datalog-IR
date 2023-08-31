@@ -1,4 +1,4 @@
-module UnknownTypeParameter
+module UnknownTypeParamScoping
 
 class A[T] {
     val a: T2   // should throw error
@@ -14,7 +14,20 @@ class A[T] {
     @main
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
+        val B1: B[Int] = new B[Int](2)
         val res: Int = A1.get()
         return res == 1
+    }
+}
+
+class B[T2] {
+    val b: T2
+
+    def this(value: T2) = {
+        this.b = value
+    }
+
+    def get(): T2 = {
+        return this.b
     }
 }
