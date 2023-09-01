@@ -160,10 +160,10 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  // TODO find generic types of super class of super class
+
   // TODO maybe include subst of current class` typeArgs here or in a separate subst method (possible?)
   //  so that it can be used e.g. for MethodCallExpr
-  def substGenericParam(clazz: ClassDef, ty: Type, prevClazz: Option[ClassDef] = None): Type = ty match {
+  def substGenericParam(clazz: ClassDef, ty: Type/*, prevClass: Option[ClassDef] = None*/): Type = ty match {
     case TName(n) =>
       val newOutTypeSeq: Seq[Option[Type]] = clazz.parentClassRefs.map { tName =>
         lookupClass(tName.name) match {
@@ -173,7 +173,7 @@ trait TypeContext extends TypeIO {
             if (index > -1)
               Some(tName.tyArgs(index))
             else {
-              Some(substGenericParam(classDef,ty,Some(clazz)))
+              Some(substGenericParam(classDef,ty/*,Some(clazz)*/))  // find generic types of super class of super class TODO does it work? probably not...
               // None
             }
           case _ => None
@@ -188,6 +188,43 @@ trait TypeContext extends TypeIO {
       }
     case _ => ty
   }
+
+  def substGenericParam2(clazz: ClassDef, ty: TName, superClass: Option[ClassDef] = None): Type = {
+    val hasSuperClass: Boolean = clazz.parentClassRefs.nonEmpty
+
+
+
+    ty match {
+    case TName(n) =>
+      val newOutTypeSeq: Seq[Option[Type]] = clazz.parentClassRefs.map { tName =>
+        lookupClass(tName.name) match {
+          case Some(classDef) =>
+            val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => (param.name == n) && !clazz.genericTypeParams.contains(param))
+            val index = classDef.genericTypeParams.indexOf(filtered.headOption.getOrElse(None))
+            if (index > -1)
+              Some(tName.tyArgs(index))
+            else {
+              Some(substGenericParam(classDef, ty /*,Some(clazz)*/)) // find generic types of super class of super class TODO does it work? probably not...
+              // None
+            }
+          case _ => None
+        }
+      }
+      newOutTypeSeq.find(opt => opt.isDefined) match {
+        case Some(value) => value match {
+          case Some(value2) => value2
+          case None => ty
+        }
+        case None => ty
+      }
+    case _ => ty
+  }
+  }
+
+  /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new ClassDef
+   *
+   */
+  def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
 
 
   /** substitutes generic parameter occurrences (that are checked coming from expressions) in given [[ClassContent]] c

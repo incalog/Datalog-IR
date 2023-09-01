@@ -292,14 +292,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             if (field.immutable && !uninitializedFields.contains(field.name))
               error(s"Field '${field.name}' is already initialied.", statement)
             resolveTarget(fieldAssignStmt)((clazz, field))
-            assertSubtype(typ, field.typ, expression, clazz.name) // TODO ???
+            assertSubtype(typ, field.typ, expression, clazz.name)
             uninitializedFields -= field.name
           case None => // Nothing
         }
         case typ => error(s"Can not lookup field '$name' for expression of type '$typ'", statement)
       }
     case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>
-      typecheck(typ,classDef.name)  // TODO ???
+      typecheck(typ,classDef.name)
       expression.foreach { exp =>
         val expTyp = typecheck(exp)
         assertSubtype(expTyp,  resolveType(typ,classDef.name), varDeclareStmt, classDef.name)
@@ -388,7 +388,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case Some((clazz, field)) =>
               resolveTarget(fieldReadExpr)((clazz, field))
               // if genericParamDef then concrete Type for this Param, but only if it exists already
-              resolveTypeForClass(field.typ, c, ref.name) // TODO ref instead of clazz ????
+              //resolveTypeForClass(field.typ,)
+              resolveTypeForClass(field.typ, c, ref.name)
 
             case None => TAny
           }
@@ -397,7 +398,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TAny
       }
     case construtorExpr@ConstructorExpr(className, tyArgs, args) =>
-      tyArgs.foreach(param => typecheck(param,className.name))  // TODO ??? classDef.name or className.name ???
+      tyArgs.foreach(param => typecheck(param,className.name))
 
       lookupClassRef(className) match {
         case None => TAny
@@ -405,6 +406,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val argTypes = args.map(typecheck)
 
           //println("argTypes: " + argTypes)
+
+          // subst found classDef clazz
+          val substClass = clazz.genericTypeParams.zip(tyArgs).foreach(tup => substClassDef(clazz, TName(tup._1.name),tup._2))
 
 
           lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {
