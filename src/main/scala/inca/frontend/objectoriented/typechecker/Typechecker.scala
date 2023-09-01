@@ -87,7 +87,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // type scala top-level definitions
     typecheckTopLevelObject()
 
-    // TODO is that okay to do that here ? (was fix for unnkown typeparameters in inheritance when superclass was listed first)
+    // was fix for unnkown typeparameters in inheritance when superclass was listed first
     module.classes.foreach(cls => cls.genericTypeParams.foreach(p => bindGenericParam(p.name, p, cls.name)))
 
     module.classes.foreach(typecheck)
@@ -119,7 +119,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
-    // TODO is that okay ?
+    // TODO is that okay ? or not necessary anymore because binding happens already in typecheck(module)
     //  no inner classes -> no shadowing of genericParams because of ClassDefs -> error suppressed
     classDef.genericTypeParams.foreach(p => bindGenericParam(p.name, p, classDef.name, suppressError = true))
 
@@ -304,7 +304,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         val expTyp = typecheck(exp)
         assertSubtype(expTyp,  resolveType(typ,classDef.name), varDeclareStmt, classDef.name)
       }
-      bindVar(name, varDeclareStmt, convertTName(resolveType(typ,classDef.name)), immutable)    // TODO convertTname ???
+      bindVar(name, varDeclareStmt, convertTName(resolveType(typ,classDef.name)), immutable)
     case varAssignStm@VarAssignStmt(targetName, expression) =>
       val expTyp = typecheck(expression)
       lookupVar(targetName) match {
@@ -324,7 +324,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
       assertSubtype(cndTyp, TScalaBoolean, cnd, classDef.name)
     case phiStmt@VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
-      bindVar(name, phiStmt, convertTName(typ), immutable = true)   // TODO convertTname ???
+      bindVar(name, phiStmt, convertTName(typ), immutable = true)
   }
 
   def assertSubtype(ty1: Type, ty2: Type, loc: SourceLocation, className: Name): Unit = {
@@ -384,11 +384,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
-        case c@TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
+        case c@TClass(ref) =>
+          val refClass = lookupClassRef(ref)  // TODO not possible to look up substituted classDef ? (see substClassDef in TypeContext.scala)
+          lookupField(refClass, targetName) match {
             case Some((clazz, field)) =>
               resolveTarget(fieldReadExpr)((clazz, field))
               // if genericParamDef then concrete Type for this Param, but only if it exists already
-              //resolveTypeForClass(field.typ,)
               resolveTypeForClass(field.typ, c, ref.name)
 
             case None => TAny
@@ -408,7 +409,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           //println("argTypes: " + argTypes)
 
           // subst found classDef clazz
-          val substClass = clazz.genericTypeParams.zip(tyArgs).foreach(tup => substClassDef(clazz, TName(tup._1.name),tup._2))
+          //val substClass = clazz.genericTypeParams.zip(tyArgs).foreach(tup => substClassDef(clazz, TName(tup._1.name),tup._2))
 
 
           lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {
@@ -433,7 +434,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
 
     case methodCallExpr@MethodCallExpr(recv, fun, tyArgs, args, _) =>
-//      tyArgs.foreach(param => typecheck(param,classDef.name))   // TODO ??? moved down
 
       val ty = typecheck(recv) match {
         case clazzTyp@TClass(ref) =>
@@ -442,7 +442,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case None =>
               TAny
             case Some((clsDef, methodDef)) =>
-              tyArgs.foreach(param => typecheck(param,clsDef.name))   // TODO ??? clsDef instead of classDef ???
+              tyArgs.foreach(param => typecheck(param,clsDef.name))
               // TODO: We might allow calling static methods in the future
               if (methodDef.isStatic)
                 error(s"Can not call static method '${methodDef.name}' on instance of type '$clazzTyp'", expression)
@@ -463,7 +463,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
 
               resolveTarget(methodCallExpr)((clsDef, methodDef))
-              resolveTypeForClass(outType, clazzTyp, ref.name) // TODO ??? clsDef instead of classDef ??? or ref ???
+              resolveTypeForClass(outType, clazzTyp, ref.name)
 
           }
         case typ =>
@@ -473,7 +473,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       ty
     case TypeCastExpr(recv, toTyp) =>
       typecheck(recv)
-      typecheck(toTyp,classDef.name)    // TODO ???
+      typecheck(toTyp,classDef.name)
       toTyp match {
         case TClass(_) => // nothing
         case _ => error("Can only type cast to class type", expression)

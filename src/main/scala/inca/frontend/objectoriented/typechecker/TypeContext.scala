@@ -189,44 +189,16 @@ trait TypeContext extends TypeIO {
     case _ => ty
   }
 
-  def substGenericParam2(clazz: ClassDef, ty: TName, superClass: Option[ClassDef] = None): Type = {
-    val hasSuperClass: Boolean = clazz.parentClassRefs.nonEmpty
+  def substGenericParam2(clazz: ClassDef, ty: TName, superClass: Option[ClassDef] = None): Type = ???
 
-
-
-    ty match {
-    case TName(n) =>
-      val newOutTypeSeq: Seq[Option[Type]] = clazz.parentClassRefs.map { tName =>
-        lookupClass(tName.name) match {
-          case Some(classDef) =>
-            val filtered: Seq[GenericParamDef] = classDef.genericTypeParams.filter(param => (param.name == n) && !clazz.genericTypeParams.contains(param))
-            val index = classDef.genericTypeParams.indexOf(filtered.headOption.getOrElse(None))
-            if (index > -1)
-              Some(tName.tyArgs(index))
-            else {
-              Some(substGenericParam(classDef, ty /*,Some(clazz)*/)) // find generic types of super class of super class TODO does it work? probably not...
-              // None
-            }
-          case _ => None
-        }
-      }
-      newOutTypeSeq.find(opt => opt.isDefined) match {
-        case Some(value) => value match {
-          case Some(value2) => value2
-          case None => ty
-        }
-        case None => ty
-      }
-    case _ => ty
-  }
-  }
-
-  /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new ClassDef
+  /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new [[ClassDef]]
    *
    */
-  // def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
-  // would probably not work to subst and then look up substituted ClassDef when needed,
-  // since e.g. a fieldReadExpr (like c1.a) looks up the classs by name
+  def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
+  // would probably not work to substitute and then look up substituted ClassDef when needed,
+  // since e.g. a fieldReadExpr (like c1.a) looks up the class by name (here C)
+  // so that no distinction between original class and substituted class would be possible (?)
+
 
 
   /** substitutes generic parameter occurrences (that are checked coming from expressions) in given [[ClassContent]] c
@@ -237,7 +209,7 @@ trait TypeContext extends TypeIO {
   private def substGenericParamForInheritance(clazz: ClassDef, c: ClassContent): ClassContent = c match {
     case MethodDef(annos, vis, name, genericTypeParams, params, outType, body) =>
       val newOutType: Type = substGenericParam(clazz,outType)
-      val newParams: Seq[Param] = params.map{ param =>    // TODO necessary ?
+      val newParams: Seq[Param] = params.map{ param =>
         val newParamType = substGenericParam(clazz, param.typ)
         newParamType.tyArgs = param.typ.tyArgs
         Param(param.name, newParamType)
@@ -250,12 +222,14 @@ trait TypeContext extends TypeIO {
       FieldDef(annos, vis, name, newType, body, immutable)
 
     case ConstructorDef(annos,vis,params,body) =>
-      val newParams: Seq[Param] = params.map { param => // TODO necessary ?
+      val newParams: Seq[Param] = params.map { param =>
         val newParamType = substGenericParam(clazz, param.typ)
         newParamType.tyArgs = param.typ.tyArgs
         Param(param.name, newParamType)
       }
       ConstructorDef(annos,vis,newParams,body)
+
+    case other => other
   }
 
 
