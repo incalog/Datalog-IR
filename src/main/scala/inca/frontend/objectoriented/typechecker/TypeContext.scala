@@ -13,6 +13,7 @@ trait TypeContext extends TypeIO {
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
   private var genericParams: Map[(Name,ClassDef),GenericParamDef] = Map()   // maps name of generic Param and the Class that declares it to the GenericParamDef
+  // TODO Name instead of ClassDef (ClassDef is case class...)
 
   def scopedTypeContext[T](f: => T): T = {
     val v = vars

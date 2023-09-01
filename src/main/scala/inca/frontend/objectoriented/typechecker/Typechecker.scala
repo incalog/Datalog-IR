@@ -346,6 +346,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
+  // given classDef is always the one which contains the expression
   final def typecheck(expression: Expression)(implicit classDef: ClassDef): Type = assignType(expression)(typecheckInternal(expression))
 
   def typecheckInternal(expression: Expression)(implicit classDef: ClassDef): Type = expression match {
