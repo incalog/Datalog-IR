@@ -322,7 +322,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(thn, rt)
       typecheck(els, rt)
 
-      assertSubtype(cndTyp, TScalaBoolean, cnd)
+      assertSubtype(cndTyp, TScalaBoolean, cnd, classDef.name)
     case phiStmt@VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
       bindVar(name, phiStmt, convertTName(typ), immutable = true)   // TODO convertTname ???
   }
@@ -745,8 +745,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 //                case _ => n
 //              }
               // TODO include Inheritance or subst before so that param of current class
-              //  or is it scoping problem ???
-              val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n).get)
+              // val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n, className).get)
               tclass.tyArgs.lift(index).getOrElse(tname)
             case None => TAny// nothing
           }
