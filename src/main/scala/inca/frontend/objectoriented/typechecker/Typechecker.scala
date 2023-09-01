@@ -365,7 +365,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            lookupConstructor(parentRef.get.classDef, parentRef.get.tyArgs, args.map(typecheck), expression) match {
+            lookupConstructor(parentRef.get.classDef, parentRef.get.tyArgs, args.map(typecheck), expression, Some(clazz)) match {
               case Some((classDef, constructorDef)) =>
                 resolveTarget(superExpr)((classDef, constructorDef))
                 TUnit

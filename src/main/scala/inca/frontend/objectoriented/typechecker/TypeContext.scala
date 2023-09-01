@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.typechecker;
 
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
+import jdk.vm.ci.meta.Assumptions.NoFinalizableSubclass
 
 import scala.collection.{AbstractSet, SortedSet, mutable}
 import scala.collection.immutable.MultiDict
@@ -298,15 +299,20 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
+  // for a superclass the given classDef clazz is the superclass (in which a constructor is searched)
+  // but the given types of the arguments are the types according to the scope of the subclass
+  // -> substitution works but since the class that defines type parameters isn`t present subtyping failed
+  // -> solution: give ClassDef of subclass that attempts to call constructor of superclass
+  def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], subClass: Option[ClassDef] = None): Seq[(ClassDef, ConstructorDef)] = {
     val collected = collect[ConstructorDef](clazz, c => {
       c.params.size == args.size
     })
 
 
-    // TODO refactor and test whether helpful
+    // TODO refactor
     val substituted: Seq[(ClassDef, ConstructorDef)] = collected.map(tup => (tup._1, substGenericParamForInheritance(clazz.getOrElse(tup._1), tup._2).asInstanceOf[ConstructorDef]))
     println("substituted ", substituted)
+
     val substituted2: Seq[(ClassDef, ConstructorDef)] = substituted.map { tup =>
       val ConstructorDef(annos,vis,params,body) = tup._2
       val newParams = params.map{ p =>
@@ -350,7 +356,7 @@ trait TypeContext extends TypeIO {
 //        }
 //
 //        case None =>
-//          TAny // error already in collect TODO ???
+//          TAny // error already in collect
 //      }
 //    }
 
@@ -364,19 +370,21 @@ trait TypeContext extends TypeIO {
     val zipped: Seq[((ClassDef, ConstructorDef), Seq[(Type, Param)])] = substituted2.indices.map(i =>
       (substituted2(i), newArgs.zip(substituted2(i)._2.params))
     )
-    zipped.filter { tup =>
-      tup._2.forall { case (arg, param) => subtype(arg, param.typ, tup._1._1.name) }
-    }.map(tup => tup._1)
 
-    //substituted.zip(argParams).filter{case (sub,argParam) => subtype(argParam, p.typ)}.map(tup => tup._1)
-    //collected.map(classWithMethod => args.zip(substMethod(classWithMethod._2).params)).filter{ case (t1, p) => subtype(t1, p.typ) }
-    //    args.zip(m.params).forall
+    val classForSubtyping = subClass.getOrElse(clazz.get)
+    val temp = zipped.filter { tup =>
+      tup._2.forall { case (arg, param) =>
+        println("filter: ",arg,param.typ,tup._1._1.name)
+        //subtype(arg, param.typ, tup._1._1.name) }
+        subtype(arg, param.typ, classForSubtyping.name) }
+    }
+    temp.map(tup => tup._1)
 
   }
 
-  def lookupConstructor(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {
+  def lookupConstructor(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], location: SourceLocation, subClass: Option[ClassDef] = None): Option[(ClassDef, ConstructorDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    val allConstructor = lookupConstructorCandidates(clazz, tyArgs, args)
+    val allConstructor = lookupConstructorCandidates(clazz, tyArgs, args, subClass)
     val ambiguousConstructors = allConstructor.groupBy(_._1).filter(_._2.size > 1)
 
     if (allConstructor.isEmpty) {
