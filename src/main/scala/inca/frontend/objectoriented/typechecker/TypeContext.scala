@@ -19,7 +19,6 @@ trait TypeContext extends TypeIO {
     val v = vars
     val c = classDefs
     val params = genericParams
-
     val t = f   // here f executed
     vars = v    // reset
     genericParams = params
@@ -28,7 +27,6 @@ trait TypeContext extends TypeIO {
   }
 
   def subtype(ty1: Type, ty2: Type, className: Name): Boolean = {
-    //println(ty1,ty2)
       (convertTName(ty1), convertTName(ty2)) match {
       case (_, TAny) => true
       case (TNull, TNull) => true
@@ -60,7 +58,7 @@ trait TypeContext extends TypeIO {
       join(ty1, ty2, className)
     case (_, TNull) => ty1
     case (TNull, _) => ty2
-    case (TClass(TName(name1)), TClass(TName(name2))) =>  //TODO genericTypes
+    case (TClass(TName(name1)), TClass(TName(name2))) =>
       if (subtype(ty1, ty2, className))
         ty2
       else if (subtype(ty2, ty1, className))
@@ -142,7 +140,6 @@ trait TypeContext extends TypeIO {
   }
 
   private def collect[C <: ClassContent : ClassTag](clazz: Option[ClassDef], f: C => Boolean): Seq[(ClassDef, C)] = {
-
     if (clazz.isEmpty) {
       val clsName = implicitly[ClassTag[C]].runtimeClass.getSimpleName
       error(s"Undefined class in $clsName lookup!")
@@ -153,20 +150,64 @@ trait TypeContext extends TypeIO {
         case _ => None
       }
       val parentContent: Seq[(ClassDef, C)] = clazz.get.parentClassRefs.flatMap { ref =>
-        val collected = collect(ref.classDef, f)
-        //println("collected: ", collected)
-        collected
+        collect(ref.classDef, f)
       }
       parentContent ++ content
     }
   }
 
 
+  /** "replaces" a generic parameter with correct type argument for a generic method
+   *
+   * @param methodDef [[MethodDef]] that defines scope
+   * @param tyArgs type arguments for the generic method (possibly empty if e.g. method is not generic)
+   * @param ty [[Type]] possible [[TName]] then maybe different [[Type]] returned
+   * @return [[Type]] of ty in scope of given [[MethodDef]] methodDef
+   */
+  def getTypeForGenericParamMethod(methodDef: MethodDef, tyArgs: Seq[Type], ty: Type): Type = ty match{
+    case tname@TName(n) =>
+      val filtered = methodDef.genericTypeParams.filter(param => param.name == n)
+      filtered.headOption match {
+        case Some(param) =>
+          val index = methodDef.genericTypeParams.indexOf(param)
+          tyArgs.lift(index).getOrElse(tname)
+        case None => tname
+      }
+    case _ => ty
+  }
+
+  /** "replaces" a generic parameter with correct type argument for a generic class
+   *
+   * @param classDef [[ClassDef]] that defines scope
+   * @param tyArgs type arguments for the generic method (possibly empty if e.g. class is not generic)
+   * @param ty [[Type]] possible [[TName]] then maybe different [[Type]] returned
+   * @return [[Type]] of ty in scope of given [[ClassDef]] classDef
+   */
+  def getTypeForGenericParamClass(classDef: ClassDef, tyArgs: Seq[Type], ty: Type): Type = ty match {
+    case tname@TName(n) =>
+      val filtered = classDef.genericTypeParams.filter(param => param.name == n)
+      filtered.headOption match {
+        case Some(param) =>
+          val index = classDef.genericTypeParams.indexOf(param)
+          tyArgs.lift(index).getOrElse(tname)
+        case None => tname
+      }
+    case _ => ty
+  }
+
+
+  /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new [[ClassDef]] */
+  def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
+  // would probably not work to substitute when created (new C[...]) and then look up substituted ClassDef when needed,
+  // since e.g. a fieldReadExpr (like c1.a) looks up the class by name (here C)
+  // so that no distinction between original class and substituted class would be possible (?)
+
+
 
   /** "replaces" a generic parameter with correct type argument in case of inheritance
    *
-   * @param clazz [[ClassDef]] that defines what
-   * @param ty [[Type]] possible [[TName]] then maybe different [[Type]] returned
+   * @param clazz        [[ClassDef]] that defines scope
+   * @param ty           [[Type]] possible [[TName]] then maybe different [[Type]] returned
    * @param overrideFlag set flag to true if ty=TName(n) then n not in the generic parameters of clazz (used for inheritance)
    * @return [[Type]] that given generic parameter ty represents
    */
@@ -182,7 +223,7 @@ trait TypeContext extends TypeIO {
             if (index > -1) // then a type was found
               Some(tName.tyArgs(index))
             else {
-              val recRes = getTypeForGenericParamInheritance(classDef,ty)  // find generic types of super class of super class
+              val recRes = getTypeForGenericParamInheritance(classDef, ty) // find generic types of super class of super class
               if (recRes != ty)
               // try to replace found Type again so that its finally replaced by type for parameter known to given clazz
                 Some(getTypeForGenericParamInheritance(clazz, recRes, overrideFlag = false))
@@ -196,35 +237,13 @@ trait TypeContext extends TypeIO {
       newOutTypeSeq.find(opt => opt.isDefined) match {
         case Some(value) => value match {
           case Some(value2) =>
-              value2
+            value2
           case None => ty
         }
         case None => ty
       }
     case _ => ty
   }
-
-  // TODO maybe include subst of current class` typeArgs here or in a separate subst method (possible?)
-  //  so that it can be used e.g. for MethodCallExpr
-  def getTypeForGenericParamMethod(methodDef: MethodDef, tyArgs: Seq[Type], ty: Type): Type = ty match{
-    case tname@TName(n) =>
-      val filtered = methodDef.genericTypeParams.filter(param => param.name == n)
-      filtered.headOption match {
-        case Some(param) =>
-          val index = methodDef.genericTypeParams.indexOf(param)
-          tyArgs.lift(index).getOrElse(tname)
-        case None => tname
-      }
-    case _ => methodDef.outType
-  }
-
-
-  /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new [[ClassDef]] */
-  def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
-  // would probably not work to substitute and then look up substituted ClassDef when needed,
-  // since e.g. a fieldReadExpr (like c1.a) looks up the class by name (here C)
-  // so that no distinction between original class and substituted class would be possible (?)
-
 
 
   /** substitutes generic parameter occurrences (that are checked coming from expressions) in given [[ClassContent]] c
@@ -286,23 +305,29 @@ trait TypeContext extends TypeIO {
     }
   }
 
+  /** returns Class and Content for which all args match the corresponding params */
+  private def areArgParamsSubtypes(classDefAndContent: Seq[(ClassDef,ClassContent)], args: Seq[Type],
+                                   subClass: Option[ClassDef] = None): Seq[(ClassDef,ClassContent)] = {
+    val zipped: Seq[((ClassDef, ClassContent), Seq[(Type, Param)])] = classDefAndContent.map(tup =>
+      (tup, args.zip(tup._2 match {
+        case MethodDef(annos, vis, name, genericTypeParams, params, outType, body) => params
+        case ConstructorDef(annos, vis, params, body) => params
+        case field@_ => throw new IllegalArgumentException(s"tried to check params of field $field")
+      }))
+    )
+    zipped.filter { tup =>
+      tup._2.forall { case (arg, param) => subtype(arg, param.typ, subClass.getOrElse(tup._1._1).name) }
+    }.map(tup => tup._1)
+  }
 
 
   def lookupMethodCandidates(clazz: Option[ClassDef], args: Seq[Type], name: Name): Seq[(ClassDef, MethodDef)] = {
     val collected = collect[MethodDef](clazz, m => {
       m.name == name && m.params.size == args.size
     })
-
-    // TODO refactor
     val substituted: Seq[(ClassDef, MethodDef)] = collected.map(tup => (tup._1,substGenericParamForInheritance(clazz.getOrElse(tup._1),tup._2).asInstanceOf[MethodDef]))
 
-    val zipped: Seq[((ClassDef,MethodDef), Seq[(Type,Param)])] = substituted.map(tup =>
-     (tup, args.zip(tup._2.params))
-    )
-    zipped.filter{ tup =>
-      tup._2.forall { case (arg, param) => subtype(arg, param.typ, tup._1._1.name) }
-    }.map(tup => tup._1)
-
+    areArgParamsSubtypes(substituted, args).asInstanceOf[Seq[(ClassDef,MethodDef)]]
   }
 
   // TODO use generic Types in searching method (?)
@@ -328,55 +353,19 @@ trait TypeContext extends TypeIO {
       c.params.size == args.size
     })
 
-
-    // TODO refactor
     val substituted: Seq[(ClassDef, ConstructorDef)] = collected.map(tup => (tup._1, substGenericParamForInheritance(clazz.getOrElse(tup._1), tup._2).asInstanceOf[ConstructorDef]))
 
     val substituted2: Seq[(ClassDef, ConstructorDef)] = substituted.map { tup =>
       val ConstructorDef(annos,vis,params,body) = tup._2
       val newParams = params.map{ p =>
         val pTyp: Type = clazz match {
-          case Some(classDef) => p.typ match {
-
-            case tname@TName(n) =>
-              val filtered = classDef.genericTypeParams.filter(param => param.name == n)
-              filtered.headOption match {
-                case Some(param) =>
-                  val index = classDef.genericTypeParams.indexOf(param)
-                  tyArgs.lift(index).getOrElse(tname)
-                case None => tname
-              }
-            case ty => ty
-          }
-
-          case None =>
-            TAny // error already in collect
+          case Some(classDef) => getTypeForGenericParamClass(classDef,tyArgs,p.typ)
+          case None => TAny // error already in collect
         }
         Param(p.name, pTyp)
       }
       (tup._1,ConstructorDef(annos,vis,newParams,body))
-
     }
-
-//    val newArgs = args.map{arg =>
-//      clazz match {
-//        case Some(classDef) => arg match {
-//
-//          case tname@TName(n) =>
-//            val filtered = classDef.genericTypeParams.filter(param => param.name == n)
-//            filtered.headOption match {
-//              case Some(param) =>
-//                val index = classDef.genericTypeParams.indexOf(param)
-//                tyArgs.lift(index).getOrElse(tname)
-//              case None => tname
-//            }
-//          case ty => ty
-//        }
-//
-//        case None =>
-//          TAny // error already in collect
-//      }
-//    }
 
     val newArgs: Seq[Type] = {
       if (clazz.isDefined)
@@ -385,16 +374,7 @@ trait TypeContext extends TypeIO {
         args
     }
 
-    val zipped: Seq[((ClassDef, ConstructorDef), Seq[(Type, Param)])] = substituted2.map(tup =>
-      (tup, newArgs.zip(tup._2.params))
-    )
-
-    val classForSubtyping = subClass.getOrElse(clazz.get)
-    val temp = zipped.filter { tup =>
-      tup._2.forall { case (arg, param) =>
-        subtype(arg, param.typ, classForSubtyping.name) }
-    }
-    temp.map(tup => tup._1)
+    areArgParamsSubtypes(substituted2, newArgs, subClass).asInstanceOf[Seq[(ClassDef,ConstructorDef)]]
 
   }
 
@@ -449,7 +429,6 @@ trait TypeContext extends TypeIO {
     case tName@TName(name) =>
       val cls = lookupClass(name, suppressError = true) match {
         case Some(classDef) =>
-          //val cls = TClass(tName)
           val cls = classDef.typ
           cls.tyArgs = tName.tyArgs
           Some(cls)

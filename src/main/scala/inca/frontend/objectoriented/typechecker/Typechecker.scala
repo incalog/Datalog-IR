@@ -11,9 +11,6 @@ import scala.util.hashing.MurmurHash3
 
 
 
-
-// TODO test and remove calls of convertTname
-
 private case class InheritanceGraph(classes: Seq[ClassDef]) extends Graph[ClassDef, Option[String]] {
   private val clsMap: Map[Name, ClassDef] = classes.map(c => c.name -> c).toMap
 
@@ -115,9 +112,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
-    // TODO is that okay ? or not necessary anymore because binding happens already in typecheck(module)
+    // not necessary anymore because binding happens already in typecheck(module)
     //  no inner classes -> no shadowing of genericParams because of ClassDefs -> error suppressed
-    classDef.genericTypeParams.foreach(p => bindGenericParam(p.name, p, classDef.name, suppressError = true))
+    // classDef.genericTypeParams.foreach(p => bindGenericParam(p.name, p, classDef.name, suppressError = true))
 
     classDef.fields.foreach(f => typecheck(f, classDef))
     classDef.methods.foreach(m => typecheck(m, classDef))
@@ -131,8 +128,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       uninitializedFields = storeUninitializedFields
     }
   }
-
-  //def typecheck(paramDef: ParamDef): Unit = ??? // TODO write typecheck for genericParamDef ?
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ,classDef.name)
@@ -380,8 +375,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
         case c@TClass(ref) =>
-          val refClass = lookupClassRef(ref)  // TODO not possible to look up substituted classDef ? (see substClassDef in TypeContext.scala)
-          lookupField(refClass, targetName) match {
+          val classRef = lookupClassRef(ref)
+          lookupField(classRef, targetName) match {
             case Some((clazz, field)) =>
               resolveTarget(fieldReadExpr)((clazz, field))
               // if genericParamDef then concrete Type for this Param, but only if it exists already
@@ -401,17 +396,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
 
-          // subst found classDef clazz -> not always able to find it again when needed
-          //val substClass = clazz.genericTypeParams.zip(tyArgs).foreach(tup => substClassDef(clazz, TName(tup._1.name),tup._2))
-
           lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {
             case Some((cls, constructorDef)) if cls == clazz =>
               resolveTarget(construtorExpr)(constructorDef)
 
               if (clazz.genericTypeParams.size != tyArgs.size)
                 error("Too many or too few type arguments", expression)
-
-              // TODO everywhere where lookupClassRef also check whether Param -> lookupName
 
               val ty = clazz.typ
               ty.tyArgs = tyArgs
@@ -441,18 +431,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               if (methodDef.genericTypeParams.size != tyArgs.size)
                 error("Too many or too few type arguments", expression)
 
-              val outType: Type = methodDef.outType match {
-                case tname@TName(n) =>
-                  val filtered = methodDef.genericTypeParams.filter(param => param.name == n)
-                  filtered.headOption match {
-                    case Some(param) =>
-                      val index = methodDef.genericTypeParams.indexOf(param)
-                      tyArgs.lift(index).getOrElse(tname)
-                    case None => tname
-                  }
-                case _ => methodDef.outType
-              }
-
+              val outType: Type = getTypeForGenericParamMethod(methodDef, tyArgs, methodDef.outType)
 
               resolveTarget(methodCallExpr)((clsDef, methodDef))
               resolveTypeForClass(outType, clazzTyp, ref.name)
@@ -728,20 +707,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def resolveTypeForClass(typ: Type, tclass: TClass, className: Name): Type = {
-//    println("resolveTypeForClass", typ,typ.tyArgs)
-//    println("resolveTypeForClass", tclass, tclass.tyArgs)
     typ match {
       case tname@TName(n) => lookupName(tname, className) match {
         case Some(_: GenericParamDef) =>
           lookupClass(tclass.ref.name) match {
             case Some(clazz) =>
               val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n, className).get)
-//              val newName = substGenericParam(clazz,tname) match {
-//                case TName(n2) => n2
-//                case _ => n
-//              }
-              // TODO include Inheritance or subst before so that param of current class
-              // val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n, className).get)
+              // subst for Inheritance has occurred before so that param of current class can be found
               tclass.tyArgs.lift(index).getOrElse(tname)
             case None => TAny// nothing
           }
