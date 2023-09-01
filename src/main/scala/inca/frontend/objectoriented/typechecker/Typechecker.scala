@@ -96,10 +96,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   var uninitializedFields: Map[Name, FieldDef] = Map()
 
   def typecheck(classDef: ClassDef): Unit = {
-    //println("classDef", classDef)
-//    classDef.parentClassRefs.foreach(superClass =>
-//      println("superClass tyArgs", superClass, superClass.tyArgs)
-//    )
     classDef.contentMap.foreach {
       case (_, _: Seq[ConstructorDef]) => // nothing
       case (_, cs) if cs.size > 1 =>
@@ -151,7 +147,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = {
-    // println("typecheck(methodDef,...) classDef: ", classDef)
     scopedTypeContext {
       // get all overridden methods and assign them the same signature
       val overriddenMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
@@ -406,11 +401,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
 
-          //println("argTypes: " + argTypes)
-
-          // subst found classDef clazz
+          // subst found classDef clazz -> not always able to find it again when needed
           //val substClass = clazz.genericTypeParams.zip(tyArgs).foreach(tup => substClassDef(clazz, TName(tup._1.name),tup._2))
-
 
           lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {
             case Some((cls, constructorDef)) if cls == clazz =>
