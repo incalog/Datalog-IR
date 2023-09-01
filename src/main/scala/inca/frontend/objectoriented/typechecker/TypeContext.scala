@@ -224,7 +224,9 @@ trait TypeContext extends TypeIO {
   /** replaces all occurrences of typToReplace in classDef with newTyp and returns a new ClassDef
    *
    */
-  def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
+  // def substClassDef(classDef: ClassDef, typToReplace: TName, newTyp: Type): ClassDef = ???
+  // would probably not work to subst and then look up substituted ClassDef when needed,
+  // since e.g. a fieldReadExpr (like c1.a) looks up the classs by name
 
 
   /** substitutes generic parameter occurrences (that are checked coming from expressions) in given [[ClassContent]] c
