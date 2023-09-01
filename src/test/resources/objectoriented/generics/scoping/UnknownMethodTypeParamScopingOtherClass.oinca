@@ -1,0 +1,32 @@
+module UnknownMethodTypeParamScopingOtherClass
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+     def give(value: T2): T = {     // should throw error (Unbound T2)
+            return this.a
+        }
+
+    @main
+    def main(): Boolean = {
+            val A1: A[Int] = new A[Int](1)
+            val res: Int = A1.give("Hello World!")
+            return (res == "Hello World!")
+            }
+}
+
+class B[T2] {
+    val b: T2
+
+    def this(value: T2) = {
+        this.b = value
+    }
+
+    def get(): T2 = {
+        return this.b
+    }
+}
