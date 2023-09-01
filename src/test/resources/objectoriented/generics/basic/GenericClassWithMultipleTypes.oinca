@@ -1,4 +1,4 @@
-module MultipleGenericTypes
+module GenericClassWithMultipleTypes
 
 class A[T1,T2] {
     val a: T1
