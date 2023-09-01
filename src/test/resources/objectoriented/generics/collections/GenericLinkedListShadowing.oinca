@@ -1,11 +1,10 @@
-module LinkedList2
+module GenericLinkedListShadowing
 
+class Node[T] {
+    var value: T
+    var next: Node[T]
 
-class Node[T2] {
-    var value: T2
-    var next: Node[T2]
-
-    def this(value: T2, next1: Node[T2]) = {
+    def this(value: T, next1: Node[T]) = {
         this.value = value
         this.next = next1
     }

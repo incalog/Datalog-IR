@@ -164,7 +164,7 @@ trait TypeContext extends TypeIO {
   // TODO find generic types of super class of super class
   // TODO maybe include subst of current class` typeArgs here or in a separate subst method (possible?)
   //  so that it can be used e.g. for MethodCallExpr
-  private def substGenericParam(clazz: ClassDef, ty: Type, prevClazz: Option[ClassDef] = None): Type = ty match {
+  def substGenericParam(clazz: ClassDef, ty: Type, prevClazz: Option[ClassDef] = None): Type = ty match {
     case TName(n) =>
       val newOutTypeSeq: Seq[Option[Type]] = clazz.parentClassRefs.map { tName =>
         lookupClass(tName.name) match {
@@ -211,7 +211,13 @@ trait TypeContext extends TypeIO {
       newType.tyArgs = typ.tyArgs
       FieldDef(annos, vis, name, newType, body, immutable)
 
-    case other => other
+    case ConstructorDef(annos,vis,params,body) =>
+      val newParams: Seq[Param] = params.map { param => // TODO necessary ?
+        val newParamType = substGenericParam(clazz, param.typ)
+        newParamType.tyArgs = param.typ.tyArgs
+        Param(param.name, newParamType)
+      }
+      ConstructorDef(annos,vis,newParams,body)
   }
 
 
@@ -288,6 +294,7 @@ trait TypeContext extends TypeIO {
 
     // TODO refactor and test whether helpful
     val substituted: Seq[(ClassDef, ConstructorDef)] = collected.map(tup => (tup._1, substGenericParamForInheritance(clazz.getOrElse(tup._1), tup._2).asInstanceOf[ConstructorDef]))
+    println("substituted ", substituted)
     val substituted2: Seq[(ClassDef, ConstructorDef)] = substituted.map { tup =>
       val ConstructorDef(annos,vis,params,body) = tup._2
       val newParams = params.map{ p =>
@@ -313,6 +320,7 @@ trait TypeContext extends TypeIO {
       (tup._1,ConstructorDef(annos,vis,newParams,body))
 
     }
+    println("substituted2 ", substituted2)
 
 //    val newArgs = args.map{arg =>
 //      clazz match {
@@ -334,8 +342,15 @@ trait TypeContext extends TypeIO {
 //      }
 //    }
 
+    val newArgs: Seq[Type] = if (clazz.isDefined)
+      args.map(substGenericParam(clazz.get,_))
+    else
+      args
+
+    println("args", args, newArgs)
+
     val zipped: Seq[((ClassDef, ConstructorDef), Seq[(Type, Param)])] = substituted2.indices.map(i =>
-      (substituted2(i), args.zip(substituted2(i)._2.params))
+      (substituted2(i), newArgs.zip(substituted2(i)._2.params))
     )
     zipped.filter { tup =>
       tup._2.forall { case (arg, param) => subtype(arg, param.typ, tup._1._1.name) }

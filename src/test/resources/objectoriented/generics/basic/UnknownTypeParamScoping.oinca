@@ -16,7 +16,7 @@ class A[T] {
         val A1: A[Int] = new A[Int](1)
         val B1: B[Int] = new B[Int](2)
         val res: Int = A1.get()
-        return res == 1
+        return (res == 1)
     }
 }
 

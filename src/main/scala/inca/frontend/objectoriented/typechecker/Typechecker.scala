@@ -322,7 +322,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(thn, rt)
       typecheck(els, rt)
 
-      assertSubtype(cndTyp, TScalaBoolean, cnd, classDef.name)
+      assertSubtype(cndTyp, TScalaBoolean, cnd)
     case phiStmt@VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
       bindVar(name, phiStmt, convertTName(typ), immutable = true)   // TODO convertTname ???
   }
@@ -617,7 +617,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case BaseApplyInfixExpr(left, op, right) =>
       import meta._
       val (leftName, leftTy) = (Term.Name("param$_left"), typecheck(left))
-      val (rightName, rightTy) = (Term.Name("param$_right"), typecheck(right))
+
+      val typeRight = typecheck(right)
+      val (rightName, rightTy) = (Term.Name("param$_right"), typeRight)
 
       (leftTy, op.tree.value, rightTy) match {
         case (TSet(tyl), "++", TSet(tyr)) =>
@@ -738,12 +740,19 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           lookupClass(tclass.ref.name) match {
             case Some(clazz) =>
               val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n, className).get)
+//              val newName = substGenericParam(clazz,tname) match {
+//                case TName(n2) => n2
+//                case _ => n
+//              }
+              // TODO include Inheritance or subst before so that param of current class
+              //  or is it scoping problem ???
+              val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n).get)
               tclass.tyArgs.lift(index).getOrElse(tname)
             case None => TAny// nothing
           }
         case Some(classDef: ClassDef) =>
           val ty = classDef.typ
-          ty.tyArgs = tname.tyArgs // TODO nested generics
+          ty.tyArgs = tname.tyArgs // TODO nested generics (not necessary)
           ty
         case None => TAny // nothing
       }
@@ -760,7 +769,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case Some(paramDef: GenericParamDef) => typ
         case Some(classDef: ClassDef) =>
           val ty = classDef.typ
-          ty.tyArgs = tname.tyArgs // TODO nested generics
+          ty.tyArgs = tname.tyArgs // TODO nested generics (not necessary)
           ty
         case None => TAny // nothing
       }

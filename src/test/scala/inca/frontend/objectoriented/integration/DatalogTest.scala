@@ -220,114 +220,131 @@ class DatalogTest extends AnyFunSuite {
     performTests(pathWithDummyMeasurementTest)
   }
 
+  /*---------------*/
+  /* Test Generics */
+  /*---------------*/
 
-  // Tests for generics
   test("Simple Generic Class") {
-    performTests(simpleGenericClass)
+    performTests(genericClass)
   }
 
-  test("Simple Generic Method") {
-    performTests(SimpleGenericMethod)
-  }
+  // genericClassAndMethods (?)
 
-  test("Instances with Different Types") {
-    performTests(instancesWithDifferentTypes)
-  }
-
-  test("Generic Linked List (nodes use same type parameter)") {
-    performTests(linkedList)
-  }
-
-  test("Generic Linked List") {
-    performTests(LinkedList2)
-  }
-
-  test("Class with Multiple Generic Types") {
-    performTests(multipleGenericTypes)
-  }
-
-  test("Generics with Inheritance") {
-    performTests(GenericsWithInheritance)
-  }
-  test("Inheritance With Fixed Type Parameter") {
-    performTests(InheritanceWithFixedTypeParameter)
-  }
-  test("Inheritance With Multiple Type Parameters") {
-    performTests(InheritanceWithMultipleTypeParameters)
-  }
-  test("Inheritance With Multiple Classes") {
-    performTests(InheritanceWithMultipleClasses)
-  }
-
-
-  test("Custom Class as Type") {
-    performTests(CustomClassAsType)
-  }
-
-  test("Unknown Type-parameter") {
-    //assertThrows[Exception](
-    performTests(UnknownTypeParameter)
-    //)
-
-
-//    TODO maybe create own Exception to assert error like above ?
-//    val caught = intercept[Exception] {
-//      performTests(UnknownTypeParameter)
-//    }
-//    assert(caught.??? == ???)
-
-  }
-
-  test("Unknown Type-parameter Scoping") {
-    //assertThrows[Exception](
-    performTests(UnknownTypeParameterScoping)
-    //)
-  }
-
-
-  test("Generic Param Duplicate"){
-    assertThrows[Exception](  // TODO
-      performTests(GenericParamDuplicate)
+  test("Addition of Generic Param Failure") {
+    assertThrows[Exception](
+    performTests(genericClassGenericParamAdditionFailure)
     )
   }
 
-  test("Nested Generics ") {
-    performTests(NestedGenerics)
+  test("Generic Class Instances with different types") {
+    performTests(genericClassInstancesWithDifferentTypes)
   }
 
-  test("Nested Generics With Inheritance") {
-    performTests(NestedGenericsInheritance)
+  test("Generic Class inner Shadowing") {
+    performTests(genericClassMethodInnerShadowing)
   }
 
-  test("Generic Method Inheritance") {
-    performTests(GenericMethodInheritance)
+  test("Generic Class with wrong type annotation") {
+    assertThrows[Exception](
+    performTests(genericClassTypeAnnotationFailure)
+    )
   }
 
-  test("Inheritance Method with Arguments") {
-    performTests(InheritanceMethodWithArgument)
+  test("Generic Class with multiple generic Types") {
+    performTests(genericClassWithMultipleTypes)
   }
 
-  test("Invalid Addition in Method With Argument") {
-    performTests(InvalidAdditionGenericParam)
+  test("Simple generic method") {
+    performTests(genericMethod)
   }
 
-  test("Generic Wrong Variable Type Annotation") {
-    performTests(GenericWrongTypeAnnotation)
+  test("Generic method with wrong Out-Type annotation") {
+    assertThrows[Exception](
+    performTests(genericMethodOutTypeFailure)
+    )
   }
 
-  test("Uses own Class as Type Annotation") {
-    performTests(InvalidGenericMethodType)
+  test("Generic method with wrong given Generic Type") {
+    assertThrows[Exception](
+    performTests(genericMethodTypeFailure)
+    )
   }
 
-  test("Uses own Class as Type Annotation with more Types") {
-    performTests(InvalidGenericMethodType2)
+  test("Generic method with wrong given Generic Type (multiple Types)") {
+    assertThrows[Exception](
+    performTests(genericMethodTypeFailure2)
+    )
   }
 
-  test("Generic Method OutType is invalid") {
-    performTests(InvalidGenericMethodOutType)
+  test("unknown and unbound Type Parameter") {
+    assertThrows[Exception](
+    performTests(unknownTypeParameter)
+    )
   }
 
-  test("Generic Method shadows generic Class type") {
-    performTests(GenericInnerClassShadowing)
+  test("unknown and unbound Type Parameter scoping") {
+    assertThrows[Exception](
+    performTests(unknownTypeParameterScoping)
+    )
   }
+
+
+  test("Generic Linked List") {
+    performTests(genericLinkedList)
+  }
+
+  test("Generic Linked List (nodes use same type parameter)") {
+    performTests(genericLinkedListShadowing)
+  }
+
+
+  test("Simple generic class inheritance") {
+    performTests(genericClassInheritance)
+  }
+
+  test("Generic class inheritance chain") {
+    performTests(genericClassInheritanceChain)
+  }
+
+  test("Addition of Generic Param with Inheritance Failure") {
+    assertThrows[Exception](
+    performTests(genericClassInheritanceGenericParamAdditionFailure)
+    )
+  }
+
+  test("Generic class inheritance method wrong param type Failure") {
+    assertThrows[Exception](
+    performTests(genericClassInheritanceMethodTypeFailure)
+    )
+  }
+
+  test("Generic class inheritance method with arguments") {
+    performTests(genericClassInheritanceMethodWithArgument)
+  }
+
+  test("Generic class inheritance with fixed Type Parameter") {
+    performTests(genericClassInheritanceWithFixedTypeParameter)
+  }
+
+  test("Generic class inheritance with multiple Type Parameters") {
+    performTests(genericClassInheritanceWithMultipleTypeParameters)
+  }
+
+  test("Simple generic method inheritance") {
+    performTests(genericMethodInheritance)
+  }
+
+
+  test("Simple nested generics") {
+    performTests(nestedGenerics)
+  }
+
+  test("Nested generics") {
+    performTests(nestedGenerics2)
+  }
+
+  test("Nested generics with inheritance") {
+    performTests(nestedGenericsInheritance)
+  }
+
 }

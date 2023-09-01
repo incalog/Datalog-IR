@@ -1,4 +1,4 @@
-module GenericInnerClassShadowing
+module GenericClassMethodInnerShadowing
 
 class A[T] {
     val a: T
@@ -15,7 +15,7 @@ class A[T] {
     def main(): Boolean = {
         val A1: A[Int] = new A[Int](1)
         val res: Int = A1.get[Int](1)
-        val res2: String = A1.get[String]("Hello World!")
+        val res2: String = A1.get[String]("Hello World!")   //receives other Method Type
         return (res == 1) && (res2 == "Hello World!")
     }
 }

@@ -1,4 +1,4 @@
-module InvalidGenericMethodType2
+module GenericMethodTypeFailure2
 
 class A[T] {
     val a: T

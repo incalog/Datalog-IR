@@ -51,7 +51,7 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("Generics 1") {
-    val code = FileUtil.readFile("objectoriented/generics/GenericClassAndMethods.oinca")
+    val code = FileUtil.readFile("objectoriented/generics/basic/GenericClassAndMethods.oinca")
     println("Code: ")
     println(code)
     println()

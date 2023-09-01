@@ -1,4 +1,4 @@
-module InvalidAdditionGenericParam
+module GenericClassInheritanceGenericParamAdditionFailure
 
 class A[T] {
     val a: T
