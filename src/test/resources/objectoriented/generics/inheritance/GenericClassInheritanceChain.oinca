@@ -20,7 +20,7 @@ class A[T] {
     }
 }
 
-class B[T1,T2] extends A[Boolean]{
+class B[T1,T2] extends A[T2]{
     var b: T1
 
     def this(value: T1, value2: T2) = {
