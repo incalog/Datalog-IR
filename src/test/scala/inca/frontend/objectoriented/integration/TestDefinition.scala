@@ -438,11 +438,6 @@ object TestDefinition {
     TestDefinition("UnknownTypeParameter", "A", "main", Seq(), None)
   }
 
-  def unknownTypeParameterScoping: TestDefinition[Any] = {
-    implicit val subdir: Option[String] = Some("generics/basic")
-    TestDefinition("UnknownTypeParamScoping", "A", "main", Seq(), None)
-  }
-
 
   def genericLinkedList: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("generics/collections")
@@ -511,4 +506,34 @@ object TestDefinition {
     TestDefinition("NestedGenericsInheritance", "A", "main", Seq(), true)
   }
 
+
+  def unknownTypeParameterScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+  //new scoping Tests
+  def unknownTypeParamScopingClassMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingClassMethod", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodTypeParamScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodTypeParamScopingClassMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodTypeParamScopingClassMethod", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodOutTypeParamScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodOutTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+
+  def unknownTypeParamScopingInheritanceClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingInheritanceClass", "A", "main", Seq(), None)
+  }
 }

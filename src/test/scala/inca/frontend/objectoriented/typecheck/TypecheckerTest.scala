@@ -132,11 +132,6 @@ class TypecheckerTest extends AnyFunSuite {
     checkModuleErrors(code)
   }
 
-  test("unknown and unbound Type Parameter scoping") {
-    val code = FileUtil.readFile("objectoriented/generics/basic/UnknownTypeParamScoping.oinca")
-    checkModuleErrors(code)
-  }
-
 
   test("Generic Linked List") {
     val code = FileUtil.readFile("objectoriented/generics/collections/GenericLinkedList.oinca")
@@ -203,6 +198,37 @@ class TypecheckerTest extends AnyFunSuite {
   test("Nested generics with inheritance") {
     val code = FileUtil.readFile("objectoriented/generics/nested/NestedGenericsInheritance.oinca")
     checkModule(code)
+  }
+
+
+  test("unknown and unbound Type Parameter scoping (but bound in other class)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownTypeParameterScopingOtherClass.oinca")
+    checkModuleErrors(code)
+  }
+
+  test("unknown and unbound Type Parameter scoping (but bound in class method)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownTypeParamScopingClassMethod.oinca")
+    checkModuleErrors(code)
+  }
+
+  test("unknown and unbound Method Type Parameter scoping (but bound in other class)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownMethodTypeParamScopingOtherClass.oinca")
+    checkModuleErrors(code)
+  }
+
+  test("unknown and unbound Method Type Parameter scoping (but bound in class Method)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownMethodTypeParamScopingClassMethod.oinca")
+    checkModuleErrors(code)
+  }
+
+  test("unknown and unbound Method Out Type Parameter scoping (but bound in other class)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownMethodOutTypeParamScopingOtherClass.oinca")
+    checkModuleErrors(code)
+  }
+
+  test("unknown and unbound Type Parameter scoping (but bound in inheritance class)") {
+    val code = FileUtil.readFile("objectoriented/generics/scoping/UnknownTypeParamScopingInheritanceClass.oinca")
+    checkModuleErrors(code)
   }
 
 
