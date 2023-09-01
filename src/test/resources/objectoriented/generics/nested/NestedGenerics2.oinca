@@ -1,4 +1,4 @@
-module CustomClassAsType
+module NestedGenerics2
 
 class A[T] {
     val a: T

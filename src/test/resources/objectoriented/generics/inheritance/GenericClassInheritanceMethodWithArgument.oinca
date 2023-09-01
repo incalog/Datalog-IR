@@ -1,4 +1,4 @@
-module InheritanceMethodWithArgument
+module GenericClassInheritanceMethodWithArgument
 
 class A[T] {
     val a: T

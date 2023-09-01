@@ -1,4 +1,4 @@
-module InheritanceWithMultipleClasses
+module GenericClassInheritanceChain
 
 
 class A[T] {

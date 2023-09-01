@@ -1,4 +1,4 @@
-module InheritanceWithMultipleTypeParameters
+module GenericClassInheritanceWithMultipleTypeParameters
 
 
 class A[T] {

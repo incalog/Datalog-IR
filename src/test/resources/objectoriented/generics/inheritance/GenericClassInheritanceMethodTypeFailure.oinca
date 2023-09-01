@@ -1,0 +1,34 @@
+module GenericClassInheritanceMethodTypeFailure
+
+class A[T] {
+    var a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    def get2(value: T): T = {
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val a1: A[Int] = new A[Int](1)
+        val b1: B[Int] = new B[Int](0,1)
+        return b1.get2(true) == true           // should not work  (Wrong method argument type)
+    }
+}
+
+
+class B[T] extends A[T] {
+    var b: T
+
+    def this(value: T, value2: T) = {
+        super(value)
+        this.b = value2
+    }
+}

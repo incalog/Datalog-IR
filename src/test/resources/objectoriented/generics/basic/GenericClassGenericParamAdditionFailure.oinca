@@ -1,0 +1,20 @@
+module GenericClassGenericParamAdditionFailure
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(value: T, value1: Int): T = {
+        return value + value1           //value Type unknown
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: Int = A1.get(1, 1)
+        return ((A1.a == 1) && (res == 2))
+    }
+}
