@@ -761,7 +761,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           }
         case Some(classDef: ClassDef) =>
           val ty = classDef.typ
-          ty.tyArgs = tname.tyArgs // TODO nested generics
+          ty.tyArgs = tname.tyArgs // TODO nested generics (not necessary)
           ty
         case None => TAny // nothing
       }
@@ -778,7 +778,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case Some(paramDef: GenericParamDef) => typ
         case Some(classDef: ClassDef) =>
           val ty = classDef.typ
-          ty.tyArgs = tname.tyArgs // TODO nested generics
+          ty.tyArgs = tname.tyArgs // TODO nested generics (not necessary)
           ty
         case None => TAny // nothing
       }
