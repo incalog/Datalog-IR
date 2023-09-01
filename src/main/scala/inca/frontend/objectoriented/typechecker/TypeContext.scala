@@ -12,7 +12,7 @@ trait TypeContext extends TypeIO {
   private var modules: Map[Name, Module] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
   private var vars: Map[Name, (VarReadExpr.Target, Type, Boolean)] = Map()
-  private var genericParams: Map[(Name,ClassDef),GenericParamDef] = Map()   // maps name of generic Param and the Class that declares it to the GenericParamDef
+  private var genericParams: Map[(Name,Name),GenericParamDef] = Map()   // maps name of generic Param and the Class that declares it to the GenericParamDef
   // TODO Name instead of ClassDef (ClassDef is case class...)
 
   def scopedTypeContext[T](f: => T): T = {
@@ -27,43 +27,43 @@ trait TypeContext extends TypeIO {
     t
   }
 
-  def subtype(ty1: Type, ty2: Type, classDefOpt: Option[ClassDef] = None): Boolean = {
+  def subtype(ty1: Type, ty2: Type, className: Name): Boolean = {
     //println(ty1,ty2)
-    (convertTName(ty1), convertTName(ty2)) match {
-    case (_, TAny) => true
-    case (TNull, TNull) => true
-    case (TNull, TClass(_)) => true
-    case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
-    case (TClass(ref1), TClass(_)) =>
-      val parents = classDefs.get(ref1.name).flatMap { case (_, c) => c.parentClassRefs }
-      //val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
-      parents.exists { parent => if (parent.target.isDefined) subtype(parent.classDef.get.typ, ty2) else false }
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
-      tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
-    case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-    case (TName(n1), TName(n2)) if (classDefOpt.isDefined) =>
-      if (lookupGenericParam(n1, classDefOpt.get, suppressError = true).isDefined)
-        n1 == n2
-      else
-        false
-    case (TNull, TName(_)) => true
-    case _ => false
-  }
+      (convertTName(ty1), convertTName(ty2)) match {
+      case (_, TAny) => true
+      case (TNull, TNull) => true
+      case (TNull, TClass(_)) => true
+      case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
+      case (TClass(ref1), TClass(_)) =>
+        val parents = classDefs.get(ref1.name).flatMap { case (_, c) => c.parentClassRefs }
+        //val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
+        parents.exists { parent => if (parent.target.isDefined) subtype(parent.classDef.get.typ, ty2, className) else false }
+      case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
+        tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2, className))
+      case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2, className)
+      case (TName(n1), TName(n2)) =>
+        if (lookupGenericParam(n1, className, suppressError = true).isDefined)
+          n1 == n2
+        else
+          false
+      case (TNull, TName(_)) => true
+      case _ => false
+    }
   }
 
-  def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
+  def join(ty1: Type, ty2: Type, className: Name): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 =>
       ty1
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
-      TTuple(tys1.zip(tys2).map(tt => join(tt._1, tt._2)))
+      TTuple(tys1.zip(tys2).map(tt => join(tt._1, tt._2, className)))
     case (TSet(ty1), TSet(ty2)) =>
-      join(ty1, ty2)
+      join(ty1, ty2, className)
     case (_, TNull) => ty1
     case (TNull, _) => ty2
     case (TClass(TName(name1)), TClass(TName(name2))) =>  //TODO genericTypes
-      if (subtype(ty1, ty2))
+      if (subtype(ty1, ty2, className))
         ty2
-      else if (subtype(ty2, ty1))
+      else if (subtype(ty2, ty1, className))
         ty1
       else {
         // find a common supertype
@@ -76,19 +76,19 @@ trait TypeContext extends TypeIO {
           }.map(_._2.typ)
         }
         // use the resolved type to find the supertype
-        parentTypes.find(pTy => subtype(ty2, pTy)).getOrElse(TAny)
+        parentTypes.find(pTy => subtype(ty2, pTy, className)).getOrElse(TAny)
       }
     case (_, _) =>
-      if (subtype(ty1, ty2))
+      if (subtype(ty1, ty2, className))
         ty2
-      else if (subtype(ty2, ty1))
+      else if (subtype(ty2, ty1, className))
         ty1
       else
         TAny
   }
 
-  def join(types: Seq[Type]): Type = types.reduce[Type] {
-    case (ty1, ty2) => join(ty1, ty2)
+  def join(types: Seq[Type], className: Name): Type = types.reduce[Type] {
+    case (ty1, ty2) => join(ty1, ty2, className)
   }
 
   def bindModule(module: Module): Unit = {
@@ -257,7 +257,7 @@ trait TypeContext extends TypeIO {
      (substituted(i), args.zip(substituted(i)._2.params))
     )
     zipped.filter{ tup =>
-      tup._2.forall { case (arg, param) => subtype(arg, param.typ) }
+      tup._2.forall { case (arg, param) => subtype(arg, param.typ, tup._1._1.name) }
     }.map(tup => tup._1)
 
     //substituted.zip(argParams).filter{case (sub,argParam) => subtype(argParam, p.typ)}.map(tup => tup._1)
@@ -338,7 +338,7 @@ trait TypeContext extends TypeIO {
       (substituted2(i), args.zip(substituted2(i)._2.params))
     )
     zipped.filter { tup =>
-      tup._2.forall { case (arg, param) => subtype(arg, param.typ) }
+      tup._2.forall { case (arg, param) => subtype(arg, param.typ, tup._1._1.name) }
     }.map(tup => tup._1)
 
     //substituted.zip(argParams).filter{case (sub,argParam) => subtype(argParam, p.typ)}.map(tup => tup._1)
@@ -366,7 +366,7 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupGenericParam(paramName: Name, classDef: ClassDef, suppressError: Boolean = false): Option[GenericParamDef] = genericParams.get((paramName,classDef)) match {
+  def lookupGenericParam(paramName: Name, className: Name, suppressError: Boolean = false): Option[GenericParamDef] = genericParams.get((paramName,className)) match {
     case Some(entry) => Some(entry)
     case None =>
       if (!suppressError)
@@ -374,7 +374,7 @@ trait TypeContext extends TypeIO {
       None
   }
 
-  def bindGenericParam(name: Name, genericParam: GenericParamDef, classDef: ClassDef, suppressError: Boolean = false): Unit = {
+  def bindGenericParam(name: Name, genericParam: GenericParamDef, className: Name, suppressError: Boolean = false): Unit = {
     val shadowedClass = lookupClass(name, suppressError = true) match {
       case cls@Some(_) =>
         if (!suppressError)
@@ -384,12 +384,12 @@ trait TypeContext extends TypeIO {
         None
     }
     if (shadowedClass.isEmpty) {
-      genericParams.get((name,classDef)) match {
+      genericParams.get((name,className)) match {
         case Some(value) =>
           if (!suppressError)
             error(s"Generic parameter shadows previously defined parameter.", name)
         case None =>
-          genericParams += (name,classDef) -> genericParam
+          genericParams += (name,className) -> genericParam
       }
     }
   }
