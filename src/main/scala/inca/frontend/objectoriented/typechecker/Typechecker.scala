@@ -355,7 +355,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  final def typecheck(expression: Expression)(implicit classDef: ClassDef): Type = assignType(expression)(typecheckInternal(expression))
+  final def typecheck(expression: Expression)(implicit classDef: ClassDef): Type = {
+    val checkedTyp = typecheckInternal(expression)
+    assignType(expression)(checkedTyp)
+  }
 
   def typecheckInternal(expression: Expression)(implicit classDef: ClassDef): Type = expression match {
     case NullExpr() =>
@@ -392,7 +395,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
-        case c@TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
+        case c@TClass(ref) => lookupField(lookupClassRef(ref), targetName) match { // TODO check lookupField for errors
             case Some((clazz, field)) =>
               resolveTarget(fieldReadExpr)((clazz, field))
               // if genericParamDef then concrete Type for this Param, but only if it exists already
@@ -624,7 +627,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case BaseApplyInfixExpr(left, op, right) =>
       import meta._
       val (leftName, leftTy) = (Term.Name("param$_left"), typecheck(left))
-      val (rightName, rightTy) = (Term.Name("param$_right"), typecheck(right))
+
+      val typeRight = typecheck(right)
+      val (rightName, rightTy) = (Term.Name("param$_right"), typeRight)
 
       (leftTy, op.tree.value, rightTy) match {
         case (TSet(tyl), "++", TSet(tyr)) =>
@@ -744,6 +749,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case Some(_: GenericParamDef) =>
           lookupClass(tclass.ref.name) match {
             case Some(clazz) =>
+//              val newName = substGenericParam(clazz,tname) match {
+//                case TName(n2) => n2
+//                case _ => n
+//              }
+              // TODO include Inheritance or subst before so that param of current class
+              //  or is it scoping problem ???
               val index = clazz.genericTypeParams.indexOf(lookupGenericParam(n).get)
               tclass.tyArgs.lift(index).getOrElse(tname)
             case None => TAny// nothing
