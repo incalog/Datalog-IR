@@ -23,7 +23,7 @@ lazy val inca_ir = (project in file("inca-ir")).settings(
     // Required for runtime reflection and code execution
     "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
     // Parse scala code into an AST representation
-    "org.scalameta" %% "scalameta" % "4.8.10"
+    ("org.scalameta" %% "scalameta" % "4.8.10").cross(CrossVersion.for3Use2_13)
   )
 )
 

@@ -4,6 +4,7 @@ import inca.ir.extension.primitiveScala.Constant
 import inca.ir.extensions.*
 import inca.ir.typing.{CompilationMessage, Typechecker}
 
+
 import scala.collection.immutable.Seq
 
 val typechecker = new Typechecker {}
@@ -22,7 +23,8 @@ import scala.quoted._
 @main
 def main(): Unit = {
   //println('{ (quotes) ${ Test.test() } == 4 })
-  println(Inspect.test())
+  //println(Inspect.test())
+  println(Inspect.test_parse())
 }
 
 
