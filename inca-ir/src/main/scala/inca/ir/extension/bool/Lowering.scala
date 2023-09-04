@@ -4,6 +4,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub, TInt}
 import inca.ir.extension.disjunction.Disjunction
+import inca.ir.extension.not.Not
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 
@@ -44,7 +45,7 @@ trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR
       Seq(
         block.Block(Seq(Disjunction(Seq(
           Seq(a, Eq(Var(x), TrueNum)),
-          Seq(negateAtom(a), Eq(Var(x), FalseNum))
+          Seq(Not(a), Eq(Var(x), FalseNum))
         ))), Var(x)))
     case BoolAnd(t1, t2) =>
       for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))

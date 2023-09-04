@@ -94,7 +94,7 @@ class SetLoweringTest extends AnyFunSuite {
         //Eq(Var("a"), Set.from(term(0), term(1))),
         // TODO: Test this as arg: Set.from(term(0), term(1))
         Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))),
-        //Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize),
+        //Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))),
         //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
         //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
       ))
@@ -111,14 +111,14 @@ class SetLoweringTest extends AnyFunSuite {
 
   /*test("Set union Test") {
     val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam), Seq(
       Body(Seq(
         Eq(Var("y"), term(0)),
         Eq(Var("z"), Set(Seq(Var("y"), term(2)))),
         //Eq(Var("a"), Set.from(term(0), term(1))),
         // TODO: Test this as arg: Set.from(term(0), term(1))
-        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))).addHint(Hints.Refunctionalize(Seq("x"))),
-        //Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize),
+        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2))))),
+        //Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))),
         //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
         //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
       ))
@@ -135,17 +135,17 @@ class SetLoweringTest extends AnyFunSuite {
 
   /*test("Set refunctionalize call") {
     val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam), Seq(
       Body(Seq(
         Eq(Var("y"), term(0)),
         Eq(Var("z"), Set(Seq(Var("y"), term(2)))),
         Eq(Var("a"), Set.from(term(0), term(1))),
-        Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2))))).addHint(Hints.Refunctionalize()),
+        Call("test", Seq(Var("y"), Var("a"), SetUnion(Var("z"), Set.from(term(0), term(2)))))),
         //Eq(Var("w"), SetIntersection(Var("z"), Set.from(term(0), term(2)))),
         //Eq(Var("v"), SetIntersection(Set.from(term(0), term(1)), Set.from(term(0), term(2))))
       ))
     ))
-    val testRelation = Relation("test", Seq(param(0), setParam(1).addHint(Hints.Refunctionalize()), setParam(2).addHint(Hints.Refunctionalize())), Seq(
+    val testRelation = Relation("test", Seq(param(0), setParam(1)), setParam(2)), Seq(
       Body(Seq(
       ))
     ))
@@ -157,7 +157,7 @@ class SetLoweringTest extends AnyFunSuite {
 
   /*test("Set Member") {
     val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam.addHint(Hints.Refunctionalize())), Seq(
+    val mainRelation = Relation("main", Seq(param(0), param(1), param(2), outParam), Seq(
       Body(Seq(
         Eq(Var("a"), Set.from(term(0), term(1))),
         // Test this as arg: Set.from(term(0), term(1))
@@ -174,11 +174,13 @@ class SetLoweringTest extends AnyFunSuite {
 
   test("Set with arithmetic") {
     val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0, TDouble), param(1, TInt), param(2, TDouble), outParam), Seq(
+    val mainRelation = Relation("main", Seq(param(0, TInt), param(1, TInt), param(2, TInt), outParam), Seq(
       Body(Seq(
         Eq(Var("y"), term(1)),
         Eq(Var("z"), Set(Seq(Var("y"), IntNum(2)))),
-        Eq(Var("x"), SetUnion(Var("z"), Set.from(term(0), term(2)))),
+        Eq(Var("w"), Set.from()),
+        Eq(Var("v"), Set.from()),
+        SetMember(Var("x"), SetUnion(Var("z"), Set.from())),
       ))
     ))
     /*val testRelation = Relation("test", Seq(param(0, TInt), setParam(1, TInt), setParam(2, TInt)), Seq(

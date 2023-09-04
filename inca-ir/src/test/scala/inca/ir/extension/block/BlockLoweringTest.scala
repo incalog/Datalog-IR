@@ -13,7 +13,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   val blockIR: block.IR = IR
   val lowering = Lowering(blockIR, baseIR)
 
-  val typecker = new Typechecker {}
+  val typechecker = new Typechecker {}
 
   def stopIfNeeded(): Unit = {
     val errors = typechecker.getErrors
@@ -27,7 +27,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
     val mod = Module("Test", language, Seq(
       Relation("test", Seq(), Seq(Body(atoms)))
     ))
-    typecker.typecheck(mod)
+    typechecker.typecheck(mod)
     mod
 
   test("simple 1") {

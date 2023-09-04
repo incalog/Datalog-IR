@@ -1,5 +1,6 @@
-package inca.ir
+package inca
 
+import inca.ir.extension.primitiveScala.Constant
 import inca.ir.extensions.*
 import inca.ir.typing.{CompilationMessage, Typechecker}
 
@@ -16,8 +17,18 @@ def stopIfNeeded(): Unit = {
     throw Failed(errors)
 }
 
+import scala.quoted._
+
 @main
+def main(): Unit = {
+  //println('{ (quotes) ${ Test.test() } == 4 })
+  println(Inspect.test())
+}
+
+
+
 def test() = {
+
   /*val mods1 = lowerTupleIR()
   val mods2 = lowerDisjunctionIR()
   //val mods3 = lowerCombinedIR()

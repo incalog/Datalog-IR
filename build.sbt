@@ -11,9 +11,19 @@ val truediffVersion = "0.1.5-SNAPSHOT"
 lazy val inca_ir = (project in file("inca-ir")).settings(
   scalaVersion := "3.3.0",
 
+  resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+  //resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    // Additional data structures, such as MultiDict
     "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+    // Datalog query engine
+    "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
+    // Required for runtime reflection and code execution
+    "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
+    // Parse scala code into an AST representation
+    "org.scalameta" %% "scalameta" % "4.8.10"
   )
 )
 

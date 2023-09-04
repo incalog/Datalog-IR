@@ -19,7 +19,7 @@ trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
   def lower(module: Module): Module = gensym.scoped {
     if (!(module.lang ++ addedIRs).includes(trg.requires))
       throw new IllegalArgumentException(s"Module $module misses required features: ${trg.requires.features}")
-    val loweredLang = (module.lang -- loweredIRs) ++ addedIRs
+    val loweredLang = (module.lang -- loweredIRs) ++ addedIRs // TODO: trg.requires
     //println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
     visit(Module(module.name, loweredLang, module.contents))
   }

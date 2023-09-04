@@ -87,7 +87,6 @@ import inca.ir.extension.disjunction
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
-import inca.ir.extension.set.Hints.{Refunctionalize, RefunctionalizeKey}
 import inca.ir.typing.Typechecker
 import inca.util.TupleOps
 
@@ -170,19 +169,10 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
     rels ++ setDefunWriteRelations ++ groupDefunRelations
   }
 
-  override def visitParam(param: Param): Seq[Param] =
-    param.getHint[Refunctionalize](RefunctionalizeKey) match
-      case Some(_) => refunctionalize() { super.visitParam(param) }
-      case None => super.visitParam(param)
-
-  override def visitAtom(atom: Atom): Seq[Atom] =
-    atom.getHint[Refunctionalize](RefunctionalizeKey) match
-      case Some(Refunctionalize(vars)) => refunctionalize(vars.map(Name.apply)) { visitSetAtom(atom) }
-      case None => visitSetAtom(atom)
-
-  def visitSetAtom(atom: Atom): Seq[Atom] = atom match
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
     // TODO: How do I best handle this without overriding all cases that we possible don't know yet ?
     //  We could add a Disjunction(terms), but this would just move the problem ?
+    // TODO: Do I need to handle this ?
     case Call(name, args) =>
       val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
       Seq(Disjunction(callArgCases.map(ts => Seq(Call(name, ts)))))
@@ -203,6 +193,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
       visitTerm(lhs).map { l =>
         Disjunction(visitTerm(rhs).map(r => Seq(Eq(l, r))))
       }
+    // TODO: Fix set member for unbounds vars ?
     case SetMember(t1, t2) =>
       // Always refunctionalize a set to compare it
       val eqAtoms = for (sTerm <- refunctionalize() { visitTerm(t1) }) yield

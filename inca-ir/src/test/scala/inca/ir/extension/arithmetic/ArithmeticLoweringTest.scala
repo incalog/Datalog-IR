@@ -68,11 +68,11 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
       Application(tmpVar, lam, Seq(term(0), term(1))),
       Eq(term(2), tmpVar)
     ))
-    /*println(mAdd)
+    println(mAdd)
     println()
     println(lowered)
     println()
-    println(bAdd)*/
+    println(bAdd)
 
     assertResult(bAdd)(lowered)
   }
