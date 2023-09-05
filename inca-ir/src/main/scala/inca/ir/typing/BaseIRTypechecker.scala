@@ -96,25 +96,22 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       typecheckExtensionalCall(name, args, atom, false)
 
     case Eq(lhs, rhs) =>
-      typecheckMust(lhs, None)
-      typecheckMust(rhs, None)
-      
-      val lhsIsFree = isFreeVar(lhs)
-      val rhsIsFree = isFreeVar(rhs)
+      val (lhsMustTy, lhsErrs) = withErrors(typecheckMust(lhs, None))
+      val (rhsMustTy, rhsErrs) = withErrors(typecheckMust(rhs, None))
 
-      if (lhsIsFree && rhsIsFree) {
+      if (lhsErrs.nonEmpty && rhsErrs.nonEmpty) {
+        // both checks fail, both contain unbound variables
         error(s"Neither $lhs nor $rhs is positively bound, comparison not possible", atom)
-      } else if (lhsIsFree) {
-        val rhsTy = typecheckMust(rhs, None)
-        typecheckBind(lhs, Some(rhsTy))
-      } else if (rhsIsFree) {
-        val lhsTy = typecheckMust(lhs, None)
-        typecheckBind(rhs, Some(lhsTy))
-      } else {
-        val lhsTy = typecheckMust(lhs, None)
-        val rhsTy = typecheckMust(rhs, None)
-        if (!subtype(lhsTy, rhsTy) && !subtype(rhsTy, lhsTy))
-          warn("Comparing unrelated types will always fail!", atom)
+      } else if (lhsErrs.isEmpty && rhsErrs.isEmpty) {
+        // both checked successful, not containing unbound vars
+        if (!subtype(lhsMustTy, rhsMustTy) && !subtype(rhsMustTy, lhsMustTy))
+          warn(s"Comparing unrelated types $lhsMustTy and $rhsMustTy will always fail", atom)
+      } else if (rhsErrs.isEmpty) {
+        // rhs checked successful, lhs contains unbound vars
+        typecheckBind(lhs, Some(rhsMustTy))
+      } else if (lhsErrs.isEmpty) {
+        // lhs checked successful, rhs contains unbound vars
+        typecheckBind(rhs, Some(lhsMustTy))
       }
 
     case Neq(lhs, rhs) =>
