@@ -25,20 +25,14 @@ class DataLoweringTest extends AnyFunSuiteLike:
 
   val typechecker = new Typechecker {}
 
-  def stopIfNeeded(): Unit = {
-    val errors = typechecker.getErrors
-    if (errors.nonEmpty)
-      throw Failed(errors)
-  }
-
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")
   def module(language: Language, data: Seq[DataDefinition], atoms: Seq[Atom]): Module =
     val mod = Module("Test", language,
-      Relation("test", Seq(Param("p$0", TAny)), Seq(Body(atoms))) +: data
+      Relation("test", Seq(), Seq(Body(atoms))) +: data
     )
     typechecker.typecheck(mod)
-    stopIfNeeded()
+    typechecker.failOnError()
     mod
 
   test("List DataDef") {
@@ -63,5 +57,5 @@ class DataLoweringTest extends AnyFunSuiteLike:
     val res = stage2lowering.lower(stage1lowering.lower(mData))
     println(res)
     typechecker.typecheck(res)
-    stopIfNeeded()
+    typechecker.failOnError()
   }

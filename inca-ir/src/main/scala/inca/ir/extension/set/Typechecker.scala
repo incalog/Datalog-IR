@@ -12,7 +12,7 @@ trait Typechecker extends BaseIRTypechecker:
       case _ => super.subtype(ty1, ty2)
 
   override def typecheck(atom: Atom): Unit = atom match
-    case SetMember(t1, t2) => (typecheck(t1), typecheck(t2)) match
+    case SetMember(t1, t2) => (typecheck(t1, Bound.Assign), typecheck(t2, Bound.Assert)) match
       case (TSet(ty1), ty2) if !subtype(ty2, ty1) =>
         warn(s"Element of incompatible type $ty2 can not be contained in Set[$ty1]", atom)
       case (TSet(_), _) => // nothing
@@ -20,9 +20,9 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Expected Set, but got $ty1")
     case _ => super.typecheck(atom)
 
-  override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
-    case Set(ts) => TSet(join(ts.map(typecheck)))
-    case SetIntersection(t1, t2) => (typecheck(t1), typecheck(t2)) match
+  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
+    case Set(ts) => TSet(join(ts.map(typecheck(_, Bound.Assert))))
+    case SetIntersection(t1, t2) => (typecheck(t1, Bound.Assert), typecheck(t2, Bound.Assert)) match
       case (TSet(ty1), TSet(ty2)) if !subtype(ty1, ty2) && !subtype(ty1, ty2) =>
         warn(s"Set intersection between unrelated types: $ty1 and $ty2 will be empty.", term)
         TSet(TNothing)
@@ -31,10 +31,10 @@ trait Typechecker extends BaseIRTypechecker:
       case _ =>
         error(s"Expected sets, but got: $t1 ∩ $t2", term)
         TAny
-    case SetUnion(t1, t2) => (typecheck(t1), typecheck(t2)) match
+    case SetUnion(t1, t2) => (typecheck(t1, Bound.Assert), typecheck(t2, Bound.Assert)) match
       case (TSet(ty1), TSet(ty2)) =>
         TSet(join(ty1, ty2))
       case _ =>
         error(s"Expected sets, but got: $t1 ∪ $t2", term)
         TAny
-    case _ => super.typecheckInternal(term, inferred)
+    case _ => super.typecheckInternal(term, inferred, bound)

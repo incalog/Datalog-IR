@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic
 
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.BaseIRTypechecker
-import inca.ir.{Atom, TAny, Term, Type}
+import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   override def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match
@@ -14,25 +14,25 @@ trait Typechecker extends BaseIRTypechecker:
 
   override def typecheck(atom: Atom): Unit = atom match
     case LT(lhs, rhs) =>
-      typecheck(lhs)
-      typecheck(rhs)
+      typecheck(lhs, Bound.Assert)
+      typecheck(rhs, Bound.Assert)
     case GT(lhs, rhs) =>
-      typecheck(lhs)
-      typecheck(rhs)
+      typecheck(lhs, Bound.Assert)
+      typecheck(rhs, Bound.Assert)
     case _ => super.typecheck(atom)
 
-  private def typecheckInfixOp(ty1: Type, ty2: Type) = {
+  private def typecheckInfixOp(ty1: Type, ty2: Type): Type = {
     // TODO: We might implement better typechecking here
     join(ty1, ty2)
   }
 
-  override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
-    case Add(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
-    case Sub(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
-    case Mul(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
-    case Div(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
-    case Min(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
-    case Max(lhs, rhs) => typecheckInfixOp(typecheck(lhs), typecheck(rhs))
+  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
+    case Add(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+    case Sub(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+    case Mul(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+    case Div(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+    case Min(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+    case Max(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
     case IntNum(_) => TInt
     case DoubleNum(_) => TDouble
-    case _ => super.typecheckInternal(term, inferred)
+    case _ => super.typecheckInternal(term, inferred, bound)

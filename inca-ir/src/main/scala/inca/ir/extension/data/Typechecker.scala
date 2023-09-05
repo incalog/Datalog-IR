@@ -18,7 +18,7 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
 
   override def typecheck(atom: Atom): Unit = atom match
     case Match(matchee, cases) =>
-      typecheck(matchee)
+      typecheck(matchee, Bound.Assert)
       cases.foreach {
         case Case(name, vars, body) =>
           val argTys = lookupConstruct(name, atom) match
@@ -32,16 +32,15 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
             case (v@Var(name), idx) =>
               val expectedArgTy = argTys(idx)
               // Make sure new variables get bound
-              if (lookupVar(name).isEmpty)
-                v.typed(expectedArgTy)
-              assertSubtype(typecheck(v), expectedArgTy)
+              registerVar(name, v, expectedArgTy)
+              assertSubtype(typecheck(v, Bound.Assign), expectedArgTy)
           }
           body.foreach(typecheck)
       }
     case _ => super.typecheck(atom)
 
-  override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
+  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
     case Construct(name, data) => lookupConstruct(name, term) match
       case Some((DataDefinition(dataName, _), _)) => TData(dataName)
       case None => TAny
-    case _ => super.typecheckInternal(term, inferred)
+    case _ => super.typecheckInternal(term, inferred, bound)

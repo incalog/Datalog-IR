@@ -1,6 +1,8 @@
 package inca.ir.typing
 
 
+import inca.ir.Failed
+
 import scala.collection.mutable.ListBuffer
 import inca.ir.typing.CompilationMessage.Severity
 import inca.ir.util.SourceLocation
@@ -36,6 +38,13 @@ trait TypeIO:
     errors.foreach(println)
     warnings.foreach(println)
   }
+
+  def failOnError(): Unit = {
+    val errors = getErrors
+    if (errors.nonEmpty)
+      throw Failed(errors)
+  }
+
 
 object TypeIO:
   /* Errors that can occur in typechecking */

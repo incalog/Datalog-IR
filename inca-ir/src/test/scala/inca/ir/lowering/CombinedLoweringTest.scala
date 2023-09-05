@@ -22,12 +22,6 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
 
   val typechecker: Typechecker = new Typechecker {}
 
-  def stopIfNeeded(): Unit = {
-    val errors = typechecker.getErrors
-    if (errors.nonEmpty)
-      throw Failed(errors)
-  }
-
   test("Disjunction Tuple to Base") {
     val tupleLowering = tuple.Lowering(tupleDisjunctionIR, disjunctionIR)
     val disjunctionLowering = disjunction.Lowering(disjunctionIR, baseIR)
@@ -36,8 +30,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "R",
         Seq(
-          Param("a", TTuple(Seq(TAny, TAny))),
-          Param("b", TAny)
+          Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
           Body(Seq(
@@ -59,7 +52,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("S", Seq(Var("a")))))
         )
       ),
 
@@ -69,7 +62,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("T", Seq(Var("a")))))
         )
       )
     ))
@@ -78,8 +71,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
         "R",
         Seq(
           Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
-          Param("b", TAny)
+          Param("a" + separator + "1", TAny)
         ),
         Seq(
           Body(Seq(
@@ -104,7 +96,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("S", Seq(Var("a_0"), Var("a_1")))))
         )
       ),
 
@@ -115,7 +107,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("T", Seq(Var("a_0"), Var("a_1")))))
         )
       )
     ))
@@ -137,8 +129,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "R",
         Seq(
-          Param("a", TTuple(Seq(TAny, TAny))),
-          Param("b", TAny)
+          Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
           Body(Seq(
@@ -160,7 +151,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("S", Seq(Var("a")))))
         )
       ),
 
@@ -170,7 +161,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("T", Seq(Var("a")))))
         )
       )
     ))
@@ -179,8 +170,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
         "R",
         Seq(
           Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
-          Param("b", TAny)
+          Param("a" + separator + "1", TAny)
         ),
         Seq(
           Body(Seq(
@@ -209,7 +199,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("S", Seq(Var("a_0"), Var("a_1")))))
         )
       ),
 
@@ -220,7 +210,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("T", Seq(Var("a_0"), Var("a_1")))))
         )
       )
     ))

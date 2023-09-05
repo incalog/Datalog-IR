@@ -33,9 +33,16 @@ trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
+case class TermType(ty: Type, positive: Boolean)
+
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
-  override def toString: String =
-    s"$name${params.mkString("(", ", ", ")")} ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
+  override def toString: String = {
+    val prefix = s"$name${params.mkString("(", ", ", ")")}"
+    if (bodies.isEmpty)
+      s"$prefix = nil"
+    else
+      s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
+  }
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:

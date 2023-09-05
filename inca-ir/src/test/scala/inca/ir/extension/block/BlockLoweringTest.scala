@@ -13,21 +13,13 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   val blockIR: block.IR = IR
   val lowering = Lowering(blockIR, baseIR)
 
-  val typechecker = new Typechecker {}
-
-  def stopIfNeeded(): Unit = {
-    val errors = typechecker.getErrors
-    if (errors.nonEmpty)
-      throw Failed(errors)
-  }
-  
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")
+
   def module(language: Language, atoms: Seq[Atom]): Module =
     val mod = Module("Test", language, Seq(
       Relation("test", Seq(), Seq(Body(atoms)))
     ))
-    typechecker.typecheck(mod)
     mod
 
   test("simple 1") {

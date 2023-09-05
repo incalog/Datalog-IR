@@ -9,28 +9,21 @@ import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-class LoweringTest extends AnyFunSuiteLike:
+class TupleLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
   val baseIR: BaseIR = new BaseIR {}
   val tupleIR: IR = IR
   val lowering = Lowering(tupleIR, baseIR)
 
-  val typechecker: Typechecker = new Typechecker {}
-
-  def stopIfNeeded(): Unit = {
-    val errors = typechecker.getErrors
-    if (errors.nonEmpty)
-      throw Failed(errors)
-  }
-
   test("Param lower to Base") {
+    val typechecker: Typechecker = new Typechecker {}
     val mod = Module("Test", tupleIR.language, Seq(
+      Relation("T", Seq(Param("a", TTuple(Seq(TAny, TAny)))), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a", TTuple(Seq(TAny, TAny))),
-          Param("b", TAny)
+          Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
           Body(Seq(
@@ -48,25 +41,24 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(Call("T", Seq(Var("a")))))
         )
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
+      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
           Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
-          Param("b", TAny)
+          Param("a" + separator + "1", TAny)
         ),
         Seq(
           Body(Seq(
             Call("S", Seq(
               Var("a" + separator + "0"),
               Var("a" + separator + "1")
-            )
-            )
+            ))
           ))
         )
       ),
@@ -78,7 +70,9 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(
+            Call("T", Seq(Var("a_0"), Var("a_1")))
+          ))
         )
       )
     ))
@@ -89,11 +83,12 @@ class LoweringTest extends AnyFunSuiteLike:
   }
 
   test("Term lower to Base") {
+    val typechecker: Typechecker = new Typechecker {}
     val mod = Module("Test", tupleIR.language, Seq(
+      Relation("T", Seq(Param("a", TTuple(Seq(TAny, TAny)))), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a", TTuple(Seq(TAny, TAny))),
           Param("b", TAny)
         ),
         Seq(
@@ -115,16 +110,17 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TAny)))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(
+            Call("T", Seq(Var("a")))
+          ))
         )
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
+      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
           Param("b", TAny)
         ),
         Seq(
@@ -145,7 +141,9 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(
+            Call("T", Seq(Var("a_0"), Var("a_1")))
+          ))
         )
       )
     ))
@@ -156,7 +154,9 @@ class LoweringTest extends AnyFunSuiteLike:
   }
 
   test("Equality lower to Base") {
+    val typechecker: Typechecker = new Typechecker {}
     val mod = Module("Test", tupleIR.language, Seq(
+      Relation("T", Seq(Param("a", TTuple(Seq(TAny, TAny)))), Seq()),
       Relation(
         "R",
         Seq(
@@ -164,12 +164,14 @@ class LoweringTest extends AnyFunSuiteLike:
         ),
         Seq(
           Body(Seq(
+            Call("T", Seq(Var("a"))),
             Eq(Var("x"), Var("a"))
           ))
         )
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
+      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
@@ -178,6 +180,7 @@ class LoweringTest extends AnyFunSuiteLike:
         ),
         Seq(
           Body(Seq(
+            Call("T", Seq(Var("a_0"), Var("a_1"))),
             Eq(Var("x" + separator + "0"), Var("a" + separator + "0")),
             Eq(Var("x" + separator + "1"), Var("a" + separator + "1")),
           ))
@@ -186,20 +189,24 @@ class LoweringTest extends AnyFunSuiteLike:
     ))
 
     typechecker.typecheck(mod)
-
+    typechecker.failOnError()
+    println(mod)
     assertResult(expectedMod)(lowering.lower(mod))
   }
 
   test("Param project nested lower to Base") {
+    val typechecker: Typechecker = new Typechecker {}
     val mod = Module("Test", tupleIR.language, Seq(
+      Relation("T", Seq(Param("t", TAny)), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a", TTuple(Seq(TAny, TTuple(Seq(TAny, TAny))))),
-          Param("b", TAny)
+          Param("a", TTuple(Seq(TAny, TTuple(Seq(TAny, TAny)))))
         ),
         Seq(
           Body(Seq(
+            Call("T", Seq(Var("t"))),
+            Eq(Var("a"), tuple.Tuple(Seq(Var("t"), tuple.Tuple(Seq(Var("t"), Var("t")))))),
             Call("Test", Seq(
               tuple.Tuple(Seq(
                 Project(Project(Var("a"), 1), 1),
@@ -217,21 +224,28 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a", TTuple(Seq(TAny, TTuple(Seq(TAny, TAny)))))
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(
+            Call("T", Seq(Var("t"))),
+            Eq(Var("a"), tuple.Tuple(Seq(Var("t"), tuple.Tuple(Seq(Var("t"), Var("t")))))),
+          ))
         )
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
+      Relation("T", Seq(Param("t", TAny)), Seq()),
       Relation(
         "R",
         Seq(
           Param("a" + separator + "0", TAny),
           Param("a" + separator + "1" + separator + "0", TAny),
-          Param("a" + separator + "1" + separator + "1", TAny),
-          Param("b", TAny)
+          Param("a" + separator + "1" + separator + "1", TAny)
         ),
         Seq(
           Body(Seq(
+            Call("T", Seq(Var("t"))),
+            Eq(Var("a_0"), Var("t")),
+            Eq(Var("a_1_0"), Var("t")),
+            Eq(Var("a_1_1"), Var("t")),
             Call("Test", Seq(
               Var("a" + separator + "1" + separator + "1"),
               Var("a" + separator + "1" + separator + "0"),
@@ -249,12 +263,18 @@ class LoweringTest extends AnyFunSuiteLike:
           Param("a" + separator + "1" + separator + "1", TAny),
         ),
         Seq(
-          Body(Seq())
+          Body(Seq(
+            Call("T", Seq(Var("t"))),
+            Eq(Var("a_0"), Var("t")),
+            Eq(Var("a_1_0"), Var("t")),
+            Eq(Var("a_1_1"), Var("t")),
+          ))
         )
       )
     ))
 
     typechecker.typecheck(mod)
+    typechecker.failOnError()
 
     assertResult(expectedMod)(lowering.lower(mod))
   }

@@ -11,14 +11,14 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.subtype(ty1, ty2)
 
   override def typecheck(atom: Atom): Unit = atom match
-    case Application(out, fun, args) =>
+    case Application(out, ty, fun, args) =>
       // TODO: We want to typecheck the Scala code
       // TODO: typecheck fun, get the return value and bind the variable
-      args.foreach(typecheck)
+      args.foreach(typecheck(_, Bound.Assert))
+      out.typed(ty)
+      typecheck(out, Bound.Assign)
     case _ => super.typecheck(atom)
 
-  override def typecheckInternal(term: Term, inferred: Option[Type]): Type = term match
-    case Constant(value) =>
-      // TODO: We want to typecheck the Scala code
-      TScala(Scala.TypeName("Any"))
-    case _ => super.typecheckInternal(term, inferred)
+  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
+    case Constant(value, ty) => ty
+    case _ => super.typecheckInternal(term, inferred, bound)

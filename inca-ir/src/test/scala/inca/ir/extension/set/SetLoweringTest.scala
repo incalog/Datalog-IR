@@ -14,8 +14,6 @@ import inca.util.TupleOps
 class SetLoweringTest extends AnyFunSuite {
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  val typechecker = new Typechecker {}
-
   trait SetWithArithmetic extends IR with arithmetic.IR:
     override val name: String = "SetArithmetic"
     override def language: Language = super.language
@@ -32,23 +30,11 @@ class SetLoweringTest extends AnyFunSuite {
   val blockLowering = block.Lowering(Stage1IR, disjunction.IR)
   val disjunctionLowering = disjunction.Lowering(disjunction.IR, BaseIR)
 
-  def stopIfNeeded(): Unit = {
-    val errors = typechecker.getErrors
-    if (errors.nonEmpty)
-      throw Failed(errors)
-  }
-
-
   def param(i: Int, typ: Type = TAny) = Param("p" + i, typ)
   def setParam(i: Int, typ: Type = TAny) = Param("p" + i, TSet(typ))
   def term(i: Int) = Var("p" + i)
 
-  def lower(mod: Module): Seq[Module] = {
-    def typecheck(module: Module): Unit = {
-      typechecker.typecheck(module)
-      stopIfNeeded()
-    }
-
+  def lower(mod: Module)(using typechecker: Typechecker): Seq[Module] = {
     def printModule(module: Module) = {
       println(module)
       println()
@@ -57,7 +43,8 @@ class SetLoweringTest extends AnyFunSuite {
     val lowerings = Seq(lowering, blockLowering, disjunctionLowering)
     var module = mod
     printModule(module)
-    typecheck(module)
+    typechecker.typecheck(module)
+    typechecker.failOnError()
     printModule(module)
     println("----------------")
 
@@ -173,14 +160,12 @@ class SetLoweringTest extends AnyFunSuite {
   }*/
 
   test("Set with arithmetic") {
-    val outParam = Param("x", TSet(TAny))
-    val mainRelation = Relation("main", Seq(param(0, TInt), param(1, TInt), param(2, TInt), outParam), Seq(
+    implicit val typechecker = new Typechecker { }
+    val mainRelation = Relation("main", Seq(Param("x", TSet(TInt))), Seq(
       Body(Seq(
-        Eq(Var("y"), term(1)),
+        Eq(Var("y"), IntNum(1)),
         Eq(Var("z"), Set(Seq(Var("y"), IntNum(2)))),
-        Eq(Var("w"), Set.from()),
-        Eq(Var("v"), Set.from()),
-        SetMember(Var("x"), SetUnion(Var("z"), Set.from())),
+        Eq(Var("x"), SetUnion(Var("z"), Set.from(IntNum(0), IntNum(2)))),
       ))
     ))
     /*val testRelation = Relation("test", Seq(param(0, TInt), setParam(1, TInt), setParam(2, TInt)), Seq(
