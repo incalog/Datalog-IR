@@ -103,13 +103,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       } else if (lhsIsFree) {
         val rhsTy = typecheck(rhs, Bound.Assert)
         // assign the expected type for unbound vars
-        assignType(lhs)(rhsTy)
         typecheck(lhs, Bound.Assign)
+        assignType(lhs)(rhsTy)
       } else if (rhsIsFree) {
         val lhsTy = typecheck(lhs, Bound.Assert)
         // assign the expected type for unbound vars
-        assignType(rhs)(lhsTy)
         typecheck(rhs, Bound.Assign)
+        assignType(rhs)(lhsTy)
       } else {
         val lhsTy = typecheck(lhs, Bound.Assert)
         val rhsTy = typecheck(rhs, Bound.Assert)
@@ -208,7 +208,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Some(annotated) =>
         if (!subtype(inferred, annotated))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
-        annotated
+        term.typed(inferred, subtypeChecked = true)
+        inferred
       case None =>
         term.typed(inferred)
         inferred
