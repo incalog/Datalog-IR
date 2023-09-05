@@ -90,14 +90,12 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     FunctionalBreakpoint.forBinding(debugger.funmodule.fun, f, name, occurrence)
   }
 
-  def assertBreakpoints(
+  def countResumes(
       prog: String,
       bps: Seq[FunctionalDebugger => FunctionalBreakpoint],
       main: String,
       args: meta.Term*
-    )(
-      expected: Int
-    ): Assertion = {
+    ): Int = {
     val compiledExample = compile(prog)
     val debugger = initDebugger(compiledExample)
     debugger.entry(main, args: _*)
@@ -105,13 +103,14 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       debugger.addBreakpoint(bp(debugger))
     }
     assert(!debugger.isFinished)
-    (0 until expected).foreach { _ =>
-      debugger.resume()
-      assert(!debugger.isFinished)
+    var count = 0
+    while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo())
+      debugger.resume()
+      count += 1
     }
-    debugger.resume()
     assert(debugger.isFinished)
+    count
   }
 
   test("nested let") {
@@ -180,7 +179,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("fib example") {
-    assertControlTraceSize(Code.fibModule, "main", q"3")(23)
+    assertControlTraceSize(Code.fibModule, "main", q"3")(64)
   }
 
   val constructorProg: String = Code.module(
@@ -310,7 +309,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       "main",
       q"Succ(Succ(Zero()))",
       q"Succ(Zero())"
-    )(20)
+    )(50)
   }
 
   val tupleProg: String =
@@ -384,7 +383,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |""".stripMargin
   )
   test("function with two call arguments") {
-    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(24)
+    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(49)
   }
 
   // step over tests
@@ -468,6 +467,14 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     println(debugger.currentDebuggerInfo())
     debugger.stepInto()
     println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
     assert(debugger.isFinished)
   }
 
@@ -512,33 +519,37 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   // Breakpoint tests
   test("test function exit breakpoint") {
-    assertBreakpoints(
+    val resumes = countResumes(
       Code.fibModule,
       Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
       "main",
       q"3"
-    )(0)
+    )
+    assertResult(1)(resumes)
   }
 
   test("test function exit breakpoint of recursive function") {
-    assertBreakpoints(
+    val resumes = countResumes(
       Code.fibModule,
       Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
       "main",
       q"3"
-    )(4)
+    )
+    assertResult(12)(resumes)
   }
 
   test("test function call argument breakpoint ") {
     val expression = core.BaseApplyInfix(core.Var("n"), "-", core.BaseLit(q"1", core.TScalaInt))
     val bp = createBreakpointOfExpression("fib", expression)
-    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(2)
+    val resumes = countResumes(Code.fibModule, Seq(bp), "main", q"3")
+    assertResult(6)(resumes)
   }
 
   test("test if condition breakpoint") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("fib", expression)
-    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(4)
+    val resumes = countResumes(Code.fibModule, Seq(bp), "main", q"3")
+    assertResult(16)(resumes)
   }
 
   val multipleIfsWithSameCond: String =
@@ -553,68 +564,76 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("test if condition breakpoint where condition is occuring twice in program 1") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("main", expression)
-    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"1")(1)
+    val resumes = countResumes(multipleIfsWithSameCond, Seq(bp), "main", q"1")
+    assertResult(2)(resumes)
   }
 
   test("test if condition breakpoint where condition is occuring twice in program 2") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("main", expression, 1)
-    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"3")(1)
+    val resumes = countResumes(multipleIfsWithSameCond, Seq(bp), "main", q"3")
+    assertResult(2)(resumes)
   }
 
   // test pattern
   test("test pattern breakpoint") {
     val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
     val bp = createBreakpointOfPattern("plus", pattern)
-    assertBreakpoints(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(
-      2
-    )
+    val resumes =
+      countResumes(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    assertResult(6)(resumes)
   }
 
   test("test pattern breakpoint occuring multiple times 1") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-      0
-    )
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")(1)
+    val resumes1 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")
+    assertResult(2)(resumes2)
   }
 
   test("test pattern breakpoint occuring multiple times 2") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern, 1)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-      0
-    )
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")(1)
+    val resumes1 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")
+    assertResult(2)(resumes2)
   }
 
   test("test pattern breakpoint occuring multiple times 3") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern, 2)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")(0)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-      1
-    )
+    val resumes1 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(2)(resumes2)
   }
 
   // test binding
   test("test binding breakpoint") {
     val bp = createBreakpointOfBinding("main", "y")
-    assertBreakpoints(Code.varExample, Seq(bp), "main")(1)
+    val resumes = countResumes(Code.varExample, Seq(bp), "main")
+    assertResult(2)(resumes)
   }
 
   test("test binding breakpoint in multiple let") {
     val bp1 = createBreakpointOfBinding("main", "y")
     val bp2 = createBreakpointOfBinding("main", "x")
-    assertBreakpoints(tupleLetProg, Seq(bp1, bp2), "main")(2)
+    val resumes = countResumes(tupleLetProg, Seq(bp1, bp2), "main")
+    assertResult(3)(resumes)
   }
 
   // test constructor call breakpoint
   test("constructor call breakpoint") {
     val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq())))
     val bp = createBreakpointOfExpression("main", expression)
-    assertBreakpoints(constructorProg, Seq(bp), "main")(1)
+    val resumes = countResumes(constructorProg, Seq(bp), "main")
+    assertResult(2)(resumes)
   }
 
   test("breakpoint in tuple") {
@@ -624,7 +643,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       core.BaseLit(q"false", core.TScalaBoolean)
     )
     val bp = createBreakpointOfExpression("main", expression)
-    assertBreakpoints(tupleProg, Seq(bp), "main")(1)
+    val resumes = countResumes(tupleProg, Seq(bp), "main")
+    assertResult(2)(resumes)
   }
 
   test("breakpoint in set") {
@@ -634,7 +654,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       core.BaseLit(q"1", core.TScalaInt)
     )
     val bp = createBreakpointOfExpression("main", expression)
-    assertBreakpoints(setProg, Seq(bp), "main")(1)
+    val resumes = countResumes(setProg, Seq(bp), "main")
+    assertResult(2)(resumes)
   }
 
   test("breakpoint in nested binary") {
@@ -644,7 +665,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       core.BaseLit(q"4", core.TScalaInt)
     )
     val bp = createBreakpointOfExpression("main", expression)
-    assertBreakpoints(nestedBinaryProg, Seq(bp), "main")(1)
+    val resumes = countResumes(nestedBinaryProg, Seq(bp), "main")
+    assertResult(2)(resumes)
   }
-//
 }

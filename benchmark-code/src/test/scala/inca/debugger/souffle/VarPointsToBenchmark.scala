@@ -49,28 +49,8 @@ object VarPointsToBenchmark {
     val scope = new QueryScope(config.compiled.dataModel)
     val (_engine, _database) =
       EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    // EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     (blCompiled, compiled, DatalogRuntime(_engine, _database, blCompiled))
   }
-
-  // returns running time and memory
-  //  def measureBottomUp(config: BaseConfig): (Long, Long) = {
-  //    val (compiled, runtime) = initRuntime(config)
-  //    // measure running time
-  //    val matcher = runtime.engine.getMatcher(compiled.psystemModule.patterns(config.entry)())
-  //    val start = System.currentTimeMillis()
-  //    runtime.engine.delayUpdatePropagation { () =>
-  //      runtime.db.processDatabaseInput(config.input)
-  //    }
-  //    val end = System.currentTimeMillis()
-  //    val endCount = System.currentTimeMillis()
-  //    // measure memory
-  //    MemoryUtil.collectGarbage()
-  //    val mem = MemoryUtil.usedMemoryInMBytes()
-  //
-  //    EnginePool.disposeAllEngines()
-  //    (end - start, mem)
-  //  }
 
   def initBottomUp(
       compiled: CompiledDatalogModule,
@@ -135,18 +115,6 @@ object VarPointsToBenchmark {
         extendOver(callee, end - start)
       }
     }
-
-//    val expected = debugger.state.readBottomUp(config.entry, config.args)
-//    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-//    println(result.size)
-//    println(result)
-//    println(expected.size)
-//    println(expected)
-//    val tooMuch = result.entries.diff(expected.entries)
-//    val missing = expected.entries.diff(result.entries)
-//    println(tooMuch)
-//    println(missing)
-//    assert(result == expected)
 
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInMBytes()
@@ -224,24 +192,9 @@ object VarPointsToBenchmark {
       extendRuleSemantics(ruleName, end - start)
     }
 
-//    val result = debugger.queryStack.top.asInstanceOf[QueryResult].result
-//    val expected = debugger.state.readBottomUp(config.entry, config.args)
-//
-//    println(result.size)
-//    println(result)
-//    println(expected.size)
-//    println(expected)
-//    val tooMuch = result.entries.diff(expected.entries)
-//    val missing = expected.entries.diff(result.entries)
-//    println(tooMuch)
-//    println(missing)
-//    assert(result == expected)
-
     MemoryUtil.collectGarbage()
     val mem = MemoryUtil.usedMemoryInMBytes()
     println(s"${config.name} memory ${mem}")
-//    println(s"ATOMINTOS ${debugger.numerOfAtomInto}")
-//    println(s"RECORDED INTOS: ${ruleMeasurements("AtomInto").size}")
     EnginePool.disposeAllEngines()
     MemoryUtil.collectGarbage()
     ruleMeasurements.toMap
@@ -254,19 +207,12 @@ object VarPointsToBenchmark {
       scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
       scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics),
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoSemantics)
-//      scenario1v2(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics),
-//      scenario2v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics),
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.PureIntoOptSemantics)
     )
     val overConfigs = Seq(
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale1,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale2,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale3,
       scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridSemantics) -> scenario3Orcale4
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale1,
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale2,
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale3,
-//      scenario3v1(DoopProgram.MiniJavac, DebuggingSemantics.HybridOptSemantics) -> scenario3Orcale4
     )
 
     println("INTO")

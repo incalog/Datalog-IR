@@ -15,7 +15,6 @@ import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import inca.util.FilesUtil
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import scala.collection.mutable
 import truechange.EditScript

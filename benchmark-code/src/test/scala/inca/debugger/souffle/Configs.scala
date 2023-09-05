@@ -69,20 +69,10 @@ object Configs {
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
         new DelayingDebuggerState(rt)
     }
-    case object PureIntoOptSemantics extends DebuggingSemantics {
-      override def name: String = "PureIntoOpt"
-      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new DelayingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
-    }
     case object HybridSemantics extends DebuggingSemantics {
       override def name: String = "HybridSemantics"
       override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
         new DelayingDebuggerState(rt)
-    }
-    case object HybridOptSemantics extends DebuggingSemantics {
-      override def name: String = "HybridSemanticsOpt"
-      override def debuggingState: DatalogRuntime => DebuggerState = (rt: DatalogRuntime) =>
-        new DelayingDebuggerState(rt) with AvoidNonProducingIterationDebuggerState
     }
   }
 
@@ -106,26 +96,6 @@ object Configs {
     def name: String =
       s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}_${semantics.name}"
   }
-
-//  case class BottomUpVTopDownConfig(
-//      doopProg: DoopProgram,
-//      entry: String,
-//      args: ValueTable,
-//      warmup: Int,
-//      runs: Int)
-//      extends BaseConfig {
-//    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
-//  }
-//
-//  case class StepIntoVStepOverConfig(
-//      doopProg: DoopProgram,
-//      entry: String,
-//      args: ValueTable,
-//      warmup: Int,
-//      runs: Int)
-//      extends BaseConfig {
-//    def name: String = s"VarPointsTo_${doopProg.path}_${entry}_${args.columns.mkString(";")}"
-//  }
 
   def readSouffleProgram(path: String): CompiledSouffleModule = {
     val file = new File(path)
@@ -273,12 +243,10 @@ object Configs {
     def shouldStepInto: Query => (Boolean, Predicate) = f
   }
 
-  // into pred scenarios
+  // scenarios
   val scenario3Orcale1: Oracle = constructIntoPredsOracle(Set("VarPointsTo"))
   val scenario3Orcale2: Oracle = constructIntoPredsOracle(Set("VarPointsTo", "StaticFieldPointsTo"))
   val scenario3Orcale3: Oracle = constructIntoPredsOracle(
     Set("VarPointsTo", "InstanceFieldPointsTo"))
   val scenario3Orcale4: Oracle = constructIntoPredsOracle(Set("VarPointsTo", "Reachable"))
-
-  // over pred scenarios
 }
