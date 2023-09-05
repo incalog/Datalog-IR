@@ -1,0 +1,147 @@
+public class syntaxtree.NodeOptional extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.Node node;
+
+    public void <init>()
+    {
+        syntaxtree.NodeOptional this#_0;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.NodeOptional: syntaxtree.Node node> = null;
+
+        return;
+    }
+
+    public void <init>(syntaxtree.Node)
+    {
+        syntaxtree.NodeOptional this#_0;
+        syntaxtree.Node n#_0;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        n#_0 := @parameter0: syntaxtree.Node;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        virtualinvoke this#_0.<syntaxtree.NodeOptional: void addNode(syntaxtree.Node)>(n#_0);
+
+        return;
+    }
+
+    public void addNode(syntaxtree.Node)
+    {
+        syntaxtree.NodeOptional this#_0;
+        syntaxtree.Node $stack2, n#_0;
+        java.lang.Error $stack3;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        n#_0 := @parameter0: syntaxtree.Node;
+
+        $stack2 = this#_0.<syntaxtree.NodeOptional: syntaxtree.Node node>;
+
+        if $stack2 == null goto label1;
+
+        $stack3 = new java.lang.Error;
+
+        specialinvoke $stack3.<java.lang.Error: void <init>(java.lang.String)>("Attempt to set optional node twice");
+
+        throw $stack3;
+
+     label1:
+        this#_0.<syntaxtree.NodeOptional: syntaxtree.Node node> = n#_0;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.NodeOptional this#_0;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.NodeOptional)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.NodeOptional this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.NodeOptional this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeOptional)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.NodeOptional this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.NodeOptional,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+
+    public boolean present()
+    {
+        syntaxtree.NodeOptional this#_0;
+        syntaxtree.Node $stack1;
+        boolean $stack2, $stack2_$$A_1, $stack2_$$A_2;
+
+        this#_0 := @this: syntaxtree.NodeOptional;
+
+        $stack1 = this#_0.<syntaxtree.NodeOptional: syntaxtree.Node node>;
+
+        if $stack1 == null goto label1;
+
+        $stack2 = 1;
+
+(0)     goto label2;
+
+     label1:
+(1)     $stack2_$$A_1 = 0;
+
+     label2:
+        $stack2_$$A_2 = Phi($stack2 #0, $stack2_$$A_1 #1);
+
+        return $stack2_$$A_2;
+    }
+}

@@ -1,0 +1,678 @@
+package inca.frontend.functional.debugger
+
+import inca.compiler.Compiler
+import inca.frontend.functional.compiler.CompiledFunctionalModule
+import inca.frontend.functional.compiler.FunctionalOptions
+import inca.frontend.functional.core
+import inca.frontend.functional.core.Expression
+import inca.frontend.functional.core.Pattern
+import inca.runtime.context.DataModel
+import inca.runtime.context.QueryScope
+import inca.runtime.EnginePool
+import inca.util.FileUtil
+import meta.quasiquotes._
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertion
+import org.scalatest.BeforeAndAfterEach
+import truechange.EditScript
+
+class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
+
+  def initDebugger(module: CompiledFunctionalModule): FunctionalDebugger = {
+    val debugger = new FunctionalDebugger(module)
+    setupDatabaseRuntime(debugger, module.dataModel)
+    debugger
+  }
+
+  def compile(code: String): CompiledFunctionalModule =
+    Compiler.compileFunctional(code, FunctionalOptions().withOptimizations(Seq()))
+
+  def setupDatabaseRuntime(
+      debugger: FunctionalDebugger,
+      dataModel: DataModel,
+      es: EditScript = EditScript(Seq())
+    ): Unit = {
+    val scope = new QueryScope(dataModel)
+    val (_engine, _database) =
+      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    _engine.delayUpdatePropagation(() => {
+      _database.processEditScript(es)
+    })
+  }
+
+  def assertControlTraceSize(
+      prog: String,
+      main: String,
+      args: meta.Term*
+    )(
+      expected: Int
+    ): Assertion = {
+    val compiledExample = compile(prog)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry(main, args: _*)
+    println(debugger.currentDebuggerInfo())
+    while (!debugger.isFinished) {
+      debugger.stepInto()
+      println(debugger.currentDebuggerInfo())
+    }
+    if (expected != debugger.functionalControlTrace.size)
+      debugger.functionalControlTrace.foreach(println)
+    assertResult(expected)(debugger.functionalControlTrace.size)
+  }
+
+  def createBreakpointOfExpression(
+      f: String,
+      exp: Expression,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+    FunctionalBreakpoint.forExpression(debugger.funmodule.fun, f, exp, occurrence)
+  }
+
+  def createBreakpointOfPattern(
+      f: String,
+      p: Pattern,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+    FunctionalBreakpoint.forPattern(debugger.funmodule.fun, f, p, occurrence)
+  }
+
+  def createBreakpointOfBinding(
+      f: String,
+      name: String,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+    FunctionalBreakpoint.forBinding(debugger.funmodule.fun, f, name, occurrence)
+  }
+
+  def countResumes(
+      prog: String,
+      bps: Seq[FunctionalDebugger => FunctionalBreakpoint],
+      main: String,
+      args: meta.Term*
+    ): Int = {
+    val compiledExample = compile(prog)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry(main, args: _*)
+    bps.foreach { bp =>
+      debugger.addBreakpoint(bp(debugger))
+    }
+    assert(!debugger.isFinished)
+    var count = 0
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo())
+      debugger.resume()
+      count += 1
+    }
+    assert(debugger.isFinished)
+    count
+  }
+
+  test("nested let") {
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    assertControlTraceSize(code, "main")(5)
+  }
+
+  val tupleLetProg: String =
+    s"""module M
+      |@main def main(): Int =
+      |  let (x, y) = (1 + 2, 2 + 3) in
+      |    x + y
+      |""".stripMargin
+  test("multiple names let") {
+    assertControlTraceSize(tupleLetProg, "main")(6)
+  }
+
+  test("nested let 2") {
+    val code =
+      s"""module M
+        |@main def main(): Int =
+        |  let x = 1 + 2 in
+        |    let y = 2 + 3 in
+        |      x + y
+        |""".stripMargin
+    assertControlTraceSize(code, "main")(6)
+  }
+
+  test("simple function call") {
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    assertControlTraceSize(code, "main")(4)
+  }
+
+  test("if example") {
+    val code = FileUtil.readFile("functional/unittests/If.finca")
+    assertControlTraceSize(code, "main")(3)
+  }
+
+  test("if example 2") {
+    val code = FileUtil.readFile("functional/unittests/If2.finca")
+    assertControlTraceSize(code, "main")(7)
+  }
+
+  def ifControlJump(b1: Boolean, b2: Boolean): String =
+    s"""module M
+      |@main def main(): Int =
+      |  if ($b1 == true)
+      |    if ($b2 == true)
+      |      0 + 0
+      |    else
+      |      1 + 0
+      |  else
+      |    if ($b2 == true)
+      |      2 + 0
+      |    else
+      |      3 + 0
+      |""".stripMargin
+
+  test("if control jumping") {
+    for {
+      b1 <- Seq(true, false)
+      b2 <- Seq(true, false)
+    } {
+      assertControlTraceSize(ifControlJump(b1, b2), "main")(4)
+    }
+  }
+
+  test("fib example") {
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    assertControlTraceSize(code, "main", q"3")(64)
+  }
+
+  val matchProg: String =
+    s"""module M
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
+      |@main def main(exp: Exp): Int = exp match {
+      |  case Var(x) => 1 + 1
+      |  case Num(i) => 2 + 2
+      |  case Add(l, r) => 3 + 3
+      |  case Let(n, bound, body) => 4 + 4
+      |}
+      |""".stripMargin
+
+  test("pattern matching multiple constructors") {
+    assertControlTraceSize(matchProg, "main", q"""Var("x")""")(3)
+    assertControlTraceSize(matchProg, "main", q"""Num(1)""")(4)
+    assertControlTraceSize(matchProg, "main", q"""Add(Var("y"), Num(2))""")(5)
+    assertControlTraceSize(matchProg, "main", q"""Let("x", Num(3), Add(Var("x"), Num(2)))""")(6)
+  }
+
+  val nestedMatchProg: String =
+    s"""module M
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
+      |@main def main(exp1: Exp, exp2: Exp): Boolean = exp1 match {
+      |  case Var(x1) => exp2 match {
+      |    case Var(x2) => true
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => false
+      |  }
+      |  case Num(i1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => true
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => false
+      |  }
+      |  case Add(l1, r1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => true
+      |    case Let(n2, bound2, body2) => false
+      |    }
+      |  case Let(n1, bound1, body1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => true
+      |  }
+      |}
+      |""".stripMargin
+
+  test("nested pattern matching") {
+    val (v, n, a, l) =
+      (q"""Var("x")""", q"Num(1)", q"Add(Num(1), Num(2))", q"""Let("x", Num(1), Num(2))""")
+
+    assertControlTraceSize(nestedMatchProg, "main", v, v)(3)
+    assertControlTraceSize(nestedMatchProg, "main", v, n)(4)
+    assertControlTraceSize(nestedMatchProg, "main", v, a)(5)
+    assertControlTraceSize(nestedMatchProg, "main", v, l)(6)
+    assertControlTraceSize(nestedMatchProg, "main", n, v)(4)
+    assertControlTraceSize(nestedMatchProg, "main", n, n)(5)
+    assertControlTraceSize(nestedMatchProg, "main", n, a)(6)
+    assertControlTraceSize(nestedMatchProg, "main", n, l)(7)
+    assertControlTraceSize(nestedMatchProg, "main", a, v)(5)
+    assertControlTraceSize(nestedMatchProg, "main", a, n)(6)
+    assertControlTraceSize(nestedMatchProg, "main", a, a)(7)
+    assertControlTraceSize(nestedMatchProg, "main", a, l)(8)
+    assertControlTraceSize(nestedMatchProg, "main", l, v)(6)
+    assertControlTraceSize(nestedMatchProg, "main", l, n)(7)
+    assertControlTraceSize(nestedMatchProg, "main", l, a)(8)
+    assertControlTraceSize(nestedMatchProg, "main", l, l)(9)
+  }
+
+  val matchInIfProg: String =
+    s"""module Mod
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+      |@main def main(flag: Boolean, exp: Exp): Boolean =
+      |  if (flag == true) {
+      |    exp match {
+      |      case Var(x) => true
+      |      case Num(x) => false
+      |      case Add(x, y) => true
+      |    }
+      |  } else {
+      |    exp match {
+      |      case Var(x) => false
+      |      case Num(x) => true
+      |      case Add(x, y) => true
+      |    }
+      |  }
+      |""".stripMargin
+  test("pattern match in if expression") {
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"""Var("x")""")(3)
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"Num(1)")(4)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"Num(1)")(4)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"""Var("x")""")(3)
+  }
+
+  val ifInMatchProg: String =
+    s"""module Mod
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+      |@main def main(flag: Boolean, exp: Exp): Int = exp match {
+      |  case Var(x) => if (flag == true) 1+1 else 2+2
+      |  case Num(x) => if (flag == true) 3+3 else 3+3
+      |  case Add(x, y) => 4 + 4
+      |}
+      |""".stripMargin
+  test("if expression in pattern match") {
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"""Var("x")""")(4)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"""Var("x")""")(4)
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"Num(1)")(5)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"Num(1)")(5)
+  }
+
+  test("plus example extra") {
+    val code =
+      s"""
+        |module Test
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |def plus(m: Nat, n: Nat): Nat =
+        | let x = 1 + 2 in
+        | m match {
+        |  case Zero() => n
+        |  case Succ(pred) => Succ(plus(pred, n))
+        |}
+        |@main def main(x: Nat, y: Nat): Nat = plus(x, y)
+        |""".stripMargin
+    assertControlTraceSize(
+      code,
+      "main",
+      q"Succ(Succ(Zero()))",
+      q"Succ(Zero())"
+    )(50)
+  }
+
+  val tupleProg: String =
+    s"""module M
+      |@main def main(): (Int, Boolean) = (1 + 1, true && false)
+      |""".stripMargin
+  test("tuple example") {
+    assertControlTraceSize(tupleProg, "main")(3)
+  }
+
+  val setProg: String =
+    s"""module M
+      |@main def main(): Set[Int] = {1 + 1, 2 + 1, 3 + 1}
+      |""".stripMargin
+  test("set example") {
+    assertControlTraceSize(setProg, "main")(4)
+  }
+
+  val setCompProg: String =
+    s"""module M
+      |@main def main: Set[Int] = { (x+1) | x in intSet()}
+      |def intSet(): Set[Int] = {1, 2, 3, 4}
+      |""".stripMargin
+  test("set comprehension") {
+    assertControlTraceSize(setCompProg, "main")(6)
+  }
+
+  val nestedBinaryProg: String =
+    s"""module M
+      |@main def main(): Int = (1 + 4) + (3 + 4)
+      |""".stripMargin
+  test("nested binary") {
+    assertControlTraceSize(nestedBinaryProg, "main")(4)
+  }
+
+  val deeperNestedBinaryProg: String =
+    s"""module M
+      |@main def main(): Int = ((1 + 5) + 4) + (3 + 4)
+      |""".stripMargin
+  test("deeper nested binary") {
+    assertControlTraceSize(deeperNestedBinaryProg, "main")(5)
+  }
+
+  ignore("fold example") {
+    val code: String =
+      s"""module M
+        |def add(x: Int, y: Int): Int = x + y
+        |@main def main(): Int = fold(0, add, {1 + 1, 2 + 3, 3 + 4})
+        |""".stripMargin
+    assertControlTraceSize(code, "main")(6)
+  }
+
+  // TODO lambda cannot be compiled
+  ignore("lambda example") {
+    val code: String =
+      s"""module M
+        |@main def main(): Int = ((x: Int) => x + 1)(4)
+        |""".stripMargin
+    assertControlTraceSize(code, "main")(6)
+  }
+
+  val twoFunctionCallArgs: String =
+    s"""module TwoFunctionCallArgs
+      |data Nat = Zero() | Succ(Nat)
+      |def plus(m: Nat, n: Nat): Nat = m match {
+      |  case Zero() => n
+      |  case Succ(pred) => Succ(plus(pred, n))
+      |}
+      |@main def main(x: Nat, y: Nat): Nat = plus(Succ(Zero()), plus(x, y))
+      |""".stripMargin
+  test("function with two call arguments") {
+    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(49)
+  }
+
+  // step over tests
+  test("step over function call of non-recursive function") {
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  test("step over nested function call of non-recursive function") {
+    val code =
+      s"""module M
+        |def inc(x: Int): Int = x + 1
+        |@main def main(): Int = inc(inc(0))
+        |""".stripMargin
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  test("step over function call with multiple arguments as calls") {
+    val code =
+      s"""module M
+        |def add(x: Int, y: Int): Int = x + y
+        |@main def main(): Int = add(add(1, 2), add(3, add(4, 5)))
+        |""".stripMargin
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  test("step over nested function calls") {
+    val compiledExample = compile(twoFunctionCallArgs)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over recursive call of function") {
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  //  // step out tests
+  test("step out of function call (level 1)") {
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  test("step out of function call (level 2)") {
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  // Breakpoint tests
+  test("test function exit breakpoint") {
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(
+      code,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
+      "main",
+      q"3"
+    )
+    assertResult(1)(resumes)
+  }
+
+  test("test function exit breakpoint of recursive function") {
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(
+      code,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
+      "main",
+      q"3"
+    )
+    assertResult(12)(resumes)
+  }
+
+  test("test function call argument breakpoint ") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "-", core.BaseLit(q"1", core.TScalaInt))
+    val bp = createBreakpointOfExpression("fib", expression)
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"3")
+    assertResult(6)(resumes)
+  }
+
+  test("test if condition breakpoint") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("fib", expression)
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"3")
+    assertResult(16)(resumes)
+  }
+
+  val multipleIfsWithSameCond: String =
+    s"""module M
+      |@main def main(n: Int): Int = 
+      |  let x = 1 in 
+      |    let y = (if (n == 0) 1 else 2) in
+      |      let z = (if (n == 0) 2 else 1) in
+      |      x + z
+      |""".stripMargin
+
+  test("test if condition breakpoint where condition is occuring twice in program 1") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("main", expression)
+    val resumes = countResumes(multipleIfsWithSameCond, Seq(bp), "main", q"1")
+    assertResult(2)(resumes)
+  }
+
+  test("test if condition breakpoint where condition is occuring twice in program 2") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("main", expression, 1)
+    val resumes = countResumes(multipleIfsWithSameCond, Seq(bp), "main", q"3")
+    assertResult(2)(resumes)
+  }
+
+  // test pattern
+  test("test pattern breakpoint") {
+    val pattern =
+      core.ConstructorPattern(core.Name("Succ"), Seq(core.PatternVariable(core.Name("pred"))))
+    val bp = createBreakpointOfPattern("plus", pattern)
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    assertResult(6)(resumes)
+  }
+
+  test("test pattern breakpoint occuring multiple times 1") {
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
+    val bp = createBreakpointOfPattern("main", pattern)
+    val resumes1 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")
+    assertResult(2)(resumes2)
+  }
+
+  test("test pattern breakpoint occuring multiple times 2") {
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
+    val bp = createBreakpointOfPattern("main", pattern, 1)
+    val resumes1 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")
+    assertResult(2)(resumes2)
+  }
+
+  test("test pattern breakpoint occuring multiple times 3") {
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
+    val bp = createBreakpointOfPattern("main", pattern, 2)
+    val resumes1 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")
+    assertResult(1)(resumes1)
+    val resumes2 =
+      countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
+    assertResult(2)(resumes2)
+  }
+
+  // test binding
+  test("test binding breakpoint") {
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    val bp = createBreakpointOfBinding("main", "y")
+    val resumes = countResumes(code, Seq(bp), "main")
+    assertResult(2)(resumes)
+  }
+
+  test("test binding breakpoint in multiple let") {
+    val bp1 = createBreakpointOfBinding("main", "y")
+    val bp2 = createBreakpointOfBinding("main", "x")
+    val resumes = countResumes(tupleLetProg, Seq(bp1, bp2), "main")
+    assertResult(3)(resumes)
+  }
+
+  test("breakpoint in tuple") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"true", core.TScalaBoolean),
+      "&&",
+      core.BaseLit(q"false", core.TScalaBoolean)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    val resumes = countResumes(tupleProg, Seq(bp), "main")
+    assertResult(2)(resumes)
+  }
+
+  test("breakpoint in set") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"2", core.TScalaInt),
+      "+",
+      core.BaseLit(q"1", core.TScalaInt)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    val resumes = countResumes(setProg, Seq(bp), "main")
+    assertResult(2)(resumes)
+  }
+
+  test("breakpoint in nested binary") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"3", core.TScalaInt),
+      "+",
+      core.BaseLit(q"4", core.TScalaInt)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    val resumes = countResumes(nestedBinaryProg, Seq(bp), "main")
+    assertResult(2)(resumes)
+  }
+}

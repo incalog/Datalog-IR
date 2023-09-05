@@ -53,7 +53,7 @@
 .decl isInterfaceType(?t:InterfaceType)
 .decl DirectSuperclass(?class:ClassType, ?superclass:ClassType)
 .input DirectSuperclass(IO="file", filename="DirectSuperclass.facts", delimiter="\t")
-.decl DirectSuperinterface(?ref:ReferenceType, ?interface:InterfaceType)
+.decl DirectSuperinterface(?type:ReferenceType, ?supertype:InterfaceType)
 .input DirectSuperinterface(IO="file", filename="DirectSuperinterface.facts", delimiter="\t")
 .decl ApplicationClass(?ref:ReferenceType)
 .decl MainClass(?class:ClassType)
@@ -356,7 +356,7 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
     .decl DirectSubclass(?a:Type, ?c:Type)
     .decl Subclass(?c:Type, ?a:Type)
     .decl Superclass(?c:Type, ?a:Type)
-    .decl Superinterface(?k:Type, ?c:Type)
+    .decl Superinterface(?supertype:Type, ?type:Type)
     .decl SubtypeOf(?subtype:Type, ?type:Type)
     .output SubtypeOf
     .printsize SubtypeOf
@@ -417,8 +417,8 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
         Superinterface(?t, ?s).
     SubtypeOf(?s, ?t) :-
         isArrayType(?s),
-        isType(?t),
-        ?t = "java.lang.Object".
+        ?t = "java.lang.Object",
+        isType(?t).
     SubtypeOf(?s, ?t) :-
         ComponentType(?s, ?sc),
         ComponentType(?t, ?tc),
@@ -427,14 +427,14 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
         SubtypeOf(?sc, ?tc).
     SubtypeOf(?s, ?t) :-
         isArrayType(?s),
+        ?t = "java.lang.Cloneable",
         isInterfaceType(?t),
-        isType(?t),
-        ?t = "java.lang.Cloneable".
+        isType(?t).
     SubtypeOf(?s, ?t) :-
         isArrayType(?s),
+        ?t = "java.io.Serializable",
         isInterfaceType(?t),
-        isType(?t),
-        ?t = "java.io.Serializable".
+        isType(?t).
     SubtypeOf(?t, ?t) :-
         isType(?t).
     SubtypeOfDifferent(?s, ?t) :-
@@ -533,8 +533,8 @@ VarPointsTo0(?var, ?fld, ?baseheap) :-
     LoadInstanceField(?base, ?fld, ?var, ?inmethod),
     VarPointsTo(?baseheap, ?base).
 VarPointsTo(?heap, ?var) :-
-    AssignHeapAllocation(?heap, ?var, ?inMethod),
-    Reachable(?inMethod).
+    Reachable(?inMethod),
+    AssignHeapAllocation(?heap, ?var, ?inMethod).
 VarPointsTo(?heap, ?to) :-
     Assign(?from, ?to),
     VarPointsTo(?heap, ?from).

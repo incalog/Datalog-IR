@@ -1,0 +1,5 @@
+<Point: Point increaseXTill(int)>/if/0	1	<Point: Point increaseXTill(int)>/$stack6
+<Point: Point increaseXTill(int)>/if/0	2	<Point: Point increaseXTill(int)>/l1#_0
+<Point: Point increaseXTill2(int)>/if/0	1	<Point: Point increaseXTill2(int)>/$stack6
+<Point: Point increaseXTill2(int)>/if/0	2	<Point: Point increaseXTill2(int)>/l1#_0
+<Point: int abs(int)>/if/0	1	<Point: int abs(int)>/l1#_0

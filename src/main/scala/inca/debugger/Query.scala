@@ -1,0 +1,110 @@
+package inca.debugger
+
+import inca.backend.ir.Datalog
+import inca.debugger.ValueTable
+
+sealed trait QueryState
+object QueryState {
+  case object RuleMerge extends QueryState
+  case object RuleResult extends QueryState
+  case object AtomEq extends QueryState
+  case object AtomNeq extends QueryState
+  // case object AtomEqL extends QueryState
+  // case object AtomEqR extends QueryState
+  case object AtomEDB extends QueryState
+  case object AtomPrimitive extends QueryState
+  case object AtomShouldNotInterest extends QueryState
+  case object AtomIntoOrSkip extends QueryState
+  case object QueryUnion extends QueryState
+  case object QueryEnd extends QueryState
+  case object QueryResult extends QueryState
+}
+
+sealed trait TableSign
+case object PositiveTable extends TableSign
+case object NegativeTable extends TableSign
+
+sealed trait Query {
+  def pred: Predicate
+  def state: QueryState
+}
+object Query {
+  def toTableless(q: Query): Query = q match {
+    case Subquery(p, _, _, _, bodies) =>
+      val tablelessRules = bodies.map {
+        case RuleResult(_) => RuleResult(ValueTable.empty(Seq()))
+        case Rule(pred, params, atoms) =>
+          val tablelessAtoms = atoms.map {
+            case AtomResult(_, sign) => AtomResult(ValueTable.empty(Seq()), sign)
+            case a => a
+          }
+          Rule(pred, params, tablelessAtoms)
+      }
+      Subquery(
+        p,
+        ValueTable.empty(Seq()),
+        ValueTable.empty(Seq()),
+        ValueTable.empty(Seq()),
+        tablelessRules)
+    case QueryResult(p, _, _) => QueryResult(p, ValueTable.empty(Seq()), ValueTable.empty(Seq()))
+  }
+}
+case class Subquery(
+    pred: Predicate,
+    args: ValueTable,
+    result: ValueTable,
+    supplementary: ValueTable,
+    bodies: Seq[RuleEval])
+    extends Query {
+  override def toString: Predicate =
+    s"""Subquery($pred,
+      |  sup = $supplementary,
+      |  pos = ${if (bodies.isEmpty) "eps" else bodies.head.toString})""".stripMargin
+
+  override def state: QueryState =
+    if (bodies.isEmpty)
+      QueryState.QueryEnd
+    else
+      bodies.head match {
+        case Rule(_, _, atoms) =>
+          if (atoms.isEmpty)
+            QueryState.RuleResult
+          else
+            atoms.head match {
+              case Atom(atom) =>
+                atom match {
+                  case Datalog.Call(name, args, transitive, neg) => QueryState.AtomIntoOrSkip
+                  case Datalog.ExtensionalCall(name, args, neg) => QueryState.AtomEDB
+                  case Datalog.Compare(Datalog.EqComparator, lhs, rhs) => QueryState.AtomEq
+                  case Datalog.Compare(Datalog.NeqComparator, lhs, rhs) => QueryState.AtomNeq
+                  case Datalog.HasType(t, typ) => QueryState.AtomShouldNotInterest
+                  case Datalog.NotHasType(t, typ) => QueryState.AtomShouldNotInterest
+                  case Datalog.Path(src, srcTy, link, trg, trgTy) =>
+                    QueryState.AtomShouldNotInterest
+                  case Datalog.NoPath(t, ty, link, termIsSource) => QueryState.AtomShouldNotInterest
+                  case Datalog.Undef(t) => QueryState.AtomShouldNotInterest
+                  case Datalog.Computed(lhs, computation) => QueryState.AtomPrimitive
+                }
+              case AtomResult(_, _) => QueryState.RuleMerge
+            }
+        case RuleResult(_) => QueryState.QueryUnion
+      }
+}
+
+case class QueryResult(pred: Predicate, args: ValueTable, result: ValueTable) extends Query {
+  override val state: QueryState = QueryState.QueryResult
+}
+
+sealed trait RuleEval
+case class Rule(pred: Predicate, params: Seq[Datalog.Name], atoms: Seq[AtomEval]) extends RuleEval {
+  override def toString: Predicate = s"$pred(${params.mkString(", ")}) :- ${atoms.mkString(", ")}."
+}
+case class RuleResult(t: ValueTable) extends RuleEval
+
+sealed trait AtomEval
+case class Atom(a: Datalog.Atom) extends AtomEval {
+  override def toString: Predicate = a.toString
+}
+case class AtomResult(t: ValueTable, sign: TableSign = PositiveTable) extends AtomEval {
+  override def toString: Predicate = if (sign == PositiveTable) t.toString else s"neg $t"
+}

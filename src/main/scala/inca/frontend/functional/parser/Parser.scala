@@ -1,22 +1,22 @@
 package inca.frontend.functional.parser
 
-import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.compiler.SourceLocation
+import fastparse.ScalaWhitespace._
+import inca.compiler.source.Source
+import inca.compiler.source.SourceLocation
 import inca.frontend.functional.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala
+import scala.meta.parsers._
+import scala.meta.parsers.Parsed
+import scala.meta.Term
 import scalaparse.syntax.Basic.isOpChar
 import scalaparse.syntax.Identifiers.OpCharNotSlash
-
-import scala.language.reflectiveCalls
-import scala.meta.Term
-import scala.meta.parsers.{Parsed, _}
 
 /**
  * Parser for the IncA Core language.
  */
-trait Parser {
+class Parser(source: Source) {
 
   final lazy val allKeywords: Set[String] =
     Set("if", "let", "in", "match", "fail") ++
@@ -26,17 +26,17 @@ trait Parser {
     P(!CharIn("a-z", "A-Z", "0-9", "_"))
 
   def identifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
-      if (allKeywords.contains(s)) return fastparse.Fail
-      else Name(s)
-    }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** Module parser */
   def module[_: P]: P[Module] =
-    P("module " ~ identifier ~
-      import_.rep ~
-      moduleContent.rep ~
-      End
+    P(
+      "module " ~ identifier ~
+        import_.rep ~
+        moduleContent.rep ~
+        End
     ).mapWithLoc { case (name, imports, contents) =>
       Module(name, imports, contents.flatten)
     }
@@ -44,14 +44,12 @@ trait Parser {
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
-
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(functionDef.map(Seq(_)) | dataDef.map(Seq(_)))
 
-
   /** PatternFunction parser */
   protected[frontend] def functionDef[_: P]: P[ModuleContent] = {
-    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ paramTys.? ~ defParams ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc{
+    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ paramTys.? ~ defParams ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc {
       case (annos, vis, name, tyVars, params, ty, exp) =>
         FunctionDef(annos, vis, name, tyVars.getOrElse(Seq()), params, ty, exp)
     }
@@ -60,8 +58,9 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
-  protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno
+  protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] =
+    P("@main").map(_ => MainFunctionAnno)
 
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
@@ -72,8 +71,10 @@ trait Parser {
   protected[frontend] def subinfixExp[_: P]: P[Expression] =
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
-    P(parensExp | optionExp | comprehensionExp | constSetExp |
-      tupleExp | foldExp | baseApplyExp | baseLitExp | variable | baseApplyUnaryExp)
+    P(
+      parensExp | optionExp | comprehensionExp | constSetExp |
+        tupleExp | foldExp | baseApplyExp | baseLitExp | variable | baseApplyUnaryExp
+    )
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -87,47 +88,53 @@ trait Parser {
     }
 
   final protected[frontend] def multipleLetExp[_: P]: P[Let] =
-    P("let " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp).mapWithLoc {
-      case (names, typeAnno, bound, body) => Let(names, typeAnno, bound, body)
+    P(
+      "let " ~ "(" ~ identifier.rep(
+        min = 2,
+        sep = ","
+      ) ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp
+    ).mapWithLoc { case (names, typeAnno, bound, body) =>
+      Let(names, typeAnno, bound, body)
     }
 
-
   protected[frontend] def ifExp[_: P]: P[If] =
-    P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
-      case (cond, thn, els) => If(cond, thn, els)
+    P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc { case (cond, thn, els) =>
+      If(cond, thn, els)
     }
 
   protected[frontend] def typeCastExp[_: P]: P[TypeCast] =
-    P(subinfixExp ~~ ".as[" ~ tName ~ "]") mapWithLoc {
-      case (e, ty) => TypeCast(e, ty)
+    P(subinfixExp ~~ ".as[" ~ tName ~ "]") mapWithLoc { case (e, ty) =>
+      TypeCast(e, ty)
     }
 
   protected[frontend] def callExp[_: P]: P[Expression] =
-    P(atomicExp ~ ("[" ~ typeAnno.rep(min=1, sep=",") ~ "]").? ~ ("(" ~ exp.rep(sep = ",") ~ ")").rep(1)).mapWithLoc {
-      case (fun, tyArgs, argLists) => argLists.foldLeft(fun)((exp, args) => Call(exp, tyArgs.getOrElse(Seq()), args))
+    P(
+      atomicExp ~ ("[" ~ typeAnno.rep(min = 1, sep = ",") ~ "]").? ~ ("(" ~ exp.rep(sep =
+        ",") ~ ")").rep(1)).mapWithLoc { case (fun, tyArgs, argLists) =>
+      argLists.foldLeft(fun)((exp, args) => Call(exp, tyArgs.getOrElse(Seq()), args))
     }
 
 
   protected[frontend] def foldExp[_: P]: P[SetFold] =
-    P("fold" ~ ("[" ~ typeAnno ~ "]").? ~ "(" ~ exp ~ "," ~ exp ~ "," ~ exp ~ ")").mapWithLoc { case (ty, init, op, set) =>
-      SetFold(ty, init, op, set)
+    P("fold" ~ ("[" ~ typeAnno ~ "]").? ~ "(" ~ exp ~ "," ~ exp ~ "," ~ exp ~ ")").mapWithLoc {
+      case (ty, init, op, set) =>
+        SetFold(ty, init, op, set)
     }
 
   protected[frontend] def tupleExp[_: P]: P[Expression] =
     P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple.apply)
 
-
   protected[frontend] def variable[_: P]: P[Var] =
     identifier.mapWithLoc(Var.apply)
 
   protected[frontend] def matchExp[_: P]: P[Match] =
-    P(subinfixExp ~ "match" ~ "{" ~ matchCase.rep() ~ "}").mapWithLoc {
-      case (matchee, cases) => Match(matchee, cases)
+    P(subinfixExp ~ "match" ~ "{" ~ matchCase.rep() ~ "}").mapWithLoc { case (matchee, cases) =>
+      Match(matchee, cases)
     }
 
   protected[frontend] def matchCase[_: P]: P[(Pattern, Expression)] =
-    P("case" ~ pattern ~ "=>" ~ exp).map {
-      case (pat, body) => (pat, body)
+    P("case" ~ pattern ~ "=>" ~ exp).map { case (pat, body) =>
+      (pat, body)
     }
 
   protected[frontend] def lambdaExp[_: P]: P[Lambda] =
@@ -138,10 +145,10 @@ trait Parser {
 
   protected[frontend] def optionExp[_: P]: P[Expression] = {
     P("None" ~~ nochar).mapWithLoc(_ => NoneExp()) |
-    P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
-      case Seq(arg) => SomeExp(arg)
-      case args => Call(Var(Name("Some")), Seq(), args)
-    }
+      P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
+        case Seq(arg) => SomeExp(arg)
+        case args => Call(Var(Name("Some")), Seq(), args)
+      }
   }
 
   protected[frontend] def constSetExp[_: P]: P[Expression] =
@@ -151,24 +158,25 @@ trait Parser {
     P("{" ~ subinfixExp ~ "|" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetComprehension.tupled)
 
   protected[frontend] def memberExp[_: P]: P[Expression] =
-    P(atomicExp ~ "not".!.? ~ "in" ~ infixExp).mapWithLoc { case (tup, not, set) => SetMember(tup, set, not.isDefined) }
+    P(atomicExp ~ "not".!.? ~ "in" ~ infixExp).mapWithLoc { case (tup, not, set) =>
+      SetMember(tup, set, not.isDefined)
+    }
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
     P(optionPattern | constructorPattern)
 
   protected[frontend] def constructorPattern[_: P]: P[ConstructorPattern] = {
-    P(identifier ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
-      case (name, args) => ConstructorPattern(name, args.map(PatternVariable.apply))
+    P(identifier ~ "(" ~ identifier.rep(sep = ",") ~ ")").mapWithLoc { case (name, args) =>
+      ConstructorPattern(name, args.map(PatternVariable.apply))
     }
   }
 
   protected[frontend] def optionPattern[_: P]: P[Pattern] =
     P("None" ~~ nochar).mapWithLoc(_ => NonePattern()) |
-    P("Some" ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
-      case Seq(arg) => SomePattern(PatternVariable(arg))
-      case args => ConstructorPattern(Name("Some"), args.map(PatternVariable.apply))
-    }
-
+      P("Some" ~ "(" ~ identifier.rep(sep = ",") ~ ")").mapWithLoc {
+        case Seq(arg) => SomePattern(PatternVariable(arg))
+        case args => ConstructorPattern(Name("Some"), args.map(PatternVariable.apply))
+      }
 
   /** base parser */
   protected[frontend] def baseLitExp[_: P]: P[BaseLit] =
@@ -178,26 +186,29 @@ trait Parser {
       booleanLiteral
 
   protected[frontend] def numericLiteral[_: P]: P[BaseLit] =
-    P("-".!.? ~~ ParserUtils.rawInteger ~~
-      (("L" | "l").map(_=>"long") |
-        "d".!.map(_=>"double") |
-        "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?
-        ).?
+    P(
+      "-".!.? ~~ ParserUtils.rawInteger ~~
+        (("L" | "l").map(_ => "long") |
+          "d".!.map(_ => "double") |
+          "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?).?
     ).flatMapWithLoc { case (sign, whole, suffix) =>
       val integral = sign.getOrElse("") + whole
       suffix match {
-        case None => integral.toIntOption match {
-          case Some(i) => Pass(BaseLit(Scala(meta.Lit.Int(i))))
-          case None => Fail
-        }
-        case Some("long") => integral.toLongOption match {
-          case Some(l) => Pass(BaseLit(Scala(meta.Lit.Long(l))))
-          case None => Fail
-        }
-        case Some("double") => integral.toDoubleOption match {
-          case Some(d) => Pass(BaseLit(Scala(meta.Lit.Double(d))))
-          case None => Fail
-        }
+        case None =>
+          integral.toIntOption match {
+            case Some(i) => Pass(BaseLit(Scala(meta.Lit.Int(i))))
+            case None => Fail
+          }
+        case Some("long") =>
+          integral.toLongOption match {
+            case Some(l) => Pass(BaseLit(Scala(meta.Lit.Long(l))))
+            case None => Fail
+          }
+        case Some("double") =>
+          integral.toDoubleOption match {
+            case Some(d) => Pass(BaseLit(Scala(meta.Lit.Double(d))))
+            case None => Fail
+          }
         case Some(fraction) =>
           s"$integral.$fraction".toDoubleOption match {
             case Some(d) => Pass(BaseLit(Scala(meta.Lit.Double(d))))
@@ -214,10 +225,9 @@ trait Parser {
   protected[frontend] def booleanLiteral[_: P]: P[BaseLit] =
     P(("true" | "false").!).mapWithLoc(s => BaseLit(Scala(meta.Lit.Boolean(s.toBoolean))))
 
-
   protected[frontend] def baseApplyExp[_: P]: P[BaseApply] =
-    P("`" ~~ scalaTerm ~~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
-      case (funTerm, args) => BaseApply(funTerm, args)
+    P("`" ~~ scalaTerm ~~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc { case (funTerm, args) =>
+      BaseApply(funTerm, args)
     }
 
   protected[frontend] def baseApplyUnaryExp[_: P]: P[BaseApplyUnary] =
@@ -227,7 +237,9 @@ trait Parser {
     }
 
   protected[frontend] def baseApplyMethodExp[_: P]: P[BaseApplyMethod] =
-    P(subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ infixExp.rep(sep = ",") ~ ")").?).mapWithLoc {
+    P(
+      subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ infixExp.rep(sep = ",") ~ ")").?
+    ).mapWithLoc {
       case (recv, method, None) => BaseApplyMethod(recv, method, None)
       case (recv, method, Some(args)) => BaseApplyMethod(recv, method, Some(args))
     }
@@ -240,7 +252,6 @@ trait Parser {
       case (lhs, op, rhs) => fastparse.Pass(BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs))
     }
 
-
   protected[frontend] def scalaTerm[_: P]: P[Scala[meta.Term]] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[Term] match {
@@ -250,7 +261,6 @@ trait Parser {
           fastparse.Pass(Scala(code))
       }
     }
-
 
   /** Visibility parser */
   protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility)
@@ -262,30 +272,34 @@ trait Parser {
 
   /** Param parser */
   protected[frontend] def param[_: P]: P[Param] =
-    P(identifier ~ ":" ~ typeAnno).mapWithLoc {
-      case (name, typeAnno) => Param(name, typeAnno)
+    P(identifier ~ ":" ~ typeAnno).mapWithLoc { case (name, typeAnno) =>
+      Param(name, typeAnno)
     }
 
   protected[frontend] def typeAnno[_: P]: P[Type] =
     P(funType | atomicType)
 
   protected[frontend] def atomicType[_: P]: P[Type] =
-    P(tTuple | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) |
-      tOption | tSet | scalaType | tConstr | tName)
+    P(
+      tTuple | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType(
+        "Unit",
+        TTuple(Seq())) |
+        tOption | tSet | scalaType | tConstr | tName)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
     P(s ~~ nochar).map(_ => t)
 
   protected[frontend] def funType[_: P]: P[Type] =
-    P(atomicType ~  "=>" ~ typeAnno).mapWithLoc {
+    P(atomicType ~ "=>" ~ typeAnno).mapWithLoc {
       case (TTuple(ts), to) => TFun(ts, to)
       case (from, to) => TFun(Seq(from), to)
     }
 
-  protected[frontend] def tConstr[_: P]: P[TConstr] = P(identifier ~ "[" ~ typeAnno.rep(sep = ",", min = 1) ~ "]").mapWithLoc {
-    case (name, args) => TConstr(name, args)
-  }
+  protected[frontend] def tConstr[_: P]: P[TConstr] =
+    P(identifier ~ "[" ~ typeAnno.rep(sep = ",", min = 1) ~ "]").mapWithLoc { case (name, args) =>
+      TConstr(name, args)
+    }
 
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] =
@@ -301,7 +315,6 @@ trait Parser {
       P("String" ~~ nochar).mapWithLoc(_ => TScalaString) |
       P("Boolean" ~~ nochar).mapWithLoc(_ => TScalaBoolean) |
       P("Double" ~~ nochar).mapWithLoc(_ => TScalaDouble)
-
 
   protected[frontend] def tOption[_: P]: P[Type] =
     P("Option" ~ "[" ~ typeAnno ~ "]").mapWithLoc(TOption)
@@ -321,60 +334,65 @@ trait Parser {
 
   /** DataDef parser */
   protected[frontend] def dataDef[_: P]: P[ModuleContent] =
-    P(annotation.rep ~ visibility.? ~ "data" ~ identifier ~ paramTys.? ~ "=" ~ dataConstructor.rep(min = 1, sep = "|")).mapWithLoc {
-      case (annos, vis, name, tyVars, dataConstructors) => DataDef(annos, vis, name, tyVars.getOrElse(Seq()), dataConstructors)
+    P(
+      annotation.rep ~ visibility.? ~ "data" ~ identifier ~ paramTys.? ~ "=" ~ dataConstructor.rep(
+        min = 1,
+        sep = "|")).mapWithLoc { case (annos, vis, name, tyVars, dataConstructors) =>
+      DataDef(annos, vis, name, tyVars.getOrElse(Seq()), dataConstructors)
     }
 
-  protected[frontend] def paramTys[_: P]: P[Seq[ParametricType]] = P("[" ~ parametricType.rep(sep = ",", min = 1) ~ "]")
-  protected[frontend] def parametricType[_: P]: P[ParametricType] = P(identifier).map(ParametricType.apply)
+  protected[frontend] def paramTys[_: P]: P[Seq[ParametricType]] = P(
+    "[" ~ parametricType.rep(sep = ",", min = 1) ~ "]")
+  protected[frontend] def parametricType[_: P]: P[ParametricType] =
+    P(identifier).map(ParametricType.apply)
 
   protected[frontend] def dataConstructor[_: P]: P[DataConstructor] =
-    P(identifier ~ "(" ~ typeAnno.rep(sep = ",") ~ ")").mapWithLoc {
-      case (name, paramTypes) => DataConstructor(name, paramTypes)
+    P(identifier ~ "(" ~ typeAnno.rep(sep = ",") ~ ")").mapWithLoc { case (name, paramTypes) =>
+      DataConstructor(name, paramTypes)
     }
 
   implicit class Ploc[T](p: => P[T])(implicit ctx: P[_]) {
     def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
-      (Index ~ p ~ Index).map {
-        case (start, t, end) =>
-          val u = f(t)
-          u.startIndex = start
-          u.endIndex = end
-          u
+      (Index ~ p ~ Index).map { case (start, t, end) =>
+        val u = f(t)
+        u.source = source
+        u.startIndex = start
+        u.endIndex = end
+        u
       }
 
     def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
-      (Index ~ p ~ Index).map {
-        case (start, t, end) =>
-          val uv = f(t)
-          u => {
-            val v = uv(u)
-            v.startIndex = u.startIndex
-            v.endIndex = end
-            v
-          }
+      (Index ~ p ~ Index).map { case (_, t, end) =>
+        val uv = f(t)
+        u => {
+          val v = uv(u)
+          u.source = source
+          v.startIndex = u.startIndex
+          v.endIndex = end
+          v
+        }
       }
 
     def flatMapWithLoc[U <: SourceLocation](f: T => P[U]): P[U] =
-      (Index ~ p ~ Index).flatMap {
-        case (start, t, end) =>
-          val up = f(t)
-          up.map { u =>
-            u.startIndex = start
-            u.endIndex = end
-            u
-          }
+      (Index ~ p ~ Index).flatMap { case (start, t, end) =>
+        val up = f(t)
+        up.map { u =>
+          u.source = source
+          u.startIndex = start
+          u.endIndex = end
+          u
+        }
       }
   }
 
 }
 
 object Parser {
-  private lazy val parser: Parser = new Parser {}
-  def parse(code: ParserInput): Module = {
+  def parse(source: Source): Module = {
     import fastparse.Parsed
+    val parser = new Parser(source)
 
-    fastparse.parse(code, parser.module(_), verboseFailures = true) match {
+    fastparse.parse(source.code, parser.module(_), verboseFailures = true) match {
       case Parsed.Success(value, _) => value
       case fail: Parsed.Failure =>
         throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")

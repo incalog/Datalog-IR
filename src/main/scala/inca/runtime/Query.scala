@@ -1,22 +1,31 @@
 package inca.runtime
 
-import inca.runtime.data.MockURI
-import inca.runtime.db.{DBValue, DatabaseInspector}
-import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
-import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch, BaseQuerySpecification}
+import inca.runtime.db.DatabaseInput
+import inca.runtime.db.DatabaseInspector
+import org.eclipse.viatra.query.runtime.api.impl.BaseMatcher
+import org.eclipse.viatra.query.runtime.api.impl.BasePatternMatch
+import org.eclipse.viatra.query.runtime.api.impl.BaseQuerySpecification
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
+import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import truechange.{EditScript, URI}
-
-import java.util
 import scala.jdk.CollectionConverters._
+import truechange.EditScript
 
 object Query {
   trait ChangeFeed {
-    def processEditScript(edits: EditScript)
-    def insertExtensionalTuple(relName: String, tuple: Tuple)
-    def deleteExtensionalTuple(relName: String, tuple: Tuple)
+    def processDatabaseInput(input: DatabaseInput): Unit = {
+      processEditScript(input.es)
+      input.insertions.foreach { case (rel, tuples) =>
+        tuples.foreach(insertExtensionalTuple(rel, _))
+      }
+      input.deletions.foreach { case (rel, tuples) =>
+        tuples.foreach(deleteExtensionalTuple(rel, _))
+      }
+    }
+    def processEditScript(edits: EditScript): Unit
+    def insertExtensionalTuple(relName: String, tuple: Tuple): Unit
+    def deleteExtensionalTuple(relName: String, tuple: Tuple): Unit
     def loadPrimitive(a: Any): Unit
     def unloadPrimitive(a: Any): Unit
   }
@@ -31,31 +40,31 @@ object Query {
       engine.getMatcher(this)
 
     override def newEmptyMatch(): Match =
-      Match(this, Array.ofDim(getParameters.size()), isMutable = true)
+      Match(this, Array.ofDim[Any](getParameters.size()), isMutable = true)
 
-    override def newMatch(parameters: AnyRef*): Match =
+    override def newMatch(parameters: Any*): Match =
       Match(this, parameters.toArray, isMutable = false)
   }
 
-
   class Matcher(spec: Specification) extends BaseMatcher[Match](spec) {
+
     /** Converts the array representation of a pattern match to an immutable Match object. */
-    protected def arrayToMatch(parameters: Array[AnyRef]): Match =
+    protected def arrayToMatch(parameters: Array[Any]): Match =
       Match(spec, parameters, isMutable = false)
 
     /** Converts the array representation of a pattern match to a mutable Match object. */
-    protected def arrayToMatchMutable(parameters: Array[AnyRef]): Match =
+    protected def arrayToMatchMutable(parameters: Array[Any]): Match =
       Match(spec, parameters, isMutable = true)
 
     protected def tupleToMatch(t: Tuple): Match =
       Match(spec, t.getElements, isMutable = false)
 
-    def getAllMatchArrays: Iterable[Array[AnyRef]] =
+    def getAllMatchArrays: Iterable[Array[Any]] =
       getAllMatches.asScala.map(_.toArray)
   }
 
-
-  case class Match(spec: Specification, private var values: Array[AnyRef], isMutable: Boolean) extends BasePatternMatch {
+  case class Match(spec: Specification, private var values: Array[Any], isMutable: Boolean)
+      extends BasePatternMatch {
     override def specification(): Specification = spec
 
     override def get(parameterName: String): Any =
@@ -64,7 +73,7 @@ object Query {
         case None => null
       }
 
-    override def set(parameterName: String, newValue: AnyRef): Boolean = {
+    override def set(parameterName: String, newValue: Any): Boolean = {
       if (!isMutable)
         throw new UnsupportedOperationException
       Option(spec.getPositionOfParameter(parameterName)) match {
@@ -73,8 +82,8 @@ object Query {
       }
     }
 
-    override def toArray: Array[AnyRef] =
-      util.Arrays.copyOf(values, values.length)
+    override def toArray: Array[Any] = values
+    // util.Arrays.copyOf(values, values.length)
 
     override def toImmutable: Match =
       if (isMutable)
@@ -86,7 +95,9 @@ object Query {
       val builder = new StringBuilder
       for (i <- 0 until values.length) {
         if (i != 0) builder.append(", ")
-        builder.append("\"" + parameterNames.get(i) + "\"=" + BasePatternMatch.prettyPrintValue(values(i)))
+        builder.append(
+          "\"" + parameterNames.get(i) + "\"=" + BasePatternMatch.prettyPrintValue(values(i))
+        )
       }
       builder.toString
     }
@@ -95,10 +106,19 @@ object Query {
       val builder = new StringBuilder
       for (i <- 0 until values.length) {
         if (i != 0) builder.append(", ")
-        builder.append("\"" + parameterNames.get(i) + "\"=" + DBValue.prettyPrint(values(i), db))
+        builder.append("\"" + parameterNames.get(i) + "\"=" + db.prettyPrint(values(i)))
       }
       builder.toString
     }
   }
+  object Match {
+    def apply(spec: Specification, keyValuePairs: Map[String, Any], isMutable: Boolean): Match = {
+      val m = Match(spec, Array.ofDim[Any](keyValuePairs.size), isMutable = true)
+      keyValuePairs.foreach { case (k, v) =>
+        m.set(k, v)
+      }
+      if (isMutable) m
+      else m.toImmutable
+    }
+  }
 }
-

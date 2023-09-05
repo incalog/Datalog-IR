@@ -1,0 +1,12 @@
+<JavaCharStream: int hexval(char)>/table-switch/0	1	<JavaCharStream: int hexval(char)>/c#_0	<JavaCharStream: int hexval(char)>
+<JavaCharStream: void UpdateLineColumn(char)>/table-switch/0	28	<JavaCharStream: void UpdateLineColumn(char)>/c#_0	<JavaCharStream: void UpdateLineColumn(char)>
+<MiniJavaParser: void jj_rescan_token()>/table-switch/0	24	<MiniJavaParser: void jj_rescan_token()>/i_$$A_1#_1901	<MiniJavaParser: void jj_rescan_token()>
+<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>/table-switch/0	3	<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>/pos#_0	<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>/table-switch/0	2	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>/$stack1	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>/table-switch/0	22	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>/$stack10	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>/table-switch/0	22	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>/$stack10	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>/table-switch/0	22	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>/$stack10	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>/table-switch/0	22	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>/$stack10	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/table-switch/0	43	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/$stack65	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>
+<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/table-switch/1	315	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/$stack52	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>
+<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/table-switch/2	379	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>/$stack25	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>

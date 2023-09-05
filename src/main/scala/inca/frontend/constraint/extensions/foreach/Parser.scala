@@ -5,8 +5,8 @@ import inca.frontend.constraint.extensions.foreach.Trees.Foreach
 import inca.frontend.constraint.parser.CoreParser
 
 trait Parser extends CoreParser {
-  import fastparse.ScalaWhitespace._
   import fastparse._
+  import fastparse.ScalaWhitespace._
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("foreach", "in")
 

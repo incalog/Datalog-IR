@@ -1,6 +1,6 @@
 package inca.frontend.datalog.typechecker
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.datalog.syntax._
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.runtime.context.DataModel

@@ -1,11 +1,17 @@
 package inca.util
 
 import scala.collection.mutable
-import scala.meta.{Defn, Importee, Lit, Pat, Term}
+import scala.meta.Defn
+import scala.meta.Importee
+import scala.meta.Lit
+import scala.meta.Pat
+import scala.meta.Term
 
 trait ScalaTyper {
-  import scala.reflect.runtime.{currentMirror, universe}
-  import scala.tools.reflect.{ToolBox, ToolBoxError}
+  import scala.reflect.runtime.currentMirror
+  import scala.reflect.runtime.universe
+  import scala.tools.reflect.ToolBox
+  import scala.tools.reflect.ToolBoxError
 
   private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
 
@@ -26,20 +32,23 @@ trait ScalaTyper {
   def boundNames: Seq[String] = importBoundNames.toSeq ++ toplevelBoundNames
 
   def registerImport(imp: meta.Import): Either[Unit, Throwable] = {
+    var throwable: Option[Throwable] = None
     imp.importers.head.importees.foreach {
       case Importee.Name(n) => importBoundNames += n.value
       case Importee.Rename(_, n) => importBoundNames += n.value
       case _: Importee.Unimport => // nothing
       case _: Importee.Wildcard =>
         // wildcards are not allowed
-        return Right(new IllegalArgumentException("Wildcard Scala imports are now allowed"))
+        throwable = Some(new IllegalArgumentException("Wildcard Scala imports are now allowed"))
       case _ =>
-        return Right(new IllegalArgumentException("Unsupported Scala import"))
+        throwable = Some(new IllegalArgumentException("Unsupported Scala import"))
     }
     imports += imp
-    Left(())
+    throwable match {
+      case Some(value) => Right(value)
+      case None => Left(())
+    }
   }
-
 
   private var topLevelObject: universe.Symbol = _
 
@@ -47,11 +56,11 @@ trait ScalaTyper {
     if (topLevelObject == null) {
       val scalaObject =
         s"""
-           |object ScalaObject {
-           |${imports.mkString("\n")}
-           |${seenCode.mkString("\n")}
-           |}
-           |""".stripMargin
+          |object ScalaObject {
+          |${imports.mkString("\n")}
+          |${seenCode.mkString("\n")}
+          |}
+          |""".stripMargin
       val tree = toolbox.parse(scalaObject)
       topLevelObject = toolbox.define(tree.asInstanceOf[universe.ImplDef])
     }
@@ -82,16 +91,17 @@ trait ScalaTyper {
 
   private def collectVars(pat: meta.Pat): Set[String] = pat match {
     case Term.Name(str) => Set(str)
-    case Pat.Var(name) =>  Set(name.value)
+    case Pat.Var(name) => Set(name.value)
     case Lit(_) => Set()
     case Pat.Wildcard() => Set()
     case Pat.Tuple(pats) => pats.flatMap(collectVars).toSet
     case Pat.SeqWildcard() => Set()
     case Pat.Typed(pat, _) => collectVars(pat)
-    case Term.Select(term, _) => term match {
-      case Term.Name(n) => Set(n)
-      case inner: Term.Select => collectVars(inner)
-    }
+    case Term.Select(term, _) =>
+      term match {
+        case Term.Name(n) => Set(n)
+        case inner: Term.Select => collectVars(inner)
+      }
     case Pat.Extract(_, value) =>
       value.flatMap(collectVars).toSet
     case Pat.Alternative(lhs, rhs) =>
@@ -104,11 +114,11 @@ trait ScalaTyper {
     typecheckTopLevelObject()
     val completeCode =
       s"""{
-         |  import ${topLevelObject.fullName}._
-         |  ${imports.mkString("\n")}
-         |  $code
-         |}
-         |""".stripMargin
+        |  import ${topLevelObject.fullName}._
+        |  ${imports.mkString("\n")}
+        |  $code
+        |}
+        |""".stripMargin
     val tree = toolbox.parse(completeCode)
     try {
       val typechecked = toolbox.typecheck(tree)
@@ -117,7 +127,7 @@ trait ScalaTyper {
         typ.toString.replace(s"${topLevelObject.fullName}.ScalaObject$$", "")
       Left(normalizedType)
     } catch {
-      case err@ToolBoxError(msg, throwable) =>
+      case ToolBoxError(msg, throwable) =>
         val cleanMsg = msg.replace(s"${topLevelObject.fullName}.", "")
         Right(ToolBoxError(cleanMsg, throwable))
     }
@@ -126,14 +136,14 @@ trait ScalaTyper {
   def subtypeScala(ty1: meta.Type, ty2: meta.Type): Boolean = {
     val code =
       s"""{
-         |  val v1: ${ty1.syntax} = ???
-         |  val v2: ${ty2.syntax} = v1
-         |}""".stripMargin
+        |  val v1: ${ty1.syntax} = ???
+        |  val v2: ${ty2.syntax} = v1
+        |}""".stripMargin
 
     typecheckScala(code) match {
       case Left(str) =>
         str == "Unit"
-      case Right(err) =>
+      case Right(_) =>
         false
     }
   }

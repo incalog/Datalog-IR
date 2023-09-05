@@ -1,0 +1,14 @@
+<JavaCharStream: void ExpandBuff(boolean)>/assign/3	0	<JavaCharStream: void ExpandBuff(boolean)>/$stack7
+<JavaCharStream: void ExpandBuff(boolean)>/assign/5	0	<JavaCharStream: void ExpandBuff(boolean)>/$stack9
+<JavaCharStream: void ExpandBuff(boolean)>/assign/7	0	<JavaCharStream: void ExpandBuff(boolean)>/$stack11
+<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/assign/6	0	<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/assign/7	0	<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/assign/8	0	<JavaCharStream: void <init>(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/assign/7	0	<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/assign/8	0	<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/assign/9	0	<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>/buffersize#_0
+<JavaCharStream: char[] GetSuffix(int)>/assign/2	0	<JavaCharStream: char[] GetSuffix(int)>/len#_0
+<MiniJavaParser: void jj_add_error_token(int,int)>/assign/5	0	<MiniJavaParser: void jj_add_error_token(int,int)>/$stack9
+<MiniJavaParser: ParseException generateParseException()>/assign/20	0	<MiniJavaParser: ParseException generateParseException()>/$stack7
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/assign/11	0	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/$stack131
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/assign/13	0	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/$stack132

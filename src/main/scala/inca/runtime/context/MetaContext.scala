@@ -3,14 +3,16 @@ package inca.runtime.context
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.SizeIndex
-import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
-import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
-import truechange.SortType
-
 import java.util
 import java.util.Collections
+import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
+import org.eclipse.viatra.query.runtime.matchers.context.AbstractQueryMetaContext
+import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
+import org.eclipse.viatra.query.runtime.matchers.context.InputKeyImplication
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import scala.language.existentials
+import truechange.SortType
 
 class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
   override def isEnumerable(key: IInputKey): Boolean = key.isEnumerable
@@ -52,8 +54,7 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
         Collections.emptySet()
       }
 
-
-    case LinkNodeKey(link@(tagname, _)) =>
+    case LinkNodeKey(link @ (tagname, _)) =>
       val impliedSource = NodeTypeKey(SortType(tagname))
       val impliedTarget = NodeTypeKey(langMetaInfo.links(link))
       val impliedParent = ParentIndex.Key
@@ -63,8 +64,7 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
         new InputKeyImplication(key, impliedParent, util.Arrays.asList(1, 0))
       ).asJava
 
-
-    case LinkPrimitiveKey(link@(tagname, _)) =>
+    case LinkPrimitiveKey(link @ (tagname, _)) =>
       val impliedSource = NodeTypeKey(SortType(tagname))
       val impliedTarget = PrimitiveTypeKey(langMetaInfo.litLinks(link))
       Seq(
@@ -88,14 +88,19 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
   }
 
   val bidirectional: util.Map[util.Set[Integer], util.Set[Integer]] = util.Map.of(
-    Collections.singleton(0), Collections.singleton(1),
-    Collections.singleton(1), Collections.singleton(0)
+    Collections.singleton(0),
+    Collections.singleton(1),
+    Collections.singleton(1),
+    Collections.singleton(0)
   )
   val leftToRight: util.Map[util.Set[Integer], util.Set[Integer]] = util.Map.of(
-    Collections.singleton(0), Collections.singleton(1)
+    Collections.singleton(0),
+    Collections.singleton(1)
   )
 
-  override def getFunctionalDependencies(key: IInputKey): util.Map[util.Set[Integer], util.Set[Integer]] = key match {
+  override def getFunctionalDependencies(
+      key: IInputKey
+    ): util.Map[util.Set[Integer], util.Set[Integer]] = key match {
     case _: LinkNodeKey | LinkListFirstKey | LinkListNextKey =>
       bidirectional
     case _: LinkPrimitiveKey | ParentIndex.Key | SizeIndex.Key =>

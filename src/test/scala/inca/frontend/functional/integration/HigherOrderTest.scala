@@ -1,13 +1,19 @@
 package inca.frontend.functional.integration
 
-import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.compiler.CompiledModule
+import inca.frontend.functional.executor.FunctionalExecutor.loadFunction
+import inca.runtime.EnginePool
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterEach
 
 import scala.meta.XtensionQuasiquoteTerm
 
-class HigherOrderTest extends AnyFunSuite {
+class HigherOrderTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("applyFun") {
     val code = FileUtil.readFile("functional/higherorder/Apply.finca")
@@ -47,8 +53,18 @@ class HigherOrderTest extends AnyFunSuite {
   test("transitive") {
     val code = FileUtil.readFile("functional/higherorder/Transitive.finca")
     val fun = loadFunction(code)
-    assert(fun.execute("foo", Seq()) ==
-      fun.results(
-        Seq(Seq(1,2), Seq(2,3), Seq(3,1), Seq(1,3), Seq(1,1), Seq(2,1), Seq(2,2), Seq(3,2), Seq(3,3))))
+    assert(
+      fun.execute("foo", Seq()) ==
+        fun.results(
+          Seq(
+            Seq(1, 2),
+            Seq(2, 3),
+            Seq(3, 1),
+            Seq(1, 3),
+            Seq(1, 1),
+            Seq(2, 1),
+            Seq(2, 2),
+            Seq(3, 2),
+            Seq(3, 3))))
   }
 }

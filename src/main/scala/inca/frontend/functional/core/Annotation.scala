@@ -11,7 +11,8 @@ trait Annotations {
   def getAnnotation(key: Annotation.Key): Option[Annotation] =
     this.annoMap.get(key)
 
-  def annoPrefix(implicit indent: String): String = if (annos.isEmpty) "" else indent + annoString + "\n"
+  def annoPrefix(implicit indent: String): String =
+    if (annos.isEmpty) "" else indent + annoString + "\n"
   def annoString: String = annos.mkString(" ")
 }
 

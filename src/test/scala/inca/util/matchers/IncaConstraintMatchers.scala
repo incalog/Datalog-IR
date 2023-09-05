@@ -10,26 +10,34 @@ import truediff.Diffable
 trait IncaConstraintMatchers extends IncaMatchers {
   def options: ConstraintOptions
 
-  def assertDesugar(core: Module,
-                    sugared: Module,
-                    options: ConstraintOptions = this.options): Unit = {
+  def assertDesugar(
+      core: Module,
+      sugared: Module,
+      options: ConstraintOptions = this.options
+    ): Unit = {
     val desugared = compiler.Compiler.compileConstraint(sugared, options).desugared
     assertResult(core)(desugared)
   }
 
-  def assertMatch(module: Module,
-                  fun: String,
-                  subjectProg: Diffable)
-                 (asserter: Query.Matcher => Assertion): Assertion = {
+  def assertMatch(
+      module: Module,
+      fun: String,
+      subjectProg: Diffable
+    )(
+      asserter: Query.Matcher => Assertion
+    ): Assertion = {
     val editScript = Diffable.load(subjectProg)
     val compiled = compiler.Compiler.compileConstraint(module, options)
     assertMatch(compiled, fun, editScript)(asserter)
   }
 
-  def assertMatch(module: String,
-                  fun: String,
-                  subjectProg: Diffable)
-                 (asserter: Query.Matcher => Assertion): Assertion = {
+  def assertMatch(
+      module: String,
+      fun: String,
+      subjectProg: Diffable
+    )(
+      asserter: Query.Matcher => Assertion
+    ): Assertion = {
     val editScript = Diffable.load(subjectProg)
     val compiled = compiler.Compiler.compileConstraint(module, options)
     assertMatch(compiled, fun, editScript)(asserter)

@@ -1,9 +1,10 @@
 package inca.backend.optimize
+import inca.backend.ir.util.TypeOps
+import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
-import inca.backend.ir.util.{CollectVars, TypeOps}
+import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 import inca.util.Scala
-
 import scala.collection.immutable.MultiSet
 
 object FoldConstantAtoms extends Optimization {
@@ -21,7 +22,7 @@ object FoldConstantAtoms extends Optimization {
     private var varCount: MultiSet[Name] = MultiSet()
 
     override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
-      varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
+      varCount = MultiSet() ++ Datalog.collectVarNames.transBody(body) ++ pat.params.map(_.name)
       super.optimizeBody(body, pat)
     }
 
@@ -37,16 +38,17 @@ object FoldConstantAtoms extends Optimization {
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
 
       case Compare(NeqComparator, t1, t2) if t1 == t2 => throwBodyMustFail()
-      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 == c2 => Seq()
+      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 != c2 => Seq()
 
       case HasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ match {
-            case Some(ty: TLiteral) => ty
-            case Some(ty: TLinked) => ty
-            case _ => TAny
-          }
-          case c:Constant => c.lit.typ
+          case v: Var =>
+            v.typ match {
+              case Some(ty: TLiteral) => ty
+              case Some(ty: TLinked) => ty
+              case _ => TAny
+            }
+          case c: Constant => c.lit.typ
         }
         if (termTyp == typ) {
           // this constraint was responsible for the inferrence of termTyp, must keep it
@@ -70,12 +72,13 @@ object FoldConstantAtoms extends Optimization {
 
       case NotHasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ match {
-            case Some(ty: TLiteral) => ty
-            case Some(ty: TLinked) => ty
-            case _ => TAny
-          }
-          case c:Constant => c.lit.typ
+          case v: Var =>
+            v.typ match {
+              case Some(ty: TLiteral) => ty
+              case Some(ty: TLinked) => ty
+              case _ => TAny
+            }
+          case c: Constant => c.lit.typ
         }
         val meetType = meet(termTyp, typ, dataModel)
         if (meetType.contains(termTyp)) {

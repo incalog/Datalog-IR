@@ -4,7 +4,6 @@ import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
-
 import scala.meta.XtensionQuasiquoteTerm
 
 class FunctionsTest extends AnyFunSuite {

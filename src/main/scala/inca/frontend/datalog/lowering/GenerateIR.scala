@@ -4,8 +4,8 @@ import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
 import inca.frontend.datalog.syntax._
 import inca.frontend.util.Typeable
-import inca.util.{Gensym, Scala}
-
+import inca.util.Gensym
+import inca.util.Scala
 import scala.collection.mutable.ListBuffer
 
 class GenerateIR(module: Module) {
@@ -37,7 +37,8 @@ class GenerateIR(module: Module) {
         rules.clear()
       case rule: Rule =>
         if (rule.target.exists(sig => sig != currentSig))
-          throw new IllegalArgumentException(s"Expected rules for relation ${currentSig.name} but found $rule")
+          throw new IllegalArgumentException(
+            s"Expected rules for relation ${currentSig.name} but found $rule")
         rules += rule
       case data: DataDef =>
         genScala.genDataDef(data)
@@ -45,30 +46,27 @@ class GenerateIR(module: Module) {
     if (currentSig != null)
       generatedPatterns ++= transRelation(currentSig, rules.toSeq)
 
-    Datalog.Module(
-      name.name,
-      Seq(),
-      generatedPatterns.toList,
-      genScala.generated.map(Scala.apply))
+    Datalog.Module(name.name, Seq(), generatedPatterns.toList, genScala.generated.map(Scala.apply))
   }
 
-  private def transRelation(sig: RuleSig, rules: Seq[Rule]): Option[Datalog.Pattern] = gensym.scoped {
-    if (sig.hasAnnotation(ExtensionalAnno.key)) {
-      if (rules.nonEmpty)
-        throw new IllegalArgumentException(s"Extensional relations cannot have rules, in $sig")
-      return None
-    }
+  private def transRelation(sig: RuleSig, rules: Seq[Rule]): Option[Datalog.Pattern] =
+    gensym.scoped {
+      if (sig.hasAnnotation(ExtensionalAnno.key)) {
+        if (rules.nonEmpty)
+          throw new IllegalArgumentException(s"Extensional relations cannot have rules, in $sig")
+        return None
+      }
 
-    val params = sig.params.zipWithIndex.map { case (param, i) =>
-      Datalog.Param(gensym.fresh(s"x_$i"), transType(param.typ))
-    }
-    val bodies = rules.map(rule => transRule(sig, params, rule))
+      val params = sig.params.zipWithIndex.map { case (param, i) =>
+        Datalog.Param(gensym.fresh(s"x_$i"), transType(param.typ))
+      }
+      val bodies = rules.map(rule => transRule(sig, params, rule))
 
-    val pat = Datalog.Pattern(None, sig.name.name, params, bodies)
-    if (sig.hasAnnotation(MainAnno.key))
-      pat.addHint(MagicSetHints.Main(params.map(_ => false)))
-    Some(pat)
-  }
+      val pat = Datalog.Pattern(None, sig.name.name, params, bodies)
+      if (sig.hasAnnotation(MainAnno.key))
+        pat.addHint(MagicSetHints.Main(params.map(_ => false)))
+      Some(pat)
+    }
 
   private def transRule(sig: RuleSig, params: Seq[Datalog.Param], rule: Rule): Datalog.Body = {
     val (headterms, headConstraints) = rule.headTerms.map(transTerm).unzip
@@ -80,9 +78,9 @@ class GenerateIR(module: Module) {
   }
 
   private def transAtom(a: Atom): Seq[Datalog.Atom] = a match {
-    case c@Call(_, _, _) if c.target.isEmpty =>
+    case c @ Call(_, _, _) if c.target.isEmpty =>
       throw new IllegalArgumentException(s"Cannot compile unresolved call $c")
-    case c@Call(name, args, not) if c.target.get.isInstanceOf[RuleSig] =>
+    case c @ Call(name, args, not) if c.target.get.isInstanceOf[RuleSig] =>
       // querying a relation
       val relation = c.target.get.asInstanceOf[RuleSig]
       val (argTerms, argConstraints) = args.map(transTerm).unzip
@@ -93,12 +91,12 @@ class GenerateIR(module: Module) {
           Datalog.Call(name.name, argTerms, transitive = false, neg = not)
       }
       argConstraints.flatten :+ dcall
-    case c@Call(name, Seq(arg), false) if c.target.get.isInstanceOf[DataDef] =>
+    case c @ Call(name, Seq(arg), false) if c.target.get.isInstanceOf[DataDef] =>
       // querying a type
       val (argTerm, argConstraints) = transTerm(arg)
       val hasType = Datalog.HasType(argTerm, Datalog.TNode(name.name))
       argConstraints :+ hasType
-    case c@Call(name, args, false) if c.target.get.isInstanceOf[DataConstructor] =>
+    case c @ Call(name, args, false) if c.target.get.isInstanceOf[DataConstructor] =>
       // querying a constructor
       val constructed = args.last
       val (constructedTerm, constructedConstraints) = transTerm(constructed)
@@ -136,16 +134,21 @@ class GenerateIR(module: Module) {
       val (srcTerm, srcConstraints) = transTerm(src)
       val trgTerm = Datalog.Var(gensym.fresh(link.name))
       val srcTy = transType(src)
-      val path = Datalog.Path(srcTerm, srcTy, Datalog.NamedLink(srcTy.asInstanceOf[Datalog.TNode], link.name), trgTerm, transType(t))
+      val path = Datalog.Path(
+        srcTerm,
+        srcTy,
+        Datalog.NamedLink(srcTy.asInstanceOf[Datalog.TNode], link.name),
+        trgTerm,
+        transType(t))
       (trgTerm, srcConstraints :+ path)
   }
 
-  private def transLit(literal: Literal): Datalog.Literal = literal match {
-    case IntLiteral(v) => Datalog.IntLiteral(v)
-    case LongLiteral(v) => Datalog.LongLiteral(v)
-    case DoubleLiteral(v) => Datalog.DoubleLiteral(v)
-    case StringLiteral(v) => Datalog.StringLiteral(v)
-    case BooleanLiteral(v) => Datalog.BooleanLiteral(v)
+  private def transLit(literal: Literal): Datalog.base.Literal = literal match {
+    case IntLiteral(v) => Datalog.base.IntLiteral(v)
+    case LongLiteral(v) => Datalog.base.LongLiteral(v)
+    case DoubleLiteral(v) => Datalog.base.DoubleLiteral(v)
+    case StringLiteral(v) => Datalog.base.StringLiteral(v)
+    case BooleanLiteral(v) => Datalog.base.BooleanLiteral(v)
   }
 
   private def transType(hasType: Typeable[Type]): Datalog.Type = hasType.typ match {

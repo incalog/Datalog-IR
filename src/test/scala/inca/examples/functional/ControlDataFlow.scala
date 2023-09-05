@@ -1,7 +1,6 @@
 package inca.examples.functional
 
 object ControlDataFlow {
-
   def module(strs: String*): String =
     s"""module Module
        |${strs.mkString("\n")}
@@ -102,214 +101,212 @@ object ControlDataFlow {
 
   def parametricIntValuesDEBUG(bound: Int, default: Int): String =
     s"""
-       |data Exp = Var(String) | Num(Int) | GreaterThan(Exp, Exp) | Add(Exp, Exp)
-       |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
-       |data MyInt = Zero() | Succ(MyInt)
-       |
-       |def init(stm: Stm): Stm = stm match {
-       |  case Assign(x, a) => stm
-       |  case Skip() => stm
-       |  case Sequence(s1, s2) => init(s1)
-       |  case If(b, s1, s2) => stm
-       |  case While(b, s) => stm
-       |}
-       |def final(stm: Stm): Set[Stm] = stm match {
-       |  case Assign(x, a) => {stm}
-       |  case Skip() => {stm}
-       |  case Sequence(s1, s2) => final(s2)
-       |  case If(b, s1, s2) => final(s1) ++ final(s2)
-       |  case While(b, s) => {stm}
-       |}
-       |
-       |def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
-       |  case Assign(x, a) => {}
-       |  case Skip() => {}
-       |  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
-       |  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
-       |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
-       |}
-       |
-       |def freevars(exp: Exp): Set[String] = exp match {
-       |  case Var(s) => {s}
-       |  case Num(i) => {}
-       |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
-       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
-       |}
-       |
-       |def freevarsStm(stm: Stm): Set[String] = stm match {
-       |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
-       |  case Skip() => {}
-       |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
-       |  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
-       |  case While(c, s) => freevars(c) ++ freevarsStm(s)
-       |}
-       |
-       |data Val = VBool(Boolean) | VNum(MyInt)
-       |
-       |def entry_var(stm: Stm, prog: Stm, x: String): Set[Val] =
-       |  {v | (pred,stm) in flow(prog), v in exit_var(pred, prog, x)}
-       |
-       |def exit_var(stm: Stm, prog: Stm, x: String): Set[Val] = stm match {
-       |  case Assign(y, exp) =>
-       |    if (x == y)
-       |      aeval(exp, stm, prog)
-       |    else
-       |      entry_var(stm, prog, x)
-       |  case Skip() => entry_var(stm, prog, x)
-       |  case Sequence(s1, s2) => entry_var(stm, prog, x)
-       |  case If(c, s1, s2) => entry_var(stm, prog, x)
-       |  case While(c, s) => entry_var(stm, prog, x)
-       |}
-       |
-       |@main def final_var(prog: Stm): Set[(String, Val)] =
-       |  {(x, v) | s in final(prog), x in freevarsStm(prog), v in exit_var(s, prog, x)}
-       |
-       |def aeval(exp: Exp, node: Stm, prog: Stm): Set[Val] = exp match {
-       |  case Num(i) => {VNum(Zero())}
-       |  case Var(x) => entry_var(node, prog, x)
-       |  case GreaterThan(e1, e2) => {greaterThan(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
-       |  case Add(e1, e2) => {add(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
-       |}
-       |
-       |def greaterThan(v1: Val, v2: Val): Val = v1 match {
-       |  case VNum(n1) => v2 match {
-       |    case VNum(n2) => n1 match {
-       |      case Zero() => VBool(false)
-       |      case Succ(i1) => n2 match {
-       |        case Zero() => VBool(true)
-       |        case Succ(i2) => VBool(false)
-       |      }
-       |    }
-       |    case VBool(b2) => VBool(false)
-       |  }
-       |  case VBool(b1) => VBool(false)
-       |}
-       |
-       |def add(v1: Val, v2: Val): Val = v1 match {
-       |  case VNum(n1) => v2 match {
-       |    case VNum(n2) => n1 match {
-       |      case Zero() => n2 match {
-       |        case Zero() =>
-       |          VNum(Succ(Zero()))
-       |        case Succ(i2) =>
-       |          VNum(Succ(Zero()))
-       |      }
-       |      case Succ(i1) => n2 match {
-       |        case Zero() =>
-       |          VNum(Succ(Zero()))
-       |        case Succ(i2) =>
-       |          VNum(Succ(Succ(Zero())))
-       |      }
-       |    }
-       |    case VBool(b2) => VBool(false)
-       |  }
-       |  case VBool(b1) => VBool(false)
-       |}
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | GreaterThan(Exp, Exp) | Add(Exp, Exp)
+      |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
+      |data MyInt = Zero() | Succ(MyInt)
+      |
+      |def init(stm: Stm): Stm = stm match {
+      |  case Assign(x, a) => stm
+      |  case Skip() => stm
+      |  case Sequence(s1, s2) => init(s1)
+      |  case If(b, s1, s2) => stm
+      |  case While(b, s) => stm
+      |}
+      |def final(stm: Stm): Set[Stm] = stm match {
+      |  case Assign(x, a) => {stm}
+      |  case Skip() => {stm}
+      |  case Sequence(s1, s2) => final(s2)
+      |  case If(b, s1, s2) => final(s1) ++ final(s2)
+      |  case While(b, s) => {stm}
+      |}
+      |
+      |def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
+      |  case Assign(x, a) => {}
+      |  case Skip() => {}
+      |  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
+      |  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
+      |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
+      |}
+      |
+      |def freevars(exp: Exp): Set[String] = exp match {
+      |  case Var(s) => {s}
+      |  case Num(i) => {}
+      |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
+      |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
+      |}
+      |
+      |def freevarsStm(stm: Stm): Set[String] = stm match {
+      |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
+      |  case Skip() => {}
+      |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
+      |  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
+      |  case While(c, s) => freevars(c) ++ freevarsStm(s)
+      |}
+      |
+      |data Val = VBool(Boolean) | VNum(MyInt)
+      |
+      |def entry_var(stm: Stm, prog: Stm, x: String): Set[Val] =
+      |  {v | (pred,stm) in flow(prog), v in exit_var(pred, prog, x)}
+      |
+      |def exit_var(stm: Stm, prog: Stm, x: String): Set[Val] = stm match {
+      |  case Assign(y, exp) =>
+      |    if (x == y)
+      |      aeval(exp, stm, prog)
+      |    else
+      |      entry_var(stm, prog, x)
+      |  case Skip() => entry_var(stm, prog, x)
+      |  case Sequence(s1, s2) => entry_var(stm, prog, x)
+      |  case If(c, s1, s2) => entry_var(stm, prog, x)
+      |  case While(c, s) => entry_var(stm, prog, x)
+      |}
+      |
+      |@main def final_var(prog: Stm): Set[(String, Val)] =
+      |  {(x, v) | s in final(prog), x in freevarsStm(prog), v in exit_var(s, prog, x)}
+      |
+      |def aeval(exp: Exp, node: Stm, prog: Stm): Set[Val] = exp match {
+      |  case Num(i) => {VNum(Zero())}
+      |  case Var(x) => entry_var(node, prog, x)
+      |  case GreaterThan(e1, e2) => {greaterThan(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
+      |  case Add(e1, e2) => {add(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
+      |}
+      |
+      |def greaterThan(v1: Val, v2: Val): Val = v1 match {
+      |  case VNum(n1) => v2 match {
+      |    case VNum(n2) => n1 match {
+      |      case Zero() => VBool(false)
+      |      case Succ(i1) => n2 match {
+      |        case Zero() => VBool(true)
+      |        case Succ(i2) => VBool(false)
+      |      }
+      |    }
+      |    case VBool(b2) => VBool(false)
+      |  }
+      |  case VBool(b1) => VBool(false)
+      |}
+      |
+      |def add(v1: Val, v2: Val): Val = v1 match {
+      |  case VNum(n1) => v2 match {
+      |    case VNum(n2) => n1 match {
+      |      case Zero() => n2 match {
+      |        case Zero() =>
+      |          VNum(Succ(Zero()))
+      |        case Succ(i2) =>
+      |          VNum(Succ(Zero()))
+      |      }
+      |      case Succ(i1) => n2 match {
+      |        case Zero() =>
+      |          VNum(Succ(Zero()))
+      |        case Succ(i2) =>
+      |          VNum(Succ(Succ(Zero())))
+      |      }
+      |    }
+      |    case VBool(b2) => VBool(false)
+      |  }
+      |  case VBool(b1) => VBool(false)
+      |}
+      |""".stripMargin
   def intValuesDEBUG: String = parametricIntValuesDEBUG(100, 1000)
   def ParametricIntValuesModuleDEBUG(bound: Int, default: Int): String = module(parametricIntValuesDEBUG(bound, default))
 
-
   def parametricIntValuesAGGREGATE(bound: Int, default: Int): String =
     s"""
-       |data Exp = Var(String) | Num(Int) | GreaterThan(Exp, Exp) | Add(Exp, Exp)
-       |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
-       |
-       |def init(stm: Stm): Stm = stm match {
-       |  case Assign(x, a) => stm
-       |  case Skip() => stm
-       |  case Sequence(s1, s2) => init(s1)
-       |  case If(b, s1, s2) => stm
-       |  case While(b, s) => stm
-       |}
-       |def final(stm: Stm): Set[Stm] = stm match {
-       |  case Assign(x, a) => {stm}
-       |  case Skip() => {stm}
-       |  case Sequence(s1, s2) => final(s2)
-       |  case If(b, s1, s2) => final(s1) ++ final(s2)
-       |  case While(b, s) => {stm}
-       |}
-       |
-       |def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
-       |  case Assign(x, a) => {}
-       |  case Skip() => {}
-       |  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
-       |  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
-       |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
-       |}
-       |
-       |def freevars(exp: Exp): Set[String] = exp match {
-       |  case Var(s) => {s}
-       |  case Num(i) => {}
-       |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
-       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
-       |}
-       |
-       |def freevarsStm(stm: Stm): Set[String] = stm match {
-       |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
-       |  case Skip() => {}
-       |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
-       |  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
-       |  case While(c, s) => freevars(c) ++ freevarsStm(s)
-       |}
-       |
-       |data Val = VBool(Boolean) | VNum(Int)
-       |
-       |def join(v1: Val, v2: Val): Val = v1 match {
-       |  case VNum(n1) => v2 match {
-       |    case VNum(n2) => VNum(`Math.max`(n1, n2))
-       |    case VBool(b2) => VBool(b2)
-       |  }
-       |  case VBool(b1) => VBool(b1)
-       |}
-       |
-       |def entry_var(stm: Stm, prog: Stm, x: String): Val =
-       |  fold(VNum(0), join, {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
-       |
-       |def exit_var(stm: Stm, prog: Stm, x: String): Val = stm match {
-       |  case Assign(y, exp) =>
-       |    if (x == y)
-       |      aeval(exp, stm, prog)
-       |    else
-       |      entry_var(stm, prog, x)
-       |  case Skip() => entry_var(stm, prog, x)
-       |  case Sequence(s1, s2) => entry_var(stm, prog, x)
-       |  case If(c, s1, s2) => entry_var(stm, prog, x)
-       |  case While(c, s) => entry_var(stm, prog, x)
-       |}
-       |
-       |@main def final_var(prog: Stm): Set[(String, Val)] =
-       |  {(x, exit_var(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
-       |
-       |def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
-       |  case Num(i) => VNum(i)
-       |  case Var(x) => entry_var(node, prog, x)
-       |  case GreaterThan(e1, e2) => greaterThan(aeval(e1, node, prog), aeval(e2, node, prog))
-       |  case Add(e1, e2) => add(aeval(e1, node, prog), aeval(e2, node, prog))
-       |}
-       |
-       |def greaterThan(v1: Val, v2: Val): Val = v1 match {
-       |  case VNum(n1) => v2 match {
-       |    case VNum(n2) => VBool(n1 > n2)
-       |    case VBool(b2) => VBool(false)
-       |  }
-       |  case VBool(b1) => VBool(false)
-       |}
-       |
-       |def add(v1: Val, v2: Val): Val = v1 match {
-       |  case VNum(n1) => v2 match {
-       |    case VNum(n2) =>
-       |      if ((n1 + n2) <= -${bound}) VNum(-${default})
-       |      else if ((n1 + n2) >= ${bound}) VNum(${default})
-       |      else VNum(n1 + n2)
-       |    case VBool(b2) => VBool(false)
-       |  }
-       |  case VBool(b1) => VBool(false)
-       |}
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | GreaterThan(Exp, Exp) | Add(Exp, Exp)
+      |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
+      |
+      |def init(stm: Stm): Stm = stm match {
+      |  case Assign(x, a) => stm
+      |  case Skip() => stm
+      |  case Sequence(s1, s2) => init(s1)
+      |  case If(b, s1, s2) => stm
+      |  case While(b, s) => stm
+      |}
+      |def final(stm: Stm): Set[Stm] = stm match {
+      |  case Assign(x, a) => {stm}
+      |  case Skip() => {stm}
+      |  case Sequence(s1, s2) => final(s2)
+      |  case If(b, s1, s2) => final(s1) ++ final(s2)
+      |  case While(b, s) => {stm}
+      |}
+      |
+      |def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
+      |  case Assign(x, a) => {}
+      |  case Skip() => {}
+      |  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
+      |  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
+      |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
+      |}
+      |
+      |def freevars(exp: Exp): Set[String] = exp match {
+      |  case Var(s) => {s}
+      |  case Num(i) => {}
+      |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
+      |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
+      |}
+      |
+      |def freevarsStm(stm: Stm): Set[String] = stm match {
+      |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
+      |  case Skip() => {}
+      |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
+      |  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
+      |  case While(c, s) => freevars(c) ++ freevarsStm(s)
+      |}
+      |
+      |data Val = VBool(Boolean) | VNum(Int)
+      |
+      |def join(v1: Val, v2: Val): Val = v1 match {
+      |  case VNum(n1) => v2 match {
+      |    case VNum(n2) => VNum(`Math.max`(n1, n2))
+      |    case VBool(b2) => VBool(b2)
+      |  }
+      |  case VBool(b1) => VBool(b1)
+      |}
+      |
+      |def entry_var(stm: Stm, prog: Stm, x: String): Val =
+      |  fold(VNum(0), join, {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
+      |
+      |def exit_var(stm: Stm, prog: Stm, x: String): Val = stm match {
+      |  case Assign(y, exp) =>
+      |    if (x == y)
+      |      aeval(exp, stm, prog)
+      |    else
+      |      entry_var(stm, prog, x)
+      |  case Skip() => entry_var(stm, prog, x)
+      |  case Sequence(s1, s2) => entry_var(stm, prog, x)
+      |  case If(c, s1, s2) => entry_var(stm, prog, x)
+      |  case While(c, s) => entry_var(stm, prog, x)
+      |}
+      |
+      |@main def final_var(prog: Stm): Set[(String, Val)] =
+      |  {(x, exit_var(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
+      |
+      |def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
+      |  case Num(i) => VNum(i)
+      |  case Var(x) => entry_var(node, prog, x)
+      |  case GreaterThan(e1, e2) => greaterThan(aeval(e1, node, prog), aeval(e2, node, prog))
+      |  case Add(e1, e2) => add(aeval(e1, node, prog), aeval(e2, node, prog))
+      |}
+      |
+      |def greaterThan(v1: Val, v2: Val): Val = v1 match {
+      |  case VNum(n1) => v2 match {
+      |    case VNum(n2) => VBool(n1 > n2)
+      |    case VBool(b2) => VBool(false)
+      |  }
+      |  case VBool(b1) => VBool(false)
+      |}
+      |
+      |def add(v1: Val, v2: Val): Val = v1 match {
+      |  case VNum(n1) => v2 match {
+      |    case VNum(n2) =>
+      |      if ((n1 + n2) <= -${bound}) VNum(-${default})
+      |      else if ((n1 + n2) >= ${bound}) VNum(${default})
+      |      else VNum(n1 + n2)
+      |    case VBool(b2) => VBool(false)
+      |  }
+      |  case VBool(b1) => VBool(false)
+      |}
+      |""".stripMargin
   def intValuesAGGREGATE: String = parametricIntValuesAGGREGATE(100, 1000)
   def ParametricIntValuesModuleAGGREGATE(bound: Int, default: Int): String = module(parametricIntValuesAGGREGATE(bound, default))
-
 
   def IntValuesModule: String = module(intValues)
 
@@ -452,7 +449,7 @@ object ControlDataFlow {
   // update times around 10-13 ms
   // introduce var in loop that changes it value each iteration
   val exampleDataflow1Change6 =
-  q"""Sequence(
+    q"""Sequence(
           Assign("x", Num(2)),
           Sequence(
             Assign("y", Num(2)),
@@ -651,7 +648,6 @@ object ControlDataFlow {
     )
     """
 
-
   /*
     x = 0
     while (x < 1000) {
@@ -694,7 +690,7 @@ object ControlDataFlow {
        }
      }
    }
-  */
+   */
   val exampleDataflow6 = q"""
     Sequence(
       Assign("x", Num(0)),

@@ -1,6 +1,11 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog.{Atom, Call, Module, Name, Pattern, throwBodyMustFail}
+import inca.backend.ir.Datalog.Atom
+import inca.backend.ir.Datalog.Call
+import inca.backend.ir.Datalog.Module
+import inca.backend.ir.Datalog.Name
+import inca.backend.ir.Datalog.Pattern
+import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 
 /* Eliminates non-productive relations and their calls.
@@ -8,7 +13,6 @@ import inca.runtime.context.DataModel
  * This optimization first enumerates all productive relations and eliminates all others.
  */
 object EliminateNonproductiveRelations extends Optimization {
-
 
   override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 
@@ -32,10 +36,11 @@ object EliminateNonproductiveRelations extends Optimization {
 
     @inline
     def isProductive(pat: Pattern): Boolean =
-      pat.bodies.exists(b => b.atoms.forall {
-        case Call(name, _, _, _) => productivePats.contains(name)
-        case _ => true
-      })
+      pat.bodies.exists(b =>
+        b.atoms.forall {
+          case Call(name, _, _, _) => productivePats.contains(name)
+          case _ => true
+        })
 
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val newpats = super.optimizePattern(pat)

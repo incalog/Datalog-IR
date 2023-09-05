@@ -1,0 +1,9 @@
+<Point: Point genPoint(int,int)>/return/0	5	<Point: Point genPoint(int,int)>/l2#_6	<Point: Point genPoint(int,int)>
+<Point: int maxX()>/return/0	0	<Point: int maxX()>/$numconstant0	<Point: int maxX()>
+<Point: int getX()>/return/0	2	<Point: int getX()>/l1#_24	<Point: int getX()>
+<Point: Point add(Point)>/return/0	13	<Point: Point add(Point)>/l2#_29	<Point: Point add(Point)>
+<Point: Point increaseXTill(int)>/return/0	13	<Point: Point increaseXTill(int)>/l2#_34	<Point: Point increaseXTill(int)>
+<Point: Point increaseXTill2(int)>/return/0	13	<Point: Point increaseXTill2(int)>/l2#_42	<Point: Point increaseXTill2(int)>
+<Point: Point add(int,int)>/return/0	10	<Point: Point add(int,int)>/l3#_50	<Point: Point add(int,int)>
+<Point: int abs(int)>/return/0	4	<Point: int abs(int)>/$stack2	<Point: int abs(int)>
+<Point: int abs(int)>/return/1	5	<Point: int abs(int)>/l1#_0	<Point: int abs(int)>

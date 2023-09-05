@@ -1,7 +1,6 @@
 package inca.frontend.functional.typechecker
 
 import inca.frontend.functional.core._
-
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
@@ -28,10 +27,10 @@ trait TypeContext extends TypeIO {
     vars.get(name) foreach { case (previousDecl, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (decl, ty))
+    vars += name -> ((decl, ty))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type)] =
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
@@ -41,7 +40,10 @@ trait TypeContext extends TypeIO {
           case set if set.size >= 2 =>
             val modules = set.toSeq.map(_._1)
             val modulesStr = modules.map(_.name).mkString(", ")
-            error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+            error(
+              s"Ambiguous call to $name, found definitions in $modulesStr",
+              (name +: modules): _*
+            )
             None
           case _ =>
             error(s"Unbound variable $name", name)
@@ -57,10 +59,11 @@ trait TypeContext extends TypeIO {
 
   def bindTyVar(name: Name, decl: TName.Target): Unit = {
     tyVars.get(name) match {
-      case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
+      case Some(prevDecl) =>
+        error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
       case None =>
     }
-    tyVars += name ->decl
+    tyVars += name -> decl
   }
 
   def lookupTyVar(name: Name): Option[TName.Target] = {
@@ -74,9 +77,8 @@ trait TypeContext extends TypeIO {
 
   def isTypeVar(name: Name): Boolean = tyVars.contains(name)
 
-
   def bindFun(fun: FunctionDef, module: Module): Unit = {
-    funs += fun.name -> (module, (fun, fun.funType))
+    funs += fun.name -> ((module, (fun, fun.funType)))
   }
 
   def lookupCalled(name: Name): Option[(Var.Target, TFun)] =
@@ -88,22 +90,25 @@ trait TypeContext extends TypeIO {
         val modulesStr = modules.map(_.name).mkString(", ")
         error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
         None
-      case set if set.isEmpty => vars.get(name) match {
-        case Some((trg, ty: TFun)) =>
-          Some((trg, ty))
-        case Some((_, ty)) =>
-          error(s"Variable $name has type $ty, but required function type")
-          None
-        case None =>
-          error(s"Unbound name $name", name)
-          None
-      }
+      case set if set.isEmpty =>
+        vars.get(name) match {
+          case Some((trg, ty: TFun)) =>
+            Some((trg, ty))
+          case Some((_, ty)) =>
+            error(s"Variable $name has type $ty, but required function type")
+            None
+          case None =>
+            error(s"Unbound name $name", name)
+            None
+        }
 
     }
 
   def bindData(data: DataDef, module: Module): Unit = {
     dataDefs += data.name -> data
-    data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
+    data.constrs.foreach { c =>
+      funs += c.name -> ((module, (c, c.constructorType(data))))
+    }
   }
 
   def isData(name: Name): Boolean =
@@ -126,7 +131,7 @@ trait TypeContext extends TypeIO {
     modules.get(name) foreach { bound =>
       error(s"Found multiple modules with same name $name", name, bound.name)
     }
-    modules += (name -> module)
+    modules += name -> module
   }
 
   def lookupModule(name: Name): Option[Module] =

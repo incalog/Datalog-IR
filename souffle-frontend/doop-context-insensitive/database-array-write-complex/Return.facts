@@ -1,0 +1,3 @@
+<Point: Point genPoint(int,int)>/return/0	5	<Point: Point genPoint(int,int)>/l2#_6	<Point: Point genPoint(int,int)>
+<Point: Point add(Point)>/return/0	11	<Point: Point add(Point)>/l2#_14	<Point: Point add(Point)>
+<Point: Point add(int,int)>/return/0	10	<Point: Point add(int,int)>/l3#_19	<Point: Point add(int,int)>

@@ -5,7 +5,6 @@ import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 
 class TestData extends AnyFlatSpec with IncaConstraintMatchers {

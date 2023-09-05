@@ -1,9 +1,12 @@
 package inca.runtime.index.virtual
 
 import inca.runtime.db.Database
-import inca.runtime.index.Index
 import inca.runtime.index.binary.BinaryIndex
 import inca.runtime.index.unary.UnaryIndex
+import inca.runtime.index.BagIndex
+import inca.runtime.index.Index
+import inca.runtime.index.IndexKey
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 
 /** A virtual index stores no data of its own but uses other indices to answer queries */
 trait VirtualIndex extends Index {
@@ -26,4 +29,9 @@ trait VirtualBinaryIndex[K, V] extends BinaryIndex[K, V] with VirtualIndex {
   override def insert(k: K, v: V): Unit = throw new UnsupportedOperationException
   override def delete(k: K, v: V): Unit = throw new UnsupportedOperationException
   override def update(k: K, vold: V, vnew: V): Unit = throw new UnsupportedOperationException
+}
+
+abstract class VirtualBagIndex(key: IndexKey[_]) extends BagIndex(key) with VirtualIndex {
+  override def insert(v: Tuple): Unit = throw new UnsupportedOperationException
+  override def delete(v: Tuple): Unit = throw new UnsupportedOperationException
 }

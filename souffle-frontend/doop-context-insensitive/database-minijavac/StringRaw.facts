@@ -1,0 +1,1609 @@
+<visitor.DepthFirstVisitor: void <init>()>	<visitor.DepthFirstVisitor: void <init>()>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeList)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeList)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeListOptional)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeListOptional)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeOptional)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeOptional)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeSequence)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeSequence)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeToken)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NodeToken)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Goal)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Goal)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.MainClass)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.MainClass)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.TypeDeclaration)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.TypeDeclaration)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ClassDeclaration)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ClassDeclaration)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ClassExtendsDeclaration)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ClassExtendsDeclaration)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.VarDeclaration)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.VarDeclaration)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.MethodDeclaration)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.MethodDeclaration)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterList)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterList)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameter)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameter)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterTail)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterTail)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterTerm)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.FormalParameterTerm)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Type)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Type)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayType)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayType)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.BooleanType)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.BooleanType)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.IntegerType)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.IntegerType)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Statement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Statement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Block)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Block)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.AssignmentStatement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.AssignmentStatement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayAssignmentStatement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayAssignmentStatement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.IfStatement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.IfStatement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.WhileStatement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.WhileStatement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.PrintStatement)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.PrintStatement)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Expression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Expression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.AndExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.AndExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.CompareExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.CompareExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.PlusExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.PlusExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.MinusExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.MinusExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.TimesExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.TimesExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayLookup)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayLookup)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayLength)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayLength)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.MessageSend)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.MessageSend)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionList)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionList)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionTail)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionTail)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionTerm)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ExpressionTerm)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.PrimaryExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.PrimaryExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.IntegerLiteral)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.IntegerLiteral)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.TrueLiteral)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.TrueLiteral)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.FalseLiteral)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.FalseLiteral)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.Identifier)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.Identifier)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ThisExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ThisExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayAllocationExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.ArrayAllocationExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.AllocationExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.AllocationExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.NotExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.NotExpression)>
+<visitor.DepthFirstVisitor: void visit(syntaxtree.BracketExpression)>	<visitor.DepthFirstVisitor: void visit(syntaxtree.BracketExpression)>
+<typechecking.MyTypeCheckingException: void <init>(java.lang.String)>	<typechecking.MyTypeCheckingException: void <init>(java.lang.String)>
+<typechecking.MyTypeCheckingException: void print()>	<typechecking.MyTypeCheckingException: void print()>
+<<\\"Type Checking failed: \\">>	<<\\"Type Checking failed: \\">>
+<JTBToolkit: void <init>()>	<JTBToolkit: void <init>()>
+<JTBToolkit: syntaxtree.NodeToken makeNodeToken(Token)>	<JTBToolkit: syntaxtree.NodeToken makeNodeToken(Token)>
+<syntaxtree.WhileStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.Statement)>	<syntaxtree.WhileStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.Statement)>
+<syntaxtree.WhileStatement: void <init>(syntaxtree.Expression,syntaxtree.Statement)>	<syntaxtree.WhileStatement: void <init>(syntaxtree.Expression,syntaxtree.Statement)>
+while	while
+(	(
+)	)
+<syntaxtree.WhileStatement: void accept(visitor.Visitor)>	<syntaxtree.WhileStatement: void accept(visitor.Visitor)>
+<syntaxtree.WhileStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.WhileStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.WhileStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.WhileStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.WhileStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.WhileStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<typechecking.CurrentScope: void <init>(java.lang.String)>	<typechecking.CurrentScope: void <init>(java.lang.String)>
+<typechecking.CurrentScope: int put(java.lang.String,java.lang.String)>	<typechecking.CurrentScope: int put(java.lang.String,java.lang.String)>
+<typechecking.CurrentScope: java.lang.String get(java.lang.String)>	<typechecking.CurrentScope: java.lang.String get(java.lang.String)>
+<typechecking.CurrentScope: java.lang.String getParentScopeName()>	<typechecking.CurrentScope: java.lang.String getParentScopeName()>
+<typechecking.CurrentScope: java.util.HashMap print()>	<typechecking.CurrentScope: java.util.HashMap print()>
+<syntaxtree.FalseLiteral: void <init>(syntaxtree.NodeToken)>	<syntaxtree.FalseLiteral: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.FalseLiteral: void <init>()>	<syntaxtree.FalseLiteral: void <init>()>
+false	false
+<syntaxtree.FalseLiteral: void accept(visitor.Visitor)>	<syntaxtree.FalseLiteral: void accept(visitor.Visitor)>
+<syntaxtree.FalseLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.FalseLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.FalseLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.FalseLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.FalseLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.FalseLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<JavaCharStream: int hexval(char)>	<JavaCharStream: int hexval(char)>
+<JavaCharStream: void setTabSize(int)>	<JavaCharStream: void setTabSize(int)>
+<JavaCharStream: int getTabSize(int)>	<JavaCharStream: int getTabSize(int)>
+<JavaCharStream: void ExpandBuff(boolean)>	<JavaCharStream: void ExpandBuff(boolean)>
+<JavaCharStream: void FillBuff()>	<JavaCharStream: void FillBuff()>
+<JavaCharStream: char ReadByte()>	<JavaCharStream: char ReadByte()>
+<JavaCharStream: char BeginToken()>	<JavaCharStream: char BeginToken()>
+<JavaCharStream: void AdjustBuffSize()>	<JavaCharStream: void AdjustBuffSize()>
+<JavaCharStream: void UpdateLineColumn(char)>	<JavaCharStream: void UpdateLineColumn(char)>
+<JavaCharStream: char readChar()>	<JavaCharStream: char readChar()>
+<<\\"Invalid escape character at line \\">>	<<\\"Invalid escape character at line \\">>
+<<\\" column \\">>	<<\\" column \\">>
+.	.
+<JavaCharStream: int getColumn()>	<JavaCharStream: int getColumn()>
+<JavaCharStream: int getLine()>	<JavaCharStream: int getLine()>
+<JavaCharStream: int getEndColumn()>	<JavaCharStream: int getEndColumn()>
+<JavaCharStream: int getEndLine()>	<JavaCharStream: int getEndLine()>
+<JavaCharStream: int getBeginColumn()>	<JavaCharStream: int getBeginColumn()>
+<JavaCharStream: int getBeginLine()>	<JavaCharStream: int getBeginLine()>
+<JavaCharStream: void backup(int)>	<JavaCharStream: void backup(int)>
+<JavaCharStream: void <init>(java.io.Reader,int,int,int)>	<JavaCharStream: void <init>(java.io.Reader,int,int,int)>
+<JavaCharStream: void <init>(java.io.Reader,int,int)>	<JavaCharStream: void <init>(java.io.Reader,int,int)>
+<JavaCharStream: void <init>(java.io.Reader)>	<JavaCharStream: void <init>(java.io.Reader)>
+<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>	<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>
+<JavaCharStream: void ReInit(java.io.Reader,int,int)>	<JavaCharStream: void ReInit(java.io.Reader,int,int)>
+<JavaCharStream: void ReInit(java.io.Reader)>	<JavaCharStream: void ReInit(java.io.Reader)>
+<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int,int)>	<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int,int)>
+<JavaCharStream: void <init>(java.io.InputStream,int,int,int)>	<JavaCharStream: void <init>(java.io.InputStream,int,int,int)>
+<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int)>	<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int)>
+<JavaCharStream: void <init>(java.io.InputStream,int,int)>	<JavaCharStream: void <init>(java.io.InputStream,int,int)>
+<JavaCharStream: void <init>(java.io.InputStream,java.lang.String)>	<JavaCharStream: void <init>(java.io.InputStream,java.lang.String)>
+<JavaCharStream: void <init>(java.io.InputStream)>	<JavaCharStream: void <init>(java.io.InputStream)>
+<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int,int)>	<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int,int)>
+<JavaCharStream: void ReInit(java.io.InputStream,int,int,int)>	<JavaCharStream: void ReInit(java.io.InputStream,int,int,int)>
+<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int)>	<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int)>
+<JavaCharStream: void ReInit(java.io.InputStream,int,int)>	<JavaCharStream: void ReInit(java.io.InputStream,int,int)>
+<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String)>	<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String)>
+<JavaCharStream: void ReInit(java.io.InputStream)>	<JavaCharStream: void ReInit(java.io.InputStream)>
+<JavaCharStream: java.lang.String GetImage()>	<JavaCharStream: java.lang.String GetImage()>
+<JavaCharStream: char[] GetSuffix(int)>	<JavaCharStream: char[] GetSuffix(int)>
+<JavaCharStream: void Done()>	<JavaCharStream: void Done()>
+<JavaCharStream: void adjustBeginLineColumn(int,int)>	<JavaCharStream: void adjustBeginLineColumn(int,int)>
+<syntaxtree.Type: void <init>(syntaxtree.NodeChoice)>	<syntaxtree.Type: void <init>(syntaxtree.NodeChoice)>
+<syntaxtree.Type: void accept(visitor.Visitor)>	<syntaxtree.Type: void accept(visitor.Visitor)>
+<syntaxtree.Type: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Type: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Type: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Type: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Type: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Type: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeListInterface: void addNode(syntaxtree.Node)>	<syntaxtree.NodeListInterface: void addNode(syntaxtree.Node)>
+<syntaxtree.NodeListInterface: syntaxtree.Node elementAt(int)>	<syntaxtree.NodeListInterface: syntaxtree.Node elementAt(int)>
+<syntaxtree.NodeListInterface: java.util.Enumeration elements()>	<syntaxtree.NodeListInterface: java.util.Enumeration elements()>
+<syntaxtree.NodeListInterface: int size()>	<syntaxtree.NodeListInterface: int size()>
+<syntaxtree.NodeListInterface: void accept(visitor.Visitor)>	<syntaxtree.NodeListInterface: void accept(visitor.Visitor)>
+<syntaxtree.NodeListInterface: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeListInterface: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeListInterface: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeListInterface: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeListInterface: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeListInterface: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.PrintStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.PrintStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.PrintStatement: void <init>(syntaxtree.Expression)>	<syntaxtree.PrintStatement: void <init>(syntaxtree.Expression)>
+System.out.println	System.out.println
+(	(
+)	)
+;	;
+<syntaxtree.PrintStatement: void accept(visitor.Visitor)>	<syntaxtree.PrintStatement: void accept(visitor.Visitor)>
+<syntaxtree.PrintStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.PrintStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.PrintStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.PrintStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.PrintStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.PrintStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<Main: void <init>()>	<Main: void <init>()>
+<Main: void main(java.lang.String[])>	<Main: void main(java.lang.String[])>
+[module: \u001b[34mMiniJavac\u001b[0m]\n	[module: \u001b[34mMiniJavac\u001b[0m]\n
+/	/
+\\.	\\.
+Minijava program parsed successfully.	Minijava program parsed successfully.
+Minijava program type checked successfully - no errors found	Minijava program type checked successfully - no errors found
+Encountered errors during parse.	Encountered errors during parse.
+File not found	File not found
+<syntaxtree.ExpressionTail: void <init>(syntaxtree.NodeListOptional)>	<syntaxtree.ExpressionTail: void <init>(syntaxtree.NodeListOptional)>
+<syntaxtree.ExpressionTail: void accept(visitor.Visitor)>	<syntaxtree.ExpressionTail: void accept(visitor.Visitor)>
+<syntaxtree.ExpressionTail: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ExpressionTail: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ExpressionTail: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ExpressionTail: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ExpressionTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ExpressionTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NotExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Expression)>	<syntaxtree.NotExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Expression)>
+<syntaxtree.NotExpression: void <init>(syntaxtree.Expression)>	<syntaxtree.NotExpression: void <init>(syntaxtree.Expression)>
+!	!
+<syntaxtree.NotExpression: void accept(visitor.Visitor)>	<syntaxtree.NotExpression: void accept(visitor.Visitor)>
+<syntaxtree.NotExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NotExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NotExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NotExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NotExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NotExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.FormalParameter: void <init>(syntaxtree.Type,syntaxtree.Identifier)>	<syntaxtree.FormalParameter: void <init>(syntaxtree.Type,syntaxtree.Identifier)>
+<syntaxtree.FormalParameter: void accept(visitor.Visitor)>	<syntaxtree.FormalParameter: void accept(visitor.Visitor)>
+<syntaxtree.FormalParameter: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.FormalParameter: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.FormalParameter: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.FormalParameter: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.FormalParameter: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.FormalParameter: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<ParseException: void <init>(Token,int[][],java.lang.String[])>	<ParseException: void <init>(Token,int[][],java.lang.String[])>
+line.separator	line.separator
+\n	\n
+<ParseException: void <init>()>	<ParseException: void <init>()>
+line.separator	line.separator
+\n	\n
+<ParseException: void <init>(java.lang.String)>	<ParseException: void <init>(java.lang.String)>
+line.separator	line.separator
+\n	\n
+<ParseException: java.lang.String initialise(Token,int[][],java.lang.String[])>	<ParseException: java.lang.String initialise(Token,int[][],java.lang.String[])>
+line.separator	line.separator
+\n	\n
+...	...
+<<\\"    \\">>	<<\\"    \\">>
+Encountered \\\"	Encountered \\\"
+<<\\" \\">>	<<\\" \\">>
+<<\\" \\">>	<<\\" \\">>
+<<\\" \\\"\\">>	<<\\" \\\"\\">>
+<<\\" \\\"\\">>	<<\\" \\\"\\">>
+<<\\"\\\" at line \\">>	<<\\"\\\" at line \\">>
+<<\\", column \\">>	<<\\", column \\">>
+.	.
+Was expecting:	Was expecting:
+<<\\"    \\">>	<<\\"    \\">>
+Was expecting one of:	Was expecting one of:
+<<\\"    \\">>	<<\\"    \\">>
+<ParseException: java.lang.String add_escapes(java.lang.String)>	<ParseException: java.lang.String add_escapes(java.lang.String)>
+\\b	\\b
+\\t	\\t
+\\n	\\n
+\\f	\\f
+\\r	\\r
+\\\\\"	\\\\\"
+\\\'	\\\'
+\\\\	\\\\
+0000	0000
+\\u	\\u
+<syntaxtree.ExpressionTerm: void <init>(syntaxtree.NodeToken,syntaxtree.Expression)>	<syntaxtree.ExpressionTerm: void <init>(syntaxtree.NodeToken,syntaxtree.Expression)>
+<syntaxtree.ExpressionTerm: void <init>(syntaxtree.Expression)>	<syntaxtree.ExpressionTerm: void <init>(syntaxtree.Expression)>
+,	,
+<syntaxtree.ExpressionTerm: void accept(visitor.Visitor)>	<syntaxtree.ExpressionTerm: void accept(visitor.Visitor)>
+<syntaxtree.ExpressionTerm: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ExpressionTerm: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ExpressionTerm: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ExpressionTerm: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ExpressionTerm: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ExpressionTerm: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.TimesExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>	<syntaxtree.TimesExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>
+<syntaxtree.TimesExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.TimesExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
+*	*
+<syntaxtree.TimesExpression: void accept(visitor.Visitor)>	<syntaxtree.TimesExpression: void accept(visitor.Visitor)>
+<syntaxtree.TimesExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.TimesExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.TimesExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.TimesExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.TimesExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.TimesExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.AllocationExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.AllocationExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.AllocationExpression: void <init>(syntaxtree.Identifier)>	<syntaxtree.AllocationExpression: void <init>(syntaxtree.Identifier)>
+new	new
+(	(
+)	)
+<syntaxtree.AllocationExpression: void accept(visitor.Visitor)>	<syntaxtree.AllocationExpression: void accept(visitor.Visitor)>
+<syntaxtree.AllocationExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.AllocationExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.AllocationExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.AllocationExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.AllocationExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.AllocationExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<typechecking.AllScopeShadowedTypeSearch: void <init>(java.util.HashMap)>	<typechecking.AllScopeShadowedTypeSearch: void <init>(java.util.HashMap)>
+<typechecking.AllScopeShadowedTypeSearch: java.lang.String getType(java.lang.String,java.lang.String,java.lang.String)>	<typechecking.AllScopeShadowedTypeSearch: java.lang.String getType(java.lang.String,java.lang.String,java.lang.String)>
+Resolved:	Resolved:
+:	:
+int	int
+int[]	int[]
+boolean	boolean
+int	int
+int[]	int[]
+boolean	boolean
+this	this
+<typechecking.AllScopeShadowedTypeSearch: java.lang.String parseType(java.lang.String)>	<typechecking.AllScopeShadowedTypeSearch: java.lang.String parseType(java.lang.String)>
+Class:	Class:
+:	:
+<syntaxtree.ArrayLength: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.ArrayLength: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.ArrayLength: void <init>(syntaxtree.PrimaryExpression)>	<syntaxtree.ArrayLength: void <init>(syntaxtree.PrimaryExpression)>
+.	.
+length	length
+<syntaxtree.ArrayLength: void accept(visitor.Visitor)>	<syntaxtree.ArrayLength: void accept(visitor.Visitor)>
+<syntaxtree.ArrayLength: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ArrayLength: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ArrayLength: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ArrayLength: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ArrayLength: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ArrayLength: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<visitor.GJNoArguDepthFirst: void <init>()>	<visitor.GJNoArguDepthFirst: void <init>()>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeList)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeList)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeListOptional)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeListOptional)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeOptional)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeOptional)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeSequence)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeSequence)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeToken)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NodeToken)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Goal)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Goal)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MainClass)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MainClass)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TypeDeclaration)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TypeDeclaration)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ClassDeclaration)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ClassDeclaration)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.VarDeclaration)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.VarDeclaration)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MethodDeclaration)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MethodDeclaration)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterList)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterList)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameter)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameter)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTail)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTail)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTerm)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTerm)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Type)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Type)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayType)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayType)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.BooleanType)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.BooleanType)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IntegerType)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IntegerType)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Statement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Statement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Block)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Block)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AssignmentStatement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AssignmentStatement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IfStatement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IfStatement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.WhileStatement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.WhileStatement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PrintStatement)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PrintStatement)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Expression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Expression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AndExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AndExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.CompareExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.CompareExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PlusExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PlusExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MinusExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MinusExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TimesExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TimesExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayLookup)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayLookup)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayLength)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayLength)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MessageSend)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.MessageSend)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionList)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionList)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTail)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTail)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTerm)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTerm)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PrimaryExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.PrimaryExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IntegerLiteral)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.IntegerLiteral)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TrueLiteral)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.TrueLiteral)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FalseLiteral)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.FalseLiteral)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Identifier)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.Identifier)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ThisExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ThisExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayAllocationExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.ArrayAllocationExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AllocationExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.AllocationExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NotExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.NotExpression)>
+<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.BracketExpression)>	<visitor.GJNoArguDepthFirst: java.lang.Object visit(syntaxtree.BracketExpression)>
+<syntaxtree.ClassExtendsDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>	<syntaxtree.ClassExtendsDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>
+<syntaxtree.ClassExtendsDeclaration: void <init>(syntaxtree.Identifier,syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>	<syntaxtree.ClassExtendsDeclaration: void <init>(syntaxtree.Identifier,syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>
+class	class
+extends	extends
+{	{
+}	}
+<syntaxtree.ClassExtendsDeclaration: void accept(visitor.Visitor)>	<syntaxtree.ClassExtendsDeclaration: void accept(visitor.Visitor)>
+<syntaxtree.ClassExtendsDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ClassExtendsDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ClassExtendsDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ClassExtendsDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ClassExtendsDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ClassExtendsDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.MinusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>	<syntaxtree.MinusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>
+<syntaxtree.MinusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.MinusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
+-	-
+<syntaxtree.MinusExpression: void accept(visitor.Visitor)>	<syntaxtree.MinusExpression: void accept(visitor.Visitor)>
+<syntaxtree.MinusExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.MinusExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.MinusExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.MinusExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.MinusExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.MinusExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.IfStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.Statement,syntaxtree.NodeToken,syntaxtree.Statement)>	<syntaxtree.IfStatement: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.Statement,syntaxtree.NodeToken,syntaxtree.Statement)>
+<syntaxtree.IfStatement: void <init>(syntaxtree.Expression,syntaxtree.Statement,syntaxtree.Statement)>	<syntaxtree.IfStatement: void <init>(syntaxtree.Expression,syntaxtree.Statement,syntaxtree.Statement)>
+if	if
+(	(
+)	)
+else	else
+<syntaxtree.IfStatement: void accept(visitor.Visitor)>	<syntaxtree.IfStatement: void accept(visitor.Visitor)>
+<syntaxtree.IfStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.IfStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.IfStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.IfStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.IfStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.IfStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.ArrayAllocationExpression: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>	<syntaxtree.ArrayAllocationExpression: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>
+<syntaxtree.ArrayAllocationExpression: void <init>(syntaxtree.Expression)>	<syntaxtree.ArrayAllocationExpression: void <init>(syntaxtree.Expression)>
+new	new
+int	int
+[	[
+]	]
+<syntaxtree.ArrayAllocationExpression: void accept(visitor.Visitor)>	<syntaxtree.ArrayAllocationExpression: void accept(visitor.Visitor)>
+<syntaxtree.ArrayAllocationExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ArrayAllocationExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ArrayAllocationExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ArrayAllocationExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ArrayAllocationExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ArrayAllocationExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.ArrayLookup: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression,syntaxtree.NodeToken)>	<syntaxtree.ArrayLookup: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression,syntaxtree.NodeToken)>
+<syntaxtree.ArrayLookup: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.ArrayLookup: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
+[	[
+]	]
+<syntaxtree.ArrayLookup: void accept(visitor.Visitor)>	<syntaxtree.ArrayLookup: void accept(visitor.Visitor)>
+<syntaxtree.ArrayLookup: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ArrayLookup: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ArrayLookup: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ArrayLookup: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ArrayLookup: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ArrayLookup: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<MiniJavaParser: syntaxtree.Goal Goal()>	<MiniJavaParser: syntaxtree.Goal Goal()>
+<MiniJavaParser: syntaxtree.MainClass MainClass()>	<MiniJavaParser: syntaxtree.MainClass MainClass()>
+<MiniJavaParser: syntaxtree.TypeDeclaration TypeDeclaration()>	<MiniJavaParser: syntaxtree.TypeDeclaration TypeDeclaration()>
+<MiniJavaParser: syntaxtree.ClassDeclaration ClassDeclaration()>	<MiniJavaParser: syntaxtree.ClassDeclaration ClassDeclaration()>
+<MiniJavaParser: syntaxtree.ClassExtendsDeclaration ClassExtendsDeclaration()>	<MiniJavaParser: syntaxtree.ClassExtendsDeclaration ClassExtendsDeclaration()>
+<MiniJavaParser: syntaxtree.VarDeclaration VarDeclaration()>	<MiniJavaParser: syntaxtree.VarDeclaration VarDeclaration()>
+<MiniJavaParser: syntaxtree.MethodDeclaration MethodDeclaration()>	<MiniJavaParser: syntaxtree.MethodDeclaration MethodDeclaration()>
+<MiniJavaParser: syntaxtree.FormalParameterList FormalParameterList()>	<MiniJavaParser: syntaxtree.FormalParameterList FormalParameterList()>
+<MiniJavaParser: syntaxtree.FormalParameter FormalParameter()>	<MiniJavaParser: syntaxtree.FormalParameter FormalParameter()>
+<MiniJavaParser: syntaxtree.FormalParameterTail FormalParameterTail()>	<MiniJavaParser: syntaxtree.FormalParameterTail FormalParameterTail()>
+<MiniJavaParser: syntaxtree.FormalParameterTerm FormalParameterTerm()>	<MiniJavaParser: syntaxtree.FormalParameterTerm FormalParameterTerm()>
+<MiniJavaParser: syntaxtree.Type Type()>	<MiniJavaParser: syntaxtree.Type Type()>
+<MiniJavaParser: syntaxtree.ArrayType ArrayType()>	<MiniJavaParser: syntaxtree.ArrayType ArrayType()>
+<MiniJavaParser: syntaxtree.BooleanType BooleanType()>	<MiniJavaParser: syntaxtree.BooleanType BooleanType()>
+<MiniJavaParser: syntaxtree.IntegerType IntegerType()>	<MiniJavaParser: syntaxtree.IntegerType IntegerType()>
+<MiniJavaParser: syntaxtree.Statement Statement()>	<MiniJavaParser: syntaxtree.Statement Statement()>
+<MiniJavaParser: syntaxtree.Block Block()>	<MiniJavaParser: syntaxtree.Block Block()>
+<MiniJavaParser: syntaxtree.AssignmentStatement AssignmentStatement()>	<MiniJavaParser: syntaxtree.AssignmentStatement AssignmentStatement()>
+<MiniJavaParser: syntaxtree.ArrayAssignmentStatement ArrayAssignmentStatement()>	<MiniJavaParser: syntaxtree.ArrayAssignmentStatement ArrayAssignmentStatement()>
+<MiniJavaParser: syntaxtree.IfStatement IfStatement()>	<MiniJavaParser: syntaxtree.IfStatement IfStatement()>
+<MiniJavaParser: syntaxtree.WhileStatement WhileStatement()>	<MiniJavaParser: syntaxtree.WhileStatement WhileStatement()>
+<MiniJavaParser: syntaxtree.PrintStatement PrintStatement()>	<MiniJavaParser: syntaxtree.PrintStatement PrintStatement()>
+<MiniJavaParser: syntaxtree.Expression Expression()>	<MiniJavaParser: syntaxtree.Expression Expression()>
+<MiniJavaParser: syntaxtree.AndExpression AndExpression()>	<MiniJavaParser: syntaxtree.AndExpression AndExpression()>
+<MiniJavaParser: syntaxtree.CompareExpression CompareExpression()>	<MiniJavaParser: syntaxtree.CompareExpression CompareExpression()>
+<MiniJavaParser: syntaxtree.PlusExpression PlusExpression()>	<MiniJavaParser: syntaxtree.PlusExpression PlusExpression()>
+<MiniJavaParser: syntaxtree.MinusExpression MinusExpression()>	<MiniJavaParser: syntaxtree.MinusExpression MinusExpression()>
+<MiniJavaParser: syntaxtree.TimesExpression TimesExpression()>	<MiniJavaParser: syntaxtree.TimesExpression TimesExpression()>
+<MiniJavaParser: syntaxtree.ArrayLookup ArrayLookup()>	<MiniJavaParser: syntaxtree.ArrayLookup ArrayLookup()>
+<MiniJavaParser: syntaxtree.ArrayLength ArrayLength()>	<MiniJavaParser: syntaxtree.ArrayLength ArrayLength()>
+<MiniJavaParser: syntaxtree.MessageSend MessageSend()>	<MiniJavaParser: syntaxtree.MessageSend MessageSend()>
+<MiniJavaParser: syntaxtree.ExpressionList ExpressionList()>	<MiniJavaParser: syntaxtree.ExpressionList ExpressionList()>
+<MiniJavaParser: syntaxtree.ExpressionTail ExpressionTail()>	<MiniJavaParser: syntaxtree.ExpressionTail ExpressionTail()>
+<MiniJavaParser: syntaxtree.ExpressionTerm ExpressionTerm()>	<MiniJavaParser: syntaxtree.ExpressionTerm ExpressionTerm()>
+<MiniJavaParser: syntaxtree.PrimaryExpression PrimaryExpression()>	<MiniJavaParser: syntaxtree.PrimaryExpression PrimaryExpression()>
+<MiniJavaParser: syntaxtree.IntegerLiteral IntegerLiteral()>	<MiniJavaParser: syntaxtree.IntegerLiteral IntegerLiteral()>
+<MiniJavaParser: syntaxtree.TrueLiteral TrueLiteral()>	<MiniJavaParser: syntaxtree.TrueLiteral TrueLiteral()>
+<MiniJavaParser: syntaxtree.FalseLiteral FalseLiteral()>	<MiniJavaParser: syntaxtree.FalseLiteral FalseLiteral()>
+<MiniJavaParser: syntaxtree.Identifier Identifier()>	<MiniJavaParser: syntaxtree.Identifier Identifier()>
+<MiniJavaParser: syntaxtree.ThisExpression ThisExpression()>	<MiniJavaParser: syntaxtree.ThisExpression ThisExpression()>
+<MiniJavaParser: syntaxtree.ArrayAllocationExpression ArrayAllocationExpression()>	<MiniJavaParser: syntaxtree.ArrayAllocationExpression ArrayAllocationExpression()>
+<MiniJavaParser: syntaxtree.AllocationExpression AllocationExpression()>	<MiniJavaParser: syntaxtree.AllocationExpression AllocationExpression()>
+<MiniJavaParser: syntaxtree.NotExpression NotExpression()>	<MiniJavaParser: syntaxtree.NotExpression NotExpression()>
+<MiniJavaParser: syntaxtree.BracketExpression BracketExpression()>	<MiniJavaParser: syntaxtree.BracketExpression BracketExpression()>
+<MiniJavaParser: boolean jj_2_1(int)>	<MiniJavaParser: boolean jj_2_1(int)>
+<MiniJavaParser: boolean jj_2_2(int)>	<MiniJavaParser: boolean jj_2_2(int)>
+<MiniJavaParser: boolean jj_2_3(int)>	<MiniJavaParser: boolean jj_2_3(int)>
+<MiniJavaParser: boolean jj_2_4(int)>	<MiniJavaParser: boolean jj_2_4(int)>
+<MiniJavaParser: boolean jj_2_5(int)>	<MiniJavaParser: boolean jj_2_5(int)>
+<MiniJavaParser: boolean jj_2_6(int)>	<MiniJavaParser: boolean jj_2_6(int)>
+<MiniJavaParser: boolean jj_2_7(int)>	<MiniJavaParser: boolean jj_2_7(int)>
+<MiniJavaParser: boolean jj_2_8(int)>	<MiniJavaParser: boolean jj_2_8(int)>
+<MiniJavaParser: boolean jj_2_9(int)>	<MiniJavaParser: boolean jj_2_9(int)>
+<MiniJavaParser: boolean jj_2_10(int)>	<MiniJavaParser: boolean jj_2_10(int)>
+<MiniJavaParser: boolean jj_2_11(int)>	<MiniJavaParser: boolean jj_2_11(int)>
+<MiniJavaParser: boolean jj_2_12(int)>	<MiniJavaParser: boolean jj_2_12(int)>
+<MiniJavaParser: boolean jj_2_13(int)>	<MiniJavaParser: boolean jj_2_13(int)>
+<MiniJavaParser: boolean jj_2_14(int)>	<MiniJavaParser: boolean jj_2_14(int)>
+<MiniJavaParser: boolean jj_2_15(int)>	<MiniJavaParser: boolean jj_2_15(int)>
+<MiniJavaParser: boolean jj_3_1()>	<MiniJavaParser: boolean jj_3_1()>
+<MiniJavaParser: boolean jj_3R_15()>	<MiniJavaParser: boolean jj_3R_15()>
+<MiniJavaParser: boolean jj_3R_52()>	<MiniJavaParser: boolean jj_3R_52()>
+<MiniJavaParser: boolean jj_3R_19()>	<MiniJavaParser: boolean jj_3R_19()>
+<MiniJavaParser: boolean jj_3R_39()>	<MiniJavaParser: boolean jj_3R_39()>
+<MiniJavaParser: boolean jj_3R_64()>	<MiniJavaParser: boolean jj_3R_64()>
+<MiniJavaParser: boolean jj_3R_57()>	<MiniJavaParser: boolean jj_3R_57()>
+<MiniJavaParser: boolean jj_3_14()>	<MiniJavaParser: boolean jj_3_14()>
+<MiniJavaParser: boolean jj_3_13()>	<MiniJavaParser: boolean jj_3_13()>
+<MiniJavaParser: boolean jj_3R_51()>	<MiniJavaParser: boolean jj_3R_51()>
+<MiniJavaParser: boolean jj_3R_35()>	<MiniJavaParser: boolean jj_3R_35()>
+<MiniJavaParser: boolean jj_3R_32()>	<MiniJavaParser: boolean jj_3R_32()>
+<MiniJavaParser: boolean jj_3_12()>	<MiniJavaParser: boolean jj_3_12()>
+<MiniJavaParser: boolean jj_3R_31()>	<MiniJavaParser: boolean jj_3R_31()>
+<MiniJavaParser: boolean jj_3R_50()>	<MiniJavaParser: boolean jj_3R_50()>
+<MiniJavaParser: boolean jj_3_3()>	<MiniJavaParser: boolean jj_3_3()>
+<MiniJavaParser: boolean jj_3R_30()>	<MiniJavaParser: boolean jj_3R_30()>
+<MiniJavaParser: boolean jj_3_11()>	<MiniJavaParser: boolean jj_3_11()>
+<MiniJavaParser: boolean jj_3R_63()>	<MiniJavaParser: boolean jj_3R_63()>
+<MiniJavaParser: boolean jj_3R_49()>	<MiniJavaParser: boolean jj_3R_49()>
+<MiniJavaParser: boolean jj_3R_38()>	<MiniJavaParser: boolean jj_3R_38()>
+<MiniJavaParser: boolean jj_3_4()>	<MiniJavaParser: boolean jj_3_4()>
+<MiniJavaParser: boolean jj_3_10()>	<MiniJavaParser: boolean jj_3_10()>
+<MiniJavaParser: boolean jj_3R_62()>	<MiniJavaParser: boolean jj_3R_62()>
+<MiniJavaParser: boolean jj_3R_48()>	<MiniJavaParser: boolean jj_3R_48()>
+<MiniJavaParser: boolean jj_3R_56()>	<MiniJavaParser: boolean jj_3R_56()>
+<MiniJavaParser: boolean jj_3R_34()>	<MiniJavaParser: boolean jj_3R_34()>
+<MiniJavaParser: boolean jj_3R_21()>	<MiniJavaParser: boolean jj_3R_21()>
+<MiniJavaParser: boolean jj_3_9()>	<MiniJavaParser: boolean jj_3_9()>
+<MiniJavaParser: boolean jj_3R_47()>	<MiniJavaParser: boolean jj_3R_47()>
+<MiniJavaParser: boolean jj_3_8()>	<MiniJavaParser: boolean jj_3_8()>
+<MiniJavaParser: boolean jj_3R_46()>	<MiniJavaParser: boolean jj_3R_46()>
+<MiniJavaParser: boolean jj_3_6()>	<MiniJavaParser: boolean jj_3_6()>
+<MiniJavaParser: boolean jj_3_7()>	<MiniJavaParser: boolean jj_3_7()>
+<MiniJavaParser: boolean jj_3R_45()>	<MiniJavaParser: boolean jj_3R_45()>
+<MiniJavaParser: boolean jj_3R_61()>	<MiniJavaParser: boolean jj_3R_61()>
+<MiniJavaParser: boolean jj_3R_33()>	<MiniJavaParser: boolean jj_3R_33()>
+<MiniJavaParser: boolean jj_3_5()>	<MiniJavaParser: boolean jj_3_5()>
+<MiniJavaParser: boolean jj_3R_37()>	<MiniJavaParser: boolean jj_3R_37()>
+<MiniJavaParser: boolean jj_3R_44()>	<MiniJavaParser: boolean jj_3R_44()>
+<MiniJavaParser: boolean jj_3R_14()>	<MiniJavaParser: boolean jj_3R_14()>
+<MiniJavaParser: boolean jj_3R_55()>	<MiniJavaParser: boolean jj_3R_55()>
+<MiniJavaParser: boolean jj_3R_43()>	<MiniJavaParser: boolean jj_3R_43()>
+<MiniJavaParser: boolean jj_3R_42()>	<MiniJavaParser: boolean jj_3R_42()>
+<MiniJavaParser: boolean jj_3R_29()>	<MiniJavaParser: boolean jj_3R_29()>
+<MiniJavaParser: boolean jj_3R_60()>	<MiniJavaParser: boolean jj_3R_60()>
+<MiniJavaParser: boolean jj_3R_28()>	<MiniJavaParser: boolean jj_3R_28()>
+<MiniJavaParser: boolean jj_3R_17()>	<MiniJavaParser: boolean jj_3R_17()>
+<MiniJavaParser: boolean jj_3R_27()>	<MiniJavaParser: boolean jj_3R_27()>
+<MiniJavaParser: boolean jj_3R_59()>	<MiniJavaParser: boolean jj_3R_59()>
+<MiniJavaParser: boolean jj_3R_54()>	<MiniJavaParser: boolean jj_3R_54()>
+<MiniJavaParser: boolean jj_3_15()>	<MiniJavaParser: boolean jj_3_15()>
+<MiniJavaParser: boolean jj_3R_20()>	<MiniJavaParser: boolean jj_3R_20()>
+<MiniJavaParser: boolean jj_3R_41()>	<MiniJavaParser: boolean jj_3R_41()>
+<MiniJavaParser: boolean jj_3R_26()>	<MiniJavaParser: boolean jj_3R_26()>
+<MiniJavaParser: boolean jj_3_2()>	<MiniJavaParser: boolean jj_3_2()>
+<MiniJavaParser: boolean jj_3R_25()>	<MiniJavaParser: boolean jj_3R_25()>
+<MiniJavaParser: boolean jj_3R_13()>	<MiniJavaParser: boolean jj_3R_13()>
+<MiniJavaParser: boolean jj_3R_24()>	<MiniJavaParser: boolean jj_3R_24()>
+<MiniJavaParser: boolean jj_3R_23()>	<MiniJavaParser: boolean jj_3R_23()>
+<MiniJavaParser: boolean jj_3R_22()>	<MiniJavaParser: boolean jj_3R_22()>
+<MiniJavaParser: boolean jj_3R_53()>	<MiniJavaParser: boolean jj_3R_53()>
+<MiniJavaParser: boolean jj_3R_40()>	<MiniJavaParser: boolean jj_3R_40()>
+<MiniJavaParser: boolean jj_3R_18()>	<MiniJavaParser: boolean jj_3R_18()>
+<MiniJavaParser: boolean jj_3R_16()>	<MiniJavaParser: boolean jj_3R_16()>
+<MiniJavaParser: boolean jj_3R_36()>	<MiniJavaParser: boolean jj_3R_36()>
+<MiniJavaParser: boolean jj_3R_58()>	<MiniJavaParser: boolean jj_3R_58()>
+<MiniJavaParser: void jj_la1_init_0()>	<MiniJavaParser: void jj_la1_init_0()>
+<MiniJavaParser: void jj_la1_init_1()>	<MiniJavaParser: void jj_la1_init_1()>
+<MiniJavaParser: void <init>(java.io.InputStream)>	<MiniJavaParser: void <init>(java.io.InputStream)>
+<MiniJavaParser: void <init>(java.io.InputStream,java.lang.String)>	<MiniJavaParser: void <init>(java.io.InputStream,java.lang.String)>
+<MiniJavaParser: void ReInit(java.io.InputStream)>	<MiniJavaParser: void ReInit(java.io.InputStream)>
+<MiniJavaParser: void ReInit(java.io.InputStream,java.lang.String)>	<MiniJavaParser: void ReInit(java.io.InputStream,java.lang.String)>
+<MiniJavaParser: void <init>(java.io.Reader)>	<MiniJavaParser: void <init>(java.io.Reader)>
+<MiniJavaParser: void ReInit(java.io.Reader)>	<MiniJavaParser: void ReInit(java.io.Reader)>
+<MiniJavaParser: void <init>(MiniJavaParserTokenManager)>	<MiniJavaParser: void <init>(MiniJavaParserTokenManager)>
+<MiniJavaParser: void ReInit(MiniJavaParserTokenManager)>	<MiniJavaParser: void ReInit(MiniJavaParserTokenManager)>
+<MiniJavaParser: Token jj_consume_token(int)>	<MiniJavaParser: Token jj_consume_token(int)>
+<MiniJavaParser: boolean jj_scan_token(int)>	<MiniJavaParser: boolean jj_scan_token(int)>
+<MiniJavaParser: Token getNextToken()>	<MiniJavaParser: Token getNextToken()>
+<MiniJavaParser: Token getToken(int)>	<MiniJavaParser: Token getToken(int)>
+<MiniJavaParser: int jj_ntk()>	<MiniJavaParser: int jj_ntk()>
+<MiniJavaParser: void jj_add_error_token(int,int)>	<MiniJavaParser: void jj_add_error_token(int,int)>
+<MiniJavaParser: ParseException generateParseException()>	<MiniJavaParser: ParseException generateParseException()>
+<MiniJavaParser: void enable_tracing()>	<MiniJavaParser: void enable_tracing()>
+<MiniJavaParser: void disable_tracing()>	<MiniJavaParser: void disable_tracing()>
+<MiniJavaParser: void jj_rescan_token()>	<MiniJavaParser: void jj_rescan_token()>
+<MiniJavaParser: void jj_save(int,int)>	<MiniJavaParser: void jj_save(int,int)>
+<MiniJavaParser: void <clinit>()>	<MiniJavaParser: void <clinit>()>
+<syntaxtree.AssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>	<syntaxtree.AssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>
+<syntaxtree.AssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.Expression)>	<syntaxtree.AssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.Expression)>
+=	=
+;	;
+<syntaxtree.AssignmentStatement: void accept(visitor.Visitor)>	<syntaxtree.AssignmentStatement: void accept(visitor.Visitor)>
+<syntaxtree.AssignmentStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.AssignmentStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.AssignmentStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.AssignmentStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.AssignmentStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.AssignmentStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.IntegerLiteral: void <init>(syntaxtree.NodeToken)>	<syntaxtree.IntegerLiteral: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.IntegerLiteral: void accept(visitor.Visitor)>	<syntaxtree.IntegerLiteral: void accept(visitor.Visitor)>
+<syntaxtree.IntegerLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.IntegerLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.IntegerLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.IntegerLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.IntegerLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.IntegerLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeList: void <init>()>	<syntaxtree.NodeList: void <init>()>
+<syntaxtree.NodeList: void <init>(syntaxtree.Node)>	<syntaxtree.NodeList: void <init>(syntaxtree.Node)>
+<syntaxtree.NodeList: void addNode(syntaxtree.Node)>	<syntaxtree.NodeList: void addNode(syntaxtree.Node)>
+<syntaxtree.NodeList: java.util.Enumeration elements()>	<syntaxtree.NodeList: java.util.Enumeration elements()>
+<syntaxtree.NodeList: syntaxtree.Node elementAt(int)>	<syntaxtree.NodeList: syntaxtree.Node elementAt(int)>
+<syntaxtree.NodeList: int size()>	<syntaxtree.NodeList: int size()>
+<syntaxtree.NodeList: void accept(visitor.Visitor)>	<syntaxtree.NodeList: void accept(visitor.Visitor)>
+<syntaxtree.NodeList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeList: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeList: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeList: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeList: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.AndExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>	<syntaxtree.AndExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>
+<syntaxtree.AndExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.AndExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
+&&	&&
+<syntaxtree.AndExpression: void accept(visitor.Visitor)>	<syntaxtree.AndExpression: void accept(visitor.Visitor)>
+<syntaxtree.AndExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.AndExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.AndExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.AndExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.AndExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.AndExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeOptional: void <init>()>	<syntaxtree.NodeOptional: void <init>()>
+<syntaxtree.NodeOptional: void <init>(syntaxtree.Node)>	<syntaxtree.NodeOptional: void <init>(syntaxtree.Node)>
+<syntaxtree.NodeOptional: void addNode(syntaxtree.Node)>	<syntaxtree.NodeOptional: void addNode(syntaxtree.Node)>
+Attempt to set optional node twice	Attempt to set optional node twice
+<syntaxtree.NodeOptional: void accept(visitor.Visitor)>	<syntaxtree.NodeOptional: void accept(visitor.Visitor)>
+<syntaxtree.NodeOptional: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeOptional: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeOptional: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeOptional: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeOptional: boolean present()>	<syntaxtree.NodeOptional: boolean present()>
+<syntaxtree.Goal: void <init>(syntaxtree.MainClass,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>	<syntaxtree.Goal: void <init>(syntaxtree.MainClass,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>
+<syntaxtree.Goal: void <init>(syntaxtree.MainClass,syntaxtree.NodeListOptional)>	<syntaxtree.Goal: void <init>(syntaxtree.MainClass,syntaxtree.NodeListOptional)>
+<<\\"\\">>	<<\\"\\">>
+<syntaxtree.Goal: void accept(visitor.Visitor)>	<syntaxtree.Goal: void accept(visitor.Visitor)>
+<syntaxtree.Goal: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Goal: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Goal: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Goal: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Goal: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Goal: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.IntegerType: void <init>(syntaxtree.NodeToken)>	<syntaxtree.IntegerType: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.IntegerType: void <init>()>	<syntaxtree.IntegerType: void <init>()>
+int	int
+<syntaxtree.IntegerType: void accept(visitor.Visitor)>	<syntaxtree.IntegerType: void accept(visitor.Visitor)>
+<syntaxtree.IntegerType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.IntegerType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.IntegerType: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.IntegerType: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.IntegerType: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.IntegerType: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeToken: void <init>(java.lang.String)>	<syntaxtree.NodeToken: void <init>(java.lang.String)>
+<syntaxtree.NodeToken: void <init>(java.lang.String,int,int,int,int,int)>	<syntaxtree.NodeToken: void <init>(java.lang.String,int,int,int,int,int)>
+<syntaxtree.NodeToken: syntaxtree.NodeToken getSpecialAt(int)>	<syntaxtree.NodeToken: syntaxtree.NodeToken getSpecialAt(int)>
+No specials in token	No specials in token
+<syntaxtree.NodeToken: int numSpecials()>	<syntaxtree.NodeToken: int numSpecials()>
+<syntaxtree.NodeToken: void addSpecial(syntaxtree.NodeToken)>	<syntaxtree.NodeToken: void addSpecial(syntaxtree.NodeToken)>
+<syntaxtree.NodeToken: void trimSpecials()>	<syntaxtree.NodeToken: void trimSpecials()>
+<syntaxtree.NodeToken: java.lang.String toString()>	<syntaxtree.NodeToken: java.lang.String toString()>
+<syntaxtree.NodeToken: java.lang.String withSpecials()>	<syntaxtree.NodeToken: java.lang.String withSpecials()>
+<syntaxtree.NodeToken: void accept(visitor.Visitor)>	<syntaxtree.NodeToken: void accept(visitor.Visitor)>
+<syntaxtree.NodeToken: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeToken: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeToken: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeToken: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeToken: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.CompareExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>	<syntaxtree.CompareExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>
+<syntaxtree.CompareExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.CompareExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
+<	<
+<syntaxtree.CompareExpression: void accept(visitor.Visitor)>	<syntaxtree.CompareExpression: void accept(visitor.Visitor)>
+<syntaxtree.CompareExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.CompareExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.CompareExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.CompareExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.CompareExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.CompareExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.ThisExpression: void <init>(syntaxtree.NodeToken)>	<syntaxtree.ThisExpression: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.ThisExpression: void <init>()>	<syntaxtree.ThisExpression: void <init>()>
+this	this
+<syntaxtree.ThisExpression: void accept(visitor.Visitor)>	<syntaxtree.ThisExpression: void accept(visitor.Visitor)>
+<syntaxtree.ThisExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ThisExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ThisExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ThisExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ThisExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ThisExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.NodeListOptional: void <init>()>	<syntaxtree.NodeListOptional: void <init>()>
+<syntaxtree.NodeListOptional: void <init>(syntaxtree.Node)>	<syntaxtree.NodeListOptional: void <init>(syntaxtree.Node)>
+<syntaxtree.NodeListOptional: void addNode(syntaxtree.Node)>	<syntaxtree.NodeListOptional: void addNode(syntaxtree.Node)>
+<syntaxtree.NodeListOptional: java.util.Enumeration elements()>	<syntaxtree.NodeListOptional: java.util.Enumeration elements()>
+<syntaxtree.NodeListOptional: syntaxtree.Node elementAt(int)>	<syntaxtree.NodeListOptional: syntaxtree.Node elementAt(int)>
+<syntaxtree.NodeListOptional: int size()>	<syntaxtree.NodeListOptional: int size()>
+<syntaxtree.NodeListOptional: boolean present()>	<syntaxtree.NodeListOptional: boolean present()>
+<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>	<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>
+<syntaxtree.NodeListOptional: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeListOptional: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeListOptional: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeListOptional: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeListOptional: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.Identifier: void <init>(syntaxtree.NodeToken)>	<syntaxtree.Identifier: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.Identifier: void accept(visitor.Visitor)>	<syntaxtree.Identifier: void accept(visitor.Visitor)>
+<syntaxtree.Identifier: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Identifier: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Identifier: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Identifier: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Identifier: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<MiniJavaParser$JJCalls: void <init>()>	<MiniJavaParser$JJCalls: void <init>()>
+<syntaxtree.ArrayAssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>	<syntaxtree.ArrayAssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>
+<syntaxtree.ArrayAssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.Expression,syntaxtree.Expression)>	<syntaxtree.ArrayAssignmentStatement: void <init>(syntaxtree.Identifier,syntaxtree.Expression,syntaxtree.Expression)>
+[	[
+]	]
+=	=
+;	;
+<syntaxtree.ArrayAssignmentStatement: void accept(visitor.Visitor)>	<syntaxtree.ArrayAssignmentStatement: void accept(visitor.Visitor)>
+<syntaxtree.ArrayAssignmentStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ArrayAssignmentStatement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ArrayAssignmentStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ArrayAssignmentStatement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ArrayAssignmentStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ArrayAssignmentStatement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NodeList,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NodeList,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NodeListOptional,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NodeOptional,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NodeOptional,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NodeSequence,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NodeSequence,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NodeToken,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NodeToken,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Goal,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Goal,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.MainClass,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.MainClass,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.VarDeclaration,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterList,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameter,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameter,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Type,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Type,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayType,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayType,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.BooleanType,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.BooleanType,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.IntegerType,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.IntegerType,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Statement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Statement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Block,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Block,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.IfStatement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.IfStatement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.WhileStatement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.WhileStatement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.PrintStatement,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.PrintStatement,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Expression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Expression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.AndExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.AndExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.CompareExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.CompareExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.PlusExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.PlusExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.MinusExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.MinusExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.TimesExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.TimesExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayLookup,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayLength,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayLength,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.MessageSend,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.MessageSend,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionList,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionList,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionTail,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.TrueLiteral,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.FalseLiteral,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.Identifier,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.Identifier,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ThisExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ThisExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.AllocationExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.NotExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.NotExpression,java.lang.Object)>
+<visitor.GJVoidVisitor: void visit(syntaxtree.BracketExpression,java.lang.Object)>	<visitor.GJVoidVisitor: void visit(syntaxtree.BracketExpression,java.lang.Object)>
+<syntaxtree.NodeSequence: void <init>(int)>	<syntaxtree.NodeSequence: void <init>(int)>
+<syntaxtree.NodeSequence: void <init>(syntaxtree.Node)>	<syntaxtree.NodeSequence: void <init>(syntaxtree.Node)>
+<syntaxtree.NodeSequence: void addNode(syntaxtree.Node)>	<syntaxtree.NodeSequence: void addNode(syntaxtree.Node)>
+<syntaxtree.NodeSequence: syntaxtree.Node elementAt(int)>	<syntaxtree.NodeSequence: syntaxtree.Node elementAt(int)>
+<syntaxtree.NodeSequence: java.util.Enumeration elements()>	<syntaxtree.NodeSequence: java.util.Enumeration elements()>
+<syntaxtree.NodeSequence: int size()>	<syntaxtree.NodeSequence: int size()>
+<syntaxtree.NodeSequence: void accept(visitor.Visitor)>	<syntaxtree.NodeSequence: void accept(visitor.Visitor)>
+<syntaxtree.NodeSequence: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeSequence: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeSequence: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeSequence: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeSequence: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeSequence: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<TokenMgrError: java.lang.String addEscapes(java.lang.String)>	<TokenMgrError: java.lang.String addEscapes(java.lang.String)>
+\\b	\\b
+\\t	\\t
+\\n	\\n
+\\f	\\f
+\\r	\\r
+\\\\\"	\\\\\"
+\\\'	\\\'
+\\\\	\\\\
+0000	0000
+\\u	\\u
+<TokenMgrError: java.lang.String LexicalError(boolean,int,int,int,java.lang.String,char)>	<TokenMgrError: java.lang.String LexicalError(boolean,int,int,int,java.lang.String,char)>
+<<\\"Lexical error at line \\">>	<<\\"Lexical error at line \\">>
+<<\\", column \\">>	<<\\", column \\">>
+<<\\".  Encountered: \\">>	<<\\".  Encountered: \\">>
+<<\\"<EOF> \\">>	<<\\"<EOF> \\">>
+\\\"	\\\"
+\\\"	\\\"
+<<\\" (\\">>	<<\\" (\\">>
+<<\\"), \\">>	<<\\"), \\">>
+after : \\\"	after : \\\"
+\\\"	\\\"
+<TokenMgrError: java.lang.String getMessage()>	<TokenMgrError: java.lang.String getMessage()>
+<TokenMgrError: void <init>()>	<TokenMgrError: void <init>()>
+<TokenMgrError: void <init>(java.lang.String,int)>	<TokenMgrError: void <init>(java.lang.String,int)>
+<TokenMgrError: void <init>(boolean,int,int,int,java.lang.String,char,int)>	<TokenMgrError: void <init>(boolean,int,int,int,java.lang.String,char,int)>
+<syntaxtree.BracketExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>	<syntaxtree.BracketExpression: void <init>(syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken)>
+<syntaxtree.BracketExpression: void <init>(syntaxtree.Expression)>	<syntaxtree.BracketExpression: void <init>(syntaxtree.Expression)>
+(	(
+)	)
+<syntaxtree.BracketExpression: void accept(visitor.Visitor)>	<syntaxtree.BracketExpression: void accept(visitor.Visitor)>
+<syntaxtree.BracketExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.BracketExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.BracketExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.BracketExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.BracketExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.BracketExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterTail: void <init>(syntaxtree.NodeListOptional)>	<syntaxtree.FormalParameterTail: void <init>(syntaxtree.NodeListOptional)>
+<syntaxtree.FormalParameterTail: void accept(visitor.Visitor)>	<syntaxtree.FormalParameterTail: void accept(visitor.Visitor)>
+<syntaxtree.FormalParameterTail: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.FormalParameterTail: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterTail: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.FormalParameterTail: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.FormalParameterTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.FormalParameterTail: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<typechecking.TypeChecker: void <init>(java.util.HashMap)>	<typechecking.TypeChecker: void <init>(java.util.HashMap)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeList,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeList,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeListOptional,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeListOptional,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeOptional,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeOptional,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeSequence,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeSequence,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeToken,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NodeToken,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Goal,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Goal,java.lang.String)>
+<<\\"Error - Parent class does not exist: \\">>	<<\\"Error - Parent class does not exist: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MainClass,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MainClass,java.lang.String)>
+:main	:main
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TypeDeclaration,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TypeDeclaration,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ClassDeclaration,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ClassDeclaration,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ClassExtendsDeclaration,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ClassExtendsDeclaration,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.VarDeclaration,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.VarDeclaration,java.lang.String)>
+<<\\"Error duplicate local variable found: \\">>	<<\\"Error duplicate local variable found: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>
+:	:
+:	:
+:	:
+:	:
+:	:
+int	int
+int[]	int[]
+boolean	boolean
+int	int
+int[]	int[]
+boolean	boolean
+Error in method declaration - incompatible return types	Error in method declaration - incompatible return types
+<<\\"Error in method declaration, declared return type: \\">>	<<\\"Error in method declaration, declared return type: \\">>
+<<\\" returned type: \\">>	<<\\" returned type: \\">>
+<<\\"Error in method declaration, declared return type: \\">>	<<\\"Error in method declaration, declared return type: \\">>
+<<\\" returned type: \\">>	<<\\" returned type: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterList,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterList,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameter,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameter,java.lang.String)>
+<<\\" \\">>	<<\\" \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterTail,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterTail,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterTerm,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FormalParameterTerm,java.lang.String)>
+,	,
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Type,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Type,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayType,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayType,java.lang.String)>
+int[]	int[]
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.BooleanType,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.BooleanType,java.lang.String)>
+boolean	boolean
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IntegerType,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IntegerType,java.lang.String)>
+int	int
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Statement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Statement,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Block,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Block,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AssignmentStatement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AssignmentStatement,java.lang.String)>
+:	:
+<<\\"Undefined identifier in Assignment: \\">>	<<\\"Undefined identifier in Assignment: \\">>
+<<\\" = \\">>	<<\\" = \\">>
+int	int
+int[]	int[]
+boolean	boolean
+int	int
+int[]	int[]
+boolean	boolean
+Incompatible types in assignment	Incompatible types in assignment
+<<\\"Incompatible types in assignment: \\">>	<<\\"Incompatible types in assignment: \\">>
+<<\\" = \\">>	<<\\" = \\">>
+<<\\"Incompatible types in assignment \\">>	<<\\"Incompatible types in assignment \\">>
+<<\\" = \\">>	<<\\" = \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayAssignmentStatement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayAssignmentStatement,java.lang.String)>
+:	:
+Undefined identifier in Array Assignment	Undefined identifier in Array Assignment
+int[]	int[]
+int	int
+int	int
+Error in array assignment	Error in array assignment
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IfStatement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IfStatement,java.lang.String)>
+boolean	boolean
+<<\\"Invalid if expression in if statement - expected boolean, found: \\">>	<<\\"Invalid if expression in if statement - expected boolean, found: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.WhileStatement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.WhileStatement,java.lang.String)>
+boolean	boolean
+<<\\"Invalid expression type in while statement - expected boolean, found: \\">>	<<\\"Invalid expression type in while statement - expected boolean, found: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PrintStatement,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PrintStatement,java.lang.String)>
+:	:
+int	int
+<<\\"Error in System.out.println expected int expression, found: \\">>	<<\\"Error in System.out.println expected int expression, found: \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Expression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Expression,java.lang.String)>
+:	:
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AndExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AndExpression,java.lang.String)>
+:	:
+Error in && - Term type could not be resolved	Error in && - Term type could not be resolved
+boolean	boolean
+boolean	boolean
+boolean	boolean
+<<\\"Error in comparison - Incompatible types: \\">>	<<\\"Error in comparison - Incompatible types: \\">>
+<<\\" && \\">>	<<\\" && \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.CompareExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.CompareExpression,java.lang.String)>
+:	:
+Error in comparison - Term type could not be resolved	Error in comparison - Term type could not be resolved
+int	int
+int	int
+boolean	boolean
+<<\\"Error in comparison - Incompatible types: \\">>	<<\\"Error in comparison - Incompatible types: \\">>
+<<\\" < \\">>	<<\\" < \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PlusExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PlusExpression,java.lang.String)>
+:	:
+Error in addition - Term type could not be resolved	Error in addition - Term type could not be resolved
+int	int
+int	int
+int	int
+<<\\"Error in addition - Incompatible types: \\">>	<<\\"Error in addition - Incompatible types: \\">>
+<<\\" + \\">>	<<\\" + \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MinusExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MinusExpression,java.lang.String)>
+:	:
+Error in substraction - Term type could not be resolved	Error in substraction - Term type could not be resolved
+int	int
+int	int
+int	int
+<<\\"Error in substraction - Incompatible types: \\">>	<<\\"Error in substraction - Incompatible types: \\">>
+<<\\" - \\">>	<<\\" - \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TimesExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TimesExpression,java.lang.String)>
+:	:
+Error in multiplication - Term type could not be resolved	Error in multiplication - Term type could not be resolved
+int	int
+int	int
+int	int
+<<\\"Error in multiplication - Incompatible types: \\">>	<<\\"Error in multiplication - Incompatible types: \\">>
+<<\\" * \\">>	<<\\" * \\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayLookup,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayLookup,java.lang.String)>
+:	:
+Error in array lookup - Term type could not be resolved	Error in array lookup - Term type could not be resolved
+int[]	int[]
+int	int
+int	int
+<<\\"Incompatible types in array Lookup: \\">>	<<\\"Incompatible types in array Lookup: \\">>
+<<\\"[ \\">>	<<\\"[ \\">>
+<<\\" ]\\">>	<<\\" ]\\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayLength,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayLength,java.lang.String)>
+:	:
+Error in array length - Term type could not be resolved	Error in array length - Term type could not be resolved
+int[]	int[]
+int	int
+<<\\"Error in array length: \\">>	<<\\"Error in array length: \\">>
+.length	.length
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>
+:	:
+<<\\"Error in Message Send - Type could not be resolved \\">>	<<\\"Error in Message Send - Type could not be resolved \\">>
+<<\\"Error in Message Send - Invalid receiver \\">>	<<\\"Error in Message Send - Invalid receiver \\">>
+<<\\"Method not declared: \\">>	<<\\"Method not declared: \\">>
+.	.
+,	,
+<<\\"Error in argument for call of method: \\">>	<<\\"Error in argument for call of method: \\">>
+.	.
+int	int
+int[]	int[]
+boolean	boolean
+Resolved:	Resolved:
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionList,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionList,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionTail,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionTail,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionTerm,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ExpressionTerm,java.lang.String)>
+,	,
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PrimaryExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.PrimaryExpression,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IntegerLiteral,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.IntegerLiteral,java.lang.String)>
+int	int
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TrueLiteral,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.TrueLiteral,java.lang.String)>
+boolean	boolean
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FalseLiteral,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.FalseLiteral,java.lang.String)>
+boolean	boolean
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Identifier,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.Identifier,java.lang.String)>
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ThisExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ThisExpression,java.lang.String)>
+this	this
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayAllocationExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.ArrayAllocationExpression,java.lang.String)>
+:	:
+Error in array allocation - Incompatible type	Error in array allocation - Incompatible type
+int	int
+<<\\"Incompatible type in array allocation: \\">>	<<\\"Incompatible type in array allocation: \\">>
+int[]	int[]
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AllocationExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.AllocationExpression,java.lang.String)>
+Resolved:	Resolved:
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NotExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.NotExpression,java.lang.String)>
+:	:
+boolean	boolean
+Invalid boolean expression	Invalid boolean expression
+boolean	boolean
+<typechecking.TypeChecker: java.lang.String visit(syntaxtree.BracketExpression,java.lang.String)>	<typechecking.TypeChecker: java.lang.String visit(syntaxtree.BracketExpression,java.lang.String)>
+Resolved:	Resolved:
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>	<typechecking.TypeChecker: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>
+<MiniJavaParser$LookaheadSuccess: void <init>()>	<MiniJavaParser$LookaheadSuccess: void <init>()>
+<MiniJavaParser$LookaheadSuccess: void <init>(MiniJavaParser$1)>	<MiniJavaParser$LookaheadSuccess: void <init>(MiniJavaParser$1)>
+<syntaxtree.VarDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeToken)>	<syntaxtree.VarDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeToken)>
+<syntaxtree.VarDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier)>	<syntaxtree.VarDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier)>
+;	;
+<syntaxtree.VarDeclaration: void accept(visitor.Visitor)>	<syntaxtree.VarDeclaration: void accept(visitor.Visitor)>
+<syntaxtree.VarDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.VarDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.VarDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.VarDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.VarDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.VarDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.BooleanType: void <init>(syntaxtree.NodeToken)>	<syntaxtree.BooleanType: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.BooleanType: void <init>()>	<syntaxtree.BooleanType: void <init>()>
+boolean	boolean
+<syntaxtree.BooleanType: void accept(visitor.Visitor)>	<syntaxtree.BooleanType: void accept(visitor.Visitor)>
+<syntaxtree.BooleanType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.BooleanType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.BooleanType: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.BooleanType: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.BooleanType: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.BooleanType: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.ClassDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>	<syntaxtree.ClassDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>
+<syntaxtree.ClassDeclaration: void <init>(syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>	<syntaxtree.ClassDeclaration: void <init>(syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>
+class	class
+{	{
+}	}
+<syntaxtree.ClassDeclaration: void accept(visitor.Visitor)>	<syntaxtree.ClassDeclaration: void accept(visitor.Visitor)>
+<syntaxtree.ClassDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ClassDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ClassDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ClassDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ClassDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ClassDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterTerm: void <init>(syntaxtree.NodeToken,syntaxtree.FormalParameter)>	<syntaxtree.FormalParameterTerm: void <init>(syntaxtree.NodeToken,syntaxtree.FormalParameter)>
+<syntaxtree.FormalParameterTerm: void <init>(syntaxtree.FormalParameter)>	<syntaxtree.FormalParameterTerm: void <init>(syntaxtree.FormalParameter)>
+,	,
+<syntaxtree.FormalParameterTerm: void accept(visitor.Visitor)>	<syntaxtree.FormalParameterTerm: void accept(visitor.Visitor)>
+<syntaxtree.FormalParameterTerm: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.FormalParameterTerm: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterTerm: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.FormalParameterTerm: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.FormalParameterTerm: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.FormalParameterTerm: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.ArrayType: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.ArrayType: void <init>(syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.ArrayType: void <init>()>	<syntaxtree.ArrayType: void <init>()>
+int	int
+[	[
+]	]
+<syntaxtree.ArrayType: void accept(visitor.Visitor)>	<syntaxtree.ArrayType: void accept(visitor.Visitor)>
+<syntaxtree.ArrayType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ArrayType: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ArrayType: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ArrayType: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ArrayType: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ArrayType: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.MethodDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeOptional,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.MethodDeclaration: void <init>(syntaxtree.NodeToken,syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeOptional,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken,syntaxtree.Expression,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.MethodDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeOptional,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.Expression)>	<syntaxtree.MethodDeclaration: void <init>(syntaxtree.Type,syntaxtree.Identifier,syntaxtree.NodeOptional,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.Expression)>
+public	public
+(	(
+)	)
+{	{
+return	return
+;	;
+}	}
+<syntaxtree.MethodDeclaration: void accept(visitor.Visitor)>	<syntaxtree.MethodDeclaration: void accept(visitor.Visitor)>
+<syntaxtree.MethodDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.MethodDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.MethodDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.MethodDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.MethodDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.MethodDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<visitor.GJDepthFirst: void <init>()>	<visitor.GJDepthFirst: void <init>()>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>
+<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>	<visitor.GJDepthFirst: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: void <init>(java.util.HashMap)>	<typechecking.GlobalSymbolTableMaker: void <init>(java.util.HashMap)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeList,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeList,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeListOptional,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeListOptional,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeOptional,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeOptional,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeSequence,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeSequence,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeToken,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NodeToken,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Goal,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Goal,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MainClass,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MainClass,java.lang.String)>
+String[]	String[]
+args	args
+main	main
+void	void
+main	main
+:main	:main
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TypeDeclaration,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TypeDeclaration,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ClassDeclaration,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ClassDeclaration,java.lang.String)>
+<<\\"Duplicate class: \\">>	<<\\"Duplicate class: \\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ClassExtendsDeclaration,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ClassExtendsDeclaration,java.lang.String)>
+<<\\"Duplicate class: \\">>	<<\\"Duplicate class: \\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.VarDeclaration,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.VarDeclaration,java.lang.String)>
+:	:
+:	:
+<<\\"Duplicate local variable: \\">>	<<\\"Duplicate local variable: \\">>
+<<\\" in method: \\">>	<<\\" in method: \\">>
+<<\\"Duplicate member variable: \\">>	<<\\"Duplicate member variable: \\">>
+<<\\" in class: \\">>	<<\\" in class: \\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>
+,	,
+<<\\" \\">>	<<\\" \\">>
+Duplicate method or method overloading attempt	Duplicate method or method overloading attempt
+<<\\"Error in method overriding - overriding method: \\">>	<<\\"Error in method overriding - overriding method: \\">>
+<<\\" for class: \\">>	<<\\" for class: \\">>
+<<\\" extending: \\">>	<<\\" extending: \\">>
+<<\\"Error in method overriding - overriden method: \\">>	<<\\"Error in method overriding - overriden method: \\">>
+<<\\" for class: \\">>	<<\\" for class: \\">>
+<<\\" extending: \\">>	<<\\" extending: \\">>
+:	:
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterList,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterList,java.lang.String)>
+<<\\"\\">>	<<\\"\\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameter,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameter,java.lang.String)>
+<<\\" \\">>	<<\\" \\">>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterTail,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterTail,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterTerm,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FormalParameterTerm,java.lang.String)>
+,	,
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Type,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Type,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayType,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayType,java.lang.String)>
+int[]	int[]
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.BooleanType,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.BooleanType,java.lang.String)>
+boolean	boolean
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IntegerType,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IntegerType,java.lang.String)>
+int	int
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Statement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Statement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Block,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Block,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AssignmentStatement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AssignmentStatement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayAssignmentStatement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayAssignmentStatement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IfStatement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IfStatement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.WhileStatement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.WhileStatement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PrintStatement,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PrintStatement,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Expression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Expression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AndExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AndExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.CompareExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.CompareExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PlusExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PlusExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MinusExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MinusExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TimesExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TimesExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayLookup,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayLookup,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayLength,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayLength,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionList,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionList,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionTail,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionTail,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionTerm,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ExpressionTerm,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PrimaryExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.PrimaryExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IntegerLiteral,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.IntegerLiteral,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TrueLiteral,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.TrueLiteral,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FalseLiteral,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.FalseLiteral,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Identifier,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.Identifier,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ThisExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ThisExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayAllocationExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.ArrayAllocationExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AllocationExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.AllocationExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NotExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.NotExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.BracketExpression,java.lang.String)>	<typechecking.GlobalSymbolTableMaker: java.lang.String visit(syntaxtree.BracketExpression,java.lang.String)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>	<typechecking.GlobalSymbolTableMaker: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>
+<visitor.Visitor: void visit(syntaxtree.NodeList)>	<visitor.Visitor: void visit(syntaxtree.NodeList)>
+<visitor.Visitor: void visit(syntaxtree.NodeListOptional)>	<visitor.Visitor: void visit(syntaxtree.NodeListOptional)>
+<visitor.Visitor: void visit(syntaxtree.NodeOptional)>	<visitor.Visitor: void visit(syntaxtree.NodeOptional)>
+<visitor.Visitor: void visit(syntaxtree.NodeSequence)>	<visitor.Visitor: void visit(syntaxtree.NodeSequence)>
+<visitor.Visitor: void visit(syntaxtree.NodeToken)>	<visitor.Visitor: void visit(syntaxtree.NodeToken)>
+<visitor.Visitor: void visit(syntaxtree.Goal)>	<visitor.Visitor: void visit(syntaxtree.Goal)>
+<visitor.Visitor: void visit(syntaxtree.MainClass)>	<visitor.Visitor: void visit(syntaxtree.MainClass)>
+<visitor.Visitor: void visit(syntaxtree.TypeDeclaration)>	<visitor.Visitor: void visit(syntaxtree.TypeDeclaration)>
+<visitor.Visitor: void visit(syntaxtree.ClassDeclaration)>	<visitor.Visitor: void visit(syntaxtree.ClassDeclaration)>
+<visitor.Visitor: void visit(syntaxtree.ClassExtendsDeclaration)>	<visitor.Visitor: void visit(syntaxtree.ClassExtendsDeclaration)>
+<visitor.Visitor: void visit(syntaxtree.VarDeclaration)>	<visitor.Visitor: void visit(syntaxtree.VarDeclaration)>
+<visitor.Visitor: void visit(syntaxtree.MethodDeclaration)>	<visitor.Visitor: void visit(syntaxtree.MethodDeclaration)>
+<visitor.Visitor: void visit(syntaxtree.FormalParameterList)>	<visitor.Visitor: void visit(syntaxtree.FormalParameterList)>
+<visitor.Visitor: void visit(syntaxtree.FormalParameter)>	<visitor.Visitor: void visit(syntaxtree.FormalParameter)>
+<visitor.Visitor: void visit(syntaxtree.FormalParameterTail)>	<visitor.Visitor: void visit(syntaxtree.FormalParameterTail)>
+<visitor.Visitor: void visit(syntaxtree.FormalParameterTerm)>	<visitor.Visitor: void visit(syntaxtree.FormalParameterTerm)>
+<visitor.Visitor: void visit(syntaxtree.Type)>	<visitor.Visitor: void visit(syntaxtree.Type)>
+<visitor.Visitor: void visit(syntaxtree.ArrayType)>	<visitor.Visitor: void visit(syntaxtree.ArrayType)>
+<visitor.Visitor: void visit(syntaxtree.BooleanType)>	<visitor.Visitor: void visit(syntaxtree.BooleanType)>
+<visitor.Visitor: void visit(syntaxtree.IntegerType)>	<visitor.Visitor: void visit(syntaxtree.IntegerType)>
+<visitor.Visitor: void visit(syntaxtree.Statement)>	<visitor.Visitor: void visit(syntaxtree.Statement)>
+<visitor.Visitor: void visit(syntaxtree.Block)>	<visitor.Visitor: void visit(syntaxtree.Block)>
+<visitor.Visitor: void visit(syntaxtree.AssignmentStatement)>	<visitor.Visitor: void visit(syntaxtree.AssignmentStatement)>
+<visitor.Visitor: void visit(syntaxtree.ArrayAssignmentStatement)>	<visitor.Visitor: void visit(syntaxtree.ArrayAssignmentStatement)>
+<visitor.Visitor: void visit(syntaxtree.IfStatement)>	<visitor.Visitor: void visit(syntaxtree.IfStatement)>
+<visitor.Visitor: void visit(syntaxtree.WhileStatement)>	<visitor.Visitor: void visit(syntaxtree.WhileStatement)>
+<visitor.Visitor: void visit(syntaxtree.PrintStatement)>	<visitor.Visitor: void visit(syntaxtree.PrintStatement)>
+<visitor.Visitor: void visit(syntaxtree.Expression)>	<visitor.Visitor: void visit(syntaxtree.Expression)>
+<visitor.Visitor: void visit(syntaxtree.AndExpression)>	<visitor.Visitor: void visit(syntaxtree.AndExpression)>
+<visitor.Visitor: void visit(syntaxtree.CompareExpression)>	<visitor.Visitor: void visit(syntaxtree.CompareExpression)>
+<visitor.Visitor: void visit(syntaxtree.PlusExpression)>	<visitor.Visitor: void visit(syntaxtree.PlusExpression)>
+<visitor.Visitor: void visit(syntaxtree.MinusExpression)>	<visitor.Visitor: void visit(syntaxtree.MinusExpression)>
+<visitor.Visitor: void visit(syntaxtree.TimesExpression)>	<visitor.Visitor: void visit(syntaxtree.TimesExpression)>
+<visitor.Visitor: void visit(syntaxtree.ArrayLookup)>	<visitor.Visitor: void visit(syntaxtree.ArrayLookup)>
+<visitor.Visitor: void visit(syntaxtree.ArrayLength)>	<visitor.Visitor: void visit(syntaxtree.ArrayLength)>
+<visitor.Visitor: void visit(syntaxtree.MessageSend)>	<visitor.Visitor: void visit(syntaxtree.MessageSend)>
+<visitor.Visitor: void visit(syntaxtree.ExpressionList)>	<visitor.Visitor: void visit(syntaxtree.ExpressionList)>
+<visitor.Visitor: void visit(syntaxtree.ExpressionTail)>	<visitor.Visitor: void visit(syntaxtree.ExpressionTail)>
+<visitor.Visitor: void visit(syntaxtree.ExpressionTerm)>	<visitor.Visitor: void visit(syntaxtree.ExpressionTerm)>
+<visitor.Visitor: void visit(syntaxtree.PrimaryExpression)>	<visitor.Visitor: void visit(syntaxtree.PrimaryExpression)>
+<visitor.Visitor: void visit(syntaxtree.IntegerLiteral)>	<visitor.Visitor: void visit(syntaxtree.IntegerLiteral)>
+<visitor.Visitor: void visit(syntaxtree.TrueLiteral)>	<visitor.Visitor: void visit(syntaxtree.TrueLiteral)>
+<visitor.Visitor: void visit(syntaxtree.FalseLiteral)>	<visitor.Visitor: void visit(syntaxtree.FalseLiteral)>
+<visitor.Visitor: void visit(syntaxtree.Identifier)>	<visitor.Visitor: void visit(syntaxtree.Identifier)>
+<visitor.Visitor: void visit(syntaxtree.ThisExpression)>	<visitor.Visitor: void visit(syntaxtree.ThisExpression)>
+<visitor.Visitor: void visit(syntaxtree.ArrayAllocationExpression)>	<visitor.Visitor: void visit(syntaxtree.ArrayAllocationExpression)>
+<visitor.Visitor: void visit(syntaxtree.AllocationExpression)>	<visitor.Visitor: void visit(syntaxtree.AllocationExpression)>
+<visitor.Visitor: void visit(syntaxtree.NotExpression)>	<visitor.Visitor: void visit(syntaxtree.NotExpression)>
+<visitor.Visitor: void visit(syntaxtree.BracketExpression)>	<visitor.Visitor: void visit(syntaxtree.BracketExpression)>
+<MiniJavaParserConstants: void <clinit>()>	<MiniJavaParserConstants: void <clinit>()>
+<EOF>	<EOF>
+\\\" \\\"	\\\" \\\"
+\\\"\\t\\\"	\\\"\\t\\\"
+\\\"\\n\\\"	\\\"\\n\\\"
+\\\"\\r\\\"	\\\"\\r\\\"
+\\\"\\f\\\"	\\\"\\f\\\"
+<SINGLE_LINE_COMMENT>	<SINGLE_LINE_COMMENT>
+<FORMAL_COMMENT>	<FORMAL_COMMENT>
+<MULTI_LINE_COMMENT>	<MULTI_LINE_COMMENT>
+\\\"(\\\"	\\\"(\\\"
+\\\")\\\"	\\\")\\\"
+\\\"[\\\"	\\\"[\\\"
+\\\"]\\\"	\\\"]\\\"
+\\\"{\\\"	\\\"{\\\"
+\\\"}\\\"	\\\"}\\\"
+\\\";\\\"	\\\";\\\"
+\\\".\\\"	\\\".\\\"
+\\\"=\\\"	\\\"=\\\"
+\\\"<\\\"	\\\"<\\\"
+\\\"+\\\"	\\\"+\\\"
+\\\"-\\\"	\\\"-\\\"
+\\\"&&\\\"	\\\"&&\\\"
+\\\"!\\\"	\\\"!\\\"
+\\\"boolean\\\"	\\\"boolean\\\"
+\\\"class\\\"	\\\"class\\\"
+\\\"interface\\\"	\\\"interface\\\"
+\\\"else\\\"	\\\"else\\\"
+\\\"extends\\\"	\\\"extends\\\"
+\\\"false\\\"	\\\"false\\\"
+\\\"if\\\"	\\\"if\\\"
+\\\"while\\\"	\\\"while\\\"
+\\\"int\\\"	\\\"int\\\"
+\\\"length\\\"	\\\"length\\\"
+\\\"main\\\"	\\\"main\\\"
+\\\"new\\\"	\\\"new\\\"
+\\\"public\\\"	\\\"public\\\"
+\\\"return\\\"	\\\"return\\\"
+\\\"static\\\"	\\\"static\\\"
+\\\"String\\\"	\\\"String\\\"
+\\\"this\\\"	\\\"this\\\"
+\\\"true\\\"	\\\"true\\\"
+\\\"System.out.println\\\"	\\\"System.out.println\\\"
+\\\"void\\\"	\\\"void\\\"
+<INTEGER_LITERAL>	<INTEGER_LITERAL>
+<IDENTIFIER>	<IDENTIFIER>
+<LETTER>	<LETTER>
+<DIGIT>	<DIGIT>
+\\\",\\\"	\\\",\\\"
+\\\"*\\\"	\\\"*\\\"
+<syntaxtree.TrueLiteral: void <init>(syntaxtree.NodeToken)>	<syntaxtree.TrueLiteral: void <init>(syntaxtree.NodeToken)>
+<syntaxtree.TrueLiteral: void <init>()>	<syntaxtree.TrueLiteral: void <init>()>
+true	true
+<syntaxtree.TrueLiteral: void accept(visitor.Visitor)>	<syntaxtree.TrueLiteral: void accept(visitor.Visitor)>
+<syntaxtree.TrueLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.TrueLiteral: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.TrueLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.TrueLiteral: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.TrueLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.TrueLiteral: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.MessageSend: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeOptional,syntaxtree.NodeToken)>	<syntaxtree.MessageSend: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeOptional,syntaxtree.NodeToken)>
+<syntaxtree.MessageSend: void <init>(syntaxtree.PrimaryExpression,syntaxtree.Identifier,syntaxtree.NodeOptional)>	<syntaxtree.MessageSend: void <init>(syntaxtree.PrimaryExpression,syntaxtree.Identifier,syntaxtree.NodeOptional)>
+.	.
+(	(
+)	)
+<syntaxtree.MessageSend: void accept(visitor.Visitor)>	<syntaxtree.MessageSend: void accept(visitor.Visitor)>
+<syntaxtree.MessageSend: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.MessageSend: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.MessageSend: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.MessageSend: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.MessageSend: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.MessageSend: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.MainClass: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken,syntaxtree.NodeToken)>	<syntaxtree.MainClass: void <init>(syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.Identifier,syntaxtree.NodeToken,syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional,syntaxtree.NodeToken,syntaxtree.NodeToken)>
+<syntaxtree.MainClass: void <init>(syntaxtree.Identifier,syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>	<syntaxtree.MainClass: void <init>(syntaxtree.Identifier,syntaxtree.Identifier,syntaxtree.NodeListOptional,syntaxtree.NodeListOptional)>
+class	class
+{	{
+public	public
+static	static
+void	void
+main	main
+(	(
+String	String
+[	[
+]	]
+)	)
+{	{
+}	}
+}	}
+<syntaxtree.MainClass: void accept(visitor.Visitor)>	<syntaxtree.MainClass: void accept(visitor.Visitor)>
+<syntaxtree.MainClass: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.MainClass: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.MainClass: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.MainClass: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.MainClass: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.MainClass: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterList: void <init>(syntaxtree.FormalParameter,syntaxtree.FormalParameterTail)>	<syntaxtree.FormalParameterList: void <init>(syntaxtree.FormalParameter,syntaxtree.FormalParameterTail)>
+<syntaxtree.FormalParameterList: void accept(visitor.Visitor)>	<syntaxtree.FormalParameterList: void accept(visitor.Visitor)>
+<syntaxtree.FormalParameterList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.FormalParameterList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.FormalParameterList: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.FormalParameterList: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.FormalParameterList: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.FormalParameterList: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<Token: java.lang.Object getValue()>	<Token: java.lang.Object getValue()>
+<Token: void <init>()>	<Token: void <init>()>
+<Token: void <init>(int)>	<Token: void <init>(int)>
+<Token: void <init>(int,java.lang.String)>	<Token: void <init>(int,java.lang.String)>
+<Token: java.lang.String toString()>	<Token: java.lang.String toString()>
+<Token: Token newToken(int,java.lang.String)>	<Token: Token newToken(int,java.lang.String)>
+<Token: Token newToken(int)>	<Token: Token newToken(int)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeOptional,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeSequence,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeToken,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Goal,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MainClass,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameter,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Type,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayType,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.BooleanType,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Statement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IfStatement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.WhileStatement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PrintStatement,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Expression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AndExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.CompareExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PlusExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MinusExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TimesExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayLength,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.MessageSend,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Identifier,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ThisExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NotExpression,java.lang.Object)>
+<visitor.GJVisitor: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>	<visitor.GJVisitor: java.lang.Object visit(syntaxtree.BracketExpression,java.lang.Object)>
+<syntaxtree.NodeChoice: void <init>(syntaxtree.Node)>	<syntaxtree.NodeChoice: void <init>(syntaxtree.Node)>
+<syntaxtree.NodeChoice: void <init>(syntaxtree.Node,int)>	<syntaxtree.NodeChoice: void <init>(syntaxtree.Node,int)>
+<syntaxtree.NodeChoice: void accept(visitor.Visitor)>	<syntaxtree.NodeChoice: void accept(visitor.Visitor)>
+<syntaxtree.NodeChoice: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.NodeChoice: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.NodeChoice: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.NodeChoice: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.NodeChoice: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.Block: void <init>(syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>	<syntaxtree.Block: void <init>(syntaxtree.NodeToken,syntaxtree.NodeListOptional,syntaxtree.NodeToken)>
+<syntaxtree.Block: void <init>(syntaxtree.NodeListOptional)>	<syntaxtree.Block: void <init>(syntaxtree.NodeListOptional)>
+{	{
+}	}
+<syntaxtree.Block: void accept(visitor.Visitor)>	<syntaxtree.Block: void accept(visitor.Visitor)>
+<syntaxtree.Block: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Block: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Block: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Block: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Block: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Block: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<MiniJavaParserTokenManager: void setDebugStream(java.io.PrintStream)>	<MiniJavaParserTokenManager: void setDebugStream(java.io.PrintStream)>
+<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>	<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>
+<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>	<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>
+<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>	<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa7_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa7_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa8_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa8_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa9_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa9_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa10_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa10_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa11_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa11_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa12_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa12_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa13_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa13_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa14_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa14_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa15_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa15_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa16_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa16_0(long,long)>
+<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa17_0(long,long)>	<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa17_0(long,long)>
+<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>	<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>
+<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>	<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>
+<MiniJavaParserTokenManager: boolean jjCanMove_0(int,int,int,long,long)>	<MiniJavaParserTokenManager: boolean jjCanMove_0(int,int,int,long,long)>
+<MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>	<MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>
+<MiniJavaParserTokenManager: void <init>(JavaCharStream)>	<MiniJavaParserTokenManager: void <init>(JavaCharStream)>
+<MiniJavaParserTokenManager: void <init>(JavaCharStream,int)>	<MiniJavaParserTokenManager: void <init>(JavaCharStream,int)>
+<MiniJavaParserTokenManager: void ReInit(JavaCharStream)>	<MiniJavaParserTokenManager: void ReInit(JavaCharStream)>
+<MiniJavaParserTokenManager: void ReInitRounds()>	<MiniJavaParserTokenManager: void ReInitRounds()>
+<MiniJavaParserTokenManager: void ReInit(JavaCharStream,int)>	<MiniJavaParserTokenManager: void ReInit(JavaCharStream,int)>
+<MiniJavaParserTokenManager: void SwitchTo(int)>	<MiniJavaParserTokenManager: void SwitchTo(int)>
+<<\\"Error: Ignoring invalid lexical state : \\">>	<<\\"Error: Ignoring invalid lexical state : \\">>
+. State unchanged.	. State unchanged.
+<MiniJavaParserTokenManager: Token jjFillToken()>	<MiniJavaParserTokenManager: Token jjFillToken()>
+<MiniJavaParserTokenManager: Token getNextToken()>	<MiniJavaParserTokenManager: Token getNextToken()>
+<<\\"\\">>	<<\\"\\">>
+<<\\"\\">>	<<\\"\\">>
+<MiniJavaParserTokenManager: void jjCheckNAdd(int)>	<MiniJavaParserTokenManager: void jjCheckNAdd(int)>
+<MiniJavaParserTokenManager: void jjAddStates(int,int)>	<MiniJavaParserTokenManager: void jjAddStates(int,int)>
+<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>	<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>
+<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>	<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>
+<MiniJavaParserTokenManager: void <clinit>()>	<MiniJavaParserTokenManager: void <clinit>()>
+<<\\"\\">>	<<\\"\\">>
+(	(
+)	)
+[	[
+]	]
+{	{
+}	}
+;	;
+.	.
+=	=
+<	<
++	+
+-	-
+&&	&&
+!	!
+boolean	boolean
+class	class
+interface	interface
+else	else
+extends	extends
+false	false
+if	if
+while	while
+int	int
+length	length
+main	main
+new	new
+public	public
+return	return
+static	static
+String	String
+this	this
+true	true
+System.out.println	System.out.println
+void	void
+,	,
+*	*
+DEFAULT	DEFAULT
+<typechecking.ClassSymbol: void <init>(java.lang.String)>	<typechecking.ClassSymbol: void <init>(java.lang.String)>
+<typechecking.ClassSymbol: int putMember(java.lang.String,java.lang.String)>	<typechecking.ClassSymbol: int putMember(java.lang.String,java.lang.String)>
+<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>	<typechecking.ClassSymbol: int putMethod(java.lang.String,typechecking.MethodSymbol)>
+<typechecking.ClassSymbol: java.lang.String getParentClass()>	<typechecking.ClassSymbol: java.lang.String getParentClass()>
+<typechecking.ClassSymbol: typechecking.MethodSymbol getMethod(java.lang.String)>	<typechecking.ClassSymbol: typechecking.MethodSymbol getMethod(java.lang.String)>
+<typechecking.ClassSymbol: java.lang.String getMemberType(java.lang.String)>	<typechecking.ClassSymbol: java.lang.String getMemberType(java.lang.String)>
+<syntaxtree.PrimaryExpression: void <init>(syntaxtree.NodeChoice)>	<syntaxtree.PrimaryExpression: void <init>(syntaxtree.NodeChoice)>
+<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>	<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>
+<syntaxtree.PrimaryExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.PrimaryExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.PrimaryExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.PrimaryExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.PrimaryExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void <init>()>	<visitor.GJVoidDepthFirst: void <init>()>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeList,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeList,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeListOptional,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeListOptional,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeOptional,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeOptional,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeSequence,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeSequence,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeToken,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NodeToken,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Goal,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Goal,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.MainClass,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.MainClass,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.TypeDeclaration,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.TypeDeclaration,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ClassDeclaration,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ClassDeclaration,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ClassExtendsDeclaration,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.VarDeclaration,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.VarDeclaration,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.MethodDeclaration,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.MethodDeclaration,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterList,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterList,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameter,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameter,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterTail,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterTail,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterTerm,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.FormalParameterTerm,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Type,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Type,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayType,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayType,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.BooleanType,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.BooleanType,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.IntegerType,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.IntegerType,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Statement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Statement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Block,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Block,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.AssignmentStatement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.AssignmentStatement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayAssignmentStatement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.IfStatement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.IfStatement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.WhileStatement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.WhileStatement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.PrintStatement,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.PrintStatement,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Expression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Expression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.AndExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.AndExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.CompareExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.CompareExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.PlusExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.PlusExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.MinusExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.MinusExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.TimesExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.TimesExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayLookup,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayLookup,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayLength,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayLength,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.MessageSend,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.MessageSend,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionList,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionList,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionTail,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionTail,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionTerm,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ExpressionTerm,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.PrimaryExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.PrimaryExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.IntegerLiteral,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.IntegerLiteral,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.TrueLiteral,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.TrueLiteral,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.FalseLiteral,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.FalseLiteral,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.Identifier,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.Identifier,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ThisExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ThisExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.AllocationExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.AllocationExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.NotExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.NotExpression,java.lang.Object)>
+<visitor.GJVoidDepthFirst: void visit(syntaxtree.BracketExpression,java.lang.Object)>	<visitor.GJVoidDepthFirst: void visit(syntaxtree.BracketExpression,java.lang.Object)>
+<syntaxtree.ExpressionList: void <init>(syntaxtree.Expression,syntaxtree.ExpressionTail)>	<syntaxtree.ExpressionList: void <init>(syntaxtree.Expression,syntaxtree.ExpressionTail)>
+<syntaxtree.ExpressionList: void accept(visitor.Visitor)>	<syntaxtree.ExpressionList: void accept(visitor.Visitor)>
+<syntaxtree.ExpressionList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.ExpressionList: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.ExpressionList: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.ExpressionList: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.ExpressionList: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.ExpressionList: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<typechecking.MethodSymbol: void <init>(java.lang.String,java.lang.String,java.lang.String[],java.lang.String[])>	<typechecking.MethodSymbol: void <init>(java.lang.String,java.lang.String,java.lang.String[],java.lang.String[])>
+<typechecking.MethodSymbol: boolean validateArgumentTypes(java.lang.String[],java.util.HashMap)>	<typechecking.MethodSymbol: boolean validateArgumentTypes(java.lang.String[],java.util.HashMap)>
+int	int
+int[]	int[]
+boolean	boolean
+int	int
+int[]	int[]
+boolean	boolean
+<typechecking.MethodSymbol: java.lang.String getReturnType()>	<typechecking.MethodSymbol: java.lang.String getReturnType()>
+<typechecking.MethodSymbol: java.lang.String[] getArgumentTypes()>	<typechecking.MethodSymbol: java.lang.String[] getArgumentTypes()>
+<typechecking.MethodSymbol: java.lang.String[] getArguments()>	<typechecking.MethodSymbol: java.lang.String[] getArguments()>
+<typechecking.MethodSymbol: int validateOverridingMethod(typechecking.MethodSymbol)>	<typechecking.MethodSymbol: int validateOverridingMethod(typechecking.MethodSymbol)>
+<typechecking.MethodSymbol: int addLocalVariable(java.lang.String,java.lang.String)>	<typechecking.MethodSymbol: int addLocalVariable(java.lang.String,java.lang.String)>
+<typechecking.MethodSymbol: java.lang.String getLocalVariableType(java.lang.String)>	<typechecking.MethodSymbol: java.lang.String getLocalVariableType(java.lang.String)>
+<syntaxtree.Node: void accept(visitor.Visitor)>	<syntaxtree.Node: void accept(visitor.Visitor)>
+<syntaxtree.Node: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Node: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Node: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Node: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Node: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.Expression: void <init>(syntaxtree.NodeChoice)>	<syntaxtree.Expression: void <init>(syntaxtree.NodeChoice)>
+<syntaxtree.Expression: void accept(visitor.Visitor)>	<syntaxtree.Expression: void accept(visitor.Visitor)>
+<syntaxtree.Expression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Expression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Expression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Expression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Expression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.TypeDeclaration: void <init>(syntaxtree.NodeChoice)>	<syntaxtree.TypeDeclaration: void <init>(syntaxtree.NodeChoice)>
+<syntaxtree.TypeDeclaration: void accept(visitor.Visitor)>	<syntaxtree.TypeDeclaration: void accept(visitor.Visitor)>
+<syntaxtree.TypeDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.TypeDeclaration: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.TypeDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.TypeDeclaration: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.TypeDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.TypeDeclaration: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.Statement: void <init>(syntaxtree.NodeChoice)>	<syntaxtree.Statement: void <init>(syntaxtree.NodeChoice)>
+<syntaxtree.Statement: void accept(visitor.Visitor)>	<syntaxtree.Statement: void accept(visitor.Visitor)>
+<syntaxtree.Statement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.Statement: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.Statement: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.Statement: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.Statement: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.Statement: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<syntaxtree.PlusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>	<syntaxtree.PlusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.NodeToken,syntaxtree.PrimaryExpression)>
+<syntaxtree.PlusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>	<syntaxtree.PlusExpression: void <init>(syntaxtree.PrimaryExpression,syntaxtree.PrimaryExpression)>
++	+
+<syntaxtree.PlusExpression: void accept(visitor.Visitor)>	<syntaxtree.PlusExpression: void accept(visitor.Visitor)>
+<syntaxtree.PlusExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>	<syntaxtree.PlusExpression: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>
+<syntaxtree.PlusExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>	<syntaxtree.PlusExpression: java.lang.Object accept(visitor.GJNoArguVisitor)>
+<syntaxtree.PlusExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>	<syntaxtree.PlusExpression: void accept(visitor.GJVoidVisitor,java.lang.Object)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeList)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeList)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeListOptional)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeListOptional)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeOptional)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeOptional)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeSequence)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeSequence)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeToken)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeToken)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Goal)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Goal)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MainClass)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MainClass)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TypeDeclaration)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TypeDeclaration)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ClassDeclaration)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ClassDeclaration)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ClassExtendsDeclaration)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.VarDeclaration)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.VarDeclaration)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MethodDeclaration)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterList)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterList)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameter)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameter)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterTail)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterTail)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterTerm)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterTerm)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Type)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Type)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayType)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayType)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.BooleanType)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.BooleanType)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IntegerType)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IntegerType)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Statement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Statement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Block)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Block)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AssignmentStatement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AssignmentStatement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayAssignmentStatement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IfStatement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IfStatement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.WhileStatement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.WhileStatement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PrintStatement)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PrintStatement)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Expression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Expression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AndExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AndExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.CompareExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.CompareExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PlusExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PlusExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MinusExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MinusExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TimesExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TimesExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayLookup)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayLookup)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayLength)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayLength)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MessageSend)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.MessageSend)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionList)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionList)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionTail)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionTail)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionTerm)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionTerm)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PrimaryExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.PrimaryExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IntegerLiteral)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IntegerLiteral)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TrueLiteral)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.TrueLiteral)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FalseLiteral)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FalseLiteral)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Identifier)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Identifier)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ThisExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ThisExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AllocationExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.AllocationExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NotExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NotExpression)>
+<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.BracketExpression)>	<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.BracketExpression)>

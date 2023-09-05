@@ -1,0 +1,11 @@
+public interface  syntaxtree.Node extends java.lang.Object implements java.io.Serializable
+{
+
+    public abstract void accept(visitor.Visitor);
+
+    public abstract java.lang.Object accept(visitor.GJVisitor, java.lang.Object);
+
+    public abstract java.lang.Object accept(visitor.GJNoArguVisitor);
+
+    public abstract void accept(visitor.GJVoidVisitor, java.lang.Object);
+}

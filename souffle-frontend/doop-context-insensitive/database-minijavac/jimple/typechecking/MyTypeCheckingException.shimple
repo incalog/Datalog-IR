@@ -1,0 +1,48 @@
+public class typechecking.MyTypeCheckingException extends java.lang.Exception
+{
+    java.lang.String exceptionType;
+
+    public void <init>(java.lang.String)
+    {
+        typechecking.MyTypeCheckingException this#_0;
+        java.lang.String type#_0;
+
+        this#_0 := @this: typechecking.MyTypeCheckingException;
+
+        type#_0 := @parameter0: java.lang.String;
+
+        specialinvoke this#_0.<java.lang.Exception: void <init>()>();
+
+        this#_0.<typechecking.MyTypeCheckingException: java.lang.String exceptionType> = type#_0;
+
+        return;
+    }
+
+    public void print()
+    {
+        java.lang.StringBuilder $stack1, $stack3, $stack5;
+        java.io.PrintStream $stack2;
+        typechecking.MyTypeCheckingException this#_0;
+        java.lang.String $stack4, $stack6;
+
+        this#_0 := @this: typechecking.MyTypeCheckingException;
+
+        $stack2 = <java.lang.System: java.io.PrintStream err>;
+
+        $stack1 = new java.lang.StringBuilder;
+
+        specialinvoke $stack1.<java.lang.StringBuilder: void <init>()>();
+
+        $stack3 = virtualinvoke $stack1.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("Type Checking failed: ");
+
+        $stack4 = this#_0.<typechecking.MyTypeCheckingException: java.lang.String exceptionType>;
+
+        $stack5 = virtualinvoke $stack3.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack4);
+
+        $stack6 = virtualinvoke $stack5.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        virtualinvoke $stack2.<java.io.PrintStream: void println(java.lang.String)>($stack6);
+
+        return;
+    }
+}

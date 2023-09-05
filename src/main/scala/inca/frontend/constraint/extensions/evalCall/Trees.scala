@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.evalCall
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.util.Scala
 
@@ -12,6 +12,7 @@ object Trees {
       s"`${fun.code.syntax}`(${args.map(_.prettyprint).mkString(", ")})"
   }
   object EvalCall {
-    def apply(code: Scala[meta.Term], args: Seq[Expression]): EvalCall = new EvalCall(Eval(code), args)
+    def apply(code: Scala[meta.Term], args: Seq[Expression]): EvalCall =
+      new EvalCall(Eval(code), args)
   }
 }

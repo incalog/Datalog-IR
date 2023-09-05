@@ -1,6 +1,6 @@
 package inca.frontend.datalog.syntax
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 import inca.util.Scala
 import truechange.{JavaLitType, LitType}

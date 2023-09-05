@@ -3,13 +3,18 @@ package inca.frontend.functional.incremental
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
 import inca.runtime.EnginePool
 import inca.util.FileUtil.readFile
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.quasiquotes._
 
-class IncrementalTests extends AnyFunSuite {
+class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
   val trackedRelsPlus = Set("plus", "input$plus")
   val trackedRelsFact = Set("main", "fact", "input$fact")
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("primitive prog increase numerical input") {
     val code = readFile("functional/unittests/Fact.finca")
@@ -34,8 +39,11 @@ class IncrementalTests extends AnyFunSuite {
 
   test("Non-cyclic data change first argument bigger example (simple dependency)") {
     val code = readFile("functional/unittests/PlusNoMain.finca")
-    val original = Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))))))", q"Succ(Zero())")
-    val changed = Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero())))))))))))", q"Succ(Zero())")
+    val original =
+      Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))))))", q"Succ(Zero())")
+    val changed = Seq(
+      q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero())))))))))))",
+      q"Succ(Zero())")
     testIncrementalRun(code, "plus", original, changed, trackedRelsPlus)
   }
 
@@ -53,8 +61,13 @@ class IncrementalTests extends AnyFunSuite {
     testIncrementalRun(code, "plus", original, changed, trackedRelsPlus)
   }
 
-
-  def testIncrementalRun(code: String, mainFun: String, original: Seq[meta.Term], changed: Seq[meta.Term], trackedRelations: Set[String] = Set()): Unit = {
+  def testIncrementalRun(
+      code: String,
+      mainFun: String,
+      original: Seq[meta.Term],
+      changed: Seq[meta.Term],
+      trackedRelations: Set[String] = Set()
+    ): Unit = {
     val compiled = compileFunction(code)
 
     for (i <- 0 until 0) {
@@ -64,7 +77,6 @@ class IncrementalTests extends AnyFunSuite {
       println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
     }
     EnginePool.disposeAllEngines()
-
 
     val fun = loadFunction(compiled)
 
@@ -97,4 +109,3 @@ class IncrementalTests extends AnyFunSuite {
   }
 
 }
-

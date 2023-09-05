@@ -5,10 +5,9 @@ import inca.analyzedLangs.Exp
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.extensions.evalCall.Trees._
 import inca.runtime.context.QueryScope
-import inca.util.Scala
 import inca.util.matchers.IncaConstraintMatchers
+import inca.util.Scala
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
@@ -20,24 +19,45 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
   implicit def name(s: String): Name = Name(s)
 
   "aggregate" should "support non-invertible joins" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
-        Body(
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(),
+          None,
+          "1_to_10",
+          Seq(),
+          NatTyp,
           Seq(
-            Assign(Seq("pred"), Call("1_to_10", Seq())),
-            Assert(Eval(Seq(EvalParam("pred")), Scala(q"pred.toInt < 10"))),
-            Yield(EvalCall(succOp, Seq(Var("pred"))))
+            Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
+            Body(
+              Seq(
+                Assign(Seq("pred"), Call("1_to_10", Seq())),
+                Assert(Eval(Seq(EvalParam("pred")), Scala(q"pred.toInt < 10"))),
+                Yield(EvalCall(succOp, Seq(Var("pred"))))
+              )
+            )
+          )
+        ),
+        PatternFunction(
+          Seq(),
+          None,
+          "sum_1_to_10",
+          Seq(),
+          NatTyp,
+          Seq(
+            Body(
+              Seq(
+                Yield(Aggregate(Eval(Seq(), sumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
+              )
+            )
           )
         )
-      )),
-
-      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(
-          Yield(Aggregate(Eval(Seq(), sumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
-        ))
-      ))
-    ))
+      )
+    )
 
     val input = Exp.BooleanLit(true)
 
@@ -48,24 +68,45 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
   }
 
   "aggregate" should "support invertible joins" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
-        Body(
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(),
+          None,
+          "1_to_10",
+          Seq(),
+          NatTyp,
           Seq(
-            Assign(Seq("pred"), Call("1_to_10", Seq())),
-            Assert(Eval(Seq(EvalParam("pred")), Scala(q"pred.toInt < 10"))),
-            Yield(EvalCall(succOp, Seq(Var("pred"))))
+            Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
+            Body(
+              Seq(
+                Assign(Seq("pred"), Call("1_to_10", Seq())),
+                Assert(Eval(Seq(EvalParam("pred")), Scala(q"pred.toInt < 10"))),
+                Yield(EvalCall(succOp, Seq(Var("pred"))))
+              )
+            )
+          )
+        ),
+        PatternFunction(
+          Seq(),
+          None,
+          "sum_1_to_10",
+          Seq(),
+          NatTyp,
+          Seq(
+            Body(
+              Seq(
+                Yield(Aggregate(Eval(fastSumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
+              )
+            )
           )
         )
-      )),
-
-      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(
-          Yield(Aggregate(Eval(fastSumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
-        ))
-      ))
-    ))
+      )
+    )
 
     val input = Exp.BooleanLit(true)
 
@@ -76,27 +117,48 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
   }
 
   "aggregate" should "support non-invertible joins 2" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.sumAgg")),
-      ScalaModuleContent(Scala(q"val nine = 9")),
-      ScalaModuleContent(Scala(q"object One { val num = 1 }")),
-      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
-        Body(
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.sumAgg")),
+        ScalaModuleContent(Scala(q"val nine = 9")),
+        ScalaModuleContent(Scala(q"object One { val num = 1 }")),
+        PatternFunction(
+          Seq(),
+          None,
+          "1_to_10",
+          Seq(),
+          NatTyp,
           Seq(
-            Assign(Seq("pred"), Call("1_to_10", Seq())),
-            Assert(Eval(Scala(q"pred.toInt < (nine + One.num)"))),
-            Yield(EvalCall(succOp, Seq(Var("pred"))))
+            Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
+            Body(
+              Seq(
+                Assign(Seq("pred"), Call("1_to_10", Seq())),
+                Assert(Eval(Scala(q"pred.toInt < (nine + One.num)"))),
+                Yield(EvalCall(succOp, Seq(Var("pred"))))
+              )
+            )
+          )
+        ),
+        PatternFunction(
+          Seq(),
+          None,
+          "sum_1_to_10",
+          Seq(),
+          NatTyp,
+          Seq(
+            Body(
+              Seq(
+                Yield(Aggregate(Eval(Scala(q"sumAgg")), Call("1_to_10", Seq()).typed(NatTyp)))
+              )
+            )
           )
         )
-      )),
-
-      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
-        Body(Seq(
-          Yield(Aggregate(Eval(Scala(q"sumAgg")), Call("1_to_10", Seq()).typed(NatTyp)))
-        ))
-      ))
-    ))
+      )
+    )
 
     val input = Exp.BooleanLit(true)
 

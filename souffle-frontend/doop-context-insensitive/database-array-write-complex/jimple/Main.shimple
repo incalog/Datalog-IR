@@ -1,0 +1,34 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        int[] l1#_6;
+        byte l2#_7;
+        int $stack3;
+        java.lang.String[] l0#_0;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        l1#_6 = newarray (int)[5];
+
+        l2#_7 = 2;
+
+        $stack3 = l2#_7 + l2#_7;
+
+        l1#_6[$stack3] = 12;
+
+        return;
+    }
+}

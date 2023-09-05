@@ -10,6 +10,7 @@ trait DatabaseUpdater {
   def endProcessEditScript(): Unit
   def processEdit(edit: CoreEdit): Unit
 
-  protected def editError(msg: String) = throw new IllegalStateException("Processing edit script failed: " + msg)
+  protected def editError(msg: String) = throw new IllegalStateException(
+    "Processing edit script failed: " + msg
+  )
 }
-

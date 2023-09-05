@@ -2,13 +2,19 @@ package inca.frontend.functional.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
+import inca.compiler.source.SourceLocation
+import inca.compiler.CompiledModule
+import inca.compiler.CompilerFlags
 import inca.frontend.functional.core.Module
-import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog, Monomorph}
+import inca.frontend.functional.lowering.Defunctionalize
+import inca.frontend.functional.lowering.GenerateDataModel
+import inca.frontend.functional.lowering.GenerateDatalog
+import inca.frontend.functional.lowering.Monomorph
 import inca.frontend.functional.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
-case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) extends CompiledModule {
+case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions)
+    extends CompiledModule {
 
   override def name: Name = fun.name.name
 

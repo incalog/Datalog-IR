@@ -1,0 +1,145 @@
+public class syntaxtree.ArrayAllocationExpression extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.NodeToken f0;
+    public syntaxtree.NodeToken f1;
+    public syntaxtree.NodeToken f2;
+    public syntaxtree.Expression f3;
+    public syntaxtree.NodeToken f4;
+
+    public void <init>(syntaxtree.NodeToken, syntaxtree.NodeToken, syntaxtree.NodeToken, syntaxtree.Expression, syntaxtree.NodeToken)
+    {
+        syntaxtree.ArrayAllocationExpression this#_0;
+        syntaxtree.NodeToken n0#_0, n1#_0, n2#_0, n4#_0;
+        syntaxtree.Expression n3#_0;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        n0#_0 := @parameter0: syntaxtree.NodeToken;
+
+        n1#_0 := @parameter1: syntaxtree.NodeToken;
+
+        n2#_0 := @parameter2: syntaxtree.NodeToken;
+
+        n3#_0 := @parameter3: syntaxtree.Expression;
+
+        n4#_0 := @parameter4: syntaxtree.NodeToken;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f0> = n0#_0;
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f1> = n1#_0;
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f2> = n2#_0;
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.Expression f3> = n3#_0;
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f4> = n4#_0;
+
+        return;
+    }
+
+    public void <init>(syntaxtree.Expression)
+    {
+        syntaxtree.ArrayAllocationExpression this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack4, $stack5;
+        syntaxtree.Expression n0#_0;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        n0#_0 := @parameter0: syntaxtree.Expression;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack2 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack2.<syntaxtree.NodeToken: void <init>(java.lang.String)>("new");
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f0> = $stack2;
+
+        $stack3 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack3.<syntaxtree.NodeToken: void <init>(java.lang.String)>("int");
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f1> = $stack3;
+
+        $stack4 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack4.<syntaxtree.NodeToken: void <init>(java.lang.String)>("[");
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f2> = $stack4;
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.Expression f3> = n0#_0;
+
+        $stack5 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack5.<syntaxtree.NodeToken: void <init>(java.lang.String)>("]");
+
+        this#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f4> = $stack5;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.ArrayAllocationExpression this#_0;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.ArrayAllocationExpression)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.ArrayAllocationExpression this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.ArrayAllocationExpression this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ArrayAllocationExpression)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.ArrayAllocationExpression this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.ArrayAllocationExpression;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.ArrayAllocationExpression,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

@@ -1,0 +1,6 @@
+<Point: Point genPoint(int,int)>/Point.<init>/0	6
+<Point: void print()>/java.io.PrintStream.println/0	11
+<Point: void <init>(int,int)>/java.lang.Object.<init>/0	18
+<Point: Point add(Point)>/Point.<init>/0	28
+<Point: Point add(int,int)>/Point.<init>/0	33
+<Main: void <init>()>/java.lang.Object.<init>/0	1

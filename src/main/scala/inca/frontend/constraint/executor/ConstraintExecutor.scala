@@ -1,18 +1,18 @@
 package inca.frontend.constraint.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
-import inca.compiler.{CompiledModule, Compiler}
+import inca.compiler.CompiledModule
+import inca.compiler.Compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
-import inca.runtime.Query.Match
 import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.EnginePool
+import inca.runtime.Query
+import inca.runtime.Query.Match
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truediff.Diffable
-
 import scala.jdk.CollectionConverters._
+import truediff.Diffable
 
 object ConstraintExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
@@ -63,7 +63,7 @@ object ConstraintExecutor {
   def loadAnalysis(code: String, options: ConstraintOptions = ConstraintOptions()): Loaded = {
     val compiled = Compiler.compileConstraint(code, options)
     val scope = new QueryScope(compiled.dataModel)
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, options.mode)
     Loaded(engine, feed, compiled)
   }
 }

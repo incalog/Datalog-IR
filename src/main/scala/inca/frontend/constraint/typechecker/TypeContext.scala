@@ -1,7 +1,6 @@
 package inca.frontend.constraint.typechecker
 
 import inca.frontend.constraint.core._
-
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
@@ -27,10 +26,10 @@ trait TypeContext extends TypeIO {
     vars.get(name) foreach { case (previousDecl, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (decl, ty))
+    vars += name -> ((decl, ty))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type)] =
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
@@ -41,9 +40,8 @@ trait TypeContext extends TypeIO {
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
 
-
   def bindFun(fun: PatternFunction, module: Module): Unit = {
-    funs += fun.name -> (module, fun)
+    funs += fun.name -> ((module, fun))
   }
 
   def lookupFun(name: Name): Option[PatternFunction] =
@@ -56,17 +54,19 @@ trait TypeContext extends TypeIO {
       case set if set.size >= 2 =>
         val modules = set.toSeq.map(_._1)
         val modulesStr = modules.map(_.name).mkString(", ")
-        error(s"Ambiguous function call $name, found definitions in $modulesStr", (name +: modules): _*)
+        error(
+          s"Ambiguous function call $name, found definitions in $modulesStr",
+          (name +: modules): _*
+        )
         None
     }
-
 
   def bindModule(module: Module): Unit = {
     val name = module.name
     modules.get(name) foreach { bound =>
       error(s"Found multiple modules with same name $name", name, bound.name)
     }
-    modules += (name -> module)
+    modules += name -> module
   }
 
   def lookupModule(name: Name): Option[Module] =
@@ -81,7 +81,7 @@ trait TypeContext extends TypeIO {
     nodes.get(node) foreach { previousFQN =>
       error(s"Node type $node shadows previously defined node type $previousFQN", node, node)
     }
-    nodes += (node -> fqNode)
+    nodes += node -> fqNode
   }
 
   def lookupNode(node: TNode): Option[TNode] =

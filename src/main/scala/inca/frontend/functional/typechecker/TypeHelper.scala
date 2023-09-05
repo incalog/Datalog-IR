@@ -24,8 +24,8 @@ object TypeHelper {
     case meta.Type.Tuple(ts) =>
       val types = ts.map(decode).foldRight[Either[String, Seq[Type]]](Right(Seq())) {
         case (Right(ty), Right(seq)) => Right(ty +: seq)
-        case (_, err@Left(_)) => err
-        case (r@Left(msg), _) => Left(msg)
+        case (_, err @ Left(_)) => err
+        case (r @ Left(msg), _) => Left(msg)
       }
       types.map(TTuple.apply)
     case _ => Right(TScala(Scala(typ)))

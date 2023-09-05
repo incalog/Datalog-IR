@@ -1,0 +1,4 @@
+<Main: void main(java.lang.String[])>/assign/1	1	1	<Main: void main(java.lang.String[])>/l1#_4	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/assign/2	3	2	<Main: void main(java.lang.String[])>/l2#_7	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/assign/3	5	3	<Main: void main(java.lang.String[])>/l2_$$A_1#_10	<Main: void main(java.lang.String[])>
+<Point: int maxX()>/fresh-null-assign/0	1	10	<Point: int maxX()>/$numconstant0	<Point: int maxX()>

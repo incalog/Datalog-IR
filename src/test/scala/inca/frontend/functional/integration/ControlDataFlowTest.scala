@@ -2,10 +2,16 @@ package inca.frontend.functional.integration
 
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
+import inca.runtime.EnginePool
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterEach
 
-class ControlDataFlowTest extends AnyFunSuite {
+class ControlDataFlowTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("flow ex 2.1") {
     val code = FileUtil.readFile("functional/controlflow/CFlow.finca")
@@ -51,7 +57,9 @@ class ControlDataFlowTest extends AnyFunSuite {
     assert(fun.executeInput("allEntries_RD", input).res.size == 15)
     assert(fun.executeInput("allExits_RD", input).res.size == 13)
 
-    fun.output("allExits_RD", input._2).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
+    fun.output("allExits_RD", input._2).res.foreach { case Seq(c1, c2, c3) =>
+      println(s"$c2:$c3 in $c1")
+    }
   }
 
   test("intervals ex 2.7") {

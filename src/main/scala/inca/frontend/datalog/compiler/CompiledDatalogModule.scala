@@ -2,9 +2,12 @@ package inca.frontend.datalog.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
+import inca.compiler.source.SourceLocation
+import inca.compiler.CompiledModule
+import inca.compiler.CompilerFlags
 import inca.frontend.datalog.lowering._
-import inca.frontend.datalog.syntax.{Module, Parser}
+import inca.frontend.datalog.syntax.Module
+import inca.frontend.datalog.syntax.Parser
 import inca.frontend.datalog.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -16,7 +19,8 @@ object CompiledDatalogModule {
 
 }
 
-case class CompiledDatalogModule(source: Module, options: DatalogOptions) extends CompiledModule { outer =>
+case class CompiledDatalogModule(source: Module, options: DatalogOptions) extends CompiledModule {
+  outer =>
 
   override def name: Name = source.name.name
 

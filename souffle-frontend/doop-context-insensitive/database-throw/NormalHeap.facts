@@ -1,0 +1,4 @@
+<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0	java.lang.IllegalArgumentException
+<Point: Point genPoint(int,int)>/new Point/0	Point
+<Point: Point add(Point)>/new Point/0	Point
+<Point: Point add(int,int)>/new Point/0	Point

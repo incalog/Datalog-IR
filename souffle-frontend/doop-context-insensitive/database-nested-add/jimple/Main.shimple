@@ -1,0 +1,31 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main this#_0;
+
+        this#_0 := @this: Main;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        byte x#_3;
+        int y#_4, z#_5;
+        java.lang.String[] args#_0;
+
+        args#_0 := @parameter0: java.lang.String[];
+
+        x#_3 = 3;
+
+        y#_4 = x#_3 + 5;
+
+        z#_5 = y#_4 + y#_4;
+
+        return;
+    }
+}

@@ -1,11 +1,12 @@
 package inca.frontend.constraint.extensions.boolOps
 
 import inca.frontend.constraint.core._
-import inca.frontend.constraint.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.constraint.desugar.DesugarTrans
+import inca.frontend.constraint.desugar.Desugarable
 import inca.frontend.constraint.extensions.boolOps.Trees._
 import inca.frontend.constraint.extensions.switch_
-import inca.util.{Gensym, Scala}
-
+import inca.util.Gensym
+import inca.util.Scala
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -44,7 +45,7 @@ object Desugaring extends Desugarable {
       case Def(exp) => changed(Undef(desugarExp(exp)))
       case Undef(exp) => changed(Def(desugarExp(exp)))
       case Constant(BooleanLiteral(v)) => changed(Constant(BooleanLiteral(!v)))
-      case eval@Eval(code) =>
+      case eval @ Eval(code) =>
         import scala.meta.quasiquotes._
         val desugaredEval = Eval(Scala(q"!{${code.tree}}"))
         desugaredEval.params = eval.params

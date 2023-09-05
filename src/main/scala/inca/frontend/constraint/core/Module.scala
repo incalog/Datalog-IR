@@ -1,14 +1,17 @@
 package inca.frontend.constraint.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 import inca.util.Scala
 
-case class Module(name: Name,
-                  dataModels: Seq[DataModel],
-                  imports: Seq[Import],
-                  nodeImports: Seq[NodeImport],
-                  content: Seq[ModuleContent]) extends SourceLocation with Import.Target {
+case class Module(
+    name: Name,
+    dataModels: Seq[DataModel],
+    imports: Seq[Import],
+    nodeImports: Seq[NodeImport],
+    content: Seq[ModuleContent])
+    extends SourceLocation
+    with Import.Target {
 
   def allVars: Map[Name, Option[Type]] = content.flatMap {
     case fun: PatternFunction => fun.allVars
@@ -25,10 +28,14 @@ case class Module(name: Name,
   }
 
   def prettyprint(implicit indent: String): String = {
-    val importsS = if (imports.isEmpty) "" else
-      "\n" + imports.map(_.prettyprint).mkString("\n")
-    val contentS = if (content.isEmpty) "" else
-      "\n" + content.map(_.prettyprint).mkString("\n")
+    val importsS =
+      if (imports.isEmpty) ""
+      else
+        "\n" + imports.map(_.prettyprint).mkString("\n")
+    val contentS =
+      if (content.isEmpty) ""
+      else
+        "\n" + content.map(_.prettyprint).mkString("\n")
     s"${indent}module $name$importsS$contentS".stripMargin
   }
 
@@ -57,13 +64,14 @@ case class NodeImport(name: Name) extends SourceLocation {
   def prettyprint(implicit indent: String): String = s"${indent}nodeimport $name"
 }
 
-
 trait ModuleContent extends SourceLocation {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
 }
 
-case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression) extends ModuleContent with Var.Target {
+case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression)
+    extends ModuleContent
+    with Var.Target {
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val typS = typ match {
@@ -80,7 +88,9 @@ case class ScalaModuleContent[T <: meta.Stat](t: Scala[T]) extends ModuleContent
   def vis: Option[Visibility] = {
     def detVis(mods: List[meta.Mod]): Option[Visibility] = {
       if (mods.contains(meta.Mod.Protected))
-        throw new IllegalArgumentException("Scala block definition cannot have protected visibility")
+        throw new IllegalArgumentException(
+          "Scala block definition cannot have protected visibility"
+        )
 
       if (mods.contains(meta.Mod.Private)) Some(Private)
       else None

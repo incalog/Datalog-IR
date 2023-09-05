@@ -1,0 +1,56 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        byte l1#_4, l2#_5, l2_$$A_1#_8, l2_$$A_2#_9, l2_$$A_3#_9, l2_$$A_4#_10, l2_$$A_5#_10;
+        int $stack3;
+        java.lang.String[] l0#_0;
+        boolean l2#2#_7;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        l1#_4 = 2;
+
+        l2#_5 = -1;
+
+        $stack3 = l1#_4 + 1;
+
+(0)     tableswitch($stack3)
+        {
+            case 1: goto label1;
+            case 2: goto label2;
+            case 3: goto label3;
+            default: goto label4;
+        };
+
+     label1:
+        l2#2#_7 = 1;
+
+     label2:
+(1)     l2_$$A_1#_8 = 2;
+
+     label3:
+        l2_$$A_2#_9 = Phi(l2#_5 #0, l2_$$A_1#_8 #1);
+
+(2)     l2_$$A_3#_9 = 3;
+
+     label4:
+        l2_$$A_4#_10 = Phi(l2#_5 #0, l2_$$A_3#_9 #2);
+
+        l2_$$A_5#_10 = -1;
+
+        return;
+    }
+}

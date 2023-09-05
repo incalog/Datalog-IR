@@ -1,23 +1,28 @@
 package inca.frontend.datalog.executor
 
-import inca.frontend.datalog.compiler.{CompiledDatalogModule, DatalogOptions}
-import inca.runtime.EnginePool
-import inca.runtime.Query.Match
+import inca.frontend.datalog.compiler.CompiledDatalogModule
+import inca.frontend.datalog.compiler.DatalogOptions
 import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
+import inca.runtime.EnginePool
+import inca.runtime.Query.Match
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.collections.api.multimap.list.MutableListMultimap
 import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truechange.{EditScriptBuffer, URI}
+import scala.jdk.CollectionConverters._
+import truechange.EditScriptBuffer
+import truechange.URI
 import truediff.Diffable
 
-import scala.jdk.CollectionConverters._
-
 object DatalogExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledDatalogModule) {
+  case class Loaded(
+      engine: AdvancedViatraQueryEngine,
+      feed: Database,
+      compiled: CompiledDatalogModule) {
 
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
     lazy val loadedPsystemModule: String = scalaCompiler.define {
@@ -54,11 +59,12 @@ object DatalogExecutor {
       case v => v
     }
 
-    private val insertedURIs: MutableListMultimap[URI, (String, Tuple, Int)] = Multimaps.mutable.list.empty()
+    private val insertedURIs: MutableListMultimap[URI, (String, Tuple, Int)] =
+      Multimaps.mutable.list.empty()
 
     def insert(extensionalRel: String, anys: Any*): Unit = {
       val values = vals(anys)
-      val tup = Tuples.flatTupleOf(values:_*)
+      val tup = Tuples.flatTupleOf(values: _*)
       values.zipWithIndex.foreach {
         case (uri: URI, ix) => insertedURIs.put(uri, (extensionalRel, tup, ix))
         case (a, _) => feed.loadPrimitive(a)
@@ -68,7 +74,7 @@ object DatalogExecutor {
 
     def remove(extensionalRel: String, anys: Any*): Unit = {
       val values = vals(anys)
-      val tup = Tuples.flatTupleOf(values:_*)
+      val tup = Tuples.flatTupleOf(values: _*)
       values.foreach {
         case uri: URI => insertedURIs.removeAll(uri)
         case a => feed.unloadPrimitive(a)

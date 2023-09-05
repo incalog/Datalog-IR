@@ -1,10 +1,11 @@
 package inca.frontend.functional.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
-  extends SourceLocation with Import.Target {
+    extends SourceLocation
+    with Import.Target {
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
@@ -14,10 +15,14 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   }
 
   def prettyprint(implicit indent: String): String = {
-    val importsS = if (imports.isEmpty) "" else
-      "\n" + imports.map(_.prettyprint).mkString("\n")
-    val contentS = if (content.isEmpty) "" else
-      "\n" + content.map(_.prettyprint).mkString("\n")
+    val importsS =
+      if (imports.isEmpty) ""
+      else
+        "\n" + imports.map(_.prettyprint).mkString("\n")
+    val contentS =
+      if (content.isEmpty) ""
+      else
+        "\n" + content.map(_.prettyprint).mkString("\n")
     s"${indent}module $name$importsS$contentS".stripMargin
   }
 
@@ -31,9 +36,6 @@ object Import {
   trait Target
 }
 
-
-
-
 trait ModuleContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
@@ -42,8 +44,16 @@ trait ModuleContent extends SourceLocation with Annotations {
 
 case class ParametricType(name: Name) extends TName.Target
 
-case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Expression)
-  extends ModuleContent with Var.Target {
+case class FunctionDef(
+    annos: Seq[Annotation],
+    vis: Option[Visibility],
+    name: Name,
+    tyVars: Seq[ParametricType],
+    params: Seq[Param],
+    outType: Type,
+    body: Expression)
+    extends ModuleContent
+    with Var.Target {
 
   lazy val boundNames: Seq[Name] = params.map(_.name)
 
@@ -51,17 +61,20 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
-  def freevars: Seq[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
+  def freevars: Seq[Var] =
+    body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
   def freeTvars: Seq[TName] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
+
+  def isRelation: Boolean = outType.isSet
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val outS = outType.prettyprint
     s"""$annoPrefix$indent${visS}def $name($paramsS): $outS =
-       |$indent  ${body.prettyprint(indent + "  ")}""".stripMargin
+      |$indent  ${body.prettyprint(indent + "  ")}""".stripMargin
   }
 }
 
@@ -71,8 +84,14 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], constrs: Seq[DataConstructor])
-  extends ModuleContent with TName.Target {
+case class DataDef(
+    annos: Seq[Annotation],
+    vis: Option[Visibility],
+    name: Name,
+    tyVars: Seq[ParametricType],
+    constrs: Seq[DataConstructor])
+    extends ModuleContent
+    with TName.Target {
 
   def freeTvars: Set[TName] = constrs.flatMap(_.freeTvars).toSet
 
@@ -87,13 +106,17 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
     else {
       val constrS = constrs.map(_.prettyprint(indent + "  "))
       s"""$annoPrefix$indent${visS}data $name =
-         |${constrS.mkString(" |\n")}
-         |""".stripMargin
+        |${constrS.mkString(" |\n")}
+        |""".stripMargin
     }
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with Resolvable[TName.Target] with DataConstructor.Target with Var.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type])
+    extends SourceLocation
+    with Resolvable[TName.Target]
+    with DataConstructor.Target
+    with Var.Target {
 
   def constructorType(data: DataDef): TFun = {
     if (data.tyVars.nonEmpty)
@@ -106,7 +129,6 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
     TFun(paramTypes, TName(data))
   def constructorType: TConstr =
     TConstr(name, paramTypes)
-
 
   def selectorName: String = "un$_" + name.name
 

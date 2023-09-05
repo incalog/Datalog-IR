@@ -1,47 +1,128 @@
 package inca.backend.ir
 
 import inca.backend.hints.Hints
-import inca.backend.ir.util.printer.GPPrinter
+import inca.backend.ir.util.printer.DatalogPrinter
+import inca.backend.ir.util.CollectConstantEvaluation
+import inca.backend.ir.util.CollectLits
+import inca.backend.ir.util.CollectVarNames
+import inca.backend.ir.util.CollectVars
 import inca.util.Scala
-import truechange.{JavaLitType, LitType}
+import truechange.JavaLitType
+import truechange.LitType
 
-import scala.meta.quasiquotes._
+trait Base {
+  type Literal
+  type BaseType
+  type Definition
+  type Function
+  type Aggregator
+}
 
-object Datalog {
-  case object BodyMustFail extends Exception
-  def throwBodyMustFail(): Nothing = throw BodyMustFail
+object ScalaBase extends Base {
+  import scala.meta.quasiquotes._
+
+  sealed trait Literal {
+    def typ: Datalog.Type
+  }
+  case class IntLiteral(v: Int) extends Literal {
+    override def typ: Datalog.Type = TScalaInt
+  }
+  case class LongLiteral(v: Long) extends Literal {
+    override def typ: Datalog.Type = TScalaLong
+  }
+  case class DoubleLiteral(v: Double) extends Literal {
+    override def typ: Datalog.Type = TScalaDouble
+  }
+  case class StringLiteral(v: String) extends Literal {
+    override def typ: Datalog.Type = TScalaString
+  }
+  case class BooleanLiteral(v: Boolean) extends Literal {
+    override def typ: Datalog.Type = TScalaBoolean
+  }
+  def True: Datalog.Constant = Datalog.Constant(BooleanLiteral(true))
+  def False: Datalog.Constant = Datalog.Constant(BooleanLiteral(false))
+
+  type BaseType = Scala[meta.Type]
+  type Definition = Scala[meta.Stat]
+  type Function = Scala[meta.Term.Function]
+  type Aggregator = Scala[meta.Term]
+
+  def typeAsScala(ty: Datalog.Type): meta.Type = ty match {
+    case Datalog.TAny => t"Any"
+    case Datalog.TData(name) => meta.Type.Name(name)
+    case Datalog.TLiteral(litType) =>
+      litType match {
+        case JavaLitType(cl) => Scala.mkQualTypename(cl.getCanonicalName)
+        case _ => throw new UnsupportedOperationException
+      }
+    case Datalog.TScala(ty) => ty.tree
+    case _: Datalog.TLinked => t"truechange.URI"
+  }
+
+  object TScalaBoolean extends Datalog.TScala(Scala(t"Boolean"))
+  object TScalaInt extends Datalog.TScala(Scala(t"Int"))
+  object TScalaLong extends Datalog.TScala(Scala(t"Long"))
+  object TScalaDouble extends Datalog.TScala(Scala(t"Double"))
+  object TScalaString extends Datalog.TScala(Scala(t"String"))
+
+  def literalFromScalaMeta(t: meta.Lit): Option[Literal] = t match {
+    case meta.Lit.Int(i) => Some(IntLiteral(i))
+    case meta.Lit.Long(l) => Some(LongLiteral(l))
+    case d: meta.Lit.Double => Some(DoubleLiteral(d.value.asInstanceOf[Double]))
+    case meta.Lit.Boolean(b) => Some(BooleanLiteral(b))
+    case meta.Lit.String(s) => Some(StringLiteral(s))
+    case _ => None
+  }
+}
+
+object Datalog extends DatalogGeneric {
+  val base: ScalaBase.type = ScalaBase
+
+  val collectVarNames: CollectVarNames[Datalog.type] = new CollectVarNames[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectVars: CollectVars[Datalog.type] = new CollectVars[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectLits: CollectLits[Datalog.type] = new CollectLits[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectConstantEvaluation: CollectConstantEvaluation[Datalog.type] =
+    new CollectConstantEvaluation[Datalog.type] {
+      override val datalog: Datalog.type = Datalog
+    }
+}
+
+trait DatalogGeneric {
+  val base: ScalaBase.type
+
+  private val printer = new DatalogPrinter[this.type](this)
 
   type Name = String
 
   sealed trait Visibility
   case object Private extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
-    override def toString: Name = GPPrinter.prettyModule(this)
+  case class Module(
+      name: Name,
+      imports: Seq[Name],
+      pats: Seq[Pattern],
+      scalaContent: Seq[base.Definition])
+      extends Hints {
+    override def toString: Name = printer.prettyModule(Module(name, imports, pats, scalaContent))
+    lazy val patternMap: Map[String, Pattern] = pats.map { pat => pat.name -> pat }.toMap
   }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+      extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   }
   case class Param(name: Name, typ: Type)
 
-  sealed trait Type extends Hints {
-    def asScala: meta.Type
-  }
+  sealed trait Type extends Hints
+  case object TAny extends Type
+  case class TData(name: Name) extends Type
 
-  case object TAny extends Type {
-    override def asScala: meta.Type = t"Any"
-  }
-
-  case class TData(name: Name) extends Type {
-    override def asScala: meta.Type = meta.Type.Name(name)
-  }
-
-  case class TLiteral(litType: LitType) extends Type {
-    override def asScala: meta.Type = litType match {
-      case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
-      case _ => throw new UnsupportedOperationException
-    }
-  }
+  case class TLiteral(litType: LitType) extends Type
   object TLiteral {
     val Bool: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Boolean]))
     val Int: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Integer]))
@@ -50,27 +131,9 @@ object Datalog {
     val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
   }
 
-  case class TScala(ty: Scala[meta.Type]) extends Type {
-    override def asScala: meta.Type = ty.tree
-  }
-  object TScala {
-    def apply(tyString: String): TScala = tyString match {
-      case "Boolean" => TScalaBoolean
-      case "Int" => TScalaInt
-      case "Long" => TScalaLong
-      case "Double" => TScalaDouble
-      case "String" => TScalaString
-    }
-  }
-  object TScalaBoolean extends TScala(Scala(t"Boolean"))
-  object TScalaInt extends TScala(Scala(t"Int"))
-  object TScalaLong extends TScala(Scala(t"Long"))
-  object TScalaDouble extends TScala(Scala(t"Double"))
-  object TScalaString extends TScala(Scala(t"String"))
+  case class TScala(ty: base.BaseType) extends Type
 
-  sealed trait TLinked extends Type {
-    override def asScala: meta.Type = t"truechange.URI"
-  }
+  sealed trait TLinked extends Type
   case object TAnyLinked extends TLinked
   case class TNode(name: String) extends TLinked
   case class TList(contained: TLinked) extends TLinked
@@ -81,7 +144,8 @@ object Datalog {
     def asCall: Option[(Name, Seq[Term])] = None
     def replaceCall(newPatName: Name, newArgs: Seq[Term]): Atom = this
   }
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Atom {
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false)
+      extends Atom {
     override def asCall: Option[(Name, Seq[Term])] = Some(name -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Call =
       Call(newPatName, newArgs, transitive, neg).withHints(this)
@@ -116,50 +180,22 @@ object Datalog {
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
 
-
   sealed trait Term
   case class Var(name: Name) extends Term {
     private[backend] var typ: Option[Type] = None
   }
-  case class Constant(lit: Literal) extends Term
-
-  sealed trait Literal {
-    def typ: Type
-  }
-  object Literal {
-    def fromScalaMeta(t: meta.Lit): Option[Literal] = t match {
-      case meta.Lit.Int(i) => Some(IntLiteral(i))
-      case meta.Lit.Long(l) => Some(LongLiteral(l))
-      case d: meta.Lit.Double => Some(DoubleLiteral(d.value.asInstanceOf[Double]))
-      case meta.Lit.Boolean(b) => Some(BooleanLiteral(b))
-      case meta.Lit.String(s) => Some(StringLiteral(s))
-      case _ => None
-    }
-  }
-  case class IntLiteral(v: Int) extends Literal {
-    override def typ: Type = TScalaInt
-  }
-  case class LongLiteral(v: Long) extends Literal {
-    override def typ: Type = TScalaLong
-  }
-  case class DoubleLiteral(v: Double) extends Literal {
-    override def typ: Type = TScalaDouble
-  }
-  case class StringLiteral(v: String) extends Literal {
-    override def typ: Type = TScalaString
-  }
-  case class BooleanLiteral(v: Boolean) extends Literal {
-    override def typ: Type = TScalaBoolean
-  }
-  def True: Constant = Constant(BooleanLiteral(true))
-  def False: Constant = Constant(BooleanLiteral(false))
+  case class Constant(lit: base.Literal) extends Term
 
   sealed trait Computation {
     val args: Seq[Term]
     def asCall: Option[(Name, Seq[Term])] = None
     def replaceCall(newPatName: Name, newArgs: Seq[Term]): Computation = this
   }
-  case class Evaluation(evalArgs: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation {
+  case class Evaluation(
+      evalArgs: Seq[(Term, Type)],
+      resultType: Type,
+      code: base.Function)
+      extends Computation {
     val args: Seq[Term] = evalArgs.map(_._1)
   }
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation {
@@ -167,7 +203,14 @@ object Datalog {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CountAggregation =
       CountAggregation(newPatName, newArgs)
   }
-  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
+  case class CustomAggregation(
+      typ: Type,
+      description: Option[String],
+      agg: base.Aggregator,
+      patName: Name,
+      args: Seq[Term],
+      aggregatedColumn: Int)
+      extends Computation {
     override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)

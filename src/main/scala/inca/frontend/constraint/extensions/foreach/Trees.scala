@@ -10,7 +10,8 @@ object Trees {
     }
 
     override def boundVars: Set[Name] = Set(name) ++ body.boundVars
-    override def allVars: Map[Name, Option[Type]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
+    override def allVars: Map[Name, Option[Type]] =
+      Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
 
     override def prettyprint(implicit indent: String): String = {
       s"${indent}foreach $name in ${exp.prettyprint} ${body.prettyprint}"

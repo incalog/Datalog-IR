@@ -1,0 +1,2 @@
+<Main: void main(java.lang.String[])>/Point.print/0	6	<Point: void print()>	<Main: void main(java.lang.String[])>/l1#_4	<Main: void main(java.lang.String[])>
+<Point: void print()>/java.io.PrintStream.println/0	5	<java.io.PrintStream: void println(java.lang.String)>	<Point: void print()>/$stack3	<Point: void print()>

@@ -13,31 +13,31 @@ object DataHints {
    * The annotated pattern represents a constructor.
    */
   object Constructor extends Hint {
-    override def key: Key = ConstructorKey
+    override val key: Key = ConstructorKey
   }
 
   /**
    * The annotated pattern represents a selector.
    */
-  object Selector extends Hint {
-    override def key: Key = SelectorKey
+  case class Selector(ctor: String) extends Hint {
+    override val key: Key = SelectorKey
   }
 
   /**
    * The annotated pattern represents a data type.
    */
   object DataType extends Hint {
-    override def key: Key = DataTypeKey
+    override val key: Key = DataTypeKey
   }
 
   /**
    * The annotated body represents a rule to construct a value during run time
    */
   object IDBConstructor extends Hint {
-    override def key: Key = IDBConstructorKey
+    override val key: Key = IDBConstructorKey
   }
 
   case class DataTypeName(name: String) extends Hint {
-    override def key: Key = DataTypeNameKey
+    override val key: Key = DataTypeNameKey
   }
 }

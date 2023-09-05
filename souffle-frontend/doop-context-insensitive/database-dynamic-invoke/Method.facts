@@ -1,0 +1,8 @@
+<Main: void <init>()>	<init>		Main	void	()V	0
+<Main: void main(java.lang.String[])>	main	java.lang.String[]	Main	void	([Ljava/lang/String;)V	1
+<Main: void lambda$main$0(java.lang.Integer)>	lambda$main$0	java.lang.Integer	Main	void	(Ljava/lang/Integer;)V	1
+<Point: Point genPoint(int,int)>	genPoint	int,int	Point	Point	(II)LPoint;	2
+<Point: void <init>(int,int)>	<init>	int,int	Point	void	(II)V	2
+<Point: Point add(Point)>	add	Point	Point	Point	(LPoint;)LPoint;	1
+<Point: Point add(int,int)>	add	int,int	Point	Point	(II)LPoint;	2
+<Point: void <clinit>()>	<clinit>		Point	void	()V	0

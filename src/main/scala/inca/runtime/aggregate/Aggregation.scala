@@ -27,5 +27,7 @@ trait Aggregation[V] {
     else if (isAssociative && isCommutative)
       new AggregatorAssocComm[V](this)
     else
-      throw new UnsupportedOperationException(s"Cannot create aggregator for associative=$isAssociative, commutative=$isCommutative, hasUnjoin=$hasUnjoin")
+      throw new UnsupportedOperationException(
+        s"Cannot create aggregator for associative=$isAssociative, commutative=$isCommutative, hasUnjoin=$hasUnjoin"
+      )
 }

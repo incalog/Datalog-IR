@@ -1,12 +1,12 @@
 package inca.frontend.constraint.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 import inca.util.Scala
-import truechange.{JavaLitType, LitType}
-
 import scala.annotation.tailrec
 import scala.meta.quasiquotes._
+import truechange.JavaLitType
+import truechange.LitType
 
 sealed trait Type extends SourceLocation {
   def prettyprint: String
@@ -46,7 +46,7 @@ case class TLiteral(litType: LitType) extends Type {
   }
 
   override def asScala: meta.Type = litType match {
-    case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
+    case JavaLitType(cl) => Scala.mkQualTypename(cl.getCanonicalName)
     case _ => throw new UnsupportedOperationException
   }
 }
@@ -58,16 +58,16 @@ object TLiteral {
   val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
 }
 
-trait TLinked extends Type {
+sealed trait TLinked extends Type {
   override def asScala: meta.Type = t"truechange.URI"
 }
 case object TAnyLinked extends TLinked {
   override def prettyprint: String = "AnyNode"
   override def javastring: String = "anynode"
 }
-case class TNode(name: String) extends TLinked  with Resolvable[TNode] {
+case class TNode(name: String) extends TLinked with Resolvable[TNode] {
   override def prettyprint: String = name
-  override def javastring: String = name.replace('.','_')
+  override def javastring: String = name.replace('.', '_')
   def apply(field: String): NamedLink = NamedLink(Name(field))
 }
 

@@ -1,15 +1,17 @@
 package inca.frontend.constraint.typechecker
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
-import inca.frontend.util.{Resolvable, Typeable}
+import inca.frontend.util.Resolvable
+import inca.frontend.util.Typeable
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel
 import inca.util.Scala
-import truechange.{AnyType, ListType, SortType}
+import truechange.AnyType
+import truechange.ListType
+import truechange.SortType
 
-trait CoreTypechecker
-  extends TypeContext with TypeIO with ScalaTypeContext {
+trait CoreTypechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   val dataModel: DataModel
 
@@ -23,8 +25,10 @@ trait CoreTypechecker
    */
 
   def typecheck(module: Module): Unit = scopedTypeContext {
-    for (imp <- module.imports;
-         importedModule <- lookupModule(imp.name)) {
+    for {
+      imp <- module.imports
+      importedModule <- lookupModule(imp.name)
+    } {
       resolveTarget(imp)(importedModule)
 
       for (content <- importedModule.content if !content.vis.contains(Private)) {
@@ -45,7 +49,6 @@ trait CoreTypechecker
     module.nodeImports.foreach { nodeimp =>
       validNodeImport(nodeimp)
     }
-
 
     // bind symbols first
     module.content.foreach {
@@ -72,7 +75,10 @@ trait CoreTypechecker
         val prefix = path.init.mkString(".")
         val typesToImport = prefixedNodes(prefix)
         if (typesToImport.isEmpty) {
-          warn(s"The wildcard import node ${nodeImport.name} resolves to an empty set of imported nodes", nodeImport)
+          warn(
+            s"The wildcard import node ${nodeImport.name} resolves to an empty set of imported nodes",
+            nodeImport
+          )
         }
         importPrefixed(prefix)
       } else {
@@ -82,7 +88,7 @@ trait CoreTypechecker
         importPrefixed(nodeImport.name.name)
       }
     } else
-      warn(s"Path of imported node ${nodeImport} is empty", nodeImport)
+      warn(s"Path of imported node $nodeImport is empty", nodeImport)
   }
 
   private def prefixedNodes(prefix: String): Set[SortType] = dataModel.types.filter { typ =>
@@ -90,16 +96,14 @@ trait CoreTypechecker
   }
 
   private def importPrefixed(prefix: String): Unit = prefixedNodes(prefix).foreach { typ =>
-    bindNode(TNode(typ.name.substring(prefix.length+1)), TNode(typ.name))
+    bindNode(TNode(typ.name.substring(prefix.length + 1)), TNode(typ.name))
   }
-
-
 
   /*
    * Function
    */
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
-    val inputScalaParams = fun.params.collect{ case p@Param(_, TScala(_)) => p }
+    val inputScalaParams = fun.params.collect { case p @ Param(_, TScala(_)) => p }
     inputScalaParams.foreach { param =>
       error(s"Pattern functions do not allow input parameter of Scala type ${param.typ}", fun)
     }
@@ -116,18 +120,20 @@ trait CoreTypechecker
   }
 
   def validType(typ: Type): Unit = typ match {
-    case node: TNode => lookupNode(node) match {
-      case Some(value) =>
-        val x = value
-        resolveTarget(node)(value)
-      case None => // nothing
-    }
+    case node: TNode =>
+      lookupNode(node) match {
+        case Some(value) =>
+          resolveTarget(node)(value)
+        case None => // nothing
+      }
     case iterable: TIterable => validType(iterable.contained)
     case TTuple(ts) => ts.foreach(validType)
     case TScala(_) => // nothing
     case TAny => // nothing
     case TNothing => // nothing
-    case TLiteral(litType) => // nothing
+    case TLiteral(_) => // nothing
+    case _ =>
+      throw new IllegalArgumentException(s"Validity check of type $typ currently not supported")
   }
 
   def typecheck(body: Body, mustYield: Boolean): StmType = scopedTypeContext {
@@ -138,8 +144,7 @@ trait CoreTypechecker
       } else {
         NoYield
       }
-    }
-    else {
+    } else {
       body.stmts.init.foreach { stm =>
         typecheck(stm, mustYield = false, mayYield = false)
       }
@@ -167,22 +172,23 @@ trait CoreTypechecker
    * Statements
    */
 
-  final def typecheck(stm: Statement, mustYield: Boolean, mayYield: Boolean): StmType = typecheckInternal(stm, mustYield) match {
-    case ty: NoYield.type =>
-      if (mustYield) {
-        warn(s"Block should end with a terminator statement", stm)
-        Yields(TUnit)
-      } else {
-        ty
-      }
-    case ty: Yields =>
-      if (!mayYield) {
-        warn(s"Unexpected terminator statement", stm)
-        NoYield
-      } else  {
-        ty
-      }
-  }
+  final def typecheck(stm: Statement, mustYield: Boolean, mayYield: Boolean): StmType =
+    typecheckInternal(stm, mustYield) match {
+      case ty: NoYield.type =>
+        if (mustYield) {
+          warn(s"Block should end with a terminator statement", stm)
+          Yields(TUnit)
+        } else {
+          ty
+        }
+      case ty: Yields =>
+        if (!mayYield) {
+          warn(s"Unexpected terminator statement", stm)
+          NoYield
+        } else {
+          ty
+        }
+    }
 
   protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case core: CoreStatement => typecheckCore(core)
@@ -203,7 +209,7 @@ trait CoreTypechecker
         error(s"Expected Boolean condition, but got $condTy", cond)
       NoYield
 
-    case vals@Values(name, typ) =>
+    case vals @ Values(name, typ) =>
       validType(typ)
       typ match {
         case TNothing => warn(s"$typ contains no values, enumeration will fail", typ)
@@ -213,7 +219,7 @@ trait CoreTypechecker
       bindVar(name, vals, typ)
       NoYield
 
-    case as@Assign(names, exp) =>
+    case as @ Assign(names, exp) =>
       val ty = typecheck(exp)
       validType(ty)
 
@@ -228,7 +234,7 @@ trait CoreTypechecker
             error(s"Cannot assign ${tys.size}-ary tuple to $namesStr", stm)
           names.zipAll(tys, null, null).foreach {
             case (name, null) => bindVar(name, as, TAny)
-            case (null, ty) => // nothing
+            case (null, _) => // nothing
             case (name, ty) => bindVar(name, as, ty.unroll)
           }
         case ty =>
@@ -236,13 +242,12 @@ trait CoreTypechecker
             error(s"Cannot assign expression of type $ty to $namesStr", stm)
           names.zipAll(Seq(ty), null, null).foreach {
             case (name, null) => bindVar(name, as, TAny)
-            case (null, ty) => // nothing
+            case (null, _) => // nothing
             case (name, ty) => bindVar(name, as, ty.unroll)
           }
       }
       NoYield
   }
-
 
   /*
    * Expressions
@@ -256,7 +261,7 @@ trait CoreTypechecker
   }
 
   final def typecheckCore(exp: CoreExpression, anno: Option[Type]): Type = exp match {
-    case v@Var(name) =>
+    case v @ Var(name) =>
       lookupVar(name) match {
         case Some((decl, ty)) =>
           resolveTarget(v)(decl)
@@ -329,7 +334,7 @@ trait CoreTypechecker
       val rty = typecheck(receiver)
       typecheckLink(link, rty, exp)
 
-    case call@Call(name, args, transitive) =>
+    case call @ Call(name, args, transitive) =>
       lookupFun(name) match {
         case None =>
           args.foreach(typecheck)
@@ -350,26 +355,31 @@ trait CoreTypechecker
         case tys => TTuple(tys)
       }
 
-    case eval@Eval(code) =>
+    case eval @ Eval(code) =>
       typecheckEval(code, eval)
 
     case Aggregate(agg, bodies) =>
       val aggTy = typecheck(agg)
 
       val bodiesTy = bodies.foldLeft[Type](TAny) { (bodiesTy, body) =>
-        val Yields(ty) = typecheck(body, mustYield = true)
-        meet(bodiesTy, ty, dataModel)
+        typecheck(body, mustYield = true) match {
+          case NoYield =>
+            throw new IllegalStateException(s"Body $body has to yield type")
+          case Yields(ty) =>
+            meet(bodiesTy, ty, dataModel)
+        }
       }
 
       val bodiesScalaTy = bodiesTy.asScala
-      val requiredAggTy = TScala(Scala(meta.Type.Apply(Scala.typeOf[Aggregation[_]], List(bodiesScalaTy))))
+      val requiredAggTy = TScala(
+        Scala(meta.Type.Apply(Scala.typeOf[Aggregation[_]], List(bodiesScalaTy)))
+      )
 
       if (!subtype(aggTy, requiredAggTy, dataModel))
         error(s"Expected $requiredAggTy, but got $aggTy", agg)
 
       TScala(Scala(bodiesScalaTy))
   }
-
 
   def isValidDefUndefExp(exp: Expression): Boolean = exp match {
     case _: PathAccess => true
@@ -387,25 +397,27 @@ trait CoreTypechecker
   }
 
   final def typecheckLink(link: Link, receiverTy: Type, exp: Expression): Type = link match {
-    case NamedLink(field: Name) => receiverTy match {
-      case node: TNode =>
-        val nodeName = node.target.getOrElse(TNode("")).name
-        dataModel.links.get(nodeName, field.name) match {
-          case Some(tcty) =>
-            val ty = truechangeTypeToType(tcty)
-            validType(ty)
-            ty
-          case _ => dataModel.litLinks.get(nodeName, field.name) match {
-            case Some(litType) => TLiteral(litType)
+    case NamedLink(field: Name) =>
+      receiverTy match {
+        case node: TNode =>
+          val nodeName = node.target.getOrElse(TNode("")).name
+          dataModel.links.get((nodeName, field.name)) match {
+            case Some(tcty) =>
+              val ty = truechangeTypeToType(tcty)
+              validType(ty)
+              ty
             case _ =>
-              error(s"Cannot access field `$field` of node $node", exp)
-              TAny
+              dataModel.litLinks.get((nodeName, field.name)) match {
+                case Some(litType) => TLiteral(litType)
+                case _ =>
+                  error(s"Cannot access field `$field` of node $node", exp)
+                  TAny
+              }
           }
-        }
-      case _ =>
-        error(s"Cannot access field `$field` of non-node type $receiverTy", exp)
-        TAny
-    }
+        case _ =>
+          error(s"Cannot access field `$field` of non-node type $receiverTy", exp)
+          TAny
+      }
     case ParentLink => TAny
     case ChildrenLink =>
       receiverTy match {
@@ -426,22 +438,33 @@ trait CoreTypechecker
       }
   }
 
-  def typecheckCall(fun: PatternFunction, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
+  def typecheckCall(
+      fun: PatternFunction,
+      args: Seq[Expression],
+      transitive: Boolean,
+      exp: Expression
+    ): Type = {
     val name = fun.name
 
     if (fun.params.size != args.size) {
-      error(s"Function $name expects ${fun.params.size} arguments, but found ${args.size} arguments in call", exp)
+      error(
+        s"Function $name expects ${fun.params.size} arguments, but found ${args.size} arguments in call",
+        exp
+      )
     }
 
     fun.params.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
-      case (param, null) =>
+      case (_, null) =>
       // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
         if (meet(param.typ, argTy, dataModel) == TNothing) {
-          warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
+          warn(
+            s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail",
+            arg
+          )
         }
     }
 
@@ -457,15 +480,16 @@ trait CoreTypechecker
   }
 
   /**
-   * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
+   * Computes the result type of an Eval expression and validates the contained Scala code for type
+   * correctness
    */
   def typecheckEval(code: Scala[meta.Term], exp: Eval): Type = {
     // collect bound name and set free vars (params) of eval expression if not already set
     val params = exp.params match {
       case Some(params) => params
       case None =>
-        val params = (CollectFreeScalaVars.freeVars(code.tree)
-          .diff(boundNames.map(Name).toSet))
+        val params = CollectFreeScalaVars.freeVars(code.tree)
+          .diff(boundNames.map(Name).toSet)
           .intersect(getBindings.keySet)
         exp.params = Some(params.map(EvalParam).toSeq)
         exp.params.get
@@ -475,7 +499,7 @@ trait CoreTypechecker
     // The initializing value is irrelevant.
     val paramString = params.flatMap { param =>
       lookupVar(param.name) match {
-        case Some((decl,ty)) =>
+        case Some((decl, ty)) =>
           resolveTarget(param)(decl)
           assignType(param)(ty)
           import meta._
@@ -521,7 +545,10 @@ trait CoreTypechecker
     term.target match {
       case Some(oldTarget) =>
         if (oldTarget != newTarget)
-          error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
+          error(
+            s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget",
+            term
+          )
         oldTarget
       case None =>
         term.resolved(newTarget)
@@ -537,10 +564,11 @@ trait CoreTypechecker
   }
 
   def resolvedType(ty: Type): Type = ty match {
-    case node: TNode => node.target match {
-      case Some(value) => value
-      case None => throw new IllegalArgumentException(s"Node type ${ty} is not bound")
-    }
+    case node: TNode =>
+      node.target match {
+        case Some(value) => value
+        case None => throw new IllegalArgumentException(s"Node type $ty is not bound")
+      }
     case TList(contained) => TList(resolvedType(contained).asInstanceOf[TLinked])
     case TEnumeration(contained) => TEnumeration(resolvedType(contained).asInstanceOf[TLinked])
     case TTuple(ts) => TTuple(ts.map(resolvedType))
@@ -548,17 +576,20 @@ trait CoreTypechecker
     case TNothing => ty
     case TLiteral(_) => ty
     case TScala(_) => ty
+    case _ => throw new IllegalArgumentException(s"Cannot resolve type $ty")
   }
 
   protected def meet(ty1: Type, ty2: Type, dataModel: DataModel): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
     case (_, TAny) => ty1
-    case (TAnyLinked, _:TLinked) => ty2
-    case (_:TLinked,TAnyLinked) => ty1
+    case (TAnyLinked, _: TLinked) => ty2
+    case (_: TLinked, TAnyLinked) => ty1
     case (node1: TNode, node2: TNode) =>
-      val name1 = node1.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node1}")).name
-      val name2 = node2.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node2}")).name
+      val name1 =
+        node1.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type $node1")).name
+      val name2 =
+        node2.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type $node2")).name
       if (name1 == name2)
         ty1
       else if (dataModel.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
@@ -568,7 +599,8 @@ trait CoreTypechecker
       else
         TNothing
     case (TList(s1), TList(s2)) => TList(meet(s1, s2, dataModel).asInstanceOf[TLinked])
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, dataModel)))
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
+      TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, dataModel)))
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))
         ty1
@@ -596,14 +628,21 @@ trait CoreTypechecker
       val convertedTy = truechangeTypeToType(ty)
       convertedTy match {
         case linked: TLinked => TList(linked)
-        case _ => throw new IllegalArgumentException()
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Inner type of List type has to be linked, but got $convertedTy"
+          )
       }
-    case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
+    case _ =>
+      throw new UnsupportedOperationException(
+        s"Conversion of $ty from truechange to inca not supported"
+      )
   }
 
-  protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: DataModel): StmType = (stmTy1, stmTy2) match {
-    case (NoYield, _) => NoYield
-    case (_, NoYield) => NoYield
-    case (Yields(ty1), Yields(ty2)) => Yields(meet(ty1, ty2, lang))
-  }
+  protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: DataModel): StmType =
+    (stmTy1, stmTy2) match {
+      case (NoYield, _) => NoYield
+      case (_, NoYield) => NoYield
+      case (Yields(ty1), Yields(ty2)) => Yields(meet(ty1, ty2, lang))
+    }
 }

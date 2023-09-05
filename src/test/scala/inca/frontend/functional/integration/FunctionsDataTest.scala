@@ -1,22 +1,30 @@
 package inca.frontend.functional.integration
 
 import inca.frontend.functional.executor.FunctionalExecutor._
+import inca.runtime.EnginePool
 import inca.util.FileUtil
-import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Ignore
 
 import scala.meta.XtensionQuasiquoteTerm
 
 @Ignore
-class FunctionsDataTest extends AnyFunSuite {
+class FunctionsDataTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("Plus Example") {
     val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
     val fun = loadFunction(code)
-    assert(fun.execute("main", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
-      == fun.result(q"Succ(Succ(Succ(Zero())))"))
-    assert(fun.execute("main", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
-      == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
+    assert(
+      fun.execute("main", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
+        == fun.result(q"Succ(Succ(Succ(Zero())))"))
+    assert(
+      fun.execute("main", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
+        == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
   }
 
   test("graph example with functions as predicates") {
@@ -40,50 +48,73 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Type Checker Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
-    assert(fun.execute("mainTypeOf", Seq(q"TNum(1)"))
-      == fun.result(q"SomeType(TInt())"))
-    assert(fun.execute("mainTypeOf", Seq(q"""TLam("x", TInt(), TVar("x"))"""))
-      == fun.result(q"SomeType(TFun(TInt(), TInt()))"))
-    assert(fun.execute("mainTypeOf", Seq(q"""TLam("x", TInt(), TVar("y"))"""))
-      == fun.result(q"NoType()"))
-    assert(fun.execute("mainTypeOf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""))
-      == fun.result(q"SomeType(TInt())"))
-    assert(fun.execute("mainTypeOf", Seq(q"""TApp(TNum(12), TNum(11))"""))
-      == fun.result(q"NoType()"))
+    assert(
+      fun.execute("mainTypeOf", Seq(q"TNum(1)"))
+        == fun.result(q"SomeType(TInt())"))
+    assert(
+      fun.execute("mainTypeOf", Seq(q"""TLam("x", TInt(), TVar("x"))"""))
+        == fun.result(q"SomeType(TFun(TInt(), TInt()))"))
+    assert(
+      fun.execute("mainTypeOf", Seq(q"""TLam("x", TInt(), TVar("y"))"""))
+        == fun.result(q"NoType()"))
+    assert(
+      fun.execute("mainTypeOf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""))
+        == fun.result(q"SomeType(TInt())"))
+    assert(
+      fun.execute("mainTypeOf", Seq(q"""TApp(TNum(12), TNum(11))"""))
+        == fun.result(q"NoType()"))
   }
 
   test("Type Erasure Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
-    assert(fun.execute("erase", Seq(q"TNum(1)"), deleteInput = true)
-      == fun.result(q"Num(1)"))
-    assert(fun.execute("erase", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
-      == fun.result(q"""Lam("x", Var("x"))"""))
-    assert(fun.execute("erase", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
-      == fun.result(q"""Lam("x", Var("y"))"""))
-    assert(fun.execute("erase", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
-      == fun.result(q"""App(Lam("x", Var("x")), Num(1337))"""))
-    assert(fun.execute("erase", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
-      == fun.result(q"App(Num(12), Num(11))"))
+    assert(
+      fun.execute("erase", Seq(q"TNum(1)"), deleteInput = true)
+        == fun.result(q"Num(1)"))
+    assert(
+      fun.execute("erase", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+        == fun.result(q"""Lam("x", Var("x"))"""))
+    assert(
+      fun.execute("erase", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+        == fun.result(q"""Lam("x", Var("y"))"""))
+    assert(
+      fun.execute(
+        "erase",
+        Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""),
+        deleteInput = true)
+        == fun.result(q"""App(Lam("x", Var("x")), Num(1337))"""))
+    assert(
+      fun.execute("erase", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+        == fun.result(q"App(Num(12), Num(11))"))
   }
 
   test("Interpreter Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
-    assert(fun.execute("mainInterp", Seq(q"Num(1)"), deleteInput = true)
-      == fun.result(q"SomeVal(VNum(1))"))
-    assert(fun.execute("mainInterp", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)
-      == fun.result(q"""SomeVal(VClosure("x", Var("x"), EmptyEnv()))"""))
-    assert(fun.execute("mainInterp", Seq(q"""Lam("x", Var("y"))"""), deleteInput = true)
-      == fun.result(q"""SomeVal(VClosure("x", Var("y"), EmptyEnv()))"""))
-    assert(fun.execute("mainInterp", Seq(q"""App(Lam("y", Lam("x", Var("y"))), Num(1))"""), deleteInput = true)
-      == fun.result(q"""SomeVal(VClosure("x", Var("y"), BindEnv("y", VNum(1), EmptyEnv())))"""))
-    assert(fun.execute("mainInterp", Seq(q"""App(Lam("x", Var("y")), Num(1))"""), deleteInput = true)
-      == fun.result(q"""NoVal()"""))
-    assert(fun.execute("mainInterp", Seq(q"""App(Lam("x", Var("x")), Num(1337))"""), deleteInput = true)
-      == fun.result(q"""SomeVal(VNum(1337))"""))
-    assert(fun.execute("mainInterp", Seq(q"""App(Num(12), Num(11))"""), deleteInput = true)
-      == fun.result(q"NoVal()"))
+    assert(
+      fun.execute("mainInterp", Seq(q"Num(1)"), deleteInput = true)
+        == fun.result(q"SomeVal(VNum(1))"))
+    assert(
+      fun.execute("mainInterp", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)
+        == fun.result(q"""SomeVal(VClosure("x", Var("x"), EmptyEnv()))"""))
+    assert(
+      fun.execute("mainInterp", Seq(q"""Lam("x", Var("y"))"""), deleteInput = true)
+        == fun.result(q"""SomeVal(VClosure("x", Var("y"), EmptyEnv()))"""))
+    assert(
+      fun.execute(
+        "mainInterp",
+        Seq(q"""App(Lam("y", Lam("x", Var("y"))), Num(1))"""),
+        deleteInput = true)
+        == fun.result(q"""SomeVal(VClosure("x", Var("y"), BindEnv("y", VNum(1), EmptyEnv())))"""))
+    assert(
+      fun.execute("mainInterp", Seq(q"""App(Lam("x", Var("y")), Num(1))"""), deleteInput = true)
+        == fun.result(q"""NoVal()"""))
+    assert(
+      fun.execute("mainInterp", Seq(q"""App(Lam("x", Var("x")), Num(1337))"""), deleteInput = true)
+        == fun.result(q"""SomeVal(VNum(1337))"""))
+    assert(
+      fun.execute("mainInterp", Seq(q"""App(Num(12), Num(11))"""), deleteInput = true)
+        == fun.result(q"NoVal()"))
   }
 
   test("Checking+Erasure+Interpreting Example") {
@@ -91,10 +122,9 @@ class FunctionsDataTest extends AnyFunSuite {
     val fun = loadFunction(code)
 
     // type of peano = (a -> a) -> (a -> a)
-    val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
     val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
-    val two = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TVar("x")))))"""
-    val three = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
+    val three =
+      q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
 
     val succ =
       q"""
@@ -121,7 +151,6 @@ class FunctionsDataTest extends AnyFunSuite {
     println(fun.execute("main", Seq(q"TApp($succ, $three)")))
     println(fun.execute("main", Seq(q"TApp(TApp($plus, TApp($succ, $three)), $one)")))
   }
-
 
   test("type cast of ADT") {
     val code = FileUtil.readFile("functional/unittests/TypeCast.finca")

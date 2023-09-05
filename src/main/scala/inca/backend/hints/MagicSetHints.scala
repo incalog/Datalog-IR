@@ -17,15 +17,21 @@ object MagicSetHints {
   /**
    * marks calls from which the magic set transformation starts
    */
-  case class Main(adorn: Seq[Boolean]) extends Hint {
+  object Main {
     val key: Key = MainKey
+  }
+  case class Main(adorn: Seq[Boolean]) extends Hint {
+    val key: Key = Main.key
   }
 
   /**
    * indicates the demand patterns for a pattern
    */
-  case class DemandPatterns(adorn: Set[Seq[Boolean]]) extends Hint {
+  object DemandPatterns {
     val key: Key = DemandPatternsKey
+  }
+  case class DemandPatterns(adorn: Set[Seq[Boolean]]) extends Hint {
+    val key: Key = DemandPatterns.key
   }
 
   /**
@@ -45,8 +51,11 @@ object MagicSetHints {
   /**
    * use the given adornment instead of computing it
    */
-  case class FixedAdornment(adorn: Seq[Boolean]) extends Hint {
+  object FixedAdornment {
     val key: Key = FixedAdornmentKey
+  }
+  case class FixedAdornment(adorn: Seq[Boolean]) extends Hint {
+    val key: Key = FixedAdornment.key
   }
 
   /**
@@ -59,11 +68,17 @@ object MagicSetHints {
   /**
    * indicates the adornment
    */
-  case class Adornment(adorn: Seq[Boolean]) extends Hint {
+  object Adornment {
     val key: Key = AdornmentKey
   }
+  case class Adornment(adorn: Seq[Boolean]) extends Hint {
+    val key: Key = Adornment.key
+  }
 
+  object InputCall {
+    val key: Key = InputCallKey
+  }
   case class InputCall(name: String) extends Hint {
-    override def key: Key = InputCallKey
+    override val key: Key = InputCall.key
   }
 }

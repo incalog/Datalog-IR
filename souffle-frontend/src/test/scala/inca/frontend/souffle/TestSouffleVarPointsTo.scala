@@ -1,17 +1,15 @@
 package inca.frontend.souffle
 
-import inca.backend.analyze.DependencyGraph
-import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToIncaBackendCompiler}
+import inca.compiler.source.SourceFile
+import inca.frontend.souffle.lowering.SouffleToDatalogIR
+import inca.frontend.souffle.lowering.SouffleToNamedRelations
 import inca.frontend.souffle.parser.Parser
+import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
-import inca.runtime.context.QueryScope
-import inca.util.measurement.MemoryUtil
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import java.io.File
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
-import truechange.EditScript
-
-import scala.io.Source
 
 class TestSouffleVarPointsTo extends AnyFlatSpec {
   val expectedTupleCount = Map(
@@ -19,7 +17,6 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     "selfcontained_basic_SupertypeOf" -> 13487,
     "selfcontained_VarPointsTo0" -> 34291,
     "selfcontained_VarPointsTo" -> 511391,
-    "selfcontained_VarPointsTo0" -> 34291,
     "selfcontained_Assign" -> 31754,
     "selfcontained_Assign0" -> 19494,
     "selfcontained_InterProc0" -> 190648,
@@ -33,98 +30,40 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
   )
 
   "var points to souffle analysis" should "derive correct number of tuples" in {
-    println(System.getProperty("user.dir"))
     val benchmarkPath = "souffle-frontend/benchmark"
-    val filename = s"$benchmarkPath/self-contained.dl"
-    val src = Source.fromFile(filename)
-    val doopText = src.getLines().mkString("\n")
-    val analysis = Parser.parse(doopText)
-    src.close()
-    val compiler = new SouffleToIncaBackendCompiler
+    val file = new File(s"$benchmarkPath/self-contained.dl")
+    val analysis = Parser.parse(SourceFile(file.toPath))
+    val compiler = new SouffleToDatalogIR(false)
     val compiledModule = compiler.compile("selfcontained", analysis)
-    println(compiledModule.ir.pats.size)
-    println(compiledModule.ir.pats.map(_.bodies.size).sum)
-
-    println(new DependencyGraph(compiledModule.optimized).toGraphViz)
-
     val psModule = compiledModule.psystemModule
-    val startLoadFactFiles = System.currentTimeMillis()
-    val edits = compiledModule.inputs.flatMap { case (sig, input) =>
-      val inputCompiler = new SouffleInputToEditscript(s"$benchmarkPath/minijavac")
-      val editScript = inputCompiler.compile(input, sig)
-      editScript.edits
-    }
-    val endLoadFactFiles = System.currentTimeMillis()
-    println(s"Load fact files: ${endLoadFactFiles-startLoadFactFiles}ms")
+    val inputCompiler = new SouffleToNamedRelations(s"$benchmarkPath/facts/minijavac")
+    val dbInput = inputCompiler.compile(compiledModule.inputs.values.map(x => x._2 -> x._1).toMap)
 
-    val editScript = EditScript(edits)
-    println(editScript.size)
+    val queryScope = new QueryScope(compiledModule.dataModel, Seq())
+    val (engine, database) =
+      EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
 
-
-    val RUNS = 5
-
-    for (run <- 1 to RUNS) {
-      val queryScope = new QueryScope(compiledModule.dataModel, Seq())
-      val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
-
-      def getMatcher(fun: String): Matcher = {
-        val querySpec = psModule.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module."))
-        EnginePool.loadQuery(querySpec(), queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-      }
-
-      val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name))
-
-      val startQuery = System.currentTimeMillis()
-      var loadingTime: Long = 0
-      engine.delayUpdatePropagation { () =>
-        val startLoadDB = System.currentTimeMillis()
-        database.processEditScript(editScript)
-        val endLoadDB = System.currentTimeMillis()
-        loadingTime = endLoadDB - startLoadDB
-      }
-      val endQuery = System.currentTimeMillis()
-
-      matchers.foreach { m =>
-        assert(m.countMatches() == expectedTupleCount(m.getPatternName))
-      }
-
-      println(s"Run $run: Time to fill database: ${loadingTime}ms")
-      println(s"Run $run: Used memory: ${MemoryUtil.usedMemoryInMBytes()}MB")
-      println(s"Run $run: Time to process query: ${endQuery - startQuery}ms")
-
-      //    matchers.foreach { m =>
-      //      println(s"${m.getPatternName}: ${m.countMatches()}")
-      //    }
-      System.gc()
-      Thread.sleep(500)
+    def getMatcher(fun: String): Matcher = {
+      val querySpec = psModule.patterns.getOrElse(
+        fun,
+        throw new IllegalArgumentException(s"Function $fun undefined in module.")
+      )
+      EnginePool.loadQuery(
+        querySpec(),
+        queryScope,
+        DRedReteBackendFactory.INSTANCE
+      )
     }
 
-// INCREMENTAL UPDATES
-//
-//    val heapAllocationLoads = editScript.edits.collect { case l: Load => l}.filter { l => l.tag == NamedTag("_AssignHeapAllocation") }
-//    val invalidPrefixes = Seq("<sun", "<java", "<com")
-//    val impactfullLoads = heapAllocationLoads.filter { l =>
-//      val first = l.lits.head._2.asInstanceOf[String]
-//      !invalidPrefixes.exists(first.startsWith)
-//    }
-//
-//    val varPointsToMatcher = matchers.find(_.getPatternName.endsWith("VarPointsTo")).get
-//    val rnd = new Random(1563540296429L)
-//    val indices = impactfullLoads.indices.toBuffer
-//    Collections.shuffle(indices.asJava, rnd)
-//
-//    def measureEdit(edit: Edit): Unit = {
-//      val startReinsert = System.currentTimeMillis()
-//      database.processEdit(edit)
-//      val timeReinsert = System.currentTimeMillis() - startReinsert
-//      println(s"$timeReinsert\t${varPointsToMatcher.countMatches()}")
-//    }
-//
-//    indices.take(2000).foreach { index =>
-//      val load = impactfullLoads(index)
-//      val unload = Unload(load.node, load.tag, load.kids, load.lits)
-//      measureEdit(unload)
-//      measureEdit(load)
-//    }
+    val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name.name))
+
+    engine.delayUpdatePropagation { () =>
+      database.processDatabaseInput(dbInput)
+    }
+
+    matchers.foreach { m =>
+      assert(m.countMatches() == expectedTupleCount(m.getPatternName))
+    }
+
   }
 }

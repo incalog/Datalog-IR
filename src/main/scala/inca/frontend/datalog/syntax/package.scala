@@ -1,6 +1,6 @@
 package inca.frontend.datalog
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
 
 package object syntax {

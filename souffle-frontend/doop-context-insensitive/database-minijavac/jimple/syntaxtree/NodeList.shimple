@@ -1,0 +1,176 @@
+public class syntaxtree.NodeList extends java.lang.Object implements syntaxtree.NodeListInterface
+{
+    public java.util.Vector nodes;
+
+    public void <init>()
+    {
+        syntaxtree.NodeList this#_0;
+        java.util.Vector $stack1;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack1 = new java.util.Vector;
+
+        specialinvoke $stack1.<java.util.Vector: void <init>()>();
+
+        this#_0.<syntaxtree.NodeList: java.util.Vector nodes> = $stack1;
+
+        return;
+    }
+
+    public void <init>(syntaxtree.Node)
+    {
+        syntaxtree.NodeList this#_0;
+        java.util.Vector $stack2;
+        syntaxtree.Node firstNode#_0;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        firstNode#_0 := @parameter0: syntaxtree.Node;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack2 = new java.util.Vector;
+
+        specialinvoke $stack2.<java.util.Vector: void <init>()>();
+
+        this#_0.<syntaxtree.NodeList: java.util.Vector nodes> = $stack2;
+
+        virtualinvoke this#_0.<syntaxtree.NodeList: void addNode(syntaxtree.Node)>(firstNode#_0);
+
+        return;
+    }
+
+    public void addNode(syntaxtree.Node)
+    {
+        syntaxtree.NodeList this#_0;
+        syntaxtree.Node n#_0;
+        java.util.Vector $stack2;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        n#_0 := @parameter0: syntaxtree.Node;
+
+        $stack2 = this#_0.<syntaxtree.NodeList: java.util.Vector nodes>;
+
+        virtualinvoke $stack2.<java.util.Vector: void addElement(java.lang.Object)>(n#_0);
+
+        return;
+    }
+
+    public java.util.Enumeration elements()
+    {
+        syntaxtree.NodeList this#_0;
+        java.util.Vector $stack1;
+        java.util.Enumeration $stack2;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        $stack1 = this#_0.<syntaxtree.NodeList: java.util.Vector nodes>;
+
+        $stack2 = virtualinvoke $stack1.<java.util.Vector: java.util.Enumeration elements()>();
+
+        return $stack2;
+    }
+
+    public syntaxtree.Node elementAt(int)
+    {
+        syntaxtree.NodeList this#_0;
+        int i#_0;
+        java.util.Vector $stack2;
+        java.lang.Object $stack3;
+        syntaxtree.Node $stack4;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        i#_0 := @parameter0: int;
+
+        $stack2 = this#_0.<syntaxtree.NodeList: java.util.Vector nodes>;
+
+        $stack3 = virtualinvoke $stack2.<java.util.Vector: java.lang.Object elementAt(int)>(i#_0);
+
+        $stack4 = (syntaxtree.Node) $stack3;
+
+        return $stack4;
+    }
+
+    public int size()
+    {
+        syntaxtree.NodeList this#_0;
+        java.util.Vector $stack1;
+        int $stack2;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        $stack1 = this#_0.<syntaxtree.NodeList: java.util.Vector nodes>;
+
+        $stack2 = virtualinvoke $stack1.<java.util.Vector: int size()>();
+
+        return $stack2;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.NodeList this#_0;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.NodeList)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.NodeList this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.NodeList,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.NodeList this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.NodeList)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.NodeList this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.NodeList;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.NodeList,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

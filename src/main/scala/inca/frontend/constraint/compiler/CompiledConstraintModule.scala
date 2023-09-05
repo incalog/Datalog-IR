@@ -2,15 +2,21 @@ package inca.frontend.constraint.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
-import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
+import inca.compiler.source.SourceLocation
+import inca.compiler.CompiledModule
+import inca.compiler.CompilerFlags
+import inca.frontend.constraint.core
+import inca.frontend.constraint.datamodelresolver.DataModelResolver
+import inca.frontend.constraint.datamodelresolver.DirectDataModelResolver
+import inca.frontend.constraint.datamodelresolver.NativeDataModelResolver
 import inca.frontend.constraint.desugar.Desugar
+import inca.frontend.constraint.extensions
 import inca.frontend.constraint.lowering.GenerateDatalog
 import inca.frontend.constraint.typechecker.CoreTypechecker
-import inca.frontend.constraint.{core, extensions}
 import inca.runtime.context.DataModel
 
-case class CompiledConstraintModule(module: core.Module, options: ConstraintOptions) extends CompiledModule {
+case class CompiledConstraintModule(module: core.Module, options: ConstraintOptions)
+    extends CompiledModule {
 
   override def name: Name = module.name.name
 
@@ -33,8 +39,8 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
     with extensions.ifThenElse.Typechecker
     with extensions.match_.Typechecker
     with extensions.switch_.Typechecker {
-      override val dataModel: DataModel = _dataModel
-    }
+    override val dataModel: DataModel = _dataModel
+  }
 
   lazy val typed: core.Module = {
     typer.typecheck(module)

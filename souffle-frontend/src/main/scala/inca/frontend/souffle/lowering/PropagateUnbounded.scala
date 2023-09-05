@@ -5,7 +5,7 @@ import inca.util.Scala
 
 object PropagateUnbounded {
 
-  def transformModule(module: Module): Module =  {
+  def transformModule(module: Module): Module = {
     // first propagate unbounded of computed
     var pats = module.pats.map(TrackComputedUnbounded.transformPattern(_)(Map()))
 
@@ -19,7 +19,7 @@ object PropagateUnbounded {
       pats = newPats
       newPats = fixStep(pats)
     }
-    Module(module.name, module.imports, pats, module.scalaContent)
+    Module(module.name, module.imports, pats, module.scalaContent).withHints(module)
   }
 }
 
@@ -33,7 +33,11 @@ object TrackCallUnbounded extends TrackUnbounded {
 
 object TrackComputedUnbounded extends TrackUnbounded {
 
-  override def transformComputed(computed: Computed, seen: Set[Term])(implicit pats:  PatEnv): Set[Term] =
+  override def transformComputed(
+      computed: Computed,
+      seen: Set[Term]
+    )(implicit pats: PatEnv
+    ): Set[Term] =
     if (returnsUnbound(computed.computation))
       Set(computed.lhs)
     else
@@ -65,12 +69,12 @@ trait TrackUnbounded {
         // avoid nesting TUnbounded
         val ty = p.typ match {
           case TScala(_) => p.typ
-          case _ => TScala(Scala(p.typ.asScala))
+          case _ => TScala(Scala(base.typeAsScala(p.typ)))
         }
         Param(p.name, ty)
       } else p
     }
-    Pattern(pat.vis, pat.name, updatedParams, pat.bodies)
+    Pattern(pat.vis, pat.name, updatedParams, pat.bodies).withHints(pat)
   }
 
   def transformBody(body: Body)(implicit pats: PatEnv): Set[Term] = {
@@ -81,7 +85,8 @@ trait TrackUnbounded {
 
   def transformAtom(atom: Atom, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = atom match {
     case c: Compare => transformCompare(c, seen)
-    case c:Call => transformCall(c, seen)
+    case c: Call => transformCall(c, seen)
+    case c: ExtensionalCall => transformExtensionalCall(c, seen)
     case ht: HasType => transformHasType(ht, seen)
     case nht: NotHasType => transformNotHasType(nht, seen)
     case p: Path => transformPath(p, seen)
@@ -96,10 +101,16 @@ trait TrackUnbounded {
     seen ++ rhsUnbounded ++ lhsUnbounded
   }
   def transformCall(call: Call, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
+  def transformExtensionalCall(c: ExtensionalCall, seen: Set[Term]): Set[Term] = Set()
   def transformHasType(hasType: HasType, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
-  def transformNotHasType(notHasType: NotHasType, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
+  def transformNotHasType(
+      notHasType: NotHasType,
+      seen: Set[Term]
+    )(implicit pats: PatEnv
+    ): Set[Term] = Set()
   def transformPath(path: Path, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
   def transformNoPath(noPath: NoPath, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
-  def transformComputed(computed: Computed, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
+  def transformComputed(computed: Computed, seen: Set[Term])(implicit pats: PatEnv): Set[Term] =
+    Set()
 
 }

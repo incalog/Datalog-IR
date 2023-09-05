@@ -2,8 +2,9 @@ package inca.runtime.index
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
-
+import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -32,14 +33,16 @@ class BagIndex(val key: IndexKey[_]) extends Index {
   }
 
   /** checks whether the provided tuple is contained in index */
-  final override def containsTuple(tuple: ITuple): Boolean = {
+  override def containsTuple(tuple: ITuple): Boolean = {
     if (tuple == null)
       return false
 
     index.containsKey(tuple)
   }
 
-  /** counts tuples of the associated virtual key contained in index based on provided mask and seed */
+  /**
+   * counts tuples of the associated virtual key contained in index based on provided mask and seed
+   */
   override def countTuples(mask: TupleMask, seed: ITuple): Int = {
     val maskLength = mask.indices.length
     if (maskLength == 0) {
@@ -54,34 +57,44 @@ class BagIndex(val key: IndexKey[_]) extends Index {
     }
   }
 
-  /** returns all tuples maintained in index associated with virtual key based on provided mask and seed */
+  /**
+   * returns all tuples maintained in index associated with virtual key based on provided mask and
+   * seed
+   */
   override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
     val maskLength = mask.indices.length
-    if (maskLength ==  0) {
+    if (maskLength == 0) {
       index.keySet().asScala
     } else {
       // enumerate tuples that have the elements in seed at position according to mask
       index.keySet().asScala.filter { t =>
-        seed.getElements.zipWithIndex.forall { case (c, ix) =>
-          c == t.get(ix)
+        seed.getElements.zipWithIndex.forall { case (seedVal, seedIx) =>
+          seedVal == t.get(mask.indices(seedIx))
         }
       }
     }
   }
 
-  /** enumerate all values within index associated with virtual key based on provided mask and seed */
+  /**
+   * enumerate all values within index associated with virtual key based on provided mask and seed
+   */
   override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = {
-    // TODO what should we enumerate here? All values of the specified columns?
     val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      Seq()
-    } else {
+    if (maskLength == key.getArity - 1) {
       index.keySet().asScala.flatMap { t =>
-        seed.getElements.zipWithIndex.flatMap { case (c, ix) =>
-          if(c == t.get(ix)) Some(c)
-          else None
-        }
+        if (
+          seed.getElements.zipWithIndex.forall { case (seedVal, seedIx) =>
+            seedVal == t.get(mask.indices(seedIx))
+          }
+        )
+          Some(t.get(mask.getFirstOmittedIndex.getAsInt))
+        else
+          None
       }
+    } else {
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for enumerateValues in bag index with arity " + key.getArity + " in " + this
+      )
     }
   }
 
@@ -91,7 +104,6 @@ class BagIndex(val key: IndexKey[_]) extends Index {
     val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
     listenAll.foreach(notify)
   }
-
 
   /** Adds a listener for changes to this index */
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {

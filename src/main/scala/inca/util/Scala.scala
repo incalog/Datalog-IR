@@ -1,8 +1,12 @@
 package inca.util
 
 import scala.collection.mutable
+import scala.meta.Import
+import scala.meta.Importee
+import scala.meta.Importer
 import scala.meta.Name.Indeterminate
-import scala.meta.{Import, Importee, Importer, Term, Type}
+import scala.meta.Term
+import scala.meta.Type
 import scala.reflect.ClassTag
 
 class Scala[+T <: meta.Tree](val tree: T) {
@@ -27,10 +31,10 @@ object Scala {
 
   val TAB = "  "
 
-  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type.Ref =
+  def typeOf[T: ClassTag](implicit tag: ClassTag[T]): Type.Ref =
     mkQualTypename(tag.runtimeClass.getCanonicalName)
 
-  def symbolOf[T:ClassTag](implicit tag: ClassTag[T]): Term =
+  def symbolOf[T: ClassTag](implicit tag: ClassTag[T]): Term =
     mkQualName(tag.runtimeClass.getCanonicalName)
 
   def symbolOf(o: Any): Term = {
@@ -46,7 +50,7 @@ object Scala {
     t
   }
 
-  def importOf[T:ClassTag](implicit tag: ClassTag[T]): Import =
+  def importOf[T: ClassTag](implicit tag: ClassTag[T]): Import =
     mkImport(tag.runtimeClass.getCanonicalName)
 
   def importOf(o: Any): Import = {
@@ -64,49 +68,53 @@ object Scala {
 
   def mkQualTypename(s: String): Type.Ref = {
     val ss = s.split('.')
-    if (ss.length == 1)
-      return Type.Name(ss(0))
-
-    var qual: Term.Ref = Term.Name(ss(0))
-    for (i <- 1 until (ss.length - 1))
-      qual = Term.Select(qual, Term.Name(ss(i)))
-    Type.Select(qual, Type.Name(ss(ss.length-1)))
+    if (ss.length == 1) {
+      Type.Name(ss(0))
+    } else {
+      var qual: Term.Ref = Term.Name(ss(0))
+      for (i <- 1 until (ss.length - 1))
+        qual = Term.Select(qual, Term.Name(ss(i)))
+      Type.Select(qual, Type.Name(ss(ss.length - 1)))
+    }
   }
-
 
   private val compilerCache: mutable.Map[String, () => Any] = mutable.Map()
   def compileAndLoadScala[A](source: String): () => A = {
-    compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
-    import reflect.runtime.currentMirror
-    import tools.reflect.ToolBox
+    compilerCache.get(source) match {
+      case Some(value) => value.asInstanceOf[() => A]
+      case None =>
+        import reflect.runtime.currentMirror
+        import tools.reflect.ToolBox
 
-    //    println(source)
-
-    val toolbox = currentMirror.mkToolBox(options = "-Ymacro-annotations")
-    val tree = toolbox.parse(source)
-    val compiled = toolbox.compile(tree)
-    val result = () => compiled()
-    compilerCache += source -> result
-    result.asInstanceOf[() => A]
+        val toolbox = currentMirror.mkToolBox(options = "-Ymacro-annotations")
+        val tree = toolbox.parse(source)
+        val compiled = toolbox.compile(tree)
+        val result = () => compiled()
+        compilerCache += source -> result
+        result.asInstanceOf[() => A]
+    }
   }
 
   class ScalaCompiler {
-    import reflect.runtime.{currentMirror, universe}
+    import reflect.runtime.currentMirror
+    import reflect.runtime.universe
     import tools.reflect.ToolBox
 
-    private val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox(options = "-Ymacro-annotations")
+    private val toolbox: ToolBox[universe.type] =
+      currentMirror.mkToolBox(options = "-Ymacro-annotations")
 
     private val compilerCache: mutable.Map[String, Any] = mutable.Map()
 
-    def compileAndLoadScala[A](source: String): A = {
-      compilerCache.get(source).map(v => return v.asInstanceOf[A])
-
-      val tree = toolbox.parse(source)
-      val compiled = toolbox.compile(tree)
-      val result = compiled().asInstanceOf[A]
-      compilerCache += source -> result
-      result
-    }
+    def compileAndLoadScala[A](source: String): A =
+      compilerCache.get(source) match {
+        case Some(value) => value.asInstanceOf[A]
+        case None =>
+          val tree = toolbox.parse(source)
+          val compiled = toolbox.compile(tree)
+          val result = compiled().asInstanceOf[A]
+          compilerCache += source -> result
+          result
+      }
 
     def define(source: String): String = {
       val tree = toolbox.parse(source)

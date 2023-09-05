@@ -5,7 +5,6 @@ import inca.frontend.functional.compiler.FunctionalOptions
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
-
 class GenerateDatalogTest extends AnyFunSuite {
 
   val options: FunctionalOptions = FunctionalOptions()

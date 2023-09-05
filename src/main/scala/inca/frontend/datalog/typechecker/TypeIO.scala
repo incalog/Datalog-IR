@@ -1,10 +1,9 @@
 package inca.frontend.datalog.typechecker
 
 import inca.compiler
-import inca.compiler.{CompilationMessage, SourceLocation}
-
+import inca.compiler.source.SourceLocation
+import inca.compiler.CompilationMessage
 import scala.collection.mutable.ListBuffer
-
 
 /* The Typechecker results */
 trait TypeIO {

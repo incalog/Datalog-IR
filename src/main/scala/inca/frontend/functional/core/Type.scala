@@ -1,15 +1,15 @@
 package inca.frontend.functional.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 import inca.util.Scala
-
 import scala.meta.quasiquotes._
 
 sealed trait Type extends SourceLocation {
   def prettyprint: String
   def asScala: meta.Type
   def flatten: Seq[Type]
+  def isSet: Boolean
   def freeTvars: Seq[TName]
   override def toString: String = prettyprint
 }
@@ -17,12 +17,14 @@ case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def asScala: meta.Type = t"Any"
   override def flatten: Seq[Type] = Seq(this)
+  override def isSet: Boolean = false
   override def freeTvars: Seq[TName] = Seq()
 }
 case object TNothing extends Type {
   override def prettyprint: String = "Nothing"
   override def asScala: meta.Type = t"Nothing"
   override def flatten: Seq[Type] = Seq(this)
+  override def isSet: Boolean = false
   override def freeTvars: Seq[TName] = Seq()
 }
 
@@ -36,6 +38,7 @@ case class TFun(from: Seq[Type], to: Type) extends Type {
   override def asScala: meta.Type = meta.Type.Function(from.map(_.asScala).toList, to.asScala)
 
   override def flatten: Seq[Type] = Seq(this)
+  override def isSet: Boolean = false
   override def freeTvars: Seq[TName] = to.freeTvars ++ from.flatMap(_.freeTvars)
 }
 
@@ -49,6 +52,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
   }
   override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
+  override def isSet: Boolean = ts.exists(_.isSet)
   override def freeTvars: Seq[TName] = ts.flatMap(_.freeTvars)
 }
 object TTuple {
@@ -62,6 +66,7 @@ case class TName(name: Name) extends Type with Resolvable[TName.Target] {
   override def prettyprint: String = name.name
   override def asScala: meta.Type = t"truechange.URI"
   override def flatten: Seq[Type] = Seq(this)
+  override def isSet: Boolean = false
   override def freeTvars: Seq[TName] = Seq(this)
 }
 
@@ -71,17 +76,20 @@ object TName {
 
 case class TConstr(name: Name, tys: Seq[Type]) extends Type with Resolvable[TName.Target] {
   override def prettyprint: String =
-    s"${name.name}" + (if(tys.isEmpty) "" else s"[${tys.map(_.prettyprint).mkString(", ")}]")
+    s"${name.name}" + (if (tys.isEmpty) "" else s"[${tys.map(_.prettyprint).mkString(", ")}]")
   override def asScala: meta.Type = t"truechange.URI"
   override def flatten: Seq[Type] = Seq(this)
   // TODO fix?
   override def freeTvars: Seq[TName] = tys.flatMap(_.freeTvars)
+
+  override def isSet: Boolean = false
 }
 
 case class TScala(ty: Scala[meta.Type]) extends Type {
   override def prettyprint: String = s"`${ty.syntax}`"
   override def asScala: meta.Type = ty.tree
   override def flatten: Seq[Type] = Seq(this)
+  override def isSet: Boolean = false
   override def freeTvars: Seq[TName] = Seq()
 }
 object TScala {
@@ -97,11 +105,11 @@ object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
-
 case class TOption(ty: Type) extends Type {
   override def prettyprint: String = s"Option[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
+  override def isSet: Boolean = true
   override def freeTvars: Seq[TName] = ty.freeTvars
 }
 
@@ -109,5 +117,6 @@ case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
+  override def isSet: Boolean = true
   override def freeTvars: Seq[TName] = ty.freeTvars
 }

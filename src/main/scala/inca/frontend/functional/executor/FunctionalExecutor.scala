@@ -202,16 +202,17 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.runtime.context.QueryScope
-import inca.runtime.db.{DBValue, Database, DatabaseInspector}
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.db.Database
+import inca.runtime.db.DatabaseInspector
+import inca.runtime.EnginePool
+import inca.runtime.Query
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import scala.jdk.CollectionConverters._
 import truechange.EditScript
 import truediff.Diffable
-
-import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledFunctionalModule) {
@@ -231,21 +232,19 @@ object FunctionalExecutor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-
     type Input = (EditScript, Tuple)
 
     def input(arg: meta.Term): Input = input(Seq(arg))
 
     def input(args: Seq[meta.Term]): Input = {
-      val (ess, cargs, _) = vals(args:_*).map {
+      val (ess, cargs, _) = vals(args: _*).map {
         case arg: Diffable => (arg.loadEdits, arg.uri, arg)
         case lit => (EditScript(Seq()), lit, lit)
       }.unzip3
-      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs: _*))
     }
 
-
-    def output(pat: String, tuple: Tuple): Results[AnyRef] = {
+    def output(pat: String, tuple: Tuple): Results[Any] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val arity = mainMatcher.getParameterNames.size()
@@ -257,10 +256,10 @@ object FunctionalExecutor {
       new Results(outputMatches)
     }
 
-    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
+    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[Any] =
       executeInput(main, input(args), deleteInput)
 
-    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
+    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[Any] = {
       val (es, tuple) = input
       feed.processEditScript(es)
       feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
@@ -292,27 +291,26 @@ object FunctionalExecutor {
       (loadingTime, endInsertQuery - startInsertQuery, -1)
     }
 
-    def vals(ts: meta.Term*): Seq[AnyRef] = {
+    def vals(ts: meta.Term*): Seq[Any] = {
       ts.map(a => {
         val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
+        scalaCompiler.compileAndLoadScala[Any](syntax)
       })
     }
 
     def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
-    def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
+    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res: _*)))
 
-    def printResult(res: Results[AnyRef]): Unit = {
-      val db = DatabaseInspector(feed)
+    def printResult(res: Results[Any]): Unit = {
+      val db = new DatabaseInspector(feed)
       res.res.foreach { tuple =>
-        val tupleStrings = tuple.map { v => DBValue.prettyPrint(v, db) }
+        val tupleStrings = tuple.map { v => db.prettyPrint(v) }
         println(tupleStrings.mkString(", "))
       }
     }
   }
-
 
   class Results[T](val res: Seq[Seq[T]]) {
     def isEmpty: Boolean = res.isEmpty
@@ -320,13 +318,14 @@ object FunctionalExecutor {
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
-          res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
-          expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
+        res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
+        expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
       case _ => false
     }
 
-    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).forall{ case (x,y) => x == y }
+    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean =
+      actual.size == expected.size &&
+        actual.zip(expected).forall { case (x, y) => x == y }
 
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
@@ -338,7 +337,7 @@ object FunctionalExecutor {
 
   def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, compiled.options.mode)
     Loaded(engine, feed, compiled)
   }
 

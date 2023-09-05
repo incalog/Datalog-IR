@@ -1,23 +1,30 @@
 package inca.frontend.functional.compiler
 
 import inca.backend.optimize.Optimization
+import inca.backend.transform.magic.demand.DemandTransformation
+import inca.backend.transform.magic.demand.DeriveDemandPatterns
 import inca.backend.transform.Transformation
-import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.Options
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.functional.compiler.FunctionalOptions.defaultTransformations
+import org.eclipse.viatra.query.runtime.rete.matcher.ReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
-case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizations,
-                             transformations: Seq[Transformation] = defaultTransformations,
-                             stopOnError: Boolean = true,
-                             stopOnWarning: Boolean = false) extends Options {
+case class FunctionalOptions(
+    optimizations: Seq[Optimization] = defaultOptimizations,
+    transformations: Seq[Transformation] = defaultTransformations,
+    stopOnError: Boolean = true,
+    stopOnWarning: Boolean = false,
+    mode: ReteBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    extends Options {
 
   override def withOptimizations(opts: Seq[Optimization]): FunctionalOptions =
     FunctionalOptions(
       opts,
       transformations,
       stopOnError,
-      stopOnWarning
+      stopOnWarning,
+      mode
     )
 
   override def withTransformations(trans: Seq[Transformation]): FunctionalOptions =
@@ -25,7 +32,17 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
       optimizations,
       trans,
       stopOnError,
-      stopOnWarning
+      stopOnWarning,
+      mode
+    )
+
+  override def withEngine(_mode: ReteBackendFactory): Options =
+    FunctionalOptions(
+      optimizations,
+      transformations,
+      stopOnError,
+      stopOnWarning,
+      _mode
     )
 }
 
@@ -33,5 +50,6 @@ object FunctionalOptions {
   val defaultTransformations: Seq[Transformation] = Seq(
     //    RemoveBodyOfUnusedDataConstructor,
     DeriveDemandPatterns,
-    DemandTransformation)
+    DemandTransformation
+  )
 }

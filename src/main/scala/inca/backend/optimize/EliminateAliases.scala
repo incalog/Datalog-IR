@@ -1,9 +1,9 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog._
 import inca.backend.ir.util.Substitute
+import inca.backend.ir.Datalog._
+import inca.backend.optimize.Optimizer.BodyMustFail
 import inca.runtime.context.DataModel
-
 import scala.collection.immutable.MultiDict
 
 object EliminateAliases extends Optimization {
@@ -65,7 +65,6 @@ object EliminateAliases extends Optimization {
         case _ => // nothing
       }
 
-
       var changed = false
       do {
         changed = false
@@ -88,15 +87,14 @@ object EliminateAliases extends Optimization {
           Some(substBody(body))
         } catch {
           case BodyMustFail => None
-        }
-      )
+        })
       Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat)
     }
 
     override def substBody(body: Body): Body =
       Body(body.atoms.flatMap(flatSubstAtom)).withHints(body)
 
-    def flatSubstAtom(atom: Atom): Option[Atom] = (atom match {
+    def flatSubstAtom(atom: Atom): Option[Atom] = atom match {
       case Compare(comp, lhs, rhs) =>
         val left = substTerm(lhs)
         val right = substTerm(rhs)
@@ -108,7 +106,6 @@ object EliminateAliases extends Optimization {
         else
           Some(Compare(comp, left, right).withHints(atom))
       case _ => Some(super.substAtom(atom))
-    })
+    }
   }
 }
-

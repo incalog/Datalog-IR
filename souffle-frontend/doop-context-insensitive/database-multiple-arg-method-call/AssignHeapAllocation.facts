@@ -1,0 +1,4 @@
+<Main: void main(java.lang.String[])>/assign/1	1	<Main: void main(java.lang.String[])>/new Point/0	<Main: void main(java.lang.String[])>/$stack5	<Main: void main(java.lang.String[])>	4
+<Point: Point add(Point)>/assign/2	2	<Point: Point add(Point)>/new Point/0	<Point: Point add(Point)>/$stack3	<Point: Point add(Point)>	10
+<Point: Point add(int,int)>/assign/3	3	<Point: Point add(int,int)>/new Point/0	<Point: Point add(int,int)>/$stack4	<Point: Point add(int,int)>	15
+<Point: void <clinit>()>/fresh-null-assign/0	1	POINT	<Point: void <clinit>()>/$stringconstant0	<Point: void <clinit>()>	2

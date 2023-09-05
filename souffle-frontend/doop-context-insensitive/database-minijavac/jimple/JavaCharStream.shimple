@@ -1,0 +1,2040 @@
+public class JavaCharStream extends java.lang.Object
+{
+    public static final boolean staticFlag;
+    public int bufpos;
+    int bufsize;
+    int available;
+    int tokenBegin;
+    protected int[] bufline;
+    protected int[] bufcolumn;
+    protected int column;
+    protected int line;
+    protected boolean prevCharIsCR;
+    protected boolean prevCharIsLF;
+    protected java.io.Reader inputStream;
+    protected char[] nextCharBuf;
+    protected char[] buffer;
+    protected int maxNextCharInd;
+    protected int nextCharInd;
+    protected int inBuf;
+    protected int tabSize;
+
+    static final int hexval(char) throws java.io.IOException
+    {
+        char c#_0;
+        java.io.IOException $stack1;
+
+        c#_0 := @parameter0: char;
+
+        tableswitch(c#_0)
+        {
+            case 48: goto label01;
+            case 49: goto label02;
+            case 50: goto label03;
+            case 51: goto label04;
+            case 52: goto label05;
+            case 53: goto label06;
+            case 54: goto label07;
+            case 55: goto label08;
+            case 56: goto label09;
+            case 57: goto label10;
+            case 58: goto label17;
+            case 59: goto label17;
+            case 60: goto label17;
+            case 61: goto label17;
+            case 62: goto label17;
+            case 63: goto label17;
+            case 64: goto label17;
+            case 65: goto label11;
+            case 66: goto label12;
+            case 67: goto label13;
+            case 68: goto label14;
+            case 69: goto label15;
+            case 70: goto label16;
+            case 71: goto label17;
+            case 72: goto label17;
+            case 73: goto label17;
+            case 74: goto label17;
+            case 75: goto label17;
+            case 76: goto label17;
+            case 77: goto label17;
+            case 78: goto label17;
+            case 79: goto label17;
+            case 80: goto label17;
+            case 81: goto label17;
+            case 82: goto label17;
+            case 83: goto label17;
+            case 84: goto label17;
+            case 85: goto label17;
+            case 86: goto label17;
+            case 87: goto label17;
+            case 88: goto label17;
+            case 89: goto label17;
+            case 90: goto label17;
+            case 91: goto label17;
+            case 92: goto label17;
+            case 93: goto label17;
+            case 94: goto label17;
+            case 95: goto label17;
+            case 96: goto label17;
+            case 97: goto label11;
+            case 98: goto label12;
+            case 99: goto label13;
+            case 100: goto label14;
+            case 101: goto label15;
+            case 102: goto label16;
+            default: goto label17;
+        };
+
+     label01:
+        return 0;
+
+     label02:
+        return 1;
+
+     label03:
+        return 2;
+
+     label04:
+        return 3;
+
+     label05:
+        return 4;
+
+     label06:
+        return 5;
+
+     label07:
+        return 6;
+
+     label08:
+        return 7;
+
+     label09:
+        return 8;
+
+     label10:
+        return 9;
+
+     label11:
+        return 10;
+
+     label12:
+        return 11;
+
+     label13:
+        return 12;
+
+     label14:
+        return 13;
+
+     label15:
+        return 14;
+
+     label16:
+        return 15;
+
+     label17:
+        $stack1 = new java.io.IOException;
+
+        specialinvoke $stack1.<java.io.IOException: void <init>()>();
+
+        throw $stack1;
+    }
+
+    protected void setTabSize(int)
+    {
+        JavaCharStream this#_0;
+        int i#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        i#_0 := @parameter0: int;
+
+        this#_0.<JavaCharStream: int tabSize> = i#_0;
+
+        return;
+    }
+
+    protected int getTabSize(int)
+    {
+        JavaCharStream this#_0;
+        int $stack2, i#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        i#_0 := @parameter0: int;
+
+        $stack2 = this#_0.<JavaCharStream: int tabSize>;
+
+        return $stack2;
+    }
+
+    protected void ExpandBuff(boolean)
+    {
+        JavaCharStream this#_0;
+        int $stack6, $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack13, $stack14, $stack15, $stack17, $stack18, $stack19, $stack20, $stack22, $stack23, $stack24, $stack25, $stack27, $stack28, $stack29, $stack30, $stack31, $stack32, $stack33, $stack34, $stack35, $stack37, $stack38, $stack39, $stack40, $stack42, $stack43, $stack44, $stack45, $stack47, $stack48, $stack49, $stack50, $stack52, $stack53, $stack54, $stack55, $stack57, $stack58, $stack59, $stack60, $stack62, $stack63, $stack64, $stack65, $stack66;
+        char[] newbuffer#_89, $stack16, $stack36, $stack41;
+        int[] newbufline#_90, newbufcolumn#_91, $stack21, $stack26, $stack46, $stack51, $stack56, $stack61;
+        boolean wrapAround#_0;
+        java.lang.Throwable $stack67, t#_125;
+        java.lang.Error $stack68;
+        java.lang.String $stack69;
+
+        this#_0 := @this: JavaCharStream;
+
+        wrapAround#_0 := @parameter0: boolean;
+
+        $stack6 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack7 = $stack6 + 2048;
+
+        newbuffer#_89 = newarray (char)[$stack7];
+
+        $stack8 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack9 = $stack8 + 2048;
+
+        newbufline#_90 = newarray (int)[$stack9];
+
+        $stack10 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack11 = $stack10 + 2048;
+
+        newbufcolumn#_91 = newarray (int)[$stack11];
+
+     label1:
+        if wrapAround#_0 == 0 goto label2;
+
+        $stack36 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack35 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack33 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack32 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack34 = $stack33 - $stack32;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack36, $stack35, newbuffer#_89, 0, $stack34);
+
+        $stack41 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack38 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack37 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack40 = $stack38 - $stack37;
+
+        $stack39 = this#_0.<JavaCharStream: int bufpos>;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack41, 0, newbuffer#_89, $stack40, $stack39);
+
+        this#_0.<JavaCharStream: char[] buffer> = newbuffer#_89;
+
+        $stack46 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack45 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack43 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack42 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack44 = $stack43 - $stack42;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack46, $stack45, newbufline#_90, 0, $stack44);
+
+        $stack51 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack48 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack47 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack50 = $stack48 - $stack47;
+
+        $stack49 = this#_0.<JavaCharStream: int bufpos>;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack51, 0, newbufline#_90, $stack50, $stack49);
+
+        this#_0.<JavaCharStream: int[] bufline> = newbufline#_90;
+
+        $stack56 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack55 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack53 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack52 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack54 = $stack53 - $stack52;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack56, $stack55, newbufcolumn#_91, 0, $stack54);
+
+        $stack61 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack58 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack57 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack60 = $stack58 - $stack57;
+
+        $stack59 = this#_0.<JavaCharStream: int bufpos>;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack61, 0, newbufcolumn#_91, $stack60, $stack59);
+
+        this#_0.<JavaCharStream: int[] bufcolumn> = newbufcolumn#_91;
+
+        $stack65 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack63 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack62 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack64 = $stack63 - $stack62;
+
+        $stack66 = $stack65 + $stack64;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack66;
+
+        goto label3;
+
+     label2:
+        $stack16 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack15 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack13 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack12 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack14 = $stack13 - $stack12;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack16, $stack15, newbuffer#_89, 0, $stack14);
+
+        this#_0.<JavaCharStream: char[] buffer> = newbuffer#_89;
+
+        $stack21 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack20 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack18 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack17 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack19 = $stack18 - $stack17;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack21, $stack20, newbufline#_90, 0, $stack19);
+
+        this#_0.<JavaCharStream: int[] bufline> = newbufline#_90;
+
+        $stack26 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack25 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack23 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack22 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack24 = $stack23 - $stack22;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack26, $stack25, newbufcolumn#_91, 0, $stack24);
+
+        this#_0.<JavaCharStream: int[] bufcolumn> = newbufcolumn#_91;
+
+        $stack28 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack27 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack29 = $stack28 - $stack27;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack29;
+
+     label3:
+        goto label5;
+
+     label4:
+        $stack67 := @caughtexception;
+
+        t#_125 = $stack67;
+
+        $stack68 = new java.lang.Error;
+
+        $stack69 = virtualinvoke t#_125.<java.lang.Throwable: java.lang.String getMessage()>();
+
+        specialinvoke $stack68.<java.lang.Error: void <init>(java.lang.String)>($stack69);
+
+        throw $stack68;
+
+     label5:
+        $stack30 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack31 = $stack30 + 2048;
+
+        this#_0.<JavaCharStream: int bufsize> = $stack31;
+
+        this#_0.<JavaCharStream: int available> = $stack31;
+
+        this#_0.<JavaCharStream: int tokenBegin> = 0;
+
+        return;
+
+        catch java.lang.Throwable from label1 to label3 with label4;
+    }
+
+    protected void FillBuff() throws java.io.IOException
+    {
+        JavaCharStream this#_0;
+        int $stack3, $stack4, $stack5, $stack6, $stack9, i#_141, $stack10, $stack11, $stack22, $stack23, $stack24, $stack26, $stack27, $stack29, $stack30;
+        char[] $stack7;
+        java.io.Reader $stack8, $stack12;
+        java.io.IOException $stack13, $stack21, e#_151;
+        int[] $stack25, $stack28;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack3 = this#_0.<JavaCharStream: int maxNextCharInd>;
+
+        if $stack3 != 4096 goto label1;
+
+        this#_0.<JavaCharStream: int nextCharInd> = 0;
+
+        this#_0.<JavaCharStream: int maxNextCharInd> = 0;
+
+     label1:
+        $stack8 = this#_0.<JavaCharStream: java.io.Reader inputStream>;
+
+        $stack7 = this#_0.<JavaCharStream: char[] nextCharBuf>;
+
+        $stack6 = this#_0.<JavaCharStream: int maxNextCharInd>;
+
+        $stack4 = this#_0.<JavaCharStream: int maxNextCharInd>;
+
+        $stack5 = 4096 - $stack4;
+
+        $stack9 = virtualinvoke $stack8.<java.io.Reader: int read(char[],int,int)>($stack7, $stack6, $stack5);
+
+        i#_141 = $stack9;
+
+        if $stack9 != -1 goto label2;
+
+        $stack12 = this#_0.<JavaCharStream: java.io.Reader inputStream>;
+
+        virtualinvoke $stack12.<java.io.Reader: void close()>();
+
+        $stack13 = new java.io.IOException;
+
+        specialinvoke $stack13.<java.io.IOException: void <init>()>();
+
+        throw $stack13;
+
+     label2:
+        $stack10 = this#_0.<JavaCharStream: int maxNextCharInd>;
+
+        $stack11 = $stack10 + i#_141;
+
+        this#_0.<JavaCharStream: int maxNextCharInd> = $stack11;
+
+     label3:
+        return;
+
+     label4:
+        $stack21 := @caughtexception;
+
+        e#_151 = $stack21;
+
+        $stack22 = this#_0.<JavaCharStream: int bufpos>;
+
+        if $stack22 == 0 goto label5;
+
+        $stack29 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack30 = $stack29 - 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack30;
+
+        virtualinvoke this#_0.<JavaCharStream: void backup(int)>(0);
+
+        goto label6;
+
+     label5:
+        $stack25 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack24 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack23 = this#_0.<JavaCharStream: int line>;
+
+        $stack25[$stack24] = $stack23;
+
+        $stack28 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack27 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack26 = this#_0.<JavaCharStream: int column>;
+
+        $stack28[$stack27] = $stack26;
+
+     label6:
+        throw e#_151;
+
+        catch java.io.IOException from label1 to label3 with label4;
+    }
+
+    protected char ReadByte() throws java.io.IOException
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack2, $stack3, $stack4;
+        char[] $stack5;
+        char $stack6;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack1 = this#_0.<JavaCharStream: int nextCharInd>;
+
+        $stack2 = $stack1 + 1;
+
+        this#_0.<JavaCharStream: int nextCharInd> = $stack2;
+
+        $stack3 = this#_0.<JavaCharStream: int maxNextCharInd>;
+
+        if $stack2 < $stack3 goto label1;
+
+        virtualinvoke this#_0.<JavaCharStream: void FillBuff()>();
+
+     label1:
+        $stack5 = this#_0.<JavaCharStream: char[] nextCharBuf>;
+
+        $stack4 = this#_0.<JavaCharStream: int nextCharInd>;
+
+        $stack6 = $stack5[$stack4];
+
+        return $stack6;
+    }
+
+    public char BeginToken() throws java.io.IOException
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3, $stack4, $stack5, $stack6, $stack7, $stack8, $stack9;
+        char $stack2, $stack11;
+        char[] $stack10;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack1 = this#_0.<JavaCharStream: int inBuf>;
+
+        if $stack1 <= 0 goto label2;
+
+        $stack3 = this#_0.<JavaCharStream: int inBuf>;
+
+        $stack4 = $stack3 - 1;
+
+        this#_0.<JavaCharStream: int inBuf> = $stack4;
+
+        $stack5 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack6 = $stack5 + 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack6;
+
+        $stack7 = this#_0.<JavaCharStream: int bufsize>;
+
+        if $stack6 != $stack7 goto label1;
+
+        this#_0.<JavaCharStream: int bufpos> = 0;
+
+     label1:
+        $stack8 = this#_0.<JavaCharStream: int bufpos>;
+
+        this#_0.<JavaCharStream: int tokenBegin> = $stack8;
+
+        $stack10 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack9 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack11 = $stack10[$stack9];
+
+        return $stack11;
+
+     label2:
+        this#_0.<JavaCharStream: int tokenBegin> = 0;
+
+        this#_0.<JavaCharStream: int bufpos> = -1;
+
+        $stack2 = virtualinvoke this#_0.<JavaCharStream: char readChar()>();
+
+        return $stack2;
+    }
+
+    protected void AdjustBuffSize()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack2, $stack3, $stack4, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int available>;
+
+        $stack1 = this#_0.<JavaCharStream: int bufsize>;
+
+        if $stack2 != $stack1 goto label2;
+
+        $stack10 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        if $stack10 <= 2048 goto label1;
+
+        this#_0.<JavaCharStream: int bufpos> = 0;
+
+        $stack11 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        this#_0.<JavaCharStream: int available> = $stack11;
+
+        goto label5;
+
+     label1:
+        virtualinvoke this#_0.<JavaCharStream: void ExpandBuff(boolean)>(0);
+
+        goto label5;
+
+     label2:
+        $stack4 = this#_0.<JavaCharStream: int available>;
+
+        $stack3 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        if $stack4 <= $stack3 goto label3;
+
+        $stack9 = this#_0.<JavaCharStream: int bufsize>;
+
+        this#_0.<JavaCharStream: int available> = $stack9;
+
+        goto label5;
+
+     label3:
+        $stack6 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack5 = this#_0.<JavaCharStream: int available>;
+
+        $stack7 = $stack6 - $stack5;
+
+        if $stack7 >= 2048 goto label4;
+
+        virtualinvoke this#_0.<JavaCharStream: void ExpandBuff(boolean)>(1);
+
+        goto label5;
+
+     label4:
+        $stack8 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        this#_0.<JavaCharStream: int available> = $stack8;
+
+     label5:
+        return;
+    }
+
+    protected void UpdateLineColumn(char)
+    {
+        JavaCharStream this#_0;
+        int $stack2, $stack3, $stack18, $stack19, $stack20, $stack21, $stack22, $stack23, $stack24, $stack25, $stack26, $stack27, $stack29, $stack31, $stack33, $stack7, $stack6, $stack10, $stack9;
+        boolean $stack4, $stack5;
+        char c#_0;
+        int[] $stack8, $stack11;
+
+        this#_0 := @this: JavaCharStream;
+
+        c#_0 := @parameter0: char;
+
+        $stack2 = this#_0.<JavaCharStream: int column>;
+
+        $stack3 = $stack2 + 1;
+
+        this#_0.<JavaCharStream: int column> = $stack3;
+
+        $stack4 = this#_0.<JavaCharStream: boolean prevCharIsLF>;
+
+        if $stack4 == 0 goto label1;
+
+        this#_0.<JavaCharStream: boolean prevCharIsLF> = 0;
+
+        $stack31 = this#_0.<JavaCharStream: int line>;
+
+        this#_0.<JavaCharStream: int column> = 1;
+
+        $stack33 = $stack31 + 1;
+
+        this#_0.<JavaCharStream: int line> = $stack33;
+
+        goto label3;
+
+     label1:
+        $stack5 = this#_0.<JavaCharStream: boolean prevCharIsCR>;
+
+        if $stack5 == 0 goto label3;
+
+        this#_0.<JavaCharStream: boolean prevCharIsCR> = 0;
+
+        if c#_0 != 10 goto label2;
+
+        this#_0.<JavaCharStream: boolean prevCharIsLF> = 1;
+
+        goto label3;
+
+     label2:
+        $stack27 = this#_0.<JavaCharStream: int line>;
+
+        this#_0.<JavaCharStream: int column> = 1;
+
+        $stack29 = $stack27 + 1;
+
+        this#_0.<JavaCharStream: int line> = $stack29;
+
+     label3:
+        tableswitch(c#_0)
+        {
+            case 9: goto label6;
+            case 10: goto label5;
+            case 11: goto label7;
+            case 12: goto label7;
+            case 13: goto label4;
+            default: goto label7;
+        };
+
+     label4:
+        this#_0.<JavaCharStream: boolean prevCharIsCR> = 1;
+
+        goto label7;
+
+     label5:
+        this#_0.<JavaCharStream: boolean prevCharIsLF> = 1;
+
+        goto label7;
+
+     label6:
+        $stack18 = this#_0.<JavaCharStream: int column>;
+
+        $stack19 = $stack18 - 1;
+
+        this#_0.<JavaCharStream: int column> = $stack19;
+
+        $stack25 = this#_0.<JavaCharStream: int column>;
+
+        $stack23 = this#_0.<JavaCharStream: int tabSize>;
+
+        $stack21 = this#_0.<JavaCharStream: int column>;
+
+        $stack20 = this#_0.<JavaCharStream: int tabSize>;
+
+        $stack22 = $stack21 % $stack20;
+
+        $stack24 = $stack23 - $stack22;
+
+        $stack26 = $stack25 + $stack24;
+
+        this#_0.<JavaCharStream: int column> = $stack26;
+
+        goto label7;
+
+     label7:
+        $stack8 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack7 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack6 = this#_0.<JavaCharStream: int line>;
+
+        $stack8[$stack7] = $stack6;
+
+        $stack11 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack10 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack9 = this#_0.<JavaCharStream: int column>;
+
+        $stack11[$stack10] = $stack9;
+
+        return;
+    }
+
+    public char readChar() throws java.io.IOException
+    {
+        JavaCharStream this#_0;
+        int $stack4, $stack5, $stack6, $stack7, $stack9, $stack11, $stack12, $stack13, $stack15, $stack20, $stack24, $stack25, $stack28, $stack29, $stack30, $stack32, $stack33, $stack34, $stack36, $stack37, $stack38, $stack40, $stack41, $stack43, $stack44, $stack45, $stack46, $stack47, $stack50, $stack51, $stack60, $stack61, $stack62, $stack63, $stack64, $stack65, $stack74, $stack77, $stack82, backSlashCnt#_276, backSlashCnt_$$A_1#_277, backSlashCnt_$$A_2#_311;
+        char[] $stack8, $stack14, $stack27, $stack66;
+        char $stack10, $stack16, $stack26, $stack31, $stack35, $stack39, $stack42, $stack67, c#_272, c_$$A_1#_277, c_$$A_2#_285, c_$$A_3#_312, c_$$A_4#_317, c_$$A_5#_323, c_$$A_6#_265, c_$$A_7#_330;
+        java.io.IOException $stack70, $stack81, e#_327, e_$$A_1#_301;
+        java.lang.Error $stack71;
+        java.lang.StringBuilder $stack72, $stack73, $stack75, $stack76, $stack78, $stack79;
+        java.lang.String $stack80;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack4 = this#_0.<JavaCharStream: int inBuf>;
+
+        if $stack4 <= 0 goto label02;
+
+        $stack60 = this#_0.<JavaCharStream: int inBuf>;
+
+        $stack61 = $stack60 - 1;
+
+        this#_0.<JavaCharStream: int inBuf> = $stack61;
+
+        $stack62 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack63 = $stack62 + 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack63;
+
+        $stack64 = this#_0.<JavaCharStream: int bufsize>;
+
+        if $stack63 != $stack64 goto label01;
+
+        this#_0.<JavaCharStream: int bufpos> = 0;
+
+     label01:
+        $stack66 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack65 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack67 = $stack66[$stack65];
+
+        return $stack67;
+
+     label02:
+        $stack5 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack6 = $stack5 + 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack6;
+
+        $stack7 = this#_0.<JavaCharStream: int available>;
+
+        if $stack6 != $stack7 goto label03;
+
+        virtualinvoke this#_0.<JavaCharStream: void AdjustBuffSize()>();
+
+     label03:
+        $stack8 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack9 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack10 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        c#_272 = $stack10;
+
+        $stack8[$stack9] = $stack10;
+
+        if $stack10 != 92 goto label19;
+
+        virtualinvoke this#_0.<JavaCharStream: void UpdateLineColumn(char)>(c#_272);
+
+(0)     backSlashCnt#_276 = 1;
+
+     label04:
+        backSlashCnt_$$A_1#_277 = Phi(backSlashCnt#_276 #0, backSlashCnt_$$A_2#_311 #4);
+
+        c_$$A_1#_277 = Phi(c#_272 #0, c_$$A_2#_285 #4);
+
+        $stack11 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack12 = $stack11 + 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack12;
+
+        $stack13 = this#_0.<JavaCharStream: int available>;
+
+        if $stack12 != $stack13 goto label05;
+
+        virtualinvoke this#_0.<JavaCharStream: void AdjustBuffSize()>();
+
+     label05:
+        $stack14 = this#_0.<JavaCharStream: char[] buffer>;
+
+(1)     $stack15 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack16 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        c_$$A_2#_285 = $stack16;
+
+        $stack14[$stack15] = $stack16;
+
+(2)     if $stack16 == 92 goto label09;
+
+        virtualinvoke this#_0.<JavaCharStream: void UpdateLineColumn(char)>(c_$$A_2#_285);
+
+        if c_$$A_2#_285 != 117 goto label07;
+
+        $stack20 = backSlashCnt_$$A_1#_277 & 1;
+
+        if $stack20 != 1 goto label07;
+
+        $stack24 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack25 = $stack24 - 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack25;
+
+        if $stack25 >= 0 goto label06;
+
+        $stack50 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack51 = $stack50 - 1;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack51;
+
+     label06:
+(3)     goto label13;
+
+     label07:
+        virtualinvoke this#_0.<JavaCharStream: void backup(int)>(backSlashCnt_$$A_1#_277);
+
+     label08:
+        return 92;
+
+     label09:
+        goto label12;
+
+     label10:
+        $stack81 := @caughtexception;
+
+        c_$$A_7#_330 = Phi(c_$$A_1#_277 #1, c_$$A_2#_285 #2);
+
+        e_$$A_1#_301 = $stack81;
+
+        if backSlashCnt_$$A_1#_277 <= 1 goto label11;
+
+        $stack82 = backSlashCnt_$$A_1#_277 - 1;
+
+        virtualinvoke this#_0.<JavaCharStream: void backup(int)>($stack82);
+
+     label11:
+        return 92;
+
+     label12:
+        virtualinvoke this#_0.<JavaCharStream: void UpdateLineColumn(char)>(c_$$A_2#_285);
+
+        backSlashCnt_$$A_2#_311 = backSlashCnt_$$A_1#_277 + 1;
+
+(4)     goto label04;
+
+     label13:
+        c_$$A_3#_312 = Phi(c_$$A_2#_285 #3, c_$$A_4#_317 #6);
+
+(5)     $stack26 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        c_$$A_4#_317 = $stack26;
+
+        if $stack26 != 117 goto label14;
+
+        $stack46 = this#_0.<JavaCharStream: int column>;
+
+        $stack47 = $stack46 + 1;
+
+        this#_0.<JavaCharStream: int column> = $stack47;
+
+(6)     goto label13;
+
+     label14:
+        $stack27 = this#_0.<JavaCharStream: char[] buffer>;
+
+(7)     $stack28 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack29 = staticinvoke <JavaCharStream: int hexval(char)>(c_$$A_4#_317);
+
+        $stack30 = $stack29 << 12;
+
+        $stack31 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        $stack32 = staticinvoke <JavaCharStream: int hexval(char)>($stack31);
+
+        $stack33 = $stack32 << 8;
+
+        $stack34 = $stack30 | $stack33;
+
+        $stack35 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        $stack36 = staticinvoke <JavaCharStream: int hexval(char)>($stack35);
+
+        $stack37 = $stack36 << 4;
+
+        $stack38 = $stack34 | $stack37;
+
+        $stack39 = virtualinvoke this#_0.<JavaCharStream: char ReadByte()>();
+
+        $stack40 = staticinvoke <JavaCharStream: int hexval(char)>($stack39);
+
+        $stack41 = $stack38 | $stack40;
+
+        $stack42 = (char) $stack41;
+
+        c_$$A_5#_323 = $stack42;
+
+        $stack27[$stack28] = $stack42;
+
+        $stack43 = this#_0.<JavaCharStream: int column>;
+
+        $stack44 = $stack43 + 4;
+
+        this#_0.<JavaCharStream: int column> = $stack44;
+
+     label15:
+        goto label17;
+
+     label16:
+        $stack70 := @caughtexception;
+
+        c_$$A_6#_265 = Phi(c_$$A_2#_285 #3, c_$$A_4#_317 #6, c_$$A_3#_312 #5, c_$$A_4#_317 #7);
+
+        e#_327 = $stack70;
+
+        $stack71 = new java.lang.Error;
+
+        $stack72 = new java.lang.StringBuilder;
+
+        specialinvoke $stack72.<java.lang.StringBuilder: void <init>()>();
+
+        $stack73 = virtualinvoke $stack72.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("Invalid escape character at line ");
+
+        $stack74 = this#_0.<JavaCharStream: int line>;
+
+        $stack75 = virtualinvoke $stack73.<java.lang.StringBuilder: java.lang.StringBuilder append(int)>($stack74);
+
+        $stack76 = virtualinvoke $stack75.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(" column ");
+
+        $stack77 = this#_0.<JavaCharStream: int column>;
+
+        $stack78 = virtualinvoke $stack76.<java.lang.StringBuilder: java.lang.StringBuilder append(int)>($stack77);
+
+        $stack79 = virtualinvoke $stack78.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(".");
+
+        $stack80 = virtualinvoke $stack79.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        specialinvoke $stack71.<java.lang.Error: void <init>(java.lang.String)>($stack80);
+
+        throw $stack71;
+
+     label17:
+        if backSlashCnt_$$A_1#_277 != 1 goto label18;
+
+        return c_$$A_5#_323;
+
+     label18:
+        $stack45 = backSlashCnt_$$A_1#_277 - 1;
+
+        virtualinvoke this#_0.<JavaCharStream: void backup(int)>($stack45);
+
+        return 92;
+
+     label19:
+        virtualinvoke this#_0.<JavaCharStream: void UpdateLineColumn(char)>(c#_272);
+
+        return c#_272;
+
+        catch java.io.IOException from label05 to label06 with label10;
+        catch java.io.IOException from label07 to label08 with label10;
+        catch java.io.IOException from label13 to label15 with label16;
+    }
+
+    public int getColumn()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack1 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public int getLine()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack1 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public int getEndColumn()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack1 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public int getEndLine()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack1 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public int getBeginColumn()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack1 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public int getBeginLine()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack3;
+        int[] $stack2;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack1 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack3 = $stack2[$stack1];
+
+        return $stack3;
+    }
+
+    public void backup(int)
+    {
+        JavaCharStream this#_0;
+        int amount#_0, $stack2, $stack3, $stack4, $stack5, $stack6, $stack7, $stack8;
+
+        this#_0 := @this: JavaCharStream;
+
+        amount#_0 := @parameter0: int;
+
+        $stack2 = this#_0.<JavaCharStream: int inBuf>;
+
+        $stack3 = $stack2 + amount#_0;
+
+        this#_0.<JavaCharStream: int inBuf> = $stack3;
+
+        $stack4 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack5 = $stack4 - amount#_0;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack5;
+
+        if $stack5 >= 0 goto label1;
+
+        $stack7 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack6 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack8 = $stack7 + $stack6;
+
+        this#_0.<JavaCharStream: int bufpos> = $stack8;
+
+     label1:
+        return;
+    }
+
+    public void <init>(java.io.Reader, int, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+        int startline#_0, startcolumn#_0, $stack5, buffersize#_0;
+        char[] $stack6, $stack9;
+        int[] $stack7, $stack8;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        buffersize#_0 := @parameter3: int;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<JavaCharStream: int bufpos> = -1;
+
+        this#_0.<JavaCharStream: int column> = 0;
+
+        this#_0.<JavaCharStream: int line> = 1;
+
+        this#_0.<JavaCharStream: boolean prevCharIsCR> = 0;
+
+        this#_0.<JavaCharStream: boolean prevCharIsLF> = 0;
+
+        this#_0.<JavaCharStream: int maxNextCharInd> = 0;
+
+        this#_0.<JavaCharStream: int nextCharInd> = -1;
+
+        this#_0.<JavaCharStream: int inBuf> = 0;
+
+        this#_0.<JavaCharStream: int tabSize> = 8;
+
+        this#_0.<JavaCharStream: java.io.Reader inputStream> = dstream#_0;
+
+        this#_0.<JavaCharStream: int line> = startline#_0;
+
+        $stack5 = startcolumn#_0 - 1;
+
+        this#_0.<JavaCharStream: int column> = $stack5;
+
+        this#_0.<JavaCharStream: int bufsize> = buffersize#_0;
+
+        this#_0.<JavaCharStream: int available> = buffersize#_0;
+
+        $stack6 = newarray (char)[buffersize#_0];
+
+        this#_0.<JavaCharStream: char[] buffer> = $stack6;
+
+        $stack7 = newarray (int)[buffersize#_0];
+
+        this#_0.<JavaCharStream: int[] bufline> = $stack7;
+
+        $stack8 = newarray (int)[buffersize#_0];
+
+        this#_0.<JavaCharStream: int[] bufcolumn> = $stack8;
+
+        $stack9 = newarray (char)[4096];
+
+        this#_0.<JavaCharStream: char[] nextCharBuf> = $stack9;
+
+        return;
+    }
+
+    public void <init>(java.io.Reader, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.Reader,int,int,int)>(dstream#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.Reader)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.Reader,int,int,int)>(dstream#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.Reader, int, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+        int startline#_0, startcolumn#_0, $stack5, buffersize#_0, $stack15;
+        char[] $stack6, $stack7, $stack10, $stack14;
+        int[] $stack8, $stack9;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        buffersize#_0 := @parameter3: int;
+
+        this#_0.<JavaCharStream: java.io.Reader inputStream> = dstream#_0;
+
+        this#_0.<JavaCharStream: int line> = startline#_0;
+
+        $stack5 = startcolumn#_0 - 1;
+
+        this#_0.<JavaCharStream: int column> = $stack5;
+
+        $stack6 = this#_0.<JavaCharStream: char[] buffer>;
+
+        if $stack6 == null goto label1;
+
+        $stack14 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack15 = lengthof $stack14;
+
+        if buffersize#_0 == $stack15 goto label2;
+
+     label1:
+        this#_0.<JavaCharStream: int bufsize> = buffersize#_0;
+
+        this#_0.<JavaCharStream: int available> = buffersize#_0;
+
+        $stack7 = newarray (char)[buffersize#_0];
+
+        this#_0.<JavaCharStream: char[] buffer> = $stack7;
+
+        $stack8 = newarray (int)[buffersize#_0];
+
+        this#_0.<JavaCharStream: int[] bufline> = $stack8;
+
+        $stack9 = newarray (int)[buffersize#_0];
+
+        this#_0.<JavaCharStream: int[] bufcolumn> = $stack9;
+
+        $stack10 = newarray (char)[4096];
+
+        this#_0.<JavaCharStream: char[] nextCharBuf> = $stack10;
+
+     label2:
+        this#_0.<JavaCharStream: boolean prevCharIsCR> = 0;
+
+        this#_0.<JavaCharStream: boolean prevCharIsLF> = 0;
+
+        this#_0.<JavaCharStream: int maxNextCharInd> = 0;
+
+        this#_0.<JavaCharStream: int inBuf> = 0;
+
+        this#_0.<JavaCharStream: int tokenBegin> = 0;
+
+        this#_0.<JavaCharStream: int bufpos> = -1;
+
+        this#_0.<JavaCharStream: int nextCharInd> = -1;
+
+        return;
+    }
+
+    public void ReInit(java.io.Reader, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>(dstream#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.Reader)
+    {
+        JavaCharStream this#_0;
+        java.io.Reader dstream#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.Reader;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>(dstream#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream, java.lang.String, int, int, int) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.lang.String encoding#_0;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0, buffersize#_0;
+        java.io.InputStreamReader $stack6, $stack6_$$A_1, $stack6_$$A_2;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        startline#_0 := @parameter2: int;
+
+        startcolumn#_0 := @parameter3: int;
+
+        buffersize#_0 := @parameter4: int;
+
+        if encoding#_0 != null goto label1;
+
+        $stack6 = new java.io.InputStreamReader;
+
+        specialinvoke $stack6.<java.io.InputStreamReader: void <init>(java.io.InputStream)>(dstream#_0);
+
+(0)     goto label2;
+
+     label1:
+        $stack6_$$A_1 = new java.io.InputStreamReader;
+
+(1)     specialinvoke $stack6_$$A_1.<java.io.InputStreamReader: void <init>(java.io.InputStream,java.lang.String)>(dstream#_0, encoding#_0);
+
+     label2:
+        $stack6_$$A_2 = Phi($stack6 #0, $stack6_$$A_1 #1);
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.Reader,int,int,int)>($stack6_$$A_2, startline#_0, startcolumn#_0, buffersize#_0);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream, int, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStreamReader $stack5;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0, buffersize#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        buffersize#_0 := @parameter3: int;
+
+        $stack5 = new java.io.InputStreamReader;
+
+        specialinvoke $stack5.<java.io.InputStreamReader: void <init>(java.io.InputStream)>(dstream#_0);
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.Reader,int,int,int)>($stack5, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream, java.lang.String, int, int) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        java.lang.String encoding#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        startline#_0 := @parameter2: int;
+
+        startcolumn#_0 := @parameter3: int;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int,int)>(dstream#_0, encoding#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.InputStream,int,int,int)>(dstream#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream, java.lang.String) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        java.lang.String encoding#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.InputStream,java.lang.String,int,int,int)>(dstream#_0, encoding#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public void <init>(java.io.InputStream)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        specialinvoke this#_0.<JavaCharStream: void <init>(java.io.InputStream,int,int,int)>(dstream#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream, java.lang.String, int, int, int) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.lang.String encoding#_0;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0, buffersize#_0;
+        java.io.InputStreamReader $stack6, $stack6_$$A_1, $stack6_$$A_2;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        startline#_0 := @parameter2: int;
+
+        startcolumn#_0 := @parameter3: int;
+
+        buffersize#_0 := @parameter4: int;
+
+        if encoding#_0 != null goto label1;
+
+        $stack6 = new java.io.InputStreamReader;
+
+        specialinvoke $stack6.<java.io.InputStreamReader: void <init>(java.io.InputStream)>(dstream#_0);
+
+(0)     goto label2;
+
+     label1:
+        $stack6_$$A_1 = new java.io.InputStreamReader;
+
+(1)     specialinvoke $stack6_$$A_1.<java.io.InputStreamReader: void <init>(java.io.InputStream,java.lang.String)>(dstream#_0, encoding#_0);
+
+     label2:
+        $stack6_$$A_2 = Phi($stack6 #0, $stack6_$$A_1 #1);
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>($stack6_$$A_2, startline#_0, startcolumn#_0, buffersize#_0);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream, int, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStreamReader $stack5;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0, buffersize#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        buffersize#_0 := @parameter3: int;
+
+        $stack5 = new java.io.InputStreamReader;
+
+        specialinvoke $stack5.<java.io.InputStreamReader: void <init>(java.io.InputStream)>(dstream#_0);
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.Reader,int,int,int)>($stack5, startline#_0, startcolumn#_0, buffersize#_0);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream, java.lang.String, int, int) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        java.lang.String encoding#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        startline#_0 := @parameter2: int;
+
+        startcolumn#_0 := @parameter3: int;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int,int)>(dstream#_0, encoding#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream, int, int)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        int startline#_0, startcolumn#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        startline#_0 := @parameter1: int;
+
+        startcolumn#_0 := @parameter2: int;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.InputStream,int,int,int)>(dstream#_0, startline#_0, startcolumn#_0, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream, java.lang.String) throws java.io.UnsupportedEncodingException
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+        java.lang.String encoding#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        encoding#_0 := @parameter1: java.lang.String;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.InputStream,java.lang.String,int,int,int)>(dstream#_0, encoding#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public void ReInit(java.io.InputStream)
+    {
+        JavaCharStream this#_0;
+        java.io.InputStream dstream#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        dstream#_0 := @parameter0: java.io.InputStream;
+
+        virtualinvoke this#_0.<JavaCharStream: void ReInit(java.io.InputStream,int,int,int)>(dstream#_0, 1, 1, 4096);
+
+        return;
+    }
+
+    public java.lang.String GetImage()
+    {
+        JavaCharStream this#_0;
+        int $stack1, $stack2, $stack5, $stack6, $stack7, $stack8, $stack12, $stack13, $stack18, $stack19, $stack20, $stack21, $stack22;
+        java.lang.StringBuilder $stack3, $stack10, $stack15;
+        java.lang.String $stack4, $stack11, $stack16, $stack17;
+        char[] $stack9, $stack14, $stack23;
+
+        this#_0 := @this: JavaCharStream;
+
+        $stack2 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack1 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        if $stack2 < $stack1 goto label1;
+
+        $stack17 = new java.lang.String;
+
+        $stack23 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack22 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack19 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack18 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack20 = $stack19 - $stack18;
+
+        $stack21 = $stack20 + 1;
+
+        specialinvoke $stack17.<java.lang.String: void <init>(char[],int,int)>($stack23, $stack22, $stack21);
+
+        return $stack17;
+
+     label1:
+        $stack3 = new java.lang.StringBuilder;
+
+        specialinvoke $stack3.<java.lang.StringBuilder: void <init>()>();
+
+        $stack4 = new java.lang.String;
+
+        $stack9 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack8 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack6 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack5 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack7 = $stack6 - $stack5;
+
+        specialinvoke $stack4.<java.lang.String: void <init>(char[],int,int)>($stack9, $stack8, $stack7);
+
+        $stack10 = virtualinvoke $stack3.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack4);
+
+        $stack11 = new java.lang.String;
+
+        $stack14 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack12 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack13 = $stack12 + 1;
+
+        specialinvoke $stack11.<java.lang.String: void <init>(char[],int,int)>($stack14, 0, $stack13);
+
+        $stack15 = virtualinvoke $stack10.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack11);
+
+        $stack16 = virtualinvoke $stack15.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        return $stack16;
+    }
+
+    public char[] GetSuffix(int)
+    {
+        int len#_0, $stack3, $stack4, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack14, $stack15, $stack16, $stack17, $stack18, $stack20, $stack21, $stack22;
+        char[] ret#_544, $stack13, $stack19, $stack23;
+        JavaCharStream this#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        len#_0 := @parameter0: int;
+
+        ret#_544 = newarray (char)[len#_0];
+
+        $stack3 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack4 = $stack3 + 1;
+
+        if $stack4 < len#_0 goto label1;
+
+        $stack23 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack20 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack21 = $stack20 - len#_0;
+
+        $stack22 = $stack21 + 1;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack23, $stack22, ret#_544, 0, len#_0);
+
+        goto label2;
+
+     label1:
+        $stack13 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack8 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack5 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack6 = len#_0 - $stack5;
+
+        $stack7 = $stack6 - 1;
+
+        $stack12 = $stack8 - $stack7;
+
+        $stack9 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack10 = len#_0 - $stack9;
+
+        $stack11 = $stack10 - 1;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack13, $stack12, ret#_544, 0, $stack11);
+
+        $stack19 = this#_0.<JavaCharStream: char[] buffer>;
+
+        $stack14 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack15 = len#_0 - $stack14;
+
+        $stack18 = $stack15 - 1;
+
+        $stack16 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack17 = $stack16 + 1;
+
+        staticinvoke <java.lang.System: void arraycopy(java.lang.Object,int,java.lang.Object,int,int)>($stack19, 0, ret#_544, $stack18, $stack17);
+
+     label2:
+        return ret#_544;
+    }
+
+    public void Done()
+    {
+        JavaCharStream this#_0;
+
+        this#_0 := @this: JavaCharStream;
+
+        this#_0.<JavaCharStream: char[] nextCharBuf> = null;
+
+        this#_0.<JavaCharStream: char[] buffer> = null;
+
+        this#_0.<JavaCharStream: int[] bufline> = null;
+
+        this#_0.<JavaCharStream: int[] bufcolumn> = null;
+
+        return;
+    }
+
+    public void adjustBeginLineColumn(int, int)
+    {
+        JavaCharStream this#_0;
+        int $stack10, $stack11, $stack12, $stack13, $stack14, $stack15, $stack16, $stack17, $stack18, $stack20, $stack22, newCol#_0, $stack25, $stack34, $stack35, $stack37, $stack38, $stack40, $stack41, $stack44, $stack46, $stack47, $stack49, $stack50, $stack52, $stack53, $stack58, $stack60, $stack61, $stack62, $stack66, $stack67, $stack68, $stack69, $stack70, newLine#_0, start#_572, len#_577, i#_584, j#_584, columnDiff#_585, k#13#_587, nextColDiff#14#_590, newLine#15#_598, $stack27, len_$$A_1#_581, len_$$A_2#_582, columnDiff_$$A_1#_586, j_$$A_1#_586, i_$$A_1#_586, start_$$A_1#_586, j_$$A_2#_587, start_$$A_2#_587, columnDiff_$$A_2#_592, i_$$A_2#_593, j_$$A_3#_594, start_$$A_3#_594, newLine#15_$$A_1#_600, j_$$A_4#_600, i_$$A_3#_600, start_$$A_4#_600, i_$$A_4#_601, j_$$A_5#_603, start_$$A_5#_603, newLine#15_$$A_2#_604, newLine#15_$$A_3#_607, j_$$A_6#_607, i_$$A_5#_607, start_$$A_6#_607;
+        int[] $stack19, $stack21, $stack24, $stack26, $stack36, $stack39, $stack42, $stack45, $stack48, $stack51, $stack56, $stack57, $stack59, $stack63;
+        boolean k#_584, nextColDiff#_585;
+
+        this#_0 := @this: JavaCharStream;
+
+        newLine#_0 := @parameter0: int;
+
+        newCol#_0 := @parameter1: int;
+
+        start#_572 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack11 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack10 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        if $stack11 < $stack10 goto label1;
+
+        $stack67 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack66 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack69 = $stack67 - $stack66;
+
+        $stack68 = this#_0.<JavaCharStream: int inBuf>;
+
+        $stack70 = $stack69 + $stack68;
+
+        len#_577 = $stack70 + 1;
+
+(0)     goto label2;
+
+     label1:
+        $stack13 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack12 = this#_0.<JavaCharStream: int tokenBegin>;
+
+        $stack15 = $stack13 - $stack12;
+
+        $stack14 = this#_0.<JavaCharStream: int bufpos>;
+
+        $stack16 = $stack15 + $stack14;
+
+        $stack18 = $stack16 + 1;
+
+        $stack17 = this#_0.<JavaCharStream: int inBuf>;
+
+(1)     len_$$A_1#_581 = $stack18 + $stack17;
+
+     label2:
+        len_$$A_2#_582 = Phi(len#_577 #0, len_$$A_1#_581 #1);
+
+        i#_584 = 0;
+
+        j#_584 = 0;
+
+        k#_584 = 0;
+
+        nextColDiff#_585 = 0;
+
+(2)     columnDiff#_585 = 0;
+
+     label3:
+        columnDiff_$$A_1#_586 = Phi(columnDiff#_585 #2, columnDiff_$$A_2#_592 #5);
+
+        j_$$A_1#_586 = Phi(j#_584 #2, j_$$A_2#_587 #5);
+
+        i_$$A_1#_586 = Phi(i#_584 #2, i_$$A_2#_593 #5);
+
+        start_$$A_1#_586 = Phi(start#_572 #2, start_$$A_2#_587 #5);
+
+(3)     if i_$$A_1#_586 >= len_$$A_2#_582 goto label4;
+
+        $stack48 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack46 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack47 = start_$$A_1#_586 % $stack46;
+
+        j_$$A_2#_587 = $stack47;
+
+        $stack53 = $stack48[$stack47];
+
+        $stack51 = this#_0.<JavaCharStream: int[] bufline>;
+
+        start_$$A_2#_587 = start_$$A_1#_586 + 1;
+
+        $stack49 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack50 = start_$$A_2#_587 % $stack49;
+
+        k#13#_587 = $stack50;
+
+        $stack52 = $stack51[$stack50];
+
+(4)     if $stack53 != $stack52 goto label4;
+
+        $stack56 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack56[j_$$A_2#_587] = newLine#_0;
+
+        $stack57 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack58 = $stack57[k#13#_587];
+
+        $stack61 = columnDiff_$$A_1#_586 + $stack58;
+
+        $stack59 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack60 = $stack59[j_$$A_2#_587];
+
+        nextColDiff#14#_590 = $stack61 - $stack60;
+
+        $stack63 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack62 = newCol#_0 + columnDiff_$$A_1#_586;
+
+        $stack63[j_$$A_2#_587] = $stack62;
+
+        columnDiff_$$A_2#_592 = nextColDiff#14#_590;
+
+        i_$$A_2#_593 = i_$$A_1#_586 + 1;
+
+(5)     goto label3;
+
+     label4:
+        j_$$A_3#_594 = Phi(j_$$A_1#_586 #3, j_$$A_2#_587 #4);
+
+        start_$$A_3#_594 = Phi(start_$$A_1#_586 #3, start_$$A_2#_587 #4);
+
+(6)     if i_$$A_1#_586 >= len_$$A_2#_582 goto label7;
+
+        $stack24 = this#_0.<JavaCharStream: int[] bufline>;
+
+        newLine#15#_598 = newLine#_0 + 1;
+
+        $stack24[j_$$A_3#_594] = newLine#_0;
+
+        $stack26 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack25 = newCol#_0 + columnDiff_$$A_1#_586;
+
+(7)     $stack26[j_$$A_3#_594] = $stack25;
+
+     label5:
+        newLine#15_$$A_1#_600 = Phi(newLine#15#_598 #7, newLine#15_$$A_2#_604 #9, newLine#15_$$A_1#_600 #10);
+
+        j_$$A_4#_600 = Phi(j_$$A_3#_594 #7, j_$$A_5#_603 #9, j_$$A_5#_603 #10);
+
+        i_$$A_3#_600 = Phi(i_$$A_1#_586 #7, i_$$A_4#_601 #9, i_$$A_4#_601 #10);
+
+        start_$$A_4#_600 = Phi(start_$$A_3#_594 #7, start_$$A_5#_603 #9, start_$$A_5#_603 #10);
+
+        $stack27 = i_$$A_3#_600;
+
+        i_$$A_4#_601 = i_$$A_3#_600 + 1;
+
+(8)     if $stack27 >= len_$$A_2#_582 goto label7;
+
+        $stack36 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack34 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack35 = start_$$A_4#_600 % $stack34;
+
+        j_$$A_5#_603 = $stack35;
+
+        $stack41 = $stack36[$stack35];
+
+        $stack39 = this#_0.<JavaCharStream: int[] bufline>;
+
+        start_$$A_5#_603 = start_$$A_4#_600 + 1;
+
+        $stack37 = this#_0.<JavaCharStream: int bufsize>;
+
+        $stack38 = start_$$A_5#_603 % $stack37;
+
+        $stack40 = $stack39[$stack38];
+
+        if $stack41 == $stack40 goto label6;
+
+        $stack45 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack44 = newLine#15_$$A_1#_600;
+
+        newLine#15_$$A_2#_604 = newLine#15_$$A_1#_600 + 1;
+
+        $stack45[j_$$A_5#_603] = $stack44;
+
+(9)     goto label5;
+
+     label6:
+        $stack42 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack42[j_$$A_5#_603] = newLine#15_$$A_1#_600;
+
+(10)    goto label5;
+
+     label7:
+        newLine#15_$$A_3#_607 = Phi(newLine#15#_598 #6, newLine#15_$$A_1#_600 #8);
+
+        j_$$A_6#_607 = Phi(j_$$A_3#_594 #6, j_$$A_4#_600 #8);
+
+        i_$$A_5#_607 = Phi(i_$$A_1#_586 #6, i_$$A_4#_601 #8);
+
+        start_$$A_6#_607 = Phi(start_$$A_3#_594 #6, start_$$A_4#_600 #8);
+
+        $stack19 = this#_0.<JavaCharStream: int[] bufline>;
+
+        $stack20 = $stack19[j_$$A_6#_607];
+
+        this#_0.<JavaCharStream: int line> = $stack20;
+
+        $stack21 = this#_0.<JavaCharStream: int[] bufcolumn>;
+
+        $stack22 = $stack21[j_$$A_6#_607];
+
+        this#_0.<JavaCharStream: int column> = $stack22;
+
+        return;
+    }
+}

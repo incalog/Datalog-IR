@@ -1,9 +1,18 @@
 package inca.backend.analyze
 
 import inca.backend.analyze.DependencyGraph._
-import inca.backend.hints.DataHints.{ConstructorKey, DataTypeKey, SelectorKey}
-import inca.backend.ir.Datalog.{Call, Computed, CountAggregation, CustomAggregation, Module, Name, Pattern}
+import inca.backend.hints.DataHints.ConstructorKey
+import inca.backend.hints.DataHints.DataTypeKey
+import inca.backend.hints.DataHints.SelectorKey
+import inca.backend.ir.Datalog.Call
+import inca.backend.ir.Datalog.Computed
+import inca.backend.ir.Datalog.CountAggregation
+import inca.backend.ir.Datalog.CustomAggregation
+import inca.backend.ir.Datalog.Module
+import inca.backend.ir.Datalog.Name
+import inca.backend.ir.Datalog.Pattern
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
+import inca.util.datastructure.Graph
 
 object DependencyGraph {
   sealed trait DependencyEdge
@@ -19,9 +28,12 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
     this.addNode(pat.name)
     pat.bodies.foreach { body =>
       body.atoms.foreach {
-        case Call(name, _, _, neg) => this.addEdge(pat.name, name, if (neg) NegativeCall else PositiveCall)
-        case Computed(_, CountAggregation(name, _)) => this.addEdge(pat.name, name, CountAggregationCall)
-        case Computed(_, CustomAggregation(_, _, _, name, _, _)) => this.addEdge(pat.name, name, CustomAggregationCall)
+        case Call(name, _, _, neg) =>
+          this.addEdge(pat.name, name, if (neg) NegativeCall else PositiveCall)
+        case Computed(_, CountAggregation(name, _)) =>
+          this.addEdge(pat.name, name, CountAggregationCall)
+        case Computed(_, CustomAggregation(_, _, _, name, _, _)) =>
+          this.addEdge(pat.name, name, CustomAggregationCall)
         case _ => // do nothing
       }
     }
@@ -29,10 +41,11 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
 
   override protected def nodeToGraphViz(n: Name): String = n.replace("$", "_")
 
-  def isDataNode(p: Pattern): Boolean = p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
+  def isDataNode(p: Pattern): Boolean =
+    p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
 
   override protected def nodeGraphVizAttributes(n: Name): String = {
-    val node = pats(n)
+    val node = pats.getOrElse(n, throw new IllegalArgumentException(s"Unknown pattern $n"))
     if (isDataNode(node))
       "fillcolor=green2, style=filled"
     else if (n.startsWith(demandPatternPrefix))
@@ -53,13 +66,18 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
     case _ => "black"
   }
 
-  override protected def edgeGraphVizAttributes(from: Name, to: Name, kind: DependencyEdge): String = {
+  override protected def edgeGraphVizAttributes(
+      from: Name,
+      to: Name,
+      kind: DependencyEdge
+    ): String = {
     val ix = outermostCycles.indexWhere(l => l.contains(from) && l.contains(to))
     if (ix >= 0)
       s"color=${cycleColor(ix)}"
-    else kind match {
-      case NegativeCall => "color=red"
-      case _ => "color=black"
-    }
+    else
+      kind match {
+        case NegativeCall => "color=red"
+        case _ => "color=black"
+      }
   }
 }

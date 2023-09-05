@@ -64,12 +64,10 @@ object MetaElements {
 //    }
 //  }
 
-
 //  sealed trait Link {
 //    val typ: LinkedType
 //    val field: String
 //  }
-
 
 //  case class DefinedNodeLink(typ: LinkedType, field: String) extends Link
 //

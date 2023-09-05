@@ -1,0 +1,5 @@
+<Main: void <init>()>/java.lang.Object.<init>/0	1	<java.lang.Object: void <init>()>	<Main: void <init>()>/l0#_0	<Main: void <init>()>
+<Point: Point genPoint(int,int)>/Point.<init>/0	3	<Point: void <init>(int,int)>	<Point: Point genPoint(int,int)>/$stack3	<Point: Point genPoint(int,int)>
+<Point: void <init>(int,int)>/java.lang.Object.<init>/0	3	<java.lang.Object: void <init>()>	<Point: void <init>(int,int)>/l0#_0	<Point: void <init>(int,int)>
+<Point: Point add(Point)>/Point.<init>/0	9	<Point: void <init>(int,int)>	<Point: Point add(Point)>/$stack3	<Point: Point add(Point)>
+<Point: Point add(int,int)>/Point.<init>/0	8	<Point: void <init>(int,int)>	<Point: Point add(int,int)>/$stack4	<Point: Point add(int,int)>

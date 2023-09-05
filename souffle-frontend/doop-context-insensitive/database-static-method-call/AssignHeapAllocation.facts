@@ -1,0 +1,4 @@
+<Point: Point genPoint(int,int)>/assign/2	2	<Point: Point genPoint(int,int)>/new Point/0	<Point: Point genPoint(int,int)>/$stack3	<Point: Point genPoint(int,int)>	6
+<Point: Point add(Point)>/assign/2	2	<Point: Point add(Point)>/new Point/0	<Point: Point add(Point)>/$stack3	<Point: Point add(Point)>	14
+<Point: Point add(int,int)>/assign/3	3	<Point: Point add(int,int)>/new Point/0	<Point: Point add(int,int)>/$stack4	<Point: Point add(int,int)>	19
+<Point: void <clinit>()>/fresh-null-assign/0	1	POINT	<Point: void <clinit>()>/$stringconstant0	<Point: void <clinit>()>	2

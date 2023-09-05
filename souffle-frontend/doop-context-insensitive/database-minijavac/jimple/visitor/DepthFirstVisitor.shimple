@@ -1,0 +1,1369 @@
+public class visitor.DepthFirstVisitor extends java.lang.Object implements visitor.Visitor
+{
+
+    public void <init>()
+    {
+        visitor.DepthFirstVisitor this#_0;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public void visit(syntaxtree.NodeList)
+    {
+        syntaxtree.NodeList n#_0;
+        java.util.Enumeration e#_18;
+        boolean $stack4;
+        java.lang.Object $stack5;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Node $stack6;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NodeList;
+
+        e#_18 = virtualinvoke n#_0.<syntaxtree.NodeList: java.util.Enumeration elements()>();
+
+     label1:
+        $stack4 = interfaceinvoke e#_18.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack4 == 0 goto label2;
+
+        $stack5 = interfaceinvoke e#_18.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack6 = (syntaxtree.Node) $stack5;
+
+        interfaceinvoke $stack6.<syntaxtree.Node: void accept(visitor.Visitor)>(this#_0);
+
+        goto label1;
+
+     label2:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeListOptional)
+    {
+        syntaxtree.NodeListOptional n#_0;
+        boolean $stack3, $stack5;
+        java.util.Enumeration e#_24;
+        java.lang.Object $stack6;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Node $stack7;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NodeListOptional;
+
+        $stack3 = virtualinvoke n#_0.<syntaxtree.NodeListOptional: boolean present()>();
+
+        if $stack3 == 0 goto label2;
+
+        e#_24 = virtualinvoke n#_0.<syntaxtree.NodeListOptional: java.util.Enumeration elements()>();
+
+     label1:
+        $stack5 = interfaceinvoke e#_24.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack5 == 0 goto label2;
+
+        $stack6 = interfaceinvoke e#_24.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack7 = (syntaxtree.Node) $stack6;
+
+        interfaceinvoke $stack7.<syntaxtree.Node: void accept(visitor.Visitor)>(this#_0);
+
+        goto label1;
+
+     label2:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeOptional)
+    {
+        syntaxtree.NodeOptional n#_0;
+        boolean $stack2;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Node $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NodeOptional;
+
+        $stack2 = virtualinvoke n#_0.<syntaxtree.NodeOptional: boolean present()>();
+
+        if $stack2 == 0 goto label1;
+
+        $stack3 = n#_0.<syntaxtree.NodeOptional: syntaxtree.Node node>;
+
+        interfaceinvoke $stack3.<syntaxtree.Node: void accept(visitor.Visitor)>(this#_0);
+
+     label1:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeSequence)
+    {
+        syntaxtree.NodeSequence n#_0;
+        java.util.Enumeration e#_34;
+        boolean $stack4;
+        java.lang.Object $stack5;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Node $stack6;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NodeSequence;
+
+        e#_34 = virtualinvoke n#_0.<syntaxtree.NodeSequence: java.util.Enumeration elements()>();
+
+     label1:
+        $stack4 = interfaceinvoke e#_34.<java.util.Enumeration: boolean hasMoreElements()>();
+
+        if $stack4 == 0 goto label2;
+
+        $stack5 = interfaceinvoke e#_34.<java.util.Enumeration: java.lang.Object nextElement()>();
+
+        $stack6 = (syntaxtree.Node) $stack5;
+
+        interfaceinvoke $stack6.<syntaxtree.Node: void accept(visitor.Visitor)>(this#_0);
+
+        goto label1;
+
+     label2:
+        return;
+    }
+
+    public void visit(syntaxtree.NodeToken)
+    {
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken n#_0;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NodeToken;
+
+        return;
+    }
+
+    public void visit(syntaxtree.Goal)
+    {
+        syntaxtree.Goal n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.MainClass $stack2;
+        syntaxtree.NodeListOptional $stack3;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Goal;
+
+        $stack2 = n#_0.<syntaxtree.Goal: syntaxtree.MainClass f0>;
+
+        virtualinvoke $stack2.<syntaxtree.MainClass: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.Goal: syntaxtree.NodeListOptional f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.Goal: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MainClass)
+    {
+        syntaxtree.MainClass n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack14, $stack15, $stack18, $stack19;
+        syntaxtree.Identifier $stack3, $stack13;
+        syntaxtree.NodeListOptional $stack16, $stack17;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.MainClass;
+
+        $stack2 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.MainClass: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack8 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack9 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f7>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack10 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f8>;
+
+        virtualinvoke $stack10.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack11 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f9>;
+
+        virtualinvoke $stack11.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack12 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f10>;
+
+        virtualinvoke $stack12.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack13 = n#_0.<syntaxtree.MainClass: syntaxtree.Identifier f11>;
+
+        virtualinvoke $stack13.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack14 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f12>;
+
+        virtualinvoke $stack14.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack15 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f13>;
+
+        virtualinvoke $stack15.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack16 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeListOptional f14>;
+
+        virtualinvoke $stack16.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack17 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeListOptional f15>;
+
+        virtualinvoke $stack17.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack18 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f16>;
+
+        virtualinvoke $stack18.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack19 = n#_0.<syntaxtree.MainClass: syntaxtree.NodeToken f17>;
+
+        virtualinvoke $stack19.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TypeDeclaration)
+    {
+        syntaxtree.TypeDeclaration n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeChoice $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.TypeDeclaration;
+
+        $stack2 = n#_0.<syntaxtree.TypeDeclaration: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeChoice: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ClassDeclaration)
+    {
+        syntaxtree.ClassDeclaration n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4, $stack7;
+        syntaxtree.Identifier $stack3;
+        syntaxtree.NodeListOptional $stack5, $stack6;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ClassDeclaration;
+
+        $stack2 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeListOptional f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeListOptional f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.ClassDeclaration: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ClassExtendsDeclaration)
+    {
+        syntaxtree.ClassExtendsDeclaration n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4, $stack6, $stack9;
+        syntaxtree.Identifier $stack3, $stack5;
+        syntaxtree.NodeListOptional $stack7, $stack8;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ClassExtendsDeclaration;
+
+        $stack2 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.Identifier f3>;
+
+        virtualinvoke $stack5.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeListOptional f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack8 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeListOptional f6>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack9 = n#_0.<syntaxtree.ClassExtendsDeclaration: syntaxtree.NodeToken f7>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.VarDeclaration)
+    {
+        syntaxtree.VarDeclaration n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Type $stack2;
+        syntaxtree.Identifier $stack3;
+        syntaxtree.NodeToken $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.VarDeclaration;
+
+        $stack2 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.Type f0>;
+
+        virtualinvoke $stack2.<syntaxtree.Type: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.VarDeclaration: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MethodDeclaration)
+    {
+        syntaxtree.MethodDeclaration n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack5, $stack7, $stack8, $stack11, $stack13, $stack14;
+        syntaxtree.Type $stack3;
+        syntaxtree.Identifier $stack4;
+        syntaxtree.NodeOptional $stack6;
+        syntaxtree.NodeListOptional $stack9, $stack10;
+        syntaxtree.Expression $stack12;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.MethodDeclaration;
+
+        $stack2 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Type f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Type: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Identifier f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeOptional f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack8 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack9 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f7>;
+
+        virtualinvoke $stack9.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack10 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeListOptional f8>;
+
+        virtualinvoke $stack10.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack11 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f9>;
+
+        virtualinvoke $stack11.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack12 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.Expression f10>;
+
+        virtualinvoke $stack12.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack13 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f11>;
+
+        virtualinvoke $stack13.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack14 = n#_0.<syntaxtree.MethodDeclaration: syntaxtree.NodeToken f12>;
+
+        virtualinvoke $stack14.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterList)
+    {
+        syntaxtree.FormalParameterList n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.FormalParameter $stack2;
+        syntaxtree.FormalParameterTail $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterList;
+
+        $stack2 = n#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameter f0>;
+
+        virtualinvoke $stack2.<syntaxtree.FormalParameter: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameterTail f1>;
+
+        virtualinvoke $stack3.<syntaxtree.FormalParameterTail: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameter)
+    {
+        syntaxtree.FormalParameter n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Type $stack2;
+        syntaxtree.Identifier $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameter;
+
+        $stack2 = n#_0.<syntaxtree.FormalParameter: syntaxtree.Type f0>;
+
+        virtualinvoke $stack2.<syntaxtree.Type: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.FormalParameter: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterTail)
+    {
+        syntaxtree.FormalParameterTail n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeListOptional $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterTail;
+
+        $stack2 = n#_0.<syntaxtree.FormalParameterTail: syntaxtree.NodeListOptional f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FormalParameterTerm)
+    {
+        syntaxtree.FormalParameterTerm n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+        syntaxtree.FormalParameter $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.FormalParameterTerm;
+
+        $stack2 = n#_0.<syntaxtree.FormalParameterTerm: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.FormalParameterTerm: syntaxtree.FormalParameter f1>;
+
+        virtualinvoke $stack3.<syntaxtree.FormalParameter: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Type)
+    {
+        syntaxtree.Type n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeChoice $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Type;
+
+        $stack2 = n#_0.<syntaxtree.Type: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeChoice: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayType)
+    {
+        syntaxtree.ArrayType n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ArrayType;
+
+        $stack2 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayType: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.BooleanType)
+    {
+        syntaxtree.BooleanType n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.BooleanType;
+
+        $stack2 = n#_0.<syntaxtree.BooleanType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IntegerType)
+    {
+        syntaxtree.IntegerType n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.IntegerType;
+
+        $stack2 = n#_0.<syntaxtree.IntegerType: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Statement)
+    {
+        syntaxtree.Statement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeChoice $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Statement;
+
+        $stack2 = n#_0.<syntaxtree.Statement: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeChoice: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Block)
+    {
+        syntaxtree.Block n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4;
+        syntaxtree.NodeListOptional $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Block;
+
+        $stack2 = n#_0.<syntaxtree.Block: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.Block: syntaxtree.NodeListOptional f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.Block: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AssignmentStatement)
+    {
+        syntaxtree.AssignmentStatement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Identifier $stack2;
+        syntaxtree.NodeToken $stack3, $stack5;
+        syntaxtree.Expression $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.AssignmentStatement;
+
+        $stack2 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.Identifier f0>;
+
+        virtualinvoke $stack2.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.AssignmentStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayAssignmentStatement)
+    {
+        syntaxtree.ArrayAssignmentStatement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Identifier $stack2;
+        syntaxtree.NodeToken $stack3, $stack5, $stack6, $stack8;
+        syntaxtree.Expression $stack4, $stack7;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ArrayAssignmentStatement;
+
+        $stack2 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Identifier f0>;
+
+        virtualinvoke $stack2.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.Expression f5>;
+
+        virtualinvoke $stack7.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack8 = n#_0.<syntaxtree.ArrayAssignmentStatement: syntaxtree.NodeToken f6>;
+
+        virtualinvoke $stack8.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IfStatement)
+    {
+        syntaxtree.IfStatement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack5, $stack7;
+        syntaxtree.Expression $stack4;
+        syntaxtree.Statement $stack6, $stack8;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.IfStatement;
+
+        $stack2 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.IfStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.IfStatement: syntaxtree.Statement f4>;
+
+        virtualinvoke $stack6.<syntaxtree.Statement: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.IfStatement: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack8 = n#_0.<syntaxtree.IfStatement: syntaxtree.Statement f6>;
+
+        virtualinvoke $stack8.<syntaxtree.Statement: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.WhileStatement)
+    {
+        syntaxtree.WhileStatement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack5;
+        syntaxtree.Expression $stack4;
+        syntaxtree.Statement $stack6;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.WhileStatement;
+
+        $stack2 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.WhileStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.WhileStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.WhileStatement: syntaxtree.Statement f4>;
+
+        virtualinvoke $stack6.<syntaxtree.Statement: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PrintStatement)
+    {
+        syntaxtree.PrintStatement n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack5, $stack6;
+        syntaxtree.Expression $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.PrintStatement;
+
+        $stack2 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.PrintStatement: syntaxtree.Expression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.PrintStatement: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Expression)
+    {
+        syntaxtree.Expression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeChoice $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Expression;
+
+        $stack2 = n#_0.<syntaxtree.Expression: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeChoice: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AndExpression)
+    {
+        syntaxtree.AndExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.AndExpression;
+
+        $stack2 = n#_0.<syntaxtree.AndExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.AndExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.AndExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.CompareExpression)
+    {
+        syntaxtree.CompareExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.CompareExpression;
+
+        $stack2 = n#_0.<syntaxtree.CompareExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.CompareExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.CompareExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PlusExpression)
+    {
+        syntaxtree.PlusExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.PlusExpression;
+
+        $stack2 = n#_0.<syntaxtree.PlusExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.PlusExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.PlusExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MinusExpression)
+    {
+        syntaxtree.MinusExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.MinusExpression;
+
+        $stack2 = n#_0.<syntaxtree.MinusExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.MinusExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.MinusExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TimesExpression)
+    {
+        syntaxtree.TimesExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.TimesExpression;
+
+        $stack2 = n#_0.<syntaxtree.TimesExpression: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.TimesExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.TimesExpression: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayLookup)
+    {
+        syntaxtree.ArrayLookup n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2, $stack4;
+        syntaxtree.NodeToken $stack3, $stack5;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ArrayLookup;
+
+        $stack2 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.PrimaryExpression f2>;
+
+        virtualinvoke $stack4.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayLookup: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayLength)
+    {
+        syntaxtree.ArrayLength n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2;
+        syntaxtree.NodeToken $stack3, $stack4;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ArrayLength;
+
+        $stack2 = n#_0.<syntaxtree.ArrayLength: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ArrayLength: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayLength: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.MessageSend)
+    {
+        syntaxtree.MessageSend n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.PrimaryExpression $stack2;
+        syntaxtree.NodeToken $stack3, $stack5, $stack7;
+        syntaxtree.Identifier $stack4;
+        syntaxtree.NodeOptional $stack6;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.MessageSend;
+
+        $stack2 = n#_0.<syntaxtree.MessageSend: syntaxtree.PrimaryExpression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.PrimaryExpression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.MessageSend: syntaxtree.Identifier f2>;
+
+        virtualinvoke $stack4.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeOptional f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeOptional: void accept(visitor.Visitor)>(this#_0);
+
+        $stack7 = n#_0.<syntaxtree.MessageSend: syntaxtree.NodeToken f5>;
+
+        virtualinvoke $stack7.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionList)
+    {
+        syntaxtree.ExpressionList n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.Expression $stack2;
+        syntaxtree.ExpressionTail $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionList;
+
+        $stack2 = n#_0.<syntaxtree.ExpressionList: syntaxtree.Expression f0>;
+
+        virtualinvoke $stack2.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ExpressionList: syntaxtree.ExpressionTail f1>;
+
+        virtualinvoke $stack3.<syntaxtree.ExpressionTail: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionTail)
+    {
+        syntaxtree.ExpressionTail n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeListOptional $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionTail;
+
+        $stack2 = n#_0.<syntaxtree.ExpressionTail: syntaxtree.NodeListOptional f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeListOptional: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ExpressionTerm)
+    {
+        syntaxtree.ExpressionTerm n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+        syntaxtree.Expression $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ExpressionTerm;
+
+        $stack2 = n#_0.<syntaxtree.ExpressionTerm: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ExpressionTerm: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.PrimaryExpression)
+    {
+        syntaxtree.PrimaryExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeChoice $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.PrimaryExpression;
+
+        $stack2 = n#_0.<syntaxtree.PrimaryExpression: syntaxtree.NodeChoice f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeChoice: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.IntegerLiteral)
+    {
+        syntaxtree.IntegerLiteral n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.IntegerLiteral;
+
+        $stack2 = n#_0.<syntaxtree.IntegerLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.TrueLiteral)
+    {
+        syntaxtree.TrueLiteral n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.TrueLiteral;
+
+        $stack2 = n#_0.<syntaxtree.TrueLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.FalseLiteral)
+    {
+        syntaxtree.FalseLiteral n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.FalseLiteral;
+
+        $stack2 = n#_0.<syntaxtree.FalseLiteral: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.Identifier)
+    {
+        syntaxtree.Identifier n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.Identifier;
+
+        $stack2 = n#_0.<syntaxtree.Identifier: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ThisExpression)
+    {
+        syntaxtree.ThisExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ThisExpression;
+
+        $stack2 = n#_0.<syntaxtree.ThisExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.ArrayAllocationExpression)
+    {
+        syntaxtree.ArrayAllocationExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack3, $stack4, $stack6;
+        syntaxtree.Expression $stack5;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.ArrayAllocationExpression;
+
+        $stack2 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f1>;
+
+        virtualinvoke $stack3.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.Expression f3>;
+
+        virtualinvoke $stack5.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack6 = n#_0.<syntaxtree.ArrayAllocationExpression: syntaxtree.NodeToken f4>;
+
+        virtualinvoke $stack6.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.AllocationExpression)
+    {
+        syntaxtree.AllocationExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4, $stack5;
+        syntaxtree.Identifier $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.AllocationExpression;
+
+        $stack2 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.Identifier f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Identifier: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack5 = n#_0.<syntaxtree.AllocationExpression: syntaxtree.NodeToken f3>;
+
+        virtualinvoke $stack5.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.NotExpression)
+    {
+        syntaxtree.NotExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2;
+        syntaxtree.Expression $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.NotExpression;
+
+        $stack2 = n#_0.<syntaxtree.NotExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.NotExpression: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+
+    public void visit(syntaxtree.BracketExpression)
+    {
+        syntaxtree.BracketExpression n#_0;
+        visitor.DepthFirstVisitor this#_0;
+        syntaxtree.NodeToken $stack2, $stack4;
+        syntaxtree.Expression $stack3;
+
+        this#_0 := @this: visitor.DepthFirstVisitor;
+
+        n#_0 := @parameter0: syntaxtree.BracketExpression;
+
+        $stack2 = n#_0.<syntaxtree.BracketExpression: syntaxtree.NodeToken f0>;
+
+        virtualinvoke $stack2.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        $stack3 = n#_0.<syntaxtree.BracketExpression: syntaxtree.Expression f1>;
+
+        virtualinvoke $stack3.<syntaxtree.Expression: void accept(visitor.Visitor)>(this#_0);
+
+        $stack4 = n#_0.<syntaxtree.BracketExpression: syntaxtree.NodeToken f2>;
+
+        virtualinvoke $stack4.<syntaxtree.NodeToken: void accept(visitor.Visitor)>(this#_0);
+
+        return;
+    }
+}

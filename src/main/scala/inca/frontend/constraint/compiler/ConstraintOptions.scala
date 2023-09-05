@@ -7,12 +7,17 @@ import inca.compiler.Options.defaultOptimizations
 import inca.frontend.constraint.compiler.ConstraintOptions.defaultDesugarables
 import inca.frontend.constraint.desugar.Desugarable
 import inca.frontend.constraint.extensions
+import org.eclipse.viatra.query.runtime.rete.matcher.ReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
-case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizations,
-                             transformations: Seq[Transformation] = Seq(),
-                             desugarables: Seq[Desugarable] = defaultDesugarables,
-                             stopOnError: Boolean = true,
-                             stopOnWarning: Boolean = false) extends Options {
+case class ConstraintOptions(
+    optimizations: Seq[Optimization] = defaultOptimizations,
+    transformations: Seq[Transformation] = Seq(),
+    desugarables: Seq[Desugarable] = defaultDesugarables,
+    stopOnError: Boolean = true,
+    stopOnWarning: Boolean = false,
+    mode: ReteBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    extends Options {
 
   override def withOptimizations(opts: Seq[Optimization]): ConstraintOptions =
     ConstraintOptions(
@@ -20,7 +25,8 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
       transformations,
       desugarables,
       stopOnError,
-      stopOnWarning
+      stopOnWarning,
+      mode
     )
 
   override def withTransformations(trans: Seq[Transformation]): ConstraintOptions =
@@ -29,8 +35,20 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
       trans,
       desugarables,
       stopOnError,
-      stopOnWarning
+      stopOnWarning,
+      mode
     )
+
+  override def withEngine(_mode: ReteBackendFactory): Options =
+    ConstraintOptions(
+      optimizations,
+      transformations,
+      desugarables,
+      stopOnError,
+      stopOnWarning,
+      _mode
+    )
+
 }
 
 object ConstraintOptions {

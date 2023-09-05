@@ -1,20 +1,24 @@
 package inca.runtime
 
 import inca.runtime.db.Database
-import org.eclipse.viatra.query.runtime.api._
-import org.eclipse.viatra.query.runtime.api.scope.QueryScope
-import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
-import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
-
 import java.lang.ref.WeakReference
 import java.util
+import org.eclipse.viatra.query.runtime.api._
+import org.eclipse.viatra.query.runtime.api.scope.QueryScope
+import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
+import org.eclipse.viatra.query.runtime.matchers.backend.QueryEvaluationHint
+import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import scala.jdk.CollectionConverters._
 
 object EnginePool {
-  private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] = new util.WeakHashMap
+  private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] =
+    new util.WeakHashMap
 
-  def loadEngine(scope: QueryScope, backendFactory: IQueryBackendFactory): AdvancedViatraQueryEngine = {
+  def loadEngine(
+      scope: QueryScope,
+      backendFactory: IQueryBackendFactory
+    ): AdvancedViatraQueryEngine = {
     val engineReference = EnginePool.engineMap.get(scope)
     val engine =
       if (engineReference != null && engineReference.get != null) {
@@ -36,17 +40,29 @@ object EnginePool {
   def loadDatabase(scope: QueryScope, backendFactory: IQueryBackendFactory): Database =
     loadEngine(scope, backendFactory).getBaseIndex.asInstanceOf[Database]
 
-  def loadEngineAndDatabase(scope: QueryScope, backendFactory: IQueryBackendFactory): (AdvancedViatraQueryEngine, Database) = {
+  def loadEngineAndDatabase(
+      scope: QueryScope,
+      backendFactory: IQueryBackendFactory
+    ): (AdvancedViatraQueryEngine, Database) = {
     val engine = loadEngine(scope, backendFactory)
     val database = engine.getBaseIndex.asInstanceOf[Database]
     (engine, database)
   }
 
-  def loadQuery(specification: Query.Specification,
-                scope: QueryScope,
-                backendFactory: IQueryBackendFactory): Query.Matcher = {
+  def loadQuery(
+      specification: Query.Specification,
+      scope: QueryScope,
+      backendFactory: IQueryBackendFactory
+    ): Query.Matcher = {
     val engine = loadEngine(scope, backendFactory)
     engine.getMatcher(specification, null)
+  }
+
+  def disposeEngine(scope: QueryScope): Unit = {
+    val engineReference = EnginePool.engineMap.get(scope)
+    if (engineReference != null && engineReference.get != null) {
+      engineReference.get.dispose()
+    }
   }
 
   def disposeAllEngines(): Unit = {

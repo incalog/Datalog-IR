@@ -1,0 +1,4369 @@
+public class MiniJavaParserTokenManager extends java.lang.Object implements MiniJavaParserConstants
+{
+    public java.io.PrintStream debugStream;
+    static final long[] jjbitVec0;
+    static final long[] jjbitVec2;
+    static final long[] jjbitVec3;
+    static final long[] jjbitVec4;
+    static final long[] jjbitVec5;
+    static final long[] jjbitVec6;
+    static final long[] jjbitVec7;
+    static final long[] jjbitVec8;
+    static final int[] jjnextStates;
+    public static final java.lang.String[] jjstrLiteralImages;
+    public static final java.lang.String[] lexStateNames;
+    static final long[] jjtoToken;
+    static final long[] jjtoSkip;
+    static final long[] jjtoSpecial;
+    protected JavaCharStream input_stream;
+    private final int[] jjrounds;
+    private final int[] jjstateSet;
+    protected char curChar;
+    int curLexState;
+    int defaultLexState;
+    int jjnewStateCnt;
+    int jjround;
+    int jjmatchedPos;
+    int jjmatchedKind;
+
+    public void setDebugStream(java.io.PrintStream)
+    {
+        MiniJavaParserTokenManager this#_0;
+        java.io.PrintStream ds#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        ds#_0 := @parameter0: java.io.PrintStream;
+
+        this#_0.<MiniJavaParserTokenManager: java.io.PrintStream debugStream> = ds#_0;
+
+        return;
+    }
+
+    private final int jjStopStringLiteralDfa_0(int, long)
+    {
+        int pos#_0, $stack6, $stack10, $stack14, $stack18, $stack22, $stack26, $stack30, $stack34, $stack40, $stack46, $stack54, $stack72;
+        long active0#_0, $stack4, $stack8, $stack12, $stack16, $stack20, $stack24, $stack28, $stack32, $stack36, $stack38, $stack42, $stack44, $stack48, $stack50, $stack52, $stack56, $stack58, $stack60, $stack62, $stack64, $stack66, $stack68, $stack70, $stack74, $stack76, $stack78;
+        byte $stack5, $stack9, $stack13, $stack17, $stack21, $stack25, $stack29, $stack33, $stack37, $stack39, $stack43, $stack45, $stack49, $stack51, $stack53, $stack57, $stack59, $stack61, $stack63, $stack65, $stack67, $stack69, $stack71, $stack75, $stack77, $stack79;
+        MiniJavaParserTokenManager this#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        pos#_0 := @parameter0: int;
+
+        active0#_0 := @parameter1: long;
+
+        tableswitch(pos#_0)
+        {
+            case 0: goto label01;
+            case 1: goto label03;
+            case 2: goto label06;
+            case 3: goto label10;
+            case 4: goto label13;
+            case 5: goto label16;
+            case 6: goto label19;
+            case 7: goto label24;
+            case 8: goto label28;
+            case 9: goto label32;
+            case 10: goto label35;
+            case 11: goto label38;
+            case 12: goto label41;
+            case 13: goto label44;
+            case 14: goto label47;
+            case 15: goto label50;
+            case 16: goto label53;
+            default: goto label56;
+        };
+
+     label01:
+        $stack78 = active0#_0 & 8796084633600L;
+
+        $stack79 = $stack78 cmp 0L;
+
+        if $stack79 == 0 goto label02;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        return 4;
+
+     label02:
+        return -1;
+
+     label03:
+        $stack74 = active0#_0 & 536870912L;
+
+        $stack75 = $stack74 cmp 0L;
+
+        if $stack75 == 0 goto label04;
+
+        return 4;
+
+     label04:
+        $stack76 = active0#_0 & 8795547762688L;
+
+        $stack77 = $stack76 cmp 0L;
+
+        if $stack77 == 0 goto label05;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 1;
+
+        return 4;
+
+     label05:
+        return -1;
+
+     label06:
+        $stack68 = active0#_0 & 19360907264L;
+
+        $stack69 = $stack68 cmp 0L;
+
+        if $stack69 == 0 goto label07;
+
+        return 4;
+
+     label07:
+        $stack70 = active0#_0 & 8776186855424L;
+
+        $stack71 = $stack70 cmp 0L;
+
+        if $stack71 == 0 goto label09;
+
+        $stack72 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack72 == 2 goto label08;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 2;
+
+     label08:
+        return 4;
+
+     label09:
+        return -1;
+
+     label10:
+        $stack64 = active0#_0 & 6055970996224L;
+
+        $stack65 = $stack64 cmp 0L;
+
+        if $stack65 == 0 goto label11;
+
+        return 4;
+
+     label11:
+        $stack66 = active0#_0 & 2720249413632L;
+
+        $stack67 = $stack66 cmp 0L;
+
+        if $stack67 == 0 goto label12;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 3;
+
+        return 4;
+
+     label12:
+        return -1;
+
+     label13:
+        $stack60 = active0#_0 & 1358954496L;
+
+        $stack61 = $stack60 cmp 0L;
+
+        if $stack61 == 0 goto label14;
+
+        return 4;
+
+     label14:
+        $stack62 = active0#_0 & 2718890459136L;
+
+        $stack63 = $stack62 cmp 0L;
+
+        if $stack63 == 0 goto label15;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 4;
+
+        return 4;
+
+     label15:
+        return -1;
+
+     label16:
+        $stack56 = active0#_0 & 519691042816L;
+
+        $stack57 = $stack56 cmp 0L;
+
+        if $stack57 == 0 goto label17;
+
+        return 4;
+
+     label17:
+        $stack58 = active0#_0 & 2199199416320L;
+
+        $stack59 = $stack58 cmp 0L;
+
+        if $stack59 == 0 goto label18;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+        return 4;
+
+     label18:
+        return -1;
+
+     label19:
+        $stack48 = active0#_0 & 2199023255552L;
+
+        $stack49 = $stack48 cmp 0L;
+
+        if $stack49 == 0 goto label21;
+
+        $stack54 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack54 >= 5 goto label20;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label20:
+        return -1;
+
+     label21:
+        $stack50 = active0#_0 & 142606336L;
+
+        $stack51 = $stack50 cmp 0L;
+
+        if $stack51 == 0 goto label22;
+
+        return 4;
+
+     label22:
+        $stack52 = active0#_0 & 33554432L;
+
+        $stack53 = $stack52 cmp 0L;
+
+        if $stack53 == 0 goto label23;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 6;
+
+        return 4;
+
+     label23:
+        return -1;
+
+     label24:
+        $stack42 = active0#_0 & 2199023255552L;
+
+        $stack43 = $stack42 cmp 0L;
+
+        if $stack43 == 0 goto label26;
+
+        $stack46 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack46 >= 5 goto label25;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label25:
+        return -1;
+
+     label26:
+        $stack44 = active0#_0 & 33554432L;
+
+        $stack45 = $stack44 cmp 0L;
+
+        if $stack45 == 0 goto label27;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 7;
+
+        return 4;
+
+     label27:
+        return -1;
+
+     label28:
+        $stack36 = active0#_0 & 2199023255552L;
+
+        $stack37 = $stack36 cmp 0L;
+
+        if $stack37 == 0 goto label30;
+
+        $stack40 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack40 >= 5 goto label29;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label29:
+        return -1;
+
+     label30:
+        $stack38 = active0#_0 & 33554432L;
+
+        $stack39 = $stack38 cmp 0L;
+
+        if $stack39 == 0 goto label31;
+
+        return 4;
+
+     label31:
+        return -1;
+
+     label32:
+        $stack32 = active0#_0 & 2199023255552L;
+
+        $stack33 = $stack32 cmp 0L;
+
+        if $stack33 == 0 goto label34;
+
+        $stack34 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack34 >= 5 goto label33;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label33:
+        return -1;
+
+     label34:
+        return -1;
+
+     label35:
+        $stack28 = active0#_0 & 2199023255552L;
+
+        $stack29 = $stack28 cmp 0L;
+
+        if $stack29 == 0 goto label37;
+
+        $stack30 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack30 >= 5 goto label36;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label36:
+        return -1;
+
+     label37:
+        return -1;
+
+     label38:
+        $stack24 = active0#_0 & 2199023255552L;
+
+        $stack25 = $stack24 cmp 0L;
+
+        if $stack25 == 0 goto label40;
+
+        $stack26 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack26 >= 5 goto label39;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label39:
+        return -1;
+
+     label40:
+        return -1;
+
+     label41:
+        $stack20 = active0#_0 & 2199023255552L;
+
+        $stack21 = $stack20 cmp 0L;
+
+        if $stack21 == 0 goto label43;
+
+        $stack22 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack22 >= 5 goto label42;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label42:
+        return -1;
+
+     label43:
+        return -1;
+
+     label44:
+        $stack16 = active0#_0 & 2199023255552L;
+
+        $stack17 = $stack16 cmp 0L;
+
+        if $stack17 == 0 goto label46;
+
+        $stack18 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack18 >= 5 goto label45;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label45:
+        return -1;
+
+     label46:
+        return -1;
+
+     label47:
+        $stack12 = active0#_0 & 2199023255552L;
+
+        $stack13 = $stack12 cmp 0L;
+
+        if $stack13 == 0 goto label49;
+
+        $stack14 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack14 >= 5 goto label48;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label48:
+        return -1;
+
+     label49:
+        return -1;
+
+     label50:
+        $stack8 = active0#_0 & 2199023255552L;
+
+        $stack9 = $stack8 cmp 0L;
+
+        if $stack9 == 0 goto label52;
+
+        $stack10 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack10 >= 5 goto label51;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label51:
+        return -1;
+
+     label52:
+        return -1;
+
+     label53:
+        $stack4 = active0#_0 & 2199023255552L;
+
+        $stack5 = $stack4 cmp 0L;
+
+        if $stack5 == 0 goto label55;
+
+        $stack6 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        if $stack6 >= 5 goto label54;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 44;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 5;
+
+     label54:
+        return -1;
+
+     label55:
+        return -1;
+
+     label56:
+        return -1;
+    }
+
+    private final int jjStartNfa_0(int, long)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int pos#_0, $stack4, $stack5, $stack6;
+        long active0#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        pos#_0 := @parameter0: int;
+
+        active0#_0 := @parameter1: long;
+
+        $stack4 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(pos#_0, active0#_0);
+
+        $stack5 = pos#_0 + 1;
+
+        $stack6 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>($stack4, $stack5);
+
+        return $stack6;
+    }
+
+    private int jjStopAtPos(int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int kind#_0, pos#_0, $stack3;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        pos#_0 := @parameter0: int;
+
+        kind#_0 := @parameter1: int;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = kind#_0;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = pos#_0;
+
+        $stack3 = pos#_0 + 1;
+
+        return $stack3;
+    }
+
+    private int jjMoveStringLiteralDfa0_0()
+    {
+        MiniJavaParserTokenManager this#_0;
+        char $stack1;
+        int $stack2, $stack3, $stack4, $stack5, $stack6, $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack13, $stack14, $stack15, $stack16, $stack17, $stack18, $stack19, $stack20, $stack21, $stack22, $stack23, $stack24, $stack25, $stack26, $stack27, $stack28, $stack29, $stack30, $stack31, $stack32, $stack33;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        $stack1 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        tableswitch($stack1)
+        {
+            case 33: goto label01;
+            case 34: goto label32;
+            case 35: goto label32;
+            case 36: goto label32;
+            case 37: goto label32;
+            case 38: goto label02;
+            case 39: goto label32;
+            case 40: goto label03;
+            case 41: goto label04;
+            case 42: goto label05;
+            case 43: goto label06;
+            case 44: goto label07;
+            case 45: goto label08;
+            case 46: goto label09;
+            case 47: goto label32;
+            case 48: goto label32;
+            case 49: goto label32;
+            case 50: goto label32;
+            case 51: goto label32;
+            case 52: goto label32;
+            case 53: goto label32;
+            case 54: goto label32;
+            case 55: goto label32;
+            case 56: goto label32;
+            case 57: goto label32;
+            case 58: goto label32;
+            case 59: goto label10;
+            case 60: goto label11;
+            case 61: goto label12;
+            case 62: goto label32;
+            case 63: goto label32;
+            case 64: goto label32;
+            case 65: goto label32;
+            case 66: goto label32;
+            case 67: goto label32;
+            case 68: goto label32;
+            case 69: goto label32;
+            case 70: goto label32;
+            case 71: goto label32;
+            case 72: goto label32;
+            case 73: goto label32;
+            case 74: goto label32;
+            case 75: goto label32;
+            case 76: goto label32;
+            case 77: goto label32;
+            case 78: goto label32;
+            case 79: goto label32;
+            case 80: goto label32;
+            case 81: goto label32;
+            case 82: goto label32;
+            case 83: goto label13;
+            case 84: goto label32;
+            case 85: goto label32;
+            case 86: goto label32;
+            case 87: goto label32;
+            case 88: goto label32;
+            case 89: goto label32;
+            case 90: goto label32;
+            case 91: goto label14;
+            case 92: goto label32;
+            case 93: goto label15;
+            case 94: goto label32;
+            case 95: goto label32;
+            case 96: goto label32;
+            case 97: goto label32;
+            case 98: goto label16;
+            case 99: goto label17;
+            case 100: goto label32;
+            case 101: goto label18;
+            case 102: goto label19;
+            case 103: goto label32;
+            case 104: goto label32;
+            case 105: goto label20;
+            case 106: goto label32;
+            case 107: goto label32;
+            case 108: goto label21;
+            case 109: goto label22;
+            case 110: goto label23;
+            case 111: goto label32;
+            case 112: goto label24;
+            case 113: goto label32;
+            case 114: goto label25;
+            case 115: goto label26;
+            case 116: goto label27;
+            case 117: goto label32;
+            case 118: goto label28;
+            case 119: goto label29;
+            case 120: goto label32;
+            case 121: goto label32;
+            case 122: goto label32;
+            case 123: goto label30;
+            case 124: goto label32;
+            case 125: goto label31;
+            default: goto label32;
+        };
+
+     label01:
+        $stack32 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 22);
+
+        return $stack32;
+
+     label02:
+        $stack31 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(2097152L);
+
+        return $stack31;
+
+     label03:
+        $stack30 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 9);
+
+        return $stack30;
+
+     label04:
+        $stack29 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 10);
+
+        return $stack29;
+
+     label05:
+        $stack28 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 48);
+
+        return $stack28;
+
+     label06:
+        $stack27 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 19);
+
+        return $stack27;
+
+     label07:
+        $stack26 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 47);
+
+        return $stack26;
+
+     label08:
+        $stack25 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 20);
+
+        return $stack25;
+
+     label09:
+        $stack24 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 16);
+
+        return $stack24;
+
+     label10:
+        $stack23 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 15);
+
+        return $stack23;
+
+     label11:
+        $stack22 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 18);
+
+        return $stack22;
+
+     label12:
+        $stack21 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 17);
+
+        return $stack21;
+
+     label13:
+        $stack20 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(2473901162496L);
+
+        return $stack20;
+
+     label14:
+        $stack19 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 11);
+
+        return $stack19;
+
+     label15:
+        $stack18 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 12);
+
+        return $stack18;
+
+     label16:
+        $stack17 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(8388608L);
+
+        return $stack17;
+
+     label17:
+        $stack16 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(16777216L);
+
+        return $stack16;
+
+     label18:
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(201326592L);
+
+        return $stack15;
+
+     label19:
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(268435456L);
+
+        return $stack14;
+
+     label20:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(2717908992L);
+
+        return $stack13;
+
+     label21:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(4294967296L);
+
+        return $stack12;
+
+     label22:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(8589934592L);
+
+        return $stack11;
+
+     label23:
+        $stack10 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(17179869184L);
+
+        return $stack10;
+
+     label24:
+        $stack9 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(34359738368L);
+
+        return $stack9;
+
+     label25:
+        $stack8 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(68719476736L);
+
+        return $stack8;
+
+     label26:
+        $stack7 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(137438953472L);
+
+        return $stack7;
+
+     label27:
+        $stack6 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(1649267441664L);
+
+        return $stack6;
+
+     label28:
+        $stack5 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(4398046511104L);
+
+        return $stack5;
+
+     label29:
+        $stack4 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa1_0(long)>(1073741824L);
+
+        return $stack4;
+
+     label30:
+        $stack3 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 13);
+
+        return $stack3;
+
+     label31:
+        $stack2 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(0, 14);
+
+        return $stack2;
+
+     label32:
+        $stack33 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>(0, 0);
+
+        return $stack33;
+    }
+
+    private int jjMoveStringLiteralDfa1_0(long)
+    {
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack4;
+        char $stack5, $stack6;
+        long active0#_0, $stack16, $stack22;
+        int $stack7, $stack8, $stack9, $stack10, $stack11, $stack12, $stack13, $stack14, $stack15, $stack19, $stack20, $stack21, $stack27, $stack18;
+        byte $stack17, $stack23;
+        java.io.IOException $stack28, e#_299;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        active0#_0 := @parameter0: long;
+
+     label01:
+        $stack4 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack5 = virtualinvoke $stack4.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack5;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack28 := @caughtexception;
+
+        e#_299 = $stack28;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(0, active0#_0);
+
+        return 1;
+
+     label04:
+        $stack6 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack6)
+        {
+            case 38: goto label05;
+            case 97: goto label06;
+            case 101: goto label07;
+            case 102: goto label08;
+            case 104: goto label09;
+            case 108: goto label10;
+            case 110: goto label11;
+            case 111: goto label12;
+            case 114: goto label13;
+            case 116: goto label14;
+            case 117: goto label15;
+            case 120: goto label16;
+            case 121: goto label17;
+            default: goto label18;
+        };
+
+     label05:
+        $stack22 = active0#_0 & 2097152L;
+
+        $stack23 = $stack22 cmp 0L;
+
+        if $stack23 == 0 goto label18;
+
+        $stack27 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(1, 21);
+
+        return $stack27;
+
+     label06:
+        $stack21 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 8858370048L);
+
+        return $stack21;
+
+     label07:
+        $stack20 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 90194313216L);
+
+        return $stack20;
+
+     label08:
+        $stack16 = active0#_0 & 536870912L;
+
+        $stack17 = $stack16 cmp 0L;
+
+        if $stack17 == 0 goto label18;
+
+        $stack19 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(1, 29, 4);
+
+        return $stack19;
+
+     label09:
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 550829555712L);
+
+        return $stack15;
+
+     label10:
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 83886080L);
+
+        return $stack14;
+
+     label11:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 2181038080L);
+
+        return $stack13;
+
+     label12:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 4398054899712L);
+
+        return $stack12;
+
+     label13:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 1099511627776L);
+
+        return $stack11;
+
+     label14:
+        $stack10 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 412316860416L);
+
+        return $stack10;
+
+     label15:
+        $stack9 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 34359738368L);
+
+        return $stack9;
+
+     label16:
+        $stack8 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 134217728L);
+
+        return $stack8;
+
+     label17:
+        $stack7 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa2_0(long,long)>(active0#_0, 2199023255552L);
+
+        return $stack7;
+
+     label18:
+        $stack18 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(0, active0#_0);
+
+        return $stack18;
+
+        catch java.io.IOException from label01 to label02 with label03;
+    }
+
+    private int jjMoveStringLiteralDfa2_0(long, long)
+    {
+        long old0#_0, $stack6, $stack11, $stack16, active0#_0, active0#2#_342;
+        byte $stack7, $stack12, $stack17;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack13, $stack14, $stack15, $stack18, $stack22, $stack23, $stack24, $stack25, $stack26, $stack27, $stack28, $stack29, $stack33;
+        java.io.IOException $stack34, e#_345;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_342 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label01;
+
+        $stack33 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(0, old0#_0);
+
+        return $stack33;
+
+     label01:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack34 := @caughtexception;
+
+        e#_345 = $stack34;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(1, active0#2#_342);
+
+        return 2;
+
+     label04:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        tableswitch($stack10)
+        {
+            case 97: goto label05;
+            case 98: goto label06;
+            case 99: goto label17;
+            case 100: goto label17;
+            case 101: goto label17;
+            case 102: goto label17;
+            case 103: goto label17;
+            case 104: goto label17;
+            case 105: goto label07;
+            case 106: goto label17;
+            case 107: goto label17;
+            case 108: goto label08;
+            case 109: goto label17;
+            case 110: goto label09;
+            case 111: goto label10;
+            case 112: goto label17;
+            case 113: goto label17;
+            case 114: goto label11;
+            case 115: goto label12;
+            case 116: goto label13;
+            case 117: goto label15;
+            case 118: goto label17;
+            case 119: goto label16;
+            default: goto label17;
+        };
+
+     label05:
+        $stack29 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 137455730688L);
+
+        return $stack29;
+
+     label06:
+        $stack28 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 34359738368L);
+
+        return $stack28;
+
+     label07:
+        $stack27 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 4957466001408L);
+
+        return $stack27;
+
+     label08:
+        $stack26 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 268435456L);
+
+        return $stack26;
+
+     label09:
+        $stack25 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 4294967296L);
+
+        return $stack25;
+
+     label10:
+        $stack24 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 8388608L);
+
+        return $stack24;
+
+     label11:
+        $stack23 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 274877906944L);
+
+        return $stack23;
+
+     label12:
+        $stack22 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 2199090364416L);
+
+        return $stack22;
+
+     label13:
+        $stack16 = active0#2#_342 & 2147483648L;
+
+        $stack17 = $stack16 cmp 0L;
+
+        if $stack17 == 0 goto label14;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 31;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 2;
+
+     label14:
+        $stack18 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 68887248896L);
+
+        return $stack18;
+
+     label15:
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa3_0(long,long)>(active0#2#_342, 1099511627776L);
+
+        return $stack15;
+
+     label16:
+        $stack11 = active0#2#_342 & 17179869184L;
+
+        $stack12 = $stack11 cmp 0L;
+
+        if $stack12 == 0 goto label17;
+
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(2, 34, 4);
+
+        return $stack14;
+
+     label17:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(1, active0#2#_342);
+
+        return $stack13;
+
+        catch java.io.IOException from label01 to label02 with label03;
+    }
+
+    private int jjMoveStringLiteralDfa3_0(long, long)
+    {
+        long old0#_0, $stack6, $stack13, $stack17, $stack24, $stack26, $stack31, active0#_0, active0#2#_387;
+        byte $stack7, $stack14, $stack18, $stack25, $stack27, $stack32;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack15, $stack16, $stack20, $stack21, $stack22, $stack23, $stack28, $stack29, $stack30, $stack36, $stack37, $stack19;
+        java.io.IOException $stack38, e#_390;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_387 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label01;
+
+        $stack37 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(1, old0#_0);
+
+        return $stack37;
+
+     label01:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack38 := @caughtexception;
+
+        e#_390 = $stack38;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(2, active0#2#_387);
+
+        return 3;
+
+     label04:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        tableswitch($stack10)
+        {
+            case 100: goto label05;
+            case 101: goto label06;
+            case 102: goto label17;
+            case 103: goto label09;
+            case 104: goto label17;
+            case 105: goto label10;
+            case 106: goto label17;
+            case 107: goto label17;
+            case 108: goto label11;
+            case 109: goto label17;
+            case 110: goto label12;
+            case 111: goto label17;
+            case 112: goto label17;
+            case 113: goto label17;
+            case 114: goto label17;
+            case 115: goto label13;
+            case 116: goto label15;
+            case 117: goto label16;
+            default: goto label17;
+        };
+
+     label05:
+        $stack31 = active0#2#_387 & 4398046511104L;
+
+        $stack32 = $stack31 cmp 0L;
+
+        if $stack32 == 0 goto label17;
+
+        $stack36 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(3, 42, 4);
+
+        return $stack36;
+
+     label06:
+        $stack24 = active0#2#_387 & 67108864L;
+
+        $stack25 = $stack24 cmp 0L;
+
+        if $stack25 == 0 goto label07;
+
+        $stack30 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(3, 26, 4);
+
+        return $stack30;
+
+     label07:
+        $stack26 = active0#2#_387 & 1099511627776L;
+
+        $stack27 = $stack26 cmp 0L;
+
+        if $stack27 == 0 goto label08;
+
+        $stack29 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(3, 40, 4);
+
+        return $stack29;
+
+     label08:
+        $stack28 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 167772160L);
+
+        return $stack28;
+
+     label09:
+        $stack23 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 4294967296L);
+
+        return $stack23;
+
+     label10:
+        $stack22 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 274877906944L);
+
+        return $stack22;
+
+     label11:
+        $stack21 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 35441868800L);
+
+        return $stack21;
+
+     label12:
+        $stack17 = active0#2#_387 & 8589934592L;
+
+        $stack18 = $stack17 cmp 0L;
+
+        if $stack18 == 0 goto label17;
+
+        $stack20 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(3, 33, 4);
+
+        return $stack20;
+
+     label13:
+        $stack13 = active0#2#_387 & 549755813888L;
+
+        $stack14 = $stack13 cmp 0L;
+
+        if $stack14 == 0 goto label14;
+
+        $stack16 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(3, 39, 4);
+
+        return $stack16;
+
+     label14:
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 285212672L);
+
+        return $stack15;
+
+     label15:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 2336462209024L);
+
+        return $stack12;
+
+     label16:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa4_0(long,long)>(active0#2#_387, 68719476736L);
+
+        return $stack11;
+
+     label17:
+        $stack19 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(2, active0#2#_387);
+
+        return $stack19;
+
+        catch java.io.IOException from label01 to label02 with label03;
+    }
+
+    private int jjMoveStringLiteralDfa4_0(long, long)
+    {
+        long old0#_0, $stack6, $stack12, $stack19, $stack21, active0#_0, active0#2#_431;
+        byte $stack7, $stack13, $stack20, $stack22;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack14, $stack15, $stack16, $stack17, $stack18, $stack23, $stack24, $stack25, $stack29;
+        java.io.IOException $stack30, e#_434;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_431 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label01;
+
+        $stack29 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(2, old0#_0);
+
+        return $stack29;
+
+     label01:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack30 := @caughtexception;
+
+        e#_434 = $stack30;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(3, active0#2#_431);
+
+        return 4;
+
+     label04:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        tableswitch($stack10)
+        {
+            case 101: goto label05;
+            case 102: goto label13;
+            case 103: goto label13;
+            case 104: goto label13;
+            case 105: goto label08;
+            case 106: goto label13;
+            case 107: goto label13;
+            case 108: goto label13;
+            case 109: goto label13;
+            case 110: goto label09;
+            case 111: goto label13;
+            case 112: goto label13;
+            case 113: goto label13;
+            case 114: goto label10;
+            case 115: goto label11;
+            case 116: goto label12;
+            default: goto label13;
+        };
+
+     label05:
+        $stack19 = active0#2#_431 & 268435456L;
+
+        $stack20 = $stack19 cmp 0L;
+
+        if $stack20 == 0 goto label06;
+
+        $stack25 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(4, 28, 4);
+
+        return $stack25;
+
+     label06:
+        $stack21 = active0#2#_431 & 1073741824L;
+
+        $stack22 = $stack21 cmp 0L;
+
+        if $stack22 == 0 goto label07;
+
+        $stack24 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(4, 30, 4);
+
+        return $stack24;
+
+     label07:
+        $stack23 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>(active0#2#_431, 2199031644160L);
+
+        return $stack23;
+
+     label08:
+        $stack18 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>(active0#2#_431, 171798691840L);
+
+        return $stack18;
+
+     label09:
+        $stack17 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>(active0#2#_431, 275012124672L);
+
+        return $stack17;
+
+     label10:
+        $stack16 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>(active0#2#_431, 68753031168L);
+
+        return $stack16;
+
+     label11:
+        $stack12 = active0#2#_431 & 16777216L;
+
+        $stack13 = $stack12 cmp 0L;
+
+        if $stack13 == 0 goto label13;
+
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(4, 24, 4);
+
+        return $stack15;
+
+     label12:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa5_0(long,long)>(active0#2#_431, 4294967296L);
+
+        return $stack11;
+
+     label13:
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(3, active0#2#_431);
+
+        return $stack14;
+
+        catch java.io.IOException from label01 to label02 with label03;
+    }
+
+    private int jjMoveStringLiteralDfa5_0(long, long)
+    {
+        long old0#_0, $stack6, $stack11, $stack16, $stack22, $stack27, $stack29, active0#_0, active0#2#_465;
+        byte $stack7, $stack12, $stack17, $stack23, $stack28, $stack30;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack14, $stack15, $stack21, $stack24, $stack25, $stack26, $stack31, $stack32, $stack33, $stack34, $stack13;
+        java.io.IOException $stack35, e#_468;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_465 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label01;
+
+        $stack34 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(3, old0#_0);
+
+        return $stack34;
+
+     label01:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack35 := @caughtexception;
+
+        e#_468 = $stack35;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(4, active0#2#_465);
+
+        return 5;
+
+     label04:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        tableswitch($stack10)
+        {
+            case 97: goto label05;
+            case 98: goto label14;
+            case 99: goto label06;
+            case 100: goto label08;
+            case 101: goto label14;
+            case 102: goto label09;
+            case 103: goto label10;
+            case 104: goto label11;
+            case 105: goto label14;
+            case 106: goto label14;
+            case 107: goto label14;
+            case 108: goto label14;
+            case 109: goto label12;
+            case 110: goto label13;
+            default: goto label14;
+        };
+
+     label05:
+        $stack33 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>(active0#2#_465, 8388608L);
+
+        return $stack33;
+
+     label06:
+        $stack27 = active0#2#_465 & 34359738368L;
+
+        $stack28 = $stack27 cmp 0L;
+
+        if $stack28 == 0 goto label07;
+
+        $stack32 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(5, 35, 4);
+
+        return $stack32;
+
+     label07:
+        $stack29 = active0#2#_465 & 137438953472L;
+
+        $stack30 = $stack29 cmp 0L;
+
+        if $stack30 == 0 goto label14;
+
+        $stack31 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(5, 37, 4);
+
+        return $stack31;
+
+     label08:
+        $stack26 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>(active0#2#_465, 134217728L);
+
+        return $stack26;
+
+     label09:
+        $stack25 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>(active0#2#_465, 33554432L);
+
+        return $stack25;
+
+     label10:
+        $stack22 = active0#2#_465 & 274877906944L;
+
+        $stack23 = $stack22 cmp 0L;
+
+        if $stack23 == 0 goto label14;
+
+        $stack24 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(5, 38, 4);
+
+        return $stack24;
+
+     label11:
+        $stack16 = active0#2#_465 & 4294967296L;
+
+        $stack17 = $stack16 cmp 0L;
+
+        if $stack17 == 0 goto label14;
+
+        $stack21 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(5, 32, 4);
+
+        return $stack21;
+
+     label12:
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa6_0(long,long)>(active0#2#_465, 2199023255552L);
+
+        return $stack15;
+
+     label13:
+        $stack11 = active0#2#_465 & 68719476736L;
+
+        $stack12 = $stack11 cmp 0L;
+
+        if $stack12 == 0 goto label14;
+
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(5, 36, 4);
+
+        return $stack14;
+
+     label14:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(4, active0#2#_465);
+
+        return $stack13;
+
+        catch java.io.IOException from label01 to label02 with label03;
+    }
+
+    private int jjMoveStringLiteralDfa6_0(long, long)
+    {
+        long old0#_0, $stack6, $stack11, $stack15, active0#_0, active0#2#_507;
+        byte $stack7, $stack12, $stack16;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack14, $stack20, $stack21, $stack22, $stack23, $stack13;
+        java.io.IOException $stack24, e#_510;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_507 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack23 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(4, old0#_0);
+
+        return $stack23;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack24 := @caughtexception;
+
+        e#_510 = $stack24;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(5, active0#2#_507);
+
+        return 6;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 46: goto label5;
+            case 97: goto label6;
+            case 110: goto label7;
+            case 115: goto label8;
+            default: goto label9;
+        };
+
+     label5:
+        $stack22 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa7_0(long,long)>(active0#2#_507, 2199023255552L);
+
+        return $stack22;
+
+     label6:
+        $stack21 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa7_0(long,long)>(active0#2#_507, 33554432L);
+
+        return $stack21;
+
+     label7:
+        $stack15 = active0#2#_507 & 8388608L;
+
+        $stack16 = $stack15 cmp 0L;
+
+        if $stack16 == 0 goto label9;
+
+        $stack20 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(6, 23, 4);
+
+        return $stack20;
+
+     label8:
+        $stack11 = active0#2#_507 & 134217728L;
+
+        $stack12 = $stack11 cmp 0L;
+
+        if $stack12 == 0 goto label9;
+
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(6, 27, 4);
+
+        return $stack14;
+
+     label9:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(5, active0#2#_507);
+
+        return $stack13;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa7_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_535;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13, $stack14;
+        java.io.IOException $stack15, e#_538;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_535 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(5, old0#_0);
+
+        return $stack14;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack15 := @caughtexception;
+
+        e#_538 = $stack15;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(6, active0#2#_535);
+
+        return 7;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 99: goto label5;
+            case 111: goto label6;
+            default: goto label7;
+        };
+
+     label5:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa8_0(long,long)>(active0#2#_535, 33554432L);
+
+        return $stack12;
+
+     label6:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa8_0(long,long)>(active0#2#_535, 2199023255552L);
+
+        return $stack11;
+
+     label7:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(6, active0#2#_535);
+
+        return $stack13;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa8_0(long, long)
+    {
+        long old0#_0, $stack6, $stack12, active0#_0, active0#2#_555;
+        byte $stack7, $stack13;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack14, $stack15, $stack19;
+        java.io.IOException $stack20, e#_558;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_555 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack19 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(6, old0#_0);
+
+        return $stack19;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack20 := @caughtexception;
+
+        e#_558 = $stack20;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(7, active0#2#_555);
+
+        return 8;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 101: goto label5;
+            case 117: goto label6;
+            default: goto label7;
+        };
+
+     label5:
+        $stack12 = active0#2#_555 & 33554432L;
+
+        $stack13 = $stack12 cmp 0L;
+
+        if $stack13 == 0 goto label7;
+
+        $stack15 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfaWithStates_0(int,int,int)>(8, 25, 4);
+
+        return $stack15;
+
+     label6:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa9_0(long,long)>(active0#2#_555, 2199023255552L);
+
+        return $stack11;
+
+     label7:
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(7, active0#2#_555);
+
+        return $stack14;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa9_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_577;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_580;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_577 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(7, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_580 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(8, active0#2#_577);
+
+        return 9;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 116: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa10_0(long,long)>(active0#2#_577, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(8, active0#2#_577);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa10_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_595;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_598;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_595 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(8, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_598 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(9, active0#2#_595);
+
+        return 10;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 46: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa11_0(long,long)>(active0#2#_595, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(9, active0#2#_595);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa11_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_613;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_616;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_613 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(9, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_616 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(10, active0#2#_613);
+
+        return 11;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 112: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa12_0(long,long)>(active0#2#_613, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(10, active0#2#_613);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa12_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_631;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_634;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_631 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(10, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_634 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(11, active0#2#_631);
+
+        return 12;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 114: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa13_0(long,long)>(active0#2#_631, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(11, active0#2#_631);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa13_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_649;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_652;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_649 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(11, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_652 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(12, active0#2#_649);
+
+        return 13;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 105: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa14_0(long,long)>(active0#2#_649, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(12, active0#2#_649);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa14_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_667;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_670;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_667 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(12, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_670 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(13, active0#2#_667);
+
+        return 14;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 110: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa15_0(long,long)>(active0#2#_667, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(13, active0#2#_667);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa15_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_685;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_688;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_685 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(13, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_688 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(14, active0#2#_685);
+
+        return 15;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 116: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa16_0(long,long)>(active0#2#_685, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(14, active0#2#_685);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa16_0(long, long)
+    {
+        long old0#_0, $stack6, active0#_0, active0#2#_703;
+        byte $stack7;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack11, $stack12, $stack13;
+        java.io.IOException $stack14, e#_706;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_703 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(14, old0#_0);
+
+        return $stack13;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack14 := @caughtexception;
+
+        e#_706 = $stack14;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(15, active0#2#_703);
+
+        return 16;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 108: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa17_0(long,long)>(active0#2#_703, 2199023255552L);
+
+        return $stack11;
+
+     label6:
+        $stack12 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(15, active0#2#_703);
+
+        return $stack12;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveStringLiteralDfa17_0(long, long)
+    {
+        long old0#_0, $stack6, $stack11, active0#_0, active0#2#_721;
+        byte $stack7, $stack12;
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack8;
+        char $stack9, $stack10;
+        int $stack13, $stack14, $stack18;
+        java.io.IOException $stack19, e#_724;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        old0#_0 := @parameter0: long;
+
+        active0#_0 := @parameter1: long;
+
+        $stack6 = active0#_0 & old0#_0;
+
+        active0#2#_721 = $stack6;
+
+        $stack7 = $stack6 cmp 0L;
+
+        if $stack7 != 0 goto label1;
+
+        $stack18 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(15, old0#_0);
+
+        return $stack18;
+
+     label1:
+        $stack8 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack9 = virtualinvoke $stack8.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack9;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack19 := @caughtexception;
+
+        e#_724 = $stack19;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopStringLiteralDfa_0(int,long)>(16, active0#2#_721);
+
+        return 17;
+
+     label4:
+        $stack10 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        lookupswitch($stack10)
+        {
+            case 110: goto label5;
+            default: goto label6;
+        };
+
+     label5:
+        $stack11 = active0#2#_721 & 2199023255552L;
+
+        $stack12 = $stack11 cmp 0L;
+
+        if $stack12 == 0 goto label6;
+
+        $stack14 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStopAtPos(int,int)>(17, 41);
+
+        return $stack14;
+
+     label6:
+        $stack13 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjStartNfa_0(int,long)>(16, active0#2#_721);
+
+        return $stack13;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjStartNfaWithStates_0(int, int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int kind#_0, pos#_0, state#_0, $stack7, $stack8, $stack10;
+        JavaCharStream $stack5;
+        char $stack6;
+        java.io.IOException $stack9, e#_745;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        pos#_0 := @parameter0: int;
+
+        kind#_0 := @parameter1: int;
+
+        state#_0 := @parameter2: int;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = kind#_0;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = pos#_0;
+
+     label1:
+        $stack5 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack6 = virtualinvoke $stack5.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack6;
+
+     label2:
+        goto label4;
+
+     label3:
+        $stack9 := @caughtexception;
+
+        e#_745 = $stack9;
+
+        $stack10 = pos#_0 + 1;
+
+        return $stack10;
+
+     label4:
+        $stack7 = pos#_0 + 1;
+
+        $stack8 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveNfa_0(int,int)>(state#_0, $stack7);
+
+        return $stack8;
+
+        catch java.io.IOException from label1 to label2 with label3;
+    }
+
+    private int jjMoveNfa_0(int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int startState#_0, $stack14, $stack15, i1#_954, $stack19, $stack21, i2#_956, $stack23, $stack25, $stack29, $stack31, $stack50, $stack52, $stack65, $stack80, $stack81, $stack93, $stack94, curPos#_0, startsAt#_773, i#_775, kind#_777, l#135#_953, kind_$$A_1#_778, i_$$A_1#_778, startsAt_$$A_1#_778, curPos_$$A_1#_778, kind_$$A_2#_785, i_$$A_2#_785, i_$$A_3#_787, kind_$$A_3#_793, kind_$$A_4#_794, kind_$$A_5#_801, kind_$$A_6#_802, kind_$$A_7#_807, kind_$$A_8#_814, kind_$$A_9#_815, kind_$$A_10#_819, kind_$$A_11#_825, kind_$$A_12#_826, kind_$$A_13#_832, kind_$$A_14#_833, kind_$$A_15#_849, kind_$$A_16#_853, kind_$$A_17#_881, kind_$$A_18#_909, kind_$$A_19#_910, kind_$$A_20#_918, i_$$A_4#_918, i_$$A_5#_920, kind_$$A_21#_927, kind_$$A_22#_928, kind_$$A_23#_947, kind_$$A_24#_958, i_$$A_6#_958, i_$$A_7#_960, kind_$$A_25#_967, kind_$$A_26#_968, kind_$$A_27#_991, kind_$$A_28#_995, i_$$A_8#_995, kind_$$A_29#_1000, kind_$$A_30#_1001, curPos_$$A_2#_1002, i_$$A_9#_1003, startsAt_$$A_2#_1003;
+        int[] $stack13, $stack24, $stack51, $stack64, $stack82, $stack95;
+        char $stack16, $stack17, $stack18, $stack20, $stack22, $stack33, $stack49, $stack63, $stack66, $stack75, $stack78, $stack79, $stack83, $stack88, $stack91, $stack92, $stack96, $stack101, $stack102, $stack107, $stack110, $stack117, $stack118, $stack119;
+        long l1#_955, l2#_957, $stack59, $stack71, $stack73, $stack76, $stack84, $stack86, $stack89, $stack97, $stack99, $stack103, $stack111, $stack115, l#_778, l_$$A_1#_784, l_$$A_2#_917, l_$$A_3#_995;
+        boolean $stack26, $stack42, $stack43, $stack44, $stack45, $stack46;
+        JavaCharStream $stack32;
+        byte $stack60, $stack72, $stack74, $stack77, $stack85, $stack87, $stack90, $stack98, $stack100, $stack104, $stack112, $stack116;
+        java.io.IOException $stack126, l#164#_782;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        startState#_0 := @parameter0: int;
+
+        curPos#_0 := @parameter1: int;
+
+        startsAt#_773 = 0;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = 24;
+
+        i#_775 = 1;
+
+        $stack13 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        $stack13[0] = startState#_0;
+
+(0)     kind#_777 = 2147483647;
+
+     label01:
+        l#_778 = Phi(l#_778 #0, l_$$A_3#_995 #104);
+
+        kind_$$A_1#_778 = Phi(kind#_777 #0, kind_$$A_30#_1001 #104);
+
+        i_$$A_1#_778 = Phi(i#_775 #0, i_$$A_9#_1003 #104);
+
+        startsAt_$$A_1#_778 = Phi(startsAt#_773 #0, startsAt_$$A_2#_1003 #104);
+
+        curPos_$$A_1#_778 = Phi(curPos#_0 #0, curPos_$$A_2#_1002 #104);
+
+        $stack14 = this#_0.<MiniJavaParserTokenManager: int jjround>;
+
+        $stack15 = $stack14 + 1;
+
+        this#_0.<MiniJavaParserTokenManager: int jjround> = $stack15;
+
+        if $stack15 != 2147483647 goto label02;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void ReInitRounds()>();
+
+     label02:
+        $stack16 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack16 >= 64 goto label40;
+
+        $stack63 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(1)     l_$$A_1#_784 = 1L << $stack63;
+
+     label03:
+        kind_$$A_2#_785 = Phi(kind_$$A_1#_778 #1, kind_$$A_19#_910 #70);
+
+        i_$$A_2#_785 = Phi(i_$$A_1#_778 #1, i_$$A_3#_787 #70);
+
+        $stack64 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        i_$$A_3#_787 = i_$$A_2#_785 + -1;
+
+        $stack65 = $stack64[i_$$A_3#_787];
+
+(2)     tableswitch($stack65)
+        {
+            case 0: goto label04;
+            case 1: goto label10;
+            case 2: goto label13;
+            case 3: goto label14;
+            case 4: goto label17;
+            case 5: goto label20;
+            case 6: goto label21;
+            case 7: goto label22;
+            case 8: goto label23;
+            case 9: goto label24;
+            case 10: goto label25;
+            case 11: goto label26;
+            case 12: goto label27;
+            case 13: goto label28;
+            case 14: goto label29;
+            case 15: goto label30;
+            case 16: goto label31;
+            case 17: goto label32;
+            case 18: goto label33;
+            case 19: goto label34;
+            case 20: goto label35;
+            case 21: goto label36;
+            case 22: goto label37;
+            case 23: goto label38;
+            default: goto label39;
+        };
+
+     label04:
+        $stack115 = 287667426198290432L & l_$$A_1#_784;
+
+        $stack116 = $stack115 cmp 0L;
+
+        if $stack116 == 0 goto label06;
+
+(3)     if kind_$$A_2#_785 <= 43 goto label05;
+
+(4)     kind_$$A_3#_793 = 43;
+
+     label05:
+        kind_$$A_4#_794 = Phi(kind_$$A_2#_785 #3, kind_$$A_3#_793 #4);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(1);
+
+(5)     goto label39;
+
+     label06:
+        $stack117 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack117 != 47 goto label07;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjAddStates(int,int)>(0, 2);
+
+(6)     goto label39;
+
+     label07:
+        $stack118 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack118 != 36 goto label09;
+
+(7)     if kind_$$A_2#_785 <= 44 goto label08;
+
+(8)     kind_$$A_5#_801 = 44;
+
+     label08:
+        kind_$$A_6#_802 = Phi(kind_$$A_2#_785 #7, kind_$$A_5#_801 #8);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(4);
+
+(9)     goto label39;
+
+     label09:
+        $stack119 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(10)    if $stack119 != 48 goto label39;
+
+(11)    if kind_$$A_2#_785 <= 43 goto label39;
+
+        kind_$$A_7#_807 = 43;
+
+(12)    goto label39;
+
+     label10:
+        $stack111 = 287948901175001088L & l_$$A_1#_784;
+
+        $stack112 = $stack111 cmp 0L;
+
+        if $stack112 != 0 goto label11;
+
+(13)    goto label39;
+
+     label11:
+(14)    if kind_$$A_2#_785 <= 43 goto label12;
+
+(15)    kind_$$A_8#_814 = 43;
+
+     label12:
+        kind_$$A_9#_815 = Phi(kind_$$A_2#_785 #14, kind_$$A_8#_814 #15);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(1);
+
+(16)    goto label39;
+
+     label13:
+        $stack110 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(17)    if $stack110 != 48 goto label39;
+
+(18)    if kind_$$A_2#_785 <= 43 goto label39;
+
+        kind_$$A_10#_819 = 43;
+
+(19)    goto label39;
+
+     label14:
+        $stack107 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack107 == 36 goto label15;
+
+(20)    goto label39;
+
+     label15:
+(21)    if kind_$$A_2#_785 <= 44 goto label16;
+
+(22)    kind_$$A_11#_825 = 44;
+
+     label16:
+        kind_$$A_12#_826 = Phi(kind_$$A_2#_785 #21, kind_$$A_11#_825 #22);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(4);
+
+(23)    goto label39;
+
+     label17:
+        $stack103 = 287948969894477824L & l_$$A_1#_784;
+
+        $stack104 = $stack103 cmp 0L;
+
+        if $stack104 != 0 goto label18;
+
+(24)    goto label39;
+
+     label18:
+(25)    if kind_$$A_2#_785 <= 44 goto label19;
+
+(26)    kind_$$A_13#_832 = 44;
+
+     label19:
+        kind_$$A_14#_833 = Phi(kind_$$A_2#_785 #25, kind_$$A_13#_832 #26);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(4);
+
+(27)    goto label39;
+
+     label20:
+        $stack102 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(28)    if $stack102 != 47 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjAddStates(int,int)>(0, 2);
+
+(29)    goto label39;
+
+     label21:
+        $stack101 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(30)    if $stack101 != 47 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>(3, 5);
+
+(31)    goto label39;
+
+     label22:
+        $stack99 = -9217L & l_$$A_1#_784;
+
+        $stack100 = $stack99 cmp 0L;
+
+(32)    if $stack100 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>(3, 5);
+
+(33)    goto label39;
+
+     label23:
+        $stack97 = 9216L & l_$$A_1#_784;
+
+        $stack98 = $stack97 cmp 0L;
+
+(34)    if $stack98 == 0 goto label39;
+
+(35)    if kind_$$A_2#_785 <= 6 goto label39;
+
+        kind_$$A_15#_849 = 6;
+
+(36)    goto label39;
+
+     label24:
+        $stack96 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(37)    if $stack96 != 10 goto label39;
+
+(38)    if kind_$$A_2#_785 <= 6 goto label39;
+
+        kind_$$A_16#_853 = 6;
+
+(39)    goto label39;
+
+     label25:
+        $stack92 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(40)    if $stack92 != 13 goto label39;
+
+        $stack95 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        $stack93 = this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt>;
+
+        $stack94 = $stack93 + 1;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = $stack94;
+
+        $stack95[$stack93] = 9;
+
+(41)    goto label39;
+
+     label26:
+        $stack91 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(42)    if $stack91 != 42 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(12, 13);
+
+(43)    goto label39;
+
+     label27:
+        $stack89 = -4398046511105L & l_$$A_1#_784;
+
+        $stack90 = $stack89 cmp 0L;
+
+(44)    if $stack90 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(12, 13);
+
+(45)    goto label39;
+
+     label28:
+        $stack88 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(46)    if $stack88 != 42 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>(6, 8);
+
+(47)    goto label39;
+
+     label29:
+        $stack86 = -145135534866433L & l_$$A_1#_784;
+
+        $stack87 = $stack86 cmp 0L;
+
+(48)    if $stack87 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(15, 13);
+
+(49)    goto label39;
+
+     label30:
+        $stack84 = -4398046511105L & l_$$A_1#_784;
+
+        $stack85 = $stack84 cmp 0L;
+
+(50)    if $stack85 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(15, 13);
+
+(51)    goto label39;
+
+     label31:
+        $stack83 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(52)    if $stack83 != 47 goto label39;
+
+(53)    if kind_$$A_2#_785 <= 7 goto label39;
+
+        kind_$$A_17#_881 = 7;
+
+(54)    goto label39;
+
+     label32:
+        $stack79 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(55)    if $stack79 != 42 goto label39;
+
+        $stack82 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        $stack80 = this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt>;
+
+        $stack81 = $stack80 + 1;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = $stack81;
+
+        $stack82[$stack80] = 11;
+
+(56)    goto label39;
+
+     label33:
+        $stack78 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(57)    if $stack78 != 42 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(19, 20);
+
+(58)    goto label39;
+
+     label34:
+        $stack76 = -4398046511105L & l_$$A_1#_784;
+
+        $stack77 = $stack76 cmp 0L;
+
+(59)    if $stack77 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(19, 20);
+
+(60)    goto label39;
+
+     label35:
+        $stack75 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(61)    if $stack75 != 42 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddStates(int,int)>(9, 11);
+
+(62)    goto label39;
+
+     label36:
+        $stack73 = -145135534866433L & l_$$A_1#_784;
+
+        $stack74 = $stack73 cmp 0L;
+
+(63)    if $stack74 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(22, 20);
+
+(64)    goto label39;
+
+     label37:
+        $stack71 = -4398046511105L & l_$$A_1#_784;
+
+        $stack72 = $stack71 cmp 0L;
+
+(65)    if $stack72 == 0 goto label39;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(22, 20);
+
+(66)    goto label39;
+
+     label38:
+        $stack66 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+(67)    if $stack66 != 47 goto label39;
+
+(68)    if kind_$$A_2#_785 <= 8 goto label39;
+
+        kind_$$A_18#_909 = 8;
+
+(69)    goto label39;
+
+     label39:
+        kind_$$A_19#_910 = Phi(kind_$$A_2#_785 #2, kind_$$A_4#_794 #5, kind_$$A_2#_785 #6, kind_$$A_6#_802 #9, kind_$$A_2#_785 #10, kind_$$A_2#_785 #11, kind_$$A_7#_807 #12, kind_$$A_2#_785 #13, kind_$$A_9#_815 #16, kind_$$A_2#_785 #17, kind_$$A_2#_785 #18, kind_$$A_10#_819 #19, kind_$$A_2#_785 #20, kind_$$A_12#_826 #23, kind_$$A_2#_785 #24, kind_$$A_14#_833 #27, kind_$$A_2#_785 #28, kind_$$A_2#_785 #29, kind_$$A_2#_785 #30, kind_$$A_2#_785 #31, kind_$$A_2#_785 #32, kind_$$A_2#_785 #33, kind_$$A_2#_785 #34, kind_$$A_2#_785 #35, kind_$$A_15#_849 #36, kind_$$A_2#_785 #37, kind_$$A_2#_785 #38, kind_$$A_16#_853 #39, kind_$$A_2#_785 #40, kind_$$A_2#_785 #41, kind_$$A_2#_785 #42, kind_$$A_2#_785 #43, kind_$$A_2#_785 #44, kind_$$A_2#_785 #45, kind_$$A_2#_785 #46, kind_$$A_2#_785 #47, kind_$$A_2#_785 #48, kind_$$A_2#_785 #49, kind_$$A_2#_785 #50, kind_$$A_2#_785 #51, kind_$$A_2#_785 #52, kind_$$A_2#_785 #53, kind_$$A_17#_881 #54, kind_$$A_2#_785 #55, kind_$$A_2#_785 #56, kind_$$A_2#_785 #57, kind_$$A_2#_785 #58, kind_$$A_2#_785 #59, kind_$$A_2#_785 #60, kind_$$A_2#_785 #61, kind_$$A_2#_785 #62, kind_$$A_2#_785 #63, kind_$$A_2#_785 #64, kind_$$A_2#_785 #65, kind_$$A_2#_785 #66, kind_$$A_2#_785 #67, kind_$$A_2#_785 #68, kind_$$A_18#_909 #69);
+
+(70)    if i_$$A_3#_787 != startsAt_$$A_1#_778 goto label03;
+
+(71)    goto label62;
+
+     label40:
+        $stack17 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack17 >= 128 goto label51;
+
+        $stack49 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        $stack50 = $stack49 & 63;
+
+(72)    l_$$A_2#_917 = 1L << $stack50;
+
+     label41:
+        kind_$$A_20#_918 = Phi(kind_$$A_1#_778 #72, kind_$$A_23#_947 #83);
+
+        i_$$A_4#_918 = Phi(i_$$A_1#_778 #72, i_$$A_5#_920 #83);
+
+        $stack51 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        i_$$A_5#_920 = i_$$A_4#_918 + -1;
+
+        $stack52 = $stack51[i_$$A_5#_920];
+
+(73)    tableswitch($stack52)
+        {
+            case 0: goto label42;
+            case 1: goto label50;
+            case 2: goto label50;
+            case 3: goto label50;
+            case 4: goto label42;
+            case 5: goto label50;
+            case 6: goto label50;
+            case 7: goto label45;
+            case 8: goto label50;
+            case 9: goto label50;
+            case 10: goto label50;
+            case 11: goto label50;
+            case 12: goto label46;
+            case 13: goto label50;
+            case 14: goto label47;
+            case 15: goto label47;
+            case 16: goto label50;
+            case 17: goto label50;
+            case 18: goto label50;
+            case 19: goto label48;
+            case 20: goto label50;
+            case 21: goto label49;
+            case 22: goto label49;
+            default: goto label50;
+        };
+
+     label42:
+        $stack59 = 576460745995190270L & l_$$A_2#_917;
+
+        $stack60 = $stack59 cmp 0L;
+
+        if $stack60 != 0 goto label43;
+
+(74)    goto label50;
+
+     label43:
+(75)    if kind_$$A_20#_918 <= 44 goto label44;
+
+(76)    kind_$$A_21#_927 = 44;
+
+     label44:
+        kind_$$A_22#_928 = Phi(kind_$$A_20#_918 #75, kind_$$A_21#_927 #76);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(4);
+
+(77)    goto label50;
+
+     label45:
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjAddStates(int,int)>(3, 5);
+
+(78)    goto label50;
+
+     label46:
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(12, 13);
+
+(79)    goto label50;
+
+     label47:
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(15, 13);
+
+(80)    goto label50;
+
+     label48:
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(19, 20);
+
+(81)    goto label50;
+
+     label49:
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(22, 20);
+
+(82)    goto label50;
+
+     label50:
+        kind_$$A_23#_947 = Phi(kind_$$A_20#_918 #73, kind_$$A_20#_918 #74, kind_$$A_22#_928 #77, kind_$$A_20#_918 #78, kind_$$A_20#_918 #79, kind_$$A_20#_918 #80, kind_$$A_20#_918 #81, kind_$$A_20#_918 #82);
+
+(83)    if i_$$A_5#_920 != startsAt_$$A_1#_778 goto label41;
+
+(84)    goto label62;
+
+     label51:
+        $stack18 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        l#135#_953 = $stack18 >> 8;
+
+        i1#_954 = l#135#_953 >> 6;
+
+        $stack19 = l#135#_953 & 63;
+
+        l1#_955 = 1L << $stack19;
+
+        $stack20 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        $stack21 = $stack20 & 255;
+
+        i2#_956 = $stack21 >> 6;
+
+        $stack22 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        $stack23 = $stack22 & 63;
+
+(85)    l2#_957 = 1L << $stack23;
+
+     label52:
+        kind_$$A_24#_958 = Phi(kind_$$A_1#_778 #85, kind_$$A_27#_991 #101);
+
+        i_$$A_6#_958 = Phi(i_$$A_1#_778 #85, i_$$A_7#_960 #101);
+
+        $stack24 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        i_$$A_7#_960 = i_$$A_6#_958 + -1;
+
+        $stack25 = $stack24[i_$$A_7#_960];
+
+(86)    tableswitch($stack25)
+        {
+            case 0: goto label53;
+            case 1: goto label61;
+            case 2: goto label61;
+            case 3: goto label61;
+            case 4: goto label53;
+            case 5: goto label61;
+            case 6: goto label61;
+            case 7: goto label56;
+            case 8: goto label61;
+            case 9: goto label61;
+            case 10: goto label61;
+            case 11: goto label61;
+            case 12: goto label57;
+            case 13: goto label61;
+            case 14: goto label58;
+            case 15: goto label58;
+            case 16: goto label61;
+            case 17: goto label61;
+            case 18: goto label61;
+            case 19: goto label59;
+            case 20: goto label61;
+            case 21: goto label60;
+            case 22: goto label60;
+            default: goto label61;
+        };
+
+     label53:
+        $stack46 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_0(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+        if $stack46 != 0 goto label54;
+
+(87)    goto label61;
+
+     label54:
+(88)    if kind_$$A_24#_958 <= 44 goto label55;
+
+(89)    kind_$$A_25#_967 = 44;
+
+     label55:
+        kind_$$A_26#_968 = Phi(kind_$$A_24#_958 #88, kind_$$A_25#_967 #89);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(4);
+
+(90)    goto label61;
+
+     label56:
+        $stack45 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+(91)    if $stack45 == 0 goto label61;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjAddStates(int,int)>(3, 5);
+
+(92)    goto label61;
+
+     label57:
+        $stack44 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+(93)    if $stack44 == 0 goto label61;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(12, 13);
+
+(94)    goto label61;
+
+     label58:
+        $stack43 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+(95)    if $stack43 == 0 goto label61;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(15, 13);
+
+(96)    goto label61;
+
+     label59:
+        $stack42 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+(97)    if $stack42 == 0 goto label61;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(19, 20);
+
+(98)    goto label61;
+
+     label60:
+        $stack26 = staticinvoke <MiniJavaParserTokenManager: boolean jjCanMove_1(int,int,int,long,long)>(l#135#_953, i1#_954, i2#_956, l1#_955, l2#_957);
+
+(99)    if $stack26 == 0 goto label61;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAddTwoStates(int,int)>(22, 20);
+
+(100)   goto label61;
+
+     label61:
+        kind_$$A_27#_991 = Phi(kind_$$A_24#_958 #86, kind_$$A_24#_958 #87, kind_$$A_26#_968 #90, kind_$$A_24#_958 #91, kind_$$A_24#_958 #92, kind_$$A_24#_958 #93, kind_$$A_24#_958 #94, kind_$$A_24#_958 #95, kind_$$A_24#_958 #96, kind_$$A_24#_958 #97, kind_$$A_24#_958 #98, kind_$$A_24#_958 #99, kind_$$A_24#_958 #100);
+
+(101)   if i_$$A_7#_960 != startsAt_$$A_1#_778 goto label52;
+
+     label62:
+        l_$$A_3#_995 = Phi(l_$$A_1#_784 #71, l_$$A_2#_917 #84, l#_778 #101);
+
+        kind_$$A_28#_995 = Phi(kind_$$A_19#_910 #71, kind_$$A_23#_947 #84, kind_$$A_27#_991 #101);
+
+        i_$$A_8#_995 = Phi(i_$$A_3#_787 #71, i_$$A_5#_920 #84, i_$$A_7#_960 #101);
+
+(102)   if kind_$$A_28#_995 == 2147483647 goto label63;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = kind_$$A_28#_995;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = curPos_$$A_1#_778;
+
+(103)   kind_$$A_29#_1000 = 2147483647;
+
+     label63:
+        kind_$$A_30#_1001 = Phi(kind_$$A_28#_995 #102, kind_$$A_29#_1000 #103);
+
+        curPos_$$A_2#_1002 = curPos_$$A_1#_778 + 1;
+
+        $stack29 = this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt>;
+
+        i_$$A_9#_1003 = $stack29;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = startsAt_$$A_1#_778;
+
+        $stack31 = 24 - startsAt_$$A_1#_778;
+
+        startsAt_$$A_2#_1003 = $stack31;
+
+        if $stack29 != $stack31 goto label64;
+
+        return curPos_$$A_2#_1002;
+
+     label64:
+        $stack32 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack33 = virtualinvoke $stack32.<JavaCharStream: char readChar()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack33;
+
+     label65:
+(104)   goto label01;
+
+     label66:
+        $stack126 := @caughtexception;
+
+        l#164#_782 = $stack126;
+
+        return curPos_$$A_2#_1002;
+
+        catch java.io.IOException from label64 to label65 with label66;
+    }
+
+    private static final boolean jjCanMove_0(int, int, int, long, long)
+    {
+        int hiByte#_0, i2#_0, i1#_0;
+        long[] $stack7, $stack12, $stack17, $stack22, $stack27, $stack32;
+        long l2#_0, $stack8, $stack9, $stack13, $stack14, $stack18, $stack19, $stack23, $stack24, $stack28, $stack29, l1#_0, $stack33, $stack34;
+        byte $stack10, $stack15, $stack20, $stack25, $stack30, $stack35;
+        boolean $stack31, $stack26, $stack21, $stack16, $stack11, $stack31_$$A_1, $stack31_$$A_2, $stack26_$$A_1, $stack26_$$A_2, $stack21_$$A_1, $stack21_$$A_2, $stack16_$$A_1, $stack16_$$A_2, $stack11_$$A_1, $stack11_$$A_2;
+
+        hiByte#_0 := @parameter0: int;
+
+        i1#_0 := @parameter1: int;
+
+        i2#_0 := @parameter2: int;
+
+        l1#_0 := @parameter3: long;
+
+        l2#_0 := @parameter4: long;
+
+        lookupswitch(hiByte#_0)
+        {
+            case 0: goto label01;
+            case 48: goto label04;
+            case 49: goto label07;
+            case 51: goto label10;
+            case 61: goto label13;
+            default: goto label16;
+        };
+
+     label01:
+        $stack27 = <MiniJavaParserTokenManager: long[] jjbitVec2>;
+
+        $stack28 = $stack27[i2#_0];
+
+        $stack29 = $stack28 & l2#_0;
+
+        $stack30 = $stack29 cmp 0L;
+
+        if $stack30 == 0 goto label02;
+
+        $stack31 = 1;
+
+(0)     goto label03;
+
+     label02:
+(1)     $stack31_$$A_1 = 0;
+
+     label03:
+        $stack31_$$A_2 = Phi($stack31 #0, $stack31_$$A_1 #1);
+
+        return $stack31_$$A_2;
+
+     label04:
+        $stack22 = <MiniJavaParserTokenManager: long[] jjbitVec3>;
+
+        $stack23 = $stack22[i2#_0];
+
+        $stack24 = $stack23 & l2#_0;
+
+        $stack25 = $stack24 cmp 0L;
+
+        if $stack25 == 0 goto label05;
+
+        $stack26 = 1;
+
+(2)     goto label06;
+
+     label05:
+(3)     $stack26_$$A_1 = 0;
+
+     label06:
+        $stack26_$$A_2 = Phi($stack26 #2, $stack26_$$A_1 #3);
+
+        return $stack26_$$A_2;
+
+     label07:
+        $stack17 = <MiniJavaParserTokenManager: long[] jjbitVec4>;
+
+        $stack18 = $stack17[i2#_0];
+
+        $stack19 = $stack18 & l2#_0;
+
+        $stack20 = $stack19 cmp 0L;
+
+        if $stack20 == 0 goto label08;
+
+        $stack21 = 1;
+
+(4)     goto label09;
+
+     label08:
+(5)     $stack21_$$A_1 = 0;
+
+     label09:
+        $stack21_$$A_2 = Phi($stack21 #4, $stack21_$$A_1 #5);
+
+        return $stack21_$$A_2;
+
+     label10:
+        $stack12 = <MiniJavaParserTokenManager: long[] jjbitVec5>;
+
+        $stack13 = $stack12[i2#_0];
+
+        $stack14 = $stack13 & l2#_0;
+
+        $stack15 = $stack14 cmp 0L;
+
+        if $stack15 == 0 goto label11;
+
+        $stack16 = 1;
+
+(6)     goto label12;
+
+     label11:
+(7)     $stack16_$$A_1 = 0;
+
+     label12:
+        $stack16_$$A_2 = Phi($stack16 #6, $stack16_$$A_1 #7);
+
+        return $stack16_$$A_2;
+
+     label13:
+        $stack7 = <MiniJavaParserTokenManager: long[] jjbitVec6>;
+
+        $stack8 = $stack7[i2#_0];
+
+        $stack9 = $stack8 & l2#_0;
+
+        $stack10 = $stack9 cmp 0L;
+
+        if $stack10 == 0 goto label14;
+
+        $stack11 = 1;
+
+(8)     goto label15;
+
+     label14:
+(9)     $stack11_$$A_1 = 0;
+
+     label15:
+        $stack11_$$A_2 = Phi($stack11 #8, $stack11_$$A_1 #9);
+
+        return $stack11_$$A_2;
+
+     label16:
+        $stack32 = <MiniJavaParserTokenManager: long[] jjbitVec0>;
+
+        $stack33 = $stack32[i1#_0];
+
+        $stack34 = $stack33 & l1#_0;
+
+        $stack35 = $stack34 cmp 0L;
+
+        if $stack35 == 0 goto label17;
+
+        return 1;
+
+     label17:
+        return 0;
+    }
+
+    private static final boolean jjCanMove_1(int, int, int, long, long)
+    {
+        int hiByte#_0, i2#_0, i1#_0;
+        long[] $stack7, $stack12;
+        long l2#_0, $stack8, $stack9, l1#_0, $stack13, $stack14;
+        byte $stack10, $stack15;
+        boolean $stack11, $stack11_$$A_1, $stack11_$$A_2;
+
+        hiByte#_0 := @parameter0: int;
+
+        i1#_0 := @parameter1: int;
+
+        i2#_0 := @parameter2: int;
+
+        l1#_0 := @parameter3: long;
+
+        l2#_0 := @parameter4: long;
+
+        lookupswitch(hiByte#_0)
+        {
+            case 0: goto label1;
+            default: goto label4;
+        };
+
+     label1:
+        $stack7 = <MiniJavaParserTokenManager: long[] jjbitVec8>;
+
+        $stack8 = $stack7[i2#_0];
+
+        $stack9 = $stack8 & l2#_0;
+
+        $stack10 = $stack9 cmp 0L;
+
+        if $stack10 == 0 goto label2;
+
+        $stack11 = 1;
+
+(0)     goto label3;
+
+     label2:
+(1)     $stack11_$$A_1 = 0;
+
+     label3:
+        $stack11_$$A_2 = Phi($stack11 #0, $stack11_$$A_1 #1);
+
+        return $stack11_$$A_2;
+
+     label4:
+        $stack12 = <MiniJavaParserTokenManager: long[] jjbitVec7>;
+
+        $stack13 = $stack12[i1#_0];
+
+        $stack14 = $stack13 & l1#_0;
+
+        $stack15 = $stack14 cmp 0L;
+
+        if $stack15 == 0 goto label5;
+
+        return 1;
+
+     label5:
+        return 0;
+    }
+
+    public void <init>(JavaCharStream)
+    {
+        MiniJavaParserTokenManager this#_0;
+        java.io.PrintStream $stack2;
+        int[] $stack3, $stack4;
+        JavaCharStream stream#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        stream#_0 := @parameter0: JavaCharStream;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack2 = <java.lang.System: java.io.PrintStream out>;
+
+        this#_0.<MiniJavaParserTokenManager: java.io.PrintStream debugStream> = $stack2;
+
+        $stack3 = newarray (int)[24];
+
+        this#_0.<MiniJavaParserTokenManager: int[] jjrounds> = $stack3;
+
+        $stack4 = newarray (int)[48];
+
+        this#_0.<MiniJavaParserTokenManager: int[] jjstateSet> = $stack4;
+
+        this#_0.<MiniJavaParserTokenManager: int curLexState> = 0;
+
+        this#_0.<MiniJavaParserTokenManager: int defaultLexState> = 0;
+
+        this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream> = stream#_0;
+
+        return;
+    }
+
+    public void <init>(JavaCharStream, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream stream#_0;
+        int lexState#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        stream#_0 := @parameter0: JavaCharStream;
+
+        lexState#_0 := @parameter1: int;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void <init>(JavaCharStream)>(stream#_0);
+
+        virtualinvoke this#_0.<MiniJavaParserTokenManager: void SwitchTo(int)>(lexState#_0);
+
+        return;
+    }
+
+    public void ReInit(JavaCharStream)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int $stack3;
+        JavaCharStream stream#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        stream#_0 := @parameter0: JavaCharStream;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = 0;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 0;
+
+        $stack3 = this#_0.<MiniJavaParserTokenManager: int defaultLexState>;
+
+        this#_0.<MiniJavaParserTokenManager: int curLexState> = $stack3;
+
+        this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream> = stream#_0;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void ReInitRounds()>();
+
+        return;
+    }
+
+    private void ReInitRounds()
+    {
+        MiniJavaParserTokenManager this#_0;
+        int $stack2, i#_1098, i_$$A_1#_1099, i_$$A_2#_1098;
+        int[] $stack3;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        this#_0.<MiniJavaParserTokenManager: int jjround> = -2147483647;
+
+(0)     i#_1098 = 24;
+
+     label1:
+        i_$$A_1#_1099 = Phi(i#_1098 #0, i_$$A_2#_1098 #1);
+
+        $stack2 = i_$$A_1#_1099;
+
+        i_$$A_2#_1098 = i_$$A_1#_1099 + -1;
+
+        if $stack2 <= 0 goto label2;
+
+        $stack3 = this#_0.<MiniJavaParserTokenManager: int[] jjrounds>;
+
+        $stack3[i_$$A_2#_1098] = -2147483648;
+
+(1)     goto label1;
+
+     label2:
+        return;
+    }
+
+    public void ReInit(JavaCharStream, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream stream#_0;
+        int lexState#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        stream#_0 := @parameter0: JavaCharStream;
+
+        lexState#_0 := @parameter1: int;
+
+        virtualinvoke this#_0.<MiniJavaParserTokenManager: void ReInit(JavaCharStream)>(stream#_0);
+
+        virtualinvoke this#_0.<MiniJavaParserTokenManager: void SwitchTo(int)>(lexState#_0);
+
+        return;
+    }
+
+    public void SwitchTo(int)
+    {
+        int lexState#_0;
+        TokenMgrError $stack2;
+        java.lang.StringBuilder $stack3, $stack4, $stack5, $stack6;
+        java.lang.String $stack7;
+        MiniJavaParserTokenManager this#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        lexState#_0 := @parameter0: int;
+
+        if lexState#_0 >= 1 goto label1;
+
+        if lexState#_0 >= 0 goto label2;
+
+     label1:
+        $stack2 = new TokenMgrError;
+
+        $stack3 = new java.lang.StringBuilder;
+
+        specialinvoke $stack3.<java.lang.StringBuilder: void <init>()>();
+
+        $stack4 = virtualinvoke $stack3.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("Error: Ignoring invalid lexical state : ");
+
+        $stack5 = virtualinvoke $stack4.<java.lang.StringBuilder: java.lang.StringBuilder append(int)>(lexState#_0);
+
+        $stack6 = virtualinvoke $stack5.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(". State unchanged.");
+
+        $stack7 = virtualinvoke $stack6.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        specialinvoke $stack2.<TokenMgrError: void <init>(java.lang.String,int)>($stack7, 2);
+
+        throw $stack2;
+
+     label2:
+        this#_0.<MiniJavaParserTokenManager: int curLexState> = lexState#_0;
+
+        return;
+    }
+
+    protected Token jjFillToken()
+    {
+        MiniJavaParserTokenManager this#_0;
+        int $stack8, beginLine#_1128, beginColumn#_1129, endLine#_1130, endColumn#_1131, $stack18;
+        java.lang.String[] $stack9;
+        java.lang.String im#_1126, curTokenImage#_1127, $stack21, $stack21_$$A_1, $stack21_$$A_2;
+        JavaCharStream $stack10, $stack12, $stack14, $stack16, $stack20;
+        Token t#_1132;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        $stack9 = <MiniJavaParserTokenManager: java.lang.String[] jjstrLiteralImages>;
+
+        $stack8 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        im#_1126 = $stack9[$stack8];
+
+        if im#_1126 != null goto label1;
+
+        $stack20 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack21 = virtualinvoke $stack20.<JavaCharStream: java.lang.String GetImage()>();
+
+(0)     goto label2;
+
+     label1:
+(1)     $stack21_$$A_1 = im#_1126;
+
+     label2:
+        $stack21_$$A_2 = Phi($stack21 #0, $stack21_$$A_1 #1);
+
+        curTokenImage#_1127 = $stack21_$$A_2;
+
+        $stack10 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        beginLine#_1128 = virtualinvoke $stack10.<JavaCharStream: int getBeginLine()>();
+
+        $stack12 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        beginColumn#_1129 = virtualinvoke $stack12.<JavaCharStream: int getBeginColumn()>();
+
+        $stack14 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        endLine#_1130 = virtualinvoke $stack14.<JavaCharStream: int getEndLine()>();
+
+        $stack16 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        endColumn#_1131 = virtualinvoke $stack16.<JavaCharStream: int getEndColumn()>();
+
+        $stack18 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        t#_1132 = staticinvoke <Token: Token newToken(int,java.lang.String)>($stack18, curTokenImage#_1127);
+
+        t#_1132.<Token: int beginLine> = beginLine#_1128;
+
+        t#_1132.<Token: int endLine> = endLine#_1130;
+
+        t#_1132.<Token: int beginColumn> = beginColumn#_1129;
+
+        t#_1132.<Token: int endColumn> = endColumn#_1131;
+
+        return t#_1132;
+    }
+
+    public Token getNextToken()
+    {
+        MiniJavaParserTokenManager this#_0;
+        JavaCharStream $stack11, $stack15, $stack17, $stack19, $stack21, $stack25, $stack26, $stack62, $stack73, $stack78, $stack9;
+        char $stack12, $stack69, $stack74, $stack80, $stack82, $stack10, $stack23;
+        int $stack14, $stack35, $stack36, $stack37, $stack38, $stack40, $stack41, $stack46, $stack47, $stack49, $stack50, $stack59, $stack60, $stack61, curPos#22#_1178, e#25#_1205, error_column#_1206, $stack24, error_column_$$A_1#_1218, e#25_$$A_1#_1214, error_column_$$A_2#_1215, error_column_$$A_3#_1219, e#25_$$A_2#_1219;
+        long[] $stack39, $stack48;
+        long $stack42, $stack43, $stack44, $stack51, $stack52, $stack53, $stack70, $stack71;
+        byte $stack45, $stack54, $stack72;
+        java.io.IOException $stack77, e1#_1210, $stack86, $stack87, e#_1155, e_$$A_1#_1213, e_$$A_2#_1163;
+        Token specialToken#_1152, matchedToken#_1155, specialToken_$$A_1#_1155, matchedToken_$$A_1#_1185, matchedToken_$$A_2#_1193, specialToken_$$A_2#_1195, specialToken_$$A_3#_1199, matchedToken_$$A_3#_1166;
+        boolean curPos#_1154, EOFSeen#_1208, EOFSeen_$$A_1#_1211, EOFSeen_$$A_2#_1219;
+        java.lang.String error_after#_1207, $stack79, $stack27, $stack79_$$A_1, $stack79_$$A_2, error_after_$$A_1#_1212, $stack79_$$A_3, error_after_$$A_2#_1219, $stack27_$$A_1, $stack27_$$A_2, error_after_$$A_3#_1222, $stack27_$$A_3, error_after_$$A_4#_1223;
+        TokenMgrError $stack22;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        specialToken#_1152 = null;
+
+(0)     curPos#_1154 = 0;
+
+     label01:
+        matchedToken#_1155 = Phi(matchedToken#_1155 #0, matchedToken#_1155 #1, matchedToken#_1155 #2, matchedToken_$$A_2#_1193 #3, matchedToken_$$A_2#_1193 #4);
+
+        e#_1155 = Phi(e#_1155 #0, e_$$A_1#_1213 #1, e#_1155 #2, e#_1155 #3, e#_1155 #4);
+
+        specialToken_$$A_1#_1155 = Phi(specialToken#_1152 #0, specialToken_$$A_1#_1155 #1, specialToken_$$A_1#_1155 #2, specialToken_$$A_2#_1195 #3, specialToken_$$A_3#_1199 #4);
+
+        $stack9 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack10 = virtualinvoke $stack9.<JavaCharStream: char BeginToken()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack10;
+
+     label02:
+        goto label04;
+
+     label03:
+        $stack87 := @caughtexception;
+
+        e_$$A_2#_1163 = $stack87;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 0;
+
+        matchedToken_$$A_3#_1166 = virtualinvoke this#_0.<MiniJavaParserTokenManager: Token jjFillToken()>();
+
+        matchedToken_$$A_3#_1166.<Token: Token specialToken> = specialToken_$$A_1#_1155;
+
+        return matchedToken_$$A_3#_1166;
+
+     label04:
+        $stack11 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        virtualinvoke $stack11.<JavaCharStream: void backup(int)>(0);
+
+     label05:
+        $stack12 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack12 > 32 goto label06;
+
+        $stack69 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        $stack70 = 1L << $stack69;
+
+        $stack71 = 4294981120L & $stack70;
+
+        $stack72 = $stack71 cmp 0L;
+
+        if $stack72 == 0 goto label06;
+
+        $stack73 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack74 = virtualinvoke $stack73.<JavaCharStream: char BeginToken()>();
+
+        this#_0.<MiniJavaParserTokenManager: char curChar> = $stack74;
+
+        goto label05;
+
+     label06:
+        goto label08;
+
+     label07:
+        $stack86 := @caughtexception;
+
+        e_$$A_1#_1213 = $stack86;
+
+(1)     goto label01;
+
+     label08:
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedKind> = 2147483647;
+
+        this#_0.<MiniJavaParserTokenManager: int jjmatchedPos> = 0;
+
+        curPos#22#_1178 = specialinvoke this#_0.<MiniJavaParserTokenManager: int jjMoveStringLiteralDfa0_0()>();
+
+        $stack14 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        if $stack14 == 2147483647 goto label12;
+
+        $stack35 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        $stack36 = $stack35 + 1;
+
+        if $stack36 >= curPos#22#_1178 goto label09;
+
+        $stack62 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        $stack59 = this#_0.<MiniJavaParserTokenManager: int jjmatchedPos>;
+
+        $stack60 = curPos#22#_1178 - $stack59;
+
+        $stack61 = $stack60 - 1;
+
+        virtualinvoke $stack62.<JavaCharStream: void backup(int)>($stack61);
+
+     label09:
+        $stack39 = <MiniJavaParserTokenManager: long[] jjtoToken>;
+
+        $stack37 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        $stack38 = $stack37 >> 6;
+
+        $stack43 = $stack39[$stack38];
+
+        $stack40 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        $stack41 = $stack40 & 63;
+
+        $stack42 = 1L << $stack41;
+
+        $stack44 = $stack43 & $stack42;
+
+        $stack45 = $stack44 cmp 0L;
+
+        if $stack45 == 0 goto label10;
+
+        matchedToken_$$A_1#_1185 = virtualinvoke this#_0.<MiniJavaParserTokenManager: Token jjFillToken()>();
+
+        matchedToken_$$A_1#_1185.<Token: Token specialToken> = specialToken_$$A_1#_1155;
+
+        return matchedToken_$$A_1#_1185;
+
+     label10:
+        $stack48 = <MiniJavaParserTokenManager: long[] jjtoSpecial>;
+
+        $stack46 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        $stack47 = $stack46 >> 6;
+
+        $stack52 = $stack48[$stack47];
+
+        $stack49 = this#_0.<MiniJavaParserTokenManager: int jjmatchedKind>;
+
+        $stack50 = $stack49 & 63;
+
+        $stack51 = 1L << $stack50;
+
+        $stack53 = $stack52 & $stack51;
+
+        $stack54 = $stack53 cmp 0L;
+
+(2)     if $stack54 == 0 goto label01;
+
+        matchedToken_$$A_2#_1193 = virtualinvoke this#_0.<MiniJavaParserTokenManager: Token jjFillToken()>();
+
+        if specialToken_$$A_1#_1155 != null goto label11;
+
+        specialToken_$$A_2#_1195 = matchedToken_$$A_2#_1193;
+
+(3)     goto label01;
+
+     label11:
+        matchedToken_$$A_2#_1193.<Token: Token specialToken> = specialToken_$$A_1#_1155;
+
+        specialToken_$$A_1#_1155.<Token: Token next> = matchedToken_$$A_2#_1193;
+
+        specialToken_$$A_3#_1199 = matchedToken_$$A_2#_1193;
+
+(4)     goto label01;
+
+     label12:
+        $stack15 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        e#25#_1205 = virtualinvoke $stack15.<JavaCharStream: int getEndLine()>();
+
+        $stack17 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        error_column#_1206 = virtualinvoke $stack17.<JavaCharStream: int getEndColumn()>();
+
+        error_after#_1207 = null;
+
+        EOFSeen#_1208 = 0;
+
+     label13:
+        $stack19 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        virtualinvoke $stack19.<JavaCharStream: char readChar()>();
+
+        $stack21 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        virtualinvoke $stack21.<JavaCharStream: void backup(int)>(1);
+
+     label14:
+(5)     goto label20;
+
+     label15:
+        $stack77 := @caughtexception;
+
+        e1#_1210 = $stack77;
+
+        EOFSeen_$$A_1#_1211 = 1;
+
+        if curPos#22#_1178 > 1 goto label16;
+
+        $stack79 = "";
+
+(6)     goto label17;
+
+     label16:
+        $stack78 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+(7)     $stack79_$$A_1 = virtualinvoke $stack78.<JavaCharStream: java.lang.String GetImage()>();
+
+     label17:
+        $stack79_$$A_2 = Phi($stack79 #6, $stack79_$$A_1 #7);
+
+        error_after_$$A_1#_1212 = $stack79_$$A_2;
+
+        $stack80 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack80 == 10 goto label18;
+
+        $stack82 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        if $stack82 != 13 goto label19;
+
+     label18:
+        e#25_$$A_1#_1214 = e#25#_1205 + 1;
+
+        error_column_$$A_2#_1215 = 0;
+
+(8)     goto label20;
+
+     label19:
+(9)     error_column_$$A_1#_1218 = error_column#_1206 + 1;
+
+     label20:
+        $stack79_$$A_3 = Phi($stack79 #5, $stack79_$$A_2 #8, $stack79_$$A_2 #9);
+
+        EOFSeen_$$A_2#_1219 = Phi(EOFSeen#_1208 #5, EOFSeen_$$A_1#_1211 #8, EOFSeen_$$A_1#_1211 #9);
+
+        error_after_$$A_2#_1219 = Phi(error_after#_1207 #5, error_after_$$A_1#_1212 #8, error_after_$$A_1#_1212 #9);
+
+        error_column_$$A_3#_1219 = Phi(error_column#_1206 #5, error_column_$$A_2#_1215 #8, error_column_$$A_1#_1218 #9);
+
+        e#25_$$A_2#_1219 = Phi(e#25#_1205 #5, e#25_$$A_1#_1214 #8, e#25#_1205 #9);
+
+(10)    if EOFSeen_$$A_2#_1219 != 0 goto label23;
+
+        $stack25 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+        virtualinvoke $stack25.<JavaCharStream: void backup(int)>(1);
+
+        if curPos#22#_1178 > 1 goto label21;
+
+        $stack27 = "";
+
+(11)    goto label22;
+
+     label21:
+        $stack26 = this#_0.<MiniJavaParserTokenManager: JavaCharStream input_stream>;
+
+(12)    $stack27_$$A_1 = virtualinvoke $stack26.<JavaCharStream: java.lang.String GetImage()>();
+
+     label22:
+        $stack27_$$A_2 = Phi($stack27 #11, $stack27_$$A_1 #12);
+
+(13)    error_after_$$A_3#_1222 = $stack27_$$A_2;
+
+     label23:
+        $stack27_$$A_3 = Phi($stack27 #10, $stack27_$$A_2 #13);
+
+        error_after_$$A_4#_1223 = Phi(error_after_$$A_2#_1219 #10, error_after_$$A_3#_1222 #13);
+
+        $stack22 = new TokenMgrError;
+
+        $stack24 = this#_0.<MiniJavaParserTokenManager: int curLexState>;
+
+        $stack23 = this#_0.<MiniJavaParserTokenManager: char curChar>;
+
+        specialinvoke $stack22.<TokenMgrError: void <init>(boolean,int,int,int,java.lang.String,char,int)>(EOFSeen_$$A_2#_1219, $stack24, e#25_$$A_2#_1219, error_column_$$A_3#_1219, error_after_$$A_4#_1223, $stack23, 0);
+
+        throw $stack22;
+
+        catch java.io.IOException from label01 to label02 with label03;
+        catch java.io.IOException from label04 to label06 with label07;
+        catch java.io.IOException from label13 to label14 with label15;
+    }
+
+    private void jjCheckNAdd(int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int state#_0, $stack3, $stack4, $stack5, $stack6, $stack8;
+        int[] $stack2, $stack7, $stack9;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        state#_0 := @parameter0: int;
+
+        $stack2 = this#_0.<MiniJavaParserTokenManager: int[] jjrounds>;
+
+        $stack4 = $stack2[state#_0];
+
+        $stack3 = this#_0.<MiniJavaParserTokenManager: int jjround>;
+
+        if $stack4 == $stack3 goto label1;
+
+        $stack7 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        $stack5 = this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt>;
+
+        $stack6 = $stack5 + 1;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = $stack6;
+
+        $stack7[$stack5] = state#_0;
+
+        $stack9 = this#_0.<MiniJavaParserTokenManager: int[] jjrounds>;
+
+        $stack8 = this#_0.<MiniJavaParserTokenManager: int jjround>;
+
+        $stack9[state#_0] = $stack8;
+
+     label1:
+        return;
+    }
+
+    private void jjAddStates(int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int $stack3, $stack4, $stack7, $stack8, end#_0, start#_0, start_$$A_1#_1, start_$$A_2#_1240;
+        int[] $stack5, $stack6;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        start#_0 := @parameter0: int;
+
+(0)     end#_0 := @parameter1: int;
+
+     label1:
+        start_$$A_1#_1 = Phi(start#_0 #0, start_$$A_2#_1240 #1);
+
+        $stack5 = this#_0.<MiniJavaParserTokenManager: int[] jjstateSet>;
+
+        $stack3 = this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt>;
+
+        $stack4 = $stack3 + 1;
+
+        this#_0.<MiniJavaParserTokenManager: int jjnewStateCnt> = $stack4;
+
+        $stack6 = <MiniJavaParserTokenManager: int[] jjnextStates>;
+
+        $stack7 = $stack6[start_$$A_1#_1];
+
+        $stack5[$stack3] = $stack7;
+
+        $stack8 = start_$$A_1#_1;
+
+        start_$$A_2#_1240 = start_$$A_1#_1 + 1;
+
+(1)     if $stack8 != end#_0 goto label1;
+
+        return;
+    }
+
+    private void jjCheckNAddTwoStates(int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int state1#_0, state2#_0;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        state1#_0 := @parameter0: int;
+
+        state2#_0 := @parameter1: int;
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(state1#_0);
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>(state2#_0);
+
+        return;
+    }
+
+    private void jjCheckNAddStates(int, int)
+    {
+        MiniJavaParserTokenManager this#_0;
+        int[] $stack3;
+        int $stack4, $stack5, end#_0, start#_0, start_$$A_1#_1, start_$$A_2#_1252;
+
+        this#_0 := @this: MiniJavaParserTokenManager;
+
+        start#_0 := @parameter0: int;
+
+(0)     end#_0 := @parameter1: int;
+
+     label1:
+        start_$$A_1#_1 = Phi(start#_0 #0, start_$$A_2#_1252 #1);
+
+        $stack3 = <MiniJavaParserTokenManager: int[] jjnextStates>;
+
+        $stack4 = $stack3[start_$$A_1#_1];
+
+        specialinvoke this#_0.<MiniJavaParserTokenManager: void jjCheckNAdd(int)>($stack4);
+
+        $stack5 = start_$$A_1#_1;
+
+        start_$$A_2#_1252 = start_$$A_1#_1 + 1;
+
+(1)     if $stack5 != end#_0 goto label1;
+
+        return;
+    }
+
+    static void <clinit>()
+    {
+        long[] $stack0, $stack1, $stack2, $stack3, $stack4, $stack5, $stack6, $stack7, $stack11, $stack12, $stack13;
+        int[] $stack8;
+        java.lang.String[] $stack9, $stack10;
+
+        $stack0 = newarray (long)[4];
+
+        $stack0[0] = 2301339413881290750L;
+
+        $stack0[1] = -16384L;
+
+        $stack0[2] = 4294967295L;
+
+        $stack0[3] = 432345564227567616L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec0> = $stack0;
+
+        $stack1 = newarray (long)[4];
+
+        $stack1[0] = 0L;
+
+        $stack1[1] = 0L;
+
+        $stack1[2] = 0L;
+
+        $stack1[3] = -36028797027352577L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec2> = $stack1;
+
+        $stack2 = newarray (long)[4];
+
+        $stack2[0] = 0L;
+
+        $stack2[1] = -1L;
+
+        $stack2[2] = -1L;
+
+        $stack2[3] = -1L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec3> = $stack2;
+
+        $stack3 = newarray (long)[4];
+
+        $stack3[0] = -1L;
+
+        $stack3[1] = -1L;
+
+        $stack3[2] = 65535L;
+
+        $stack3[3] = 0L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec4> = $stack3;
+
+        $stack4 = newarray (long)[4];
+
+        $stack4[0] = -1L;
+
+        $stack4[1] = -1L;
+
+        $stack4[2] = 0L;
+
+        $stack4[3] = 0L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec5> = $stack4;
+
+        $stack5 = newarray (long)[4];
+
+        $stack5[0] = 70368744177663L;
+
+        $stack5[1] = 0L;
+
+        $stack5[2] = 0L;
+
+        $stack5[3] = 0L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec6> = $stack5;
+
+        $stack6 = newarray (long)[4];
+
+        $stack6[0] = -2L;
+
+        $stack6[1] = -1L;
+
+        $stack6[2] = -1L;
+
+        $stack6[3] = -1L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec7> = $stack6;
+
+        $stack7 = newarray (long)[4];
+
+        $stack7[0] = 0L;
+
+        $stack7[1] = 0L;
+
+        $stack7[2] = -1L;
+
+        $stack7[3] = -1L;
+
+        <MiniJavaParserTokenManager: long[] jjbitVec8> = $stack7;
+
+        $stack8 = newarray (int)[12];
+
+        $stack8[0] = 6;
+
+        $stack8[1] = 17;
+
+        $stack8[2] = 18;
+
+        $stack8[3] = 7;
+
+        $stack8[4] = 8;
+
+        $stack8[5] = 10;
+
+        $stack8[6] = 13;
+
+        $stack8[7] = 14;
+
+        $stack8[8] = 16;
+
+        $stack8[9] = 20;
+
+        $stack8[10] = 21;
+
+        $stack8[11] = 23;
+
+        <MiniJavaParserTokenManager: int[] jjnextStates> = $stack8;
+
+        $stack9 = newarray (java.lang.String)[49];
+
+        $stack9[0] = "";
+
+        $stack9[1] = null;
+
+        $stack9[2] = null;
+
+        $stack9[3] = null;
+
+        $stack9[4] = null;
+
+        $stack9[5] = null;
+
+        $stack9[6] = null;
+
+        $stack9[7] = null;
+
+        $stack9[8] = null;
+
+        $stack9[9] = "(";
+
+        $stack9[10] = ")";
+
+        $stack9[11] = "[";
+
+        $stack9[12] = "]";
+
+        $stack9[13] = "{";
+
+        $stack9[14] = "}";
+
+        $stack9[15] = ";";
+
+        $stack9[16] = ".";
+
+        $stack9[17] = "=";
+
+        $stack9[18] = "<";
+
+        $stack9[19] = "+";
+
+        $stack9[20] = "-";
+
+        $stack9[21] = "&&";
+
+        $stack9[22] = "!";
+
+        $stack9[23] = "boolean";
+
+        $stack9[24] = "class";
+
+        $stack9[25] = "interface";
+
+        $stack9[26] = "else";
+
+        $stack9[27] = "extends";
+
+        $stack9[28] = "false";
+
+        $stack9[29] = "if";
+
+        $stack9[30] = "while";
+
+        $stack9[31] = "int";
+
+        $stack9[32] = "length";
+
+        $stack9[33] = "main";
+
+        $stack9[34] = "new";
+
+        $stack9[35] = "public";
+
+        $stack9[36] = "return";
+
+        $stack9[37] = "static";
+
+        $stack9[38] = "String";
+
+        $stack9[39] = "this";
+
+        $stack9[40] = "true";
+
+        $stack9[41] = "System.out.println";
+
+        $stack9[42] = "void";
+
+        $stack9[43] = null;
+
+        $stack9[44] = null;
+
+        $stack9[45] = null;
+
+        $stack9[46] = null;
+
+        $stack9[47] = ",";
+
+        $stack9[48] = "*";
+
+        <MiniJavaParserTokenManager: java.lang.String[] jjstrLiteralImages> = $stack9;
+
+        $stack10 = newarray (java.lang.String)[1];
+
+        $stack10[0] = "DEFAULT";
+
+        <MiniJavaParserTokenManager: java.lang.String[] lexStateNames> = $stack10;
+
+        $stack11 = newarray (long)[1];
+
+        $stack11[0] = 457396837154305L;
+
+        <MiniJavaParserTokenManager: long[] jjtoToken> = $stack11;
+
+        $stack12 = newarray (long)[1];
+
+        $stack12[0] = 510L;
+
+        <MiniJavaParserTokenManager: long[] jjtoSkip> = $stack12;
+
+        $stack13 = newarray (long)[1];
+
+        $stack13[0] = 448L;
+
+        <MiniJavaParserTokenManager: long[] jjtoSpecial> = $stack13;
+
+        return;
+    }
+}

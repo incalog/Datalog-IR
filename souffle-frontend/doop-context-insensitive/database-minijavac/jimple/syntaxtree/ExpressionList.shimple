@@ -1,0 +1,89 @@
+public class syntaxtree.ExpressionList extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.Expression f0;
+    public syntaxtree.ExpressionTail f1;
+
+    public void <init>(syntaxtree.Expression, syntaxtree.ExpressionTail)
+    {
+        syntaxtree.ExpressionList this#_0;
+        syntaxtree.Expression n0#_0;
+        syntaxtree.ExpressionTail n1#_0;
+
+        this#_0 := @this: syntaxtree.ExpressionList;
+
+        n0#_0 := @parameter0: syntaxtree.Expression;
+
+        n1#_0 := @parameter1: syntaxtree.ExpressionTail;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.ExpressionList: syntaxtree.Expression f0> = n0#_0;
+
+        this#_0.<syntaxtree.ExpressionList: syntaxtree.ExpressionTail f1> = n1#_0;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.ExpressionList this#_0;
+
+        this#_0 := @this: syntaxtree.ExpressionList;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.ExpressionList)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.ExpressionList this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.ExpressionList;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.ExpressionList,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.ExpressionList this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.ExpressionList;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.ExpressionList)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.ExpressionList this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.ExpressionList;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.ExpressionList,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

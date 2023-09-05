@@ -1,0 +1,6 @@
+<Main: void <init>()>	<Main: void <init>()>/@this
+<Point: void print()>	<Point: void print()>/@this
+<Point: void <init>(int,int)>	<Point: void <init>(int,int)>/@this
+<Point: int getX()>	<Point: int getX()>/@this
+<Point: Point add(Point)>	<Point: Point add(Point)>/@this
+<Point: Point add(int,int)>	<Point: Point add(int,int)>/@this

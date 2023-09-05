@@ -5,16 +5,18 @@ import inca.util.TupleOps
 import org.eclipse.collections.api.multimap.set.MutableSetMultimap
 import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
-
+import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable
 import scala.jdk.FunctionWrappers.AsJavaConsumer
 
 /* Marker trait for binary indices that uniquely identify V from K */
 trait BinaryMapIndex[K, V] extends BinaryIndex[K, V]
 
-abstract class BinaryIndex[K,V] extends Index {
-  def entries: Iterable[(K,V)]
+abstract class BinaryIndex[K, V] extends Index {
+  def entries: Iterable[(K, V)]
   def index(k: K): Iterable[V]
   def indexInverted(v: V): Iterable[K]
 
@@ -35,7 +37,7 @@ abstract class BinaryIndex[K,V] extends Index {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {
         index(seed.get(0).asInstanceOf[K]).size
-      } else if (!isOrdered ) {
+      } else if (!isOrdered) {
         indexInverted(seed.get(1).asInstanceOf[V]).size
       } else {
         0
@@ -50,7 +52,9 @@ abstract class BinaryIndex[K,V] extends Index {
         0
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for bijective virtual index " + this
+      )
     }
   }
 
@@ -77,35 +81,41 @@ abstract class BinaryIndex[K,V] extends Index {
         Seq()
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for bijective virtual index " + this
+      )
     }
   }
 
-  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
+  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Any] = {
     val maskLength = mask.indices.length
     if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {
         val k = seed.get(0).asInstanceOf[K]
-        index(k).map(Tuples.staticArityFlatTupleOf(k, _))
+        index(k)
       } else {
         val v = seed.get(1).asInstanceOf[V]
-        indexInverted(v).map(Tuples.staticArityFlatTupleOf(_, v))
+        indexInverted(v)
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for enumerateValues in binary index " + this
+      )
     }
   }
-
 
   def insert(k: K, v: V): Unit
   def delete(k: K, v: V): Unit
   def update(k: K, vold: V, vnew: V): Unit
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
-  protected val listenKey: MutableSetMultimap[K, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
-  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
-  protected val listenKeyVal: MutableSetMultimap[Tuple, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
+  protected val listenKey: MutableSetMultimap[K, IQueryRuntimeContextListener] =
+    Multimaps.mutable.set.empty()
+  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] =
+    Multimaps.mutable.set.empty()
+  protected val listenKeyVal: MutableSetMultimap[Tuple, IQueryRuntimeContextListener] =
+    Multimaps.mutable.set.empty()
 
   final protected def notify(k: K, v: V, isInsertion: Boolean): Unit = {
     val t = Tuples.staticArityFlatTupleOf(k, v)
@@ -153,4 +163,3 @@ abstract class BinaryIndex[K,V] extends Index {
     }
   }
 }
-

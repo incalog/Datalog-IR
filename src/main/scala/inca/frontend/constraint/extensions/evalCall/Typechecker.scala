@@ -2,7 +2,8 @@ package inca.frontend.constraint.extensions.evalCall
 
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.evalCall.Trees._
-import inca.frontend.constraint.typechecker.{CoreTypechecker, TypeHelper}
+import inca.frontend.constraint.typechecker.CoreTypechecker
+import inca.frontend.constraint.typechecker.TypeHelper
 import inca.util.Scala
 
 trait Typechecker extends CoreTypechecker {
@@ -32,7 +33,10 @@ trait Typechecker extends CoreTypechecker {
       }
 
       if (params.size != args.size) {
-        error(s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in call", exp)
+        error(
+          s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in call",
+          exp
+        )
       }
 
       params.zipAll(args, null, null) foreach {

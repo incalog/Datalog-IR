@@ -1,0 +1,155 @@
+public class typechecking.ClassSymbol extends java.lang.Object
+{
+    java.util.HashMap memberSymbolMap;
+    java.util.HashMap methodSymbolMap;
+    java.lang.String parentClass;
+
+    public void <init>(java.lang.String)
+    {
+        typechecking.ClassSymbol this#_0;
+        java.util.HashMap $stack2, $stack3;
+        java.lang.String parentClass#_0;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        parentClass#_0 := @parameter0: java.lang.String;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<typechecking.ClassSymbol: java.lang.String parentClass> = null;
+
+        $stack2 = new java.util.HashMap;
+
+        specialinvoke $stack2.<java.util.HashMap: void <init>()>();
+
+        this#_0.<typechecking.ClassSymbol: java.util.HashMap memberSymbolMap> = $stack2;
+
+        $stack3 = new java.util.HashMap;
+
+        specialinvoke $stack3.<java.util.HashMap: void <init>()>();
+
+        this#_0.<typechecking.ClassSymbol: java.util.HashMap methodSymbolMap> = $stack3;
+
+        this#_0.<typechecking.ClassSymbol: java.lang.String parentClass> = parentClass#_0;
+
+        return;
+    }
+
+    public int putMember(java.lang.String, java.lang.String)
+    {
+        typechecking.ClassSymbol this#_0;
+        java.lang.String name#_0, type#_0;
+        java.util.HashMap $stack3, $stack5;
+        java.lang.Object $stack4;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        name#_0 := @parameter0: java.lang.String;
+
+        type#_0 := @parameter1: java.lang.String;
+
+        $stack3 = this#_0.<typechecking.ClassSymbol: java.util.HashMap memberSymbolMap>;
+
+        $stack4 = virtualinvoke $stack3.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(name#_0);
+
+        if $stack4 != null goto label1;
+
+        $stack5 = this#_0.<typechecking.ClassSymbol: java.util.HashMap memberSymbolMap>;
+
+        virtualinvoke $stack5.<java.util.HashMap: java.lang.Object put(java.lang.Object,java.lang.Object)>(name#_0, type#_0);
+
+        goto label2;
+
+     label1:
+        return -1;
+
+     label2:
+        return 0;
+    }
+
+    public int putMethod(java.lang.String, typechecking.MethodSymbol)
+    {
+        typechecking.ClassSymbol this#_0;
+        java.lang.String signature#_0;
+        java.util.HashMap $stack3, $stack5;
+        java.lang.Object $stack4;
+        typechecking.MethodSymbol ms#_0;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        signature#_0 := @parameter0: java.lang.String;
+
+        ms#_0 := @parameter1: typechecking.MethodSymbol;
+
+        $stack3 = this#_0.<typechecking.ClassSymbol: java.util.HashMap methodSymbolMap>;
+
+        $stack4 = virtualinvoke $stack3.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(signature#_0);
+
+        if $stack4 != null goto label1;
+
+        $stack5 = this#_0.<typechecking.ClassSymbol: java.util.HashMap methodSymbolMap>;
+
+        virtualinvoke $stack5.<java.util.HashMap: java.lang.Object put(java.lang.Object,java.lang.Object)>(signature#_0, ms#_0);
+
+        goto label2;
+
+     label1:
+        return -1;
+
+     label2:
+        return 0;
+    }
+
+    public java.lang.String getParentClass()
+    {
+        typechecking.ClassSymbol this#_0;
+        java.lang.String $stack1;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        $stack1 = this#_0.<typechecking.ClassSymbol: java.lang.String parentClass>;
+
+        return $stack1;
+    }
+
+    public typechecking.MethodSymbol getMethod(java.lang.String)
+    {
+        typechecking.ClassSymbol this#_0;
+        java.lang.String signature#_0;
+        java.util.HashMap $stack2;
+        java.lang.Object $stack3;
+        typechecking.MethodSymbol $stack4;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        signature#_0 := @parameter0: java.lang.String;
+
+        $stack2 = this#_0.<typechecking.ClassSymbol: java.util.HashMap methodSymbolMap>;
+
+        $stack3 = virtualinvoke $stack2.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(signature#_0);
+
+        $stack4 = (typechecking.MethodSymbol) $stack3;
+
+        return $stack4;
+    }
+
+    public java.lang.String getMemberType(java.lang.String)
+    {
+        typechecking.ClassSymbol this#_0;
+        java.lang.String memberName#_0, $stack4;
+        java.util.HashMap $stack2;
+        java.lang.Object $stack3;
+
+        this#_0 := @this: typechecking.ClassSymbol;
+
+        memberName#_0 := @parameter0: java.lang.String;
+
+        $stack2 = this#_0.<typechecking.ClassSymbol: java.util.HashMap memberSymbolMap>;
+
+        $stack3 = virtualinvoke $stack2.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(memberName#_0);
+
+        $stack4 = (java.lang.String) $stack3;
+
+        return $stack4;
+    }
+}

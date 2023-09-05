@@ -1,10 +1,9 @@
 package inca.frontend.constraint.datamodelresolver
 
-import inca.frontend.constraint.core.NativeDataModel
-import org.scalatest.funsuite.AnyFunSuite
 import inca.analyzedLangs.tinyJava
 import inca.analyzedLangs.Exp
-
+import inca.frontend.constraint.core.NativeDataModel
+import org.scalatest.funsuite.AnyFunSuite
 
 class NativeDataModelResolverTest extends AnyFunSuite {
   test("resolve top-level declarations") {

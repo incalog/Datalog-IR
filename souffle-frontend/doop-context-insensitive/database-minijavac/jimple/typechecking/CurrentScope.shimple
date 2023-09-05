@@ -1,0 +1,104 @@
+class typechecking.CurrentScope extends java.lang.Object
+{
+    java.lang.String parentScope;
+    java.util.HashMap currentScopeMap;
+
+    public void <init>(java.lang.String)
+    {
+        typechecking.CurrentScope this#_0;
+        java.lang.String parentScope#_0;
+        java.util.HashMap $stack2;
+
+        this#_0 := @this: typechecking.CurrentScope;
+
+        parentScope#_0 := @parameter0: java.lang.String;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<typechecking.CurrentScope: java.lang.String parentScope> = parentScope#_0;
+
+        $stack2 = new java.util.HashMap;
+
+        specialinvoke $stack2.<java.util.HashMap: void <init>()>();
+
+        this#_0.<typechecking.CurrentScope: java.util.HashMap currentScopeMap> = $stack2;
+
+        return;
+    }
+
+    public int put(java.lang.String, java.lang.String)
+    {
+        typechecking.CurrentScope this#_0;
+        java.lang.String name#_0, type#_0;
+        java.util.HashMap $stack3, $stack5;
+        java.lang.Object $stack4;
+
+        this#_0 := @this: typechecking.CurrentScope;
+
+        name#_0 := @parameter0: java.lang.String;
+
+        type#_0 := @parameter1: java.lang.String;
+
+        $stack3 = this#_0.<typechecking.CurrentScope: java.util.HashMap currentScopeMap>;
+
+        $stack4 = virtualinvoke $stack3.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(name#_0);
+
+        if $stack4 != null goto label1;
+
+        $stack5 = this#_0.<typechecking.CurrentScope: java.util.HashMap currentScopeMap>;
+
+        virtualinvoke $stack5.<java.util.HashMap: java.lang.Object put(java.lang.Object,java.lang.Object)>(name#_0, type#_0);
+
+        goto label2;
+
+     label1:
+        return -1;
+
+     label2:
+        return 0;
+    }
+
+    public java.lang.String get(java.lang.String)
+    {
+        typechecking.CurrentScope this#_0;
+        java.lang.String name#_0, $stack4;
+        java.util.HashMap $stack2;
+        java.lang.Object $stack3;
+
+        this#_0 := @this: typechecking.CurrentScope;
+
+        name#_0 := @parameter0: java.lang.String;
+
+        $stack2 = this#_0.<typechecking.CurrentScope: java.util.HashMap currentScopeMap>;
+
+        $stack3 = virtualinvoke $stack2.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(name#_0);
+
+        $stack4 = (java.lang.String) $stack3;
+
+        return $stack4;
+    }
+
+    public java.lang.String getParentScopeName()
+    {
+        typechecking.CurrentScope this#_0;
+        java.lang.String $stack1;
+
+        this#_0 := @this: typechecking.CurrentScope;
+
+        $stack1 = this#_0.<typechecking.CurrentScope: java.lang.String parentScope>;
+
+        return $stack1;
+    }
+
+    public java.util.HashMap print()
+    {
+        typechecking.CurrentScope this#_0;
+        java.util.HashMap $stack1;
+
+        this#_0 := @this: typechecking.CurrentScope;
+
+        $stack1 = this#_0.<typechecking.CurrentScope: java.util.HashMap currentScopeMap>;
+
+        return $stack1;
+    }
+}

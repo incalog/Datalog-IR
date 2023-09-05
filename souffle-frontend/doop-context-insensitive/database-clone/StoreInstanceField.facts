@@ -1,0 +1,4 @@
+<Point: void <init>(int,int)>/write-field-x/0	4	<Point: void <init>(int,int)>/l1#_0	<Point: void <init>(int,int)>/l0#_0	<Point: int x>	<Point: void <init>(int,int)>
+<Point: void <init>(int,int)>/write-field-y/0	5	<Point: void <init>(int,int)>/l2#_0	<Point: void <init>(int,int)>/l0#_0	<Point: int y>	<Point: void <init>(int,int)>
+<Point: Point increaseXTill(int)>/write-field-x/0	11	<Point: Point increaseXTill(int)>/$stack8	<Point: Point increaseXTill(int)>/l2#_34	<Point: int x>	<Point: Point increaseXTill(int)>
+<Point: Point increaseXTill2(int)>/write-field-x/0	11	<Point: Point increaseXTill2(int)>/$stack8	<Point: Point increaseXTill2(int)>/l2#_42	<Point: int x>	<Point: Point increaseXTill2(int)>

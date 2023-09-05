@@ -1,43 +1,60 @@
 package inca.frontend.constraint.parser
 
-import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.compiler.SourceLocation
+import fastparse.ScalaWhitespace._
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala
-
-import scala.language.reflectiveCalls
+import scala.meta.parsers._
+import scala.meta.parsers.Parsed
 import scala.meta.Term
-import scala.meta.parsers.{Parsed, _}
 
 /**
-  * Parser for the IncA Core language.
-  */
+ * Parser for the IncA Core language.
+ */
 trait CoreParser {
 
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
-    Set("module", "import","def", "undef", "true",
-      "false", "aggregate", "count", "_", "unit", "yield",
-      "union", "private", "assert", "fail", "continue", "datamodel", "native", "tree-sitter")
+    Set(
+      "module",
+      "import",
+      "def",
+      "undef",
+      "true",
+      "false",
+      "aggregate",
+      "count",
+      "_",
+      "unit",
+      "yield",
+      "union",
+      "private",
+      "assert",
+      "fail",
+      "continue",
+      "datamodel",
+      "native",
+      "tree-sitter"
+    )
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /** Parse a variable identifier.
-    * The first character must be an alphabetical one. After that digits and underscores are also allowed
-    */
+  /**
+   * Parse a variable identifier. The first character must be an alphabetical one. After that digits
+   * and underscores are also allowed
+   */
   def identifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
-      if (allKeywords.contains(s)) return fastparse.Fail
-      else Name(s)
-    }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** A parser for fully qualified identifier. Allows '.' in the name */
   protected[frontend] def fullyQualifiedIdentifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).mapWithLoc { s =>
-      if(allKeywords.contains(s)) return fastparse.Fail else Name(s)
-  }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** TNode parser */
   protected[frontend] def tNode[_: P]: P[TNode] = P(fullyQualifiedIdentifier.!).mapWithLoc(TNode)
@@ -53,8 +70,15 @@ trait CoreParser {
 
   /** Type parser */
   protected[frontend] def typeAnno[_: P]: P[Type] =
-    P(tAnyLinked | simpleType("Any", TAny) | simpleType("Boolean", TLiteral.Bool) | simpleType("Long", TLiteral.Long) |
-        simpleType("Int", TLiteral.Int) | simpleType("Double", TLiteral.Double) | simpleType("String", TLiteral.String) |
+    P(
+      tAnyLinked | simpleType("Any", TAny) | simpleType("Boolean", TLiteral.Bool) | simpleType(
+        "Long",
+        TLiteral.Long
+      ) |
+        simpleType("Int", TLiteral.Int) | simpleType("Double", TLiteral.Double) | simpleType(
+          "String",
+          TLiteral.String
+        ) |
         simpleType("Unit", TTuple(Seq())) | tLinked | tIterable | tTuple | scalaType
     )
 
@@ -70,7 +94,7 @@ trait CoreParser {
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] = {
     P("(" ~ typeAnno ~ ")") |
-    P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").mapWithLoc(TTuple)
+      P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").mapWithLoc(TTuple)
   }
 
   /** TList parser */
@@ -93,26 +117,29 @@ trait CoreParser {
 
   /** Whole number parser */
   protected[frontend] def numericLiteral[_: P]: P[Literal] =
-    P("-".!.? ~~ ParserUtils.rawInteger ~~
-      (("L" | "l").map(_=>"long") |
-        "d".!.map(_=>"double") |
-        "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?
-      ).?
+    P(
+      "-".!.? ~~ ParserUtils.rawInteger ~~
+        (("L" | "l").map(_ => "long") |
+          "d".!.map(_ => "double") |
+          "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?).?
     ).flatMapWithLoc { case (sign, whole, suffix) =>
       val integral = sign.getOrElse("") + whole
       suffix match {
-        case None => integral.toIntOption match {
-          case Some(i) => Pass(IntLiteral(i))
-          case None => Fail
-        }
-        case Some("long") => integral.toLongOption match {
-          case Some(l) => Pass(LongLiteral(l))
-          case None => Fail
-        }
-        case Some("double") => integral.toDoubleOption match {
-          case Some(d) => Pass(DoubleLiteral(d))
-          case None => Fail
-        }
+        case None =>
+          integral.toIntOption match {
+            case Some(i) => Pass(IntLiteral(i))
+            case None => Fail
+          }
+        case Some("long") =>
+          integral.toLongOption match {
+            case Some(l) => Pass(LongLiteral(l))
+            case None => Fail
+          }
+        case Some("double") =>
+          integral.toDoubleOption match {
+            case Some(d) => Pass(DoubleLiteral(d))
+            case None => Fail
+          }
         case Some(fraction) =>
           s"$integral.$fraction".toDoubleOption match {
             case Some(d) => Pass(DoubleLiteral(d))
@@ -130,8 +157,8 @@ trait CoreParser {
 
   /** Param parser */
   protected[frontend] def param[_: P]: P[Param] =
-    P(identifier ~ ":" ~ typeAnno).mapWithLoc {
-      case (name, typeAnno) => Param(name, typeAnno)
+    P(identifier ~ ":" ~ typeAnno).mapWithLoc { case (name, typeAnno) =>
+      Param(name, typeAnno)
     }
 
   /** Link parser */
@@ -165,50 +192,58 @@ trait CoreParser {
   protected[frontend] def namedLink[_: P]: P[CoreLink] =
     P(identifier).mapWithLoc(NamedLink.apply)
 
-
   /** Exp parser */
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
   protected[frontend] def wideExp[_: P]: P[Expression] =
-    P(("def " ~ exp).mapWithLoc(Def) |
-      ("undef " ~ exp).mapWithLoc(Undef) |
-      ("count " ~ callExp).mapWithLoc(Count) |
-      infixExp)
+    P(
+      ("def " ~ exp).mapWithLoc(Def) |
+        ("undef " ~ exp).mapWithLoc(Undef) |
+        ("count " ~ callExp).mapWithLoc(Count) |
+        infixExp
+    )
 
   protected[frontend] def infixExp[_: P]: P[Expression] =
     P(
-      (dotExp ~ "==" ~ dotExp).mapWithLoc{ case (l,r) => Eq(l,r) } |
-      (dotExp ~ "!=" ~ dotExp).mapWithLoc{ case (l,r) => Neq(l,r) } |
-      dotExp
+      (dotExp ~ "==" ~ dotExp).mapWithLoc { case (l, r) => Eq(l, r) } |
+        (dotExp ~ "!=" ~ dotExp).mapWithLoc { case (l, r) => Neq(l, r) } |
+        dotExp
     )
 
   protected[frontend] def dotExp[_: P]: P[Expression] = {
-    (atomicExp ~ trailExp.rep).map {
-      case (e, trails) =>
-        trails.foldLeft(e)((left, trailer) => trailer(left))
+    (atomicExp ~ trailExp.rep).map { case (e, trails) =>
+      trails.foldLeft(e)((left, trailer) => trailer(left))
     }
   }
 
   protected[frontend] def trailExp[_: P]: P[Expression => Expression] =
-    P("." ~ "isInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => InstanceOf(_, ty)) |
-    P("." ~ "notInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => NotInstanceOf(_, ty)) |
-    P("." ~ link).mapWithLocFun[Expression, Expression](l => PathAccess(_, l)) |
-    P(":" ~ typeAnno).mapWithLocFun[Expression, Expression](ty => Cast(_, ty))
+    P("." ~ "isInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty =>
+      InstanceOf(_, ty)) |
+      P("." ~ "notInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty =>
+        NotInstanceOf(_, ty)) |
+      P("." ~ link).mapWithLocFun[Expression, Expression](l => PathAccess(_, l)) |
+      P(":" ~ typeAnno).mapWithLocFun[Expression, Expression](ty => Cast(_, ty))
 
   protected[frontend] def atomicExp[_: P]: P[Expression] =
-    P(evalExp | callExp | wildcardExp | constantExp | varExp
-     | tupleExp | aggregateExp | parensExp)
+    P(
+      evalExp | callExp | wildcardExp | constantExp | varExp
+        | tupleExp | aggregateExp | parensExp
+    )
 
-
-  protected[frontend] def Chain[_: P, A <: SourceLocation, B <: SourceLocation](p: => P[A], op: String, q: => P[B], opNode: (A, B) => A, min: Int = 0): P[A] =
-    P( p ~ (op ~ q).rep(min) ).mapWithLoc {
-      case (lhs, chunks) =>
-        chunks.foldLeft(lhs){case (lhs, rhs) =>
-          val node = opNode(lhs, rhs)
-          node.startIndex = lhs.startIndex
-          node.endIndex = rhs.endIndex
-          node
-        }
+  protected[frontend] def Chain[_: P, A <: SourceLocation, B <: SourceLocation](
+      p: => P[A],
+      op: String,
+      q: => P[B],
+      opNode: (A, B) => A,
+      min: Int = 0
+    ): P[A] =
+    P(p ~ (op ~ q).rep(min)).mapWithLoc { case (lhs, chunks) =>
+      chunks.foldLeft(lhs) { case (lhs, rhs) =>
+        val node = opNode(lhs, rhs)
+        node.startIndex = lhs.startIndex
+        node.endIndex = rhs.endIndex
+        node
+      }
     }
 
   /** Eval parser */
@@ -258,8 +293,8 @@ trait CoreParser {
 
   /** Values parser */
   final protected[frontend] def valuesStatement[_: P]: P[CoreStatement] =
-    P("vals " ~ identifier ~ "<-" ~ typeAnno).mapWithLoc {
-      case (name, typeAnno) => Values(name, typeAnno)
+    P("vals " ~ identifier ~ "<-" ~ typeAnno).mapWithLoc { case (name, typeAnno) =>
+      Values(name, typeAnno)
     }
 
   /** Assign parser */
@@ -267,8 +302,8 @@ trait CoreParser {
     P(singleAssignStatement | multipleAssignStatement)
 
   final protected[frontend] def singleAssignStatement[_: P]: P[CoreStatement] =
-    P("val " ~ identifier ~ "=" ~ exp).mapWithLoc {
-      case (name, expr) => Assign(Seq(name), expr)
+    P("val " ~ identifier ~ "=" ~ exp).mapWithLoc { case (name, expr) =>
+      Assign(Seq(name), expr)
     }
 
   final protected[frontend] def multipleAssignStatement[_: P]: P[CoreStatement] =
@@ -283,15 +318,18 @@ trait CoreParser {
   /** Body parser */
   protected[frontend] def body[_: P]: P[Body] =
     P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply) |
-    P(statement).mapWithLoc(s => Body(Seq(s)))
+      P(statement).mapWithLoc(s => Body(Seq(s)))
 
-  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
-  protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno
+  protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] =
+    P("@main").map(_ => MainFunctionAnno)
 
   /** PatternFunction parser */
   protected[frontend] def patternFunction[_: P]: P[ModuleContent] = {
-    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ bodyList).mapWithLoc{
-      case (annos, vis, name, params, ty, bodies) => PatternFunction(annos, vis, name, params, ty, bodies)
+    P(
+      annotation.rep ~ visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ bodyList
+    ).mapWithLoc { case (annos, vis, name, params, ty, bodies) =>
+      PatternFunction(annos, vis, name, params, ty, bodies)
     }
   }
 
@@ -300,12 +338,13 @@ trait CoreParser {
 
   /** Module parser */
   def module[_: P]: P[Module] =
-    P("module " ~ identifier ~
-      datamodel.rep ~
-      importNode.rep ~
-      import_.rep ~
-      moduleContent.rep ~
-      End
+    P(
+      "module " ~ identifier ~
+        datamodel.rep ~
+        importNode.rep ~
+        import_.rep ~
+        moduleContent.rep ~
+        End
     ).mapWithLoc { case (name, dataModels, nodeImports, imports, contents) =>
       Module(name, dataModels, imports, nodeImports, contents.flatten)
     }
@@ -324,10 +363,9 @@ trait CoreParser {
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)
 
-
   def scalaModuleContent[_: P]: P[Seq[ModuleContent]] =
     P("```" ~/ takeCharsUntil("```")).flatMap(s => nativeStatHelper(s, multiple = true)) |
-    P("`" ~ takeCharsUntil("`")).flatMap(s => nativeStatHelper(s, multiple = false))
+      P("`" ~ takeCharsUntil("`")).flatMap(s => nativeStatHelper(s, multiple = false))
 
   def takeCharsUntil[_: P](p: => P[_]): P[String] =
     p.map(_ => "") | P(SingleChar ~~ takeCharsUntil(p)).map { case (c, str) => c +: str }
@@ -349,7 +387,6 @@ trait CoreParser {
     P(visibility.? ~ "val" ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc {
       case (vis, name, ty, expression) => ValDef(vis, name, ty, expression)
     }
-
 
   /** Yield parser */
   protected[frontend] def yieldStatement[_: P]: P[Statement] =
@@ -382,38 +419,34 @@ trait CoreParser {
       Aggregate(agg, bodies)
     }
 
-
   implicit class Ploc[T](p: => P[T])(implicit ctx: P[_]) {
     def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
-      (Index ~ p ~ Index).map {
-        case (start, t, end) =>
-          val u = f(t)
-          u.startIndex = start
-          u.endIndex = end
-          u
+      (Index ~ p ~ Index).map { case (start, t, end) =>
+        val u = f(t)
+        u.startIndex = start
+        u.endIndex = end
+        u
       }
 
     def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
-      (Index ~ p ~ Index).map {
-        case (start, t, end) =>
-          val uv = f(t)
-          u => {
-            val v = uv(u)
-            v.startIndex = u.startIndex
-            v.endIndex = end
-            v
-          }
+      (Index ~ p ~ Index).map { case (_, t, end) =>
+        val uv = f(t)
+        u => {
+          val v = uv(u)
+          v.startIndex = u.startIndex
+          v.endIndex = end
+          v
+        }
       }
 
     def flatMapWithLoc[U <: SourceLocation](f: T => P[U]): P[U] =
-      (Index ~ p ~ Index).flatMap {
-        case (start, t, end) =>
-          val up = f(t)
-          up.map { u =>
-            u.startIndex = start
-            u.endIndex = end
-            u
-          }
+      (Index ~ p ~ Index).flatMap { case (start, t, end) =>
+        val up = f(t)
+        up.map { u =>
+          u.startIndex = start
+          u.endIndex = end
+          u
+        }
       }
   }
 }

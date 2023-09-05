@@ -1,7 +1,6 @@
 package inca.frontend.constraint.core
 
-import inca.compiler.SourceLocation
-
+import inca.compiler.source.SourceLocation
 
 sealed trait Literal extends SourceLocation {
   def prettyprint: String
@@ -22,5 +21,5 @@ case class DoubleLiteral(v: Double) extends Literal {
   override def prettyprint: String = v.toString
 }
 case class StringLiteral(v: String) extends Literal {
-  override def prettyprint: String = '\"' + v + '\"'
+  override def prettyprint: String = s""""$v""""
 }

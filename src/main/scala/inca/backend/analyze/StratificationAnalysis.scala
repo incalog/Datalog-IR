@@ -11,8 +11,10 @@ object StratificationAnalysis {
   def analyze(mod: Module): Unit = {
     val negCycles = detNegCycles(mod)
     if (negCycles.nonEmpty) {
-      val prettyNegCycles = negCycles.map{ c => c.mkString(" -> ")}.mkString("{", "}, {", "}")
-      throw StratificationException(s"Datalog program contains cyclic dependency with a negation: $prettyNegCycles")
+      val prettyNegCycles = negCycles.map { c => c.mkString(" -> ") }.mkString("{", "}, {", "}")
+      throw StratificationException(
+        s"Datalog program contains cyclic dependency with a negation: $prettyNegCycles"
+      )
     }
   }
 

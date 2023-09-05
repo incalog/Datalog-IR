@@ -1,0 +1,101 @@
+public class syntaxtree.IntegerType extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.NodeToken f0;
+
+    public void <init>(syntaxtree.NodeToken)
+    {
+        syntaxtree.IntegerType this#_0;
+        syntaxtree.NodeToken n0#_0;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        n0#_0 := @parameter0: syntaxtree.NodeToken;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.IntegerType: syntaxtree.NodeToken f0> = n0#_0;
+
+        return;
+    }
+
+    public void <init>()
+    {
+        syntaxtree.IntegerType this#_0;
+        syntaxtree.NodeToken $stack1;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack1 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack1.<syntaxtree.NodeToken: void <init>(java.lang.String)>("int");
+
+        this#_0.<syntaxtree.IntegerType: syntaxtree.NodeToken f0> = $stack1;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.IntegerType this#_0;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.IntegerType)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.IntegerType this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.IntegerType,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.IntegerType this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.IntegerType)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.IntegerType this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.IntegerType;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.IntegerType,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

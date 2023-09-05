@@ -1,0 +1,18 @@
+final class MiniJavaParser$JJCalls extends java.lang.Object
+{
+    int gen;
+    Token first;
+    int arg;
+    MiniJavaParser$JJCalls next;
+
+    void <init>()
+    {
+        MiniJavaParser$JJCalls this#_0;
+
+        this#_0 := @this: MiniJavaParser$JJCalls;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+}

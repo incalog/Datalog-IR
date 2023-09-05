@@ -1,10 +1,10 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog._
 import inca.backend.ir.util.TypeOps
+import inca.backend.ir.Datalog._
+import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 import inca.util.Scala
-
 import scala.collection.immutable.MultiDict
 
 /**
@@ -44,9 +44,14 @@ object InferVarTypes extends Optimization {
       }
 
       def addPatArgTypes(name: Name, args: Seq[Term]): Unit = {
-        val params = funs.getOrElse(name, throw new IllegalArgumentException(s"Unbound pattern function $name"))
+        val params = funs.getOrElse(
+          name,
+          throw new IllegalArgumentException(s"Unbound pattern function $name")
+        )
         if (params.size != args.size)
-          throw new IllegalArgumentException(s"Pattern call of $name has wrong number of arguments $args")
+          throw new IllegalArgumentException(
+            s"Pattern call of $name has wrong number of arguments $args"
+          )
         params.zip(args).foreach { case (param, arg) =>
           addType(arg, param.typ)
         }
@@ -61,7 +66,7 @@ object InferVarTypes extends Optimization {
         case HasType(t, typ) =>
           addType(t, typ)
         case NotHasType(t, typ) =>
-          // nothing (FoldConstantConstraints will eliminate the constraint if possible)
+        // nothing (FoldConstantConstraints will eliminate the constraint if possible)
         case Path(src, srcTy, link, trg, trgTy) =>
           addType(src, srcTy)
           addType(trg, trgTy)
@@ -71,14 +76,14 @@ object InferVarTypes extends Optimization {
           if (!neg)
             addPatArgTypes(name, args)
         case ExtensionalCall(name, args, neg) =>
-          // nothing
+        // nothing
         case Undef(t) =>
-          // nothing
+        // nothing
         case Computed(lhs, computation) =>
           computation match {
             case CountAggregation(patName, args) =>
               addPatArgTypes(patName, args)
-              addType(lhs, TScalaInt)
+              addType(lhs, base.TScalaInt)
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)
@@ -104,12 +109,13 @@ object InferVarTypes extends Optimization {
     }
 
     override def optimizeTerm(term: Term): Term = term match {
-      case v: Var => mostSpecificVarTypes.get(v) match {
-        case Some(typ) =>
-          v.typ = Some(typ)
-          v
-        case None => v
-      }
+      case v: Var =>
+        mostSpecificVarTypes.get(v) match {
+          case Some(typ) =>
+            v.typ = Some(typ)
+            v
+          case None => v
+        }
       case c: Constant => c
     }
   }
