@@ -1,6 +1,7 @@
 package inca
 
 //import dotty.tools.dotc.ast.untpd.{Ident, Literal, Select}
+import dotty.tools.dotc
 import dotty.tools.dotc.core.Names.Name
 import dotty.tools.dotc.semanticdb.Descriptor.Term
 
@@ -30,7 +31,7 @@ object Inspect {
         quotes.reflect.noSymbol
   }*/
 
-  @experimental
+  /*@experimental
   def transTemplate(templ: meta.Template)(using Quotes): List[quotes.reflect.Definition] = {
     templ.stats.map(s => transStat(s))
   }
@@ -77,26 +78,121 @@ object Inspect {
     case s: meta.Defn.Class => transClass(s)
     case d: meta.Defn.Def => transDef(d)
     case _ => throw new IllegalArgumentException(s"Can not convert stat\n $stat : ${stat.getClass}")
+  }*/
+
+  def runScala3(code: String): Any = {
+    import dotty.tools.io.AbstractFile
+    import dotty.tools.dotc.core.Contexts.Context
+    import dotty.tools.dotc.Driver
+    import dotty.tools.dotc.util.SourceFile
+    import dotty.tools.io.{VirtualDirectory, VirtualFile}
+    import java.net.URLClassLoader
+    import java.nio.charset.StandardCharsets
+    import dotty.tools.repl.AbstractFileClassLoader
+    import scala.io.Codec
+
+    def compileCode(
+                     code: String,
+                     classpathDirectories: List[AbstractFile],
+                     outputDirectory: AbstractFile
+                   ): Unit = {
+      class DriverImpl extends Driver {
+        private val compileCtx0 = initCtx.fresh
+
+        given Context = compileCtx0.fresh
+          .setSetting(
+            compileCtx0.settings.classpath,
+            classpathDirectories.map(_.path).mkString(":")
+          ).setSetting(
+          compileCtx0.settings.usejavacp,
+          true
+        ).setSetting(
+          compileCtx0.settings.outputDir,
+          outputDirectory
+        )
+
+        val compiler: dotc.Compiler = newCompiler
+      }
+
+      val driver = new DriverImpl
+      import driver.given Context
+
+      val sourceFile = SourceFile(VirtualFile("(inline)", code.getBytes(StandardCharsets.UTF_8)), Codec.UTF8)
+      val run = driver.compiler.newRun
+      run.compileSources(List(sourceFile))
+    }
+
+    def runObjectMethod(
+                         objectName: String,
+                         classLoader: ClassLoader,
+                         methodName: String,
+                         paramClasses: Seq[Class[?]],
+                         arguments: Any*
+                       ): Any = {
+      val clazz = Class.forName(s"$objectName$$", true, classLoader)
+      val module = clazz.getField("MODULE$").get(null)
+      val method = module.getClass.getMethod(methodName, paramClasses *)
+      method.invoke(module, arguments *)
+    }
+
+    val outputDirectory = VirtualDirectory("(memory)")
+    compileCode(code, List() /*files.map(f => AbstractFile.getFile(f.toURI.toURL.getPath)).toList*/ , outputDirectory)
+    val classLoader = AbstractFileClassLoader(outputDirectory, this.getClass.getClassLoader /*depClassLoader*/)
+    runObjectMethod("mypackage.Main", classLoader, "main", Seq(classOf[Array[String]]), Array.empty[String])
   }
 
-  @experimental
+  // Still working even in Scala3 to run Scala2 code
+  def runScala2(code: String): Any = {
+    import scala.tools.reflect.ToolBox // implicit
+
+    val tb = scala.reflect.runtime.universe
+      .runtimeMirror(getClass.getClassLoader)
+      .mkToolBox()
+    val tree = tb.parse(code)
+    val compiled = tb.compile(tree)
+    compiled()
+  }
+
+  //@experimental
   def test_parse(): Any = {
     import scala.meta.Source
     import meta.XtensionParseInputLike
     // This allows us to parse Scala3 source code
-    import scala.meta.dialects.Scala3
+    //import scala.meta.dialects.Scala3
 
-    val program =
+    // Important: No package + write main method in module body
+    val program2 =
       """
-        |class Main extends App {
-        | def test(): Unit = {
-        |   print("Hello!")
+        |class Main {
+        | def test(): String = {
+        |   println("Hello, World!")
+        |   return "ok"
         | }
         |}
+        |val m = new Main()
+        |m.test()
+        |
         | """.stripMargin
-    val tree = program.parse[Source].get
+    //val tree = program.parse[Source].get
 
-    val apl: (Int, String) => Any = staging.run {
+    // Important: Include package and do not write code in the module body
+    val program3 =
+      s"""
+         |package mypackage
+         |
+         |object Main {
+         |  def main(args: Array[String]): Any = {
+         |    println("Hello, World!")
+         |    return "ok"
+         |  }
+         |}""".stripMargin
+
+    val scala2 = runScala2(program2)
+    val scala3 = runScala3(program3)
+
+    s"scala2: $scala2  && scala3: $scala3"
+
+    /*val apl: (Int, String) => Any = staging.run {
       import quotes.reflect.*
 
       println(tree.stats.map { s => transStat(s) })
@@ -110,7 +206,7 @@ object Inspect {
       addSuffix
     }
 
-    apl.apply(3, "blub")
+    apl.apply(3, "blub")*/
 
   }
 
