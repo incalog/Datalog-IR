@@ -5,8 +5,8 @@ import inca.ir.typing.BaseIRTypechecker
 import inca.ir.{TAny, Term, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  override protected[ir] def typecheckInternal(term: Term, hint: Option[Type], bound: Boundedness): Type = term match {
-    case Project(t, idx) => typecheck(t, None, Boundedness.Must) match {
+  override protected[ir] def typecheckInternal(term: Term, hint: Option[Type]): Type = term match {
+    case Project(t, idx) => typecheckMust(t, None) match {
       case TTuple(tys) if idx < tys.size =>
         tys(idx)
       case TTuple(tys) =>
@@ -16,8 +16,8 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Can not project on type: $ty", term)
         TAny
     }
-    case Tuple(ts) => TTuple(ts.map(typecheck(_, None, bound)))
-    case _ => super.typecheckInternal(term, hint, bound)
+    case Tuple(ts) => TTuple(ts.map(typecheck(_, None)))
+    case _ => super.typecheckInternal(term, hint)
   }
 
   override protected[ir] def subtype(ty1: Type, ty2:  Type): Boolean = (ty1, ty2) match {

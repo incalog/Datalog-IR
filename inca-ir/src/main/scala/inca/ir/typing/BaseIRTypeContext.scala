@@ -12,11 +12,23 @@ trait BaseIRTypeContext extends TypeIO:
   enum Boundedness:
     case Must
     case Bind
+    
+    def flipped: Boundedness = this match
+      case Must => Bind
+      case Bind => Must
 
   object Boundedness:
     def apply(positive: Boolean): Boundedness = if (positive) Boundedness.Bind else Boundedness.Must
 
   var bound: Boundedness = Boundedness.Must
+  def withBound[A](b: Boundedness)(f: => A): A = {
+    val old = bound
+    bound = b
+    try f finally
+      bound = old
+  }
+  inline def withMustBound[A](f: => A): A = withBound(Boundedness.Must)(f)
+  inline def withBindBound[A](f: => A): A = withBound(Boundedness.Bind)(f)
 
   var vars: Map[Name, VarInfo] = Map()
 

@@ -7,6 +7,6 @@ import inca.ir.typing.BaseIRTypechecker
 trait Typechecker extends BaseIRTypechecker:
   override def typecheck(atom: Atom): Unit = atom match
     case Demand(ts) =>
-      ts.foreach(typecheck(_, None, Boundedness.Bind))
+      ts.foreach(typecheckBind(_, None))
     case _ =>
       super.typecheck(atom)

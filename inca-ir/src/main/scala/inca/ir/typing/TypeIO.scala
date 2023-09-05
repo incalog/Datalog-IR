@@ -45,6 +45,16 @@ trait TypeIO:
       throw Failed(errors)
   }
 
+  def withErrors[A](f: => A): (A, List[CompilationMessage]) =
+    val oldErrors = errors.toList
+    errors.clear()
+    val a = f
+    val newErrors = errors.toList
+    errors.clear()
+    errors ++= oldErrors
+    (a, newErrors)
+
+
 
 object TypeIO:
   /* Errors that can occur in typechecking */
