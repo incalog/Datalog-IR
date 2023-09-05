@@ -145,7 +145,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("if example") {
     val code = FileUtil.readFile("functional/unittests/If.finca")
-    assertControlTraceSize(code, "main")(4)
+    assertControlTraceSize(code, "main")(3)
   }
 
   test("if example 2") {
@@ -297,6 +297,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("plus example extra") {
     val code =
       s"""
+        |module Test
+        |data Nat = Zero() | Succ(Nat)
+        |
         |def plus(m: Nat, n: Nat): Nat =
         | let x = 1 + 2 in
         | m match {
