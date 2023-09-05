@@ -59,13 +59,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
         val paramTys = params.map(_.ty)
         // Assign a type to a variable in case it was previously unbound
-        args.zip(paramTys).foreach {
-          case (arg@Var(name), paramTy) if arg.typ.isEmpty => assignType(arg)(paramTy)
-          case (arg, paramTy) => // Nothing
-        }
         // typecheck all args and thereby bind any missing variables
-        val bound = Bound(positive)
-        val argTys = args.map(typecheck(_, bound))
+        val bound = Boundedness(positive)
+        val argTys = args.zip(paramTys).map { case (a, pty) => typecheck(a, Some(pty), bound) }
         args.zip(argTys).zip(paramTys).foreach { case ((a, aTy), pTy) =>
           assertSubtype(pTy, aTy, a, atom)
         }
@@ -80,8 +76,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         TAny
       case v => // Nothing
     }
-    val bound = Bound(positive)
-    args.foreach(typecheck(_, bound))
+    val bound = Boundedness(positive)
+    args.foreach(typecheck(_, ???, bound))
   }
 
   def typecheck(atom: Atom): Unit = atom match {
@@ -101,52 +97,44 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       if (lhsIsFree && rhsIsFree) {
         error(s"Neither $lhs nor $rhs is positively bound, comparison not possible", atom)
       } else if (lhsIsFree) {
-        val rhsTy = typecheck(rhs, Bound.Assert)
-        // assign the expected type for unbound vars
-        typecheck(lhs, Bound.Assign)
-        assignType(lhs)(rhsTy)
+        val rhsTy = typecheck(rhs, None, Boundedness.Must)
+        typecheck(lhs, Some(rhsTy), Boundedness.Bind)
       } else if (rhsIsFree) {
-        val lhsTy = typecheck(lhs, Bound.Assert)
-        // assign the expected type for unbound vars
-        typecheck(rhs, Bound.Assign)
-        assignType(rhs)(lhsTy)
+        val lhsTy = typecheck(lhs, None, Boundedness.Must)
+        typecheck(rhs, Some(lhsTy), Boundedness.Bind)
       } else {
-        val lhsTy = typecheck(lhs, Bound.Assert)
-        val rhsTy = typecheck(rhs, Bound.Assert)
+        val lhsTy = typecheck(lhs, None, Boundedness.Must)
+        val rhsTy = typecheck(rhs, None, Boundedness.Must)
         if (!subtype(lhsTy, rhsTy) && !subtype(rhsTy, lhsTy))
           warn("Comparing unrelated types will always fail!", atom)
       }
 
     case Neq(lhs, rhs) =>
-      val lhsTy = typecheck(lhs, Bound.Assert)
-      val rhsTy = typecheck(rhs, Bound.Assert)
+      val lhsTy = typecheck(lhs, None, Boundedness.Must)
+      val rhsTy = typecheck(rhs, None, Boundedness.Must)
       assertSubtype(lhsTy, rhsTy, atom)
 
     case _ =>
       throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
   }
 
-  enum Bound:
-    case Assert
-    case Assign
-
-  object Bound:
-    def apply(positive: Boolean): Bound = if (positive) Bound.Assign else Bound.Assert
-
-  final def typecheck(term: Term, bound: Bound): Type = assignType(term) {
+  final def typecheck(term: Term, hint: Option[Type], bound: Boundedness): Type = assignType(term) {
     term match
       case v@Var(name) => bound match
-        case Bound.Assert => lookupVar(name) match
-          case None | Some(VarInfo(_, _, false)) =>
+        case Boundedness.Must => lookupVar(name) match
+          case None =>
             error(s"Expected positively bound variable, but $name is unbound", term)
             TAny
+          case Some(VarInfo(_, ty, false)) =>
+            error(s"Expected positively bound variable, but $name is unbound", term)
+            ty
           case Some(info) => info.ty
-        case Bound.Assign => lookupVar(name) match
+        case Boundedness.Bind => lookupVar(name) match
           case Some(VarInfo(_, ty, positive)) =>
             if (!positive)
               bindVar(name)
             ty
-          case None => term.typ match
+          case None => hint.orElse(term.typ) match
             case None =>
               error(s"Cannot infer type of variable $name", term)
               TAny
@@ -157,9 +145,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case _ => typecheckInternal(term, term.typ, bound)
   }
 
-  protected[ir] def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match {
+  protected[ir] def typecheckInternal(term: Term, hint: Option[Type], bound: Boundedness): Type = term match {
     case v@Var(name) =>
-      (lookupVar(name), inferred) match {
+      (lookupVar(name), hint) match {
         case (Some(info), _) => // lookup was a bound variable or a param
           info.ty
         case (None, Some(ty)) => // inferred a type for an unbound variable

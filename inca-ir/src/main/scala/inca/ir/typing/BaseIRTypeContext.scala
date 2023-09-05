@@ -9,6 +9,15 @@ trait BaseIRTypeContext extends TypeIO:
   case class VarInfo(target: Var.Target, ty: Type, positive: Boolean):
     def termType: TermType = TermType(ty, positive)
 
+  enum Boundedness:
+    case Must
+    case Bind
+
+  object Boundedness:
+    def apply(positive: Boolean): Boundedness = if (positive) Boundedness.Bind else Boundedness.Must
+
+  var bound: Boundedness = Boundedness.Must
+
   var vars: Map[Name, VarInfo] = Map()
 
   def scopedTypeContext[T](f: => T): T = {

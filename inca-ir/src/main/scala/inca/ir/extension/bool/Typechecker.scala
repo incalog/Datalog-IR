@@ -12,26 +12,26 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.subtype(ty1, ty2)
 
   override def typecheck(atom: Atom): Unit = atom match
-    case BoolAtom(t) => typecheck(t, Bound.Assert)
+    case BoolAtom(t) => typecheck(t, Some(TBoolean), Boundedness.Must)
     case _ => super.typecheck(atom)
 
-  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
+  override def typecheckInternal(term: Term, hint: Option[Type], bound: Boundedness): Type = term match
     case AtomAsBool(a: Atom) => TBoolean
-    case BoolAnd(t1, t2) => (typecheck(t1, Bound.Assert), typecheck(t2, Bound.Assert)) match
+    case BoolAnd(t1, t2) => (typecheck(t1, Some(TBoolean), Boundedness.Must), typecheck(t2, Some(TBoolean), Boundedness.Must)) match
       case (TBoolean, TBoolean) => TBoolean
       case (ty1, ty2) =>
         error(s"Expected booleans, but got $ty1, $ty2", term)
         TAny
-    case BoolOr(t1, t2) => (typecheck(t1, Bound.Assert), typecheck(t2, Bound.Assert)) match
+    case BoolOr(t1, t2) => (typecheck(t1, Some(TBoolean), Boundedness.Must), typecheck(t2, Some(TBoolean), Boundedness.Must)) match
       case (TBoolean, TBoolean) => TBoolean
       case (ty1, ty2) =>
         error(s"Expected booleans, but got $ty1, $ty2", term)
         TAny
-    case BoolNot(t) => typecheck(t, Bound.Assert) match
+    case BoolNot(t) => typecheck(t, Some(TBoolean), Boundedness.Must) match
       case TBoolean => TBoolean
       case ty =>
         error(s"Expected a boolean, but got $ty", term)
         TAny
     case BoolFalse => TBoolean
     case BoolTrue => TBoolean
-    case _ => super.typecheckInternal(term, inferred, bound)
+    case _ => super.typecheckInternal(term, hint, bound)

@@ -14,11 +14,11 @@ trait Typechecker extends BaseIRTypechecker:
 
   override def typecheck(atom: Atom): Unit = atom match
     case LT(lhs, rhs) =>
-      typecheck(lhs, Bound.Assert)
-      typecheck(rhs, Bound.Assert)
+      typecheck(lhs, None, Boundedness.Must)
+      typecheck(rhs, None, Boundedness.Must)
     case GT(lhs, rhs) =>
-      typecheck(lhs, Bound.Assert)
-      typecheck(rhs, Bound.Assert)
+      typecheck(lhs, None, Boundedness.Must)
+      typecheck(rhs, None, Boundedness.Must)
     case _ => super.typecheck(atom)
 
   private def typecheckInfixOp(ty1: Type, ty2: Type): Type = {
@@ -26,13 +26,13 @@ trait Typechecker extends BaseIRTypechecker:
     join(ty1, ty2)
   }
 
-  override def typecheckInternal(term: Term, inferred: Option[Type], bound: Bound): Type = term match
-    case Add(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
-    case Sub(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
-    case Mul(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
-    case Div(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
-    case Min(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
-    case Max(lhs, rhs) => typecheckInfixOp(typecheck(lhs, Bound.Assert), typecheck(rhs, Bound.Assert))
+  override def typecheckInternal(term: Term, hint: Option[Type], bound: Boundedness): Type = term match
+    case Add(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
+    case Sub(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
+    case Mul(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
+    case Div(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
+    case Min(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
+    case Max(lhs, rhs) => typecheckInfixOp(typecheck(lhs, None, Boundedness.Must), typecheck(rhs, None, Boundedness.Must))
     case IntNum(_) => TInt
     case DoubleNum(_) => TDouble
-    case _ => super.typecheckInternal(term, inferred, bound)
+    case _ => super.typecheckInternal(term, hint, bound)
