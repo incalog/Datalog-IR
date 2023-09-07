@@ -1,0 +1,8 @@
+module matchcase
+
+data Nat = Nil() | Succ(Nat)
+
+@main def add(n: Nat, m: Nat): Nat = m match{
+    case Nil() => n
+    case Succ(<resolved>z) => add(Succ(n), <ref>z)
+}

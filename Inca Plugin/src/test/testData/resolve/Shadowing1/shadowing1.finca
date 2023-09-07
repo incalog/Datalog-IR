@@ -1,0 +1,3 @@
+module shadowing1
+
+def main(): Int = let x = true in let <resolved>x = 1 in <ref>x

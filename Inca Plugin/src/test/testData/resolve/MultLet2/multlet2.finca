@@ -1,0 +1,3 @@
+module multlet2
+
+@main def add(): Double = let (x, <resolved>y) = (1.2, 2.9) in x + <ref>y

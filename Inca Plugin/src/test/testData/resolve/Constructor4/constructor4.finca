@@ -1,0 +1,5 @@
+module constructor4
+
+data Nat = <resolved>Zero() | Succ(Nat)
+
+@main def main(Zero:Long,Succ:Long): Double = <ref>Zero + Succ

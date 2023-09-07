@@ -1,0 +1,135 @@
+
+
+Module ::= 'module ' Id Import* ModuleContent*  
+
+Id ::= Char NumChar* !'if' !'let' !'in' !'match' !'fail' !'Option' !'None' !'Some' !'Set' !'fold'
+
+Char ::= 'A' | ... | 'Z' | 'a' | ... | 'z' | '_'  
+
+Num ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'  
+
+NumChar ::= Num | Char
+
+Import ::= 'import ' Id  
+
+ModuleContent ::= FunDef | DataDef  
+
+FunDef ::= Annotation* Visibility? ' def ' Id '(' ParamList '):' TypeAnnotation '=' Exp  
+
+ParamList ::= epsilon | Param (',' Param)*  
+
+Param ::= Id ':' TypeAnnotaion  
+
+Annotation ::= '@main'   
+ 
+Visibility ::= 'private'  
+
+DataDef ::=  Annotation* Visibility? ' data ' Id '=' DataConstructor ('|' DataConstructor)* 
+
+DataConstructor ::= Id '(' TypeAnnotation (',' TypeAnnotation)* ')' | Id '(' ')' 
+
+TypeAnnotation ::= FunType | AtomicType
+
+FunType ::= AtomicType '=>' TypeAnnotation  
+
+AtomicType ::= Tuple | 'Any' | 'Nothing' | 'Unit' | Option | Set | ScalaType | Data
+
+Tuple ::= '(' ')' | '(' TypeAnnotation (',' TypeAnnotation)* ')'  
+
+Option ::= 'Option' '[' TypeAnnotation ']'   
+
+Set ::= 'Set' '[' TypeAnnotation ']'   
+
+ScalaType ::= 'Int' | 'Long' | 'String' | 'Boolean' | 'Double' | '`'    
+
+Exp ::= IfExp | LetExp | MemberExp | InfixExp
+
+IfExp ::= 'if' '(' Exp ')' Exp 'else' Exp  
+
+LetExp ::= SingleLet | MultLet
+
+SingleLet ::= 'let ' Id (':' TypeAnnotation)? '=' InfixExp ' in ' Exp 
+
+MultLet ::= 'let ' '(' Id (':' TypeAnnotation)? (',' Id (':' TypeAnnotation)?)* ')' '=' InfixExp ' in ' Exp  
+
+MemberExp ::= AtomicExp ' not '? ' in ' InfixExp  
+
+InfixExp ::=  CastExp | BaseApplyMethodExp | BaseApplyInfixExp | MatchExp | SubinfixExp   
+
+CastExp ::= SubinfixExp '.as[' Data ']'  
+
+Data ::= Id
+
+BaseApplyMethodExp ::= SubinfixExp '.`' Id '`' ( '(' (InfixExp (',' InfixExp)*)? ')' )? 
+
+BaseApplyInfixExp ::= InfixExp '+' InfixExp | InfixExp '-' InfixExp | InfixExp '*' InfixExp | InfixExp '/' InfixExp | InfixExp '%' InfixExp | InfixExp '&&' InfixExp | InfixExp '||' InfixExp
+
+MatchExp ::= 'match' '{' MatchCase* '}'     
+
+MatchCase ::= 'case' Pattern '=>' Exp   
+
+Pattern ::= OptionPattern | ConstructorPattern   
+
+OptionPattern ::= 'None' | 'Some'    
+
+ConstructorPattern ::= Id '(' Id (',' Id)* ')' | Id '(' ')'    
+
+SubinfixExp ::= CallExp | LambdaExp | AtomicExp   
+
+Call Exp ::=  AtomicExp '(' Exp (',' Exp)* ')' | AtomicExp '(' ')'   
+
+LambdaExp ::= LambdaVars '=>' Exp   
+
+LambdaVars ::= '(' Id ':' TypeAnnotation (',' TypeAnnotation)* ')'
+
+AtomicExp ::= ParensExp | OptionExp | ComprehensionExp | ConstSetExp | TupleExp | FoldExp | BaseApplyExp | BaseLitExp | Variable | BaseApplyUnaryExp  
+
+ParensExp ::= '(' Exp ')'   
+
+OptionExp ::= 'None' | 'Some' '(' ')' | Some '(' Exp (',' Exp)* ')'   
+
+CopmrehensionExp ::= '{' Subinfix '|' Exp (',' Exp)* '}'  
+
+ConstSetExp ::= '{' Exp (',' Exp)* '}' | '{' '}'   
+
+TupleExp ::= '(' Exp ',' Exp ')'
+
+FoldExp ::= 'fold' ('[' TypeAnnotation ']')? '(' Exp ',' Exp ',' Exp ')'  
+
+BaseApplyExp ::= '`' ScalaTerm '`' '(' (Exp (',' Exp)*)? ')'  
+
+BaseLitExp ::= '`' ScalaTerm '`' | NumericLit | StringLit | BooleanLit 
+
+ScalaTerm ::= StringLit  
+
+NumericLit ::= Integer | Long | Double 
+
+Integer ::= -? Num+  
+
+Long ::= -? Num+   
+
+Double ::= -? Num+ (. Num+)?   
+
+StringLit ::= '"' (NumChar | ' ' | '!' | '+' | '-' | '*' | '/' | '\' | '<' | '>' | '.' | ',' | ';' | ':' | '§' | '$' | '%' | '&' | '(' | ')' | '=' | '{' | '}' | '[' | ']' | '|' | '#' | '~')* '"'  -------------------- unvollständig?
+
+BooleanLit ::= 'true' | 'false'   
+
+Variable ::= Id  
+
+BaseApplyUnaryExp ::= '!' InfixExp
+
+LineComment ::= '//' StringLit
+
+BlockComment ::= '/*' StringLit '*/'
+
+
+
+
+
+
+
+
+
+
+
+

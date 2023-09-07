@@ -1,0 +1,6 @@
+module setcomprehension2
+
+def mySet(): Set[(Int, Int)] = {(1,2), (2,3), (1,3)}
+
+@main def f(): Set[Int] =
+    { x | (x,<resolved>y) in X(), <ref>y == 3}

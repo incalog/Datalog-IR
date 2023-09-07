@@ -1,0 +1,3 @@
+module method3
+
+@main def <resolved>bar(): Int = <ref>bar(2) + 1

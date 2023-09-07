@@ -1,0 +1,1063 @@
+package language.typing;
+
+import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.ResolveResult;
+import com.intellij.psi.util.PsiTreeUtil;
+import language.FunIncAAnnotator;
+import language.FunIncAReference;
+import language.psi.*;
+import language.typing.types.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class FunIncATypechecker {
+
+    /**
+     * This function will determine the type of resolved target of variable-references
+     *
+     * @param element element, whose type is to be determined
+     * @return type of element
+     */
+    public static Type typeOfVarDef(@NotNull PsiElement element) {
+        if (element instanceof FunIncAFunDef) {
+            FunIncAFunDef funDef = (FunIncAFunDef) element;
+            Type returnType = new AnyType();
+            if (funDef.getType() != null) {
+                returnType = PsiToTypeConverter.convert(funDef.getType());
+            }
+            List<FunIncAType> paramTypesPsi = new ArrayList<>();
+            for (FunIncAParamDef paramDef : funDef.getParamDefList()) {
+                paramTypesPsi.add(paramDef.getType());
+            }
+            List<Type> paramTypes = PsiToTypeConverter.convert(paramTypesPsi);
+            List<Type> typeVars = PsiToTypeConverter.convertTypeVarDefs(funDef.getTypeVarDefList());
+            return new FunType(typeVars, paramTypes, returnType);
+        } else if (element instanceof FunIncAParamDef) {
+            FunIncAParamDef paramDef = (FunIncAParamDef) element;
+            if (paramDef.getType() == null) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing type annotation",
+                        paramDef);
+                return new AnyType();
+            }
+            return PsiToTypeConverter.convert(paramDef.getType());
+        } else if (element instanceof FunIncADataConstructorDef) {
+            FunIncADataConstructorDef constructorDef = (FunIncADataConstructorDef) element;
+            FunIncADataDef dataDef = (FunIncADataDef) constructorDef.getParent();
+            List<Type> typeVariables = new ArrayList<>();
+            if (!dataDef.getTypeVarDefList().isEmpty()) { // get type variables of dataDef
+                typeVariables = PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList());
+            }
+            List<Type> paramTypes = PsiToTypeConverter.convert(constructorDef.getTypeList());
+            Type returnType = typeOfTypeDef(dataDef);
+            return new FunType(typeVariables, paramTypes, returnType);
+        } else if (element instanceof FunIncAVarDef) {
+            FunIncAVarDef varDef = (FunIncAVarDef) element;
+            PsiElement parent = varDef.getParent();
+            if (parent instanceof FunIncASingleBinding) {
+                FunIncASingleBinding singleBinding = (FunIncASingleBinding) parent;
+                Type inferredType = typecheckExp(singleBinding.getExpList().get(0));
+                if (singleBinding.getType() == null) {
+                    return inferredType;
+                } else {
+                    Type expectedType = PsiToTypeConverter.convert(singleBinding.getType());
+                    if (expectedType instanceof UnitType) {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Cannot assign Type Unit to " + singleBinding.getVarDef().getName(),
+                                singleBinding.getType());
+                        expectedType = new AnyType();
+                    }
+                    if (!FunIncATypeUtil.subtype(inferredType, expectedType)) {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + expectedType + ", but got " + inferredType,
+                                singleBinding.getType());
+                    }
+                    return expectedType;
+                }
+            } else if (parent instanceof FunIncAMultipleBindings) {
+                FunIncAMultipleBindings multipleBindings = (FunIncAMultipleBindings) parent;
+                if (multipleBindings.getExpList() == null) { // has not been bound yet
+                    return new AnyType();
+                }
+                Type inferredType = typecheckExp(multipleBindings.getExpList().get(0));
+                if (!(inferredType instanceof TupleType)) {
+                    return new AnyType();
+                }
+                int index = multipleBindings.getVarDefList().indexOf(element); // position of the VarDef in question
+                TupleType inferredTupleType = (TupleType) inferredType; // inferred types are definitely a tuple
+                int n = multipleBindings.getVarDefList().size(); // number of variables bound
+                if (multipleBindings.getType() == null) { // no expected types provided
+                    if (index < n)
+                        return inferredTupleType.types.get(index);
+                    else
+                        return new AnyType(); // nothing bound to that VarDef
+                } else { // expected types are given
+                    Type expectedType = PsiToTypeConverter.convert(multipleBindings.getType());
+                    if (expectedType instanceof TupleType) {
+                        TupleType expectedTupleType = (TupleType) expectedType;
+                        if (index < expectedTupleType.types.size()) { // this VarDef has an expected type
+                            Type expectedTypeIndex = expectedTupleType.types.get(index);
+                            if (expectedTypeIndex instanceof UnitType) {
+                                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                        "Cannot assign Type Unit to " + varDef.getName(),
+                                        multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index));
+                            }
+                            if (index < inferredTupleType.types.size()) {
+                                Type inferredTypeIndex = inferredTupleType.types.get(index);
+                                if (!expectedTypeIndex.equals(inferredTypeIndex)) {
+                                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                            "Expected " + expectedTypeIndex + ", but got " + inferredTypeIndex,
+                                            multipleBindings.getType().getAtomicType().getTupleType().getTypeList().get(index));
+                                }
+                            }
+                            return expectedTypeIndex;
+                        } else { // this VarDef has no expected type despite given expected types, index of varDef > expectedType size
+                            if (index < inferredTupleType.types.size())
+                                return inferredTupleType.types.get(index);
+                            else
+                                return new AnyType();
+                        }
+                    } else { // expected type is not a tuple
+                        if (index < inferredTupleType.types.size())
+                            return inferredTupleType.types.get(index);
+                        else
+                            return new AnyType();
+                    }
+                }
+            }
+        } else if (element instanceof FunIncAVarRefExp) { // only in set member exp in set comprehension
+            FunIncAVarRefExp varRef = (FunIncAVarRefExp) element;
+            FunIncASetMemberExp setMemberExp = PsiTreeUtil.getParentOfType(varRef, FunIncASetMemberExp.class);
+            FunIncAExp exp = setMemberExp.getExpList().get(0);
+            FunIncAExp set = setMemberExp.getExpList().get(1);
+            if (varRef.getName().equals(set.getText())) { // breaks infinite loop in case the set variable has the same name as the element varRef
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Unresolved name",
+                        varRef);
+                return new AnyType();
+            }
+            Type setType = typecheckExp(set);
+            if (!(setType instanceof SetType))
+                return new AnyType();
+            Type setContentType = ((SetType) setType).setType;
+            if (exp instanceof FunIncATupleExp) {
+                if (!(setContentType instanceof TupleType)) {
+                    return new AnyType();
+                }
+                int index = ((FunIncATupleExp) exp).getExpList().indexOf(element);
+                if (index < ((TupleType) setContentType).types.size() && index != -1) {
+                    return ((TupleType) setContentType).types.get(index);
+                } else {
+                    return new AnyType();
+                }
+            } else if (setContentType instanceof TupleType) { // set content is tuple, but expression is not a tuple
+                int m = ((TupleType) setContentType).types.size();
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Set contains " + m + "-ary tuples, but test expression is " + 1 + "-ary",
+                        exp);
+                return new AnyType();
+            } else {
+                return setContentType;
+            }
+
+        } else if (element instanceof FunIncAPatternVarDef) {
+            FunIncAPatternVarDef patternVarDef = (FunIncAPatternVarDef) element;
+            FunIncAConstructorPat pattern = (FunIncAConstructorPat) element.getParent();
+            FunIncAReference ref = (FunIncAReference) pattern.getConstructorRef().getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            FunIncADataConstructorDef constructorDef;
+            if (result.length == 1) { // error messages in patterns are covered in typecheckExp
+                if (result[0].isValidResult()) {
+                    constructorDef = (FunIncADataConstructorDef) result[0].getElement();
+                } else {
+                    return new AnyType();
+                }
+            } else { // 0 results, or 1< results
+                return new AnyType();
+            }
+            int index = pattern.getPatternVarDefList().indexOf(patternVarDef);
+            List<FunIncAType> typeList = constructorDef.getTypeList();
+            Type patternVarType = PsiToTypeConverter.convert(typeList.get(index));
+            List<FunIncATypeVarDef> typeVarDefList = ((FunIncADataDef) constructorDef.getParent()).getTypeVarDefList();
+            if (typeVarDefList != null) { // if data def has parametric types
+                FunIncAMatchExp matchExp = PsiTreeUtil.getParentOfType(patternVarDef, FunIncAMatchExp.class);
+                Type matcheeType = typecheckExp(matchExp.getExp());
+                if (matcheeType instanceof ConstructorType) {
+                    Map<String, Type> substMap = new HashMap<>();
+                    int i = 0;
+                    for (FunIncATypeVarDef typeVarDef : typeVarDefList) {
+                        String name = typeVarDef.getName();
+                        if (i < ((ConstructorType) matcheeType).types.size()) {
+                            substMap.put(name, ((ConstructorType) matcheeType).types.get(i));
+                            i++;
+                        } else {
+                            substMap.put(name, new AnyType());
+                        }
+                    }
+                    return FunIncATypeUtil.substitute(patternVarType, substMap);
+                } // else: matcheeType not a ConstructorType, returning the unsubstituted parametric type is just fine
+            }
+            if (typeList.size() > index) {
+                return patternVarType;
+            } else {
+                return new AnyType();
+            }
+        }
+        return new AnyType();
+    }
+
+    /**
+     * This function will determine the type of resolved target of type-references
+     *
+     * @param element element, whose type is to be determined
+     * @return type of element
+     */
+    public static Type typeOfTypeDef(@NotNull PsiElement element) {
+        if (element instanceof FunIncATypeVarDef){
+            FunIncATypeVarDef typeVarDef = (FunIncATypeVarDef) element;
+            String name = typeVarDef.getName();
+            return new ParametricType(name);
+        }  else if (element instanceof FunIncADataDef) {
+            FunIncADataDef dataDef = (FunIncADataDef) element;
+            String name = dataDef.getName();
+            return new TypeRef(name);
+        }
+        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                "Unknown type reference",
+                element);
+        return new AnyType();
+    }
+
+
+    public static void validateType(@NotNull FunIncAType type) {
+        PsiElement ty;
+        try {
+            ty = type.getFirstChild();
+        } catch (NullPointerException e) {
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Missing type",
+                    type);
+            return;
+        }
+        if (ty instanceof FunIncAFunType) {
+            FunIncAFunType funType = (FunIncAFunType) ty;
+            validateAtomicType(funType.getAtomicType());
+            validateType(funType.getType());
+        } else { // ty is instance of AtomicType
+            validateAtomicType((FunIncAAtomicType) ty);
+        }
+    }
+
+    public static void validateTypes(@Nullable List<FunIncAType> types) {
+        if (types == null)
+            return;
+        for (FunIncAType type : types)
+            validateType(type);
+    }
+
+    private static void validateAtomicType(@NotNull FunIncAAtomicType type) {
+        PsiElement ty;
+        try {
+            ty = type.getFirstChild();
+        } catch (NullPointerException e) {
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Missing type",
+                    type);
+            return;
+        }
+        String tyText = ty.getText();
+        if (tyText.equals("Any") || tyText.equals("Nothing") || tyText.equals("Unit")) {
+            return;
+        } else if (ty instanceof FunIncAPrimitiveType) {
+            return;
+        }if (ty instanceof FunIncATupleType) {
+            for (FunIncAType t : ((FunIncATupleType) ty).getTypeList())
+                validateType(t);
+            return;
+        } else if (ty instanceof FunIncASetType) {
+            validateType(((FunIncASetType) ty).getType());
+            return;
+        } else if (ty instanceof FunIncATypeNameRef) {
+            FunIncAReference ref = (FunIncAReference) ty.getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            if (result.length == 0) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Type " + tyText + " is not defined",
+                        ty);
+                return;
+            } else if (result.length == 1) {
+                return;
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Ambiguous reference name " + tyText,
+                        ty);
+                return;
+            }
+        } else if (ty instanceof FunIncAConstructorType) {
+            validateTypes(((FunIncAConstructorType) ty).getTypeList());
+            FunIncATypeNameRef typeNameRef = ((FunIncAConstructorType) ty).getTypeNameRef();
+            FunIncAReference ref = (FunIncAReference) typeNameRef.getReference();
+            ResolveResult[] result = ref.multiResolve(true);
+            if (result.length == 0) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Type " + tyText + " is not defined",
+                        typeNameRef);
+                return;
+            } else if (result.length == 1) {
+                return;
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Ambiguous reference name " + tyText,
+                        typeNameRef);
+                return;
+            }
+        } else {
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Unknown type " + tyText,
+                    ty);
+            return;
+        }
+    }
+
+    @NotNull
+    public static Type typecheckExp(FunIncAExp exp) {
+        if (exp instanceof FunIncAVarRefExp) {
+            // call getTypeOfVarRef
+            FunIncAVarRefExp varExp = (FunIncAVarRefExp) exp;
+            FunIncAReference reference = (FunIncAReference) varExp.getReference();
+            ResolveResult[] result = reference.multiResolve(true);
+            if (result.length == 0) {
+                FunIncASetMemberExp setMemberParent = PsiTreeUtil.getParentOfType(varExp, FunIncASetMemberExp.class);
+                FunIncASetComprehensionExp setCompParent =
+                        PsiTreeUtil.getParentOfType(varExp, FunIncASetComprehensionExp.class);
+                boolean isDefinition = false;
+                if (setCompParent != null && setMemberParent != null) {
+                    isDefinition = PsiTreeUtil.isAncestor(setCompParent, setMemberParent, false);
+                }
+                FunIncACallExp callParent = PsiTreeUtil.getParentOfType(varExp, FunIncACallExp.class);
+                boolean isPartOfCallExp = false;
+                if (callParent != null)
+                    isPartOfCallExp = PsiTreeUtil.isAncestor(setCompParent, callParent, false);
+                if (isDefinition && !isPartOfCallExp) {
+                    // if varExp is in a setMemberExpression within a SetComprehensionExp it is a declaration
+                    // and not a reference, except varExp it is a variable in a function call
+                    return typeOfVarDef(varExp);
+                } else {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Unresolved name " + varExp.getName(),
+                            varExp);
+                    return new AnyType();
+                }
+            } else if (result.length == 1){
+                if (result[0].isValidResult()) {
+                    Type resolvedType = typeOfVarDef(result[0].getElement());
+                    return resolvedType;
+                } else {
+                    return new AnyType();
+                }
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Ambiguous reference name " + varExp.getName(),
+                        varExp);
+                return new AnyType();
+            }
+
+        } else if (exp instanceof FunIncALetExp) {
+            FunIncALetExp letExp = (FunIncALetExp) exp;
+            if (letExp.getSingleBinding() != null) {
+                FunIncASingleBinding single = letExp.getSingleBinding();
+                FunIncAExp bound = single.getExpList().get(0);
+                FunIncAExp body = single.getExpList().get(1);
+                if (bound != null)
+                    typecheckExp(bound);
+                else
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing binding in Let expression",
+                            single);
+                if (single.getType() != null)
+                    validateType(single.getType());
+                if (body == null) { // if letExp doesn't have a body return AnyType
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing body of Let expression",
+                            single);
+                    return new AnyType();
+                } else {
+                    return typecheckExp(body);
+                }
+            } else if (letExp.getMultipleBindings() != null) {
+                FunIncAMultipleBindings multiple = letExp.getMultipleBindings();
+                FunIncAExp bound = multiple.getExpList().get(0);
+                FunIncAExp body = multiple.getExpList().get(1);
+                if (bound != null) {
+                    Type boundType = typecheckExp(bound);
+                    if (boundType instanceof TupleType) {
+                        int n = ((TupleType) boundType).types.size();
+                        int m = multiple.getVarDefList().size();
+                        if (n != m)
+                            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                    "Cannot assign " + n + "-ary tuple to " + m + " variables",
+                                    bound);
+                    } else
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected Tuple type, but got " + boundType,
+                                bound);
+                } else
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing binding in Let expression",
+                            multiple);
+                if (multiple.getType() != null) { // expected types are provided
+                    validateType(multiple.getType());
+                    Type type = PsiToTypeConverter.convert(multiple.getType());
+                    if (type instanceof TupleType) {
+                        int n = ((TupleType) type).types.size();
+                        int m = multiple.getVarDefList().size();
+                        if (n != m)
+                            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                    "Cannot assign " + n + "-ary tuple to " + m + " variables",
+                                    multiple.getType());
+                    } else {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Cannot assign expression of type " + type + " to multiple variables",
+                                multiple.getType());
+                    }
+                }
+                if (body == null) {
+                    // if letExp doesn't have a body return Any
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Missing body in Let expression",
+                            multiple);
+                    return new AnyType();
+                } else {
+                    return typecheckExp(body);
+                }
+            } else { // neither single binding nor multiple bindings (not possible)
+                return new AnyType();
+            }
+
+        } else if (exp instanceof FunIncACastExp) {
+            FunIncACastExp cast = (FunIncACastExp) exp;
+            FunIncAExp ex = cast.getExp();
+            Type expectedType;
+            try {
+                expectedType = new TypeRef(cast.getTypeNameRef().getText());
+            } catch (NullPointerException e) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing Type",
+                        cast);
+                return new AnyType();
+            }
+            Type inferredType = typecheckExp(ex);
+            if (FunIncATypeUtil.meet(expectedType, inferredType).equals(new NothingType()))
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Type cast of " + expectedType + " is not compatible with inferred type " +
+                                inferredType + " of expression " + cast.getExp().getText(),
+                        exp);
+            return expectedType;
+
+        } else if (exp instanceof FunIncAIfExp) {
+            FunIncAIfExp ifExp = (FunIncAIfExp) exp;
+            FunIncAExp cond = ifExp.getExpList().get(0);
+            Type condType = typecheckExp(cond);
+            if (!(condType instanceof BooleanType)) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Expected Boolean condition, but got " + condType,
+                        cond);
+            }
+            Type thenType = typecheckExp(ifExp.getExpList().get(1));
+            Type elseType = typecheckExp(ifExp.getExpList().get(2));
+            return FunIncATypeUtil.join(thenType, elseType);
+        } else if (exp instanceof FunIncAParenthesisExp) {
+            return typecheckExp(((FunIncAParenthesisExp) exp).getExp());
+        } else if (exp instanceof FunIncATupleExp) {
+            List<Type> tupleTypes = new ArrayList<>();
+            for (FunIncAExp e : ((FunIncATupleExp) exp).getExpList())
+                tupleTypes.add(typecheckExp(e));
+            return new TupleType(tupleTypes);
+        } else if (exp instanceof FunIncALambdaExp) {
+            FunIncALambdaExp lambdaExp = (FunIncALambdaExp) exp;
+            FunIncAExp body = lambdaExp.getExp();
+            Type returnType = new AnyType();
+            if (body != null)
+                returnType = typecheckExp(body);
+            List<FunIncAType> paramTypesPsi = new ArrayList<>();
+            for (FunIncAParamDef paramDef : lambdaExp.getParamDefList()) {
+                validateType(paramDef.getType());
+                paramTypesPsi.add(paramDef.getType());
+            }
+            List<Type> paramTypes = PsiToTypeConverter.convert(paramTypesPsi);
+            return new FunType(new ArrayList<>(), paramTypes, returnType);
+
+        } else if (exp instanceof FunIncACallExp) {
+            FunIncACallExp callExp = (FunIncACallExp) exp;
+            FunIncAExp funExp = callExp.getExp();
+            List<FunIncAExp> argExps = callExp.getCallExpListList().get(0).getExpList();
+            if (funExp == null) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing function expression for function call",
+                        exp);
+                return new AnyType();
+            }
+
+            Type funExpType = typecheckExp(funExp);
+            if (funExpType instanceof FunType && !((FunType) funExpType).typeVars.isEmpty()) {
+                FunType funType = (FunType) funExpType;
+                List<FunIncAType> concreteTypes = callExp.getTypeList();
+                Map<String, Type> substMap = new HashMap<>();
+                if (funType.typeVars.size() != concreteTypes.size())
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Function " + funExp.getText() + " expects " + funType.typeVars.size() + " type " +
+                                    "arguments, but found " + concreteTypes.size() + " type arguments in call",
+                            callExp);
+                int i = 0; // index for assigning types in the substitution map
+                for (Type type : funType.typeVars) { // bulding the substitution map
+                    if (type instanceof ParametricType) {
+                        String name = ((ParametricType) type).name;
+                        if (i < concreteTypes.size()) {
+                            substMap.put(name, PsiToTypeConverter.convert(concreteTypes.get(i)));
+                            i++;
+                        } else {
+                            substMap.put(name, new AnyType());
+                        }
+                    }
+                }
+                funExpType = FunIncATypeUtil.substitute(funExpType, substMap);
+            }
+            Type returnType = funExpType;
+            int n = callExp.getCallExpListList().size(); // n holds the number of function call
+            for (int i = 0; i < n; i++) {
+                argExps = callExp.getCallExpListList().get(i).getExpList();
+                if (returnType instanceof FunType) {
+                    FunType funType = (FunType) returnType;
+                    List<Type> argTypes = argExps.stream().map(e -> typecheckExp(e)).collect(Collectors.toList());
+                    if (funType.paramTypes.size() != argTypes.size()) {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + funType.paramTypes.size() + " arguments, but got "
+                                        + argTypes.size(),
+                                callExp.getCallExpListList().get(i));
+                    }
+                    for (int j = 0; j < Math.min(funType.paramTypes.size(), argTypes.size()); j++) {
+                        if (!FunIncATypeUtil.subtype(argTypes.get(j), funType.paramTypes.get(j))) {
+                            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                    "Expected argument of type " + funType.paramTypes.get(j)
+                                            + ", but got argument of type " + argTypes.get(j),
+                                    argExps.get(j));
+                        }
+                    }
+                    returnType = funType.returnType;
+                } else {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Expected function type at function position of call, but got " + returnType,
+                            callExp);
+                    return returnType;
+                }
+            }
+            return returnType;
+
+        } else if (exp instanceof FunIncAMatchExp) {
+            FunIncAMatchExp matchExp = (FunIncAMatchExp) exp;
+            FunIncAExp matchee = matchExp.getExp();
+            Type matcheeType = typecheckExp(matchee);
+            List<FunIncAMatchCase> cases = matchExp.getMatchCaseList();
+            if (matcheeType instanceof TypeRef) {
+                String dataDefName = matcheeType.toString();
+                PsiElement root = matchee.getContainingFile();
+                List<PsiElement> rootChildren = List.of(root.getChildren());
+                List<FunIncADataDef> dataDefs = new ArrayList<>();
+                for (PsiElement child : rootChildren) {
+                    if (child instanceof FunIncADataDef && dataDefName.equals(((FunIncADataDef) child).getName()))
+                        dataDefs.add((FunIncADataDef) child);
+                }
+                if (dataDefs.isEmpty()) {
+                    // TypeRef can only reference data definitions, or parametric types.
+                    // So when there is no data definition found, TypeRef references a parametric type.
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot match on parametric type " + matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                } else if (dataDefs.size() > 1) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot match on type " + matcheeType + ", ambiguous definition of type " +
+                                    matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                } else { // exactly 1 definition of matcheeType was found
+                    FunIncADataDef dataDef = dataDefs.get(0);
+                    return typecheckTypeNameMatch(exp, cases, dataDef);
+                }
+            } else if (matcheeType instanceof ConstructorType) {
+                ConstructorType constructorType = (ConstructorType) matcheeType;
+                String dataName = constructorType.name;
+                PsiFile root = matchee.getContainingFile();
+                List<PsiElement> rootChildren = List.of(root.getChildren());
+                List<FunIncADataDef> dataDefs = new ArrayList<>();
+                for (PsiElement child : rootChildren) {
+                    if (child instanceof FunIncADataDef && dataName.equals(((FunIncADataDef) child).getName()))
+                        dataDefs.add((FunIncADataDef) child);
+                }
+                if (dataDefs.isEmpty()) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "No definition for matchee type " + matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                } else if (dataDefs.size() == 1) {
+                    FunIncADataDef dataDef = dataDefs.get(0);
+                    return typecheckConstructorMatch(exp, cases, dataDef, constructorType);
+                } else if (dataDefs.size() > 1) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot match on type " + matcheeType + ", ambiguous definition of type " +
+                                    matcheeType,
+                            matchee);
+                    List<Type> caseTypes = new ArrayList<>();
+                    for (FunIncAMatchCase matchCase : cases)
+                        caseTypes.add(typecheckExp(matchCase.getExp()));
+                    return FunIncATypeUtil.join(caseTypes);
+                }
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Cannot match on type " + matcheeType,
+                        matchee);
+                List<Type> caseTypes = new ArrayList<>();
+                for (FunIncAMatchCase matchCase : cases)
+                    caseTypes.add(typecheckExp(matchCase.getExp()));
+                return FunIncATypeUtil.join(caseTypes);
+            }
+
+        } else if (exp instanceof FunIncALiteralExp) {
+            PsiElement e = exp.getFirstChild();
+            if (e instanceof FunIncAIntLit) {
+                return new IntType();
+            } else if (e instanceof FunIncALongLit) {
+                return new LongType();
+            } else if (e instanceof FunIncADoubleLit) {
+                return new DoubleType();
+            } else if (e instanceof FunIncABooleanLit) {
+                return new BooleanType();
+            } else if (e instanceof FunIncAStringLit) {
+                return new StringType();
+            } else {
+                // type scalaterm
+            }
+        } else if (exp instanceof FunIncABaseApplyExp) {
+            // TODO FunIncABaseApplyExp
+        } else if (exp instanceof FunIncABaseApplyUnaryExp) {
+            FunIncABaseApplyUnaryExp unaryExp = (FunIncABaseApplyUnaryExp)  exp;
+            String op = unaryExp.getUnaryOp().getText();
+            Type eType = typecheckExp(unaryExp.getExp());
+            switch (op) {
+                case "-":
+                    if (eType.isIntType() || eType.isDoubleType() || eType.isLongType()) {
+                        return eType;
+                    } else {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Arithmetic operator - cannot be used" + " with type " + eType,
+                                exp);
+                        return new AnyType();
+                    }
+                case "!":
+                    if (eType.isBooleanType()) {
+                        return eType;
+                    } else {
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Logic operator ! cannot be used" + " with type " + eType,
+                                exp);
+                        return new AnyType();
+                    }
+                default:
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Operation " + op + " is not supported",
+                            exp);
+                    return new AnyType();
+            }
+        } else if (exp instanceof FunIncABaseApplyMethodExp) {
+            // TODO FunIncABaseApplyMethodExp
+        } else if (exp instanceof FunIncABaseApplyInfixExp) {
+            FunIncABaseApplyInfixExp infixExp = (FunIncABaseApplyInfixExp) exp;
+            List<FunIncAExp> children = infixExp.getExpList();
+            String op = infixExp.getBinaryOp().getText();
+            Type lhsType = typecheckExp(children.get(0));
+            if (children.size() == 1)
+                return lhsType;
+            Type rhsType = typecheckExp(children.get(1));
+            switch (op) {
+                case "+":
+                case "%":
+                case "/":
+                case "*":
+                case "-":
+                    return checkBinArithmeticOp(lhsType, rhsType, op, exp);
+                case "&&":
+                case ">=":
+                case "<=":
+                case ">":
+                case "<":
+                case "||":
+                    return checkBinLogicOp(lhsType, rhsType, op, exp);
+                case "==":
+                case "!=":
+                    return new BooleanType();
+                case "++":
+                case "&":
+                    return checkBinSetOp(lhsType, rhsType, op, exp);
+                default:
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Operation " + op + " is not supported",
+                            exp);
+                    return new AnyType();
+            }
+
+        } else if (exp instanceof FunIncAConstSetExp) {
+            List<FunIncAExp> items = ((FunIncAConstSetExp) exp).getExpList();
+            List<Type> setTypes = new ArrayList<>();
+            for (FunIncAExp item : items) {
+                Type itemType = typecheckExp(item);
+                setTypes.add(itemType);
+            }
+            Type setType = FunIncATypeUtil.join(setTypes);
+            return new SetType(setType);
+        } else if (exp instanceof FunIncASetMemberExp) {
+            FunIncASetMemberExp memberExp = (FunIncASetMemberExp) exp;
+            FunIncAExp tuple = memberExp.getExpList().get(0);
+            FunIncAExp set = memberExp.getExpList().get(1);
+            Type setType = typecheckExp(set);
+            Type setContentType;
+            if (!(setType instanceof SetType)) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Required set type, but got " + setType,
+                        set);
+                setContentType = new AnyType();
+            } else {
+                setContentType = ((SetType) setType).setType;
+            }
+
+            Type typeTuple = typecheckExp(tuple);
+            if (typeTuple instanceof TupleType && setContentType instanceof TupleType) {
+                int n = ((TupleType) typeTuple).types.size();
+                int m = ((TupleType) setContentType).types.size();
+                List<FunIncAExp> tupleExp = ((FunIncATupleExp) tuple).getExpList();
+                if (n != m)
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Set contains " + m + "-ary tuples, but test expression is " + n + "-ary",
+                            memberExp);
+                for (int i = 0; i < Math.min(n,m); i++) {
+                    Type expType = ((TupleType) typeTuple).types.get(i);
+                    Type setTupleType = ((TupleType) setContentType).types.get(i);
+                    if (! FunIncATypeUtil.subtype(expType, setTupleType))
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Expected " + setTupleType + ", but got " + expType,
+                                tupleExp.get(i));
+                }
+            }
+            if (! FunIncATypeUtil.subtype(typeTuple, setContentType))
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Expected " + setContentType + ", but got " + typeTuple,
+                        tuple);
+            return new BooleanType();
+
+        } else if (exp instanceof FunIncASetComprehensionExp) {
+            FunIncASetComprehensionExp setComprehensionExp = (FunIncASetComprehensionExp) exp;
+            int n = setComprehensionExp.getExpList().size();
+            if (n == 0) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Incomplete set comprehension",
+                        setComprehensionExp);
+                return new SetType(new NothingType());
+            }
+            FunIncAExp build = setComprehensionExp.getExpList().get(0);
+            Type buildType = typecheckExp(build);
+            if (n == 1) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Missing predicates",
+                        setComprehensionExp);
+                return new SetType(new NothingType());
+            }
+            List<FunIncAExp> predicates = setComprehensionExp.getExpList().subList(1, setComprehensionExp.getExpList().size());
+            for (FunIncAExp pred : predicates) {
+                Type type = typecheckExp(pred);
+                if (! FunIncATypeUtil.subtype(type, new BooleanType())) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Comprehension predicate must have Boolean type, but got " + type,
+                            pred);
+                }
+            }
+            return new SetType(buildType);
+
+        } else if (exp instanceof FunIncAFoldExp) {
+            FunIncAFoldExp foldExp = (FunIncAFoldExp) exp;
+            FunIncAType tyAnno = foldExp.getType();
+            FunIncAExp init;
+            FunIncAExp op;
+            FunIncAExp set;
+            try {
+                init = foldExp.getExpList().get(0);
+                op = foldExp.getExpList().get(1);
+                set = foldExp.getExpList().get(2);
+            } catch (NullPointerException e) {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Incomplete fold expression",
+                        foldExp);
+                return new AnyType();
+            }
+            Type initType = typecheckExp(init);
+            Type opType = typecheckExp(op);
+            Type setType = typecheckExp(set);
+            Type setContentType;
+            if (setType instanceof SetType) {
+                setContentType = ((SetType) setType).setType;
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Can only fold over sets, but got " + setType,
+                        set);
+                setContentType = new NothingType();
+            }
+            Type foldType;
+            if (tyAnno != null) {
+                validateType(tyAnno);
+                foldType = PsiToTypeConverter.convert(tyAnno);
+            } else {
+                foldType = FunIncATypeUtil.join(initType, setContentType);
+            }
+            if (opType instanceof FunType) {
+                List<Type> paramTypes = ((FunType) opType).paramTypes;
+                Type returnType = ((FunType) opType).returnType;
+                if (paramTypes.size() != 2
+                        || !FunIncATypeUtil.subtype(foldType, paramTypes.get(0))
+                        || !FunIncATypeUtil.subtype(foldType, paramTypes.get(1))
+                        || !FunIncATypeUtil.subtype(returnType, foldType)) {
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
+                                    ", but " + op.getText() + " has type " + opType,
+                            op);
+                }
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Expected function of type (" + foldType + ", " + foldType + ") => " + foldType +
+                                ", but " + op.getText() + " has type " + opType,
+                        op);
+            }
+            return foldType;
+        }
+        return new AnyType();
+    }
+
+
+    private static Type typecheckTypeNameMatch (PsiElement matchExp,
+                                                List<FunIncAMatchCase> cases,
+                                                FunIncADataDef dataDef) {
+        Set<FunIncADataConstructorDef> seenConstructors = new HashSet<>();
+        Set<FunIncADataConstructorDef> availableConstructors = new HashSet<>();
+        for (FunIncADataConstructorDef cons : dataDef.getDataConstructorDefList())
+            availableConstructors.add(cons);
+
+        List<Type> caseTypes = new ArrayList<>();
+        for (FunIncAMatchCase matchCase : cases) {
+            PsiElement pat;
+            try {
+                pat = matchCase.getPat().getFirstChild();
+            } catch (NullPointerException e) {
+                caseTypes.add(new AnyType());
+                continue;
+            }
+            FunIncAExp exp = matchCase.getExp();
+            if (pat instanceof FunIncAConstructorPat) {
+                FunIncAConstructorPat constructorPat = (FunIncAConstructorPat) pat;
+                String constructorName = constructorPat.getConstructorRef().getText();
+                FunIncAReference reference = (FunIncAReference) constructorPat.getConstructorRef().getReference();
+                FunIncADataConstructorDef constructorDef = null;
+                ResolveResult[] result = reference.multiResolve(true);
+                for (ResolveResult res : result)
+                    if (availableConstructors.contains(res.getElement()))
+                        constructorDef = (FunIncADataConstructorDef) res.getElement();
+                if (constructorDef == null || result.length > 1) {
+                    // only if there are 0 or more than 1 result, where none belong to dataDef
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "No constructor " + constructorName + " of type " + dataDef.getName() + " found",
+                            constructorPat.getConstructorRef());
+                    caseTypes.add(typecheckExp(exp));
+                    continue;
+                }
+                if (!seenConstructors.add(constructorDef))
+                    // this constructor was already used in a match case
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Duplicate constructor pattern " + constructorName,
+                            constructorPat.getConstructorRef());
+                if (constructorDef.getTypeList().size() != constructorPat.getPatternVarDefList().size())
+                    // number of parameters does not match
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Wrong number of constructor arguments, expected " +
+                                    constructorDef.getTypeList().size() + " but got " +
+                                    constructorPat.getPatternVarDefList().size(),
+                            constructorPat);
+                caseTypes.add(typecheckExp(exp));
+            } else { // pattern is not instance of FuncIncaConstructorPattern
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Cannot match pattern " + pat.getText() + " against matchee of type " + dataDef.getName(),
+                        pat);
+
+                caseTypes.add(typecheckExp(exp));
+            }
+        }
+        availableConstructors.removeAll(seenConstructors);
+        if (!availableConstructors.isEmpty()) {
+            String missingConstructors = "";
+            for (FunIncADataConstructorDef cons : availableConstructors)
+                missingConstructors += cons.getName() + ", ";
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Pattern match must be complete but missed the following constructors: " +
+                            missingConstructors.substring(0, missingConstructors.length() - 2),
+                    matchExp);
+        }
+        return FunIncATypeUtil.join(caseTypes);
+    }
+
+    private static Type typecheckConstructorMatch(PsiElement exp,
+                                                  List<FunIncAMatchCase> cases,
+                                                  FunIncADataDef dataDef,
+                                                  ConstructorType constructorType) {
+        Set<String> seenConstructors = new HashSet<>();
+        Map<String, Type> availableConstructors = new HashMap<>();
+        for (FunIncADataConstructorDef cons : dataDef.getDataConstructorDefList())
+            availableConstructors.put(cons.getName(), typeOfVarDef(cons));
+
+        // build the substitution map
+        Map<String, Type> substMap = new HashMap<>();
+        int i = 0; // index for assigning types in the substitution map
+        for (Type type : PsiToTypeConverter.convertTypeVarDefs(dataDef.getTypeVarDefList())) {
+            if (type instanceof ParametricType) {
+                String name = ((ParametricType) type).name;
+                if (i < constructorType.types.size()) {
+                    substMap.put(name, constructorType.types.get(i));
+                    i++;
+                } else {
+                    substMap.put(name, new AnyType());
+                }
+            }
+        }
+
+        // substitute the parametric types in the constructors with substitution map
+        Map<String, Type> substConstructors = new HashMap<>();
+        for (Map.Entry<String, Type> cons : availableConstructors.entrySet()) {
+            substConstructors.put(cons.getKey(), FunIncATypeUtil.substitute(cons.getValue(), substMap));
+        }
+
+        List<Type> caseTypes = new ArrayList<>();
+        for (FunIncAMatchCase matchCase : cases) {
+            PsiElement pat;
+            try {
+                pat = matchCase.getPat().getFirstChild();
+            } catch (NullPointerException e) {
+                caseTypes.add(new AnyType());
+                continue;
+            }
+            FunIncAExp e = matchCase.getExp();
+            if (pat instanceof FunIncAConstructorPat) {
+                FunIncAConstructorPat constructorPat = (FunIncAConstructorPat) pat;
+                String constructorName = constructorPat.getConstructorRef().getText();
+                if (!seenConstructors.add(constructorName)) // this constructor was already used in a match case
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Duplicate constructor pattern " + constructorName,
+                            constructorPat.getConstructorRef());
+                if (availableConstructors.get(constructorName) != null) { // seen constructor is available
+                    FunType constructorDef = (FunType) availableConstructors.get(constructorName);
+                    if (constructorDef.paramTypes.size() != constructorPat.getPatternVarDefList().size())
+                        // number of parameters does not match
+                        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                                "Wrong number of constructor arguments, expected " +
+                                        constructorDef.paramTypes.size() + " but got " +
+                                        constructorPat.getPatternVarDefList().size(),
+                                constructorPat);
+                    caseTypes.add(typecheckExp(e));
+                } else { // seen constructor is not available
+                    FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                            "Cannot match pattern " + pat.getText() +
+                                    " against matchee of type " + dataDef.getName(),
+                            constructorPat.getConstructorRef());
+                    caseTypes.add(typecheckExp(e));
+                }
+            } else { // pattern is not instance of FuncIncaConstructorPattern
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Cannot match pattern " + pat.getText() +
+                                " against matchee of type " + dataDef.getName(),
+                        pat);
+                caseTypes.add(typecheckExp(e));
+            }
+        }
+        // checks for missing constructors
+        Set<String> missingConstructors = availableConstructors.keySet();
+        missingConstructors.removeAll(seenConstructors);
+        if (!missingConstructors.isEmpty())
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Pattern must be complete but missed the following constructors: " + missingConstructors,
+                    exp);
+
+        return FunIncATypeUtil.join(caseTypes);
+    }
+
+    private static Type checkBinArithmeticOp(Type lhs, Type rhs, String op, PsiElement exp) {
+        if (lhs.isNumericType() && rhs.isNumericType()) {
+            if (lhs.isDoubleType() || rhs.isDoubleType())
+                return new DoubleType();
+            else if (lhs.isLongType() || rhs.isLongType())
+                return new LongType();
+            else // lhs and rhs are IntTypes
+                return new IntType();
+        } else {
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Cannot use arithmetic operator " + op + " with types " + lhs + " and " + rhs,
+                    exp);
+            return new AnyType();
+        }
+    }
+
+    private static Type checkBinLogicOp(Type lhs, Type rhs, String op, PsiElement exp) { // >,>=,usw.
+        if (op.equals("&&") || op.equals("||")) { // these operators can only be used with Boolean types
+            if (lhs.isBooleanType() && rhs.isBooleanType())
+                return lhs;
+        } else if (op.equals("<") || op.equals(">") || op.equals("<=") || op.equals(">=")){ // these comparators can only compare numeric values
+            if (lhs.isNumericType() && rhs.isNumericType())
+                return new BooleanType();
+        }
+        FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                "Cannot use logic operator " + op + " with types " + lhs + " and " + rhs,
+                exp);
+        return new AnyType();
+    }
+
+    private static Type checkBinSetOp(Type lhs, Type rhs, String op, PsiElement exp) {
+        String opName = "unknown set operation";
+        if (op.equals("++")) opName = "union";
+        if (op.equals("&")) opName = "intersection";
+        if (lhs.isSetType() && rhs.isSetType()){
+            Type lhsSetType = ((SetType) lhs).setType;
+            Type rhsSetType = ((SetType) rhs).setType;
+            if (lhsSetType.equals(rhsSetType)) {
+                return lhs;
+            } else {
+                FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                        "Cannot perform " + opName + " on sets holding " + "different types: "
+                                + lhsSetType + " and " + rhsSetType,
+                        exp);
+                return new AnyType();
+            }
+        } else {
+            FunIncAAnnotator.newAnnotation(HighlightSeverity.ERROR,
+                    "Cannot perform " + opName + " on non set types: " + lhs + " and " + rhs,
+                    exp);
+            return new AnyType();
+        }
+    }
+}

@@ -1,0 +1,5 @@
+module constructor2
+
+data Nat = Nil() | <resolved>Succ(Nat)
+
+@main def main(): Nat = <ref>Succ(Zero())

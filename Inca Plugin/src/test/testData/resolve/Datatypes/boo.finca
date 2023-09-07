@@ -1,0 +1,5 @@
+module boo
+
+data <resolved>boo = True() | False()
+
+@main def foo(): <ref>boo = True()

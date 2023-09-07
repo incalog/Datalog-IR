@@ -1,0 +1,8 @@
+module shadowing4
+
+data Nat = Zero() | Succ(Nat)
+
+def main(): Nat = Succ(Zero()) match {
+    case Zero() => Zero()
+    case Succ(x) => let <resolved>x = Succ(Succ(Zero())) in <ref>x
+}

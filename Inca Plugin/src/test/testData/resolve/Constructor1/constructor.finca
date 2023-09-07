@@ -1,0 +1,8 @@
+module constructor
+
+data Nat = Nil() | <resolved>Succ(Nat)
+
+@main def toInt(n: Nat): Int = n match{
+    case Nil() => 0
+    case <ref>Succ(z) => 1 + toInt(z)
+}

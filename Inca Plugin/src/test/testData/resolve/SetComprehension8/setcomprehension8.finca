@@ -1,0 +1,6 @@
+module setComprehension8
+
+def set: Set[(String, Int)] = {("twohundred", 200), ("onethousand", 1000)}
+
+def compInComp(): Set[Int] =
+    { x | (str, x) in { (<resolved>s,n) | (<ref>s,n) in set() } }

@@ -1,0 +1,2 @@
+module letBinding
+@main def foo(): Int = let <resolved>x = 1 in <ref>x + 1

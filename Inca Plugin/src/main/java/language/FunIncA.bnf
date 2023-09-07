@@ -1,0 +1,192 @@
+{
+  parserClass="language.parser.FunIncAParser"
+  parserUtilClass="language.parser.FunIncAParserUtil"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="FunIncA"
+  psiImplClassSuffix="Impl"
+  psiPackage="language.psi"
+  psiImplPackage="language.psi.impl"
+
+  elementTypeHolderClass="language.psi.FunIncATypes"
+  elementTypeClass="language.psi.FunIncAElementType"
+  tokenTypeClass="language.psi.FunIncATokenType"
+
+  psiImplUtilClass="language.psi.impl.FunIncAPsiImplUtil"
+
+  tokens = [
+    keyword_if = "if"
+    keyword_else = "else"
+    keyword_let = "let"
+    keyword_in = "in"
+    keyword_match = "match"
+    keyword_case = "case"
+    keyword_fail = "fail"
+
+    keyword_Option = "Option"
+    keyword_None = "None"
+    keyword_Some = "Some"
+    keyword_Set = "Set"
+    keyword_fold = "fold"
+    keyword_module = "module"
+    keyword_import = "import"
+    keyword_not = "not"
+    keyword_data = "data"
+    keyword_def = "def"
+
+    boolean_true = "true"
+    boolean_false = "false"
+    type_nothing = "Nothing"
+    type_any = "Any"
+    type_unit = "Unit"
+    type_int = "Int"
+    type_double = "Double"
+    type_long = "Long"
+    type_boolean = "Boolean"
+    type_string = "String"
+
+    parens_open = "("
+    parens_close = ")"
+    braces_open = "{"
+    braces_close ="}"
+    square_bracket_open = "["
+    square_bracket_close = "]"
+
+    plus = "+"
+    minus = "-"
+    star = "*"
+    slash = "/"
+    modulo = "%"
+    and = "&&"
+    or ="||"
+    lt = "<"
+    gt = ">"
+    equivalence = "=="
+    leq = "<="
+    geq = ">="
+    non_equivalence = "!="
+    set_union = "++"
+    set_intersection = "&"
+    negation = "!"
+
+    cast = "as"
+    back_tick = "`"
+    quotation_mark = "\""
+    dot = "."
+    comma = ","
+    colon = ":"
+    arrow = "=>"
+    equal_sign = "="
+    bar = "|"
+
+    annotation_main = "@main"
+    visibility_private = "private"
+
+    space = "regexp:\s+"                    // any possible whitespaces: [ \t\n\x0B\f\r]
+    id = "regexp:[a-zA-Z_]\w*"              // starts with any letter, continues with word characters [a-zA-Z_0-9]
+    string = "regexp:\"([^\"\\]|\\.)*\""    // any number of any characters between quotation marks
+    scalaterm = "regexp:`.[^`]*`"          // any Number of any characters between ticks ` and `
+    integer = "regexp:\d+"                  // integers with digits \d = [0-9]
+    long = "regexp:\d+(l|L)"                // longs with digits \d = [0-9]
+    double = "regexp:(\d+\.\d+(d|D)?)|\d+(d|D)"
+    comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
+    ]
+
+  methods("ParamDef|Import|FunDef|TypeVarDef|DataDef|DataConstructorDef|PatternVarDef|VarDef")=[getName setName getNameIdentifier]
+  implements("ParamDef|Import|FunDef|TypeVarDef|DataDef|DataConstructorDef|PatternVarDef|VarDef")="language.psi.FunIncADecl"
+  mixin("ParamDef|Import|FunDef|TypeVarDef|DataDef|DataConstructorDef|PatternVarDef|VarDef")="language.psi.impl.FunIncADeclImpl"
+
+  implements("VarRefExp")="language.psi.FunIncANamedVariable"
+  mixin("VarRefExp")="language.psi.impl.FunIncANamedVariableImpl"
+  methods("VarRefExp")=[getName setName getNameIdentifier]
+  methods("VarRefExp|TypeNameRef|ConstructorRef")=[getReference]
+
+  extends(".*Exp") = Exp
+}
+
+Module ::= 'module' id Import* ModuleContent* {pin = 1}
+Import ::= 'import' id {pin = 1}
+private ModuleContent ::= FunDef | DataDef
+
+// definition of functions
+FunDef ::= Annotation* Visibility? 'def' id TypeVarDefList? ('(' ParamList ')')? ':' Type '=' Exp {pin = 3}
+private TypeVarDefList ::= '[' TypeVarDef (',' TypeVarDef)* ']'
+TypeVarDef ::= id
+private ParamList ::= (ParamDef (',' ParamDef)*)?
+ParamDef ::= id ':' Type
+Annotation ::= '@main'
+Visibility ::= 'private'
+
+// definition of datatypes
+DataDef ::= Annotation* Visibility? 'data' id TypeVarDefList? '=' DataConstructorDef ('|' DataConstructorDef)* {pin = 3}
+DataConstructorDef ::= id '(' (Type (',' Type)*)? ')'
+
+// expressions
+Exp ::= IfExp | LetExp | SetMemberExp | InfixExp
+IfExp ::= 'if' '(' Exp ')' Exp 'else' Exp {pin = 1}
+LetExp ::= 'let' (SingleBinding | MultipleBindings) {pin = 1}
+SingleBinding ::= VarDef (':' Type)? '=' InfixExp 'in' Exp
+MultipleBindings ::= '(' VarDef  (',' VarDef )+ ')' (':' Type)? '=' InfixExp 'in' Exp
+VarDef ::= id
+SetMemberExp ::= AtomicExp 'not'? 'in' InfixExp {pin = 3}
+
+
+//infix expressions
+InfixExp ::= CastExp | BaseApplyMethodExp | BaseApplyInfixExp | MatchExp | SubinfixExp
+CastExp ::= SubinfixExp '.' 'as' '[' TypeNameRef ']' {pin = 3}
+BaseApplyMethodExp ::= SubinfixExp '.' scalaterm ( '(' (InfixExp (',' InfixExp)*)? ')' )? {pin = 3} // scala_term = '`' id '`'
+BaseApplyInfixExp ::= SubinfixExp BinaryOp InfixExp {pin = BinaryOp}
+BinaryOp ::= '+' | '-' | '*' | '/' | '%' // arithmetic
+        | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
+        | '++' | '&' // sets
+MatchExp ::=  SubinfixExp 'match' '{' MatchCase* '}' {pin = 2}
+MatchCase ::= 'case' Pat '=>' Exp {pin = 1}
+Pat ::= ConstructorPat
+// OptionPattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
+ConstructorPat ::= ConstructorRef '(' (PatternVarDef (',' PatternVarDef)*)? ')'
+ConstructorRef ::= id
+PatternVarDef ::= id
+
+// subinfix expressions
+SubinfixExp ::= CallExp | LambdaExp | AtomicExp
+CallExp ::= AtomicExp ('[' TypeList ']')? ('(' CallExpList ')')+ {pin = 3} // + to allow composition of functions
+CallExpList ::= (Exp (',' Exp)*)?
+LambdaExp ::= '(' ParamList ')' '=>' Exp {pin = 4}
+
+// atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)
+AtomicExp ::= ParenthesisExp | SetComprehensionExp | ConstSetExp | TupleExp | FoldExp
+               | BaseApplyExp | LiteralExp | VarRefExp | BaseApplyUnaryExp
+ParenthesisExp ::= '(' Exp ')'
+// OptionExpression ::= 'None' | 'Some' '(' (Expression (',' Expression)*)? ')'
+ConstSetExp ::= '{' (Exp (',' Exp)*)? '}'
+SetComprehensionExp ::= '{' SubinfixExp '|' Exp (',' Exp)* '}' {pin = 3}
+TupleExp ::= '(' Exp (',' Exp)+ ')'
+FoldExp ::= 'fold' ('[' Type ']')? '(' Exp ',' Exp ',' Exp ')' {pin = 1}
+BaseApplyExp ::= scalaterm '(' (Exp (',' Exp)*)? ')'
+VarRefExp ::= id
+BaseApplyUnaryExp ::= UnaryOp InfixExp {pin = 1}
+UnaryOp ::= '-' | '!'
+
+// literals
+LiteralExp ::= IntLit | LongLit | DoubleLit | BooleanLit | StringLit | ScalaLit
+IntLit ::= integer
+LongLit ::= long
+DoubleLit ::= double
+BooleanLit ::= 'true' | 'false'
+StringLit ::= string
+ScalaLit ::= scalaterm
+
+// type definitions
+Type ::= FunType | AtomicType
+FunType ::= AtomicType '=>' Type {pin = 2}
+AtomicType ::= TupleType | 'Any' | 'Nothing' | 'Unit' | PrimitiveType | SetType | ConstructorType | ScalaType | TypeNameRef
+ConstructorType ::= TypeNameRef '[' TypeList ']'
+private TypeList ::= Type (',' Type)*
+TupleType ::= '(' TypeList? ')'
+// option ::= 'Option' '[' type_annotation ']' {pin = 1}
+SetType ::= 'Set' '[' Type ']' {pin = 1}
+TypeNameRef ::= id
+PrimitiveType ::= type_int | type_long | type_double | type_boolean | type_string
+ScalaType ::= scalaterm
+
