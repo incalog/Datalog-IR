@@ -3,6 +3,8 @@ package inca.ir.typing
 import inca.ir.*
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.demand.Demand
+import inca.ir.extension.not.Not
 import inca.ir.typing.TypeCheckerDefinitional
 import inca.ir.typing.TypeCheckerDefinitional.TypeError
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -67,6 +69,43 @@ class TypeCheckerDefinitionalTest extends AnyFunSuiteLike:
     )))))
   }
 
+  test("each body must bind all parameters") {
+    module(Relation("R", Seq(Param("p", TAny)), Seq(
+      Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("p"), Var("x"))
+      )),
+      Body(Seq(
+        Eq(IntNum(1), Var("x")),
+        Eq(Var("x"), Var("p"))
+      ))
+    )))
+
+    assertThrows[TypeError] {
+      module(Relation("R", Seq(Param("p", TAny)), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("p"), Var("x"))
+        )),
+        Body(Seq(
+          Eq(IntNum(1), Var("x"))
+        ))
+      )))
+    }
+
+    assertThrows[TypeError] {
+      module(Relation("R", Seq(Param("p", TAny)), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("p"), Var("x"))
+        )),
+        Body(Seq(
+          Eq(Var("p"), Var("x"))
+        ))
+      )))
+    }
+  }
+
 
     test("unbound variable in neq test") {
     assertThrows[TypeError] {
@@ -118,6 +157,48 @@ class TypeCheckerDefinitionalTest extends AnyFunSuiteLike:
           NegCall("T", Seq(Var("p1"), IntNum(2)))
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+  }
+
+  test("not inverts variable closing") {
+    assertThrows[TypeError] {
+      module(
+        Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+          Not(Call("T", Seq(Var("p1"), Var("p2"))))
+        )))),
+        Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+
+    // double negation
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Not(Not(Call("T", Seq(Var("p1"), Var("p2")))))
+      )))),
+      Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+    )
+
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+      )))),
+      Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+    )
+  }
+
+  test("demand binds like a call") {
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+
+    assertThrows[TypeError] {
+      module(
+        Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+          Not(Demand(Seq(Var("p1"), Var("p2"))))
+        ))))
       )
     }
   }

@@ -36,7 +36,7 @@ object TypeCheckerDefinitional:
   def checkClosed(t: Term, ctx: Context, expected: Type): Unit = t match
     case Var(x) => ctx.get(x.name) match
       case Some((ty, Bound)) => assertComparable(ty, expected, t)
-      case Some((ty, Unbound)) => throw TypeError(s"Required closed term but got unbound variable $x")
+      case Some((ty, Unbound)) => throw TypeError(s"Unbound variable $x not allowed here")
       case None => throw TypeError(s"Undefined variable $x")
     case IntNum(n) => assertComparable(TInt, expected, t)
     case Add(t1, t2) =>
@@ -79,7 +79,7 @@ object TypeCheckerDefinitional:
   def inferClosed(t: Term, ctx: Context): Type = t match
     case Var(x) => ctx.get(x.name) match
       case Some((ty, Bound)) => ty
-      case Some((ty, Unbound)) => throw TypeError(s"Required closed term but got unbound variable $x")
+      case Some((ty, Unbound)) => throw TypeError(s"Unbound variable $x not allowed here")
       case None => throw TypeError(s"Undefined variable $x")
     case IntNum(n) => TInt
     case Add(t1, t2) =>
@@ -121,13 +121,13 @@ object TypeCheckerDefinitional:
         case Success(ty1) => checkClosing(t2, ctx, ty1)
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
           case Success(ty2) => checkClosing(t1, ctx, ty2)
-          case Failure(err2) => throw TypeError(err1.getMessage + "\n" + err2.getMessage)
+          case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Neq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
         case Success(ty1) => checkClosed(t2, ctx, ty1); ctx
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
           case Success(ty2) => checkClosed(t1, ctx, ty2); ctx
-          case Failure(err2) => throw TypeError(err1.getMessage + "\n" + err2.getMessage)
+          case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomClosed(at, ctx)
     case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferClosing(tt, c)._2 }
 
@@ -145,13 +145,13 @@ object TypeCheckerDefinitional:
         case Success(ty1) => checkClosed(t2, ctx, ty1); ctx
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
           case Success(ty2) => checkClosed(t1, ctx, ty2); ctx
-          case Failure(err2) => throw TypeError(err1.getMessage + "\n" + err2.getMessage)
+          case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Neq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
         case Success(ty1) => checkClosing(t2, ctx, ty1)
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
           case Success(ty2) => checkClosing(t1, ctx, ty2)
-          case Failure(err2) => throw TypeError(err1.getMessage + "\n" + err2.getMessage)
+          case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomClosing(at, ctx)
     case Demand(ts) => ts.foreach(tt => inferClosed(tt, ctx)); ctx
 
