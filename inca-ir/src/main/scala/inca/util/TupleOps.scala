@@ -1,9 +1,19 @@
 package inca.util
 
+import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, Tuples}
+
 import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 
 object TupleOps {
+  def binaryFlip(tuple: ITuple): Tuple =
+    Tuples.staticArityFlatTupleOf(tuple.get(1), tuple.get(0))
+
+  def binaryTuple(tuple: ITuple): Tuple = tuple match {
+    case t: Tuple => t
+    case _ => Tuples.staticArityFlatTupleOf(tuple.get(0), tuple.get(1))
+  }
+
   /**
    * From: https://rosettacode.org/wiki/Cartesian_product_of_two_or_more_lists#Scala
    */

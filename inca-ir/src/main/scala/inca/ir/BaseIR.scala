@@ -12,7 +12,6 @@ implicit def name2string(name: Name): String = name.toString
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
-  def byAppending(suffix: String): Name = Name(this.name + suffix)
 
 case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extends SourceLocation:
   override def toString: String = {
@@ -20,6 +19,8 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
+
+  lazy val relations: Seq[Relation] = contents.collect { case r: Relation => r }
 
 trait ModuleEntry(val name: Name) extends SourceLocation with Hints
 
