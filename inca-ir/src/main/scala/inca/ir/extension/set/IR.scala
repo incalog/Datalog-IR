@@ -24,7 +24,7 @@ case class SetIntersection(t1: Term, t2: Term) extends Term:
   override def toString: String = t1.toString + " ∩ " + t2
   override def vars: Seq[Var] = t1.vars ++ t2.vars
 
-case class SetMember(t1: Term, t2: Term) extends Atom
+case class SetMember(mem: Term, s: Term) extends Atom
 
 // TODO: Discuss: Do we want something like this ?
 //  Probably yes, since we do not know the relation a set is defunctionalized to
