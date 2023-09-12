@@ -114,9 +114,10 @@ object GeneratePSystem {
     import quotes.reflect.asTerm
 
     val paramDefs = relation.params.map(p => Expr(p.name.name) -> genPParam(p)).toList
+    val bodies = relation.bodies
 
     val body = '{
-      new Specification(new BasePQuery(PVisibility.PUBLIC) {
+      new Specification(new BasePQuery(PVisibility.PUBLIC) { q =>
         // I have not found a way to insert code without a block aka directly into the class
         // body. Therefore we use a map and fill it inside a block
         val pparams: Map[String, PParameter] = Map[String, PParameter](
@@ -125,7 +126,16 @@ object GeneratePSystem {
           }.reduce((a, b) => '{$a;$b}) }
         )
 
-        override def doGetContainedBodies(): util.Set[PBody] = ???
+        override def doGetContainedBodies(): util.Set[PBody] = util.Set.of(
+          ${
+            bodies.map { b =>
+              '{
+                val body: PBody = new PBody(null)
+                body
+              }
+            }.reduce((a, b) => '{$a;$b})
+          }
+        )
         override def getFullyQualifiedName: String = ???
         override def getParameters: util.List[PParameter] = ???
       })
