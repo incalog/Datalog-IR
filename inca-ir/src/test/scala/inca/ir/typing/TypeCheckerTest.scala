@@ -1,4 +1,4 @@
-package inca.ir.base
+package inca.ir.typing
 
 import inca.ir.*
 import inca.ir.extension.arithmetic
@@ -6,7 +6,7 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
-class BoundednessTest extends AnyFunSuiteLike:
+class TypeCheckerTest extends AnyFunSuiteLike:
 
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)

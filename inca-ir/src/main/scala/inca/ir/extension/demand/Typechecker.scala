@@ -2,7 +2,7 @@ package inca.ir.extension.demand
 
 import inca.ir.Atom
 import inca.ir.extension.disjunction.Disjunction
-import inca.ir.typing.BaseIRTypechecker
+import inca.ir.typing.{BaseIRTypechecker, Mode}
 
 /*
 R(y) :- {A1(x) or A2(x)}, Q(x, y).
@@ -35,8 +35,6 @@ Q(x, y) :- demandHere(x), B(x, y), C(x, y).
  */
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheck(atom: Atom): Unit = atom match
-    case Demand(ts) =>
-      ts.foreach(typecheckBind(_, None))
-    case _ =>
-      super.typecheck(atom)
+  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case Demand(ts) => ts.foreach(inferTerm(_, mode))
+    case _ => super.checkAtom(atom, mode)

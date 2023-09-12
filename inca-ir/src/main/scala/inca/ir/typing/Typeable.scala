@@ -5,8 +5,8 @@ import scala.reflect.ClassTag
 trait Typeable[T]:
   var typ: Option[T] = None
 
-  def typed(ty: T, subtypeChecked: Boolean = false): this.type = {
-    if (!subtypeChecked && this.typ.nonEmpty)
+  def typed(ty: T, force: Boolean = false): this.type = {
+    if (!force && this.typ.nonEmpty)
       throw new IllegalArgumentException(s"May not overwrite annotated type ${this.typ} for $this.")
     this.typ = Some(ty)
     this

@@ -13,12 +13,12 @@ case class CaseDefinition(name: Name, args: Seq[Type]):
 case class DataDefinition(override val name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry(name):
   override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
 
-case class Construct(name: Name, data: Seq[Term]) extends Term:
-  override def vars: Seq[Var] = data.flatMap(_.vars)
-  override def toString: String = s"$name${data.mkString("(", ", ", ")")}"
+case class Construct(name: Name, args: Seq[Term]) extends Term:
+  override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def toString: String = s"$name${args.mkString("(", ", ", ")")}"
 
-case class Case(name: Name, vars: Seq[Var], body: Seq[Atom]): // TODO Discuss: or Body or Term ?
-  override def toString: String = s"case $name(${vars.mkString(", ")}) => ${body.mkString(", ")}"
+case class Case(name: Name, args: Seq[Term], body: Seq[Atom]): // TODO Discuss: or Body or Term ?
+  override def toString: String = s"case $name(${args.mkString(", ")}) => ${body.mkString(", ")}"
 
 // We could lower this to disjunctionIR first
 case class Match(matchee: Term, cases: Seq[Case]) extends Atom:

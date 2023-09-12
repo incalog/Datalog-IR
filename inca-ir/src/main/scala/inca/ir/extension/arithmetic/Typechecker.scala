@@ -1,38 +1,38 @@
 package inca.ir.extension.arithmetic
 
 import inca.ir.extension.arithmetic.*
-import inca.ir.typing.BaseIRTypechecker
+import inca.ir.typing.{BaseIRTypechecker, Mode}
+import inca.ir.util.SourceLocation
 import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match
-    case (TInt, TDouble) => false
-    case (TDouble, TInt) => false
-    case (TInt, TInt) => true
-    case (TDouble, TDouble) => true
-    case _ => super.subtype(ty1, ty2)
+  private def inferInfixOpType(lhs: Term, rhs: Term, opTerm: SourceLocation): Type =
+    (inferTerm(lhs, Mode.Closed), inferTerm(rhs, Mode.Closed)) match
+      case (TInt, TInt) => TInt
+      case (TDouble, TDouble) => TDouble
+      case (ty1@(TInt|TDouble), ty2) =>
+        error(s"Expected $ty1 but got $ty2", rhs)
+        ty1
+      case (ty1, ty2@(TInt|TDouble)) =>
+        error(s"Expected $ty2 but got $ty1", lhs)
+        ty2
+      case (ty1, ty2) =>
+        error(s"Ill-typed operation $opTerm with operand types $ty1 and $ty2", opTerm)
+        TInt
 
-  override def typecheck(atom: Atom): Unit = atom match
-    case LT(lhs, rhs) =>
-      typecheckMust(lhs, None)
-      typecheckMust(rhs, None)
-    case GT(lhs, rhs) =>
-      typecheckMust(lhs, None)
-      typecheckMust(rhs, None)
-    case _ => super.typecheck(atom)
-
-  private def typecheckInfixOp(ty1: Type, ty2: Type): Type = {
-    // TODO: We might implement better typechecking here
-    join(ty1, ty2)
-  }
-
-  override def typecheckInternal(term: Term, hint: Option[Type]): Type = term match
-    case Add(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
-    case Sub(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
-    case Mul(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
-    case Div(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
-    case Min(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
-    case Max(lhs, rhs) => typecheckInfixOp(typecheckMust(lhs, None), typecheckMust(rhs, None))
+  protected override def inferTermExtend(term: Term, mode: Mode): Type = term match
+    case Add(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
+    case Sub(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
+    case Mul(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
+    case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
+    case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
+    case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
     case IntNum(_) => TInt
     case DoubleNum(_) => TDouble
-    case _ => super.typecheckInternal(term, hint)
+    case _ => super.inferTermExtend(term, mode)
+
+  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case LT(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
+    case GT(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
+    case _ => super.checkAtom(atom, mode)
+

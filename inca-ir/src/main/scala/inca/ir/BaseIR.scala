@@ -2,7 +2,7 @@ package inca.ir
 
 import inca.ir.*
 import inca.ir.extensions.*
-import inca.ir.typing.Typeable
+import inca.ir.typing.{Typeable, VarMode}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
@@ -34,7 +34,7 @@ trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
-case class TermType(ty: Type, positive: Boolean)
+case class TermType(ty: Type, mode: VarMode)
 
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String = {
@@ -64,6 +64,10 @@ object Var {
   //def apply(name: String): Var = new Var(Name(name))
   trait Target extends SourceLocation
 }
+
+case class Cast(t: Term, ty: Type) extends Term:
+  override def toString: String = s"$t:$ty"
+  override def vars: Seq[Var] = t.vars
 
 case class Call(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"$name${args.mkString("(", ", ", ")")}"

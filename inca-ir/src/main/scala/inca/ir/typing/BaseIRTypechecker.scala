@@ -50,128 +50,132 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   }
 
   def typecheck(body: Body): Unit =
-    body.atoms.foreach(at => withBindBound(typecheck(at)))
+    body.atoms.foreach(at => checkAtom(at, Mode.Closing))
 
-  private def typecheckCall(name: Name, args: Seq[Term], atom: Atom, positive: Boolean): Unit = {
+  def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
+    case (TAny, _) | (_, TAny) => // fine
+    case (_, TNothing) => error(s"Expected type $outside, which cannot be inhabited by $t")
+    case (TNothing, _) => error(s"Expected type $outside, but $t has type $ty")
+    case _ =>
+      if (ty == outside) {
+        // fine
+      } else {
+        error(s"Expected type $outside, but $t has type $ty")
+      }
+
+
+  final def checkTerm(term: Term, expected: Type, mode: Mode): Unit =
+    assignType(term) {
+      checkTermExtend(term, expected, mode)
+      expected
+    }
+
+  final def inferTerm(term: Term, mode: Mode): Type =
+    assignType(term) {
+      inferTermExtend(term, mode)
+    }
+
+  protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Unit = term match
+    case v@Var(name) => lookupVar(name) match
+      case None if mode.requiresClosed =>
+        error(s"Undefined variable $v at closed position", v)
+        registerVar(name, v, TAny)
+        bindVar(name)
+      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
+        error(s"Unbound variable $v not allowed here", v)
+        bindVar(name)
+      case None => // register and bind new variable
+        registerVar(name, v, expected)
+        bindVar(name)
+      case Some(VarInfo(_, ty, _)) => // bind variable (if needed) and assure type compatibility
+        bindVar(name)
+        assertComparable(ty, expected, v)
+    case Cast(t, ty) =>
+      checkTerm(t, ty, mode)
+      assertComparable(ty, expected, term)
+    case _ => // fallback to infer + compatibility check
+      val ty = inferTerm(term, mode)
+      assertComparable(ty, expected, term)
+
+  protected def inferTermExtend(term: Term, mode: Mode): Type = term match
+    case v@Var(name) => lookupVar(name) match
+      case None if mode.requiresClosed =>
+        error(s"Undefined variable $v at closed position", v)
+        registerVar(name, v, TAny)
+        bindVar(name)
+        TAny
+      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
+        error(s"Unbound variable $v not allowed here", v)
+        bindVar(name)
+        TAny
+      case None => // register and bind new variable
+        error(s"Cannot infer type of Undefined variable $v", v)
+        registerVar(name, v, TAny)
+        bindVar(name)
+        TAny
+      case Some(VarInfo(_, ty, _)) => // bind variable (if needed) and assure type compatibility
+        bindVar(name)
+        ty
+    case Cast(t, ty) =>
+      checkTerm(t, ty, mode)
+      ty
+    case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
+
+  def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
     lookupModuleEntry(name) match
       case Some(Relation(_, params, _)) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 
-        val paramTys = params.map(_.ty)
-        // Assign a type to a variable in case it was previously unbound
-        // typecheck all args and thereby bind any missing variables
-        val localBound = if (positive) bound else bound.flipped
-        withBound(localBound) {
-          val argTys = args.zip(paramTys).map { case (a, pty) => typecheck(a, Some(pty)) }
-          args.zip(argTys).zip(paramTys).foreach { case ((a, aTy), pTy) =>
-            assertSubtype(pTy, aTy, a, atom)
-          }
+        args.zip(params).foreach { case (t, Param(_, ty)) =>
+          checkTerm(t, ty, mode)
         }
-
       case _ => error(s"Unknown relation: $name", atom)
-  }
 
-  private def typecheckExtensionalCall(name: Name, args: Seq[Term], atom: Atom, positive: Boolean): Unit = {
-    args.foreach {
-      case v@Var(name) if lookupVar(name).isEmpty =>
-        warn(s"Unregistered variable $name in extensional call, inferring TAny", atom)
-        TAny
-      case v => // Nothing
-    }
-    val localBound = if (positive) bound else bound.flipped
-    withBound(localBound) {
-      args.foreach(typecheck(_, ???))
-    }
-  }
-
-  def typecheck(atom: Atom): Unit = atom match {
-    case Call(name, args) =>
-      typecheckCall(name, args, atom, true)
-    case NegCall(name, args) =>
-      typecheckCall(name, args, atom, false)
-    case ExtensionalCall(name, args) =>
-      typecheckExtensionalCall(name, args, atom, true)
-    case NegExtensionalCall(name, args) =>
-      typecheckExtensionalCall(name, args, atom, false)
+  def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case Call(name, args) => checkCall(name, args, atom, mode)
+    case NegCall(name, args) => checkCall(name, args, atom, mode.inverted)
+    case ExtensionalCall(name, args) => checkCall(name, args, atom, mode)
+    case NegExtensionalCall(name, args) => checkCall(name, args, atom, mode.inverted)
 
     case Eq(lhs, rhs) =>
-      val (lhsMustTy, lhsErrs) = withErrors(typecheckMust(lhs, None))
-      val (rhsMustTy, rhsErrs) = withErrors(typecheckMust(rhs, None))
-
-      if (lhsErrs.nonEmpty && rhsErrs.nonEmpty) {
-        // both checks fail, both contain unbound variables
-        error(s"Neither $lhs nor $rhs is positively bound, comparison not possible", atom)
-      } else if (lhsErrs.isEmpty && rhsErrs.isEmpty) {
-        // both checked successful, not containing unbound vars
-        if (!subtype(lhsMustTy, rhsMustTy) && !subtype(rhsMustTy, lhsMustTy))
-          warn(s"Comparing unrelated types $lhsMustTy and $rhsMustTy will always fail", atom)
-      } else if (rhsErrs.isEmpty) {
-        // rhs checked successful, lhs contains unbound vars
-        typecheckBind(lhs, Some(rhsMustTy))
-      } else if (lhsErrs.isEmpty) {
-        // lhs checked successful, rhs contains unbound vars
-        typecheckBind(rhs, Some(lhsMustTy))
-      }
+      val action = startContextTransaction()
+      withErrors(inferTerm(lhs, Mode.Closed)) match
+        case (lty, Nil) =>
+          action.commit()
+          checkTerm(rhs, lty, mode)
+        case (_, lerrs) =>
+          action.abort()
+          withErrors(inferTerm(rhs, Mode.Closed)) match
+            case (rty, Nil) => checkTerm(lhs, rty, mode)
+            case (_, rerrs) =>
+              error(s"Ill-typed equation, cannot infer closed type for either side", atom)
+              lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
+              rerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
 
     case Neq(lhs, rhs) =>
-      val lhsTy = typecheckMust(lhs, None)
-      val rhsTy = typecheckMust(rhs, None)
-      assertSubtype(lhsTy, rhsTy, atom)
+      val action = startContextTransaction()
+      withErrors(inferTerm(lhs, Mode.Closed)) match
+        case (lty, Nil) =>
+          action.commit()
+          checkTerm(rhs, lty, mode.inverted)
+        case (_, lerrs) =>
+          action.abort()
+          withErrors(inferTerm(rhs, Mode.Closed)) match
+            case (rty, Nil) => checkTerm(lhs, rty, mode.inverted)
+            case (_, rerrs) =>
+              error(s"Ill-typed equation, cannot infer closed type for either side", atom)
+              lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
+              rerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
 
     case _ =>
       throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
-  }
 
-  inline final def typecheckMust(term: Term, hint: Option[Type]): Type = withMustBound(typecheck(term, hint))
-  inline final def typecheckBind(term: Term, hint: Option[Type]): Type = withBindBound(typecheck(term, hint))
-
-  final def typecheck(term: Term, hint: Option[Type]): Type = assignType(term) {
-    term match
-      case v@Var(name) => bound match
-        case Boundedness.Must => lookupVar(name) match
-          case None =>
-            error(s"Expected positively bound variable, but $name is unbound", term)
-            TAny
-          case Some(VarInfo(_, ty, false)) =>
-            error(s"Expected positively bound variable, but $name is unbound", term)
-            ty
-          case Some(info) => info.ty
-        case Boundedness.Bind => lookupVar(name) match
-          case Some(VarInfo(_, ty, positive)) =>
-            if (!positive)
-              bindVar(name)
-            ty
-          case None => hint.orElse(term.typ) match
-            case None =>
-              error(s"Cannot infer type of variable $name", term)
-              TAny
-            case Some(ty) =>
-              registerVar(name, v, ty)
-              bindVar(name)
-              ty
-      case _ => typecheckInternal(term, term.typ)
-  }
-
-  protected[ir] def typecheckInternal(term: Term, hint: Option[Type]): Type = term match {
-    case v@Var(name) =>
-      (lookupVar(name), hint) match {
-        case (Some(info), _) => // lookup was a bound variable or a param
-          info.ty
-        case (None, Some(ty)) => // inferred a type for an unbound variable
-          registerVar(name, v, ty)
-          ty
-        case (None, None) => // unbound variable, but we could not infer a type
-          error(s"Unregistered variable $name", term)
-          TAny
-      }
-    case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
-  }
 
   protected[ir] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
     case (_, TAny) => true
     case (TNothing, _) => true
-    case _ => false
+    case _ => ty1 == ty2
   }
 
   protected[ir] def join(ty1: Type, ty2: Type): Type =
@@ -182,17 +186,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     else
       TAny
 
+  protected[ir] def meet(ty1: Type, ty2: Type): Type = TAny
+
   protected[ir] def join(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
-
-  protected[ir] def meet(ty1: Type, ty2: Type): Type =
-    if (subtype(ty1, ty2))
-      ty1
-    else if (subtype(ty2, ty1))
-      ty2
-    else
-      TNothing
-
-  protected def meet(tys: Iterable[Type]): Type = tys.foldLeft[Type](TAny)(meet)
 
   protected[ir] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
     if (!subtype(ty1, ty2))
@@ -200,16 +196,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected[ir] def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
     val inferred = computeType
-    term.typ match
-      case Some(annotated) =>
-        if (!subtype(inferred, annotated))
-          error(s"Inferred type $inferred, but expected annotated type $annotated", term)
-        term.typed(inferred, subtypeChecked = true)
-        inferred
-      case None =>
-        term.typed(inferred)
-        inferred
+    term.typed(inferred, force = true)
+    inferred
 
-  protected[ir] def assertBound(term: Typeable[TermType] with SourceLocation): Unit =
-    if (!term.typ.get.positive)
-      error(s"Expected postively bound term, but got $term", term)

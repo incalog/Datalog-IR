@@ -1,12 +1,18 @@
 package inca.ir.extension.block
 
 import inca.ir.extension.block.Block
-import inca.ir.typing.BaseIRTypechecker
+import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.{Atom, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheckInternal(term: Term, hint: Option[Type]): Type = term match
+  protected override def checkTermExtend(term: Term, expected: Type, mode: Mode): Unit = term match
     case Block(at, t) =>
-      at.foreach(typecheck)
-      typecheck(t, hint)
-    case _ => super.typecheckInternal(term, hint)
+      at.foreach(checkAtom(_, mode))
+      checkTerm(t, expected, mode)
+    case _ => super.checkTermExtend(term, expected, mode)
+
+  protected override def inferTermExtend(term: Term, mode: Mode): Type = term match
+    case Block(at, t) =>
+      at.foreach(checkAtom(_, mode))
+      inferTerm(t, mode)
+    case _ => super.inferTermExtend(term, mode)

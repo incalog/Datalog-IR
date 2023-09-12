@@ -6,31 +6,23 @@ trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
   var entries: Map[Name, ModuleEntry] = Map()
 
-  case class VarInfo(target: Var.Target, ty: Type, positive: Boolean):
-    def termType: TermType = TermType(ty, positive)
-
-  enum Boundedness:
-    case Must
-    case Bind
-    
-    def flipped: Boundedness = this match
-      case Must => Bind
-      case Bind => Must
-
-  object Boundedness:
-    def apply(positive: Boolean): Boundedness = if (positive) Boundedness.Bind else Boundedness.Must
-
-  var bound: Boundedness = Boundedness.Must
-  def withBound[A](b: Boundedness)(f: => A): A = {
-    val old = bound
-    bound = b
-    try f finally
-      bound = old
-  }
-  inline def withMustBound[A](f: => A): A = withBound(Boundedness.Must)(f)
-  inline def withBindBound[A](f: => A): A = withBound(Boundedness.Bind)(f)
+  case class VarInfo(target: Var.Target, ty: Type, mode: VarMode)
 
   var vars: Map[Name, VarInfo] = Map()
+
+  protected def startContextTransaction(): Transaction = new Transaction(vars)
+  class Transaction(oldVars: Map[Name, VarInfo]):
+    private var committed: Boolean = false
+    def commit(): Unit =
+      if (committed)
+        throw IllegalStateException(s"Transaction already committed")
+      committed = true
+    def abort(): Unit =
+      if (committed)
+        throw IllegalStateException(s"Transaction already committed")
+      vars = oldVars
+      committed = true
+
 
   def scopedTypeContext[T](f: => T): T = {
     val modulesSaved = modules
@@ -63,20 +55,20 @@ trait BaseIRTypeContext extends TypeIO:
     vars.get(name).foreach { case VarInfo(previousDecl, _, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += name -> VarInfo(decl, ty, false)
+    vars += name -> VarInfo(decl, ty, VarMode.Unbound)
   }
 
   def bindVar(name: Name): Unit = vars.get(name) match
     case None => error(s"Cannot bind unknown variable $name, which should have been registered before", name)
-    case Some(info) => vars += name -> info.copy(positive = true)
+    case Some(info) => vars += name -> info.copy(mode = VarMode.Bound)
 
   def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
 
   def lookupVar(name: Name): Option[VarInfo] = vars.get(name)
 
   def isBoundVar(name: Name): Boolean = vars.get(name) match
-    case None => false
-    case Some(VarInfo(_, _, positive)) => positive
+    case Some(VarInfo(_, _, VarMode.Bound)) => true
+    case _ => false
 
   inline def isFreeVar(name: Name): Boolean = !isBoundVar(name)
 

@@ -12,7 +12,21 @@ trait Typechecker extends BaseIRTypechecker
   with not.Typechecker
   with set.Typechecker
   with primitiveScala.Typechecker
-  
+
+enum Mode:
+  case Closing
+  case Closed
+
+  inline def isClosing: Boolean = this == Closing
+  inline def requiresClosed: Boolean = !isClosing
+  def inverted: Mode = this match
+    case Closing => Closed
+    case Closed => Closing
+
+enum VarMode:
+  case Bound
+  case Unbound
+
 object Typechecker:
   lazy val typer = new Typechecker {}
   def subtype(ty1: Type, ty2: Type): Boolean = typer.subtype(ty1, ty2)

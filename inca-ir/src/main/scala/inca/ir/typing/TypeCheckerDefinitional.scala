@@ -185,9 +185,9 @@ object TypeCheckerDefinitional:
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomClosed(at, ctx)
     case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferClosing(tt, c)._2 }
-    case SetMember(mem, s) => inferClosed(s, ctx) match
-      case TSet(tty) => checkClosing(mem, ctx, tty)
-      case ty => throw TypeError(s"Expected set type, but $s has type $ty")
+    case SetMember(mem, s) =>
+      val TSet(tty) = inferClosedSet(s, ctx)
+      checkClosing(mem, ctx, tty)
 
   def checkAtomClosed(a: Atom, ctx: Context)(using relations: Relations): Context = a match
     case Call(name, args) => relations.get(name) match

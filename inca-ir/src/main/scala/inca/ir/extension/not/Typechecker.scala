@@ -1,14 +1,10 @@
 package inca.ir.extension.not
 
 import inca.ir.extension.not.*
-import inca.ir.typing.BaseIRTypechecker
+import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.{Atom, TAny, Term, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  // TODO Handle negation of call correctly
-  override def typecheck(atom: Atom): Unit = atom match
-    case Not(at) =>
-      withBound(bound.flipped) {
-        typecheck(at)
-      }
-    case _ => super.typecheck(atom)
+  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case Not(at) => checkAtom(at, mode.inverted)
+    case _ => super.checkAtom(atom, mode)
