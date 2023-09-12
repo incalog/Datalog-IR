@@ -56,61 +56,68 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     if (meet(ty, outside) == TNothing)
       error(s"Expected type $outside, which cannot be inhabited by $t")
 
-  final def checkTerm(term: Term, expected: Type, mode: Mode): Unit =
+  final def checkTerm(term: Term, expected: Type, mode: Mode): Mode =
     assignType(term) {
-      checkTermExtend(term, expected, mode)
-      expected
-    }
+      val cl = checkTermExtend(term, expected, mode)
+      TermType(expected, cl)
+    }._2
 
-  final def inferTerm(term: Term, mode: Mode): Type =
+  final def inferTerm(term: Term, mode: Mode): TermType =
     assignType(term) {
       inferTermExtend(term, mode)
     }
 
-  protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Unit = term match
+  protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
     case v@Var(name) => lookupVar(name) match
       case None if mode.requiresClosed =>
         error(s"Undefined variable $v at closed position", v)
         registerVar(name, v, TAny)
         bindVar(name)
+        Mode.Closed
       case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
         error(s"Unbound variable $v not allowed here", v)
         bindVar(name)
+        Mode.Closed
       case None => // register and bind new variable
         registerVar(name, v, expected)
         bindVar(name)
-      case Some(VarInfo(_, ty, _)) => // bind variable (if needed) and assure type compatibility
+        Mode.Closing
+      case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
         bindVar(name)
         assertComparable(ty, expected, v)
+        if (vm == VarMode.Bound) Mode.Closed else Mode.Closing
     case Cast(t, ty) =>
-      checkTerm(t, ty, mode)
+      val m = checkTerm(t, ty, mode)
       assertComparable(ty, expected, term)
+      m
     case _ => // fallback to infer + compatibility check
-      val ty = inferTerm(term, mode)
+      val TermType(ty,m) = inferTerm(term, mode)
       assertComparable(ty, expected, term)
+      m
 
-  protected def inferTermExtend(term: Term, mode: Mode): Type = term match
+  protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case v@Var(name) => lookupVar(name) match
       case None if mode.requiresClosed =>
         error(s"Undefined variable $v at closed position", v)
         registerVar(name, v, TAny)
         bindVar(name)
-        TAny
+        TAny.closed
       case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
         error(s"Unbound variable $v not allowed here", v)
         bindVar(name)
-        TAny
+        TAny.closed
       case None => // register and bind new variable
         error(s"Cannot infer type of Undefined variable $v", v)
         registerVar(name, v, TAny)
         bindVar(name)
-        TAny
-      case Some(VarInfo(_, ty, _)) => // bind variable (if needed) and assure type compatibility
+        TAny.closing
+      case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
         bindVar(name)
-        ty
+        val m = if (vm == VarMode.Bound) Mode.Closed else Mode.Closing
+        TermType(ty,m)
     case Cast(t, ty) =>
-      checkTerm(t, ty, mode)
-      ty
+      val m = checkTerm(t, ty, mode)
+      TermType(ty,m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
   def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
@@ -133,13 +140,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case Eq(lhs, rhs) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Closed)) match
-        case (lty, Nil) =>
+        case (TermType(lty,_), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode)
         case (_, lerrs) =>
           action.abort()
           withErrors(inferTerm(rhs, Mode.Closed)) match
-            case (rty, Nil) => checkTerm(lhs, rty, mode)
+            case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
               lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
@@ -148,13 +155,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case Neq(lhs, rhs) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Closed)) match
-        case (lty, Nil) =>
+        case (TermType(lty,_), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode.inverted)
         case (_, lerrs) =>
           action.abort()
           withErrors(inferTerm(rhs, Mode.Closed)) match
-            case (rty, Nil) => checkTerm(lhs, rty, mode.inverted)
+            case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode.inverted)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
               lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
@@ -176,7 +183,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected final def joinTypes(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
 
-  private def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
+  private def assignType(term: Typeable[TermType] with SourceLocation)(computeType: => TermType): TermType =
     val inferred = computeType
     term.typed(inferred, force = true)
     inferred

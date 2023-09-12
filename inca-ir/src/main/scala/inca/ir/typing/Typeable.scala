@@ -12,10 +12,9 @@ trait Typeable[T]:
     this
   }
 
-  def isTypeOf[A <: T](implicit tag: ClassTag[A]): Boolean = {
-    this.typ.exists(tag.runtimeClass.isInstance)
-  }
-
+  def typeIs(f: T => Boolean): Boolean =
+    typ.exists(f)
+  
   def mtyped(ty: Option[T]): this.type = {
     this.typ = this.typ.orElse(ty)
     this

@@ -3,13 +3,12 @@ package inca.ir.extension.data
 import inca.Scala
 import inca.Scala.{App, AppInfix, Id, Lam, Select, StringLiteral}
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, TermType, Type, Var, string2name}
 import inca.ir.extension.{data, *}
 import inca.ir.extension.data.IR
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala, IR as ScalaIR}
 import inca.ir.lowering.BaseLowering
-import inca.ir.string2name
 
 
 object ScalaLowering:
@@ -66,8 +65,8 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case Construct(name, data) =>
       val dataName = term.typ match
-        case Some(TData(name)) => name
-        case Some(ty) => throw new IllegalStateException(s"Expected TData, but got $ty")
+        case Some(TermType(TData(name),_)) => name
+        case Some(TermType(ty,_)) => throw new IllegalStateException(s"Expected TData, but got $ty")
         case None => throw new IllegalStateException(s"Untyped term $term")
       val relName = relationName(dataName, name)
       val outName = Var(freshName())
@@ -82,7 +81,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case Match(matchee, cases) =>
       val tys = matchee.typ match
-        case Some(ty) => ty.flatten
+        case Some(TermType(ty, _)) => ty.flatten
         case None => throw new IllegalStateException(s"Untyped term $matchee")
 
       visitTerm(matchee).zip(tys).map {

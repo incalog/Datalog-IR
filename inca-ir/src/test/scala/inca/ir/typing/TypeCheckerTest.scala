@@ -10,8 +10,11 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
-    println(mod)
-    typechecker.typecheck(mod)
+    try typechecker.typecheck(mod)
+    finally {
+      println(mod)
+      typechecker.getErrors.foreach(println)
+    }
     mod
 
   test("no body, no binding") {

@@ -7,7 +7,7 @@ import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   private def inferInfixOpType(lhs: Term, rhs: Term, opTerm: SourceLocation): Type =
-    (inferTerm(lhs, Mode.Closed), inferTerm(rhs, Mode.Closed)) match
+    (inferTerm(lhs, Mode.Closed).ty, inferTerm(rhs, Mode.Closed).ty) match
       case (TInt, TInt) => TInt
       case (TDouble, TDouble) => TDouble
       case (ty1@(TInt|TDouble), ty2) =>
@@ -20,15 +20,15 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Ill-typed operation $opTerm with operand types $ty1 and $ty2", opTerm)
         TInt
 
-  protected override def inferTermExtend(term: Term, mode: Mode): Type = term match
-    case Add(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case Sub(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case Mul(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term)
-    case IntNum(_) => TInt
-    case DoubleNum(_) => TDouble
+  protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
+    case Add(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Sub(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Mul(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case IntNum(_) => TInt.closed
+    case DoubleNum(_) => TDouble.closed
     case _ => super.inferTermExtend(term, mode)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match

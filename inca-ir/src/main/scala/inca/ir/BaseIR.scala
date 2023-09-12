@@ -1,7 +1,7 @@
 package inca.ir
 
 import inca.ir.*
-import inca.ir.typing.{Typeable, VarMode}
+import inca.ir.typing.{Typeable, Mode}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
@@ -26,14 +26,20 @@ trait ModuleEntry(val name: Name) extends SourceLocation with Hints
 
 
 trait Atom extends SourceLocation with Hints
-trait Term extends Typeable[Type] with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with SourceLocation with Hints:
   def vars: Seq[Var] = Seq()
 
 trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
-case class TermType(ty: Type, mode: VarMode)
+  def closed: TermType = TermType(this, Mode.Closed)
+  def closing: TermType = TermType(this, Mode.Closing)
+
+case class TermType(ty: Type, mode: Mode):
+  override def toString: String = mode match
+    case Mode.Closing => s">$ty<"
+    case Mode.Closed => s"<$ty>"
 
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String = {

@@ -2,7 +2,7 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, Type, Var}
+import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, TermType, Type, Var}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:
@@ -10,18 +10,18 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
     case d: DataDefinition => bindData(d)
     case _ => super.typecheck(moduleEntry)
 
-  protected override def inferTermExtend(term: Term, mode: Mode): Type = term match
+  protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case Construct(name, args) => lookupConstruct(name, term) match
       case None =>
         error(s"Unknown constructor $name", term)
-        TAny
+        TAny.closed
       case Some((DataDefinition(dataName, _), CaseDefinition(_, params))) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
         args.zip(params).foreach { case (t, ty) =>
           checkTerm(t, ty, Mode.Closed)
         }
-        TData(dataName)
+        TData(dataName).closed
     case _ => super.inferTermExtend(term, mode)
 
 
@@ -72,7 +72,7 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Match(matchee, cases) =>
-      val dataType = inferTerm(matchee, mode.inverted) match
+      val dataType = inferTerm(matchee, mode.inverted).ty match
         case TData(name) => Some(name.name)
         case ty => error(s"Expected data type but got $ty", matchee); None
 

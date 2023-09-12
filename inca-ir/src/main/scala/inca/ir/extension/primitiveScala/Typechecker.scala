@@ -3,7 +3,7 @@ package inca.ir.extension.primitiveScala
 import inca.Scala
 import inca.ir.extension.primitiveScala.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, TAny, Term, Type}
+import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
@@ -14,6 +14,6 @@ trait Typechecker extends BaseIRTypechecker:
       checkTerm(out, ty, mode)
     case _ => super.checkAtom(atom, mode)
 
-  override def inferTermExtend(term: Term, mode: Mode): Type = term match
-    case Constant(value, ty) => ty
+  override def inferTermExtend(term: Term, mode: Mode): TermType = term match
+    case Constant(value, ty) => ty.closed
     case _ => super.inferTermExtend(term, mode)

@@ -38,11 +38,11 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
     term match
       case Project(t, idx) =>
         val tupleTy: TTuple = t.typ match {
-          case Some(ty@TTuple(tys)) if idx <= tys.size =>
+          case Some(TermType(ty@TTuple(tys), _)) if idx <= tys.size =>
             ty
-          case Some(ty@TTuple(tys)) if idx > tys.size =>
+          case Some(TermType(ty@TTuple(tys), _)) if idx > tys.size =>
             throw IndexOutOfBoundsException(s"Projection index $idx out of bounds!")
-          case Some(ty) =>
+          case Some(TermType(ty,_)) =>
             throw IllegalStateException(s"Term $t has type ${ty}, but expected TTuple.")
           case None =>
             throw IllegalStateException(s"Untyped term $t")
@@ -59,7 +59,7 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
       case Tuple(ts) =>
         ts.flatMap(visitTerm)
       case Var(name) =>
-        val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")))
+        val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")).ty)
         vars.map { case (n, _) => Var(n) }
       case _ => super.visitTerm(term)
   }

@@ -27,7 +27,19 @@ object TypeCheckerDefinitional:
     case Bound
     case Unbound
   import Boundedness.*
+
   type Context = Map[String, (Type, Boundedness)]
+
+  enum Closedness:
+    case Closed
+    case Closing
+
+    def join(that: Closedness): Closedness =
+      if (this == Closing || that == Closing)
+        Closing
+      else
+        Closed
+  import Closedness.*
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
     case (TAny,_) | (_, TAny) => // fine
@@ -88,33 +100,52 @@ object TypeCheckerDefinitional:
         checkClosed(t1, ctx, TSet(TAny))
         checkClosed(t2, ctx, TSet(TAny))
 
-  def checkClosing(t: Term, ctx: Context, expected: Type): Context = t match
+  /**
+   * @return (b, ctx) where ctx is the new context and b indicates if t
+   */
+  def checkClosing(t: Term, ctx: Context, expected: Type): (Closedness, Context) = t match
     case Var(x) => ctx.get(x.name) match
       case Some((ty, b)) =>
         assertComparable(ty, expected, t)
-        ctx + (x.name -> (ty, Bound))
+        val cl = if (b == Bound) Closed else Closing
+        (cl, ctx + (x.name -> (ty, Bound)))
       case None =>
-        ctx + (x.name -> (expected, Bound))
+        (Closing, ctx + (x.name -> (expected, Bound)))
     case IntNum(n) =>
       assertComparable(TInt, expected, t)
-      ctx
+      (Closed, ctx)
     case Add(t1, t2) =>
       checkClosed(t1, ctx, TInt)
       checkClosed(t2, ctx, TInt)
       assertComparable(TInt, expected, t)
-      ctx
+      (Closed, ctx)
     case Tuple(ts) => expected match
       case TTuple(tys) if ts.size == tys.size =>
-        ts.zip(tys).foldLeft(ctx) { case (c, (tt, tty)) => checkClosing(tt, c, tty) }
+        ts.zip(tys).foldLeft((Closed,ctx)) { case ((cl,c), (tt, tty)) =>
+          val (cl_, c_) = checkClosing(tt, c, tty)
+          (cl join cl_, c_)
+        }
       case _ =>
-        val (tys, c) = ts.foldLeft((List.empty[Type], ctx)) { case ((tys, c), tt) =>
-          val (tty, c_) = inferClosing(tt, c)
-          (tys :+ tty, c_)
+        val (tys, cl, c) = ts.foldLeft((List.empty[Type], Closed, ctx)) { case ((tys, cl, c), tt) =>
+          val (tty, cl_, c_) = inferClosing(tt, c)
+          (tys :+ tty, cl join cl_, c_)
         }
         assertComparable(TTuple(tys), expected, t)
-        c
-    case Set(ts) => checkClosed(t, ctx, expected); ctx
-    case SetUnion(t1, t2) => checkClosed(t, ctx, expected); ctx
+        (cl, c)
+    case Set(ts) =>
+      checkClosed(t, ctx, expected)
+      (Closed, ctx)
+    case SetUnion(t1, t2) => expected match
+      case TSet(ty) =>
+        val (cl1, ctx1) = checkClosing(t1, ctx, expected)
+        val (cl2, ctx2) = checkClosing(t2, ctx1, expected)
+        (cl1 join cl2, ctx2)
+      case _ =>
+        assertComparable(TSet(TAny), expected, t)
+        val (cl1, ctx1) = checkClosing(t1, ctx, TSet(TAny))
+        val (cl2, ctx2) = checkClosing(t2, ctx, TSet(TAny))
+        (cl1 join cl2, ctx2)
+
 
   def inferClosed(t: Term, ctx: Context): Type = t match
     case Var(x) => ctx.get(x.name) match
@@ -141,41 +172,44 @@ object TypeCheckerDefinitional:
       val TSet(ty2) = inferClosedSet(t2, ctx)
       TSet(join(ty1, ty2))
 
-  def inferClosing(t: Term, ctx: Context): (Type, Context) = t match
+  def inferClosing(t: Term, ctx: Context): (Type, Closedness, Context) = t match
     case Var(x) => ctx.get(x.name) match
       case Some((ty, b)) =>
-        (ty, ctx + (x.name -> (ty, Bound)))
+        val cl = if (b == Bound) Closed else Closing
+        (ty, cl, ctx + (x.name -> (ty, Bound)))
       case None => throw TypeError(s"Undefined variable $x, cannot infer type")
-    case IntNum(n) => (TInt, ctx)
+    case IntNum(n) => (TInt, Closed, ctx)
     case Add(t1, t2) =>
       checkClosed(t1, ctx, TInt)
       checkClosed(t2, ctx, TInt)
-      (TInt, ctx)
+      (TInt, Closed, ctx)
     case Tuple(ts) =>
-      val (tys, c) = ts.foldLeft((List.empty[Type],ctx)) { case ((tys, c), tt) =>
-        val (tty, c_) = inferClosing(tt, ctx)
-        (tys :+ tty, c_)
+      val (tys, cl, c) = ts.foldLeft((List.empty[Type],Closed,ctx)) { case ((tys, cl, c), tt) =>
+        val (tty, cl_, c_) = inferClosing(tt, ctx)
+        (tys :+ tty, cl join cl_, c_)
       }
-      (TTuple(tys), c)
+      (TTuple(tys), cl, c)
     case Set(ts) =>
-      (inferClosed(t, ctx), ctx)
+      (inferClosed(t, ctx), Closed, ctx)
     case SetUnion(t1, t2) =>
-      (inferClosed(t, ctx), ctx)
+      val (TSet(ty1), cl1, ctx1) = inferClosingSet(t1, ctx)
+      val (TSet(ty2), cl2, ctx2) = inferClosingSet(t2, ctx1)
+      (TSet(join(ty1, ty2)), cl1 join cl2, ctx2)
 
   def checkAtomClosing(a: Atom, ctx: Context)(using relations: Relations): Context = a match
     case Call(name, args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
-      case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkClosing(tt, c, tty) }
+      case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkClosing(tt, c, tty)._2 }
     case NegCall(name, args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foreach { case (tt, tty) => checkClosed(tt, ctx, tty) }; ctx
     case Eq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
-        case Success(ty1) => checkClosing(t2, ctx, ty1)
+        case Success(ty1) => checkClosing(t2, ctx, ty1)._2
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
-          case Success(ty2) => checkClosing(t1, ctx, ty2)
+          case Success(ty2) => checkClosing(t1, ctx, ty2)._2
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Neq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
@@ -184,10 +218,10 @@ object TypeCheckerDefinitional:
           case Success(ty2) => checkClosed(t1, ctx, ty2); ctx
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomClosed(at, ctx)
-    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferClosing(tt, c)._2 }
+    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferClosing(tt, c)._3 }
     case SetMember(mem, s) =>
       val TSet(tty) = inferClosedSet(s, ctx)
-      checkClosing(mem, ctx, tty)
+      checkClosing(mem, ctx, tty)._2
 
   def checkAtomClosed(a: Atom, ctx: Context)(using relations: Relations): Context = a match
     case Call(name, args) => relations.get(name) match
@@ -197,7 +231,7 @@ object TypeCheckerDefinitional:
     case NegCall(name, args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
-      case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkClosing(tt, c, tty) }
+      case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkClosing(tt, c, tty)._2 }
     case Eq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
         case Success(ty1) => checkClosed(t2, ctx, ty1); ctx
@@ -206,9 +240,9 @@ object TypeCheckerDefinitional:
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Neq(t1, t2) =>
       Try(inferClosed(t1, ctx)) match
-        case Success(ty1) => checkClosing(t2, ctx, ty1)
+        case Success(ty1) => checkClosing(t2, ctx, ty1)._2
         case Failure(err1) => Try(inferClosed(t2, ctx)) match
-          case Success(ty2) => checkClosing(t1, ctx, ty2)
+          case Success(ty2) => checkClosing(t1, ctx, ty2)._2
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomClosing(at, ctx)
     case Demand(ts) => ts.foreach(tt => inferClosed(tt, ctx)); ctx
@@ -239,4 +273,9 @@ object TypeCheckerDefinitional:
   def inferClosedSet(t: Term, ctx: Context): TSet =
     inferClosed(t, ctx) match
       case ty: TSet => ty
+      case ty => throw TypeError(s"Expected set type, but $t has type $ty")
+
+  def inferClosingSet(t: Term, ctx: Context): (TSet, Closedness, Context) =
+    inferClosing(t, ctx) match
+      case (ty: TSet, cl, c) => (ty, cl, c)
       case ty => throw TypeError(s"Expected set type, but $t has type $ty")

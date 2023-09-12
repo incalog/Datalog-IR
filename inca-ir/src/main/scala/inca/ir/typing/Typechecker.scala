@@ -17,16 +17,18 @@ enum Mode:
   case Closing
   case Closed
 
-  inline def isClosing: Boolean = this == Closing
-  inline def requiresClosed: Boolean = !isClosing
+  inline def requiresClosed: Boolean = this == Closed
   def inverted: Mode = this match
     case Closing => Closed
     case Closed => Closing
+  
+  def ||(that: Mode): Mode =
+    if (this == Closing || that == Closing)
+      Closing
+    else
+      Closed
 
 enum VarMode:
   case Bound
   case Unbound
-
-object Typechecker:
-  lazy val typer = new Typechecker {}
 

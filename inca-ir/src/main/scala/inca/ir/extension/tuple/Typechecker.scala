@@ -2,7 +2,7 @@ package inca.ir.extension.tuple
 
 import inca.ir.extension.tuple.{Project, TTuple, Tuple}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{TAny, Term, Type}
+import inca.ir.{TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   override protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
@@ -15,16 +15,21 @@ trait Typechecker extends BaseIRTypechecker:
       TTuple(tys1.zip(tys2).map(meet))
     case _ => super.meet(ty1, ty2)
 
-  override protected[ir] def inferTermExtend(term: Term, mode: Mode): Type = term match {
-    case Tuple(ts) => TTuple(ts.map(inferTerm(_, mode)))
-    case Project(t, idx) => inferTerm(t, Mode.Closed) match {
-      case TTuple(tys) if 0 <= idx && idx < tys.size => tys(idx)
+  override protected[ir] def inferTermExtend(term: Term, mode: Mode): TermType = term match {
+    case Tuple(ts) =>
+      val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Closed)) { case (tt, (tys, m)) =>
+        val TermType(tty, ttm) = inferTerm(tt, mode)
+        (tty :: tys, m || ttm)
+      }
+      TermType(TTuple(tys), m)
+    case Project(t, idx) => inferTerm(t, Mode.Closed).ty match {
+      case TTuple(tys) if 0 <= idx && idx < tys.size => tys(idx).closed
       case TTuple(tys) =>
         error("Projection index out of bounds", term)
-        TAny
+        TAny.closed
       case ty =>
         error(s"Expected tuple type but got $ty", term)
-        TAny
+        TAny.closed
     }
     case _ => super.inferTermExtend(term, mode)
   }

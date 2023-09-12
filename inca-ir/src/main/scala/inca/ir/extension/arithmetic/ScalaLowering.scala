@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic
 
 import inca.Scala
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Eq, Language, Name, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Eq, Language, Name, Term, TermType, Type, Var}
 import inca.ir.extension.*
 import inca.ir.extension.bool.{BoolTrue, TBoolean}
 import inca.ir.extension.arithmetic.IR
@@ -54,7 +54,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR] extends Bas
 
   private def typedParams(t: Term): Seq[(Term, Option[Type])] = {
     val ty = t.typ match
-      case Some(ty) => ty.flatten
+      case Some(TermType(ty,_)) => ty.flatten
       case None => Seq()
 
     for ((t, i) <- visitTerm(t).zipWithIndex)

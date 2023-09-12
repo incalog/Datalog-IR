@@ -123,7 +123,7 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   private def freshSetRelation(dependencies: Seq[Var], args: Seq[Term], outTyp: Type): Relation = gensym.scoped {
     // TODO: Prefix or let demand transformation handle it aka. depend on demand IR and insert a placeholder
     val dependentParams = dependencies.map { v =>
-      Param(v.name, visitType(v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v"))))
+      Param(v.name, visitType(v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")).ty))
     }
     val setName = gensym.fresh("set")
     val outName = gensym.fresh("return")
@@ -225,8 +225,8 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize() {
     term match
-      case Var(name) if term.isTypeOf[TSet] =>
-        val setTy = visitType(term.typ.get)
+      case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) =>
+        val setTy = visitType(term.typ.get.ty)
         val groupRelName = setDefunReadRelationNames(setTy)
         val outVar = gensym.fresh("return")
         Seq(block.Block(
@@ -250,13 +250,13 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
   }
 
   private def defunctionalizeTerm(term: Term): Seq[Term] = term match {
-    case Var(name) if term.isTypeOf[TSet] => Seq(Var(name))
+    case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) => Seq(Var(name))
     case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
       val dependentVars = term.vars.distinct
-      val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term"))
+      val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term")).ty
       val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
       setDefunWriteRelations :+= relation
-      val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")))
+      val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")).ty)
       val caseName = gensym.freshGlobal(IR.name)
       setDefunCases :+= CaseDefinition(caseName, dependentTys.map(visitType))
 
@@ -303,9 +303,9 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
 
   override def visitTerm(term: Term): Seq[Term] = {
     term match
-      case Var(name) if term.isTypeOf[TSet] && refunctionalizedVars.contains(name) =>
+      case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
         super.visitTerm(term)
-      case _ if term.isTypeOf[TSet] =>
+      case _ if term.typeIs(_.ty.isInstanceOf[TSet]) =>
         if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
       case _ =>
         super.visitTerm(term)
