@@ -3,7 +3,6 @@ package inca.ir.extension.tuple
 import inca.ir.*
 import inca.ir.extension.tuple
 import inca.ir.extension.tuple.{IR, Project, TTuple}
-import inca.ir.extensions.*
 import Lowering.separator
 import inca.ir.typing.{CompilationMessage, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike

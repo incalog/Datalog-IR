@@ -2,7 +2,6 @@ package inca.ir
 
 import inca.backend.lowering.GeneratePSystem
 import inca.ir.extension.arithmetic.{Add, IR, IntNum}
-import inca.ir.extensions.*
 import inca.ir.typing.{CompilationMessage, Typechecker}
 
 import scala.collection.immutable.Seq

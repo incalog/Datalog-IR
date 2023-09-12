@@ -1,7 +1,6 @@
 package inca.ir.visitors
 
 import inca.ir
-import inca.ir.extensions.*
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 

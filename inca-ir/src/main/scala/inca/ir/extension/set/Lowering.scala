@@ -277,9 +277,9 @@ trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.
         val original = ty -> rels
         val additional = if (ty == setTy) {
           Seq()
-        } else if (Typechecker.subtype(ty, setTy)) {
+        } else if (??? /*Typechecker.subtype(ty, setTy)*/) {
           Seq(setTy -> (rels + relation))
-        } else if (Typechecker.subtype(setTy, ty)) {
+        } else if (??? /*Typechecker.subtype(setTy, ty)*/) {
           Seq(ty -> (rels + relation))
         } else {
           Seq()

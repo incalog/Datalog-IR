@@ -5,14 +5,16 @@ import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.{Atom, TAny, TNothing, Term, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match
-      case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-      case (TSet(_), _) => false
-      case (_, TSet(_)) => false
-      case _ => super.subtype(ty1, ty2)
+  override protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
+    case (TSet(tty1), TSet(tty2)) => TSet(join(tty1, tty2))
+    case _ => super.join(ty1, ty2)
+
+  override protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match
+    case (TSet(tty1), TSet(tty2)) => TSet(meet(tty1, tty2))
+    case _ => super.meet(ty1, ty2)
 
   protected override def inferTermExtend(term: Term, mode: Mode): Type = term match
-    case Set(ts) => TSet(join(ts.map(inferTerm(_, Mode.Closed))))
+    case Set(ts) => TSet(joinTypes(ts.map(inferTerm(_, Mode.Closed))))
     case SetIntersection(t1, t2) =>
       val TSet(ty1) = inferSetTerm(t1, mode)
       val TSet(ty2) = inferSetTerm(t2, mode)

@@ -52,17 +52,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def typecheck(body: Body): Unit =
     body.atoms.foreach(at => checkAtom(at, Mode.Closing))
 
-  def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
-    case (TAny, _) | (_, TAny) => // fine
-    case (_, TNothing) => error(s"Expected type $outside, which cannot be inhabited by $t")
-    case (TNothing, _) => error(s"Expected type $outside, but $t has type $ty")
-    case _ =>
-      if (ty == outside) {
-        // fine
-      } else {
-        error(s"Expected type $outside, but $t has type $ty")
-      }
-
+  def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
+    if (meet(ty, outside) == TNothing)
+      error(s"Expected type $outside, which cannot be inhabited by $t")
 
   final def checkTerm(term: Term, expected: Type, mode: Mode): Unit =
     assignType(term) {
@@ -172,29 +164,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
 
 
-  protected[ir] def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
-    case (_, TAny) => true
-    case (TNothing, _) => true
-    case _ => ty1 == ty2
-  }
+  protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
+    case (TNothing, _) => ty2
+    case (_, TNothing) => ty1
+    case _ => if (ty1 == ty2) ty1 else TAny
 
-  protected[ir] def join(ty1: Type, ty2: Type): Type =
-    if (subtype(ty1, ty2))
-      ty2
-    else if (subtype(ty2, ty1))
-      ty1
-    else
-      TAny
+  protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match
+    case (TAny, _) => ty2
+    case (_, TAny) => ty1
+    case _ => if (ty1 == ty2) ty1 else TNothing
 
-  protected[ir] def meet(ty1: Type, ty2: Type): Type = TAny
+  protected final def joinTypes(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
 
-  protected[ir] def join(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
-
-  protected[ir] def assertSubtype(ty1: Type, ty2: Type, location: SourceLocation*): Unit =
-    if (!subtype(ty1, ty2))
-      error(s"Expected $ty1 but got: $ty2", location: _*)
-
-  protected[ir] def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
+  private def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
     val inferred = computeType
     term.typed(inferred, force = true)
     inferred

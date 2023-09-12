@@ -1,7 +1,6 @@
 package inca.ir
 
 import inca.ir.*
-import inca.ir.extensions.*
 import inca.ir.typing.{Typeable, VarMode}
 import inca.ir.util.SourceLocation
 

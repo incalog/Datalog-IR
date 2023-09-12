@@ -29,5 +29,4 @@ enum VarMode:
 
 object Typechecker:
   lazy val typer = new Typechecker {}
-  def subtype(ty1: Type, ty2: Type): Boolean = typer.subtype(ty1, ty2)
 

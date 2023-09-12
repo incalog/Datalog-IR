@@ -3,7 +3,6 @@ package inca.ir.extension.set
 import inca.ir
 import inca.ir.*
 import inca.ir.Hint.preserveHints
-import inca.ir.extensions.*
 import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
