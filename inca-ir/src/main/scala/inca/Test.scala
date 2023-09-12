@@ -16,9 +16,9 @@ def main() = {
 
   def term(i: Int): Term = Var(s"x_$i")
 
-  def module(language: Language, atoms: Seq[Atom]): Module = Module("Test", language, Seq(
-      Relation("Test", Seq(), Seq(Body(atoms))),
-      Relation("Test2", Seq(), Seq(Body(atoms))),
+  def module(language: Language, atoms: Seq[Atom]): Module = Module("MyModule", language, Seq(
+      Relation("Test", Seq(Param("a", TAny), Param("b", TAny)), Seq(Body(atoms))),
+      Relation("Test2", Seq(Param("p", TAny), Param("q", TAny)), Seq(Body(atoms))),
       //Relation("test2", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq())))
     ))
 
