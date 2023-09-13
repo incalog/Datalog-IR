@@ -18,14 +18,6 @@ object Datalog {
 
   case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = GPPrinter.prettyModule(this)
-
-    def stats: Map[String, Int] = Seq(
-      "relations" -> this.pats.size,
-      "rules" -> this.pats.map(p => p.bodies.size).sum,
-      "input_relations" -> this.pats.count(_.name.startsWith("input$")),
-      "atoms" -> this.pats.map(_.bodies.map(_.atoms.size).sum).sum,
-      "dispatch_relations" -> this.pats.count(_.name.startsWith("dispatch$")),
-    ).toMap
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)

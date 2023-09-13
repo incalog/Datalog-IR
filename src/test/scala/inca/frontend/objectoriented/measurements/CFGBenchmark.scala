@@ -11,7 +11,7 @@ import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
-import inca.util.measurement.MemoryUtil
+import inca.util.measurement.{MemoryUtil, MetricUtils}
 
 import scala.meta.Term
 
@@ -42,7 +42,7 @@ case class CFGBenchmark(val warmups: Int, val runs: Int) {
     val code = FileUtil.readFile(prog)
     val module = Compiler.compileObject(code, options)
 
-    //println(module.optimized.stats.map(kv => s"${kv._1}: ${kv._2}").mkString(", "))
+    //println(MetricUtils.printStatistics(module.optimized))
     //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {

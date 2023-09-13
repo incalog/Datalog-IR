@@ -12,7 +12,7 @@ import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
-import inca.util.measurement.MemoryUtil
+import inca.util.measurement.{MemoryUtil, MetricUtils}
 
 import scala.meta.Term
 
@@ -42,7 +42,8 @@ case class ASGBenchmark(val warmups: Int, val runs: Int) {
   private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     val module = Compiler.compileObject(code, options)
-    //println(module.optimized.stats.map(kv => s"${kv._1}: ${kv._2}").mkString(", "))
+
+    //println(MetricUtils.printStatistics(module.optimized))
     //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {
