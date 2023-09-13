@@ -42,6 +42,8 @@ case class ASGBenchmark(val warmups: Int, val runs: Int) {
   private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     val module = Compiler.compileObject(code, options)
+    //println(module.optimized.stats.map(kv => s"${kv._1}: ${kv._2}").mkString(", "))
+    //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")

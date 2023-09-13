@@ -64,7 +64,6 @@ trait Parser {
     val PRIVATE: Value    = Value("private")
     val VAR: Value        = Value("var")
     val VAL: Value        = Value("val")
-    val VAG: Value        = Value("vag")
     val WITH: Value       = Value("with")
     val NEW: Value        = Value("new")
     val RETURN: Value     = Value("return")
@@ -499,19 +498,9 @@ trait Parser {
     }
   }
 
-  private lazy val fieldDefAggregation: P[FieldDef] = {
-    ((visibility.? <* keyword(VAG)).with1 ~ nameWithType
-      ~ (op('=') *> subinfixExpr)
-      ~ (keyword(WITH) *> (classRef) ~ (op(".") *> identifier))).mapWithLoc {
-      case (((visibility, (name, typeAnno)), valueExpr), (ref, methodName)) =>
-        FieldDef(Seq(), visibility, name, typeAnno, Some(valueExpr), immutable = false)
-    }
-  }
-
   protected[frontend] val fieldDef: P[FieldDef] =
     fieldDefSimple(false).backtrack |
-      fieldDefSimple(true).backtrack |
-      fieldDefAggregation.backtrack
+      fieldDefSimple(true).backtrack
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1

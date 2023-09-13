@@ -15,7 +15,7 @@ import inca.util.measurement.MemoryUtil
 
 import scala.meta.Term
 
-case class WhileBenchmark(val warmups: Int, val runs: Int) {
+case class CFGBenchmark(val warmups: Int, val runs: Int) {
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
 
@@ -24,7 +24,7 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
     val runs: Int
     val name: String
   }
-  case class WhileConfig(warmup: Int, runs: Int, name: String, endNode: Int, step: Int) extends Config
+  case class CFGConfig(warmup: Int, runs: Int, name: String, endNode: Int, step: Int) extends Config
 
 
   def options: ObjectOptions = ObjectOptions()
@@ -48,13 +48,13 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("ConstantPropagation", "main", edb, args:_*)
+      datalog.measure("Examples", "main", edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
-      println(s"Run Datalog ${c.name}: ${i + 1} config: $c")
+      println(s"Run Datalog ${c.name}: ${i + 1}")
 
       val datalog = new ObjectOrientedDatalog(module)
 
@@ -68,7 +68,7 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
       System.exit(1)*/
 
       val start = System.nanoTime()
-      datalog.measure("ConstantPropagation", "main", edb, args:_*)
+      datalog.measure("Examples", "main", edb, args:_*)
       val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
 
@@ -85,10 +85,8 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
     mod = InsertBuiltInMonotones.transformModule(mod)
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
-    if (typechecker.getErrors.nonEmpty)
-      throw new Exception(typechecker.getErrors.mkString("\n"))
 
-    val mainClass = "ConstantPropagation"
+    val mainClass = "Examples"
     val mainMethod = "main"
     val mainClasses = mod.classes.filter(_.name.raw == mainClass)
     val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == mainMethod))
@@ -110,7 +108,7 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
       MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
-      println(s"Run Interpreter ${c.name}: ${i + 1} config: $c")
+      println(s"Run Interpreter ${c.name}: ${i + 1}")
       val interp = new Interpreter(mod, edb)
 
       val start = System.nanoTime()
@@ -128,22 +126,22 @@ case class WhileBenchmark(val warmups: Int, val runs: Int) {
   }
 
   def run() = {
-    val configs = for (i <- 1000 until 2000 by 300) yield {
-      WhileConfig(warmups, runs, s"While", i, 10)
+    val configs = for (i <- 10 until 11 by 2) yield {
+      CFGConfig(warmups, runs, s"CFG", i, 10)
     }
 
-    val prog = progFolder + s"WhileLang.oinca"
+    val prog = progFolder + s"CfgVisitor.oinca"
 
     // OODL - Interp
-    val interpreterMeasurements = for (c <- configs) yield {
+    /*val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/while/While_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/cfg/CFG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
       c.endNode -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/while/While_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/cfg/CFG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
   }
 }

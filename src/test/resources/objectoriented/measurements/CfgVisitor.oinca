@@ -207,7 +207,6 @@ class If extends Stm {
   val cnd: Exp
   val thn: Stm
   val els: Stm
-
   def this(cnd: Exp, thn: Stm, els: Stm) = {
     this.cnd = cnd
     this.thn = thn
@@ -394,11 +393,19 @@ class Examples {
       )
     )
 
+  def constructProg(size: Int): Stm = {
+    if (size <= 1)
+        new VarDef("n" + size.`toString`, new Num(size))
+    else
+        new Sequence(new VarDef("n" + size.`toString`, new Num(size)), this.constructProg(size-1))
+  }
+
   @main
-  def main(): Set[(String, String)] = {
+  def main(endNode: Int, step: Int): Set[(String, String)] = {
     val visitor: CfgVisitor = new CfgVisitor()
     val examples: Examples = new Examples()
-    examples.factorial.accept(visitor)
+    val p: Stm = examples.constructProg(endNode)
+    p.accept(visitor)
     for (c <- visitor.cfgSet()) yield (c._1.getString(), c._2.getString())
   }
 }

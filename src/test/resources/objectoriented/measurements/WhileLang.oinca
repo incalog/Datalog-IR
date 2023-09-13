@@ -402,12 +402,12 @@ class Examples {
 }
 
 class ConstantPropagation {
-
     @main
     def main(endNode: Int, step: Int): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
-        examples.constructProg(100, 20).accept(constantProp)
+        val prog: Stm = examples.constructProg(endNode, step)
+        prog.accept(constantProp)
         // By using result directly we force the aggregation to appear here. Somehow this fixes the double
         // aggregation error.
         for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).stringValue())
