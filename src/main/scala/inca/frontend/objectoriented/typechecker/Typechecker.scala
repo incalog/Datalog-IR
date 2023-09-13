@@ -368,7 +368,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case construtorExpr@ConstructorExpr(className, args) =>
       lookupClassRef(className) match {
-        case None => TAny
+        case None =>
+          TAny
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
           lookupConstructor(classDefOption, argTypes, expression) match {

@@ -356,6 +356,11 @@ object TestDefinition {
     TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("a", "c"))
   }
 
+  def simpleAdd: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("unittests")
+    TestDefinition("Add", "Nat", "main", Seq(), SetResult())
+  }
+
   def loopTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("graphs")
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))

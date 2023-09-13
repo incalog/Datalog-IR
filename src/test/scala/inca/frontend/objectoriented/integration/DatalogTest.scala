@@ -7,7 +7,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.util.FileUtil.readFile
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
@@ -207,6 +207,10 @@ class DatalogTest extends AnyFunSuite {
   test("Loop") {
     performTests(loopTest)
   }
+
+  /*test("Simple Add") {
+    performTests(simpleAdd)
+  }*/
 
   /*test("Primitive Monotone") {
     performTests(primitiveMonotone)
