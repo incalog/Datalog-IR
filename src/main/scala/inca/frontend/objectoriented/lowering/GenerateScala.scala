@@ -170,27 +170,7 @@ class GenerateScala {
     }.toList
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
-    val aggregationVal = if (classDef.isMonotoneClass && !classDef.isMonotoneMapClass) {
-      val Some((_, resType)) = classDef.montoneTypes
-      val scalaTy = transType(resType)
-      val tyAggregation = typeOf[Aggregation[_]]
-      val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
-      val monoType = Term.Name(classDef.name.raw)
-      List(
-        q"""
-         lazy val __aggregation__ = {
-           new $initAggregation {
-             override val name = ${classDef.name.raw}
-             override def init: $scalaTy = $monoType.init()
-             override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = $monoType.join(v1, v2)
-             override val isAssociative = true
-             override val isCommutative = true
-           }
-         }"""
-      )
-    } else {
-      Nil
-    }
+    val aggregationVal = Seq()
 
     val obj = Term.Name(classDef.name.raw)
 
@@ -202,7 +182,6 @@ class GenerateScala {
           ..$assignments
           obj
         }
-        ..$aggregationVal
         ..$staticMethods
     }"""
   }
@@ -310,12 +289,7 @@ class GenerateScala {
       val fieldTerm = Term.Name(targetName.raw)
       val default = Term.Select(transRecv, fieldTerm)
       recv.typ match {
-        case Some(TClass(ref)) =>
-          ref.target match {
-            case Some(classDef) if classDef.isMonotoneClass && targetName.raw == "result" =>
-              throw BodyMustFailException("Illegal usage of result field!")
-            case None | Some(_) => default
-          }
+        case Some(TClass(ref)) => default
         case Some(_) => default
         case None => throw new IllegalArgumentException(s"Untyped expression $expr!")
       }

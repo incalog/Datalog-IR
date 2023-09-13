@@ -48,22 +48,9 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
   def isCaseClass: Boolean = annos.contains(CaseAnnotation)
-  def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation]) || isMonotoneMapClass
-  def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
   def isAbstract: Boolean = annos.contains(AbstractAnnotation)
   def isDefunAuxiliary: Boolean = annos.contains(DefunAuxiliaryAnnotation)
-  def montoneTypes: Option[(Type, Type)] = annos.flatMap {
-    case MonotoneMapAnnotation(types) => Some((types.head, types.last))
-    case MonotoneAnnotation(_, types) => Some((types.head, types.last))
-    case _ => None
-  }.headOption
 
-  def genMonoType : RelMono = {
-    require(this.isMonotoneClass)
-    return RelMono(name, content,
-      this.montoneTypes.getOrElse
-      (throw new RuntimeException("can't get mono-types head")))
-  }
 
   def typ: TClass = {
     val ref = ClassRef(name)
@@ -150,24 +137,4 @@ case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.
 
   override def toString: String = prettyprint
   def prettyprint: String = s"$name: ${typ.prettyprint}"
-}
-
-
-case class RelMono(name: Name,
-                   content: Seq[ClassContent],
-                   types : (Type, Type)){
-  /* Check the well-formedness of relational mono type declaration
-   * A relational mono type consists of four parts,
-   * - input type and output type
-   * - state : the internal state of mono-type
-   * - add : update method
-   * - result : observation
-   * In order to generate type-safe aggregation, we also
-   * need to ensure that input type holds the same type as
-   * state.
-   */
-  require(content.length == 3)
-  val List(st, add, result) = content
-  val (t1, t2) = types
-  require (st.asInstanceOf[FieldDef].typ.toString == t1.toString)
 }
