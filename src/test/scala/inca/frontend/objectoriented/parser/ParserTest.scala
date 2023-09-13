@@ -10,6 +10,8 @@ class ParserTest extends AnyFunSuite {
 
   val parser: Parser = new Parser {}
 
+
+
   test("Tuple") {
     val code = FileUtil.readFile("objectoriented/unittests/Tuple.oinca")
     testSuccessAny(parser.module)(code)
@@ -49,6 +51,31 @@ class ParserTest extends AnyFunSuite {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     testSuccessAny(parser.module)(code)
   }
+
+  test("Fibonacci example"){
+    val code = FileUtil.readFile("objectoriented/unittests/Fib.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("Factorial"){
+    val code = FileUtil.readFile("objectoriented/unittests/Fact.oinca")
+  }
+
+  test("TypeCast") {
+    val code = FileUtil.readFile("objectoriented/unittests/TypeCast.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("SetFoldMax") {
+    val code = FileUtil.readFile("objectoriented/unittests/setfold/SetFoldMax.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("DynamicDispatch") {
+    val code = FileUtil.readFile("objectoriented/unittests/DynamicDispatch.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
 
   private def testSuccessAny[T](parser: P[Module]): String => Assertion =
     (input: String) => {

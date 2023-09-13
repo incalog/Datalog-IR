@@ -200,7 +200,4 @@ class DatalogTest extends AnyFunSuite {
     performTests(loopTest)
   }
 
-  /*test("Primitive Monotone") {
-    performTests(primitiveMonotone)
-  }*/
 }

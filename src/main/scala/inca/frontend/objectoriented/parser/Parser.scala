@@ -73,7 +73,6 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val SET: Value        = Value("Set")
-    val MONOMAP: Value    = Value("MonoMap")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
@@ -83,7 +82,7 @@ trait Parser {
 
   import Keyword._
 
-  val keywords: Set[String] = Keyword.values.filter(_ != MONOMAP).map(_.toString) // HACK: We do allow MonoMap as id
+  val keywords: Set[String] = Keyword.values.map(_.toString)
   val reservedMethods: Set[String] = ReservedMethods.values.map(_.toString)
 
   def keyword(keyword: Keyword): P[Unit] =
@@ -167,13 +166,6 @@ trait Parser {
   protected[frontend] val classType: P[TClass] =
     classRef.mapWithLoc(TClass)
 
-  protected[frontend] def monoMapType: P[TClass] =
-    (keyword(MONOMAP) *> inBrackets(seq0(P.defer(typeAnno), min=2, max=2))).mapWithLoc { typeParams =>
-        val monoMapType = TClass(ClassRef(Name(MONOMAP.toString)))
-        monoMapType.tyParams = typeParams
-        monoMapType
-    }
-
   protected[frontend] val atomicTypeAnno: P[Type] =
     spaced(
       simpleType("Any", TAny) |
@@ -185,7 +177,7 @@ trait Parser {
     )
 
   protected[frontend] val typeAnno: P[Type] =
-    monoMapType | setType | atomicTypeAnno
+    setType | atomicTypeAnno
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
@@ -529,9 +521,8 @@ trait Parser {
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
     val parentClassName = keyword(EXTENDS) *> classRef
-    val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
@@ -547,20 +538,11 @@ trait Parser {
         (primaryFields :+ primaryConstr) ++ content
       }
 
-      // Add a monotone annotation if the class inherits from a monotone
-      val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
-          case (monotoneName: Name, types: Seq[Type]) =>
-            (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), TUnit, Seq(
-                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
-                ReturnStmt(TupleExpr())
-              ))
-            ))
-          case c: ClassRef =>
-            (None, Some(c), None)
-      }.unzip3
-
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
+      val parentClassRefs = parents.getOrElse(Seq()).map {
+        c: ClassRef => c
+      }
+      val additionalMethods = Seq()
+      ClassDef(Seq(caseAnno).flatten, visibility, name, parentClassRefs, clsContent ++ additionalMethods.flatten)
     }
   }
 
