@@ -1,0 +1,6 @@
+module mono
+
+class Mono[A, B] {
+  def add(t : A) : Unit
+  def result() : B
+}

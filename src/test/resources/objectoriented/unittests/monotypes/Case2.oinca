@@ -1,0 +1,22 @@
+module SetTest
+
+class MCounter extends BalancedMonotone[Int, Int] {
+  var st : Int = 0
+
+  def add(i : Int) : Unit = {
+    this.st = this.st + i
+  }
+
+  def result() : Int = {
+    return this.st
+  }
+}
+
+class Example {
+  @main
+  def main() : Int = {
+    val t : MCounter = new MCounter()
+    t.add(2)
+    return t.result()
+  }
+ }

@@ -1,0 +1,1170 @@
+D:\jdk-13.0.1\bin\java.exe "-javaagent:D:\JetBrains\IntelliJ IDEA Community Edition 2023.2\lib\idea_rt.jar=2589:D:\JetBrains\IntelliJ IDEA Community Edition 2023.2\bin" -Dfile.encoding=UTF-8 -classpath "C:\Users\Runqing Xu\AppData\Roaming\JetBrains\IdeaIC2023.2\plugins\Scala\lib\runners.jar;C:\Users\Runqing Xu\Projects\inca-scala\target\scala-2.13\test-classes;C:\Users\Runqing Xu\Projects\inca-scala\target\scala-2.13\classes;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\code\findbugs\jsr305\3.0.2\jsr305-3.0.2.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\errorprone\error_prone_annotations\2.3.4\error_prone_annotations-2.3.4.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\guava\failureaccess\1.0.1\failureaccess-1.0.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\guava\guava\28.2-jre\guava-28.2-jre.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\guava\listenablefuture\9999.0-empty-to-avoid-conflict-with-guava\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\j2objc\j2objc-annotations\1.3\j2objc-annotations-1.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\google\protobuf\protobuf-java\3.7.1\protobuf-java-3.7.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\lihaoyi\fastparse_2.13\2.1.3\fastparse_2.13-2.1.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\lihaoyi\scalaparse_2.13\2.1.3\scalaparse_2.13-2.1.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\lihaoyi\sourcecode_2.13\0.1.7\sourcecode_2.13-0.1.7.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\thesamet\scalapb\lenses_2.13\0.9.0\lenses_2.13-0.9.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\com\thesamet\scalapb\scalapb-runtime_2.13\0.9.0\scalapb-runtime_2.13-0.9.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\oss.sonatype.org\content\repositories\snapshots\de\uni-mainz\informatik\pl\truechange_2.13\0.1.5-SNAPSHOT\truechange_2.13-0.1.5-SNAPSHOT.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\oss.sonatype.org\content\repositories\snapshots\de\uni-mainz\informatik\pl\truediff_2.13\0.1.5-SNAPSHOT\truediff_2.13-0.1.5-SNAPSHOT.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\jline\jline\2.14.6\jline-2.14.6.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\log4j\log4j\1.2.17\log4j-1.2.17.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\apache\commons\commons-collections4\4.4\commons-collections4-4.4.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\checkerframework\checker-qual\2.10.0\checker-qual-2.10.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\eclipse\collections\eclipse-collections-api\10.4.0\eclipse-collections-api-10.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\eclipse\collections\eclipse-collections\10.4.0\eclipse-collections-10.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\eclipse\emf\org.eclipse.emf.common\2.29.0\org.eclipse.emf.common-2.29.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\eclipse\emf\org.eclipse.emf.ecore\2.23.0\org.eclipse.emf.ecore-2.23.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.base.itc\2.4.0\org.eclipse.viatra.query.runtime.base.itc-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.base\2.4.0\org.eclipse.viatra.query.runtime.base-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.localsearch\2.4.0\org.eclipse.viatra.query.runtime.localsearch-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.matchers\2.4.0\org.eclipse.viatra.query.runtime.matchers-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.rete.recipes\2.4.0\org.eclipse.viatra.query.runtime.rete.recipes-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime.rete\2.4.0\org.eclipse.viatra.query.runtime.rete-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\org.eclipse.viatra.query.runtime\2.4.0\org.eclipse.viatra.query.runtime-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo.eclipse.org\content\groups\releases\org\eclipse\viatra\viatra-query-runtime\2.4.0\viatra-query-runtime-2.4.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\fusesource\jansi\jansi\1.12\jansi-1.12.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\modules\scala-collection-contrib_2.13\0.2.1\scala-collection-contrib_2.13-0.2.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\modules\scala-xml_2.13\1.2.0\scala-xml_2.13-1.2.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\scala-compiler\2.13.1\scala-compiler-2.13.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\scala-library\2.13.1\scala-library-2.13.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\scala-reflect\2.13.1\scala-reflect-2.13.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scala-lang\scalap\2.13.1\scalap-2.13.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalactic\scalactic_2.13\3.1.0\scalactic_2.13-3.1.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\common_2.13\4.2.3\common_2.13-4.2.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\fastparse-utils_2.13\1.0.1\fastparse-utils_2.13-1.0.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\fastparse_2.13\1.0.1\fastparse_2.13-1.0.1.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\parsers_2.13\4.2.3\parsers_2.13-4.2.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\scalameta_2.13\4.2.3\scalameta_2.13-4.2.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalameta\trees_2.13\4.2.3\trees_2.13-4.2.3.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalatest\scalatest-compatible\3.1.0\scalatest-compatible-3.1.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\scalatest\scalatest_2.13\3.1.0\scalatest_2.13-3.1.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\typelevel\cats-core_2.13\2.7.0\cats-core_2.13-2.7.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\typelevel\cats-kernel_2.13\2.7.0\cats-kernel_2.13-2.7.0.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\typelevel\cats-parse_2.13\0.3.7\cats-parse_2.13-0.3.7.jar;C:\Users\Runqing Xu\AppData\Local\Coursier\cache\v1\https\repo1.maven.org\maven2\org\typelevel\simulacrum-scalafix-annotations_2.13\0.5.4\simulacrum-scalafix-annotations_2.13-0.5.4.jar" org.jetbrains.plugins.scala.testingSupport.scalaTest.ScalaTestRunner -s inca.frontend.objectoriented.datalog.OODatalogTest -testName "Add Example" -showProgressMessages true
+Testing started at 7:12 PM ...
+
+
+
+
+Typed Module
+
+Module
+module SetTest
+
+class MCounter  {
+	var st: `Int` = 0
+
+	def lift(a: `Int`): `Int` = {
+		return this.st + a
+	}
+
+	def result(): `Int` = {
+		return this.st
+	}
+}
+class Example  {
+	@main
+	def main(): `Int` = {
+		val t: MCounter = new MCounter()
+		var x: `Int` = t.lift(2)
+		var y: `Int` = t.lift(x)
+		return y
+	}
+}
+module SetTest
+
+class MCounter  {
+	var st: `Int` = 0
+
+	def lift(a: `Int`): `Int` = {
+		return this.st + a
+	}
+
+	def result(): `Int` = {
+		return this.st
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+class Example  {
+	@main
+	def main(): `Int` = {
+		val t: MCounter = new MCounter()
+		var x: `Int` = t.lift(2)
+		var y: `Int` = t.lift(x)
+		return y
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+
+SSA Module
+module SetTest
+
+class MCounter  {
+	var st: `Int` = 0
+
+	def lift(a: `Int`): `Int` = {
+		return this.st + a
+	}
+
+	def result(): `Int` = {
+		return this.st
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+class Example  {
+	@main
+	def main(): `Int` = {
+		val t: MCounter = new MCounter()
+		val x: `Int` = t.lift(2)
+		val y: `Int` = t.lift(x)
+		return y
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+
+Defun Module
+module SetTest
+
+class MCounter  {
+	var st: `Int` = 0
+
+	def lift(a: `Int`): `Int` = {
+		return this.st + a
+	}
+
+	def result(): `Int` = {
+		return this.st
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+class Example  {
+	@main
+	def main(): `Int` = {
+		val t: MCounter = new MCounter()
+		val x: `Int` = t.lift(2)
+		val y: `Int` = t.lift(x)
+		return y
+	}
+
+	@primary
+	this() = {
+
+	}
+}
+
+Intermediate Representation
+module SetTest
+`class MCounter() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: MCounter =>
+      other.st == this.st && other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * (31 * this.getClass.getSimpleName.## + this.st.##) + this.__identity.##
+  var st: Int = 0
+  (() => {})()
+  def lift(a: Int): Int = {
+    return this.st + a
+  }
+  def result(): Int = {
+    return this.st
+  }
+}`
+`class Example() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: Example =>
+      other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * this.getClass.getSimpleName.## + this.__identity.##
+  (() => {})()
+}`
+`object MCounter {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity, st$0: Int): MCounter = {
+    val obj = new MCounter()
+    obj.__identity = Some(__identity)
+    obj.st = st$0
+    obj
+  }
+}`
+`object Example {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity): Example = {
+    val obj = new Example()
+    obj.__identity = Some(__identity)
+    obj
+  }
+}`
+Null$(this: inca.runtime.data.objectoriented.Identity)  {
+
+}
+_$instanceOf(this: inca.runtime.data.objectoriented.Identity, t: String, out: Boolean)  {
+	ty == `this.typ`
+	extensional find subtype(ty,t)
+	out == true
+} or {
+	ty == `this.typ`
+	extensional find not#subtype(ty,t)
+	out == false
+}
+_$cast(this: inca.runtime.data.objectoriented.Identity, t: String)  {
+	ty == `this.typ`
+	extensional find subtype(ty,t)
+}
+lift$MCounter$Int$Int(cls$0: String, this: inca.runtime.data.objectoriented.Identity, a: Int, return$0: Int)  {
+	cls$0 == MCounter
+	find MCounter$$st(this,st$0)
+	eval$0 == `st$0 + a`
+	return$0 == eval$0
+}
+result$MCounter$Int(cls$0: String, this: inca.runtime.data.objectoriented.Identity, return$0: Int)  {
+	cls$0 == MCounter
+	find MCounter$$st(this,st$0)
+	return$0 == st$0
+}
+dispatch$lift$MCounter$Int$Int(className: String, implClass: String)  {
+	className == MCounter
+	implClass == MCounter
+}
+dispatch$result$MCounter$Int(className: String, implClass: String)  {
+	className == MCounter
+	implClass == MCounter
+}
+_$coalesced(this: inca.runtime.data.objectoriented.Identity, obj: AnyRef)  {
+	MCounter == `this.typ`
+	find _$coalesced_MCounter(this,obj)
+} or {
+	Example == `this.typ`
+	find _$coalesced_Example(this,obj)
+}
+_$uncoalesced(obj: AnyRef, this: inca.runtime.data.objectoriented.Identity)  {
+	MCounter == `obj.getClass.getSimpleName`
+	find _$uncoalesced_MCounter(obj,this)
+} or {
+	Example == `obj.getClass.getSimpleName`
+	find _$uncoalesced_Example(obj,this)
+}
+MCounter$$st(this: inca.runtime.data.objectoriented.Identity, st: Int)  {
+
+}
+MCounter$MCounter(this: inca.runtime.data.objectoriented.Identity)  {
+	lit$0 == `0`
+	find MCounter$$st(this,lit$0)
+}
+_$super_MCounter$MCounter(this: inca.runtime.data.objectoriented.Identity)  {
+
+}
+_$coalesced_MCounter(uri: inca.runtime.data.objectoriented.Identity, obj: MCounter)  {
+	false == `uri.isNull`
+	find MCounter$$st(uri,st$0)
+	obj == `MCounter.apply(uri, st$0)`
+} or {
+	true == `uri.isNull`
+	obj == `null`
+}
+_$uncoalesced_MCounter(obj: MCounter, uri: inca.runtime.data.objectoriented.Identity)  {
+	true == `obj == null`
+	null$0 == `inca.runtime.data.objectoriented.NullID()`
+	find Null$(null$0)
+	uri == null$0
+} or {
+	false == `obj == null`
+	__identity$0 == `obj.__identity`
+	true == `__identity$0.isDefined`
+	uri == `__identity$0.get`
+	st$0 == `obj.st`
+	find MCounter$$st(uri,st$0)
+} or {
+	false == `obj == null`
+	__identity$0 == `obj.__identity`
+	false == `__identity$0.isDefined`
+	obj$0 == `inca.runtime.data.objectoriented.ObjectID("MCounter")`
+	uri == obj$0
+	st$0 == `obj.st`
+	find MCounter$$st(uri,st$0)
+}
+Example$main(return$0: Int)  {
+	obj$0 == `inca.runtime.data.objectoriented.ObjectID("MCounter")`
+	find MCounter$MCounter(obj$0)
+	t == obj$0
+	lit$1 == `2`
+	C$0 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$0,D$0)
+	find lift$MCounter$Int$Int(D$0,t,lit$1,methodCall$0)
+	x == methodCall$0
+	C$1 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$1,D$1)
+	find lift$MCounter$Int$Int(D$1,t,x,methodCall$1)
+	y == methodCall$1
+	return$0 == y
+}
+Example$Example(this: inca.runtime.data.objectoriented.Identity)  {
+
+}
+_$super_Example$Example(this: inca.runtime.data.objectoriented.Identity)  {
+
+}
+_$coalesced_Example(uri: inca.runtime.data.objectoriented.Identity, obj: Example)  {
+	false == `uri.isNull`
+	obj == `Example.apply(uri)`
+} or {
+	true == `uri.isNull`
+	obj == `null`
+}
+_$uncoalesced_Example(obj: Example, uri: inca.runtime.data.objectoriented.Identity)  {
+	true == `obj == null`
+	null$0 == `inca.runtime.data.objectoriented.NullID()`
+	find Null$(null$0)
+	uri == null$0
+} or {
+	false == `obj == null`
+	__identity$0 == `obj.__identity`
+	true == `__identity$0.isDefined`
+	uri == `__identity$0.get`
+} or {
+	false == `obj == null`
+	__identity$0 == `obj.__identity`
+	false == `__identity$0.isDefined`
+	obj$0 == `inca.runtime.data.objectoriented.ObjectID("Example")`
+	uri == obj$0
+}
+
+Transformed
+module SetTest
+`class MCounter() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: MCounter =>
+      other.st == this.st && other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * (31 * this.getClass.getSimpleName.## + this.st.##) + this.__identity.##
+  var st: Int = 0
+  (() => {})()
+  def lift(a: Int): Int = {
+    return this.st + a
+  }
+  def result(): Int = {
+    return this.st
+  }
+}`
+`class Example() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: Example =>
+      other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * this.getClass.getSimpleName.## + this.__identity.##
+  (() => {})()
+}`
+`object MCounter {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity, st$0: Int): MCounter = {
+    val obj = new MCounter()
+    obj.__identity = Some(__identity)
+    obj.st = st$0
+    obj
+  }
+}`
+`object Example {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity): Example = {
+    val obj = new Example()
+    obj.__identity = Some(__identity)
+    obj
+  }
+}`
+Example$main(return$0: Int) HashSet(List(false)) {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	find MCounter$MCounter(t,ts$0,tsOut$0)
+	lit$1 == `2`
+	C$0 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$0,D$0)
+	find lift$MCounter$Int$Int(D$0,t,lit$1,x,tsOut$0,tsOut$1)
+	C$1 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$1,D$1)
+	find lift$MCounter$Int$Int(D$1,t,x,return$0,tsOut$1,tsOut$2)
+}
+MCounter$$st(this: inca.runtime.data.objectoriented.Identity, st: Int, ts$0: Int) HashSet(List(true, true, true)) {
+	find input$MCounter$$st$bbb(this,st,ts$0)
+}
+MCounter$MCounter(this: inca.runtime.data.objectoriented.Identity, tsIn$0: Int, tsOut$0: Int) HashSet(List(true, true, false)) {
+	find input$MCounter$MCounter$bbf(this,tsIn$0)
+	lit$0 == `0`
+	tsOut$1 == `0`
+	find MCounter$$st(this,lit$0,tsOut$1)
+	tsOut$0 == tsIn$0
+}
+_$coalesced(this: inca.runtime.data.objectoriented.Identity, obj: AnyRef, tsIn$0: Int, tsOut$0: Int) HashSet() {
+
+}
+_$uncoalesced_MCounter(obj: MCounter, uri: inca.runtime.data.objectoriented.Identity, allocIn$0: Int, allocOut$0: Int, tsIn$0: Int, tsOut$0: Int) HashSet() {
+
+}
+lift$MCounter$Int$Int(cls$0: String, this: inca.runtime.data.objectoriented.Identity, a: Int, return$0: Int, tsIn$0: Int, tsOut$0: Int) HashSet(List(true, true, true, false, true, false)) {
+	find input$lift$MCounter$Int$Int$bbbfbf(cls$0,this,a,tsIn$0)
+	cls$0 == MCounter
+	tsMax$0 == aggregate MCounter$$st$Filter(this, _$0, #, tsIn$0):TScala(Int) with Maximum aggregation
+	find MCounter$$st(this,st$0,tsMax$0)
+	return$0 == `st$0 + a`
+	tsOut$0 == tsIn$0
+}
+result$MCounter$Int(cls$0: String, this: inca.runtime.data.objectoriented.Identity, return$0: Int, tsIn$0: Int, tsOut$0: Int) HashSet() {
+
+}
+_$coalesced_MCounter(uri: inca.runtime.data.objectoriented.Identity, obj: MCounter, tsIn$0: Int, tsOut$0: Int) HashSet() {
+
+}
+_$uncoalesced(obj: AnyRef, this: inca.runtime.data.objectoriented.Identity, allocIn$0: Int, allocOut$0: Int, tsIn$0: Int, tsOut$0: Int) HashSet() {
+
+}
+MCounter$$st$Filter(this: inca.runtime.data.objectoriented.Identity, st: Int, ts$0: Int, tsMax$0: Int) HashSet(List(true, false, false, true)) {
+	find input$MCounter$$st$Filter$bffb(this,tsMax$0)
+	find MCounter$$st(this,st,ts$0)
+	true == `ts$0 < tsMax$0`
+}
+dispatch$lift$MCounter$Int$Int(className: String, implClass: String) HashSet(List(true, false)) {
+	find input$dispatch$lift$MCounter$Int$Int$bf(className)
+	className == MCounter
+	implClass == MCounter
+}
+_$cast(this: inca.runtime.data.objectoriented.Identity, t: String) HashSet() {
+
+}
+_$super_Example$Example(this: inca.runtime.data.objectoriented.Identity) HashSet() {
+
+}
+dispatch$result$MCounter$Int(className: String, implClass: String) HashSet() {
+
+}
+_$uncoalesced_Example(obj: Example, uri: inca.runtime.data.objectoriented.Identity, allocIn$0: Int, allocOut$0: Int) HashSet() {
+
+}
+_$coalesced_Example(uri: inca.runtime.data.objectoriented.Identity, obj: Example) HashSet() {
+
+}
+Null$(this: inca.runtime.data.objectoriented.Identity) HashSet() {
+
+}
+_$instanceOf(this: inca.runtime.data.objectoriented.Identity, t: String, out: Boolean) HashSet() {
+
+}
+Example$Example(this: inca.runtime.data.objectoriented.Identity) HashSet() {
+
+}
+_$super_MCounter$MCounter(this: inca.runtime.data.objectoriented.Identity) HashSet() {
+
+}
+input$Example$main$f(dummy$0: Boolean)  {
+	extensional find ext_input$Example$main$f()
+	dummy$0 == true
+}
+input$MCounter$$st$bbb(this$0: inca.runtime.data.objectoriented.Identity, st$1: Int, ts$1: Int)  {
+	find input$MCounter$MCounter$bbf(this,tsIn$0)
+	lit$0 == `0`
+	tsOut$1 == `0`
+	this == this$0
+	lit$0 == st$1
+	tsOut$1 == ts$1
+}
+input$MCounter$MCounter$bbf(this$0: inca.runtime.data.objectoriented.Identity, tsIn$1: Int)  {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	t == this$0
+	ts$0 == tsIn$1
+}
+input$lift$MCounter$Int$Int$bbbfbf(cls$1: String, this$0: inca.runtime.data.objectoriented.Identity, a$0: Int, tsIn$1: Int)  {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	find MCounter$MCounter(t,ts$0,tsOut$0)
+	lit$1 == `2`
+	C$0 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$0,D$0)
+	D$0 == cls$1
+	t == this$0
+	lit$1 == a$0
+	tsOut$0 == tsIn$1
+} or {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	find MCounter$MCounter(t,ts$0,tsOut$0)
+	lit$1 == `2`
+	C$0 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$0,D$0)
+	find lift$MCounter$Int$Int(D$0,t,lit$1,x,tsOut$0,tsOut$1)
+	C$1 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$1,D$1)
+	D$1 == cls$1
+	t == this$0
+	x == a$0
+	tsOut$1 == tsIn$1
+}
+input$MCounter$$st$Filter$bffb(this$0: inca.runtime.data.objectoriented.Identity, tsMax$1: Int)  {
+	find input$lift$MCounter$Int$Int$bbbfbf(cls$0,this,a,tsIn$0)
+	cls$0 == MCounter
+	this == this$0
+	tsIn$0 == tsMax$1
+}
+input$dispatch$lift$MCounter$Int$Int$bf(className$0: String)  {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	find MCounter$MCounter(t,ts$0,tsOut$0)
+	lit$1 == `2`
+	C$0 == `t.typ`
+	C$0 == className$0
+} or {
+	find input$Example$main$f(_)
+	ts$0 == 1
+	alloc$0 == 1
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", alloc$0)`
+	allocOut$0 == `alloc$0 + 1`
+	find MCounter$MCounter(t,ts$0,tsOut$0)
+	lit$1 == `2`
+	C$0 == `t.typ`
+	find dispatch$lift$MCounter$Int$Int(C$0,D$0)
+	find lift$MCounter$Int$Int(D$0,t,lit$1,x,tsOut$0,tsOut$1)
+	C$1 == `t.typ`
+	C$1 == className$0
+}
+
+Optimized
+module SetTest
+`class MCounter() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: MCounter =>
+      other.st == this.st && other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * (31 * this.getClass.getSimpleName.## + this.st.##) + this.__identity.##
+  var st: Int = 0
+  (() => {})()
+  def lift(a: Int): Int = {
+    return this.st + a
+  }
+  def result(): Int = {
+    return this.st
+  }
+}`
+`class Example() extends truechange.URI {
+  var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+  override def equals(that: Any): Boolean = that match {
+    case other: Example =>
+      other.__identity == this.__identity
+    case _ =>
+      false
+  }
+  override def hashCode(): Int = 31 * this.getClass.getSimpleName.## + this.__identity.##
+  (() => {})()
+}`
+`object MCounter {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity, st$0: Int): MCounter = {
+    val obj = new MCounter()
+    obj.__identity = Some(__identity)
+    obj.st = st$0
+    obj
+  }
+}`
+`object Example {
+  def apply(__identity: inca.runtime.data.objectoriented.Identity): Example = {
+    val obj = new Example()
+    obj.__identity = Some(__identity)
+    obj
+  }
+}`
+Example$main(return$0: Int) HashSet(List(false)) {
+	extensional find ext_input$Example$main$f()
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	find MCounter$MCounter(t,1,tsOut$0)
+	MCounter == `t.typ`
+	find input$dispatch$lift$MCounter$Int$Int$bf(MCounter)
+	find lift$MCounter$Int$Int(MCounter,t,2,x,tsOut$0,tsOut$1)
+	find lift$MCounter$Int$Int(MCounter,t,x,return$0,tsOut$1,tsOut$2)
+}
+MCounter$$st(this: inca.runtime.data.objectoriented.Identity, st: Int, ts$0: Int) HashSet(List(true, true, true)) {
+	find input$MCounter$$st$bbb(this,st,ts$0)
+}
+MCounter$MCounter(this: inca.runtime.data.objectoriented.Identity, tsIn$0: Int, tsOut$0: Int) HashSet(List(true, true, false)) {
+	find input$MCounter$MCounter$bbf(this,tsIn$0)
+	find MCounter$$st(this,0,0)
+	tsOut$0 == tsIn$0
+}
+lift$MCounter$Int$Int(cls$0: String, this: inca.runtime.data.objectoriented.Identity, a: Int, return$0: Int, tsIn$0: Int, tsOut$0: Int) HashSet(List(true, true, true, false, true, false)) {
+	find input$lift$MCounter$Int$Int$bbbfbf(cls$0,this,a,tsIn$0)
+	cls$0 == MCounter
+	tsMax$0 == aggregate MCounter$$st$Filter(this, _$0, #, tsIn$0):TScala(Int) with Maximum aggregation
+	find MCounter$$st(this,st$0,tsMax$0)
+	return$0 == `st$0 + a`
+	tsOut$0 == tsIn$0
+}
+MCounter$$st$Filter(this: inca.runtime.data.objectoriented.Identity, st: Int, ts$0: Int, tsMax$0: Int) HashSet(List(true, false, false, true)) {
+	find input$lift$MCounter$Int$Int$bbbfbf(MCounter,this,a$0,tsMax$0)
+	find MCounter$$st(this,st,ts$0)
+	true == `ts$0 < tsMax$0`
+}
+input$MCounter$$st$bbb(this$0: inca.runtime.data.objectoriented.Identity, st$1: Int, ts$1: Int)  {
+	find input$MCounter$MCounter$bbf(this$0,tsIn$0)
+	0 == st$1
+	0 == ts$1
+}
+input$MCounter$MCounter$bbf(this$0: inca.runtime.data.objectoriented.Identity, tsIn$1: Int)  {
+	extensional find ext_input$Example$main$f()
+	this$0 == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	1 == tsIn$1
+}
+input$lift$MCounter$Int$Int$bbbfbf(cls$1: String, this$0: inca.runtime.data.objectoriented.Identity, a$0: Int, tsIn$1: Int)  {
+	extensional find ext_input$Example$main$f()
+	this$0 == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	find MCounter$MCounter(this$0,1,tsIn$1)
+	MCounter == `this$0.typ`
+	find input$dispatch$lift$MCounter$Int$Int$bf(MCounter)
+	MCounter == cls$1
+	2 == a$0
+} or {
+	extensional find ext_input$Example$main$f()
+	this$0 == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	find MCounter$MCounter(this$0,1,tsOut$0)
+	MCounter == `this$0.typ`
+	find input$dispatch$lift$MCounter$Int$Int$bf(MCounter)
+	find lift$MCounter$Int$Int(MCounter,this$0,2,a$0,tsOut$0,tsIn$1)
+	MCounter == cls$1
+}
+input$dispatch$lift$MCounter$Int$Int$bf(className$0: String)  {
+	extensional find ext_input$Example$main$f()
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	find MCounter$MCounter(t,1,tsOut$0)
+	className$0 == `t.typ`
+} or {
+	extensional find ext_input$Example$main$f()
+	t == `inca.runtime.data.objectoriented.ObjectID("MCounter", 1)`
+	find MCounter$MCounter(t,1,tsOut$0)
+	MCounter == `t.typ`
+	find input$dispatch$lift$MCounter$Int$Int$bf(MCounter)
+	find lift$MCounter$Int$Int(MCounter,t,2,x,tsOut$0,tsOut$1)
+	className$0 == `t.typ`
+}
+
+PSystem
+import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
+import java.util
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+object SetTest extends inca.backend.lowering.PSystem.Module {
+  private def shapeless(tup: Product): Seq[Any] = tup.productIterator.flatMap({
+    case s: Product =>
+      shapeless(s)
+    case e =>
+      Seq(e)
+  }).toSeq
+  override val patterns: scala.collection.immutable.Map[String, () => inca.runtime.Query.Specification] = scala.collection.immutable.Map("Example$main" -> (() => Example$main.instance), "MCounter$$st" -> (() => MCounter$$st.instance), "MCounter$MCounter" -> (() => MCounter$MCounter.instance), "lift$MCounter$Int$Int" -> (() => lift$MCounter$Int$Int.instance), "MCounter$$st$Filter" -> (() => MCounter$$st$Filter.instance), "input$MCounter$$st$bbb" -> (() => input$MCounter$$st$bbb.instance), "input$MCounter$MCounter$bbf" -> (() => input$MCounter$MCounter$bbf.instance), "input$lift$MCounter$Int$Int$bbbfbf" -> (() => input$lift$MCounter$Int$Int$bbbfbf.instance), "input$dispatch$lift$MCounter$Int$Int$bf" -> (() => input$dispatch$lift$MCounter$Int$Int$bf.instance))
+  class MCounter() extends truechange.URI {
+    var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+    override def equals(that: Any): Boolean = that match {
+      case other: MCounter =>
+        other.st == this.st && other.__identity == this.__identity
+      case _ =>
+        false
+    }
+    override def hashCode(): Int = 31 * (31 * this.getClass.getSimpleName.## + this.st.##) + this.__identity.##
+    var st: Int = 0
+    (() => {})()
+    def lift(a: Int): Int = {
+      return this.st + a
+    }
+    def result(): Int = {
+      return this.st
+    }
+  }
+  class Example() extends truechange.URI {
+    var __identity: Option[inca.runtime.data.objectoriented.Identity] = None
+    override def equals(that: Any): Boolean = that match {
+      case other: Example =>
+        other.__identity == this.__identity
+      case _ =>
+        false
+    }
+    override def hashCode(): Int = 31 * this.getClass.getSimpleName.## + this.__identity.##
+    (() => {})()
+  }
+  object MCounter {
+    def apply(__identity: inca.runtime.data.objectoriented.Identity, st$0: Int): MCounter = {
+      val obj = new MCounter()
+      obj.__identity = Some(__identity)
+      obj.st = st$0
+      obj
+    }
+  }
+  object Example {
+    def apply(__identity: inca.runtime.data.objectoriented.Identity): Example = {
+      val obj = new Example()
+      obj.__identity = Some(__identity)
+      obj
+    }
+  }
+  object Example$main {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_return$0: PParameter = new PParameter("return$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_return$0: PVariable = body.getOrCreateVariableByName("return$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_return$0, param_return$0))
+        body.setSymbolicParameters(exportedParams)
+        val var_t: PVariable = body.getOrCreateVariableByName("t")
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        val var_x: PVariable = body.getOrCreateVariableByName("x")
+        val var_tsOut$1: PVariable = body.getOrCreateVariableByName("tsOut$1")
+        val var_tsOut$2: PVariable = body.getOrCreateVariableByName("tsOut$2")
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        val lit_int2: PVariable = body.newConstantVariable(2)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_t, eval_1307513790)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_t, lit_int1, var_tsOut$0), SetTest.MCounter$MCounter.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("t")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("t").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, `lit_string-620073745`)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`), SetTest.input$dispatch$lift$MCounter$Int$Int$bf.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`, var_t, lit_int2, var_x, var_tsOut$0, var_tsOut$1), SetTest.lift$MCounter$Int$Int.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`, var_t, var_x, var_return$0, var_tsOut$1, var_tsOut$2), SetTest.lift$MCounter$Int$Int.instance.getInternalQueryRepresentation)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_Example$main"
+      override def getParameters: util.List[PParameter] = util.List.of(param_return$0)
+      override def getParameterNames: util.List[String] = util.List.of("return$0")
+    }
+  }
+  object MCounter$$st {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_this: PParameter = new PParameter("this")
+      private val param_st: PParameter = new PParameter("st")
+      private val param_ts$0: PParameter = new PParameter("ts$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_this: PVariable = body.getOrCreateVariableByName("this")
+        val var_st: PVariable = body.getOrCreateVariableByName("st")
+        val var_ts$0: PVariable = body.getOrCreateVariableByName("ts$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_this, param_this))
+        exportedParams.add(new ExportedParameter(body, var_st, param_st))
+        exportedParams.add(new ExportedParameter(body, var_ts$0, param_ts$0))
+        body.setSymbolicParameters(exportedParams)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this, var_st, var_ts$0), SetTest.input$MCounter$$st$bbb.instance.getInternalQueryRepresentation)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_MCounter$$st"
+      override def getParameters: util.List[PParameter] = util.List.of(param_this, param_st, param_ts$0)
+      override def getParameterNames: util.List[String] = util.List.of("this", "st", "ts$0")
+    }
+  }
+  object MCounter$MCounter {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_this: PParameter = new PParameter("this")
+      private val param_tsIn$0: PParameter = new PParameter("tsIn$0")
+      private val param_tsOut$0: PParameter = new PParameter("tsOut$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_this: PVariable = body.getOrCreateVariableByName("this")
+        val var_tsIn$0: PVariable = body.getOrCreateVariableByName("tsIn$0")
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_this, param_this))
+        exportedParams.add(new ExportedParameter(body, var_tsIn$0, param_tsIn$0))
+        exportedParams.add(new ExportedParameter(body, var_tsOut$0, param_tsOut$0))
+        body.setSymbolicParameters(exportedParams)
+        val lit_int0: PVariable = body.newConstantVariable(0)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this, var_tsIn$0), SetTest.input$MCounter$MCounter$bbf.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this, lit_int0, lit_int0), SetTest.MCounter$$st.instance.getInternalQueryRepresentation)
+        new Equality(body, var_tsOut$0, var_tsIn$0)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_MCounter$MCounter"
+      override def getParameters: util.List[PParameter] = util.List.of(param_this, param_tsIn$0, param_tsOut$0)
+      override def getParameterNames: util.List[String] = util.List.of("this", "tsIn$0", "tsOut$0")
+    }
+  }
+  object lift$MCounter$Int$Int {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_cls$0: PParameter = new PParameter("cls$0")
+      private val param_this: PParameter = new PParameter("this")
+      private val param_a: PParameter = new PParameter("a")
+      private val param_return$0: PParameter = new PParameter("return$0")
+      private val param_tsIn$0: PParameter = new PParameter("tsIn$0")
+      private val param_tsOut$0: PParameter = new PParameter("tsOut$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_cls$0: PVariable = body.getOrCreateVariableByName("cls$0")
+        val var_this: PVariable = body.getOrCreateVariableByName("this")
+        val var_a: PVariable = body.getOrCreateVariableByName("a")
+        val var_return$0: PVariable = body.getOrCreateVariableByName("return$0")
+        val var_tsIn$0: PVariable = body.getOrCreateVariableByName("tsIn$0")
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_cls$0, param_cls$0))
+        exportedParams.add(new ExportedParameter(body, var_this, param_this))
+        exportedParams.add(new ExportedParameter(body, var_a, param_a))
+        exportedParams.add(new ExportedParameter(body, var_return$0, param_return$0))
+        exportedParams.add(new ExportedParameter(body, var_tsIn$0, param_tsIn$0))
+        exportedParams.add(new ExportedParameter(body, var_tsOut$0, param_tsOut$0))
+        body.setSymbolicParameters(exportedParams)
+        val var_tsMax$0: PVariable = body.getOrCreateVariableByName("tsMax$0")
+        val var__$0: PVariable = body.getOrCreateVariableByName("_$0")
+        val var__$1: PVariable = body.getOrCreateVariableByName("_$1")
+        val var_st$0: PVariable = body.getOrCreateVariableByName("st$0")
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_cls$0, var_this, var_a, var_tsIn$0), SetTest.input$lift$MCounter$Int$Int$bbbfbf.instance.getInternalQueryRepresentation)
+        new Equality(body, var_cls$0, `lit_string-620073745`)
+        new org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint(new org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator(new inca.backend.transform.objectoriented.MaxAgg().aggregator, classOf[Int], classOf[Int]), body, Tuples.flatTupleOf(var_this, var__$0, var__$1, var_tsIn$0), SetTest.MCounter$$st$Filter.instance.getInternalQueryRepresentation, var_tsMax$0, 2)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this, var_st$0, var_tsMax$0), SetTest.MCounter$$st.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((left: Int, right: Int) => left + right)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("st$0", "a")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((left: Int, right: Int) => left + right)(env.getValue("st$0").asInstanceOf[Int], env.getValue("a").asInstanceOf[Int])
+          }
+        }, var_return$0)
+        new Equality(body, var_tsOut$0, var_tsIn$0)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_lift$MCounter$Int$Int"
+      override def getParameters: util.List[PParameter] = util.List.of(param_cls$0, param_this, param_a, param_return$0, param_tsIn$0, param_tsOut$0)
+      override def getParameterNames: util.List[String] = util.List.of("cls$0", "this", "a", "return$0", "tsIn$0", "tsOut$0")
+    }
+  }
+  object MCounter$$st$Filter {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_this: PParameter = new PParameter("this")
+      private val param_st: PParameter = new PParameter("st")
+      private val param_ts$0: PParameter = new PParameter("ts$0")
+      private val param_tsMax$0: PParameter = new PParameter("tsMax$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_this: PVariable = body.getOrCreateVariableByName("this")
+        val var_st: PVariable = body.getOrCreateVariableByName("st")
+        val var_ts$0: PVariable = body.getOrCreateVariableByName("ts$0")
+        val var_tsMax$0: PVariable = body.getOrCreateVariableByName("tsMax$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_this, param_this))
+        exportedParams.add(new ExportedParameter(body, var_st, param_st))
+        exportedParams.add(new ExportedParameter(body, var_ts$0, param_ts$0))
+        exportedParams.add(new ExportedParameter(body, var_tsMax$0, param_tsMax$0))
+        body.setSymbolicParameters(exportedParams)
+        val var_a$0: PVariable = body.getOrCreateVariableByName("a$0")
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        val lit_boolean1231: PVariable = body.newConstantVariable(true)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`, var_this, var_a$0, var_tsMax$0), SetTest.input$lift$MCounter$Int$Int$bbbfbf.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this, var_st, var_ts$0), SetTest.MCounter$$st.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((ts$0: Int, tsMax$0: Int) => ts$0 < tsMax$0)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("ts$0", "tsMax$0")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((ts$0: Int, tsMax$0: Int) => ts$0 < tsMax$0)(env.getValue("ts$0").asInstanceOf[Int], env.getValue("tsMax$0").asInstanceOf[Int])
+          }
+        }, lit_boolean1231)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_MCounter$$st$Filter"
+      override def getParameters: util.List[PParameter] = util.List.of(param_this, param_st, param_ts$0, param_tsMax$0)
+      override def getParameterNames: util.List[String] = util.List.of("this", "st", "ts$0", "tsMax$0")
+    }
+  }
+  object input$MCounter$$st$bbb {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_this$0: PParameter = new PParameter("this$0")
+      private val param_st$1: PParameter = new PParameter("st$1")
+      private val param_ts$1: PParameter = new PParameter("ts$1")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_this$0: PVariable = body.getOrCreateVariableByName("this$0")
+        val var_st$1: PVariable = body.getOrCreateVariableByName("st$1")
+        val var_ts$1: PVariable = body.getOrCreateVariableByName("ts$1")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_this$0, param_this$0))
+        exportedParams.add(new ExportedParameter(body, var_st$1, param_st$1))
+        exportedParams.add(new ExportedParameter(body, var_ts$1, param_ts$1))
+        body.setSymbolicParameters(exportedParams)
+        val var_tsIn$0: PVariable = body.getOrCreateVariableByName("tsIn$0")
+        val lit_int0: PVariable = body.newConstantVariable(0)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this$0, var_tsIn$0), SetTest.input$MCounter$MCounter$bbf.instance.getInternalQueryRepresentation)
+        new Equality(body, lit_int0, var_st$1)
+        new Equality(body, lit_int0, var_ts$1)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_input$MCounter$$st$bbb"
+      override def getParameters: util.List[PParameter] = util.List.of(param_this$0, param_st$1, param_ts$1)
+      override def getParameterNames: util.List[String] = util.List.of("this$0", "st$1", "ts$1")
+    }
+  }
+  object input$MCounter$MCounter$bbf {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_this$0: PParameter = new PParameter("this$0")
+      private val param_tsIn$1: PParameter = new PParameter("tsIn$1")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of {
+        val body: PBody = new PBody(this)
+        val var_this$0: PVariable = body.getOrCreateVariableByName("this$0")
+        val var_tsIn$1: PVariable = body.getOrCreateVariableByName("tsIn$1")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_this$0, param_this$0))
+        exportedParams.add(new ExportedParameter(body, var_tsIn$1, param_tsIn$1))
+        body.setSymbolicParameters(exportedParams)
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_this$0, eval_1307513790)
+        new Equality(body, lit_int1, var_tsIn$1)
+        body
+      }
+      override def getFullyQualifiedName: String = "SetTest_input$MCounter$MCounter$bbf"
+      override def getParameters: util.List[PParameter] = util.List.of(param_this$0, param_tsIn$1)
+      override def getParameterNames: util.List[String] = util.List.of("this$0", "tsIn$1")
+    }
+  }
+  object input$lift$MCounter$Int$Int$bbbfbf {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_cls$1: PParameter = new PParameter("cls$1")
+      private val param_this$0: PParameter = new PParameter("this$0")
+      private val param_a$0: PParameter = new PParameter("a$0")
+      private val param_tsIn$1: PParameter = new PParameter("tsIn$1")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of({
+        val body: PBody = new PBody(this)
+        val var_cls$1: PVariable = body.getOrCreateVariableByName("cls$1")
+        val var_this$0: PVariable = body.getOrCreateVariableByName("this$0")
+        val var_a$0: PVariable = body.getOrCreateVariableByName("a$0")
+        val var_tsIn$1: PVariable = body.getOrCreateVariableByName("tsIn$1")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_cls$1, param_cls$1))
+        exportedParams.add(new ExportedParameter(body, var_this$0, param_this$0))
+        exportedParams.add(new ExportedParameter(body, var_a$0, param_a$0))
+        exportedParams.add(new ExportedParameter(body, var_tsIn$1, param_tsIn$1))
+        body.setSymbolicParameters(exportedParams)
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        val lit_int2: PVariable = body.newConstantVariable(2)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_this$0, eval_1307513790)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this$0, lit_int1, var_tsIn$1), SetTest.MCounter$MCounter.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("this$0")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("this$0").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, `lit_string-620073745`)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`), SetTest.input$dispatch$lift$MCounter$Int$Int$bf.instance.getInternalQueryRepresentation)
+        new Equality(body, `lit_string-620073745`, var_cls$1)
+        new Equality(body, lit_int2, var_a$0)
+        body
+      }, {
+        val body: PBody = new PBody(this)
+        val var_cls$1: PVariable = body.getOrCreateVariableByName("cls$1")
+        val var_this$0: PVariable = body.getOrCreateVariableByName("this$0")
+        val var_a$0: PVariable = body.getOrCreateVariableByName("a$0")
+        val var_tsIn$1: PVariable = body.getOrCreateVariableByName("tsIn$1")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_cls$1, param_cls$1))
+        exportedParams.add(new ExportedParameter(body, var_this$0, param_this$0))
+        exportedParams.add(new ExportedParameter(body, var_a$0, param_a$0))
+        exportedParams.add(new ExportedParameter(body, var_tsIn$1, param_tsIn$1))
+        body.setSymbolicParameters(exportedParams)
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        val lit_int2: PVariable = body.newConstantVariable(2)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_this$0, eval_1307513790)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_this$0, lit_int1, var_tsOut$0), SetTest.MCounter$MCounter.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("this$0")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("this$0").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, `lit_string-620073745`)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`), SetTest.input$dispatch$lift$MCounter$Int$Int$bf.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`, var_this$0, lit_int2, var_a$0, var_tsOut$0, var_tsIn$1), SetTest.lift$MCounter$Int$Int.instance.getInternalQueryRepresentation)
+        new Equality(body, `lit_string-620073745`, var_cls$1)
+        body
+      })
+      override def getFullyQualifiedName: String = "SetTest_input$lift$MCounter$Int$Int$bbbfbf"
+      override def getParameters: util.List[PParameter] = util.List.of(param_cls$1, param_this$0, param_a$0, param_tsIn$1)
+      override def getParameterNames: util.List[String] = util.List.of("cls$1", "this$0", "a$0", "tsIn$1")
+    }
+  }
+  object input$dispatch$lift$MCounter$Int$Int$bf {
+    lazy val instance: inca.runtime.Query.Specification = new inca.runtime.Query.Specification(generatedPQuery)
+    private final object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+      private val param_className$0: PParameter = new PParameter("className$0")
+      {}
+      override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of({
+        val body: PBody = new PBody(this)
+        val var_className$0: PVariable = body.getOrCreateVariableByName("className$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_className$0, param_className$0))
+        body.setSymbolicParameters(exportedParams)
+        val var_t: PVariable = body.getOrCreateVariableByName("t")
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_t, eval_1307513790)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_t, lit_int1, var_tsOut$0), SetTest.MCounter$MCounter.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("t")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("t").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, var_className$0)
+        body
+      }, {
+        val body: PBody = new PBody(this)
+        val var_className$0: PVariable = body.getOrCreateVariableByName("className$0")
+        ()
+        val exportedParams = new util.ArrayList[ExportedParameter]()
+        exportedParams.add(new ExportedParameter(body, var_className$0, param_className$0))
+        body.setSymbolicParameters(exportedParams)
+        val var_t: PVariable = body.getOrCreateVariableByName("t")
+        val var_tsOut$0: PVariable = body.getOrCreateVariableByName("tsOut$0")
+        val var_x: PVariable = body.getOrCreateVariableByName("x")
+        val var_tsOut$1: PVariable = body.getOrCreateVariableByName("tsOut$1")
+        val lit_int1: PVariable = body.newConstantVariable(1)
+        val `lit_string-620073745`: PVariable = body.newConstantVariable("MCounter")
+        val lit_int2: PVariable = body.newConstantVariable(2)
+        val eval_1307513790: PVariable = body.newConstantVariable((() => inca.runtime.data.objectoriented.ObjectID("MCounter", 1))())
+        new TypeConstraint(body, Tuples.flatTupleOf(), inca.runtime.index.NamedRelationKey("ext_input$Example$main$f", 0))
+        new Equality(body, var_t, eval_1307513790)
+        new PositivePatternCall(body, Tuples.flatTupleOf(var_t, lit_int1, var_tsOut$0), SetTest.MCounter$MCounter.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("t")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("t").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, `lit_string-620073745`)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`), SetTest.input$dispatch$lift$MCounter$Int$Int$bf.instance.getInternalQueryRepresentation)
+        new PositivePatternCall(body, Tuples.flatTupleOf(`lit_string-620073745`, var_t, lit_int2, var_x, var_tsOut$0, var_tsOut$1), SetTest.lift$MCounter$Int$Int.instance.getInternalQueryRepresentation)
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = "eval((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)"
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("t")
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ((uri: inca.runtime.data.objectoriented.Identity) => uri.typ)(env.getValue("t").asInstanceOf[inca.runtime.data.objectoriented.Identity])
+          }
+        }, var_className$0)
+        body
+      })
+      override def getFullyQualifiedName: String = "SetTest_input$dispatch$lift$MCounter$Int$Int$bf"
+      override def getParameters: util.List[PParameter] = util.List.of(param_className$0)
+      override def getParameterNames: util.List[String] = util.List.of("className$0")
+    }
+  }
+}
+log4j:WARN No appenders could be found for logger (org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil.org.eclipse.viatra.query.runtime.api.ViatraQueryEngine.809976993).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+
+Example$main
++----------+
+| return$0 |
++----------+
+| 2        |
++----------+
+
+MCounter$$st
++----------------------+----+------+
+| this                 | st | ts$0 |
++----------------------+----+------+
+| ObjectID(MCounter,1) | 0  | 0    |
++----------------------+----+------+
+
+MCounter$$st$Filter
++----------------------+----+------+---------+
+| this                 | st | ts$0 | tsMax$0 |
++----------------------+----+------+---------+
+| ObjectID(MCounter,1) | 0  | 0    | 1       |
++----------------------+----+------+---------+
+
+MCounter$MCounter
++----------------------+--------+---------+
+| this                 | tsIn$0 | tsOut$0 |
++----------------------+--------+---------+
+| ObjectID(MCounter,1) | 1      | 1       |
++----------------------+--------+---------+
+
+input$MCounter$$st$bbb
++----------------------+------+------+
+| this$0               | st$1 | ts$1 |
++----------------------+------+------+
+| ObjectID(MCounter,1) | 0    | 0    |
++----------------------+------+------+
+
+input$MCounter$MCounter$bbf
++----------------------+--------+
+| this$0               | tsIn$1 |
++----------------------+--------+
+| ObjectID(MCounter,1) | 1      |
++----------------------+--------+
+
+input$dispatch$lift$MCounter$Int$Int$bf
++-------------+
+| className$0 |
++-------------+
+| MCounter    |
++-------------+
+
+input$lift$MCounter$Int$Int$bbbfbf
++----------+----------------------+-----+--------+
+| cls$1    | this$0               | a$0 | tsIn$1 |
++----------+----------------------+-----+--------+
+| MCounter | ObjectID(MCounter,1) | 2   | 1      |
++----------+----------------------+-----+--------+
+
+lift$MCounter$Int$Int
++----------+----------------------+---+----------+--------+---------+
+| cls$0    | this                 | a | return$0 | tsIn$0 | tsOut$0 |
++----------+----------------------+---+----------+--------+---------+
+| MCounter | ObjectID(MCounter,1) | 2 | 2        | 1      | 1       |
++----------+----------------------+---+----------+--------+---------+
+
+
+
+
+
+Process finished with exit code 0

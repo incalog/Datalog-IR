@@ -1,0 +1,19 @@
+module SetTest
+
+    class MCounter extends BalancedMonotone[Int, Int] {
+      var st : Int = 0
+      @static def init() : Int = { return 0 }
+      @static def join(a : Int, b : Int) : Int = { return a + b }
+      def lift(a : Int) : Int = { return this.st + a }
+      def result() : Int = { return this.st }
+    }
+
+
+    class Example {
+      @main
+      def main() : Int = {
+        val t : MCounter = new MCounter()
+        t.lift(2)
+        return 1
+      }
+     }
