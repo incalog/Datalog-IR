@@ -8,7 +8,7 @@ import inca.ir.visitors.BaseIRVisitor
 import scala.collection.immutable.MultiDict
 import scala.collection.immutable.Seq
 
-trait Adornment extends Visitor:
+trait AdornmentAnalysis extends Visitor:
 
   /** for each relation, the parameters that are demanded (free) */
   var demandedParams: MultiDict[String, String] = MultiDict()
@@ -20,7 +20,7 @@ trait Adornment extends Visitor:
   var currentRelation: Relation = _
 
   def addCurrentDemand(v: Var): Unit =
-    if (currentRelation.params.map(_.name.name).contains(v.name))
+    if (currentRelation.params.map(_.name.name).contains(v.name.name))
       demandedParams += currentRelation.name.name -> v.name.name
     else
       throw new IllegalArgumentException(s"Demanded variable $v is not a parameter of $currentRelation")
