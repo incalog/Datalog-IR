@@ -50,7 +50,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   }
 
   def typecheck(body: Body): Unit =
-    body.atoms.foreach(at => checkAtom(at, Mode.Closing))
+    body.atoms.foreach(at => checkAtom(at, Mode.Binding))
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
     if (meet(ty, outside) == TNothing)
@@ -69,23 +69,23 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
     case v@Var(name) => lookupVar(name) match
-      case None if mode.requiresClosed =>
+      case None if mode.requiresBound =>
         error(s"Undefined variable $v at closed position", v)
         registerVar(name, v, TAny)
         bindVar(name)
-        Mode.Closed
-      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
+        Mode.Bound
+      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresBound =>
         error(s"Unbound variable $v not allowed here", v)
         bindVar(name)
-        Mode.Closed
+        Mode.Bound
       case None => // register and bind new variable
         registerVar(name, v, expected)
         bindVar(name)
-        Mode.Closing
+        Mode.Binding
       case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
         bindVar(name)
         assertComparable(ty, expected, v)
-        if (vm == VarMode.Bound) Mode.Closed else Mode.Closing
+        if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
     case Cast(t, ty) =>
       val m = checkTerm(t, ty, mode)
       assertComparable(ty, expected, term)
@@ -97,12 +97,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case v@Var(name) => lookupVar(name) match
-      case None if mode.requiresClosed =>
+      case None if mode.requiresBound =>
         error(s"Undefined variable $v at closed position", v)
         registerVar(name, v, TAny)
         bindVar(name)
         TAny.closed
-      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresClosed =>
+      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresBound =>
         error(s"Unbound variable $v not allowed here", v)
         bindVar(name)
         TAny.closed
@@ -113,7 +113,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         TAny.closing
       case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
         bindVar(name)
-        val m = if (vm == VarMode.Bound) Mode.Closed else Mode.Closing
+        val m = if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
         TermType(ty,m)
     case Cast(t, ty) =>
       val m = checkTerm(t, ty, mode)
@@ -139,13 +139,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     case Eq(lhs, rhs) =>
       val action = startContextTransaction()
-      withErrors(inferTerm(lhs, Mode.Closed)) match
+      withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode)
         case (_, lerrs) =>
           action.abort()
-          withErrors(inferTerm(rhs, Mode.Closed)) match
+          withErrors(inferTerm(rhs, Mode.Bound)) match
             case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
@@ -154,13 +154,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     case Neq(lhs, rhs) =>
       val action = startContextTransaction()
-      withErrors(inferTerm(lhs, Mode.Closed)) match
+      withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode.inverted)
         case (_, lerrs) =>
           action.abort()
-          withErrors(inferTerm(rhs, Mode.Closed)) match
+          withErrors(inferTerm(rhs, Mode.Bound)) match
             case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode.inverted)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)

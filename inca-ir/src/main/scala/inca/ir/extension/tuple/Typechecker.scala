@@ -17,12 +17,12 @@ trait Typechecker extends BaseIRTypechecker:
 
   override protected[ir] def inferTermExtend(term: Term, mode: Mode): TermType = term match {
     case Tuple(ts) =>
-      val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Closed)) { case (tt, (tys, m)) =>
+      val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Bound)) { case (tt, (tys, m)) =>
         val TermType(tty, ttm) = inferTerm(tt, mode)
         (tty :: tys, m || ttm)
       }
       TermType(TTuple(tys), m)
-    case Project(t, idx) => inferTerm(t, Mode.Closed).ty match {
+    case Project(t, idx) => inferTerm(t, Mode.Bound).ty match {
       case TTuple(tys) if 0 <= idx && idx < tys.size => tys(idx).closed
       case TTuple(tys) =>
         error("Projection index out of bounds", term)

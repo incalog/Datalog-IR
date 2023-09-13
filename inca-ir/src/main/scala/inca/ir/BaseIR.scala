@@ -19,7 +19,7 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     s"module $name $features\n$con"
   }
 
-  lazy val relations: Seq[Relation] = contents.collect { case r: Relation => r }
+  lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
 
 trait ModuleEntry(val name: Name) extends SourceLocation with Hints
 
@@ -33,13 +33,13 @@ trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
-  def closed: TermType = TermType(this, Mode.Closed)
-  def closing: TermType = TermType(this, Mode.Closing)
+  def closed: TermType = TermType(this, Mode.Bound)
+  def closing: TermType = TermType(this, Mode.Binding)
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String = mode match
-    case Mode.Closing => s">$ty<"
-    case Mode.Closed => s"<$ty>"
+    case Mode.Binding => s">$ty<"
+    case Mode.Bound => s"<$ty>"
 
 case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
   override def toString: String = {

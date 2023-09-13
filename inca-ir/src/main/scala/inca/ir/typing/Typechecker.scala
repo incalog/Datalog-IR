@@ -14,19 +14,19 @@ trait Typechecker extends BaseIRTypechecker
   with primitiveScala.Typechecker
 
 enum Mode:
-  case Closing
-  case Closed
+  case Binding
+  case Bound
 
-  inline def requiresClosed: Boolean = this == Closed
+  inline def requiresBound: Boolean = this == Bound
   def inverted: Mode = this match
-    case Closing => Closed
-    case Closed => Closing
+    case Binding => Bound
+    case Bound => Binding
   
   def ||(that: Mode): Mode =
-    if (this == Closing || that == Closing)
-      Closing
+    if (this == Binding || that == Binding)
+      Binding
     else
-      Closed
+      Bound
 
 enum VarMode:
   case Bound

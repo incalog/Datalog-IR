@@ -15,7 +15,7 @@ trait Typechecker extends BaseIRTypechecker:
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case Set(ts) =>
-      val tys = ts.map(inferTerm(_, Mode.Closed).ty)
+      val tys = ts.map(inferTerm(_, Mode.Bound).ty)
       TSet(joinTypes(tys)).closed
     case SetIntersection(t1, t2) =>
       val (TSet(ty1), m1) = inferSetTerm(t1, mode)
@@ -36,6 +36,6 @@ trait Typechecker extends BaseIRTypechecker:
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case SetMember(mem, s) =>
-      val (TSet(ty),_) = inferSetTerm(s, Mode.Closed)
+      val (TSet(ty),_) = inferSetTerm(s, Mode.Bound)
       checkTerm(mem, ty, mode)
     case _ => super.checkAtom(atom, mode)

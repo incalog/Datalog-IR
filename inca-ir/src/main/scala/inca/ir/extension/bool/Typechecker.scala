@@ -15,15 +15,15 @@ trait Typechecker extends BaseIRTypechecker:
       checkAtom(at, mode)
       TBoolean.closed
     case BoolAnd(t1, t2) =>
-      checkTerm(t1, TBoolean, Mode.Closed)
-      checkTerm(t2, TBoolean, Mode.Closed)
+      checkTerm(t1, TBoolean, Mode.Bound)
+      checkTerm(t2, TBoolean, Mode.Bound)
       TBoolean.closed
     case BoolOr(t1, t2) =>
-      checkTerm(t1, TBoolean, Mode.Closed)
-      checkTerm(t2, TBoolean, Mode.Closed)
+      checkTerm(t1, TBoolean, Mode.Bound)
+      checkTerm(t2, TBoolean, Mode.Bound)
       TBoolean.closed
     case BoolNot(t) =>
-      checkTerm(t, TBoolean, Mode.Closed)
+      checkTerm(t, TBoolean, Mode.Bound)
       TBoolean.closed
     case BoolFalse => TBoolean.closed
     case BoolTrue => TBoolean.closed

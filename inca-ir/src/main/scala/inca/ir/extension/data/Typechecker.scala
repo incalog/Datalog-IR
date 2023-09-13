@@ -19,7 +19,7 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
         args.zip(params).foreach { case (t, ty) =>
-          checkTerm(t, ty, Mode.Closed)
+          checkTerm(t, ty, Mode.Bound)
         }
         TData(dataName).closed
     case _ => super.inferTermExtend(term, mode)

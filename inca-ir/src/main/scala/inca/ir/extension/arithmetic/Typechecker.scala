@@ -7,7 +7,7 @@ import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   private def inferInfixOpType(lhs: Term, rhs: Term, opTerm: SourceLocation): Type =
-    (inferTerm(lhs, Mode.Closed).ty, inferTerm(rhs, Mode.Closed).ty) match
+    (inferTerm(lhs, Mode.Bound).ty, inferTerm(rhs, Mode.Bound).ty) match
       case (TInt, TInt) => TInt
       case (TDouble, TDouble) => TDouble
       case (ty1@(TInt|TDouble), ty2) =>

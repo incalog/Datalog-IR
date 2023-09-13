@@ -38,3 +38,5 @@ trait Typechecker extends BaseIRTypechecker:
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Demand(ts) => ts.foreach(inferTerm(_, mode))
     case _ => super.checkAtom(atom, mode)
+  
+  // TODO reject demand on unbound local variables

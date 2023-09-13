@@ -22,7 +22,9 @@ object GeneratePSystem {
   type MetaRelation = Quotes ?=> Expr[Any]
 
   def compileModules(modules: Seq[Module]): Seq[MetaModule] = {
-    val env: RuleEnvironment = modules.flatMap(m => m.relations.map(p => p.name.name -> m.name.name)).toMap
+    val env: RuleEnvironment = modules.flatMap { m =>
+      m.relations.keys.map(r => r -> m.name.name)
+    }.toMap
     modules.map { m =>
       compileModule(m)(using env)
     }
@@ -30,8 +32,8 @@ object GeneratePSystem {
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): MetaModule = {
     // makes sure this module's names are found first
-    val myenv = env ++ module.relations.map(r => r.name.name -> module.name.name)
-    val funs = module.relations.map(r => compileRelation(module.name.name, r)(using env))
+    val myenv = env ++ module.relations.keys.map(r => r -> module.name.name)
+    val funs = module.relations.values.map(r => compileRelation(module.name.name, r)(using env))
 
     var code = '{
       //import inca.runtime.Query.Specification

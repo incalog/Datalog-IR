@@ -10,7 +10,7 @@ trait Typechecker extends BaseIRTypechecker:
     case Application(out, ty, fun, args) =>
       // TODO: We want to typecheck the Scala code
       // TODO: typecheck fun, get the return value and bind the variable
-      args.foreach(inferTerm(_, Mode.Closed))
+      args.foreach(inferTerm(_, Mode.Bound))
       checkTerm(out, ty, mode)
     case _ => super.checkAtom(atom, mode)
 
