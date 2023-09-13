@@ -3,6 +3,10 @@ package inca.ir.typing
 import inca.ir.*
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.not
+import inca.ir.extension.not.Not
+import inca.ir.extension.demand
+import inca.ir.extension.demand.Demand
 import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -109,6 +113,52 @@ class TypeCheckerTest extends AnyFunSuiteLike:
           NegCall("T", Seq(Var("p1"), IntNum(2)))
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+  }
+
+  test("not inverts variable closing") {
+    assertThrows[Failed] {
+      implicit val typechecker = new BaseIRTypechecker with not.Typechecker {}
+      module(
+        Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+          Not(Call("T", Seq(Var("p1"), Var("p2"))))
+        )))),
+        Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+
+    // double negation
+    implicit val typechecker = new BaseIRTypechecker with not.Typechecker {}
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Not(Not(Call("T", Seq(Var("p1"), Var("p2")))))
+      )))),
+      Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+    )
+
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+      )))),
+      Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+    )
+  }
+
+  test("demand binds like a call") {
+    implicit val typechecker = new BaseIRTypechecker with demand.Typechecker {}
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+
+    assertThrows[Failed] {
+      implicit val typechecker = new BaseIRTypechecker with demand.Typechecker with not.Typechecker {}
+      module(
+        Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+          Not(Demand(Seq(Var("p1"), Var("p2"))))
+        ))))
       )
     }
   }
