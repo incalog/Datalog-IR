@@ -178,4 +178,16 @@ object Datalog {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)
   }
+
+  case class MkMono(mv: MonoVar, cls: Name) extends Atom
+
+  case class UpdateMono(mv: MonoVar, t: Term) extends Atom
+
+  case class ReadMono(mv: MonoVar, t: Term) extends Atom
+
+  case class MonoVar(name: Name) extends Term {
+    private[backend] var typ: Option[Type] = None
+  }
+
+
 }
