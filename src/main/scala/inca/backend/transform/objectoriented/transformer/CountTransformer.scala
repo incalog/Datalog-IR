@@ -1,12 +1,10 @@
-package inca.backend.transform.objectoriented
+package inca.backend.transform.objectoriented.transformer
 
-import inca.backend.hints.{Hint, Hints, MagicSetHints}
+import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.Datalog.{CustomAggregation, _}
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.Transformer
-import inca.util.{Gensym, Scala}
-
-import scala.meta.XtensionQuasiquoteTerm
+import inca.util.Gensym
 
 /**
  * Should be applied after demand transformation.
@@ -30,7 +28,7 @@ abstract class CountTransformer(val rootPatternHint: String,
                                 val leafPatternHint: String,
                                 val rootParamName: String,
                                 val inParamName: String,
-                                val outParamName: String) extends Transformer {
+                                val outParamName: String)(counterTy: Type) extends Transformer {
     val gensym = new Gensym(Seq())
 
   type CallSide = (Pattern, Atom)
@@ -138,19 +136,6 @@ abstract class CountTransformer(val rootPatternHint: String,
     }
 
   /**
-   * Helper method to increase the counter.
-   * @param counterIn The counter to increase.
-   * @return Tuple with the output variable and the corresponding Computed to increase the counter.
-   */
-    private[objectoriented] def incCounter(counterIn: Var): (Var, Computed) = {
-      val counterOutVar = Var(gensym.fresh(outParamName))
-      val (counterInArg, counterInParam) = createScalaTermAndParam(inParamName, TScalaInt)
-      (counterOutVar, Computed(
-          counterOutVar, Evaluation(Seq(counterIn -> TScalaInt), TScalaInt, Scala(q"($counterInParam) => $counterInArg + 1"))
-      ))
-    }
-
-  /**
    * Find all pattern that call a pattern with the name `callName`
    * @param callName The name of the called pattern to find.
    * @param pattern A set with all pattern to search.
@@ -169,6 +154,10 @@ abstract class CountTransformer(val rootPatternHint: String,
       }
     }
 
+  private[objectoriented] def produceInitialCounter(): (Term, Seq[Atom]) = {
+    throw new IllegalStateException("Initial counter not set!")
+  }
+
   /**
    * Transform a root pattern by initializing a counter. The counter is passed as input value to the first call that
    * requires it. The output counter is received from the call and passed on to the next call.
@@ -185,9 +174,10 @@ abstract class CountTransformer(val rootPatternHint: String,
       val bodies = rootPat.bodies.map { body =>
         gensym.scoped {
           var countVar = Var(gensym.fresh(rootParamName))
-          val countInit = Eq(countVar, Constant(IntLiteral(1)))
+          val (initialTerm, initialAtoms) = produceInitialCounter()
+          val countInit = initialAtoms :+ Eq(countVar, initialTerm)
 
-          Body(countInit +: body.atoms.flatMap {
+          Body(countInit ++ body.atoms.flatMap {
             case c: Call if affectedPatternNames.contains(c.name) =>
               val (countOutVar, transAtom) = transformCall(c, countVar)
               countVar = countOutVar
@@ -213,8 +203,8 @@ abstract class CountTransformer(val rootPatternHint: String,
       gensym.register(CollectVars.transPattern(pattern))
 
       val countParams = Seq(
-        Param(gensym.fresh(inParamName), TScalaInt),
-        Param(gensym.fresh(outParamName), TScalaInt),
+        Param(gensym.fresh(inParamName), counterTy),
+        Param(gensym.fresh(outParamName), counterTy),
       )
 
       // name of all calls that end up calling a leaf pattern

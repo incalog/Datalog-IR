@@ -1,26 +1,26 @@
 package inca.backend.transform.objectoriented
 
 import inca.backend.hints.{ObjectHints, OptimizationHints}
-import inca.backend.ir.Datalog._
+import inca.backend.ir.Datalog.{Atom, Body, Call, Computed, Constant, CustomAggregation, Eq, Evaluation, IntLiteral, Module, Param, Pattern, TScalaInt, Term, Var}
 import inca.backend.ir.util.CollectVars
+import inca.backend.transform.objectoriented.transformer.NumericCountTransformer
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
 import inca.util.Scala
 
-import scala.collection.immutable.Seq
 import scala.meta.XtensionQuasiquoteTerm
 
 /**
  * This transformation does the following things:
  * 1. Introduce an allocation counter in the AllocationRoot with the name `alloc` and initialize it with 0.
  * 2. Modify all affected methods that are neither an Allocation (leaf), nor a root to take an `allocIn` and `allocOut`
- *    parameter.
+ * parameter.
  * 3. Modify the embedded Computed with the hint `AllocationInit` inside the Allocation (leafs) to use the `allocIn`
- *    argument as second parameter for the ObjectID creation. Increase the `allocIn` argument by one and assign the
- *    result to `allocOut` .
+ * argument as second parameter for the ObjectID creation. Increase the `allocIn` argument by one and assign the
+ * result to `allocOut` .
  */
 object AllocationTransformation extends Transformation {
-  override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
+  override def transformer(dataModel: DataModel): Transformer = new NumericCountTransformer(
     ObjectHints.AllocationRootKey,
     ObjectHints.AllocationConstructorKey,
     "alloc", "allocIn", "allocOut"
@@ -59,7 +59,7 @@ object AllocationTransformation extends Transformation {
       Computed(lhs, Evaluation(eval.evalArgs :+ Var(allocInName) -> TScalaInt, eval.resultType, Scala(fun)))
     }
 
-    override def transformLeafPattern(leafPat: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped  {
+    override def transformLeafPattern(leafPat: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(leafPat))
 
       val Pattern(vis, name, params, bodies) = leafPat

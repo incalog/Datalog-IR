@@ -67,9 +67,9 @@ case class CFGBenchmark(val warmups: Int, val runs: Int) {
       println(run)
       System.exit(1)*/
 
-      val start = System.nanoTime()
-      datalog.measure("Examples", "main", edb, args:_*)
-      val diff = System.nanoTime() - start
+      //val start = System.nanoTime()
+      val diff = datalog.measure("Examples", "main", edb, args:_*)
+      //val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000d)
 
       EnginePool.disposeAllEngines()
