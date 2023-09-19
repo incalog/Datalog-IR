@@ -118,11 +118,11 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     // make sure the defun class name is unique
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
-    val transClasses = classes.map(transClass)
+    val transClasses = classes.flatMap(transClass)
     Module(name, imports, transClasses ++ auxClassDefs ++ defnClassDefs.values)
   }
 
-  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
     usedVars = Map(Name("this") -> classDef.typ)
     super.transMethodInternal(methodDef, classDef)
   }

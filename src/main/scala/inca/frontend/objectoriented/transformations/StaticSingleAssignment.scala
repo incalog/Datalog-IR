@@ -30,12 +30,12 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
     super.transModuleInternal(module)
   }
 
-  override def transClassInternal(classDef: ClassDef): ClassDef = {
+  override def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
     gensym.register(classDef.name.raw)
     super.transClassInternal(classDef)
   }
 
-  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = gensym.scoped {
+  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = gensym.scoped {
     gensym.register(methodDef.params.map(_.name.raw))
     gensym.register("this")
     env = Map()

@@ -22,7 +22,7 @@ class InsertBuiltInMonotones(val module: Module) extends ModuleLowering {
 
   override private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
-    val transClasses = classes.map(transClass)
+    val transClasses = classes.flatMap(transClass)
 
     Module(name, imports, buildInMonotones.values.toSeq ++ transClasses)
   }

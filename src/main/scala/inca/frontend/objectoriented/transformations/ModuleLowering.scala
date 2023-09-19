@@ -31,11 +31,12 @@ trait ModuleLowering {
   // These methods wrap the internal methods to preserve the source location start and end index information.
 
   protected[frontend] def transModule(): Module = preserveLoc(module)(transModuleInternal)
-  protected[frontend] def transClass(classDef: ClassDef): ClassDef = preserveLoc(classDef)(transClassInternal)
-  protected[frontend] def transContent(content: ClassContent, classDef: ClassDef): ClassContent = content match {
-    case constructor: ConstructorDef => preserveLoc(constructor)(c => transConstructorInternal(c, classDef))
-    case method: MethodDef => preserveLoc(method)(m => transMethodInternal(m, classDef))
-    case field: FieldDef => preserveLoc(field)(f => transFieldInternal(f, classDef))
+  protected[frontend] def transClass(classDef: ClassDef): Seq[ClassDef] = preserveLocs(classDef)(transClassInternal)
+  protected[frontend] def transContent(content: ClassContent, classDef: ClassDef): Seq[ClassContent] = content match {
+    case constructor: ConstructorDef => Seq(preserveLoc(constructor)(c => transConstructorInternal(c, classDef)))
+    case method: MethodDef =>
+      preserveLocs(method)(m => transMethodInternal(m, classDef))
+    case field: FieldDef => Seq(preserveLoc(field)(f => transFieldInternal(f, classDef)))
   }
   protected[frontend] def transStatements(stmts: Seq[Statement]): Seq[Statement] = stmts.flatMap(transStatement)
   protected[frontend] def transStatement(stmt: Statement): Seq[Statement] = preserveLocs(stmt)(transStatementInternal)
@@ -50,19 +51,19 @@ trait ModuleLowering {
 
   private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
-    val transClasses = classes.map(transClass)
+    val transClasses = classes.flatMap(transClass)
     Module(name, imports, transClasses)
   }
 
-  private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
+  private[transformations] def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
     val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
-    val newContent = content.map(c => transContent(c, classDef))
+    val newContent = content.flatMap(c => transContent(c, classDef))
     val parentClasses = parents.map { c =>
       val tname = TName(c.name)
       tname.tyArgs = c.tyArgs
       tname
     }
-    ClassDef(annos, vis, name, typeParams, parentClasses, newContent)
+    Seq(ClassDef(annos, vis, name, typeParams, parentClasses, newContent))
   }
 
   private[transformations] def transParamInternal(param: Param): Param =
@@ -74,11 +75,11 @@ trait ModuleLowering {
     FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
-  private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+  private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
     val MethodDef(annos, vis, name, genericTypeParams, params, outType, body) = methodDef
     val newParams = transParams(params)
     val newBody = transStatements(body)
-    MethodDef(annos, vis, name, genericTypeParams, newParams, transType(outType), newBody)
+    Seq(MethodDef(annos, vis, name, genericTypeParams, newParams, transType(outType), newBody))
   }
 
   private[transformations] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
