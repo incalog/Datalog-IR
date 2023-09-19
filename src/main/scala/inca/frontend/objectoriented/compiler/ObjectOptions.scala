@@ -31,11 +31,18 @@ case class ObjectOptions(optimizations: Seq[Optimization] = defaultOptimizations
 }
 
 object ObjectOptions {
-  val defaultTransformations: Seq[Transformation] = Seq(
-    //    RemoveBodyOfUnusedDataConstructor,
-    AllocationTransformation,
-    StructuralMutationTransformation,
-    //MutationTransformation,
-    DeriveDemandPatterns,
-    DemandTransformation)
+  def defaultTransformations(withStructuralCounter: Boolean): Seq[Transformation] = {
+    val mutationTransformation = if (withStructuralCounter)
+      StructuralMutationTransformation
+    else
+      MutationTransformation
+
+    Seq(
+      AllocationTransformation,
+      mutationTransformation,
+      DeriveDemandPatterns,
+      DemandTransformation)
+  }
+
+  val defaultTransformations: Seq[Transformation] = defaultTransformations(false)
 }

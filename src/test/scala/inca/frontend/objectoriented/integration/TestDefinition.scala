@@ -366,6 +366,11 @@ object TestDefinition {
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
   }
 
+  def mutationMeasurement: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("measurements")
+    TestDefinition("MutationCounter", "Prog", "main", Seq(q"10", q"10"), SetResult())
+  }
+
   // TODO: Fix expected result
   def pathMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")

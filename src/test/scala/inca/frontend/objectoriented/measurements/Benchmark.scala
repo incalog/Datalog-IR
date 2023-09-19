@@ -2,11 +2,14 @@ package inca.frontend.objectoriented.measurements
 
 object Benchmark {
   def main(args: Array[String]): Unit = {
-    val warmups = 0
-    val runs = 1
+    val warmups = 3
+    val runs = 10
 
-    val cfgBenchmark = CFGBenchmark(warmups, runs)
-    cfgBenchmark.run()
+    val mutationBenchmark = MutationBenchmark(warmups, runs)
+    mutationBenchmark.run()
+
+    //val cfgBenchmark = CFGBenchmark(warmups, runs)
+    //cfgBenchmark.run()
 
     //val whileBenchmark = WhileBenchmark(warmups, runs)
     //whileBenchmark.run()

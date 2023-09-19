@@ -1,0 +1,49 @@
+module MutationCounterTest
+
+class Num(var value: Int) {
+  def inc(): Int = {
+    val old: Int = this.value
+    this.value = old + 1
+    old
+  }
+}
+
+class Prog {
+  def makeNumObjects(n: Int): `List[Any]` = {
+    if (n <= 1)
+        `List`(new Num(n))
+    else
+        `List`(new Num(n)) ++ this.makeNumObjects(n-1)
+  }
+
+  def makeIncrements(num: Num, n: Int): Unit = {
+    if (n <= 0) {
+        return
+    } else {
+        num.inc()
+        return this.makeIncrements(num, n-1)
+    }
+  }
+
+  def iterateNums(nums: `List[Any]`, numInc: Int): Unit = {
+    if (nums.`size` == 0) {
+       return
+    } else {
+       val num: Num = nums.`head`.asInstanceOf[Num]
+       this.makeIncrements(num, numInc)
+       return this.iterateNums(nums.`tail`, numInc)
+    }
+  }
+
+  @main
+  def main(numObjects: Int, numIncrements: Int): Unit = {
+    val p: Prog = new Prog()
+    val nums: `List[Any]` = p.makeNumObjects(numObjects)
+    p.iterateNums(nums, numIncrements)
+    return
+  }
+}
+
+
+
+

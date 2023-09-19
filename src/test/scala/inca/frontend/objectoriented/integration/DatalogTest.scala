@@ -11,7 +11,7 @@ import org.scalatest.{Assertion, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions() //  Seq(DeriveDemandPatterns, DemandTransformation))
+  def options: ObjectOptions = ObjectOptions(transformations = ObjectOptions.defaultTransformations(false)) //  Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -208,13 +208,17 @@ class DatalogTest extends AnyFunSuite {
     performTests(loopTest)
   }
 
+  test("Mutation measurement") {
+    performTests(mutationMeasurement)
+  }
+
   /*test("Simple Add") {
     performTests(simpleAdd)
-  }*/
+  }
 
-  /*test("Primitive Monotone") {
+  test("Primitive Monotone") {
     performTests(primitiveMonotone)
-  }*/
+  }
 
   test("Path measurement") {
     performTests(pathMeasurementTest)
@@ -222,5 +226,5 @@ class DatalogTest extends AnyFunSuite {
 
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
-  }
+  }*/
 }

@@ -9,6 +9,6 @@ object CompilerFlags {
     // true to include all optimizations
     val OPTIMIZATION_STEPS: Boolean = false
     // true to include all transformations
-    val TRANSFORMATION_STEPS: Boolean = true
+    val TRANSFORMATION_STEPS: Boolean = false
   }
 }

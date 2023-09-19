@@ -16,7 +16,7 @@ import inca.util.measurement.{MemoryUtil, MetricUtils}
 
 import scala.meta.Term
 
-case class ASGBenchmark(val warmups: Int, val runs: Int) {
+case class ASGBenchmark(warmups: Int, runs: Int) {
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
 
