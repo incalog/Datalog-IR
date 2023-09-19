@@ -6,7 +6,7 @@ import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
 import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog}
-import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, Defunctionalize, InsertBuiltInMonotones, StaticSingleAssignment}
+import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, Defunctionalize, InsertBuiltInMonotones, StaticSingleAssignment, Monomorphize}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -76,9 +76,33 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     module
   }
 
-  lazy val coreModule: Module = {
+  lazy val monomorphModule: Module = {
     val dataModel = new GenerateDataModel(ssaModule)
-    val module = Defunctionalize.transformModule(ssaModule, dataModel.transModule())
+    val mono = new Monomorphize(ssaModule)
+    val module = mono.transformModule(ssaModule)
+
+    if (CompilerFlags.DEBUGMODE) {
+      println("\nDefun Module")
+      println(module)
+
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
+        println()
+        println("\nDefun Module - AST")
+        println(new AbstractSyntaxTree(module).toGraphViz)
+      }
+    }
+
+    typer.typecheck(module)
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+
+    module
+  }
+
+  lazy val coreModule: Module = {
+    val dataModel = new GenerateDataModel(monomorphModule)
+    val module = Defunctionalize.transformModule(monomorphModule, dataModel.transModule())
 
     if (CompilerFlags.DEBUGMODE) {
       println("\nDefun Module")
