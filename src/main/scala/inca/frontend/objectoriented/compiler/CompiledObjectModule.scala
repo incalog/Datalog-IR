@@ -78,8 +78,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
   lazy val monomorphModule: Module = {
     val dataModel = new GenerateDataModel(ssaModule)
-    val mono = new Monomorphize(ssaModule)
-    val module = mono.transformModule(ssaModule)
+    val module = Monomorphize.transformModule(ssaModule)
 
     if (CompilerFlags.DEBUGMODE) {
       println("\nDefun Module")
