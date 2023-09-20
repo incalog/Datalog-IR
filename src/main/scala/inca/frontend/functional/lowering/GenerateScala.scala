@@ -3,7 +3,7 @@ package inca.frontend.functional.lowering
 import inca.compiler.SourceLocation
 import inca.frontend.functional.core
 import inca.frontend.functional.core._
-import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
+import inca.runtime.aggregate.{JoinAggregation, AggregatorAssocComm}
 import inca.runtime.data.WrappedURI
 import inca.util.Scala.{symbolOf, typeOf}
 import truediff.GenericDiffable
@@ -171,7 +171,7 @@ class GenerateScala {
     val scalaOp = transExp(op)
     val scalaTy = transType(typ)
 
-    val tyAggregation = typeOf[Aggregation[_]]
+    val tyAggregation = typeOf[JoinAggregation[_]]
     val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
 
     q"""

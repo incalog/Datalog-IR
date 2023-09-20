@@ -7,7 +7,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.IMultisetA
 import scala.jdk.CollectionConverters._
 
 /** An aggregator for operations that are associative and commutative */
-class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregationOperator[V, AugmentedAVLTree[V], V] {
+class AggregatorAssocComm[V](val agg: JoinAggregation[V]) extends IMultisetAggregationOperator[V, AugmentedAVLTree[V], V] {
 
   override def getShortDescription: String = agg.name
   override def getName: String = agg.name

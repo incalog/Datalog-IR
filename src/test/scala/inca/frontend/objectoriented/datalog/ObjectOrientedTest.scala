@@ -10,17 +10,28 @@ class ObjectOrientedTest extends AnyFunSuite {
   lazy val addModule: CompiledObjectModule = Compiler.compileObject(
     """module AddTest
 
+    class MonoAdd {
+      var state : Int = 0
+      def add(a : Int) : Unit = {
+        this.state = this.state + a
+      }
+      def result() : Int = {
+        return this.state
+      }
+    }
+
     class A {
       @main
-      def add(a: Int, b: Int): Int = {
-        return a + b
+      def main(): Unit = {
+        val a : MonoAdd = new MonoAdd()
+        a.add(2)
       }
     }
     """, ObjectOptions())
 
   test("Add Example") {
     val datalog = new ObjectOrientedDatalog(addModule)
-    val resRel = datalog.run("A", "add", q"1", q"2")
+    val resRel = datalog.run("A", "main")
 
     println(resRel)
     datalog.readAll.foreach { rel =>

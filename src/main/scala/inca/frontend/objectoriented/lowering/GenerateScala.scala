@@ -4,7 +4,7 @@ import inca.frontend.objectoriented.core._
 import inca.runtime.data.WrappedURI
 import inca.util.Scala.typeOf
 import truediff.GenericDiffable
-import inca.runtime.aggregate.Aggregation
+import inca.runtime.aggregate.JoinAggregation
 import inca.runtime.data.objectoriented.Identity
 
 import scala.meta.{Ctor, Name => MetaName, Type => MetaType, _}
@@ -385,7 +385,7 @@ class GenerateScala {
     val scalaOp = q"${Term.Name(opClass)}.${Term.Name(opMethod)}"
     val scalaTy = transType(typ)
 
-    val tyAggregation = typeOf[Aggregation[_]]
+    val tyAggregation = typeOf[JoinAggregation[_]]
     val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
 
     q"""

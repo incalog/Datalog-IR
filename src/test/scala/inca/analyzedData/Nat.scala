@@ -1,7 +1,7 @@
 package inca.analyzedData
 
 import inca.frontend.constraint.core._
-import inca.runtime.aggregate.Aggregation
+import inca.runtime.aggregate.JoinAggregation
 import inca.util.Scala
 import inca.util.Scala
 
@@ -35,7 +35,7 @@ object Nat {
   val zeroOp = Scala(q"inca.analyzedData.Nat.Zero")
   val succOp = Scala(q"inca.analyzedData.Nat.Succ")
 
-  val sumAgg = new Aggregation[Nat] {
+  val sumAgg = new JoinAggregation[Nat] {
     override val name: String = "sum"
     override def init: Nat = Zero
     override def join(v1: Nat, v2: Nat): Nat = {

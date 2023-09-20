@@ -4,13 +4,13 @@ import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{Transformation, Transformer}
-import inca.runtime.aggregate.Aggregation
+import inca.runtime.aggregate.JoinAggregation
 import inca.runtime.context.DataModel
 import inca.util.Scala
 
 import scala.meta.XtensionQuasiquoteTerm
 
-case class MaxAgg() extends Aggregation[Int] {
+case class MaxAgg() extends JoinAggregation[Int] {
   override val name: String = "max"
   override def init: Int = Int.MinValue
   override def join(v1: Int, v2: Int): Int = v1.max(v2)
