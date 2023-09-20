@@ -20,9 +20,12 @@ trait AdornmentAnalysis extends Visitor:
   var currentRelation: Relation = _
 
   def addCurrentDemand(v: Var): Unit =
-    if (currentRelation.params.map(_.name.name).contains(v.name.name))
-      demandedParams += currentRelation.name.name -> v.name.name
-    else
+    if (currentRelation.params.map(_.name.name).contains(v.name.name)) {
+      if (!demandedParams.containsEntry(currentRelation.name.name -> v.name.name)) {
+        demandedParams += currentRelation.name.name -> v.name.name
+        size += 1
+      }
+    } else
       throw new IllegalArgumentException(s"Demanded variable $v is not a parameter of $currentRelation")
 
   def currentDemand: collection.Set[String] =
@@ -57,12 +60,14 @@ trait AdornmentAnalysis extends Visitor:
             addCurrentDemand(v)
       case Call(name, ts) =>
         val demand = demandOf(name)
-        for (ix <- demandPositionsOf(name); v <- ts(ix).vars)
+        val ixs = demandPositionsOf(name)
+        for (ix <- ixs; v <- ts(ix).vars)
           if (v.typeIs(_.mode == Mode.Binding))
             addCurrentDemand(v)
       case NegCall(name, ts) =>
         val demand = demandOf(name)
-        for (ix <- demandPositionsOf(name); v <- ts(ix).vars)
+        val ixs = demandPositionsOf(name)
+        for (ix <- ixs; v <- ts(ix).vars)
           if (v.typeIs(_.mode == Mode.Binding))
             addCurrentDemand(v)
       case _ => // nothing

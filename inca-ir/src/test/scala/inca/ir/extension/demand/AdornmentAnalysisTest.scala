@@ -71,13 +71,13 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
 
   test("not inverts variable closing") {
     // double negation
-    val dem = module(
+    val dem1 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Not(Not(Call("T", Seq(Var("p1"), Var("p2")))))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )
-    assert(dem.isEmpty)
+    assert(dem1.isEmpty)
 
     val dem2 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
@@ -96,4 +96,154 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
     )
     assert(dem.containsEntry(("R", "p1")))
     assert(dem.containsEntry(("R", "p2")))
+  }
+
+  test("demand propagates") {
+    val dem1 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem1.containsEntry(("R", "p1")))
+    assert(dem1.containsEntry(("R", "p2")))
+    assert(dem1.containsEntry(("Q", "x")))
+    assert(dem1.containsEntry(("Q", "y")))
+
+    val dem2 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("y"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem2.containsEntry(("R", "p1")))
+    assert(dem2.containsEntry(("R", "p2")))
+    assert(dem2.containsEntry(("Q", "x")))
+    assert(!dem2.containsEntry(("Q", "y")))
+  }
+
+  test("demand propagates transitively") {
+    val dem = module(
+      Relation("P", Seq(Param("a", TAny)), Seq(Body(Seq(
+        Call("R", Seq(Var("a"), Var("a")))
+      )))),
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem.containsEntry(("R", "p1")))
+    assert(dem.containsEntry(("R", "p2")))
+    assert(dem.containsEntry(("Q", "x")))
+    assert(dem.containsEntry(("Q", "y")))
+    assert(dem.containsEntry(("P", "a")))
+
+    val dem2 = module(
+      Relation("P", Seq(Param("a", TAny)), Seq(Body(Seq(
+        Eq(Var("a"), IntNum(1)),
+        Call("R", Seq(Var("a"), Var("a")))
+      )))),
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem2.containsEntry(("R", "p1")))
+    assert(dem2.containsEntry(("R", "p2")))
+    assert(dem2.containsEntry(("Q", "x")))
+    assert(dem2.containsEntry(("Q", "y")))
+    assert(!dem2.containsEntry(("P", "a")))
+  }
+
+  test("demand propagates selectively") {
+    val dem1 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+        Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
+        Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
+      )),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem1.containsEntry(("R", "p1")))
+    assert(dem1.containsEntry(("R", "p2")))
+    assert(dem1.containsEntry(("Q", "x")))
+    assert(dem1.containsEntry(("Q", "y")))
+
+    val dem2 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+        Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
+        Body(Seq(Call("R", Seq(IntNum(1), Var("x"))), Eq(Var("y"), IntNum(1)))),
+      )),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem2.containsEntry(("R", "p1")))
+    assert(dem2.containsEntry(("R", "p2")))
+    assert(dem2.containsEntry(("Q", "x")))
+    assert(!dem2.containsEntry(("Q", "y")))
+  }
+
+  test("demand propagates fork/join") {
+    val dem = module(
+      Relation("P", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+        Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
+        Body(Seq(Call("Q2", Seq(Var("x"), Var("y"))))),
+      )),
+      Relation("Q1", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("y"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("Q2", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem.containsEntry(("R", "p1")))
+    assert(dem.containsEntry(("R", "p2")))
+    assert(dem.containsEntry(("Q1", "x")))
+    assert(!dem.containsEntry(("Q1", "y")))
+    assert(!dem.containsEntry(("Q2", "x")))
+    assert(dem.containsEntry(("Q2", "y")))
+    assert(dem.containsEntry(("P", "x")))
+    assert(dem.containsEntry(("P", "y")))
+
+    val dem2 = module(
+      Relation("P", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+        Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
+        Body(Seq(Call("Q2", Seq(Var("y"), Var("x"))))),
+      )),
+      Relation("Q1", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("y"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("Q2", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assert(dem2.containsEntry(("R", "p1")))
+    assert(dem2.containsEntry(("R", "p2")))
+    assert(dem2.containsEntry(("Q1", "x")))
+    assert(!dem2.containsEntry(("Q1", "y")))
+    assert(!dem2.containsEntry(("Q2", "x")))
+    assert(dem2.containsEntry(("Q2", "y")))
+    assert(dem2.containsEntry(("P", "x")))
+    assert(!dem2.containsEntry(("P", "y")))
   }
