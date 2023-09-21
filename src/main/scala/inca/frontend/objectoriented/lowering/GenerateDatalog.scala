@@ -189,7 +189,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             Datalog.Eq(Datalog.Var("className"), Datalog.StringConstant(c.name.raw)),
             Datalog.Eq(Datalog.Var("implClass"), Datalog.StringConstant(implC.name.raw)),
           ))
-        })
+        }).addHint(MagicSetHints.NoInputRelation)
     }.toSeq
 
     // Translate all methods

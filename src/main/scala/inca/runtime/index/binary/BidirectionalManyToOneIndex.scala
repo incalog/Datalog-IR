@@ -9,7 +9,7 @@ import org.eclipse.collections.impl.factory.Multimaps
 import scala.jdk.CollectionConverters._
 
 /*
- * In a BidirectionalManyToOneIndex, each key uniquely identifies the correponding value, but not vice versa.
+ * In a BidirectionalManyToOneIndex, each key uniquely identifies the corresponding value, but not vice versa.
  */
 class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryMapIndex[K,V] {
   protected val index: MutableMap[K, V] = Maps.mutable.empty()

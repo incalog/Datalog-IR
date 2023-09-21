@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.measurements
 object Benchmark {
   def main(args: Array[String]): Unit = {
     val warmups = 3
-    val runs = 10
+    val runs = 5
 
     val mutationBenchmark = MutationBenchmark(warmups, runs)
     mutationBenchmark.run()

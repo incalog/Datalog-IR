@@ -2,19 +2,18 @@ package inca.backend.transform.objectoriented
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{Atom, Call, Computed, Evaluation, Name, Param, Pattern, TScala, TScalaInt, Var}
+import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
+import inca.backend.transform.objectoriented.transformer.{EclipseMapCountTransformer, MapCountTransformer}
 import inca.backend.transform.{Transformation, Transformer}
-import inca.backend.transform.objectoriented.transformer.MapCountTransformer
-import inca.backend.transform.objectoriented.transformer.MapCountTransformer.counterMetaTy
 import inca.runtime.context.DataModel
-import inca.runtime.data.objectoriented.Identity
 import inca.util.Scala
 
 import scala.meta.XtensionQuasiquoteTerm
 
-object StructuralMutationTransformation extends Transformation {
-  override def transformer(dataModel: DataModel): Transformer = new MapCountTransformer(
+// TODO: Refactor this
+object EclipseStructuralMutationTransformation extends Transformation {
+  override def transformer(dataModel: DataModel): Transformer = new EclipseMapCountTransformer(
     ObjectHints.FieldRootKey,
     ObjectHints.FieldKey,
     "ts", "tsIn", "tsOut"

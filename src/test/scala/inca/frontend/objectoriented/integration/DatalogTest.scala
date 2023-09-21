@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.integration
 
 import inca.backend.optimize.EliminateNonproductiveRelations
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
+import inca.backend.transform.objectoriented.{EclipseStructuralMutationTransformation, StructuralMutationTransformation}
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
@@ -11,7 +12,9 @@ import org.scalatest.{Assertion, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions(transformations = ObjectOptions.defaultTransformations(false)) //  Seq(DeriveDemandPatterns, DemandTransformation))
+  def options: ObjectOptions = ObjectOptions(
+    //transformations = ObjectOptions.defaultTransformations(EclipseStructuralMutationTransformation)
+  ) //  Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>

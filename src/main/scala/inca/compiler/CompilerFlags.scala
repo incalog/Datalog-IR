@@ -1,7 +1,7 @@
 package inca.compiler
 
 object CompilerFlags {
-  val DEBUGMODE: Boolean = true
+  val DEBUGMODE: Boolean = false
 
   object DebugConfig {
     // true to include the AST

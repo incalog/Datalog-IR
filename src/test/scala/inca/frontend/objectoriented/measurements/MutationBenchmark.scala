@@ -1,5 +1,7 @@
 package inca.frontend.objectoriented.measurements
 
+import inca.backend.transform.Transformation
+import inca.backend.transform.objectoriented.{EclipseStructuralMutationTransformation, NumericMutationTransformation, StructuralMutationTransformation}
 import inca.compiler.Compiler
 import inca.frontend.ir.Relation
 import inca.frontend.objectoriented.compiler.ObjectOptions
@@ -24,7 +26,9 @@ case class MutationBenchmark(warmups: Int, runs: Int) {
     val runs: Int
     val name: String
   }
-  case class MutationConfig(warmup: Int, runs: Int, name: String, numNodes: Int, numMutations: Int) extends Config
+  case class MutationConfig(warmup: Int, runs: Int, name: String, numNodes: Int, numMutations: Int) extends Config {
+    override def toString: String = s"$name - $numNodes - $numMutations"
+  }
 
   val typechecker = new Typechecker {}
 
@@ -44,28 +48,28 @@ case class MutationBenchmark(warmups: Int, runs: Int) {
     header +: rows
   }
 
-  private def measureDatalog(c: MutationConfig, prog: String, edb: Seq[Relation], args: Seq[Term], useStructural: Boolean): IndexedSeq[(Long, Long)] = {
+  private def measureDatalog(c: Config, edb: Seq[Relation], args: Seq[Term], mutationTransformation: Transformation, prog: String = progFolder + "MutationCounter.oinca",  mainClass: String = "Prog", mainMethod: String = "main"): IndexedSeq[(Long, Long)] = {
     val code = FileUtil.readFile(prog)
 
-    val transformations = ObjectOptions.defaultTransformations(useStructural)
+    val transformations = ObjectOptions.defaultTransformations(mutationTransformation)
     val options = ObjectOptions(transformations = transformations)
     val module = Compiler.compileObject(code, options)
 
-    val name = if (useStructural) "Structural" else "Numeric"
+    val name = mutationTransformation.getClass.getSimpleName
 
     //println(MetricUtils.printStatistics(module.optimized))
     //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {
-      println(s"Warmup ${name} ${c.name} - ${c.numNodes}: ${i + 1}")
+      println(s"Warmup ${name} ${c.toString}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("Prog", "main", edb, args:_*)
+      datalog.measure(mainClass, mainMethod, edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
-      println(s"Run ${name} ${c.name} - ${c.numNodes}: ${i + 1}")
+      println(s"Run ${name} ${c.toString}: ${i + 1}")
 
       val datalog = new ObjectOrientedDatalog(module)
 
@@ -78,12 +82,10 @@ case class MutationBenchmark(warmups: Int, runs: Int) {
       println(run)
       System.exit(1)*/
 
-      // TODO: Measure Memory footprint
-
       MemoryUtil.collectGarbage()
       val memoryBefore = MemoryUtil.usedMemoryInBytes()
 
-      val dt = datalog.measure("Prog", "main", edb, args:_*)
+      val dt = datalog.measure(mainClass, mainMethod, edb, args:_*)
 
       MemoryUtil.collectGarbage()
       val memoryAfter = MemoryUtil.usedMemoryInBytes()
@@ -99,26 +101,47 @@ case class MutationBenchmark(warmups: Int, runs: Int) {
     }
   }
 
-  def run(): Unit = {
+  def runMeasurements(configs: Seq[MutationConfig], subdir: String): Unit = {
+    // Structural - EfficientMap
+    val datalogMeasurementsEfficientStructural = for (c <- configs) yield {
+      c.numNodes -> measureDatalog(c, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), EclipseStructuralMutationTransformation)
+    }
+    FileUtil.writeFile(s"$subdir/EfficientStructuralCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsEfficientStructural)))
+    FileUtil.writeFile(s"$subdir/EfficientStructuralCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsEfficientStructural)))
+
+    // Numeric
+    val datalogMeasurementsNumeric = for (c <- configs) yield {
+      c.numNodes -> measureDatalog(c, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), NumericMutationTransformation)
+    }
+    FileUtil.writeFile(s"$subdir/NumericCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsNumeric)))
+    FileUtil.writeFile(s"$subdir/NumericCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsNumeric)))
+
+    // Structural - Map
+    val datalogMeasurementsStructural = for (c <- configs) yield {
+      c.numNodes -> measureDatalog(c, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), StructuralMutationTransformation)
+    }
+    FileUtil.writeFile(s"$subdir/StructuralCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsStructural)))
+    FileUtil.writeFile(s"$subdir/StructuralCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsStructural)))
+  }
+
+  def measureIncreaseNumberOfObjects(): Unit = {
     val numMutations: Int = 10
     val configs = for (i <- 100 until 1010 by 100) yield {
       MutationConfig(warmups, runs, s"Mut", i, numMutations)
     }
+    runMeasurements(configs, s"$resultPath/counter/ScaleObjects")
+  }
 
-    val prog = progFolder + s"MutationCounter.oinca"
-
-    // Numeric
-    val datalogMeasurementsNumeric = for (c <- configs) yield {
-      c.numNodes -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), false)
+  def measureIncreaseNumberOfMutations(): Unit = {
+    val numObjects: Int = 1
+    val configs = for (i <- 100 until 1010 by 100) yield {
+      MutationConfig(warmups, runs, s"Mut", numObjects, i)
     }
-    FileUtil.writeFile(s"$resultPath/mutation/NumericCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsNumeric)))
-    FileUtil.writeFile(s"$resultPath/mutation/NumericCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsNumeric)))
+    runMeasurements(configs, s"$resultPath/counter/ScaleMutations")
+  }
 
-    // Structural
-    val datalogMeasurementsStructural = for (c <- configs) yield {
-      c.numNodes -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), true)
-    }
-    FileUtil.writeFile(s"$resultPath/mutation/StructuralCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsStructural)))
-    FileUtil.writeFile(s"$resultPath/mutation/StructuralCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsStructural)))
+  def run(): Unit = {
+    measureIncreaseNumberOfMutations()
+    measureIncreaseNumberOfObjects()
   }
 }

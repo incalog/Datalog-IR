@@ -1,7 +1,19 @@
 wd <- getwd()
-# TODO change paths
-datapath <- paste(wd, "benchmark/objectoriented/mutation", sep="/")
-graphpath <- paste(wd, "benchmark/objectoriented/mutation/graphs/", sep="/")
+
+scale <- "mutations"
+subdir <- "ScaleMutations"
+maxTime <- 3
+maxMem <- 500
+
+#scale <- "nodes"
+#subdir <- "ScaleObjects"
+#maxTime <- 25
+#maxMem <- 450
+
+dataPath <- paste("benchmark/objectoriented/counter", subdir, sep="/")
+
+datapath <- paste(wd, dataPath, sep="/")
+graphpath <- paste(wd, paste(dataPath, "graphs", sep="/"), sep="/")
 
 color1 <- rgb(255/256, 255/256, 204/256)
 color2 <- rgb(161/256, 218/256, 180/256)
@@ -61,6 +73,7 @@ msToS <- function(ms) {
 
 mutNumericTime <- colMeans(readTime("NumericCounter_Datalog_time.csv"))
 mutStructuralTime <- colMeans(readTime("StructuralCounter_Datalog_time.csv"))
+mutEfficientStructuralTime <- colMeans(readTime("EfficientStructuralCounter_Datalog_time.csv"))
 
 pdf(file = paste(graphpath, "Mutation_time.pdf", sep="/"))
 plot(data.matrix(mutNumericTime),
@@ -68,14 +81,15 @@ plot(data.matrix(mutNumericTime),
      type = "o",
      col = color2,
      ylab = "Running time (s)",
-     xlab = "Number of nodes",
+     xlab = paste("Number of", scale),
      xaxt = "n",
-     ylim = c(0, 25.0), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, maxTime), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(mutStructuralTime), type = "o", col = color3, lwd = 1.5)
+lines(data.matrix(mutEfficientStructuralTime), type = "o", col = color4, lwd = 1.5)
 axis(1, at = c(1:10), labels = seq(100, 1010, by = 100))
-legend("topleft", legend=c("Numeric", "Structural"),
+legend("topleft", legend=c("Numeric", "Structural", "Eclipse"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
 
@@ -83,6 +97,7 @@ dev.off()
 
 mutNumericMem <- colMeans(readMemory("NumericCounter_Datalog_mem.csv"))
 mutStructuralMem <- colMeans(readMemory("StructuralCounter_Datalog_mem.csv"))
+mutEfficientStructuralMem <- colMeans(readMemory("EfficientStructuralCounter_Datalog_mem.csv"))
 
 pdf(file = paste(graphpath, "Mutation_mem.pdf", sep="/"))
 plot(data.matrix(mutNumericMem),
@@ -90,13 +105,14 @@ plot(data.matrix(mutNumericMem),
      type = "o",
      col = color2,
      ylab = "Memory in (Mb)",
-     xlab = "Number of nodes",
+     xlab = paste("Number of", scale),
      xaxt = "n",
-     ylim = c(0, 400), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, maxMem), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
 lines(data.matrix(mutStructuralMem), type = "o", col = color3, lwd = 1.5)
+lines(data.matrix(mutEfficientStructuralMem), type = "o", col = color4, lwd = 1.5)
 axis(1, at = c(1:10), labels = seq(100, 1010, by = 100))
-legend("topleft", legend=c("Numeric", "Structural"),
+legend("topleft", legend=c("Numeric", "Structural", "Eclipse"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()

@@ -31,7 +31,7 @@ import scala.meta.XtensionQuasiquoteTerm
  *    - target: Call (Ignore) =>
  *        - Insert two arguments, one for `tsIn` and one for `tsOut`
  */
-object MutationTransformation extends Transformation {
+object NumericMutationTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new NumericCountTransformer(
     ObjectHints.FieldRootKey,
     ObjectHints.FieldKey,
