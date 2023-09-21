@@ -380,6 +380,36 @@ class CfgVisitor extends Visitor {
   }
 }
 
+// Problem: We still calculate the flow inside the while loop
+// The flow is just unreachable.
+class ImprovedCfgVisitor extends CfgVisitor {
+    def expIsFalse(exp: Exp): Boolean = {
+        // We could make this more sophisticated with a constant analysis
+        exp.isInstanceOf[Num] && exp.asInstanceOf[Num].num == 0
+    }
+
+    @override
+    def visitIf(s: If): Unit = {
+        if (this.expIsFalse(s.cnd))
+            this.cfg += (s,s.els.first())
+        else
+            this.cfg += (s,s.thn.first())
+
+    }
+
+    @override
+    def visitWhile(s: While): Unit = {
+        if (!this.expIsFalse(s.cnd)) {
+            //We do not support super calls yet, othewise: super.visitWhile(s)
+            this.cfg += (s, s.body.first())
+            for (from <- s.body.last())
+                yield this.addPath(from, s)
+            return
+        }
+
+    }
+}
+
 class Examples {
   val factorial: Stm =
     new Sequence(new VarDef("n", new Num(5)),
@@ -397,7 +427,7 @@ class Examples {
 
   @main
   def main(): Set[(String, String)] = {
-    val visitor: CfgVisitor = new CfgVisitor()
+    val visitor: CfgVisitor = new ImprovedCfgVisitor()
     val examples: Examples = new Examples()
     examples.factorial.accept(visitor)
     for (c <- visitor.cfgSet()) yield (c._1.getString(), c._2.getString())

@@ -405,7 +405,7 @@ class Examples {
 
 class ConstantPropagation {
     @main
-    def factorial(): Set[(String, String)] = {
+    def main(): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
         examples.factorial.accept(constantProp)

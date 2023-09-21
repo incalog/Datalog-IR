@@ -175,14 +175,6 @@ class DatalogTest extends AnyFunSuite {
     performTests(foldSetProjectionTest)
   }*/
 
-  test("CGFVisitor") {
-    performTests(cfgVisitorTest)
-  }
-
-  test("While lang case study") {
-    performTests(whileLangTest)
-  }
-
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
   }
@@ -230,4 +222,20 @@ class DatalogTest extends AnyFunSuite {
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
   }*/
+
+  test("CGFVisitor") {
+    performTests(cfgVisitorTest)
+  }
+
+  test("CGFVisitorExtended") {
+    performTests(cfgVisitorExtendedTest)
+  }
+
+  test("Constant Analysis") {
+    performTests(constantAnalysis)
+  }
+
+  test("SignAnalysis") {
+    performTests(signAnalysis)
+  }
 }

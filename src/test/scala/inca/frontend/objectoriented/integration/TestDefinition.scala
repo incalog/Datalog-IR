@@ -332,12 +332,20 @@ object TestDefinition {
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  def whileLangTest: TestDefinition[SetResult[Any]] = {
+  def constantAnalysis: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult(
+    TestDefinition("ConstantAnalysis", "ConstantPropagation", "main", Seq(), SetResult(
       TupleResult("m", "SomeConstant(3)"),
       TupleResult("n", "NoConstant"),
       TupleResult("acc", "NoConstant")
+    ))
+  }
+
+  def signAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("SignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
+      TupleResult("m", "Pos"),
+      TupleResult("n", "Top")
     ))
   }
 
@@ -371,8 +379,17 @@ object TestDefinition {
     TestDefinition("MutationCounter", "Prog", "main", Seq(q"10", q"10"), SetResult())
   }
 
+  def cfgVisitorExtendedTest: TestDefinition[SetResult[Any]] = {
+    val expectedRes = SetResult(
+      TupleResult("VarDef", "While"),
+      TupleResult("VarDef", "VarDef"), TupleResult("Assign", "Assign") // TupleResult("Skip", "Skip")
+    )
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("CfgVisitorExtended", "Examples", "main", Seq(), expectedRes)
+  }
+
   // TODO: Fix expected result
-  def pathMeasurementTest: TestDefinition[Any] = {
+  /*def pathMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_left", "Graph", "main", Seq(q"10"), SetResult())
   }
@@ -385,5 +402,5 @@ object TestDefinition {
   def pathWithCycleMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_right_cycles", "Graph", "main", Seq(q"12", q"1"), SetResult())
-  }
+  }*/
 }

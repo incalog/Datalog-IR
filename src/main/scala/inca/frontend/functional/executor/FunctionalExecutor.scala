@@ -201,6 +201,8 @@ package inca.frontend.functional.executor
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
+import inca.frontend.ir.Relation
+import inca.runtime.Query.Specification
 import inca.runtime.context.QueryScope
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
@@ -251,6 +253,15 @@ object FunctionalExecutor {
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
+
+      /*compiled.psystemModule.patterns.foreach { case (k, p) =>
+        val specification: Specification = p()
+        val matcher = specification.getMatcher(engine)
+        val rel = Relation.fromMatcher(matcher)
+        println(rel.asTable)
+        println()
+      }*/
+
       val outputMatches = mainMatcher.getAllMatches(inputMatch).asScala.map { m =>
         m.toArray.slice(tuple.getSize, arity).toSeq
       }.toSeq

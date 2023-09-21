@@ -1,0 +1,443 @@
+module WhileLang
+
+class Exp {
+    // abstract
+    def accept(v: Visitor): Unit = { }
+
+    def aevalSign(p: ValueProvider): MSign = {
+        new BotSign()
+    }
+
+}
+
+class Var(val name: String) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitVar(this)
+    }
+
+    @override
+    def aevalSign(p: ValueProvider): MSign = {
+        p.getValue(this.name)
+    }
+}
+
+class Num(val num: Int) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitNum(this)
+    }
+
+    @override
+    def aevalSign(p: ValueProvider): MSign = {
+        if (this.num == 0) return new ZeroSign()
+        if (this.num > 0) return new PosSign()
+        return new NegSign()
+    }
+
+}
+
+class BinOp(val left: Exp, val right: Exp) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.left.accept(v)
+        this.right.accept(v)
+        this.binOpAccept(v)
+    }
+    // abstract
+    def binOpAccept(v: Visitor): Unit = { }
+
+    @override
+    def aevalSign(p: ValueProvider): MSign = {
+        this.binOpSign(this.left.aevalSign(p), this.right.aevalSign(p))
+    }
+    // abstract
+    def binOpSign(c1: MSign, c2: MSign): MSign = {
+        c1
+    }
+}
+class Add extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitAdd(this)
+    }
+    @override
+    def binOpSign(c1: MSign, c2: MSign): MSign = {
+        c1.add(c2)
+    }
+}
+class Sub extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitSub(this)
+    }
+    @override
+    def binOpSign(c1: MSign, c2: MSign): MSign = {
+        c1.sub(c2)
+    }
+}
+class Mul extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitMul(this)
+    }
+    @override
+    def binOpSign(c1: MSign, c2: MSign): MSign = {
+        c1.mul(c2)
+    }
+}
+class GT extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitGT(this)
+    }
+    @override
+    def binOpSign(c1: MSign, c2: MSign): MSign = {
+        c1.gt(c2)
+    }
+}
+
+class Stm {
+    // abstract
+    def accept(v: Visitor): Unit = {
+    }
+    def first(): Stm = {
+        this
+    }
+    def last(): Stm = {
+        this
+    }
+
+    def stringValue(): String = {
+        "Stm"
+    }
+}
+class Assign(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitAssign(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Assign"
+    }
+}
+class Skip extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitSkip(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Skip"
+    }
+}
+class Sequence(val s1: Stm, val s2: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.s1.accept(v)
+        this.s2.accept(v)
+        v.visitSequence(this)
+    }
+    @override
+    def first(): Stm = {
+        this.s1.first()
+    }
+    @override
+    def last(): Stm = {
+        this.s2.last()
+    }
+
+    @override
+    def stringValue(): String = {
+        "Sequence"
+    }
+}
+class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.thn.accept(v)
+        this.els.accept(v)
+        v.visitIf(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "If"
+    }
+}
+class While(val cnd: Exp, val body: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.body.accept(v)
+        v.visitWhile(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "While"
+    }
+}
+class ValDef(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitValDef(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Val"
+    }
+}
+class VarDef(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitVarDef(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Var"
+    }
+}
+
+
+class Visitor {
+    // Exp
+    def visitVar(e: Var): Unit = { }
+    def visitNum(e: Num): Unit = { }
+    def visitAdd(e: Add): Unit = { }
+    def visitSub(e: Sub): Unit = { }
+    def visitMul(e: Mul): Unit = {}
+    def visitGT(e: GT): Unit = {}
+
+    // Stm
+    def visitAssign(s: Assign): Unit = { }
+    def visitSkip(s: Skip): Unit = { }
+    def visitSequence(s: Sequence): Unit = { }
+    def visitIf(s: If): Unit = { }
+    def visitWhile(s: While): Unit = { }
+    def visitValDef(s: ValDef): Unit = { }
+    def visitVarDef(s: VarDef): Unit = { }
+}
+
+case class MSign extends BalancedMonotone[MSign, MSign] {
+    @static
+    def init(): MSign = {
+        new BotSign()
+    }
+
+    @static
+    def join(c1: MSign, c2: MSign): MSign = {
+        c1.joined(c2)
+    }
+
+    // The current hack ignores the lift
+    def lift(v: MSign): MSign = {
+        v
+    }
+
+    def joined(that: MSign): MSign = {
+        this
+    }
+
+    def add(that: MSign): MSign = {
+        this
+    }
+    def sub(that: MSign): MSign = {
+        this
+    }
+    def mul(that: MSign): MSign = {
+        this
+    }
+    def gt(that: MSign): MSign = {
+        this
+    }
+
+    def stringValue(): String = { "MSign" }
+}
+
+case class BotSign extends MSign {
+    @override
+	def joined(that: MSign): MSign = { that }
+
+	@override
+	def stringValue(): String = { "Bot" }
+}
+
+case class TopSign extends MSign {
+    @override
+	def joined(that: MSign): MSign = { this }
+
+    @override
+    def stringValue(): String = { "Top" }
+}
+
+case class PosSign extends MSign {
+    @override
+	def joined(that: MSign): MSign = {
+		if (that.isInstanceOf[PosSign]) this else new TopSign()
+	}
+
+    @override
+	def add(that: MSign): MSign = {
+        if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    }
+
+    @override
+    def sub(that: MSign): MSign = {
+		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    }
+
+    @override
+    def mul(that: MSign): MSign = {
+		if (that.isInstanceOf[NegSign])
+			that
+		else if (that.isInstanceOf[PosSign])
+			this
+		else
+			new TopSign()
+    }
+
+    @override
+    def stringValue(): String = { "Pos" }
+}
+
+case class NegSign extends MSign {
+    @override
+	def joined(that: MSign): MSign = {
+		if (that.isInstanceOf[NegSign]) this else new TopSign()
+	}
+
+    @override
+	def add(that: MSign): MSign = {
+        if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    }
+
+    @override
+    def sub(that: MSign): MSign = {
+		if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    }
+
+    @override
+    def mul(that: MSign): MSign = {
+		if (that.isInstanceOf[NegSign])
+			new PosSign()
+		else if (that.isInstanceOf[PosSign])
+			new NegSign()
+		else
+			new TopSign()
+    }
+
+	@override
+	def stringValue(): String = { "Neg" }
+}
+
+case class ZeroSign extends MSign {
+    @override
+	def joined(that: MSign): MSign = {
+		if (that.isInstanceOf[ZeroSign]) this else new TopSign()
+	}
+
+    @override
+	def add(that: MSign): MSign = {
+       	that
+    }
+
+    @override
+    def sub(that: MSign): MSign = {
+		if (that.isInstanceOf[NegSign])
+			new PosSign()
+		else if (that.isInstanceOf[PosSign])
+			new NegSign()
+		else if (that.isInstanceOf[ZeroSign])
+			this
+		else
+			new TopSign()
+    }
+
+    @override
+    def mul(that: MSign): MSign = {
+		this
+    }
+
+	@override
+	def stringValue(): String = { "Zero" }
+}
+
+
+
+class ValueProvider extends Visitor {
+    def getValue(s: String): MSign = {
+        new BotSign()
+    }
+}
+
+class FISignAnalysisVisitor extends ValueProvider {
+    /** The Map type separates keys from aggregated values */
+    val vars: MonoMap[String, MSign] = new MonoMap[String, MSign]()
+
+    @override
+    def getValue(s: String): MSign = {
+        this.vars.get(s) // this aggregates automatically
+    }
+
+    @override
+    def visitValDef(s: ValDef): Unit = {
+        this.vars += (s.name, s.rhs.aevalSign(this))
+    }
+
+    @override
+    def visitVarDef(s: VarDef): Unit = {
+        this.vars += (s.name, s.rhs.aevalSign(this))
+    }
+
+    @override
+    def visitAssign(s: Assign): Unit = {
+        this.vars += (s.name, s.rhs.aevalSign(this))
+    }
+}
+
+class Examples {
+    val assignSequence: Stm =
+    new Sequence(
+        new VarDef("m", new Num(3)),
+        new Sequence(
+            new Assign("m", new Num(1)),
+            new Sequence(
+                new VarDef("n", new Num(2)),
+                new Assign("n", new Add(new Num(-1), new Var("n")))
+            )
+        )
+    )
+}
+
+class SignAnalysis {
+    @main
+    def main(): Set[(String, String)] = {
+        val signAnalysis: FISignAnalysisVisitor = new FISignAnalysisVisitor()
+        val examples: Examples = new Examples()
+        examples.assignSequence.accept(signAnalysis)
+
+        for (k <- signAnalysis.vars.keys()) yield (k, signAnalysis.vars.get(k).stringValue())
+    }
+}
