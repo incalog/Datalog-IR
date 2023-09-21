@@ -3,89 +3,107 @@ package inca.ir.extension.demand
 import inca.ir.*
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.demand.Demand
-import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.extension.not.Not
+import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.immutable.MultiDict
 
-class AdornmentAnalysisTest extends AnyFunSuiteLike:
+class LoweringTest extends AnyFunSuiteLike:
+  class TestIR extends demand.IR with not.IR with arithmetic.IR
+  class TestIRTypechecker extends demand.Typechecker with not.Typechecker with arithmetic.Typechecker
+  class TestLowering extends demand.Lowering[TestIR, TestIR]  with not.Visitor with arithmetic.Visitor {
+    override def src: TestIR = new TestIR {}
+    override def trg: TestIR = new TestIR {}
+  }
 
-  def module(relations: Relation*): MultiDict[String, String] =
-    val typechecker = new BaseIRTypechecker with demand.Typechecker with not.Typechecker with arithmetic.Typechecker {}
-    val adornment = new AdornmentAnalysis with demand.Visitor with not.Visitor with arithmetic.Visitor {}
+  def module(relations: Relation*): Module =
+    val typecheckerBefore = new TestIRTypechecker
+    val typecheckerAfter = new TestIRTypechecker
+    val lowering = new TestLowering
 
     val mod = Module("M", BaseIR.language, relations)
+    var lowered: Module = null
     try {
-      typechecker.typecheck(mod)
-      adornment.analyzeModule(mod)
-      adornment.demandedParams
-    }
-    finally {
-      println(mod)
-      typechecker.getErrors.foreach(println)
+      typecheckerBefore.typecheck(mod)
+      lowered = lowering.visit(mod)
+      typecheckerAfter.typecheck(lowered)
+      lowered
+    } finally {
+      println(lowering.demandedParams)
+      println(lowered)
+      val errorsBefore = typecheckerBefore.getErrors
+      val errorsAfter = typecheckerAfter.getErrors
+      if (errorsBefore.nonEmpty) {
+        println("Type errors in original code:")
+        errorsBefore.foreach(println)
+      }
+      if (errorsAfter.nonEmpty) {
+        println("Type errors in lowered code:")
+        errorsAfter.foreach(println)
+      }
     }
 
   test("no body, no binding") {
-    val dem = module(Relation("R", Seq(Param("p", TAny)), Seq()))
-    assert(dem.isEmpty)
+    val m = module(Relation("R", Seq(Param("p", TAny)), Seq()))
+    assert(m.relations.size == 1)
   }
 
   test("bound param") {
-    val dem1 = module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+    val m1 = module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
       Eq(Var("p"), IntNum(1))
     )))))
-    assert(dem1.isEmpty)
+    assert(m1.relations.size == 1)
 
-    val dem2 = module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+    val m2 = module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
       Eq(IntNum(1), Var("p"))
     )))))
-    assert(dem2.isEmpty)
+    assert(m2.relations.size == 1)
   }
 
   test("bound param 2") {
-    val dem = module(Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+    val m = module(Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
       Eq(Var("p1"), IntNum(1)),
       Eq(Var("p1"), Var("p2"))
     )))))
-    assert(dem.isEmpty)
+    assert(m.relations.size == 1)
   }
 
   test("unbound variable in neq test") {
-    val dem = module(Relation("R", Seq(), Seq(Body(Seq(
+    val m = module(Relation("R", Seq(), Seq(Body(Seq(
       Neq(IntNum(0), IntNum(0))
     )))))
-    assert(dem.isEmpty)
+    assert(m.relations.size == 1)
   }
 
   test("call binds arguments") {
-    val dem = module(
+    val m = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Call("T", Seq(Var("p1"), Var("p2")))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )
-    assert(dem.isEmpty)
+    assert(m.relations.size == 2)
   }
 
   test("not inverts variable closing") {
     // double negation
-    val dem1 = module(
+    val m1 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Not(Not(Call("T", Seq(Var("p1"), Var("p2")))))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )
-    assert(dem1.isEmpty)
+    assert(m1.relations.size == 2)
 
-    val dem2 = module(
+    val m2 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )
-    assert(dem2.isEmpty)
+    assert(m2.relations.size == 2)
   }
 
   test("demand binds like a call") {
@@ -94,12 +112,13 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem.containsEntry(("R", "p1")))
-    assert(dem.containsEntry(("R", "p2")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (dem.relations("R").bodies.head.atoms.head)
   }
 
   test("demand propagates") {
-    val dem1 = module(
+    val m1 = module(
       Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
         Call("R", Seq(Var("x"), Var("y")))
       )))),
@@ -107,12 +126,14 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem1.containsEntry(("R", "p1")))
-    assert(dem1.containsEntry(("R", "p2")))
-    assert(dem1.containsEntry(("Q", "x")))
-    assert(dem1.containsEntry(("Q", "y")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m1.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
+      (m1.relations("Q").bodies.head.atoms.head)
 
-    val dem2 = module(
+    val m2 = module(
       Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
         Eq(Var("y"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
@@ -121,14 +142,17 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem2.containsEntry(("R", "p1")))
-    assert(dem2.containsEntry(("R", "p2")))
-    assert(dem2.containsEntry(("Q", "x")))
-    assert(!dem2.containsEntry(("Q", "y")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m2.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"))))
+      (m2.relations("Q").bodies.head.atoms(1))
+
   }
 
   test("demand propagates transitively") {
-    val dem = module(
+    val m1 = module(
       Relation("P", Seq(Param("a", TAny)), Seq(Body(Seq(
         Call("Q", Seq(Var("a"), Var("a")))
       )))),
@@ -139,13 +163,18 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem.containsEntry(("R", "p1")))
-    assert(dem.containsEntry(("R", "p2")))
-    assert(dem.containsEntry(("Q", "x")))
-    assert(dem.containsEntry(("Q", "y")))
-    assert(dem.containsEntry(("P", "a")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m1.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
+      (m1.relations("Q").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("P"), Seq(Var("a"))))
+      (m1.relations("P").bodies.head.atoms.head)
 
-    val dem2 = module(
+
+    val m2 = module(
       Relation("P", Seq(Param("a", TAny)), Seq(Body(Seq(
         Eq(Var("a"), IntNum(1)),
         Call("Q", Seq(Var("a"), Var("a")))
@@ -157,15 +186,19 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem2.containsEntry(("R", "p1")))
-    assert(dem2.containsEntry(("R", "p2")))
-    assert(dem2.containsEntry(("Q", "x")))
-    assert(dem2.containsEntry(("Q", "y")))
-    assert(!dem2.containsEntry(("P", "a")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m2.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
+      (m2.relations("Q").bodies.head.atoms.head)
+    assertResult
+      (Call("Q", Seq(Var("a"), Var("a"))))
+      (m2.relations("P").bodies.head.atoms(1))
   }
 
   test("demand propagates selectively") {
-    val dem1 = module(
+    val m1 = module(
       Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
@@ -174,12 +207,14 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem1.containsEntry(("R", "p1")))
-    assert(dem1.containsEntry(("R", "p2")))
-    assert(dem1.containsEntry(("Q", "x")))
-    assert(dem1.containsEntry(("Q", "y")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m1.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
+      (m1.relations("Q").bodies.head.atoms.head)
 
-    val dem2 = module(
+    val m2 = module(
       Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(IntNum(1), Var("x"))), Eq(Var("y"), IntNum(1)))),
@@ -188,10 +223,12 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem2.containsEntry(("R", "p1")))
-    assert(dem2.containsEntry(("R", "p2")))
-    assert(dem2.containsEntry(("Q", "x")))
-    assert(!dem2.containsEntry(("Q", "y")))
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m2.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"))))
+      (m2.relations("Q").bodies.head.atoms.head)
   }
 
   test("demand propagates fork/join") {
@@ -212,14 +249,6 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem.containsEntry(("R", "p1")))
-    assert(dem.containsEntry(("R", "p2")))
-    assert(dem.containsEntry(("Q1", "x")))
-    assert(!dem.containsEntry(("Q1", "y")))
-    assert(!dem.containsEntry(("Q2", "x")))
-    assert(dem.containsEntry(("Q2", "y")))
-    assert(dem.containsEntry(("P", "x")))
-    assert(dem.containsEntry(("P", "y")))
 
     val dem2 = module(
       Relation("P", Seq(Param("x", TAny), Param("y", TAny)), Seq(
@@ -238,12 +267,4 @@ class AdornmentAnalysisTest extends AnyFunSuiteLike:
         Demand(Seq(Var("p1"), Var("p2")))
       ))))
     )
-    assert(dem2.containsEntry(("R", "p1")))
-    assert(dem2.containsEntry(("R", "p2")))
-    assert(dem2.containsEntry(("Q1", "x")))
-    assert(!dem2.containsEntry(("Q1", "y")))
-    assert(!dem2.containsEntry(("Q2", "x")))
-    assert(dem2.containsEntry(("Q2", "y")))
-    assert(dem2.containsEntry(("P", "x")))
-    assert(!dem2.containsEntry(("P", "y")))
   }

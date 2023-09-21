@@ -1,5 +1,7 @@
 package inca.ir.util
 
+import inca.ir.Name
+
 class Gensym(init: Iterable[String] = Seq.empty) {
   /** map of used symbols, each of which must end with '$' */
   private var used: Map[String, Int] = Map()
@@ -34,6 +36,8 @@ class Gensym(init: Iterable[String] = Seq.empty) {
         base_ + 0
     }
   }
+  
+  def freshName(base: Name): Name = Name(fresh(base.name))
 
   def freshGlobal(base: String): String = {
     val v = fresh(base)

@@ -129,7 +129,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         args.zip(params).foreach { case (t, Param(_, ty)) =>
           checkTerm(t, ty, mode)
         }
-      case _ => error(s"Unknown relation: $name", atom)
+      case _ =>
+        error(s"Unknown relation: $name", atom)
+        args.foreach(t => inferTerm(t, mode))
 
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Call(name, args) => checkCall(name, args, atom, mode)

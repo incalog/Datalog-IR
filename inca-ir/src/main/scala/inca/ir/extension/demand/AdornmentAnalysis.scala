@@ -13,18 +13,12 @@ trait AdornmentAnalysis extends Visitor:
   /** for each relation, the parameters that are demanded (free) */
   var demandedParams: MultiDict[String, String] = MultiDict()
 
-  /** Used to track progress */
-  var size: Int = 0
-
-  var currentRelations: Map[String, Relation] = Map()
-  var currentRelation: Relation = _
+  protected var currentRelations: Map[String, Relation] = Map()
+  protected var currentRelation: Relation = _
 
   def addCurrentDemand(v: Var): Unit =
     if (currentRelation.params.map(_.name.name).contains(v.name.name)) {
-      if (!demandedParams.containsEntry(currentRelation.name.name -> v.name.name)) {
-        demandedParams += currentRelation.name.name -> v.name.name
-        size += 1
-      }
+      demandedParams += currentRelation.name.name -> v.name.name
     } else
       throw new IllegalArgumentException(s"Demanded variable $v is not a parameter of $currentRelation")
 
@@ -32,18 +26,41 @@ trait AdornmentAnalysis extends Visitor:
     demandOf(currentRelation.name)
   def demandOf(rel: Name): collection.Set[String] =
     demandedParams.get(rel.name)
-  def demandPositionsOf(rel: Name): collection.Set[Int] =
+  def demandedPositionsOf(rel: Name): Seq[Int] =
+    val ps = demandedParams.get(rel.name)
+    currentRelations.get(rel.name) match
+      case Some(r) =>
+        r.params.zipWithIndex.flatMap((p,ix) =>
+          if (ps.contains(p.name.name))
+            Some(ix)
+          else
+            None
+        )
+      case None =>
+        Seq.empty
+  def demandedArgsOf(rel: Name, args: Seq[Term]): Seq[Term] =
+    val ixs = demandedPositionsOf(rel)
+    for (ix <- ixs.toSeq.sorted) yield
+      args(ix)
+  def demandParamsOf(rel: Name): Seq[Param] =
     val ps = demandedParams.get(rel.name)
     val r = currentRelations(rel.name)
-    val relParams = r.params.map(_.name.name)
-    ps.map(relParams.indexOf)
+    r.params.flatMap { p =>
+      if (ps.contains(p.name.name))
+        Some(p)
+      else
+        None
+    }
 
-  override def visit(module: Module): Module =
+  def analyzeModule(module: Module): Module =
     var oldSize = -1
     var result = module
     currentRelations = module.relations
-    while (oldSize != size) {
-      oldSize = size
+    while (true) {
+      val newSize = demandedParams.size
+      if (oldSize == newSize)
+        return result
+      oldSize = newSize
       result = super.visit(module)
     }
     result
@@ -59,15 +76,14 @@ trait AdornmentAnalysis extends Visitor:
           if (v.typeIs(_.mode == Mode.Binding))
             addCurrentDemand(v)
       case Call(name, ts) =>
-        val demand = demandOf(name)
-        val ixs = demandPositionsOf(name)
-        for (ix <- ixs; v <- ts(ix).vars)
+        val demandedArgs = demandedArgsOf(name, ts)
+        for (case v: Var <- demandedArgs)
           if (v.typeIs(_.mode == Mode.Binding))
             addCurrentDemand(v)
       case NegCall(name, ts) =>
-        val demand = demandOf(name)
-        val ixs = demandPositionsOf(name)
-        for (ix <- ixs; v <- ts(ix).vars)
+        // relevant in case the program contains double negation as in Not(NegCall(P, x)), which equivalent to Call(P, x)
+        val demandedArgs = demandedArgsOf(name, ts)
+        for (case v: Var <- demandedArgs)
           if (v.typeIs(_.mode == Mode.Binding))
             addCurrentDemand(v)
       case _ => // nothing

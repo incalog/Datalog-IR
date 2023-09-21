@@ -1,6 +1,6 @@
 package inca.ir.extension.demand
 
-import inca.ir.{Atom, BaseIR, Language, Term}
+import inca.ir.{Atom, BaseIR, Language, Name, Term}
 
 object IR extends IR { }
 trait IR extends BaseIR:
@@ -14,3 +14,6 @@ case class Demand(ts: Seq[Term]) extends Atom:
 
 object Demand:
   def apply(t: Term, ts: Term*): Demand = new Demand(t +: ts)
+
+def demandRelationName(rel: Name): Name =
+  Name(s"$rel$$input")
