@@ -242,37 +242,17 @@ class Visitor {
 
 case class MSign extends BalancedMonotone[MSign, MSign] {
     @static
-    def init(): MSign = {
-        new BotSign()
-    }
-
+    def init(): MSign = { new BotSign() }
     @static
-    def join(c1: MSign, c2: MSign): MSign = {
-        c1.joined(c2)
-    }
+    def join(c1: MSign, c2: MSign): MSign = { c1.joined(c2) }
 
     // The current hack ignores the lift
-    def lift(v: MSign): MSign = {
-        v
-    }
-
-    def joined(that: MSign): MSign = {
-        this
-    }
-
-    def add(that: MSign): MSign = {
-        this
-    }
-    def sub(that: MSign): MSign = {
-        this
-    }
-    def mul(that: MSign): MSign = {
-        this
-    }
-    def gt(that: MSign): MSign = {
-        this
-    }
-
+    def lift(v: MSign): MSign = { v }
+    def joined(that: MSign): MSign = { this }
+    def add(that: MSign): MSign = { this }
+    def sub(that: MSign): MSign = { this }
+    def mul(that: MSign): MSign = { this }
+    def gt(that: MSign): MSign = { this }
     def stringValue(): String = { "MSign" }
 }
 
@@ -310,10 +290,8 @@ case class PosSign extends MSign {
 
     @override
     def mul(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign])
+		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[PosSign])
 			that
-		else if (that.isInstanceOf[PosSign])
-			this
 		else
 			new TopSign()
     }
@@ -343,7 +321,9 @@ case class NegSign extends MSign {
 		if (that.isInstanceOf[NegSign])
 			new PosSign()
 		else if (that.isInstanceOf[PosSign])
-			new NegSign()
+			this
+		else if (that.isInstanceOf[ZeroSign])
+			that
 		else
 			new TopSign()
     }
@@ -359,9 +339,7 @@ case class ZeroSign extends MSign {
 	}
 
     @override
-	def add(that: MSign): MSign = {
-       	that
-    }
+	def add(that: MSign): MSign = { that }
 
     @override
     def sub(that: MSign): MSign = {
@@ -376,9 +354,7 @@ case class ZeroSign extends MSign {
     }
 
     @override
-    def mul(that: MSign): MSign = {
-		this
-    }
+    def mul(that: MSign): MSign = { this }
 
 	@override
 	def stringValue(): String = { "Zero" }
