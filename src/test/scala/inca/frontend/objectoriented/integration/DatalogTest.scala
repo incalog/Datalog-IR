@@ -231,11 +231,15 @@ class DatalogTest extends AnyFunSuite {
     performTests(cfgVisitorExtendedTest)
   }
 
-  test("Constant Analysis") {
-    performTests(constantAnalysis)
+  test("Flow-insensitive Constant Analysis") {
+    performTests(fiConstantAnalysis)
   }
 
-  test("SignAnalysis") {
-    performTests(signAnalysis)
+  test("Flow-sensitive Constant Analysis") {
+    performTests(fsConstantAnalysis)
+  }
+
+  test("Flow-insensitive SignAnalysis") {
+    performTests(fiSignAnalysis)
   }
 }

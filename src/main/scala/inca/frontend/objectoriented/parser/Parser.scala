@@ -24,7 +24,7 @@ trait Parser {
   val whitespace: P[Unit] = (P.charIn(" \t\r\n").void | comment)
   val whitespaces0: P0[Unit] = whitespace.rep0.void
 
-  val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
+  val letter: P[Unit] = P.ignoreCaseCharIn(('a' to 'z') :+ '_').void
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).void
 

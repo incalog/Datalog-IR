@@ -92,6 +92,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
         case Some(classDef) => classDef.isMonotoneMapClass
         case None => throw new IllegalStateException(s"Unresolved classRef $ref")
       }
+      case Some(ty) => throw new IllegalStateException(s"None class type $ty is never a monotone in expression $expr")
       case None => throw new IllegalStateException(s"Untyped expression $expr")
     }
   }

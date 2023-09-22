@@ -1,15 +1,20 @@
 package inca.frontend.objectoriented.integration
 
+import inca.compiler.{CompilationMessage}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.frontend.objectoriented.interpreter.{Interpreter, Object, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, StructuralObjectValue, TupleValue, TypeCastException, Value}
 import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.util.FileUtil
+import inca.frontend.objectoriented.core.Module
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class InterpreterTest extends AnyFunSuite {
+  case class Failed(module: Module, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+
+
   val parser: Parser = new Parser {}
   val typechecker: Typechecker = new Typechecker {}
 
@@ -39,6 +44,9 @@ class InterpreterTest extends AnyFunSuite {
     mod = InsertBuiltInMonotones.transformModule(mod)
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
+    if (typechecker.getErrors.nonEmpty) {
+        throw Failed(mod, typechecker.getErrors)
+    }
 
     val mainClasses = mod.classes.filter(_.name.raw == mainClass)
     val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == mainMethod))
@@ -221,7 +229,7 @@ class InterpreterTest extends AnyFunSuite {
   }
 
   test("While lang case study") {
-    performTests(constantAnalysis)
+    performTests(fiConstantAnalysis)
   }
 
   test("Binary Tree Example") {
@@ -250,6 +258,10 @@ class InterpreterTest extends AnyFunSuite {
 
   test("Loop") {
     performTests(loopTest)
+  }
+
+  test("Flow-sensitive Constant Analysis") {
+    performTests(fsConstantAnalysis)
   }
 
  /* test("Path measurement") {

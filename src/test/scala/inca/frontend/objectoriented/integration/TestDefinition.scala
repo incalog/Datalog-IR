@@ -332,18 +332,27 @@ object TestDefinition {
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  def constantAnalysis: TestDefinition[SetResult[Any]] = {
+  def fiConstantAnalysis: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("ConstantAnalysis", "ConstantPropagation", "main", Seq(), SetResult(
+    TestDefinition("FIConstantAnalysis", "ConstantAnalysis", "main", Seq(), SetResult(
       TupleResult("m", "SomeConstant(3)"),
       TupleResult("n", "NoConstant"),
       TupleResult("acc", "NoConstant")
     ))
   }
 
-  def signAnalysis: TestDefinition[SetResult[Any]] = {
+  def fsConstantAnalysis: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("SignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
+    TestDefinition("FSConstantAnalysis", "ConstantAnalysis", "main", Seq(), SetResult(
+      TupleResult("m", "SomeConstant(3)"),
+      TupleResult("n", "NoConstant"),
+      TupleResult("acc", "NoConstant")
+    ))
+  }
+
+  def fiSignAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("FISignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
       TupleResult("m", "Pos"),
       TupleResult("n", "Top")
     ))

@@ -4,10 +4,9 @@ class Exp {
     // abstract
     def accept(v: Visitor): Unit = { }
 
-    def aevalSign(p: ValueProvider): MSign = {
-        new BotSign()
+    def aevalConst(p: ValueProvider): MConstant = {
+        new NoConstant()
     }
-
 }
 
 class Var(val name: String) extends Exp {
@@ -17,7 +16,7 @@ class Var(val name: String) extends Exp {
     }
 
     @override
-    def aevalSign(p: ValueProvider): MSign = {
+    def aevalConst(p: ValueProvider): MConstant = {
         p.getValue(this.name)
     }
 }
@@ -29,12 +28,9 @@ class Num(val num: Int) extends Exp {
     }
 
     @override
-    def aevalSign(p: ValueProvider): MSign = {
-        if (this.num == 0) return new ZeroSign()
-        if (this.num > 0) return new PosSign()
-        return new NegSign()
+    def aevalConst(p: ValueProvider): MConstant = {
+        new SomeConstant(this.num)
     }
-
 }
 
 class BinOp(val left: Exp, val right: Exp) extends Exp {
@@ -48,11 +44,11 @@ class BinOp(val left: Exp, val right: Exp) extends Exp {
     def binOpAccept(v: Visitor): Unit = { }
 
     @override
-    def aevalSign(p: ValueProvider): MSign = {
-        this.binOpSign(this.left.aevalSign(p), this.right.aevalSign(p))
+    def aevalConst(p: ValueProvider): MConstant = {
+        this.binOpConst(this.left.aevalConst(p), this.right.aevalConst(p))
     }
     // abstract
-    def binOpSign(c1: MSign, c2: MSign): MSign = {
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
         c1
     }
 }
@@ -65,7 +61,7 @@ class Add extends BinOp {
         v.visitAdd(this)
     }
     @override
-    def binOpSign(c1: MSign, c2: MSign): MSign = {
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
         c1.add(c2)
     }
 }
@@ -78,7 +74,7 @@ class Sub extends BinOp {
         v.visitSub(this)
     }
     @override
-    def binOpSign(c1: MSign, c2: MSign): MSign = {
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
         c1.sub(c2)
     }
 }
@@ -91,7 +87,7 @@ class Mul extends BinOp {
         v.visitMul(this)
     }
     @override
-    def binOpSign(c1: MSign, c2: MSign): MSign = {
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
         c1.mul(c2)
     }
 }
@@ -104,7 +100,7 @@ class GT extends BinOp {
         v.visitGT(this)
     }
     @override
-    def binOpSign(c1: MSign, c2: MSign): MSign = {
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
         c1.gt(c2)
     }
 }
@@ -240,180 +236,182 @@ class Visitor {
     def visitVarDef(s: VarDef): Unit = { }
 }
 
-case class MSign extends BalancedMonotone[MSign, MSign] {
+case class MConstant extends BalancedMonotone[MConstant, MConstant] {
     @static
-    def init(): MSign = { new BotSign() }
+    def init(): MConstant = {
+        new BotConstant()
+    }
+
     @static
-    def join(c1: MSign, c2: MSign): MSign = { c1.joined(c2) }
+    def join(c1: MConstant, c2: MConstant): MConstant = {
+        c1.joined(c2)
+    }
 
     // The current hack ignores the lift
-    def lift(v: MSign): MSign = { v }
-    def joined(that: MSign): MSign = { this }
-    def add(that: MSign): MSign = { this }
-    def sub(that: MSign): MSign = { this }
-    def mul(that: MSign): MSign = { this }
-    def gt(that: MSign): MSign = { this }
-    def stringValue(): String = { "MSign" }
+    def lift(v: MConstant): MConstant = {
+        v
+    }
+
+    def joined(that: MConstant): MConstant = {
+        this
+    }
+
+    def num(n: Int): MConstant = {
+        new SomeConstant(n)
+    }
+    def add(that: MConstant): MConstant = {
+        this
+    }
+    def sub(that: MConstant): MConstant = {
+        this
+    }
+    def mul(that: MConstant): MConstant = {
+        this
+    }
+    def gt(that: MConstant): MConstant = {
+        this
+    }
+
+    def stringValue(): String = {
+        "MConstant"
+    }
 }
 
-case class BotSign extends MSign {
+case class NoConstant extends MConstant {
     @override
-	def joined(that: MSign): MSign = { that }
-
-	@override
-	def stringValue(): String = { "Bot" }
+    def stringValue(): String = {
+        "NoConstant"
+    }
 }
 
-case class TopSign extends MSign {
+case class BotConstant extends MConstant {
     @override
-	def joined(that: MSign): MSign = { this }
+    def stringValue(): String = {
+        "BotConstant"
+    }
 
     @override
-    def stringValue(): String = { "Top" }
+    def joined(that: MConstant): MConstant = {
+        that
+    }
 }
 
-case class PosSign extends MSign {
+case class SomeConstant(val value: Int) extends MConstant {
     @override
-	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[PosSign]) this else new TopSign()
-	}
-
-    @override
-	def add(that: MSign): MSign = {
-        if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    def joined(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].value == this.value) {
+            this
+        } else if (that.isInstanceOf[BotConstant]) {
+            this
+        } else {
+            new NoConstant()
+        }
     }
 
     @override
-    def sub(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+    def add(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value + that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
     }
 
     @override
-    def mul(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[PosSign])
-			that
-		else
-			new TopSign()
+    def sub(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value - that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
     }
 
     @override
-    def stringValue(): String = { "Pos" }
+    def mul(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value * that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def gt(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            if(this.value > that.asInstanceOf[SomeConstant].value)
+                new SomeConstant(1)
+            else
+                new SomeConstant(0)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def stringValue(): String = {
+        "SomeConstant(" + this.value + ")"
+    }
 }
-
-case class NegSign extends MSign {
-    @override
-	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign]) this else new TopSign()
-	}
-
-    @override
-	def add(that: MSign): MSign = {
-        if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
-    }
-
-    @override
-    def sub(that: MSign): MSign = {
-		if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
-    }
-
-    @override
-    def mul(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign])
-			new PosSign()
-		else if (that.isInstanceOf[PosSign])
-			this
-		else if (that.isInstanceOf[ZeroSign])
-			that
-		else
-			new TopSign()
-    }
-
-	@override
-	def stringValue(): String = { "Neg" }
-}
-
-case class ZeroSign extends MSign {
-    @override
-	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[ZeroSign]) this else new TopSign()
-	}
-
-    @override
-	def add(that: MSign): MSign = { that }
-
-    @override
-    def sub(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign])
-			new PosSign()
-		else if (that.isInstanceOf[PosSign])
-			new NegSign()
-		else if (that.isInstanceOf[ZeroSign])
-			this
-		else
-			new TopSign()
-    }
-
-    @override
-    def mul(that: MSign): MSign = { this }
-
-	@override
-	def stringValue(): String = { "Zero" }
-}
-
-
 
 class ValueProvider extends Visitor {
-    def getValue(s: String): MSign = {
-        new BotSign()
+    def getValue(s: String): MConstant = {
+        new NoConstant()
     }
 }
 
-class FISignAnalysisVisitor extends ValueProvider {
+class FIConstantAnalysisVisitor extends ValueProvider {
     /** The Map type separates keys from aggregated values */
-    val vars: MonoMap[String, MSign] = new MonoMap[String, MSign]()
+    val vars: MonoMap[String, MConstant] = new MonoMap[String, MConstant]()
 
     @override
-    def getValue(s: String): MSign = {
+    def getValue(s: String): MConstant = {
         this.vars.get(s) // this aggregates automatically
     }
 
     @override
     def visitValDef(s: ValDef): Unit = {
-        this.vars += (s.name, s.rhs.aevalSign(this))
+        this.vars += (s.name, s.rhs.aevalConst(this))
     }
 
     @override
     def visitVarDef(s: VarDef): Unit = {
-        this.vars += (s.name, s.rhs.aevalSign(this))
+        this.vars += (s.name, s.rhs.aevalConst(this))
     }
 
     @override
     def visitAssign(s: Assign): Unit = {
-        this.vars += (s.name, s.rhs.aevalSign(this))
+        this.vars += (s.name, s.rhs.aevalConst(this))
     }
 }
 
 class Examples {
-    val assignSequence: Stm =
-    new Sequence(
-        new VarDef("m", new Num(3)),
-        new Sequence(
-            new Assign("m", new Num(1)),
-            new Sequence(
-                new VarDef("n", new Num(2)),
-                new Assign("n", new Add(new Num(-1), new Var("n")))
+    val factorial: Stm =
+    new Sequence(new ValDef("m", new Num(3)),
+    new Sequence(new Assign("m", new Num(3)),
+        new Sequence(new VarDef("n", new Num(5)),
+            new Sequence(new VarDef("acc", new Num(1)),
+                new While(
+                    new GT(new Var("n"), new Num(1)),
+                    new Sequence(
+                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                        new Assign("n", new Sub(new Var("n"), new Num(1)))
+                    )
+                )
             )
         )
     )
+    )
 }
 
-class SignAnalysis {
+
+class ConstantAnalysis {
     @main
     def main(): Set[(String, String)] = {
-        val signAnalysis: FISignAnalysisVisitor = new FISignAnalysisVisitor()
+        val constantProp: FIConstantAnalysisVisitor = new FIConstantAnalysisVisitor()
         val examples: Examples = new Examples()
-        examples.assignSequence.accept(signAnalysis)
-
-        for (k <- signAnalysis.vars.keys()) yield (k, signAnalysis.vars.get(k).stringValue())
+        examples.factorial.accept(constantProp)
+        // By using result directly we force the aggregation to appear here. Somehow this fixes the double
+        // aggregation error.
+        for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).stringValue())
     }
 }
