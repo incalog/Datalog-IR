@@ -25,7 +25,7 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
   private var freshCount = 0
 
   def freshName(): Name =
-    val x = IR.name + "$" + freshCount
+    val x = s"constructed$$$freshCount"
     freshCount += 1
     Name(x)
 
@@ -79,20 +79,9 @@ trait ScalaLowering[S <: IR, T <: BaseIR with ScalaIR with block.IR with disjunc
     case _ => super.visitTerm(term))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case Match(matchee, cases) =>
-      val tys = matchee.typ match
-        case Some(TermType(ty, _)) => ty.flatten
-        case None => throw new IllegalStateException(s"Untyped term $matchee")
-
-      visitTerm(matchee).zip(tys).map {
-        case (d, TData(dataName)) =>
-          val alternatives = cases.map { case Case(name, vars, body) =>
-            // TODO: We only want to query here, not generate new Data
-            Call(relationName(dataName, name), vars.flatMap(visitTerm) :+ d) +: body
-          }
-          Disjunction(alternatives)
-        case (_, ty) => throw new IllegalStateException(s"Expected TData, but got $ty")
-      }
+    case Deconstruct(t, caseName, patVars) =>
+      // TODO
+      Seq(atom)
     case _ => super.visitAtom(atom))
 
   override def visitType(ty: Type): Type = preserveHints(ty)(ty match

@@ -14,18 +14,14 @@ case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends Module
   override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
 
 case class Construct(name: Name, args: Seq[Term]) extends Term:
-  override def toString: String = s"$name${args.mkString("(", ", ", ")")}"
+  override def toString: String = s"!$name(${args.mkString(", ")})"
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class Case(name: Name, args: Seq[Term], body: Seq[Atom]):
-  override def toString: String = s"case $name(${args.mkString(", ")}) => ${body.mkString(", ")}"
-  def vars: Seq[Var] = args.flatMap(_.vars) ++ body.flatMap(_.vars)
-
-// We could lower this to disjunctionIR first
-case class Match(matchee: Term, cases: Seq[Case]) extends Atom:
-  override def toString: String = s"$matchee match ${cases.mkString("\n\t\t", "\n\t\t", "\n")}"
-  override def vars: Seq[Var] = matchee.vars ++ cases.flatMap(_.vars)
-
+case class Deconstruct(t: Term, caseName: Name, args: Seq[Term]) extends Atom:
+  override def toString: String =
+    val ifArgs = if (args.isEmpty) "" else ", "
+    s"?$caseName($t$ifArgs${args.mkString(", ")})"
+  override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
 
 object IR extends IR { }
 trait IR extends BaseIR:

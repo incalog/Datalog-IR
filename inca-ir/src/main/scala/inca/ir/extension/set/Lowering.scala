@@ -15,13 +15,22 @@ package inca.ir.extension.set
  * someCall(y: Set[Int], z: Set[Int]) :- z == (y U Set(2,4))
  *
  * Lowering:
- * SetADT = Set$0 | Set$1 | Set$2(y)
+ * SetADT_Int = Set$0 | Set$1 | Set$2(y)
+ * SetADT_String = Set$S$0 | Set$S$1 | Set$S$2(y)
  *
- * set(Set$0, x: Int) :- #prefix, (x == 1 v x == 2 v x == 3)
- * set(Set$1, x: Int) :- #prefix, (x == 2 v x == 4)
+ * set$Any(s: SetADT, x: Any) :- ...
+ * set$Int(s: SetADT, x: Int) :- demand(s), match(s) {
+ *   case Set$0 => (x == 1 v x == 2 v x == 3)
+ *   case Set$1 => (x == 2 v x == 4)
+ *   case Set$2(y) => (set(y, x) v set(Set$1, x))
+ * }
+ * set$String(s: SetADT_String, x: String) :- ...
+
+ * set(s: SetADT, x: Int) :- demand(s), ?Set$0(s), (x == 1 v x == 2 v x == 3)
+ * set(s: SetADT, x: Int) :- demand(s), ?Set$1(s), (x == 2 v x == 4)
  *
  * // We should actually not defunctionalize Set(2,4) here.
- * set(Set$2(y), x: Int) :- #prefix (with y), (set(y, x) v set(Set$1, x))
+ * set(s: SetADT, x: Int) :- demand(s), ?Set$2(s, y), (set(y, x) v set(Set$1, x))
  *
  * main(z: Int) :- y == Set$0, somCall(y, z).
  * someCall(y: SetADT, z: Int) :- set(Set$2(y), z).

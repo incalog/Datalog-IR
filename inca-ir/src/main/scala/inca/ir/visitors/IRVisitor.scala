@@ -7,6 +7,7 @@ trait IRVisitor extends BaseIRVisitor
   with block.Visitor
   with bool.Visitor
   with data.Visitor
+  with datamatch.Visitor
   with demand.Visitor
   with disjunction.Visitor
   with not.Visitor

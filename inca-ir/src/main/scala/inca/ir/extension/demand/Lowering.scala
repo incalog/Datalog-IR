@@ -18,11 +18,11 @@ object Lowering:
 trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAnalysis:
   override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
 
-  enum Mode:
+  enum Phase:
     case AdornmentAnalysis
     case InsertDemandGuards
     case DeriveDemandRules
-  private var mode: Mode = Mode.AdornmentAnalysis
+  private var phase: Phase = Phase.AdornmentAnalysis
 
   private var demandRules: Map[Name, ListBuffer[(Seq[Atom], Seq[Term])]] = Map()
   private def addDemandRule(rel: Name, prefix: Seq[Atom], inputArgs: Seq[Term]): Unit =
@@ -49,11 +49,11 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
     }
 
   override def visit(module: ir.Module): ir.Module = {
-    mode = Mode.AdornmentAnalysis
+    phase = Phase.AdornmentAnalysis
     val m1 = super.analyzeModule(module)
-    mode = Mode.InsertDemandGuards
+    phase = Phase.InsertDemandGuards
     val m2 = super.visit(m1)
-    mode = Mode.DeriveDemandRules
+    phase = Phase.DeriveDemandRules
     val m3 = super.visit(m2)
     val demandRels = demandRelations
     m3.copy(contents = m3.contents ++ demandRels)
@@ -69,9 +69,9 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
     }))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
-    mode match
-      case Mode.AdornmentAnalysis => super.visitAtom(atom)
-      case Mode.InsertDemandGuards => atom match
+    phase match
+      case Phase.AdornmentAnalysis => super.visitAtom(atom)
+      case Phase.InsertDemandGuards => atom match
         case Demand(ts) =>
           // replace demand atom by call to input relation
           demandRules += currentRelation.name -> ListBuffer()
@@ -86,7 +86,7 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
               +: super.visitAtom(atom)
           }
         case _ => super.visitAtom(atom)
-      case Mode.DeriveDemandRules => atom match
+      case Phase.DeriveDemandRules => atom match
         case Call(rel, args) if demandedParams.get(rel.name).nonEmpty =>
           val demandedArgs = demandedArgsOf(rel, args)
           addDemandRule(rel, bodyPrefix.toList, demandedArgs)

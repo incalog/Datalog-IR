@@ -1,8 +1,9 @@
 package inca.ir.extension.set
 
 import inca.ir.extension.bool.*
+import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, TAny, TNothing, Term, TermType, Type}
+import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   override protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
@@ -17,6 +18,17 @@ trait Typechecker extends BaseIRTypechecker:
     case Set(ts) =>
       val tys = ts.map(inferTerm(_, Mode.Bound).ty)
       TSet(joinTypes(tys)).closed
+    case SetRef(name) =>
+      lookupModuleEntry(name) match
+        case Some(Relation(_, params, _)) =>
+          val tys = params.map(_.ty)
+          if (tys.size == 1)
+            TSet(tys.head).closed
+          else
+            TSet(TTuple(tys)).closed
+        case _ =>
+          error(s"Cannot find relation $name", term)
+          TSet(TAny).closed
     case SetIntersection(t1, t2) =>
       val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
       val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)

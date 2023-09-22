@@ -9,6 +9,8 @@ trait Typechecker extends BaseIRTypechecker
   with block.Typechecker
   with arithmetic.Typechecker
   with data.Typechecker
+  with datamatch.Typechecker
+  with demand.Typechecker
   with not.Typechecker
   with set.Typechecker
   with primitiveScala.Typechecker
