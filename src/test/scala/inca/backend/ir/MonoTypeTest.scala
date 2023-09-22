@@ -9,46 +9,46 @@ import inca.util.Scala
 
 
 class MonoTypeTest extends AnyFunSuiteLike {
-
-  private lazy val maxMono : meta.Defn =
-    q"""class MaxMono extends MT[Int, Int]:
-          private var state = 0
-          override def add (a : Int) : Unit =
-            if this.state < a then this.state = a
-          override def result() : Int = this.state
-        end MaxMono"""
-
-  private lazy val sumMono : meta.Defn =
-    q"""class SumMono extends MT[Int, Int]:
-          private var state: Int = 0
-          override def add(a: Int): Unit = state = state + a
-          override def result(): Int = state
-        end SumMono"""
-
-  private lazy val countMono : meta.Defn =
-    q"""class CountMono extends MT[Int, Int]:
-         private var state : Int  = 0
-         override def add (a : Int) : Unit = state = state + 1
-         override def result() : Int = state
-       end CountMono"""
-
-  private lazy val countSumMono : meta.Defn =
-    q"""class SumCountMono extends MT[Int, (Int, Int)]:
-          private val m1 = new SumMono()
-          private val m2 = new CountMono()
-          override def add (a : Int) : Unit =
-            m1.add(a) ; m2.add(a)
-          override def result() : (Int, Int) = (m1.result(), m2.result())
-        end SumCountMono
-     """
+//
+//  private lazy val maxMono : meta.Defn =
+//    q"""class MaxMono extends MT[Int, Int]:
+//          private var state = 0
+//          override def add (a : Int) : Unit =
+//            if this.state < a then this.state = a
+//          override def result() : Int = this.state
+//        end MaxMono"""
+//
+//  private lazy val sumMono =
+//    """class SumMono:
+//          private var state: Int = 0
+//          override def add(a: Int): Unit = state = state + a
+//          override def result(): Int = state
+//        end SumMono""".parse[meta.Term]
+//
+//  private lazy val countMono : meta.Defn =
+//    q"""class CountMono extends MT[Int, Int]:
+//         private var state : Int  = 0
+//         override def add (a : Int) : Unit = state = state + 1
+//         override def result() : Int = state
+//       end CountMono"""
+//
+//  private lazy val countSumMono : meta.Defn =
+//    q"""class SumCountMono extends MT[Int, (Int, Int)]:
+//          private val m1 = new SumMono()
+//          private val m2 = new CountMono()
+//          override def add (a : Int) : Unit =
+//            m1.add(a) ; m2.add(a)
+//          override def result() : (Int, Int) = (m1.result(), m2.result())
+//        end SumCountMono
+//     """
 
   // Example 1 : compute the height of binary tree
   private lazy val treeHeight : Datalog.Module = {
     // height(t, m) :- leaf(t), m <- 1
     lazy val pat1Body1: Datalog.Body = Datalog.Body(Seq(
       Datalog.ExtensionalCall("leaf", Seq(Datalog.Var("t"))),
-      Datalog.UpdateMono(Datalog.MonoVar("m"),
-        Datalog.Constant(Datalog.IntLiteral(1)))
+      Datalog.UpdateMono(Datalog.Var("m"),
+        Datalog.Constant(Datalog.IntLiteral(1)), "MaxMono")
     ))
 
     // height(t, m) :- btree(t, l, r), height(l, m),
@@ -61,9 +61,9 @@ class MonoTypeTest extends AnyFunSuiteLike {
       )),
       Datalog.Call("height", Seq(
         Datalog.Var("l"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
-      Datalog.ReadMono(Datalog.MonoVar("m"), Datalog.Var("v")),
+      Datalog.ReadMono(Datalog.Var("m"), Datalog.Var("v"), "MaxMono"),
       Datalog.Computed(
         Datalog.Var("k"),
         Datalog.Evaluation(
@@ -83,9 +83,9 @@ class MonoTypeTest extends AnyFunSuiteLike {
       )),
       Datalog.Call("height", Seq(
         Datalog.Var("r"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
-      Datalog.ReadMono(Datalog.MonoVar("m"), Datalog.Var("v")),
+      Datalog.ReadMono(Datalog.Var("m"), Datalog.Var("v"), "MaxMono"),
       Datalog.Computed(
         Datalog.Var("k"),
         Datalog.Evaluation(
@@ -97,10 +97,10 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
     // main(t, v) :- MkMono(m, MaxMono), height(t, m), m -> v
     lazy val pat2Body: Datalog.Body = Datalog.Body(Seq(
-      Datalog.MkMono(Datalog.MonoVar("m"), "MaxMono"),
+      Datalog.MkMono(Datalog.Var("m"), "MaxMono"),
       Datalog.Call(
-        "height", Seq(Datalog.Var("t"), Datalog.MonoVar("m"))),
-      Datalog.ReadMono(Datalog.MonoVar("m"), Datalog.Var("v"))
+        "height", Seq(Datalog.Var("t"), Datalog.Var("m"))),
+      Datalog.ReadMono(Datalog.Var("m"), Datalog.Var("v"), "MaxMono")
     ))
 
     lazy val pattern1: Datalog.Pattern = Datalog.Pattern(
@@ -122,7 +122,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     )
 
     Datalog.Module("TreeHeight", Seq(),
-      Seq(pattern1, pattern2), Seq(Scala(maxMono)))
+      Seq(pattern1, pattern2), Seq())
   }
 
   // Example2 : compute the average of labels of binary tree
@@ -134,7 +134,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
         Datalog.Var("t"),
         Datalog.Var("v")
       )),
-      Datalog.UpdateMono(Datalog.MonoVar("m"), Datalog.Var("v"))
+      Datalog.UpdateMono(Datalog.Var("m"), Datalog.Var("v"), "SumCountMono")
     ))
     // avg(t, m) :- btree(t, l, r), avg(l, m), avg(r, m), label(t, v), m <- v
     lazy val pat1Body2 : Datalog.Body = Datalog.Body(Seq(
@@ -145,27 +145,27 @@ class MonoTypeTest extends AnyFunSuiteLike {
       )),
       Datalog.Call("height", Seq(
         Datalog.Var("l"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
       Datalog.Call("height", Seq(
         Datalog.Var("r"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
       Datalog.ExtensionalCall("label", Seq(
         Datalog.Var("t"),
         Datalog.Var("v")
       )),
-      Datalog.UpdateMono(Datalog.MonoVar("m"), Datalog.Var("v"))
+      Datalog.UpdateMono(Datalog.Var("m"), Datalog.Var("v"), "SumCountMono")
     ))
 
     // main(t, v) :- MkMono(m, SumCountMono), avg(t, m), m -> (n, d), v = n / d
     lazy val pat2Body : Datalog.Body = Datalog.Body(Seq(
-      Datalog.MkMono(Datalog.MonoVar("m"), "SumCountMono"),
+      Datalog.MkMono(Datalog.Var("m"), "SumCountMono"),
       Datalog.Call("avg", Seq(
         Datalog.Var("t"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
-      Datalog.ReadMono(Datalog.MonoVar("m"), Datalog.Var("frac")),
+      Datalog.ReadMono(Datalog.Var("m"), Datalog.Var("frac"), "SumCountMono"),
       Datalog.Computed(
         Datalog.Var("v"),
         Datalog.Evaluation(
@@ -191,11 +191,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
 
     Datalog.Module(
-      "AvgLabel", Seq(), Seq(pat1, pat2), Seq(
-        Scala(countMono),
-        Scala(sumMono),
-        Scala(countSumMono)
-      )
+      "AvgLabel", Seq(), Seq(pat1, pat2), Seq()
     )
   }
 
@@ -236,8 +232,9 @@ class MonoTypeTest extends AnyFunSuiteLike {
     // D(t, m) :- leaf(t), m <- 1
     val pat2Body1 : Datalog.Body = Datalog.Body(Seq(
       Datalog.ExtensionalCall("leaf", Seq(Datalog.Var("t"))),
-      Datalog.UpdateMono(Datalog.MonoVar("m"),
-        Datalog.Constant(Datalog.IntLiteral(1)))
+      Datalog.UpdateMono(Datalog.Var("m"),
+        Datalog.Constant(Datalog.IntLiteral(1)),
+      "MaxMono")
     ))
 
     // D(t, m) :- btree(t, l, r), height(l, v1),
@@ -264,19 +261,20 @@ class MonoTypeTest extends AnyFunSuiteLike {
             Datalog.Var("v2") -> Datalog.TScalaInt,
           ),
           Datalog.TScalaInt,
-          Scala(q"((v1 : Int, v2 : Int) => v1 + v2))")
+          Scala(q"(v1 : Int, v2 : Int) => v1 + v2")
     ))))
 
     // main(t, v) :- MkMono(m, MaxMono), D(t, m), m -> v
     val pat3Body : Datalog.Body = Datalog.Body(Seq(
-      Datalog.MkMono(Datalog.MonoVar("m"), "MaxMono"),
+      Datalog.MkMono(Datalog.Var("m"), "MaxMono"),
       Datalog.Call("D", Seq(
         Datalog.Var("t"),
-        Datalog.MonoVar("m")
+        Datalog.Var("m")
       )),
       Datalog.ReadMono(
-        Datalog.MonoVar("m"),
-        Datalog.Var("v")
+        Datalog.Var("m"),
+        Datalog.Var("v"),
+        "MaxMono"
       )
     ))
 
@@ -302,7 +300,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
       ), Seq(pat3Body)
     )
 
-    Datalog.Module("Diameter", Seq(), Seq(pat1, pat2, pat3), Seq(Scala(maxMono)))
+    Datalog.Module("Diameter", Seq(), Seq(pat1, pat2, pat3), Seq())
   }
 
 }

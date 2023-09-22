@@ -181,8 +181,8 @@ object Datalog {
 
   case class MkMono(m: Term, cls: Name) extends Atom
 
-  case class UpdateMono(m: Term, t: Term) extends Atom
+  case class UpdateMono(m: Term, t: Term, cls: Name) extends Atom
 
-  case class ReadMono(m: Term, t: Term) extends Atom
+  case class ReadMono(m: Term, t: Term, cls: Name) extends Atom
 
 }
