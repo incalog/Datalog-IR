@@ -16,3 +16,4 @@ object IR extends IR { }
 
 case class Not(at: Atom) extends Atom:
   override def toString: String = s"not($at)"
+  override def vars: Seq[Var] = at.vars

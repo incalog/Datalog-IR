@@ -32,9 +32,11 @@ case class Max(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
 
 case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 object IR extends IR { }
 trait IR extends BaseIR:

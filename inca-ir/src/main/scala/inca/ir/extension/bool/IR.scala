@@ -13,6 +13,7 @@ case object TBoolean extends Type
 
 case class BoolAtom(t: Term) extends Atom:
   override def toString: String = s"$t"
+  override def vars: Seq[Var] = t.vars
 
 sealed trait BoolTerm extends Term
 

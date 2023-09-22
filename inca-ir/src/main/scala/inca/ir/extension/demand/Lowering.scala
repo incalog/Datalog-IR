@@ -2,13 +2,11 @@ package inca.ir.extension.demand
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.bool.BoolTerm
 import inca.ir.lowering.BaseLowering
 import inca.ir.util.Gensym
 import inca.ir.visitors.VarCollector
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Var}
 
-import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 
 object Lowering:
@@ -33,12 +31,12 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
     for ((rel, ruleBuf) <- demandRules.toSeq) yield {
       val rules = ruleBuf.toList
 
-      val varCollector = new VarCollector
+      val vars = new ListBuffer[String]()
       for ((prefix, inputArgs) <- rules) {
-        prefix.foreach(varCollector.visitAtom)
-        inputArgs.foreach(varCollector.visitTerm)
+        prefix.foreach(p => vars ++= p.vars.map(_.name.name))
+        inputArgs.foreach(a => vars ++= a.vars.map(_.name.name))
       }
-      val gensym = new Gensym(varCollector.get.map(_.name.name))
+      val gensym = new Gensym(vars)
       val params = demandParamsOf(rel).map(p => Param(gensym.freshName(p.name), p.ty))
 
       val bodies = for ((prefix, inputArgs) <- rules) yield {

@@ -16,15 +16,29 @@ object Set:
   def from(ts: Term*): Set = new Set(ts)
   def empty: Set = new Set(Seq())
 
+/** Wraps a named relation as a set of tuples */
+case class SetRef(name: Name) extends Term:
+  override def toString: String = s"Set.from($name)"
+  override def vars: Seq[Var] = Seq()
+
 case class SetUnion(t1: Term, t2: Term) extends Term:
-  override def toString: String = t1.toString + " ∪ " + t2
+  override def toString: String = s"($t1 ∪ $t2)"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
 
+/** Desugars to Set(ts | ts in $t1, ts in $t2) */
 case class SetIntersection(t1: Term, t2: Term) extends Term:
-  override def toString: String = t1.toString + " ∩ " + t2
+  override def toString: String = s"($t1 ∩ $t2)"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
 
-case class SetMember(mem: Term, s: Term) extends Atom
+case class SetComprehension(elem: Term, atoms: Seq[Atom]) extends Term:
+  override def toString: String = s"Set($elem | ${atoms.mkString(", ")})"
+  override def vars: Seq[Var] = elem.vars ++ atoms.flatMap(_.vars)
+
+case class SetMember(mem: Term, s: Term) extends Atom:
+  override def toString: String = s"($mem in $s)"
+  override def vars: Seq[Var] = mem.vars ++ s.vars
+
+
 
 // TODO: Discuss: Do we want something like this ?
 //  Probably yes, since we do not know the relation a set is defunctionalized to

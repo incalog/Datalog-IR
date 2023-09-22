@@ -21,11 +21,13 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
 
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
 
-trait ModuleEntry(val name: Name) extends SourceLocation with Hints
+trait ModuleEntry extends SourceLocation with Hints:
+  val name: Name
 
 
 
-trait Atom extends SourceLocation with Hints
+trait Atom extends SourceLocation with Hints:
+  def vars: Seq[Var]
 trait Term extends Typeable[TermType] with SourceLocation with Hints:
   def vars: Seq[Var] = Seq()
 
@@ -41,7 +43,7 @@ case class TermType(ty: Type, mode: Mode):
     case Mode.Binding => s">$ty<"
     case Mode.Bound => s"<$ty>"
 
-case class Relation(override val name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry(name):
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -76,21 +78,27 @@ case class Cast(t: Term, ty: Type) extends Term:
 
 case class Call(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"$name${args.mkString("(", ", ", ")")}"
+  override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegCall(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"!$name${args.mkString("(", ", ", ")")}"
+  override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}"
+  override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
   override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}"
+  override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs == $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class Neq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs != $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case object TAny extends Type
 case object TNothing extends Type

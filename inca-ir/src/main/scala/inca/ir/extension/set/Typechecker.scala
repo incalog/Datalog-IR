@@ -18,14 +18,18 @@ trait Typechecker extends BaseIRTypechecker:
       val tys = ts.map(inferTerm(_, Mode.Bound).ty)
       TSet(joinTypes(tys)).closed
     case SetIntersection(t1, t2) =>
-      val (TSet(ty1), m1) = inferSetTerm(t1, mode)
-      val (TSet(ty2), m2) = inferSetTerm(t2, mode)
+      val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
+      val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
       assertComparable(ty2, ty1, term)
       TermType(TSet(meet(ty1, ty2)), m1 || m2)
     case SetUnion(t1, t2) =>
-      val (TSet(ty1), m1) = inferSetTerm(t1, mode)
-      val (TSet(ty2), m2) = inferSetTerm(t2, mode)
+      val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
+      val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
       TermType(TSet(join(ty1, ty2)), m1 || m2)
+    case SetComprehension(elem, atoms) =>
+      atoms.foreach(checkAtom(_, mode))
+      val TermType(ty, m) = inferTerm(elem, mode)
+      TermType(TSet(ty), m)
     case _ => super.inferTermExtend(term, mode)
 
   private def inferSetTerm(t: Term, mode: Mode): (TSet,Mode) = inferTerm(t, mode) match

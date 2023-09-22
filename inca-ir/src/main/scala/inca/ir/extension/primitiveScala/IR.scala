@@ -12,7 +12,8 @@ object TScala:
 
 // TODO: Eval instead of Constant and Application ?
 case class Constant(value: Scala.Term, ty: TScala) extends Term
-case class Application(out: Term, ty: TScala, fun: Scala.Term, args: Seq[Term]) extends Atom
+case class Application(out: Term, ty: TScala, fun: Scala.Term, args: Seq[Term]) extends Atom:
+  override def vars: Seq[Var] = out.vars ++ args.flatMap(_.vars)
 
 
 trait IR extends BaseIR:
