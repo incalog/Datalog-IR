@@ -1,6 +1,6 @@
 package inca.ir.extension.tuple
 
-import inca.ir.extension.tuple.{Project, TTuple, Tuple}
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.{TAny, Term, TermType, Type}
 
@@ -16,7 +16,7 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.meet(ty1, ty2)
 
   override protected[ir] def inferTermExtend(term: Term, mode: Mode): TermType = term match {
-    case Tuple(ts) =>
+    case TupleLit(ts) =>
       val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Bound)) { case (tt, (tys, m)) =>
         val TermType(tty, ttm) = inferTerm(tt, mode)
         (tty :: tys, m || ttm)

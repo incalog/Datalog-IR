@@ -93,7 +93,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
         Seq(
           Body(Seq(
             Call("S", Seq(
-              tuple.Tuple(Seq(
+              tuple.TupleLit(Seq(
                 Var("b"),
                 Var("b")
               ))
@@ -205,9 +205,9 @@ class TupleLoweringTest extends AnyFunSuiteLike:
         Seq(
           Body(Seq(
             Call("T", Seq(Var("t"))),
-            Eq(Var("a"), tuple.Tuple(Seq(Var("t"), tuple.Tuple(Seq(Var("t"), Var("t")))))),
+            Eq(Var("a"), tuple.TupleLit(Seq(Var("t"), tuple.TupleLit(Seq(Var("t"), Var("t")))))),
             Call("Test", Seq(
-              tuple.Tuple(Seq(
+              tuple.TupleLit(Seq(
                 Project(Project(Var("a"), 1), 1),
                 Project(Var("a"), 1)
               ))
@@ -225,7 +225,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
         Seq(
           Body(Seq(
             Call("T", Seq(Var("t"))),
-            Eq(Var("a"), tuple.Tuple(Seq(Var("t"), tuple.Tuple(Seq(Var("t"), Var("t")))))),
+            Eq(Var("a"), tuple.TupleLit(Seq(Var("t"), tuple.TupleLit(Seq(Var("t"), Var("t")))))),
           ))
         )
       )

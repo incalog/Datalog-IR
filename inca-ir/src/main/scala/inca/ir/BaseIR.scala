@@ -58,6 +58,7 @@ case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target wi
 
 case class Body(atoms: Seq[Atom]) extends Hints:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
+  def vars: Seq[Var] = atoms.flatMap(_.vars)
 
 case class Var(name: Name) extends Term with Var.Target:
   override def toString: String =

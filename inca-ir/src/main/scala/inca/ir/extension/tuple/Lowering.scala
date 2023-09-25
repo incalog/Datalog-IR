@@ -2,7 +2,7 @@ package inca.ir.extension.tuple
 
 import inca.ir.*
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.tuple.{IR, Project, TTuple, Tuple}
+import inca.ir.extension.tuple.{IR, Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
@@ -56,7 +56,7 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
           case _ =>
             throw IllegalStateException(s"Can not project unknown term: $term")
         }
-      case Tuple(ts) =>
+      case TupleLit(ts) =>
         ts.flatMap(visitTerm)
       case Var(name) =>
         val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")).ty)

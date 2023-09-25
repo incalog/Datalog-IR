@@ -73,13 +73,13 @@ object TypeCheckerDefinitional:
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       assertComparable(TInt, expected, t)
-    case Tuple(ts) => expected match
+    case TupleLit(ts) => expected match
       case TTuple(tys) if ts.size == tys.size =>
         ts.zip(tys).foreach { case (tt, tty) => checkBound(tt, ctx, tty) }
       case _ =>
         val tys = ts.map(tt => inferBound(tt, ctx))
         assertComparable(TTuple(tys), expected, t)
-    case Set(ts) => expected match
+    case SetLit(ts) => expected match
       case TSet(tty) =>
         ts.foreach(tt => checkBound(tt, ctx, tty))
       case _ =>
@@ -118,7 +118,7 @@ object TypeCheckerDefinitional:
       checkBound(t2, ctx, TInt)
       assertComparable(TInt, expected, t)
       (Bound, ctx)
-    case Tuple(ts) => expected match
+    case TupleLit(ts) => expected match
       case TTuple(tys) if ts.size == tys.size =>
         ts.zip(tys).foldLeft((Bound,ctx)) { case ((cl,c), (tt, tty)) =>
           val (cl_, c_) = checkBinding(tt, c, tty)
@@ -131,7 +131,7 @@ object TypeCheckerDefinitional:
         }
         assertComparable(TTuple(tys), expected, t)
         (cl, c)
-    case Set(ts) =>
+    case SetLit(ts) =>
       checkBound(t, ctx, expected)
       (Bound, ctx)
     case SetUnion(t1, t2) => expected match
@@ -156,9 +156,9 @@ object TypeCheckerDefinitional:
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       TInt
-    case Tuple(ts) =>
+    case TupleLit(ts) =>
       TTuple(ts.map(tt => inferBound(tt, ctx)))
-    case Set(ts) =>
+    case SetLit(ts) =>
       if (ts.isEmpty) {
         TSet(TNothing)
       } else {
@@ -182,13 +182,13 @@ object TypeCheckerDefinitional:
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       (TInt, Bound, ctx)
-    case Tuple(ts) =>
+    case TupleLit(ts) =>
       val (tys, cl, c) = ts.foldLeft((List.empty[Type],Bound,ctx)) { case ((tys, cl, c), tt) =>
         val (tty, cl_, c_) = inferBinding(tt, ctx)
         (tys :+ tty, cl join cl_, c_)
       }
       (TTuple(tys), cl, c)
-    case Set(ts) =>
+    case SetLit(ts) =>
       (inferBound(t, ctx), Bound, ctx)
     case SetUnion(t1, t2) =>
       val (TSet(ty1), cl1, ctx1) = inferBindingSet(t1, ctx)

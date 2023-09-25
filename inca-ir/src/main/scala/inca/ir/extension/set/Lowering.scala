@@ -1,14 +1,25 @@
 package inca.ir.extension.set
 
-// TODO: Include prefix or demand placeholder
-// TODO: Add aggregation expression
-// TODO: What do we do about equality checks on sets ?
-// TODO: TData match
+import inca.ir.*
+import inca.ir.Hint.preserveHints
+import inca.ir.extension.*
+import inca.ir.extension.block.Block
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.demand.Demand
+import inca.ir.extension.disjunction.Disjunction
+import inca.ir.extension.tuple.TupleLit
+import inca.ir.lowering.BaseLowering
+import inca.ir.util.Gensym
 
-/* I'll briefly sketch two different, but similar approaches of how first-class sets
- * (without the empty set) could be handled. Both approaches have their problems that I
- * still need to figure out:
- *
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
+
+object Lowering:
+  def apply[S <: IR, T <: block.IR with data.IR with demand.IR with disjunction.IR with tuple.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
+    override def src: S = srcIR
+    override def trg: T = trgIR
+  }
+
+/*
  * Proposal 1: Represent set with IDs expressed as ADTs
  * E.g
  * main(z: Set[Int]) :- y == Set(1,2,3), somCall(y, z).
@@ -29,7 +40,6 @@ package inca.ir.extension.set
  * set(s: SetADT, x: Int) :- demand(s), ?Set$0(s), (x == 1 v x == 2 v x == 3)
  * set(s: SetADT, x: Int) :- demand(s), ?Set$1(s), (x == 2 v x == 4)
  *
- * // We should actually not defunctionalize Set(2,4) here.
  * set(s: SetADT, x: Int) :- demand(s), ?Set$2(s, y), (set(y, x) v set(Set$1, x))
  *
  * main(z: Int) :- y == Set$0, somCall(y, z).
@@ -40,287 +50,138 @@ package inca.ir.extension.set
  * in the Set expression. We create one (or multiple) set relation that include all
  * atoms up to this point as a prefix. When we read a set, we query this set relation
  * with the ID we generated for the set.
- *
- * Problem:
- * 1. Equality will not work:
- * E.g y == 1, x == Set(y, 2), x == Set(1,2)
- * This will generate two different ADT cases: Set$0(y) and Set$1. These cases are
- * different although the elements are the same. We could implement equality by aggregation
- *
- * 2. How do we know when we can use "real" set relations instead of ADT values ?
- * We don't know when a value is a return value. Do we just let the user handle this
- * manually ? We do now it for set union call and the like. Do we require adornment information ?
- * Is adornment information enough ?
- *
- *
- *
- * Proposal 2: Represent set with their Values
- * E.g
- *
- * main(z: Set[Int]) :- y == Set(1,2,3), somCall(y, z).
- * someCall(y: Set[Int], z: Set[Int]) :- z == (y U Set(2,4))
- *
- * Lowering:
- * set$0(x: Int) :- (x == 1 v x == 2 v x == 3)
- * set$1(x: Int) :- (x == 2 v x == 4)
- *
- * // All bound variables we need to construct the set are inputs to the relation
- * set$2(x: Int, z: Int, y: Int) :- (y == x v y == z)
- *
- * main(z: Int) :- set$0(tmp), y == tmp, someCall(y, z)
- * someCall(y: Int, z: Int) :- set$1(tmp), set$2(y, tmp, z).
- *
- * Instead of representing Set with ADT Ids, we pass around the values of a set directly.
- * I don't think we need a prefix here, since we just pass the concrete set value to the helper
- * relations.
- * Disadvantage: If the set contains tuple of size n we might end up passing around n values.
- * I'm still not sure if there are cases where this does not work...
- *
- * Problem: Eq / Neq does not work anymore
- * Before: Set(1,2) == Set(2,4) // False
- * After: 1 == 2 v 1 == 4 v 2 == 2 v 2 == 4 // One body is executed although no body should be executed
- *
- * Problem 2: Aggregate
- * How do we aggregate over a set passed to a relation as variable ? We can't ?
- * E.g x = Set(1,2,3), aggregate(x, some_aggregation)
- * We don't know by which relation x is represented. Could we somehow figure out which
- * relations belongs to the set ?
  */
+trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjunction.IR with tuple.IR] extends BaseLowering[S, T]:
 
-import inca.ir
-import inca.ir.extension.disjunction.Disjunction
-import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Hints, ModuleEntry, Name, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, string2name}
-import inca.ir.extension.set.Set
-import inca.ir.extension.disjunction
-import inca.ir.extension.block
-import inca.ir.extension.data
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
-import inca.ir.typing.Typechecker
-import inca.util.TupleOps
+  override def loweredIRs: Set[BaseIR] = super.loweredIRs + new IR {}
 
-import scala.collection.immutable
+  private trait SetEnum:
+    def apply(elemVar: Name): Seq[Atom]
 
-object Lowering:
-  def apply[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
+  private case class SetConstructor(name: Name, vars: Seq[(Name, Type)], setEnum: SetEnum)
 
-// This implements Proposal 1:
-trait Lowering[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.IR] extends BaseLowering[S, T]:
-  override def loweredIRs: immutable.Set[BaseIR] = super.loweredIRs ++ immutable.Set(IR)
+  private var constructorCount: Map[Type, Int] = Map().withDefaultValue(0)
+  private var constructors: Map[(Type, Term), SetConstructor] = Map()
+  private def addConstructor(originalTerm: Term, setEnum: SetEnum): (Name, Seq[(Name, Type)]) =
+    val memTy = memberType(originalTerm)
+    constructors.get((memTy, originalTerm)) match
+      case Some(SetConstructor(name, vars, _)) => (name, vars)
+      case None =>
+        val count = constructorCount(memTy)
+        constructorCount += memTy -> (count + 1)
+        val name = constructorNameOf(memTy, count)
+        val vars = originalTerm.vars.distinct.map(v => v.name -> v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")).ty)
+        constructors += (memTy, originalTerm) -> SetConstructor(name, vars, setEnum)
+        (name, vars)
+  private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
+    val memTy = memberType(originalTerm)
+    val (name, vars) = addConstructor(originalTerm, setEnum)
+    val cons = Construct(name, vars.map(v => Var(v._1)))
+    cons.typed(TSet(memTy).closed)
+    cons
 
-  override def addedIRs: Predef.Set[BaseIR] = super.addedIRs ++ immutable.Set(disjunction.IR, block.IR, data.IR)
+  private def dataNameOf(memTy: Type): Name = Name(s"Set$$$memTy")
+  private def constructorNameOf(memTy: Type, count: Int) = Name(s"Set$$$memTy$$$count")
+  private def relNameOf(memTy: Type): Name = Name(s"Set$$$memTy$$enum")
 
-  var setDefunWriteRelations: Seq[Relation] = Seq()
-  var setDefunType: Option[Type] = None
-  var setDefunCases: Seq[CaseDefinition] = Seq()
-
-  // We can not identify the specific relation that belongs to a variable, but we can group set relations with the same
-  // type (or subtype). We can read from this grouped relation instead and filter based on the set object.
-  //
-  // We need to take care of subtypes, because otherwise code like this will not work:
-  //    x = Set(Int(1), Int(2))
-  //    SomeRel(x: Set[Num]) :- ...
-  //    SomeRel(x)
-  //  The type of x is now Set[Num], that means setRead$Num is used, but x belongs to setRead$Int. Therefore setRead$Num
-  //  must include the case for setRead$Int.
-  var setDefunReadRelations: Map[Type, immutable.Set[Relation]] = Map()
-  var setDefunReadRelationNames: Map[Type, String] = Map()
-
-  private def freshSetRelation(dependencies: Seq[Var], args: Seq[Term], outTyp: Type): Relation = gensym.scoped {
-    // TODO: Prefix or let demand transformation handle it aka. depend on demand IR and insert a placeholder
-    val dependentParams = dependencies.map { v =>
-      Param(v.name, visitType(v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")).ty))
+  private def makeSetDefinitions: Seq[ModuleEntry] =
+    val types = constructors.groupBy(_._1._1).toSeq
+    types.flatMap { case (memTy, terms) =>
+      val (data, rel) = defunctionalizeSet(memTy, terms.values.toSeq)
+      Seq(data, rel)
     }
-    val setName = gensym.fresh("set")
-    val outName = gensym.fresh("return")
-    val outVar = Var(outName)
-    val outParam = Param(outName, refunctionalize() { visitType(outTyp) })
-    val setParam = Param(setName, visitType(outTyp))
-    val rel = Relation(
-      gensym.freshGlobal(IR.name.toLowerCase() + "Rel"),
-      setParam +: dependentParams :+ outParam,
-      Seq(Body(Seq(Disjunction(args.map { t =>
-        visitTerm(t).map(tt => Eq(outVar, tt))
-      }))))
-    )
-    rel
-  }
 
-  override def visit(module: ir.Module): ir.Module = {
-    val defunTyName = gensym.fresh("DefunSet")
-    setDefunType = Some(TData(defunTyName))
+  /** Generates defunctionalize set data type and enumerating relation */
+  private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (DataDefinition, Relation) =
+    val dataName = dataNameOf(memTy)
+    val relName = relNameOf(memTy)
+    val setParam = Param("$set", TData(dataName))
+    val elemParam = Param("$elem", memTy)
 
-    val ir.Module(name, language, content) = super.visit(module)
+    val (cases, rules) = constructors.map { case SetConstructor(consName, caseVars, setEnum) =>
+      val caseDef = CaseDefinition(consName, caseVars.map(_._2))
 
-    ir.Module(name, language, content :+ DataDefinition(defunTyName, setDefunCases))
-  }
+      val atoms = setEnum(elemParam.name)
+      val rule = Body(
+        Demand(Var(setParam.name)) +:
+        Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1))) +:
+        atoms
+      )
 
-  override def visitRelation(relation: Relation): Seq[Relation] = {
-    val rels = super.visitRelation(relation)
+      (caseDef, rule)
+    }.unzip
 
-    val groupDefunRelations = setDefunReadRelations.map { case (ty, relations) =>
-      val setParamName = "set"
-      val outParamName = "out"
-      val bodies = relations.map { r =>
-        val freeParam = (0 until (r.params.size - 2)).map(i => Var("_$" + i.toString))
-        // Note: This relies on the order of arguments inside a set
-        val args = Var(setParamName) +: freeParam :+ Var(outParamName)
-        Body(Seq(Call(r.name, args)))
-      }
-      val setParam = Param(setParamName, setDefunType.get)
-      val outParams = Param(outParamName, ty)
-      val groupRelationName = setDefunReadRelationNames(ty)
-      Relation(groupRelationName, Seq(setParam, outParams), bodies.toSeq)
-    }
-    rels ++ setDefunWriteRelations ++ groupDefunRelations
+    val data = DataDefinition(dataName, cases)
+    val rel = Relation(relName, Seq(setParam, elemParam), rules)
+    (data, rel)
+
+  private var currentModule: Module = _
+  override def visit(module: Module): Module =
+    currentModule = module
+    constructors = Map()
+    val m = super.visit(module)
+    val defs = makeSetDefinitions
+    m.copy(contents = m.contents ++ defs)
+
+  override def visitRelation(relation: Relation): Seq[Relation] =
+    super.visitRelation(relation)
+
+  private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR, missing in $t")).ty match
+    case TSet(memTy) => memTy
+    case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
+
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case SetLit(ts) =>
+      val elems = ts.map(visitTerm)
+      val setEnum = new SetEnum:
+        override def apply(elemVar: Name): Seq[Atom] = Seq(
+          Disjunction(elems.map(ts => ts.map(Eq(Var(elemVar), _))))
+        )
+      Seq(callAddConstructor(term, setEnum))
+    case SetRef(name) =>
+      val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
+      val setEnum = new SetEnum:
+        override def apply(elemVar: Name): Seq[Atom] =
+          val args = rel.params.map(p => Var(gensym.freshName(p.name)))
+          Seq(Call(name, args), Eq(TupleLit(args), Var(elemVar)))
+      Seq(callAddConstructor(term, setEnum))
+    case SetUnion(t1, t2) =>
+      val Seq(s1) = visitTerm(t1)
+      val memTy1 = memberType(s1)
+      val Seq(s2) = visitTerm(t2)
+      val memTy2 = memberType(s2)
+      val setEnum = new SetEnum:
+        override def apply(elemVar: Name): Seq[Atom] = Seq(
+          Disjunction(Seq(
+            Seq(Call(relNameOf(memTy1), Seq(s1, Var(elemVar)))),
+            Seq(Call(relNameOf(memTy2), Seq(s2, Var(elemVar))))
+          ))
+        )
+      Seq(callAddConstructor(term, setEnum))
+    case SetIntersection(t1, t2) =>
+      val Seq(s1) = visitTerm(t1)
+      val memTy1 = memberType(s1)
+      val Seq(s2) = visitTerm(t2)
+      val memTy2 = memberType(s2)
+      val setEnum = new SetEnum:
+        override def apply(elemVar: Name): Seq[Atom] = Seq(
+          Call(relNameOf(memTy1), Seq(s1, Var(elemVar))),
+          Call(relNameOf(memTy2), Seq(s2, Var(elemVar)))
+        )
+      Seq(callAddConstructor(term, setEnum))
+    case SetComprehension(build, atoms) =>
+      val ats = atoms.flatMap(visitAtom)
+      val ts = visitTerm(build)
+      ts.map(t => Block(ats, t))
+    case _ => super.visitTerm(term)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    // TODO: How do I best handle this without overriding all cases that we possible don't know yet ?
-    //  We could add a Disjunction(terms), but this would just move the problem ?
-    // TODO: Do I need to handle this ?
-    case Call(name, args) =>
-      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
-      Seq(Disjunction(callArgCases.map(ts => Seq(Call(name, ts)))))
-    case NegCall(name, args) =>
-      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
-      Seq(Disjunction(callArgCases.map(ts => Seq(NegCall(name, ts)))))
-    case ExtensionalCall(name, args) =>
-      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
-      Seq(Disjunction(callArgCases.map(ts => Seq(ExtensionalCall(name, ts)))))
-    case NegExtensionalCall(name, args) =>
-      val callArgCases = TupleOps.cartesianProduct(args.map(visitTerm))
-      Seq(Disjunction(callArgCases.map(ts => Seq(NegExtensionalCall(name, ts)))))
-    case Neq(lhs, rhs) =>
-      visitTerm(lhs).map { l =>
-        Disjunction(visitTerm(rhs).map(r => Seq(Neq(l, r))))
-      }
-    case Eq(lhs, rhs) =>
-      visitTerm(lhs).map { l =>
-        Disjunction(visitTerm(rhs).map(r => Seq(Eq(l, r))))
-      }
-    // TODO: Fix set member for unbounds vars ?
-    case SetMember(t1, t2) =>
-      // Always refunctionalize a set to compare it
-      val eqAtoms = for (sTerm <- refunctionalize() { visitTerm(t1) }) yield
-        for (comp <- visitTerm(t2)) yield
-          Eq(sTerm, comp)
-      Seq(Disjunction(eqAtoms))
+    case SetMember(elemTerm, setTerm) => preserveHints(atom) {
+      val Seq(s) = visitTerm(setTerm)
+      val memTy = memberType(s)
+      val ts = visitTerm(elemTerm)
+      ts.map(elem => Call(relNameOf(memTy), Seq(s, elem)))
+    }
     case _ => super.visitAtom(atom)
 
-  private var defunctionalize = true
-
-  private var refunctionalizedVars: immutable.Set[Name] = immutable.Set()
-
-  private def refunctionalize[A](vars: Seq[Name] = Seq())(f: => A): A = {
-    val defunBefore = defunctionalize
-    val refunVarsBefore = refunctionalizedVars
-
-    try {
-      refunctionalizedVars ++= vars
-      defunctionalize = false
-      val a = f
-      a
-    } finally {
-      defunctionalize = defunBefore
-      refunctionalizedVars = refunVarsBefore
-    }
-  }
-
-  private def emptySet: Term = Var("EMPTY") // TODO: Handle empty Set correctly
-
-  private def refunctionalizeTerm(term: Term): Seq[Term] = refunctionalize() {
-    term match
-      case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) =>
-        val setTy = visitType(term.typ.get.ty)
-        val groupRelName = setDefunReadRelationNames(setTy)
-        val outVar = gensym.fresh("return")
-        Seq(block.Block(
-          Seq(Call(groupRelName, Seq(Var(name), Var(outVar)))),
-          Var(outVar)
-        ))
-      case Set(Seq()) => Seq(this.emptySet)
-      case Set(ts) => ts.flatMap(visitTerm)
-      case SetUnion(t1, t2) => refunctionalizeTerm(t1) ++ refunctionalizeTerm(t2)
-      case SetIntersection(t1, t2) =>
-        val lhsTerms = refunctionalizeTerm(t1)
-        val rhsTerms = refunctionalizeTerm(t2)
-        val baseCase = refunctionalizeTerm(Set.empty)
-        lhsTerms.flatMap { lhs =>
-          rhsTerms.map { rhs =>
-            block.Block(Seq(Eq(lhs, rhs)), lhs)
-          }
-        } ++ baseCase
-      case _ =>
-        throw new IllegalStateException(s"Can not refunctionalize none set term: $term")
-  }
-
-  private def defunctionalizeTerm(term: Term): Seq[Term] = term match {
-    case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) => Seq(Var(name))
-    case Set(_) | SetUnion(_, _) | SetIntersection(_, _) =>
-      val dependentVars = term.vars.distinct
-      val ty = term.typ.getOrElse(throw IllegalStateException(s"Untyped expression $term")).ty
-      val relation = freshSetRelation(dependentVars, refunctionalizeTerm(term), ty)
-      setDefunWriteRelations :+= relation
-      val dependentTys = dependentVars.map(v => v.typ.getOrElse(throw IllegalStateException(s"Untyped var $v")).ty)
-      val caseName = gensym.freshGlobal(IR.name)
-      setDefunCases :+= CaseDefinition(caseName, dependentTys.map(visitType))
-
-      val setTy = refunctionalize() { visitType(ty) }
-
-      // Group all set relations by their types
-      // We use these aggregated relations to read set
-      setDefunReadRelations.get(setTy) match {
-        case Some(groupRelations) =>
-          setDefunReadRelations += (setTy -> (groupRelations + relation))
-        case None =>
-          setDefunReadRelationNames += (setTy -> gensym.freshGlobal(s"setRead_$setTy"))
-          setDefunReadRelations += setTy -> immutable.Set(relation)
-      }
-
-      // TODO: This will break with tuples. We will need to consider the arity of the type as well
-      setDefunReadRelations = setDefunReadRelations.toSeq.flatMap { case (ty, rels) =>
-        val original = ty -> rels
-        val additional = if (ty == setTy) {
-          Seq()
-        } else if (??? /*Typechecker.subtype(ty, setTy)*/) {
-          Seq(setTy -> (rels + relation))
-        } else if (??? /*Typechecker.subtype(setTy, ty)*/) {
-          Seq(ty -> (rels + relation))
-        } else {
-          Seq()
-        }
-        original +: additional
-      }.groupBy(_._1).view.mapValues(_.flatMap(_._2).toSet).toMap
-
-      val defunVar = Var(gensym.fresh("setObj"))
-      Seq(block.Block(
-        Seq(
-          Eq(defunVar, Construct(caseName, dependentVars)),
-          // TODO: If we manually copy the prefix then we don't need this call
-          //  Otherwise this call should "write" aka. generate demand
-          Call(relation.name, defunVar +: dependentVars.flatMap(visitTerm) :+ Var(gensym.fresh("return")))
-        ),
-        defunVar
-      ))
-    case _ =>
-      throw new IllegalStateException(s"Can not defunctionalize none set term: $term")
-  }
-
-  override def visitTerm(term: Term): Seq[Term] = {
-    term match
-      case Var(name) if term.typeIs(_.ty.isInstanceOf[TSet]) && refunctionalizedVars.contains(name) =>
-        super.visitTerm(term)
-      case _ if term.typeIs(_.ty.isInstanceOf[TSet]) =>
-        if (defunctionalize) defunctionalizeTerm(term) else refunctionalizeTerm(term)
-      case _ =>
-        super.visitTerm(term)
-  }
-
-  override def visitType(ty: Type): Type = ty match
-    case TSet(_) if defunctionalize => setDefunType.get
-    case TSet(tty) => super.visitType(tty)
-    case _ => super.visitType(ty)

@@ -15,7 +15,7 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.meet(ty1, ty2)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Set(ts) =>
+    case SetLit(ts) =>
       val tys = ts.map(inferTerm(_, Mode.Bound).ty)
       TSet(joinTypes(tys)).closed
     case SetRef(name) =>

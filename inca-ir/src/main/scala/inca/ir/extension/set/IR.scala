@@ -9,12 +9,12 @@ import inca.ir.*
 case class TSet(ty: Type) extends Type:
   override def toString: String = s"Set[$ty]"
 
-case class Set(ts: Seq[Term]) extends Term:
+case class SetLit(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("Set(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
-object Set:
-  def from(ts: Term*): Set = new Set(ts)
-  def empty: Set = new Set(Seq())
+object SetLit:
+  def from(ts: Term*): SetLit = new SetLit(ts)
+  def empty: SetLit = new SetLit(Seq())
 
 /** Wraps a named relation as a set of tuples */
 case class SetRef(name: Name) extends Term:
@@ -25,7 +25,7 @@ case class SetUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = s"($t1 ∪ $t2)"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
 
-/** Desugars to Set(ts | ts in $t1, ts in $t2) */
+/** Can desugar to Set(ts | ts in $t1, ts in $t2) */
 case class SetIntersection(t1: Term, t2: Term) extends Term:
   override def toString: String = s"($t1 ∩ $t2)"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
