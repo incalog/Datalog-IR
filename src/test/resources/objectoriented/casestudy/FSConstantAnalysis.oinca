@@ -160,7 +160,10 @@ class Stm {
         "Stm"
     }
 
-    def transfer(from: Stm, manager: ValueManager): Unit = { }
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        // Default: Preserve all variables
+        manager.transferAll(from, this)
+    }
 }
 
 class Assign(val name: String, val rhs: Exp) extends Stm {
@@ -175,11 +178,11 @@ class Assign(val name: String, val rhs: Exp) extends Stm {
         "Assign(" + this.name + ", " + this.rhs.stringValue() + ")"
     }
 
-    /*@override
+    @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
         manager.put(this, this.name, this.rhs.aevalConst(manager, from))
         manager.transferAll(from, this)
-    }*/
+    }
 }
 class Skip extends Stm {
     @override
@@ -243,12 +246,12 @@ class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
         this.thn.last() ++ this.els.last()
     }
 
-    /*@override
+    @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
         manager.transferAll(from, this)
         manager.transferAll(from, this.thn)
         manager.transferAll(from, this.els)
-    }*/
+    }
 }
 class While(val cnd: Exp, val body: Stm) extends Stm {
     @override
@@ -263,7 +266,7 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
         "While(" + this.cnd.stringValue() + ", " + this.body.stringValue() + ")"
     }
 
-    /*@override
+    @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
         manager.transferAll(from, this.body.first())
         manager.transferAll(from, this)
@@ -274,7 +277,7 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
             manager.transferAll(l2, this)
 
         return
-    }*/
+    }
 }
 class ValDef(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -288,11 +291,11 @@ class ValDef(val name: String, val rhs: Exp) extends Stm {
         "ValDef(" + this.name + ", " + this.rhs.stringValue() + ")"
     }
 
-    /*@override
+    @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
         manager.put(this, this.name, this.rhs.aevalConst(manager, from))
         manager.transferAll(from, this)
-    }*/
+    }
 }
 class VarDef(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -532,7 +535,7 @@ class ValueManager {
     def transferAll(from: Stm, to: Stm): Unit = { }
 }
 
-class FSConstantAnalysis(val cgf: Set[(Stm, Stm)]) extends ValueManager {
+class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: Set[String]) extends ValueManager {
     val after: MonoMap[`(Any, String)`, MConstant] = new MonoMap[`(Any, String)`, MConstant]()
 
     @override
@@ -546,16 +549,39 @@ class FSConstantAnalysis(val cgf: Set[(Stm, Stm)]) extends ValueManager {
     }
 
     def run(): Unit = {
-        for (node <- this.cgf) yield
-            node._2.transfer(node._1, this)
+        // Fill with BotConstant
+        // Gives out of memory currently if I comment this in. Add flags to add more memory and test again
+        /*for (e <- this.cfg; v <- this.varNames)
+            yield this.put(e._1, v, new BotConstant())
+        for (e2 <- this.cfg; v2 <- this.varNames)
+            yield this.put(e2._2, v2, new BotConstant())*/
+
+        this.head.transfer(this.head, this)
+        fix this.iterate(this.head) // fix ?
+
+        // TODO: This is incorrect, we either need to iterate here or preserve the order
+        //for (edge <- this.cfg) yield
+        //    edge._2.transfer(edge._1, this)
+        return
+    }
+
+    def step(from: Stm, to: Stm): Unit = {
+        to.transfer(from, this)
+        this.iterate(to) // fix ?
+    }
+
+    def iterate(from: Stm): Unit = {
+        for (edge <- this.cfg if edge._1 == from)
+            yield this.step(edge._1, edge._2) // fix ?
         return
     }
 
     @override
     def transferAll(from: Stm, to: Stm): Unit = {
         // We could iterate over all vars here instead of the keys
-        for (y <- this.after.keys()) yield
-            this.put(to, y.`_2`, this.get(from, y.`_2`))
+        // this.after.keys()  this.put(to, y.`_2`, this.get(from, y.`_2`))
+        for (y <- this.varNames) yield
+            this.put(to, y, this.get(from, y))
         return
     }
 }
@@ -586,13 +612,15 @@ class ConstantAnalysis {
         val examples: Examples = new Examples()
 
         // Calculate CFG
+        val factorial: Stm = examples.factorial
         val cgfVisitor: CfgVisitor = new CfgVisitor()
-        examples.factorial.accept(cgfVisitor)
+        factorial.accept(cgfVisitor)
 
         //return for (n <- cgfVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
 
         // Do constant propagation
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(cgfVisitor.cfgSet())
+        // TODO: Automatically get all vars
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(factorial.first(), cgfVisitor.cfgSet(), Set("n", "m", "acc"))
         constantProp.run()
 
         // By using result directly we force the aggregation to appear here. Somehow this fixes the double
