@@ -1,10 +1,12 @@
 module WhileLang
 
+// Mark: - Expression
+
 class Exp {
     // abstract
     def accept(v: Visitor): Unit = { }
 
-    def aevalConst(p: ValueProvider, s: Stm): MConstant = {
+    def aevalConst(p: ValueManager, s: Stm): MConstant = {
         new NoConstant()
     }
 
@@ -20,8 +22,8 @@ class Var(val name: String) extends Exp {
     }
 
     @override
-    def aevalConst(p: ValueProvider, s: Stm): MConstant = {
-        p.getValue(s, this.name)
+    def aevalConst(p: ValueManager, s: Stm): MConstant = {
+        p.get(s, this.name)
     }
 
     @override
@@ -37,7 +39,7 @@ class Num(val num: Int) extends Exp {
     }
 
     @override
-    def aevalConst(p: ValueProvider, s: Stm): MConstant = {
+    def aevalConst(p: ValueManager, s: Stm): MConstant = {
         new SomeConstant(this.num)
     }
 
@@ -59,7 +61,7 @@ class BinOp(val left: Exp, val right: Exp) extends Exp {
     def binOpAccept(v: Visitor): Unit = { }
 
     @override
-    def aevalConst(p: ValueProvider, s: Stm): MConstant = {
+    def aevalConst(p: ValueManager, s: Stm): MConstant = {
         this.binOpConst(this.left.aevalConst(p, s), this.right.aevalConst(p, s))
     }
     // abstract
@@ -140,21 +142,27 @@ class GT extends BinOp {
     }
 }
 
+// Mark: - Statements
+
 class Stm {
     // abstract
     def accept(v: Visitor): Unit = {
     }
+
     def first(): Stm = {
         this
     }
-    def last(): Stm = {
-        this
+    def last(): Set[Stm] = {
+        Set(this)
     }
 
     def stringValue(): String = {
         "Stm"
     }
+
+    def transfer(from: Stm, manager: ValueManager): Unit = { }
 }
+
 class Assign(val name: String, val rhs: Exp) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
@@ -166,6 +174,12 @@ class Assign(val name: String, val rhs: Exp) extends Stm {
     def stringValue(): String = {
         "Assign(" + this.name + ", " + this.rhs.stringValue() + ")"
     }
+
+    /*@override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
+        manager.transferAll(from, this)
+    }*/
 }
 class Skip extends Stm {
     @override
@@ -176,6 +190,11 @@ class Skip extends Stm {
     @override
     def stringValue(): String = {
         "Skip"
+    }
+
+    @override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.transferAll(from, this)
     }
 }
 class Sequence(val s1: Stm, val s2: Stm) extends Stm {
@@ -191,13 +210,18 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     }
 
     @override
-    def last(): Stm = {
+    def last(): Set[Stm] = {
         this.s2.last()
     }
 
     @override
     def stringValue(): String = {
         "Sequence(" + this.s1.stringValue() + ", " + this.s2.stringValue() + ")"
+    }
+
+    @override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        // Does not occur
     }
 }
 class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
@@ -213,6 +237,18 @@ class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
     def stringValue(): String = {
         "If(" + this.cnd.stringValue() + ", " + this.thn.stringValue() + ", " + this.els.stringValue() + ")"
     }
+
+    @override
+    def last(): Set[Stm] = {
+        this.thn.last() ++ this.els.last()
+    }
+
+    /*@override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.transferAll(from, this)
+        manager.transferAll(from, this.thn)
+        manager.transferAll(from, this.els)
+    }*/
 }
 class While(val cnd: Exp, val body: Stm) extends Stm {
     @override
@@ -226,6 +262,19 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
     def stringValue(): String = {
         "While(" + this.cnd.stringValue() + ", " + this.body.stringValue() + ")"
     }
+
+    /*@override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.transferAll(from, this.body.first())
+        manager.transferAll(from, this)
+
+        for (l <- this.body.last()) yield
+            manager.transferAll(l, this.body.first())
+        for (l2 <- this.body.last()) yield
+            manager.transferAll(l2, this)
+
+        return
+    }*/
 }
 class ValDef(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -238,6 +287,12 @@ class ValDef(val name: String, val rhs: Exp) extends Stm {
     def stringValue(): String = {
         "ValDef(" + this.name + ", " + this.rhs.stringValue() + ")"
     }
+
+    /*@override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
+        manager.transferAll(from, this)
+    }*/
 }
 class VarDef(val name: String, val rhs: Exp) extends Stm {
     @override
@@ -250,27 +305,15 @@ class VarDef(val name: String, val rhs: Exp) extends Stm {
     def stringValue(): String = {
         "VarDef(" + this.name + ", " + this.rhs.stringValue() + ")"
     }
+
+    @override
+    def transfer(from: Stm, manager: ValueManager): Unit = {
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
+        manager.transferAll(from, this)
+    }
 }
 
-
-class Visitor {
-    // Exp
-    def visitVar(e: Var): Unit = { }
-    def visitNum(e: Num): Unit = { }
-    def visitAdd(e: Add): Unit = { }
-    def visitSub(e: Sub): Unit = { }
-    def visitMul(e: Mul): Unit = {}
-    def visitGT(e: GT): Unit = {}
-
-    // Stm
-    def visitAssign(s: Assign): Unit = { }
-    def visitSkip(s: Skip): Unit = { }
-    def visitSequence(s: Sequence): Unit = { }
-    def visitIf(s: If): Unit = { }
-    def visitWhile(s: While): Unit = { }
-    def visitValDef(s: ValDef): Unit = { }
-    def visitVarDef(s: VarDef): Unit = { }
-}
+// Mark: - Lattice
 
 case class MConstant extends BalancedMonotone[MConstant, MConstant] {
     @static
@@ -389,11 +432,134 @@ case class SomeConstant(val value: Int) extends MConstant {
     }
 }
 
-class ValueProvider extends Visitor {
-    def getValue(s: Stm, n: String): MConstant = {
-        new NoConstant()
+// Mark: - CFG
+
+class Visitor {
+    // Exp
+    def visitVar(e: Var): Unit = { }
+    def visitNum(e: Num): Unit = { }
+    def visitAdd(e: Add): Unit = { }
+    def visitSub(e: Sub): Unit = { }
+    def visitMul(e: Mul): Unit = {}
+    def visitGT(e: GT): Unit = {}
+
+    // Stm
+    def visitAssign(s: Assign): Unit = { }
+    def visitSkip(s: Skip): Unit = { }
+    def visitSequence(s: Sequence): Unit = { }
+    def visitIf(s: If): Unit = { }
+    def visitWhile(s: While): Unit = { }
+    def visitValDef(s: ValDef): Unit = { }
+    def visitVarDef(s: VarDef): Unit = { }
+}
+
+class MonoSet extends BalancedMonotone[(Any, Any), `scala.collection.immutable.Set[(Any, Any)]`] {
+    @static
+    def init(): `scala.collection.immutable.Set[(Any, Any)]` = {
+        `scala.collection.immutable.Set[(Any, Any)]`()
+    }
+
+    @static
+    def join(m1: `scala.collection.immutable.Set[(Any, Any)]`, m2: `scala.collection.immutable.Set[(Any, Any)]`): `scala.collection.immutable.Set[(Any, Any)]` = {
+        m1 ++ m2
+    }
+
+    def lift(element: (Any, Any)): `scala.collection.immutable.Set[(Any, Any)]` = {
+        `scala.collection.immutable.Set[(Any, Any)]`(`Tuple2.apply`(element._1, element._2))
+    }
+
+    def get(): `scala.collection.immutable.Set[(Any, Any)]` = {
+        this.result
     }
 }
+
+class CfgVisitor extends Visitor {
+  var cfg: MonoSet = new MonoSet()
+
+  def cfgSet(): Set[(Stm, Stm)] = {
+    val set: `scala.collection.immutable.Set[(Any, Any)]` = this.cfg.get()
+    val list: `scala.collection.immutable.Vector[(Any, Any)]` = set.`toVector`
+    this.cfgSetIter(list, 0)
+  }
+
+  def cfgSetIter(list: `scala.collection.immutable.Vector[(Any, Any)]`, ix: Int): Set[(Stm, Stm)] = {
+    val e: `(Any, Any)` = list.`apply`(ix)
+    val s1: Stm = e.`productElement`(0).asInstanceOf[Stm]
+    val s2: Stm = e.`productElement`(1).asInstanceOf[Stm]
+    if (ix == list.`size` - 1) {
+      Set((s1, s2))
+    } else {
+      Set((s1, s2)) ++ this.cfgSetIter(list, ix + 1)
+    }
+  }
+
+  def addPath(from: Stm, to: Stm): Unit = {
+    this.cfg += (from,to)
+  }
+
+  @override
+  def visitSequence(s: Sequence): Unit = {
+    val to: Stm = s.s2.first()
+    for (from <- s.s1.last())
+        yield this.addPath(from, to)
+    return
+  }
+
+  @override
+  def visitIf(s: If): Unit = {
+    this.cfg += (s,s.thn.first())
+    this.cfg += (s,s.els.first())
+  }
+
+  @override
+  def visitWhile(s: While): Unit = {
+    this.cfg += (s, s.body.first())
+    for (from <- s.body.last())
+        yield this.addPath(from, s)
+    return
+  }
+}
+
+// Mark: - Constant Analysis
+
+class ValueManager {
+    def get(s: Stm, v: String): MConstant = {
+        new NoConstant()
+    }
+
+    def put(s: Stm, v: String, m: MConstant): Unit = { }
+
+    def transferAll(from: Stm, to: Stm): Unit = { }
+}
+
+class FSConstantAnalysis(val cgf: Set[(Stm, Stm)]) extends ValueManager {
+    val after: MonoMap[`(Any, String)`, MConstant] = new MonoMap[`(Any, String)`, MConstant]()
+
+    @override
+    def get(s: Stm, v: String): MConstant = {
+        return this.after.get(`Tuple2.apply`(s, v))
+    }
+
+    @override
+    def put(s: Stm, v: String, m: MConstant): Unit = {
+        this.after += (`Tuple2.apply`(s, v), m)
+    }
+
+    def run(): Unit = {
+        for (node <- this.cgf) yield
+            node._2.transfer(node._1, this)
+        return
+    }
+
+    @override
+    def transferAll(from: Stm, to: Stm): Unit = {
+        // We could iterate over all vars here instead of the keys
+        for (y <- this.after.keys()) yield
+            this.put(to, y.`_2`, this.get(from, y.`_2`))
+        return
+    }
+}
+
 
 class Examples {
     val factorial: Stm =
@@ -414,180 +580,23 @@ class Examples {
     )
 }
 
-/*
-// Shows a nested groupped aggregation
-class FSConstantPropagationVisitor extends Visitor {
-    // The Map types separate key1 from key2 and the aggregated values.
-    // This could have been written Map[(Stm, String), MConstant], but the
-    // nested type provides easier access per statement.
-    //val varsAfter: mono.Map[Stm, mono.Map[String, MConstant]] = new mono.Map[Stm, mono.Map[String, MConstant]]()
-
-    var varsAfter: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
-        with MConstant.join
-    var varsBefore: mono.Map[Stm, mono.Map[String, MConstant]] = new mono.Map(new mono.Map())
-
-    def visitValDef(s: ValDef): Unit = {
-        this.varsAfter #= (s, (s.name, s.rhs.aevalConst(this)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
-    }
-
-    def visitVarDef(s: VarDef): Unit = {
-        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
-    }
-
-    def visitAssign(s: Assign): Unit = {
-        this.varsAfter(s) #= (s.lhs, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.lhs) yield bf
-    }
-
-    def visitSkip(s: Skip): Unit = {
-        this.varsAfter(s) ##= this.varsBefore(s)
-    }
-
-    def visitSequence(s: Sequence): Unit = {
-        // data flow s.s2.first() <- s.s1.last()
-        this.varsBefore(s.s2.first()) ##= this.varsAfter(s.s1.last())
-    }
-
-    def visitIf(s: If): Unit = {
-        // data flow s.thn.first() <- s
-        // data flow s.els.first() <- s
-        this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.thn.first(), kv)
-        this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.els.first(), kv)
-        this.varsAfter ++= this.varsBefore.get(s.thn.last())
-        this.varsAfter ++= this.varsBefore.get(s.els.last())
-    }
-
-    def visitWhile(s: While): Unit = {
-        // data flow s.body.first() <- s
-        // data flow s <- s.body.last()
-        this.varsAfter(s) ##= this.varsBefore(s)
-        this.varsBefore(s.body.first()) ##= this.varsAfter(s)
-        this.varsBefore(s) ##= this.varsAfter(s.body.last())
-    }
-}
-*/
-
-class FSConstantAnalysisVisitor extends ValueProvider {
-    val varsAfter: MonoMap[`(Any, String)`, MConstant] = new MonoMap[`(Any, String)`, MConstant]()
-    val varsBefore: MonoMap[`(Any, String)`, MConstant] = new MonoMap[`(Any, String)`, MConstant]()
-
-    @override
-    def getValue(s: Stm, n: String): MConstant = {
-        this.varsBefore.get(`Tuple2.apply`(s, n))
-    }
-
-    // we can not assign a complete inner map currently... so this is a workaround
-    def updateVarsAfter(k: `(Any, String)`, v: MConstant): Unit = {
-        this.varsAfter += (k, v)
-        return
-    }
-
-    def updateVarsBefore(k: `(Any, String)`, v: MConstant): Unit = {
-        this.varsBefore += (k, v)
-        return
-    }
-
-    @override
-    def visitValDef(s: ValDef): Unit = {
-        this.updateVarsAfter(`Tuple2.apply`(s, s.name), s.rhs.aevalConst(this, s))
-        for (bf <- this.varsBefore.keys() if ((bf.`_1` == s) && (bf.`_2` != s.name)))
-            yield this.updateVarsAfter(bf, this.varsBefore.get(bf))
-        return
-    }
-
-    @override
-    def visitVarDef(s: VarDef): Unit = {
-        this.updateVarsAfter(`Tuple2.apply`(s, s.name), s.rhs.aevalConst(this, s))
-        for (bf <- this.varsBefore.keys() if ((bf.`_1` == s) && (bf.`_2` != s.name)))
-            yield this.updateVarsAfter(bf, this.varsBefore.get(bf))
-        return
-    }
-
-    @override
-    def visitAssign(s: Assign): Unit = {
-        this.updateVarsAfter(`Tuple2.apply`(s, s.name), s.rhs.aevalConst(this, s))
-        for (bf <- this.varsBefore.keys() if ((bf.`_1` == s) && (bf.`_2` != s.name)))
-            yield this.updateVarsAfter(bf, this.varsBefore.get(bf))
-        return
-    }
-
-    @override
-    def visitSkip(s: Skip): Unit = {
-        // this.varsAfter(s) ##= this.varsBefore(s)
-        for (bf <- this.varsBefore.keys() if bf.`_1` == s)
-            yield this.updateVarsAfter(bf, this.varsBefore.get(bf))
-        return
-    }
-
-    @override
-    def visitSequence(s: Sequence): Unit = {
-        // data flow s.s2.first() <- s.s1.last()
-        // this.varsBefore(s.s2.first()) ##= this.varsAfter(s.s1.last())
-
-        //for (bf2 <- this.varsAfter.keys() if bf2.`_1` == s.s1.first())
-        //    yield this.updateVarsBefore(`Tuple2.apply`(s.s1.last(), bf2.`_2`), this.varsAfter.get(bf2))
-
-        for (bf <- this.varsAfter.keys() if bf.`_1` == s.s1.last())
-            yield this.updateVarsBefore(`Tuple2.apply`(s.s2.first(), bf.`_2`), this.varsAfter.get(bf))
-
-        return
-    }
-
-    @override
-    def visitIf(s: If): Unit = {
-        // data flow s.thn.first() <- s
-        // data flow s.els.first() <- s
-        //this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.thn.first(), kv)
-        for (bf <- this.varsBefore.keys() if bf.`_1` == s)
-            yield this.updateVarsBefore(`Tuple2.apply`(s.thn.first(), bf.`_2`), this.varsBefore.get(bf))
-
-        //this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.els.first(), kv)
-        for (bf1 <- this.varsBefore.keys() if bf1.`_1` == s)
-            yield this.updateVarsBefore(`Tuple2.apply`(s.els.first(), bf1.`_2`), this.varsBefore.get(bf1))
-
-        //this.varsAfter ++= this.varsBefore.get(s.thn.last())
-        for (bf2 <- this.varsBefore.keys() if bf2.`_1` == s.thn.last())
-            yield this.updateVarsAfter(`Tuple2.apply`(s, bf2.`_2`), this.varsBefore.get(bf2))
-
-        //this.varsAfter ++= this.varsBefore.get(s.els.last())
-        for (bf3 <- this.varsBefore.keys() if bf3.`_1` == s.els.last())
-            yield this.updateVarsAfter(`Tuple2.apply`(s, bf3.`_2`), this.varsBefore.get(bf3))
-        return
-    }
-
-    @override
-    def visitWhile(s: While): Unit = {
-        // data flow s.body.first() <- s
-        // data flow s <- s.body.last()
-        //this.varsAfter(s) ##= this.varsBefore(s)
-        for (bf <- this.varsBefore.keys() if bf.`_1` == s)
-            yield this.updateVarsAfter(bf, this.varsBefore.get(bf))
-
-        //this.varsBefore(s.body.first()) ##= this.varsAfter(s)
-        for (bf1 <- this.varsAfter.keys() if bf1.`_1` == s)
-            yield this.updateVarsBefore(`Tuple2.apply`(s.body.first(), bf1.`_2`), this.varsAfter.get(bf1))
-
-        //this.varsBefore(s) ##= this.varsAfter(s.body.last())
-        for (bf2 <- this.varsAfter.keys() if bf2.`_1` == s)
-            yield this.updateVarsBefore(`Tuple2.apply`(s.body.last(), bf2.`_2`), this.varsAfter.get(bf2))
-
-        return
-    }
-}
-
-
 class ConstantAnalysis {
     @main
-    def main(): Set[(String, String, String, String)] = {
-        val constantProp: FSConstantAnalysisVisitor = new FSConstantAnalysisVisitor()
+    def main(): Set[(String, String, String)] = {
         val examples: Examples = new Examples()
-        examples.factorial.accept(constantProp)
+
+        // Calculate CFG
+        val cgfVisitor: CfgVisitor = new CfgVisitor()
+        examples.factorial.accept(cgfVisitor)
+
+        //return for (n <- cgfVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
+
+        // Do constant propagation
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(cgfVisitor.cfgSet())
+        constantProp.run()
+
         // By using result directly we force the aggregation to appear here. Somehow this fixes the double
         // aggregation error.
-        (for (k <- constantProp.varsBefore.keys()) yield ("Before", k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.varsBefore.get(k).stringValue()))
-        //++
-        //(for (k2 <- constantProp.varsAfter.keys()) yield ("After", k2.`_1`.asInstanceOf[Stm].stringValue(), k2.`_2`, constantProp.varsAfter.get(k2).stringValue()))
+        (for (k <- constantProp.after.keys()) yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
     }
 }

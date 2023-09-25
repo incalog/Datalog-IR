@@ -24,7 +24,13 @@ trait Parser {
   val whitespace: P[Unit] = (P.charIn(" \t\r\n").void | comment)
   val whitespaces0: P0[Unit] = whitespace.rep0.void
 
-  val letter: P[Unit] = P.ignoreCaseCharIn(('a' to 'z') :+ '_').void
+  def letter(withUnderscore: Boolean = false): P[Unit] = {
+    if (withUnderscore)
+      P.ignoreCaseCharIn(('a' to 'z') :+ '_').void
+    else
+      P.ignoreCaseCharIn('a' to 'z').void
+  }
+
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).void
 
@@ -107,7 +113,7 @@ trait Parser {
     if (s.isEmpty) P.fail[T] else P.failWith[T](s)
 
   val id: P[Name] = {
-    (letter ~ letterDigit.rep0)
+    (letter(false) ~ letterDigit.rep0)
       .string
       .filter(s => !keywords.contains(s)).backtrack
       .mapWithLoc(s => Name(s))
@@ -115,6 +121,11 @@ trait Parser {
 
   val identifier: P[Name] =
     spaced(id)
+
+  val baseIdentifier: P[Name] =
+    (letter(true) ~ letterDigit.rep0)
+      .string
+      .mapWithLoc(s => Name(s))
 
   val privateVisibility: P[Visibility] =
     keyword(PRIVATE).mapWithLoc(_ => Private)
@@ -260,7 +271,7 @@ trait Parser {
     spaced(P.string("_") *> digit.rep0(min = 1).string).mapWithLoc(s => Index(s.toInt))
 
   private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] = {
-    (encloseBetween(identifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?)
+    encloseBetween(baseIdentifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?
   }
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
