@@ -19,8 +19,9 @@ trait AdornmentAnalysis extends Visitor:
   def addCurrentDemand(v: Var): Unit =
     if (currentRelation.params.map(_.name.name).contains(v.name.name)) {
       demandedParams += currentRelation.name.name -> v.name.name
-    } else
+    } else {
       throw new IllegalArgumentException(s"Demanded variable $v is not a parameter of $currentRelation")
+    }
 
   def currentDemand: collection.Set[String] =
     demandOf(currentRelation.name)

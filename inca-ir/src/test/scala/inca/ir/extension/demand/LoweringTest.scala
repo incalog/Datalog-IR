@@ -20,6 +20,7 @@ class LoweringTest extends AnyFunSuiteLike:
     var lowered: Module = null
     try {
       typecheckerBefore.typecheck(mod)
+      println(mod)
       lowered = lowering.visit(mod)
       typecheckerAfter.typecheck(lowered)
       lowered
@@ -161,21 +162,22 @@ class LoweringTest extends AnyFunSuiteLike:
       (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
       (m1.relations("Q").bodies.head.atoms.head)
 
-//    val m2 = module(
-//      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
-//        Eq(Var("y"), IntNum(1)),
-//        Call("R", Seq(Var("x"), Var("y")))
-//      )))),
-//      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-//        Demand(Seq(Var("p1"), Var("p2")))
-//      ))))
-//    )
-//    assertResult
-//      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
-//      (m2.relations("R").bodies.head.atoms.head)
-//    assertResult
-//      (Call(demandRelationName("Q"), Seq(Var("x"))))
-//      (m2.relations("Q").bodies.head.atoms(1))
+    val m2 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("y"), IntNum(1)),
+        Call("R", Seq(Var("x1"), Var("y1"))),
+        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y"))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m2.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"))))
+      (m2.relations("Q").bodies.head.atoms(1))
 
   }
 
