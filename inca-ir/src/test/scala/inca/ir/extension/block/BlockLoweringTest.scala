@@ -11,7 +11,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
 
   val baseIR = new BaseIR {}
   val blockIR: block.IR = IR
-  val lowering = Lowering(blockIR, baseIR)
+  val lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")

@@ -8,23 +8,15 @@ import inca.ir.extension.not.Not
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 
-object Lowering:
-  def apply[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
-trait Lowering[S <: IR with not.IR, T <: BaseIR with arithmetic.IR with block.IR with disjunction.IR] extends not.Lowering[S, T]:
+trait Lowering extends not.Lowering:
+  override val loweredIRs: Set[BaseIR] = Set(IR) ++ super.loweredIRs
+  override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, block.IR, disjunction.IR, not.IR) ++ super.requiredIRs
 
   private var freshCount = 0
   def freshName(): Name =
     val x = IR.name + "$" + freshCount
     freshCount += 1
     Name(x)
-
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
-
-  override def addedIRs: Set[BaseIR] = super.addedIRs ++ Set(arithmetic.IR, block.IR, disjunction.IR, not.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
     case BoolAtom(t) =>

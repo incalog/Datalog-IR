@@ -13,12 +13,6 @@ import inca.ir.util.Gensym
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
-object Lowering:
-  def apply[S <: IR, T <: block.IR with data.IR with demand.IR with disjunction.IR with tuple.IR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
 /*
  * Proposal 1: Represent set with IDs expressed as ADTs
  * E.g
@@ -51,9 +45,11 @@ object Lowering:
  * atoms up to this point as a prefix. When we read a set, we query this set relation
  * with the ID we generated for the set.
  */
-trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjunction.IR with tuple.IR] extends BaseLowering[S, T]:
+trait Lowering extends BaseLowering:
 
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs + new IR {}
+  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val requiredIRs: Set[BaseIR] = Set(block.IR, data.IR, demand.IR, disjunction.IR, tuple.IR)
+
 
   private trait SetEnum:
     def apply(elemVar: Name): Seq[Atom]
@@ -63,21 +59,24 @@ trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjuncti
   private var constructorCount: Map[Type, Int] = Map().withDefaultValue(0)
   private var constructors: Map[(Type, Term), SetConstructor] = Map()
   private def addConstructor(originalTerm: Term, setEnum: SetEnum): (Name, Seq[(Name, Type)]) =
-    val memTy = memberType(originalTerm)
+    val memTy = visitType(memberType(originalTerm))
     constructors.get((memTy, originalTerm)) match
       case Some(SetConstructor(name, vars, _)) => (name, vars)
       case None =>
         val count = constructorCount(memTy)
         constructorCount += memTy -> (count + 1)
         val name = constructorNameOf(memTy, count)
-        val vars = originalTerm.vars.distinct.map(v => v.name -> v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")).ty)
+        val vars = originalTerm.vars.distinct.map(v => v.name ->
+          visitType(
+            v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")).ty
+          )
+        )
         constructors += (memTy, originalTerm) -> SetConstructor(name, vars, setEnum)
         (name, vars)
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
-    val memTy = memberType(originalTerm)
     val (name, vars) = addConstructor(originalTerm, setEnum)
     val cons = Construct(name, vars.map(v => Var(v._1)))
-    cons.typed(TSet(memTy).closed)
+//    cons.typed(TSet(memTy).closed)
     cons
 
   private def dataNameOf(memTy: Type): Name = Name(s"Set$$$memTy")
@@ -123,12 +122,13 @@ trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjuncti
     val defs = makeSetDefinitions
     m.copy(contents = m.contents ++ defs)
 
-  override def visitRelation(relation: Relation): Seq[Relation] =
-    super.visitRelation(relation)
-
-  private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR, missing in $t")).ty match
+  private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires typed IR, type missing in $t")).ty match
     case TSet(memTy) => memTy
     case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
+
+  override def visitType(ty: Type): Type = ty match
+    case TSet(memTy) => TData(dataNameOf(memTy))
+    case _ => super.visitType(ty)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case SetLit(ts) =>
@@ -147,9 +147,9 @@ trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjuncti
       Seq(callAddConstructor(term, setEnum))
     case SetUnion(t1, t2) =>
       val Seq(s1) = visitTerm(t1)
-      val memTy1 = memberType(s1)
+      val memTy1 = memberType(t1)
       val Seq(s2) = visitTerm(t2)
-      val memTy2 = memberType(s2)
+      val memTy2 = memberType(t2)
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
           Disjunction(Seq(
@@ -160,9 +160,9 @@ trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjuncti
       Seq(callAddConstructor(term, setEnum))
     case SetIntersection(t1, t2) =>
       val Seq(s1) = visitTerm(t1)
-      val memTy1 = memberType(s1)
+      val memTy1 = memberType(t1)
       val Seq(s2) = visitTerm(t2)
-      val memTy2 = memberType(s2)
+      val memTy2 = memberType(t2)
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
           Call(relNameOf(memTy1), Seq(s1, Var(elemVar))),
@@ -179,7 +179,7 @@ trait Lowering[S <: IR, T <: block.IR with data.IR with demand.IR with disjuncti
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case SetMember(elemTerm, setTerm) => preserveHints(atom) {
       val Seq(s) = visitTerm(setTerm)
-      val memTy = memberType(s)
+      val memTy = memberType(setTerm)
       val ts = visitTerm(elemTerm)
       ts.map(elem => Call(relNameOf(memTy), Seq(s, elem)))
     }

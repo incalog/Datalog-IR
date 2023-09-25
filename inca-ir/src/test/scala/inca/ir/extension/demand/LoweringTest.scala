@@ -5,23 +5,16 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.demand.Demand
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, demand, not}
-import inca.ir.typing.{BaseIRTypechecker, Typechecker}
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.immutable.MultiDict
 
 class LoweringTest extends AnyFunSuiteLike:
-  class TestIR extends demand.IR with not.IR with arithmetic.IR
-  class TestIRTypechecker extends demand.Typechecker with not.Typechecker with arithmetic.Typechecker
-  class TestLowering extends demand.Lowering[TestIR, TestIR]  with not.Visitor with arithmetic.Visitor {
-    override def src: TestIR = new TestIR {}
-    override def trg: TestIR = new TestIR {}
-  }
-
   def module(relations: Relation*): Module =
-    val typecheckerBefore = new TestIRTypechecker
-    val typecheckerAfter = new TestIRTypechecker
-    val lowering = new TestLowering
+    val typecheckerBefore = new IRTypechecker
+    val typecheckerAfter = new IRTypechecker
+    val lowering = new Lowering {}
 
     val mod = Module("M", BaseIR.language, relations)
     var lowered: Module = null
@@ -148,6 +141,41 @@ class LoweringTest extends AnyFunSuiteLike:
     assertResult
       (Call(demandRelationName("Q"), Seq(Var("x"))))
       (m2.relations("Q").bodies.head.atoms(1))
+
+  }
+
+  test("demand propagates through locals") {
+    val m1 = module(
+      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+        Call("R", Seq(Var("x1"), Var("y1"))),
+        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y"))
+      )))),
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+        Demand(Seq(Var("p1"), Var("p2")))
+      ))))
+    )
+    assertResult
+      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+      (m1.relations("R").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
+      (m1.relations("Q").bodies.head.atoms.head)
+
+//    val m2 = module(
+//      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+//        Eq(Var("y"), IntNum(1)),
+//        Call("R", Seq(Var("x"), Var("y")))
+//      )))),
+//      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+//        Demand(Seq(Var("p1"), Var("p2")))
+//      ))))
+//    )
+//    assertResult
+//      (Call(demandRelationName("R"), Seq(Var("p1"), Var("p2"))))
+//      (m2.relations("R").bodies.head.atoms.head)
+//    assertResult
+//      (Call(demandRelationName("Q"), Seq(Var("x"))))
+//      (m2.relations("Q").bodies.head.atoms(1))
 
   }
 

@@ -5,24 +5,23 @@ import inca.ir.util.Gensym
 import inca.ir.{Atom, BaseIR, Body, Call, Module, ModuleEntry, Param, Relation, Term, Var, name2string}
 import inca.ir.visitors.IRVisitor
 
-// TODO: Do we still need S and T ??
-trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
-  def src: S
-  def trg: T
+trait BaseLowering extends IRVisitor:
 
-  protected[ir] val gensym = new Gensym()
+  protected val gensym = new Gensym()
 
-  def loweredIRs: Set[BaseIR] = Set()
-
-  def addedIRs: Set[BaseIR] = Set()
+  def loweredIRs: Set[BaseIR]
+  def requiredIRs: Set[BaseIR]
 
   def lower(module: Module): Module = gensym.scoped {
-    if (!(module.lang ++ addedIRs).includes(trg.requires)) {
-//      throw new IllegalArgumentException(s"Module $module misses required features ${trg.requires.features}")
+    val loweredLang = module.lang -- loweredIRs
+    if (loweredLang.features.size == module.lang.features.size) {
+      // module does not use any features lowered here
+      module
+    } else {
+      val resultLang = loweredLang ++ requiredIRs
+      //println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
+      visit(module).copy(lang = resultLang)
     }
-    val loweredLang = (module.lang -- loweredIRs) ++ addedIRs // TODO: trg.requires
-    //println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
-    visit(Module(module.name, loweredLang, module.contents))
   }
 
   override def visit(module: Module): Module = {
@@ -57,4 +56,4 @@ trait BaseLowering[S <: BaseIR, T <: BaseIR] extends IRVisitor {
       super.visitTerm(term)
     case _ =>
       super.visitTerm(term)
-}
+

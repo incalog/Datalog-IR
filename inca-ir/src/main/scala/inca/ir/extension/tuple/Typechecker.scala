@@ -15,7 +15,7 @@ trait Typechecker extends BaseIRTypechecker:
       TTuple(tys1.zip(tys2).map(meet))
     case _ => super.meet(ty1, ty2)
 
-  override protected[ir] def inferTermExtend(term: Term, mode: Mode): TermType = term match {
+  protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match {
     case TupleLit(ts) =>
       val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Bound)) { case (tt, (tys, m)) =>
         val TermType(tty, ttm) = inferTerm(tt, mode)

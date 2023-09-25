@@ -8,15 +8,10 @@ import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
 
 import scala.collection.mutable.ListBuffer
 
-object Lowering:
-  def apply[S <: IR, T <: BaseIR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
+trait Lowering extends BaseLowering:
 
-trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
-
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+  override def loweredIRs: Set[BaseIR] = Set(IR)
+  override def requiredIRs: Set[BaseIR] = Set()
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match

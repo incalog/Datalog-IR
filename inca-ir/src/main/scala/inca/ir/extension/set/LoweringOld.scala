@@ -101,17 +101,10 @@ import inca.util.TupleOps
 
 import scala.collection.immutable
 
-object LoweringOld:
-  def apply[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.IR](srcIR: S, trgIR: T): LoweringOld[S, T] = new LoweringOld[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
 // This implements Proposal 1:
-trait LoweringOld[S <: IR, T <: BaseIR with disjunction.IR with block.IR with data.IR] extends BaseLowering[S, T]:
-  override def loweredIRs: immutable.Set[BaseIR] = super.loweredIRs ++ immutable.Set(IR)
-
-  override def addedIRs: Predef.Set[BaseIR] = super.addedIRs ++ immutable.Set(disjunction.IR, block.IR, data.IR)
+trait LoweringOld extends BaseLowering:
+  override val loweredIRs: immutable.Set[BaseIR] = Set(IR)
+  override val requiredIRs: Set[BaseIR] = Set(disjunction.IR, block.IR, data.IR)
 
   var setDefunWriteRelations: Seq[Relation] = Seq()
   var setDefunType: Option[Type] = None

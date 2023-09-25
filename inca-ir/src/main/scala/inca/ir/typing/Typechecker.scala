@@ -24,13 +24,14 @@ enum Mode:
     case Binding => Bound
     case Bound => Binding
   
-  def ||(that: Mode): Mode =
-    if (this == Binding || that == Binding)
-      Binding
-    else
-      Bound
+  def ||(that: Mode): Mode = this match
+    case Binding => Binding
+    case Bound => that
 
 enum VarMode:
   case Bound
   case Unbound
 
+  def &&(that: VarMode): VarMode = this match
+    case Bound => that
+    case Unbound => Unbound

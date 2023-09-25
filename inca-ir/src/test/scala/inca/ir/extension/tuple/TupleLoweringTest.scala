@@ -13,7 +13,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
 
   val baseIR: BaseIR = new BaseIR {}
   val tupleIR: IR = IR
-  val lowering = Lowering(tupleIR, baseIR)
+  val lowering = new Lowering {}
 
   test("Param lower to Base") {
     val typechecker: Typechecker = new Typechecker {}

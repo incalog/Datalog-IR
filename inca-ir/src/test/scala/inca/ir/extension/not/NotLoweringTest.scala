@@ -11,7 +11,7 @@ class NotLoweringTest extends AnyFunSuiteLike:
 
   val baseIR = new BaseIR {}
   val notIR: not.IR = IR
-  val lowering = Lowering(notIR, baseIR)
+  val lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")

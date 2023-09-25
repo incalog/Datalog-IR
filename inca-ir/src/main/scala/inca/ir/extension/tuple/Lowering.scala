@@ -9,17 +9,12 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
 object Lowering:
   val separator: String = "_"
-
-  def apply[S <: IR, T <: BaseIR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
 import Lowering.separator
 
-trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
+trait Lowering extends BaseLowering:
 
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(new IR {})
+  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val requiredIRs: Set[BaseIR] = Set()
 
   private def flatten(name: Name, typ: Type): Seq[(Name, Type)] = typ match {
     // TODO: Use gensym

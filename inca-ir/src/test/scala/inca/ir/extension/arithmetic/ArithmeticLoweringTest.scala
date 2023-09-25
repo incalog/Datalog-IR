@@ -22,8 +22,8 @@ class ArithmeticLoweringTest extends AnyFunSuiteLike:
     override def requires: Language = Language(IR)
   object Stage1IR extends Stage1IR {}
 
-  val stage1lowering = ScalaLowering(IR, Stage1IR)
-  val stage2lowering = block.Lowering(Stage1IR, ScalaIR)
+  val stage1lowering = ScalaLowering
+  val stage2lowering = new block.Lowering {}
 
   val typechecker = new Typechecker {}
 

@@ -10,7 +10,7 @@ trait Typechecker extends BaseIRTypechecker:
     case BoolAtom(t) => checkTerm(t, TBoolean, mode)
     case _ => super.checkAtom(atom, mode)
 
-  override def inferTermExtend(term: Term, mode: Mode): TermType = term match
+  protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case AtomAsBool(at: Atom) =>
       checkAtom(at, mode)
       TBoolean.closed

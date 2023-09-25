@@ -9,14 +9,9 @@ import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Var}
 
 import scala.collection.mutable.ListBuffer
 
-object Lowering:
-  def apply[S <: IR, T <: BaseIR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
-trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAnalysis:
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+trait Lowering extends BaseLowering with AdornmentAnalysis:
+  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val requiredIRs: Set[BaseIR] = Set()
 
   enum Phase:
     case AdornmentAnalysis
@@ -27,7 +22,7 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
   private var demandRules: Map[Name, ListBuffer[(Seq[Atom], Seq[Term])]] = Map()
   private def addDemandRule(rel: Name, prefix: Seq[Atom], inputArgs: Seq[Term]): Unit =
     demandRules(rel) += ((prefix, inputArgs))
-  private def demandRelations: Seq[Relation] =
+  private def deriveDemandRelations: Seq[Relation] =
     for ((rel, ruleBuf) <- demandRules.toSeq) yield {
       val rules = ruleBuf.toList
 
@@ -55,7 +50,7 @@ trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T] with AdornmentAn
     val m2 = super.visit(m1)
     phase = Phase.DeriveDemandRules
     val m3 = super.visit(m2)
-    val demandRels = demandRelations
+    val demandRels = deriveDemandRelations
     m3.copy(contents = m3.contents ++ demandRels)
   }
 

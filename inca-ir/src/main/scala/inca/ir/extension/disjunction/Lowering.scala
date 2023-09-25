@@ -7,14 +7,9 @@ import inca.ir.{Atom, BaseIR, Body}
 
 import scala.collection.mutable.ListBuffer
 
-object Lowering:
-  def apply[S <: IR, T <: BaseIR](srcIR: S, trgIR: T): Lowering[S, T] = new Lowering[S, T] {
-    override def src: S = srcIR
-    override def trg: T = trgIR
-  }
-
-trait Lowering[S <: IR, T <: BaseIR] extends BaseLowering[S, T]:
-  override def loweredIRs: Set[BaseIR] = super.loweredIRs ++ Set(IR)
+trait Lowering extends BaseLowering:
+  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val requiredIRs: Set[BaseIR] = Set()
 
   type Alternatives[A] = Seq[A]
   private var alternativeAtoms: Alternatives[Seq[Atom]] = Seq()
