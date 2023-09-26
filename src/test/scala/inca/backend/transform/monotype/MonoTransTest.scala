@@ -2,11 +2,16 @@ package inca.backend.transform.monotype
 
 import collection.mutable
 import scala.meta._
+import inca.frontend.ir.{EDBChange, Relation1, Relation2, Relation3, Datalog => DatalogAPI}
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.TScala
+import inca.backend.optimize.Optimization
+import inca.backend.transform.Transformation
+import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.runtime.aggregate.MonoAggregation
+import inca.runtime.context.DataModel
 
 case class CountMono() extends MonoAggregation[Map[String, Int], (String, Int), Int] {
   override val name: String = ""
@@ -122,7 +127,7 @@ class MonoTransTest extends AnyFunSuiteLike {
     lazy val pat1 : Datalog.Pattern = Datalog.Pattern(
       None,
       "size",
-      Seq(Datalog.Param("t", Datalog.TScalaString), Datalog.Param("m", Datalog.TScalaString)),
+      Seq(Datalog.Param("t", Datalog.TScalaString), Datalog.Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono")))),
       Seq(pat1Body1, pat1Body2)
     )
 
@@ -144,10 +149,10 @@ class MonoTransTest extends AnyFunSuiteLike {
       Datalog.Computed(Datalog.Var("b"), Datalog.Evaluation(
         Seq(
           Datalog.Var("m") -> TScala(Scala(t"inca.backend.transform.monotype.CountMono")),
-          Datalog.Var("tmp") -> TScala(Scala(t"Map[Int, String]"))
+          Datalog.Var("tmp") -> TScala(Scala(t"Map[String, Int]"))
         ),
         Datalog.TScalaInt,
-        Scala(q"(m : MonoAggregation[Map[String, Int], (String, Int), Int], tmp: Map[String, Int]) => m.result(st)")
+        Scala(q"(m : inca.backend.transform.monotype.CountMono, tmp: Map[String, Int]) => m.result(tmp)")
       ))
     ))
 
@@ -169,25 +174,30 @@ class MonoTransTest extends AnyFunSuiteLike {
     // input_size(l, m) :- btree(t, r, l), input_size(t, m)
     lazy val pat3Body2: Datalog.Body = Datalog.Body(Seq(
       Datalog.ExtensionalCall("btree", Seq(
-        Datalog.Var("t"), Datalog.Var("l"), Datalog.Var("r")
+        Datalog.Var("t"), Datalog.Var("r"), Datalog.Var("l")
       )),
       Datalog.Call("input_size", Seq(Datalog.Var("t"), Datalog.Var("m")))
+    ))
+
+    // input_size(t, m) :- input(t, m)
+    lazy val pat3Body3 : Datalog.Body = Datalog.Body(Seq(
+      Datalog.ExtensionalCall("input", Seq(Datalog.Var("l"), Datalog.Var("m")))
     ))
 
     lazy val pat3 : Datalog.Pattern = Datalog.Pattern(
       None,
       "input_size",
-      Seq(Datalog.Param("l", Datalog.TScalaString), Datalog.Param("m", Datalog.TScalaString)),
-      Seq(pat3Body1, pat3Body2)
+      Seq(Datalog.Param("l", Datalog.TScalaString), Datalog.Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono")))),
+      Seq(pat3Body1, pat3Body2, pat3Body3)
     )
 
     // Coll(m, v) :- leaf(t), v = (t, 1), input_size(t, m)
     lazy val pat4Body1 : Datalog.Body = Datalog.Body(Seq(
       Datalog.ExtensionalCall("leaf", Seq(Datalog.Var("t"))),
-      Datalog.Computed(Datalog.Var("a"), Datalog.Evaluation(
-        Seq(),
+      Datalog.Computed(Datalog.Var("v"), Datalog.Evaluation(
+        Seq(Datalog.Var("t") -> Datalog.TScalaString),
         Datalog.TScala(Scala(t"(String, Int)")),
-        Scala(q"() => (t, 1)")
+        Scala(q"(t : String) => (t, 1)")
       )),
       Datalog.Call("input_size", Seq(Datalog.Var("t"), Datalog.Var("m")))
     ))
@@ -195,11 +205,11 @@ class MonoTransTest extends AnyFunSuiteLike {
     // Coll(m, v) :- btree(t, l, r), v = (t, 1), size(l, m),
     //               size(r, m), inputSize(t, m)
     lazy val pat4Body2 : Datalog.Body = Datalog.Body(Seq(
-      Datalog.Call("btree", Seq(Datalog.Var("t"), Datalog.Var("l"), Datalog.Var("r"))),
-      Datalog.Computed(Datalog.Var("a"), Datalog.Evaluation(
-        Seq(),
+      Datalog.ExtensionalCall("btree", Seq(Datalog.Var("t"), Datalog.Var("l"), Datalog.Var("r"))),
+      Datalog.Computed(Datalog.Var("v"), Datalog.Evaluation(
+        Seq(Datalog.Var("t") -> Datalog.TScalaString),
         Datalog.TScala(Scala(t"(String, Int)")),
-        Scala(q"() => (t, 1)")
+        Scala(q"(t : String) => (t, 1)")
       )),
       Datalog.Call("size", Seq(Datalog.Var("l"), Datalog.Var("m"))),
       Datalog.Call("size", Seq(Datalog.Var("r"), Datalog.Var("m"))),
@@ -209,15 +219,50 @@ class MonoTransTest extends AnyFunSuiteLike {
     lazy val pat4 : Datalog.Pattern = Datalog.Pattern(
       None,
       "Coll",
-      Seq(Datalog.Param("m", Datalog.TScalaString), Datalog.Param("v", TScala(Scala(t"(String, Int)")))),
+      Seq(Datalog.Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono"))), Datalog.Param("v", TScala(Scala(t"(String, Int)")))),
       Seq(pat4Body1, pat4Body2)
     )
 
-    Datalog.Module("treeSize", Seq(), Seq(pat1, pat2, pat3, pat4), Seq())
+    Datalog.Module("Test", Seq(), Seq(pat1, pat2, pat3, pat4), Seq())
   }
 
+  lazy val compiledTreeSizeModule : CompiledModule = new CompiledModule {
+    override val options: Options = new Options {
+      override def optimizations: Seq[Optimization] = Seq()
+
+      override def transformations: Seq[Transformation] = Seq()
+
+      override def stopOnError: Boolean = true
+
+      override def stopOnWarning: Boolean = true
+
+      override def withOptimizations(opts: Seq[Optimization]): Options = ???
+
+      override def withTransformations(trans: Seq[Transformation]): Options = ???
+    }
+
+    override def name: Datalog.Name = "Test"
+
+    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
+    override def ir: Datalog.Module = treeSize2
+
+    override def dataModel: DataModel = new DataModel()
+  }
+
+  val m = new CountMono()
+
+  val edb : EDBChange = EDBChange.insertions(
+    Seq(
+      Relation3("btree", Seq("t", "l", "r"), Seq(Seq("A", "B", "C"), Seq("C", "D", "E"))),
+      Relation1("leaf", Seq("t"), Seq(Seq("B"), Seq("D"), Seq("E"))),
+      Relation2("input", Seq("node", "mono"), Seq(Seq("A", m)))
+    )
+  )
 
   test("Tree size") {
-    println(treeSize2)
+    val treeSizeDatalog : DatalogAPI = new DatalogAPI(compiledTreeSizeModule)
+    treeSizeDatalog.update(edb)
+    println(treeSizeDatalog.readAll)
   }
 }
