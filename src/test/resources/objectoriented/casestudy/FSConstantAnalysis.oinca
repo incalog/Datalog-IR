@@ -268,13 +268,13 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
 
     @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
-        manager.transferAll(from, this.body.first())
         manager.transferAll(from, this)
+        manager.transferAll(from, this.body.first())
 
-        for (l <- this.body.last()) yield
-            manager.transferAll(l, this.body.first())
         for (l2 <- this.body.last()) yield
             manager.transferAll(l2, this)
+        for (l <- this.body.last()) yield
+            manager.transferAll(l, this.body.first())
 
         return
     }
@@ -549,36 +549,39 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     }
 
     def run(): Unit = {
-        // Fill with BotConstant
-        // Gives out of memory currently if I comment this in. Add flags to add more memory and test again
-        /*for (e <- this.cfg; v <- this.varNames)
-            yield this.put(e._1, v, new BotConstant())
-        for (e2 <- this.cfg; v2 <- this.varNames)
-            yield this.put(e2._2, v2, new BotConstant())*/
-
         this.head.transfer(this.head, this)
-        fix this.iterate(this.head) // fix ?
+
+        //this.iterate(this.head)
+        this.iterate()
 
         // TODO: This is incorrect, we either need to iterate here or preserve the order
+        // Otherwise we might me missing intermediate results for the propagation
+        // Can't we just remove the stm key all together and only accumulate based on the var ?
         //for (edge <- this.cfg) yield
         //    edge._2.transfer(edge._1, this)
         return
     }
 
-    def step(from: Stm, to: Stm): Unit = {
+    def iterate(): Unit = {
+        for (e <- this.cfg)
+            yield e._2.transfer(e._1, this)
+        fix this.iterate()
+        return
+    }
+
+    /*def step(from: Stm, to: Stm): Unit = {
         to.transfer(from, this)
-        this.iterate(to) // fix ?
+        fix this.iterate(to) // fix
     }
 
     def iterate(from: Stm): Unit = {
         for (edge <- this.cfg if edge._1 == from)
-            yield this.step(edge._1, edge._2) // fix ?
+            yield this.step(edge._1, edge._2) // fix
         return
-    }
+    }*/
 
     @override
     def transferAll(from: Stm, to: Stm): Unit = {
-        // We could iterate over all vars here instead of the keys
         // this.after.keys()  this.put(to, y.`_2`, this.get(from, y.`_2`))
         for (y <- this.varNames) yield
             this.put(to, y, this.get(from, y))
@@ -589,42 +592,56 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
 
 class Examples {
     val factorial: Stm =
-    new Sequence(new ValDef("m", new Num(3)),
-    new Sequence(new Assign("m", new Num(3)),
-        new Sequence(new VarDef("n", new Num(5)),
-            new Sequence(new VarDef("acc", new Num(1)),
-                new While(
-                    new GT(new Var("n"), new Num(1)),
-                    new Sequence(
-                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
-                        new Assign("n", new Sub(new Var("n"), new Num(1)))
+        //new Sequence(new ValDef("m", new Num(3)),
+        //    new Sequence(new Assign("m", new Num(3)),
+                new Sequence(new VarDef("n", new Num(5)),
+                    new Sequence(new VarDef("acc", new Num(1)),
+                        new While(
+                            new GT(new Var("n"), new Num(1)),
+                            new Sequence(
+                                new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                                new Assign("n", new Sub(new Var("n"), new Num(1)))
+                            )
+                        )
                     )
+                )
+        //    )
+        //)
+
+    val assignments: Stm =
+        new Sequence(new ValDef("m", new Num(3)),
+            new Sequence(new Assign("m", new Num(2)),
+                new Sequence(
+                    new VarDef("n", new Num(5)),
+                    new VarDef("acc", new Num(1))
                 )
             )
         )
-    )
-    )
 }
 
 class ConstantAnalysis {
     @main
     def main(): Set[(String, String, String)] = {
+        // TODO: Automatically get all vars
+        val varNames: Set[String] = Set("n", "m", "acc")
+
         val examples: Examples = new Examples()
+        val prog: Stm = examples.factorial
 
         // Calculate CFG
-        val factorial: Stm = examples.factorial
-        val cgfVisitor: CfgVisitor = new CfgVisitor()
-        factorial.accept(cgfVisitor)
+        val cfgVisitor: CfgVisitor = new CfgVisitor()
+        prog.accept(cfgVisitor)
 
-        //return for (n <- cgfVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
+        //return for (n <- cfgVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
 
         // Do constant propagation
-        // TODO: Automatically get all vars
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(factorial.first(), cgfVisitor.cfgSet(), Set("n", "m", "acc"))
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), varNames)
         constantProp.run()
 
-        // By using result directly we force the aggregation to appear here. Somehow this fixes the double
-        // aggregation error.
-        (for (k <- constantProp.after.keys()) yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
+        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant]) yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
+
+        // Get the end result
+        //for (e <- prog.last(); v <- varNames)
+        //    yield (e.stringValue(), v, constantProp.after.get(`Tuple2.apply`(e, v)).stringValue())
     }
 }

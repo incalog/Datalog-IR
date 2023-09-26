@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.integration
 
-import inca.backend.optimize.EliminateNonproductiveRelations
+import inca.backend.optimize.{EliminateAliases, EliminateNonproductiveRelations, EvalFusion, InlineSimpleRelations}
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.backend.transform.objectoriented.{EclipseStructuralMutationTransformation, StructuralMutationTransformation}
 import inca.compiler.Compiler

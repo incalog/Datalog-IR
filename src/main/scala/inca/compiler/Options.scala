@@ -20,12 +20,12 @@ object Options {
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     EliminateNonproductiveRelations,
-    InlineSimpleRelations,
-    ConstantPropagation,
-    EliminateAliases,
-    EvalFusion,
+    //InlineSimpleRelations,
+    //ConstantPropagation,
+    //EliminateAliases,
+    //EvalFusion,
     InferVarTypes,
-    FoldConstantAtoms,
+    //FoldConstantAtoms,
     EliminateNonproductiveRelations
   )
 }

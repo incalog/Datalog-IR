@@ -931,7 +931,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         } else if (argRes.isEmpty) {
           val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: outVars)
           val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
-          return Seq((outVars, cons ++ call))
+
+          return if (isFix) {
+            if (methodDef.returnsUnit)
+              Seq((Seq(), Seq()), (outVars, cons ++ call))
+            else
+              throw new RuntimeException("Fixpoint iterations for none unit method are currently not supported.")
+          } else {
+            Seq((outVars, cons ++ call))
+          }
         }
 
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
@@ -984,8 +992,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           Seq((Seq(), Seq()), (terms, atoms))
         else
           throw new RuntimeException("Fixpoint iterations for none unit method are currently not supported.")
-      } else
+      } else {
         Seq((terms, atoms))
+      }
 
     case TypeCastExpr(recv, toTyp) =>
       for ((Seq(term), cons) <- transExpression(recv)) yield {

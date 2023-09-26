@@ -55,7 +55,8 @@ case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression], is
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"$recv.$fun($argsS)"
+    val fixPrefix = if (isFix) "fix " else ""
+    s"$fixPrefix$recv.$fun($argsS)"
   }
 }
 
