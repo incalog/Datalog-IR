@@ -1,6 +1,6 @@
 package inca.ir.extension.demand
 
-import inca.ir.Atom
+import inca.ir.{Atom, Param, TNothing, Term, Type}
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 
@@ -35,8 +35,17 @@ Q(x, y) :- demandHere(x), B(x, y), C(x, y).
  */
 
 trait Typechecker extends BaseIRTypechecker:
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Demand(ts) => ts.foreach(inferTerm(_, mode))
-    case _ => super.checkAtom(atom, mode)
-  
-  // TODO reject demand on unbound local variables
+  override def typecheckParam(param: Param): Unit = param.ty match
+    case TDemand(ty) =>
+      registerVar(param.name, param, ty)
+      bindVar(param.name)
+    case _ => super.typecheckParam(param)
+
+  override protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match
+    case (TDemand(t1), TDemand(t2)) => TDemand(meet(t1, t2))
+    case (TDemand(_), _) | (_, TDemand(_)) => TNothing
+    case _ => super.meet(ty1, ty2)
+
+  override def checkTerm(term: Term, expected: Type, mode: Mode): Mode = expected match
+    case TDemand(ty) => checkTerm(term, ty, Mode.Bound)
+    case _ => super.checkTerm(term, expected, mode)

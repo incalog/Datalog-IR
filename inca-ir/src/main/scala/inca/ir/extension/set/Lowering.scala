@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.block.Block
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
-import inca.ir.extension.demand.Demand
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
@@ -94,7 +94,7 @@ trait Lowering extends BaseLowering:
   private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (DataDefinition, Relation) =
     val dataName = dataNameOf(memTy)
     val relName = relNameOf(memTy)
-    val setParam = Param("$set", TData(dataName))
+    val setParam = Param("$set", TDemand(TData(dataName)))
     val elemParam = Param("$elem", memTy)
 
     val (cases, rules) = constructors.map { case SetConstructor(consName, caseVars, setEnum) =>
@@ -102,7 +102,6 @@ trait Lowering extends BaseLowering:
 
       val atoms = setEnum(elemParam.name)
       val rule = Body(
-        Demand(Var(setParam.name)) +:
         Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1))) +:
         atoms
       )

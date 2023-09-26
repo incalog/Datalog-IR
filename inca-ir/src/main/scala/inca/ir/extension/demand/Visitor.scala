@@ -8,6 +8,6 @@ import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case Demand(ts) => Seq(Demand(ts.flatMap(visitTerm)))
-    case _ => super.visitAtom(atom))
+  override def visitType(ty: Type): Type = ty match
+    case TDemand(ty) => preserveHints(ty)(TDemand(visitType(ty)))
+    case _ => super.visitType(ty)

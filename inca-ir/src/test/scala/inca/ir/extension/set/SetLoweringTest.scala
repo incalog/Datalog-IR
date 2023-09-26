@@ -6,7 +6,7 @@ import inca.ir.typing.{CompilationMessage, IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
-import inca.ir.extension.demand.Demand
+import inca.ir.extension.demand.TDemand
 import inca.ir.lowering.BaseLowering
 import inca.util.TupleOps
 
@@ -159,9 +159,8 @@ class SetLoweringTest extends AnyFunSuite {
 
   test("Set with arithmetic 2") {
     implicit val typechecker = new Typechecker {}
-    val mainRelation = Relation("main", Seq(Param("x", TSet(TInt)), Param("s", TSet(TInt))), Seq(
+    val mainRelation = Relation("main", Seq(Param("x", TDemand(TSet(TInt))), Param("s", TSet(TInt))), Seq(
       Body(Seq(
-        Demand(Seq(Var("x"))),
         Eq(Var("y"), IntNum(1)),
         Eq(Var("z"), SetLit(Seq(Var("y"), IntNum(2)))),
         Eq(Var("s"), SetUnion(Var("x"), SetUnion(Var("z"), SetLit.from(IntNum(0), IntNum(2))))),

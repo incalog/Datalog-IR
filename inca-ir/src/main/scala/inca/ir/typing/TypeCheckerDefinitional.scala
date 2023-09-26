@@ -41,6 +41,8 @@ object TypeCheckerDefinitional:
   import Boundness.*
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
+    case (TDemand(ty1), TDemand(ty2)) => assertComparable(ty1, ty2, t)
+    case (TDemand(_),_) | (_,TDemand(_)) => throw TypeError(s"Cannot compare demanded and undemanded types $ty and $outside")
     case (TAny,_) | (_, TAny) => // fine
     case  (_, TNothing) => throw TypeError(s"Expected type $outside, which cannot be inhabited by $t")
     case (TNothing, _) => throw TypeError(s"Expected type $outside, but $t has type $ty")
@@ -102,48 +104,53 @@ object TypeCheckerDefinitional:
   /**
    * @return (b, ctx) where ctx is the new context and b indicates if t
    */
-  def checkBinding(t: Term, ctx: Context, expected: Type): (Boundness, Context) = t match
-    case Var(x) => ctx.get(x.name) match
-      case Some((ty, b)) =>
-        assertComparable(ty, expected, t)
-        val cl = if (b == VarMode.Bound) Bound else Binding
-        (cl, ctx + (x.name -> (ty, VarMode.Bound)))
-      case None =>
-        (Binding, ctx + (x.name -> (expected, VarMode.Bound)))
-    case IntNum(n) =>
-      assertComparable(TInt, expected, t)
-      (Bound, ctx)
-    case Add(t1, t2) =>
-      checkBound(t1, ctx, TInt)
-      checkBound(t2, ctx, TInt)
-      assertComparable(TInt, expected, t)
-      (Bound, ctx)
-    case TupleLit(ts) => expected match
-      case TTuple(tys) if ts.size == tys.size =>
-        ts.zip(tys).foldLeft((Bound,ctx)) { case ((cl,c), (tt, tty)) =>
-          val (cl_, c_) = checkBinding(tt, c, tty)
-          (cl join cl_, c_)
-        }
-      case _ =>
-        val (tys, cl, c) = ts.foldLeft((List.empty[Type], Bound, ctx)) { case ((tys, cl, c), tt) =>
-          val (tty, cl_, c_) = inferBinding(tt, c)
-          (tys :+ tty, cl join cl_, c_)
-        }
-        assertComparable(TTuple(tys), expected, t)
-        (cl, c)
-    case SetLit(ts) =>
-      checkBound(t, ctx, expected)
-      (Bound, ctx)
-    case SetUnion(t1, t2) => expected match
-      case TSet(ty) =>
-        val (cl1, ctx1) = checkBinding(t1, ctx, expected)
-        val (cl2, ctx2) = checkBinding(t2, ctx1, expected)
-        (cl1 join cl2, ctx2)
-      case _ =>
-        assertComparable(TSet(TAny), expected, t)
-        val (cl1, ctx1) = checkBinding(t1, ctx, TSet(TAny))
-        val (cl2, ctx2) = checkBinding(t2, ctx, TSet(TAny))
-        (cl1 join cl2, ctx2)
+  def checkBinding(t: Term, ctx: Context, expected: Type): (Boundness, Context) =
+    expected match
+      case TDemand(ty) =>
+        checkBound(t, ctx, ty)
+        (Boundness.Bound, ctx)
+      case _ => t match
+        case Var(x) => ctx.get(x.name) match
+          case Some((ty, b)) =>
+            assertComparable(ty, expected, t)
+            val cl = if (b == VarMode.Bound) Bound else Binding
+            (cl, ctx + (x.name -> (ty, VarMode.Bound)))
+          case None =>
+            (Binding, ctx + (x.name -> (expected, VarMode.Bound)))
+        case IntNum(n) =>
+          assertComparable(TInt, expected, t)
+          (Bound, ctx)
+        case Add(t1, t2) =>
+          checkBound(t1, ctx, TInt)
+          checkBound(t2, ctx, TInt)
+          assertComparable(TInt, expected, t)
+          (Bound, ctx)
+        case TupleLit(ts) => expected match
+          case TTuple(tys) if ts.size == tys.size =>
+            ts.zip(tys).foldLeft((Bound,ctx)) { case ((cl,c), (tt, tty)) =>
+              val (cl_, c_) = checkBinding(tt, c, tty)
+              (cl join cl_, c_)
+            }
+          case _ =>
+            val (tys, cl, c) = ts.foldLeft((List.empty[Type], Bound, ctx)) { case ((tys, cl, c), tt) =>
+              val (tty, cl_, c_) = inferBinding(tt, c)
+              (tys :+ tty, cl join cl_, c_)
+            }
+            assertComparable(TTuple(tys), expected, t)
+            (cl, c)
+        case SetLit(ts) =>
+          checkBound(t, ctx, expected)
+          (Bound, ctx)
+        case SetUnion(t1, t2) => expected match
+          case TSet(ty) =>
+            val (cl1, ctx1) = checkBinding(t1, ctx, expected)
+            val (cl2, ctx2) = checkBinding(t2, ctx1, expected)
+            (cl1 join cl2, ctx2)
+          case _ =>
+            assertComparable(TSet(TAny), expected, t)
+            val (cl1, ctx1) = checkBinding(t1, ctx, TSet(TAny))
+            val (cl2, ctx2) = checkBinding(t2, ctx, TSet(TAny))
+            (cl1 join cl2, ctx2)
 
 
   def inferBound(t: Term, ctx: Context): Type = t match
@@ -217,7 +224,7 @@ object TypeCheckerDefinitional:
           case Success(ty2) => checkBound(t1, ctx, ty2); ctx
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomBound(at, ctx)
-    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferBinding(tt, c)._3 }
+//    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferBinding(tt, c)._3 }
     case SetMember(mem, s) =>
       val TSet(tty) = inferBoundSet(s, ctx)
       checkBinding(mem, ctx, tty)._2
@@ -244,7 +251,7 @@ object TypeCheckerDefinitional:
           case Success(ty2) => checkBinding(t1, ctx, ty2)._2
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomBinding(at, ctx)
-    case Demand(ts) => ts.foreach(tt => inferBound(tt, ctx)); ctx
+//    case Demand(ts) => ts.foreach(tt => inferBound(tt, ctx)); ctx
     case SetMember(mem, s) =>
       val TSet(tty) = inferBoundSet(s, ctx)
       checkBound(mem, ctx, tty)
@@ -253,8 +260,12 @@ object TypeCheckerDefinitional:
   def checkBody(b: Body, ctx: Context)(using Relations): Context =
     b.atoms.foldLeft(ctx) { (c, a) => checkAtomBinding(a, c) }
 
+  def checkParam(p: Param): (Type, VarMode) = p.ty match
+    case TDemand(ty) => (ty, VarMode.Bound)
+    case ty => (ty, VarMode.Unbound)
+
   def checkRelation(r: Relation)(using Relations): Unit =
-    val ctx = r.params.map(p => p.name.toString -> (p.ty, VarMode.Unbound)).toMap
+    val ctx = r.params.map(p => p.name.toString -> checkParam(p)).toMap
     r.bodies.foreach { b =>
       val ctxAfter = checkBody(b, ctx)
       r.params.foreach(p => ctxAfter(p.name.toString)._2 match

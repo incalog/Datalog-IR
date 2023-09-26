@@ -3,7 +3,7 @@ package inca.ir.typing
 import inca.ir.*
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.IntNum
-import inca.ir.extension.demand.Demand
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.not.Not
 import inca.ir.typing.TypeCheckerDefinitional
 import inca.ir.typing.TypeCheckerDefinitional.TypeError
@@ -187,17 +187,38 @@ class TypeCheckerDefinitionalTest extends AnyFunSuiteLike:
     )
   }
 
-  test("demand binds like a call") {
+  test("demand params") {
     module(
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
+      ))))
+    )
+
+    module(
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TAny)), Seq(Body(Seq(
+        Eq(Var("p1"), Var("p2"))
+      ))))
+    )
+
+    module(
+      Relation("R", Seq(Param("p1", TAny), Param("p2", TDemand(TAny))), Seq(Body(Seq(
+        Eq(Var("p1"), Var("p2"))
+      ))))
+    )
+
+    module(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(Body(Seq(
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
 
     assertThrows[TypeError] {
       module(
-        Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-          Not(Demand(Seq(Var("p1"), Var("p2"))))
+        Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+          Call("R", Seq(Var("x"), Var("y")))
+        )))),
+        Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
         ))))
       )
     }

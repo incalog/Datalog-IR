@@ -2,7 +2,7 @@ package inca.ir.extension.demand
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.IntNum
-import inca.ir.extension.demand.Demand
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, Typechecker}
@@ -25,7 +25,6 @@ class LoweringTest extends AnyFunSuiteLike:
       typecheckerAfter.typecheck(lowered)
       lowered
     } finally {
-      println(lowering.demandedParams)
       println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors
@@ -102,8 +101,7 @@ class LoweringTest extends AnyFunSuiteLike:
 
   test("demand binds like a call") {
     val dem = module(
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -113,11 +111,10 @@ class LoweringTest extends AnyFunSuiteLike:
 
   test("demand propagates") {
     val m1 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(Body(Seq(
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -128,12 +125,11 @@ class LoweringTest extends AnyFunSuiteLike:
       (m1.relations("Q").bodies.head.atoms.head)
 
     val m2 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(Body(Seq(
         Eq(Var("y"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -141,18 +137,19 @@ class LoweringTest extends AnyFunSuiteLike:
       (m2.relations("R").bodies.head.atoms.head)
     assertResult
       (Call(demandRelationName("Q"), Seq(Var("x"))))
-      (m2.relations("Q").bodies.head.atoms(1))
-
+      (m2.relations("Q").bodies.head.atoms.head)
+    assertResult
+      (Call(demandRelationName("Q"), Seq(Var("x"))))
+      (m2.relations(demandRelationName("R")).bodies.head.atoms.head)
   }
 
   test("demand propagates through locals") {
     val m1 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
-        Call("R", Seq(Var("x1"), Var("y1"))),
-        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y"))
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(Body(Seq(
+        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y")),
+        Call("R", Seq(Var("x1"), Var("y1")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -163,13 +160,12 @@ class LoweringTest extends AnyFunSuiteLike:
       (m1.relations("Q").bodies.head.atoms.head)
 
     val m2 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(Body(Seq(
         Eq(Var("y"), IntNum(1)),
-        Call("R", Seq(Var("x1"), Var("y1"))),
-        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y"))
+        Eq(Var("x1"), Var("x")), Eq(Var("y1"), Var("y")),
+        Call("R", Seq(Var("x1"), Var("y1")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -177,20 +173,19 @@ class LoweringTest extends AnyFunSuiteLike:
       (m2.relations("R").bodies.head.atoms.head)
     assertResult
       (Call(demandRelationName("Q"), Seq(Var("x"))))
-      (m2.relations("Q").bodies.head.atoms(1))
+      (m2.relations("Q").bodies.head.atoms.head)
 
   }
 
   test("demand propagates transitively") {
     val m1 = module(
-      Relation("P", Seq(Param("a", TAny)), Seq(Body(Seq(
+      Relation("P", Seq(Param("a", TDemand(TAny))), Seq(Body(Seq(
         Call("Q", Seq(Var("a"), Var("a")))
       )))),
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(Body(Seq(
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -209,11 +204,10 @@ class LoweringTest extends AnyFunSuiteLike:
         Eq(Var("a"), IntNum(1)),
         Call("Q", Seq(Var("a"), Var("a")))
       )))),
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(Body(Seq(
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -229,12 +223,11 @@ class LoweringTest extends AnyFunSuiteLike:
 
   test("demand propagates selectively") {
     val m1 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
       )),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -244,13 +237,31 @@ class LoweringTest extends AnyFunSuiteLike:
       (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
       (m1.relations("Q").bodies.head.atoms.head)
 
+    assertThrows[Failed](module( // y needs to be demanded
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(
+        Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
+        Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
+      )),
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
+      ))))
+    ))
+
+    assertThrows[Failed](module( // x needs to be demanded
+      Relation("Q", Seq(Param("x", TAny), Param("y", TDemand(TAny))), Seq(
+        Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
+        Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
+      )),
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
+      ))))
+    ))
+
+
     val m2 = module(
-      Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+      Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(IntNum(1), Var("x"))), Eq(Var("y"), IntNum(1)))),
       )),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
     assertResult
@@ -263,38 +274,36 @@ class LoweringTest extends AnyFunSuiteLike:
 
   test("demand propagates fork/join") {
     val dem = module(
-      Relation("P", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+      Relation("P", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(
         Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
         Body(Seq(Call("Q2", Seq(Var("x"), Var("y"))))),
       )),
-      Relation("Q1", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q1", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(Body(Seq(
         Eq(Var("y"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("Q2", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q2", Seq(Param("x", TAny), Param("y", TDemand(TAny))), Seq(Body(Seq(
         Eq(Var("x"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
 
     val dem2 = module(
-      Relation("P", Seq(Param("x", TAny), Param("y", TAny)), Seq(
+      Relation("P", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(
         Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
         Body(Seq(Call("Q2", Seq(Var("y"), Var("x"))))),
       )),
-      Relation("Q1", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q1", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(Body(Seq(
         Eq(Var("y"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("Q2", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(
+      Relation("Q2", Seq(Param("x", TAny), Param("y", TDemand(TAny))), Seq(Body(Seq(
         Eq(Var("x"), IntNum(1)),
         Call("R", Seq(Var("x"), Var("y")))
       )))),
-      Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Demand(Seq(Var("p1"), Var("p2")))
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
     )
   }

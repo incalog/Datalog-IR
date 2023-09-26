@@ -36,9 +36,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   def typecheck(relation: Relation): Unit = {
     // bind parameters
-    relation.params.foreach { param =>
-      registerVar(param.name, param, param.ty)
-    }
+    relation.params.foreach(typecheckParam)
     relation.bodies.foreach(b => scopedTypeContext {
       typecheck(b)
       relation.params.foreach { p =>
@@ -46,17 +44,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           error(s"Parameter $p is not positively bound in relation \"${relation.name}\", body \n$b")
       }
     })
-
   }
+
+  def typecheckParam(param: Param): Unit =
+    registerVar(param.name, param, param.ty)
 
   def typecheck(body: Body): Unit =
     body.atoms.foreach(at => checkAtom(at, Mode.Binding))
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
     if (meet(ty, outside) == TNothing)
-      error(s"Expected type $outside, which cannot be inhabited by $t")
+      error(s"$t of type $ty is not comparable to $outside")
 
-  final def checkTerm(term: Term, expected: Type, mode: Mode): Mode =
+  def checkTerm(term: Term, expected: Type, mode: Mode): Mode =
     assignType(term) {
       val cl = checkTermExtend(term, expected, mode)
       TermType(expected, cl)
