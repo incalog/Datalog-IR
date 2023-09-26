@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.extension.{arithmetic, not}
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.not.Not
-import inca.ir.typing.{BaseIRTypechecker, Typechecker}
+import inca.ir.typing.{BaseIRTypechecker, TypeErrorException, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class NotBoundednessTest extends AnyFunSuiteLike:
@@ -16,7 +16,7 @@ class NotBoundednessTest extends AnyFunSuiteLike:
     mod
 
   test("not call requires bound arguments") {
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with not.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(

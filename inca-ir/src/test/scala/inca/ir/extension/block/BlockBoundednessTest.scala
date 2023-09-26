@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, block, not}
-import inca.ir.typing.{BaseIRTypechecker, Typechecker}
+import inca.ir.typing.{BaseIRTypechecker, TypeErrorException, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class BlockBoundednessTest extends AnyFunSuiteLike:
@@ -37,7 +37,7 @@ class BlockBoundednessTest extends AnyFunSuiteLike:
   }
 
   test("eq block binds contained terms 2") {
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with block.Typechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
@@ -46,7 +46,7 @@ class BlockBoundednessTest extends AnyFunSuiteLike:
       )
     }
 
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with block.Typechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(

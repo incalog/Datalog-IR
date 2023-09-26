@@ -21,13 +21,14 @@ object Scala:
   case class Var(x: String) extends Term:
     override def toString: String = x
 
-  trait Literal[T](x: T) extends Term:
-    override def toString: String = x.toString
+  trait Literal[T] extends Term:
+    val value: T
+    override def toString: String = value.toString
 
-  case class BoolLiteral(x: Boolean) extends Literal[Boolean](x)
-  case class IntLiteral(x: Int) extends Literal[Int](x)
-  case class DoubleLiteral(x: Double) extends Literal[Double](x)
-  case class StringLiteral(x: String) extends Literal[String](x)
+  case class BoolLiteral(value: Boolean) extends Literal[Boolean]
+  case class IntLiteral(value: Int) extends Literal[Int]
+  case class DoubleLiteral(value: Double) extends Literal[Double]
+  case class StringLiteral(value: String) extends Literal[String]
 
   // TODO: Fill the signature
   case class Id(x: String) extends Term:

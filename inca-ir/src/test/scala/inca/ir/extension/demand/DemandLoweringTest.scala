@@ -5,12 +5,12 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, demand, not}
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, Typechecker}
+import inca.ir.typing.{BaseIRTypechecker, TypeErrorException, IRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.immutable.MultiDict
 
-class LoweringTest extends AnyFunSuiteLike:
+class DemandLoweringTest extends AnyFunSuiteLike:
   def module(relations: Relation*): Module =
     val typecheckerBefore = new IRTypechecker
     val typecheckerAfter = new IRTypechecker
@@ -99,7 +99,7 @@ class LoweringTest extends AnyFunSuiteLike:
     assert(m2.relations.size == 2)
   }
 
-  test("demand binds like a call") {
+  test("demand type annotation") {
     val dem = module(
       Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
       ))))
@@ -237,7 +237,7 @@ class LoweringTest extends AnyFunSuiteLike:
       (Call(demandRelationName("Q"), Seq(Var("x"), Var("y"))))
       (m1.relations("Q").bodies.head.atoms.head)
 
-    assertThrows[Failed](module( // y needs to be demanded
+    assertThrows[TypeErrorException](module( // y needs to be demanded
       Relation("Q", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
@@ -246,7 +246,7 @@ class LoweringTest extends AnyFunSuiteLike:
       ))))
     ))
 
-    assertThrows[Failed](module( // x needs to be demanded
+    assertThrows[TypeErrorException](module( // x needs to be demanded
       Relation("Q", Seq(Param("x", TAny), Param("y", TDemand(TAny))), Seq(
         Body(Seq(Call("R", Seq(Var("x"), IntNum(1))), Eq(Var("y"), IntNum(1)))),
         Body(Seq(Call("R", Seq(Var("y"), IntNum(1))), Eq(Var("x"), IntNum(1)))),
@@ -292,6 +292,23 @@ class LoweringTest extends AnyFunSuiteLike:
 
     val dem2 = module(
       Relation("P", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(
+        Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
+        Body(Seq(Call("Q2", Seq(Var("y"), Var("x"))))),
+      )),
+      Relation("Q1", Seq(Param("x", TDemand(TAny)), Param("y", TAny)), Seq(Body(Seq(
+        Eq(Var("y"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("Q2", Seq(Param("x", TAny), Param("y", TDemand(TAny))), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Call("R", Seq(Var("x"), Var("y")))
+      )))),
+      Relation("R", Seq(Param("p1", TDemand(TAny)), Param("p2", TDemand(TAny))), Seq(Body(Seq(
+      ))))
+    )
+
+    module(
+      Relation("P", Seq(Param("x", TDemand(TAny)), Param("y", TDemand(TAny))), Seq(
         Body(Seq(Call("Q1", Seq(Var("x"), Var("y"))))),
         Body(Seq(Call("Q2", Seq(Var("y"), Var("x"))))),
       )),

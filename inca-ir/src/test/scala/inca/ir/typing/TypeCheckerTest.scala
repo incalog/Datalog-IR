@@ -28,7 +28,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   test("unbound param") {
     implicit val typechecker = new BaseIRTypechecker { }
-    assertThrows[Failed](
+    assertThrows[TypeErrorException](
       module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq()))))
     )
   }
@@ -45,7 +45,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   test("unbound param 2") {
     implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
-    assertThrows[Failed](
+    assertThrows[TypeErrorException](
       module(Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Eq(Var("p1"), IntNum(1))
       )))))
@@ -61,19 +61,19 @@ class TypeCheckerTest extends AnyFunSuiteLike:
   }
 
   test("unbound variable in neq test") {
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
         Neq(Var("x"), Var("y"))
       )))))
     }
-    assertThrows[Failed]{
+    assertThrows[TypeErrorException]{
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
         Neq(IntNum(0), Var("y"))
       )))))
     }
-    assertThrows[Failed]{
+    assertThrows[TypeErrorException]{
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
         Neq(Var("x"), IntNum(0))
@@ -96,7 +96,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
   }
 
   test("neg call requires bound arguments") {
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
@@ -106,7 +106,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       )
     }
 
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
@@ -118,7 +118,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
   }
 
   test("not inverts variable closing") {
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with not.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
@@ -172,7 +172,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       ))))
     )
 
-    assertThrows[Failed] {
+    assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with demand.Typechecker {}
       module(
         Relation("Q", Seq(Param("x", TAny), Param("y", TAny)), Seq(Body(Seq(

@@ -1,11 +1,11 @@
 package inca.ir.typing
 
 
-import inca.ir.Failed
-
 import scala.collection.mutable.ListBuffer
 import inca.ir.typing.CompilationMessage.Severity
 import inca.ir.util.SourceLocation
+
+case class TypeErrorException(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
 case class CompilationMessage(msg: String, sourceLocations: Seq[SourceLocation], severity: Severity):
   override def toString: String =
@@ -42,7 +42,7 @@ trait TypeIO:
   def failOnError(): Unit = {
     val errors = getErrors
     if (errors.nonEmpty)
-      throw Failed(errors)
+      throw TypeErrorException(errors)
   }
 
   def withErrors[A](f: => A): (A, List[CompilationMessage]) =
