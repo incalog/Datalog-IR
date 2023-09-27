@@ -180,8 +180,8 @@ class Assign(val name: String, val rhs: Exp) extends Stm {
 
     @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
-        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
         manager.transferAll(from, this)
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
     }
 }
 class Skip extends Stm {
@@ -293,8 +293,8 @@ class ValDef(val name: String, val rhs: Exp) extends Stm {
 
     @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
-        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
         manager.transferAll(from, this)
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
     }
 }
 class VarDef(val name: String, val rhs: Exp) extends Stm {
@@ -311,8 +311,8 @@ class VarDef(val name: String, val rhs: Exp) extends Stm {
 
     @override
     def transfer(from: Stm, manager: ValueManager): Unit = {
-        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
         manager.transferAll(from, this)
+        manager.put(this, this.name, this.rhs.aevalConst(manager, from))
     }
 }
 
@@ -549,9 +549,11 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     }
 
     def run(): Unit = {
-        this.head.transfer(this.head, this)
+        //this.head.transfer(this.head, this)
+        //this.head.transfer(new Skip(), this)
+        // TODO: Find a way to do this automatically
+        this.put(this.head, "n", new SomeConstant(5))
 
-        //this.iterate(this.head)
         this.iterate()
 
         return
@@ -564,20 +566,8 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         return
     }
 
-    /*def step(from: Stm, to: Stm): Unit = {
-        to.transfer(from, this)
-        fix this.iterate(to) // fix
-    }
-
-    def iterate(from: Stm): Unit = {
-        for (edge <- this.cfg if edge._1 == from)
-            yield this.step(edge._1, edge._2) // fix
-        return
-    }*/
-
     @override
     def transferAll(from: Stm, to: Stm): Unit = {
-        // this.after.keys()  this.put(to, y.`_2`, this.get(from, y.`_2`))
         for (y <- this.varNames) yield
             this.put(to, y, this.get(from, y))
         return
@@ -604,14 +594,20 @@ class Examples {
         //)
 
     val assignments: Stm =
-        new Sequence(new ValDef("m", new Num(3)),
+        new Sequence(new VarDef("m", new Num(3)),
             new Sequence(new Assign("m", new Num(2)),
                 new Sequence(
                     new VarDef("n", new Num(5)),
-                    new VarDef("acc", new Num(1))
+                    new ValDef("acc", new Num(1))
                 )
             )
         )
+
+    /*val assignments: Stm =
+        new Sequence(
+            new ValDef("n", new Num(5)),
+            new ValDef("acc", new Num(1))
+        )*/
 }
 
 class ConstantAnalysis {
@@ -627,10 +623,15 @@ class ConstantAnalysis {
         val cfgVisitor: CfgVisitor = new CfgVisitor()
         prog.accept(cfgVisitor)
 
+        //val cfgSet: Set[(Stm, Stm)] = for (l <- prog.last()) yield (prog.first(), l)
+        //return for (n <- cfgSet) yield ("", n._1.stringValue(), n._2.stringValue())
         //return for (n <- cfgVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
 
+        // Add a dummy node to make the first iteration work... This does not work for Datalog why ?
+        val cfgSet: Set[(Stm, Stm)] = cfgVisitor.cfgSet() //++ Set((new Skip(), prog.first()))
+
         // Do constant propagation
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), varNames)
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgSet, varNames)
         constantProp.run()
 
         (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant]) yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))

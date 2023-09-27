@@ -875,7 +875,19 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         }
       } else {
         val argRes = args.map(e => transExpression(e))
-        val (constructedVar, constrComp) = createObject(classDef.name.raw, classDef.typ)
+        val (constructedVar, constrComp) = if (classDef.isDefunAuxiliary) {
+          // TODO: This is problematic for cases such as:
+          //  Set(a, 1, 2) and Set(a, 3, 4), since they would be represented by the same object when defunctionalized
+          //  Or worse: Is this the same set Set(1,2,3) and Set(2,3,4) or are these different classes ?
+          val primaryConstructor = classDef.constructors.filter(_.isPrimary).head
+          val constructorArgs = primaryConstructor.params.zip(argRes).flatMap {
+            case (p, a) =>
+              val (terms, _) = a.unzip
+              terms.map(t => (p.name.raw, p.typ, t))
+          }
+          createCaseClassObject(classDef.name.raw, classDef.typ, constructorArgs)
+        } else
+          createObject(classDef.name.raw, classDef.typ)
         val constrName = constructorPatName(classRef.name.raw) + constructorDef.signature
 
         // create single call constraint when no arguments are passed

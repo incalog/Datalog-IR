@@ -104,7 +104,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val constrBody = fields.map { f =>
       FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head)
     }
-    val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
+    val constr = ConstructorDef(Seq(PrimaryAnnotation), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux" + Type.suffix(typ)))
     val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
     auxClassDefs += clazz
