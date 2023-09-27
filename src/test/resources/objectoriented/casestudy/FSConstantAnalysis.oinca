@@ -552,8 +552,11 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         //this.head.transfer(this.head, this)
         //this.head.transfer(new Skip(), this)
         // TODO: Find a way to do this automatically
-        this.put(this.head, "n", new SomeConstant(5))
-
+        // this.put(this.head, "n", new SomeConstant(5))
+        val start: Stm = new Skip()
+        for (v <- this.varNames) yield
+            this.put(start, v, new BotConstant())
+        this.head.transfer(start, this)
         this.iterate()
 
         return
@@ -562,7 +565,7 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
-        fix this.iterate()
+        // fix this.iterate()
         return
     }
 
@@ -603,11 +606,11 @@ class Examples {
             )
         )
 
-    /*val assignments: Stm =
+    val simpelAssignments: Stm =
         new Sequence(
             new ValDef("n", new Num(5)),
             new ValDef("acc", new Num(1))
-        )*/
+        )
 }
 
 class ConstantAnalysis {
@@ -617,7 +620,7 @@ class ConstantAnalysis {
         val varNames: Set[String] = Set("n", "m", "acc")
 
         val examples: Examples = new Examples()
-        val prog: Stm = examples.assignments
+        val prog: Stm = examples.factorial
 
         // Calculate CFG
         val cfgVisitor: CfgVisitor = new CfgVisitor()
@@ -641,3 +644,4 @@ class ConstantAnalysis {
         //    yield (e.stringValue(), v, constantProp.after.get(`Tuple2.apply`(e, v)).stringValue())
     }
 }
+

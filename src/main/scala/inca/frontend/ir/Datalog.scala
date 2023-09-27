@@ -77,7 +77,11 @@ class Datalog(compiled: CompiledModule) {
   def read(input: Relation): Relation = {
     val pattern = compiled.psystemModule.patterns.getOrElse(input.name, return UnitRelation(input.name))
     val specification: Specification = pattern()
+
+    val start = System.nanoTime()
     val matcher: Query.Matcher = specification.getMatcher(engine)
+    val diff = System.nanoTime() - start
+    println(s"Execution time ${diff.toDouble / 1000 / 1000 / 1000} s")
     val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
 
     val output =

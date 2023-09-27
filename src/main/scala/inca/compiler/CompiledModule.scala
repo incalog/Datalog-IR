@@ -100,8 +100,8 @@ trait CompiledModule {
   lazy val psystemSource: meta.Source = {
     val source = GeneratePSystem.compileModule(optimized)(Map())
     if (CompilerFlags.DEBUGMODE) {
-      println("\nPSystem")
-      println(source.syntax)
+//      println("\nPSystem")
+//      println(source.syntax)
     }
     source
   }
