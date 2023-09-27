@@ -554,11 +554,6 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         //this.iterate(this.head)
         this.iterate()
 
-        // TODO: This is incorrect, we either need to iterate here or preserve the order
-        // Otherwise we might me missing intermediate results for the propagation
-        // Can't we just remove the stm key all together and only accumulate based on the var ?
-        //for (edge <- this.cfg) yield
-        //    edge._2.transfer(edge._1, this)
         return
     }
 
@@ -626,7 +621,7 @@ class ConstantAnalysis {
         val varNames: Set[String] = Set("n", "m", "acc")
 
         val examples: Examples = new Examples()
-        val prog: Stm = examples.factorial
+        val prog: Stm = examples.assignments
 
         // Calculate CFG
         val cfgVisitor: CfgVisitor = new CfgVisitor()
