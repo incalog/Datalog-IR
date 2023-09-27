@@ -13,24 +13,15 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.runtime.aggregate.MonoAggregation
 import inca.runtime.context.DataModel
 
-case class CountMono() extends MonoAggregation[Map[String, Int], (String, Int), Int] {
+
+case class CountMono() extends MonoAggregation[Int, (String, Int), Int] {
   override val name: String = ""
 
-  override def init: Map[String, Int] = Map[String, Int]()
+  override def init: Int = 0
 
-  override def add(m : Map[String, Int], p : (String, Int)) : Map[String, Int] = {
-    if (m.contains(p._1)) {
-      for ((k, v) <- m) yield {
-        if (k != p._1) (k, v) else (k, m(p._1) + 1)
-      }
-    } else{
-      m + p
-    }
-  }
+  override def add(st : Int, a : (String, Int)) : Int = st + 1
 
-  override def result(st : Map[String, Int]) : Int = {
-    st.foldLeft(0)((size, kv) => size + kv._2)
-  }
+  override def result(st : Int) : Int = st
 }
 
 class MonoTransTest extends AnyFunSuiteLike {
@@ -149,10 +140,10 @@ class MonoTransTest extends AnyFunSuiteLike {
       Datalog.Computed(Datalog.Var("b"), Datalog.Evaluation(
         Seq(
           Datalog.Var("m") -> TScala(Scala(t"inca.backend.transform.monotype.CountMono")),
-          Datalog.Var("tmp") -> TScala(Scala(t"Map[String, Int]"))
+          Datalog.Var("tmp") -> Datalog.TScalaInt
         ),
         Datalog.TScalaInt,
-        Scala(q"(m : inca.backend.transform.monotype.CountMono, tmp: Map[String, Int]) => m.result(tmp)")
+        Scala(q"(m : inca.backend.transform.monotype.CountMono, tmp: Int) => m.result(tmp)")
       ))
     ))
 
@@ -250,7 +241,7 @@ class MonoTransTest extends AnyFunSuiteLike {
     override def dataModel: DataModel = new DataModel()
   }
 
-  val m = new CountMono()
+  val m: CountMono = CountMono()
 
   val edb : EDBChange = EDBChange.insertions(
     Seq(
