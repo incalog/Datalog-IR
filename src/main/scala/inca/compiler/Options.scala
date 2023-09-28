@@ -26,6 +26,7 @@ object Options {
     //EvalFusion,
     InferVarTypes,
     FoldConstantAtoms,
-    EliminateNonproductiveRelations
+    EliminateNonproductiveRelations,
+    ExtractLargeBodies
   )
 }
