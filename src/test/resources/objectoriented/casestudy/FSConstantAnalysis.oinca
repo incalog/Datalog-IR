@@ -561,6 +561,7 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
+        // Comment in this line to compute the correct fixpoint using the interpreter
         // fix this.iterate()
         return
     }
@@ -576,21 +577,17 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
 
 class Examples {
     val factorial: Stm =
-        //new Sequence(new ValDef("m", new Num(3)),
-        //    new Sequence(new Assign("m", new Num(3)),
-                new Sequence(new VarDef("n", new Num(5)),
-                    new Sequence(new VarDef("acc", new Num(1)),
-                        new While(
-                            new GT(new Var("n"), new Num(1)),
-                            new Sequence(
-                                new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
-                                new Assign("n", new Sub(new Var("n"), new Num(1)))
-                            )
-                        )
+        new Sequence(new VarDef("n", new Num(5)),
+            new Sequence(new VarDef("acc", new Num(1)),
+                new While(
+                    new GT(new Var("n"), new Num(1)),
+                    new Sequence(
+                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                        new Assign("n", new Sub(new Var("n"), new Num(1)))
                     )
                 )
-        //    )
-        //)
+            )
+        )
 
     val assignments: Stm =
         new Sequence(new VarDef("m", new Num(3)),
@@ -602,7 +599,7 @@ class Examples {
             )
         )
 
-    val simpelAssignments: Stm =
+    val simpleAssignments: Stm =
         new Sequence(
             new ValDef("n", new Num(5)),
             new ValDef("acc", new Num(1))
@@ -622,15 +619,8 @@ class ConstantAnalysis {
         val cfgVisitor: CfgVisitor = new CfgVisitor()
         prog.accept(cfgVisitor)
 
-        //val cfgSet: Set[(Stm, Stm)] = for (l <- prog.last()) yield (prog.first(), l)
-        //return for (n <- cfgSet) yield ("", n._1.stringValue(), n._2.stringValue())
-        //return for (n <- cfgVisitor.cfgSet()) yield ("", n._1.stringValue(), n._2.stringValue())
-
-        // Add a dummy node to make the first iteration work... This does not work for Datalog why ?
-        val cfgSet: Set[(Stm, Stm)] = cfgVisitor.cfgSet() //++ Set((new Skip(), prog.first()))
-
         // Do constant propagation
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgSet, varNames)
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), varNames)
         constantProp.run()
 
         (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
