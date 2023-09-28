@@ -549,10 +549,6 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     }
 
     def run(): Unit = {
-        //this.head.transfer(this.head, this)
-        //this.head.transfer(new Skip(), this)
-        // TODO: Find a way to do this automatically
-        // this.put(this.head, "n", new SomeConstant(5))
         val start: Stm = new Skip()
         for (v <- this.varNames) yield
             this.put(start, v, new BotConstant())
@@ -637,11 +633,8 @@ class ConstantAnalysis {
         val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgSet, varNames)
         constantProp.run()
 
-        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant]) yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
-
-        // Get the end result
-        //for (e <- prog.last(); v <- varNames)
-        //    yield (e.stringValue(), v, constantProp.after.get(`Tuple2.apply`(e, v)).stringValue())
+        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
+            yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
     }
 }
 

@@ -1,10 +1,14 @@
 module SetFold
 
-class A {
+class Base {
 
 }
 
-class Num {
+class A extends Base {
+
+}
+
+class Num extends Base {
   var value: Int
   var a: A
 
