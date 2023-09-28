@@ -290,12 +290,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
-    val unCoalescingPattern =
-      if (!classDef.isDefunAuxiliary)
-        Seq(generateConstructorCoalesced(classDef), generateConstructorUncoalesced(classDef))
-      else
-        Seq()
-
     val clsPattern = classDef.content.flatMap {
       case field: FieldDef if !classDef.isCaseClass =>
         Seq(transField(classDef, field))
@@ -306,9 +300,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
-      case _ => Seq() // Member methods are handled in dynamic dispatch translation
+      case _ => // Member methods are handled in dynamic dispatch translation
+        Seq()
     }
-    (clsPattern ++ unCoalescingPattern)
+    if (!classDef.isDefunAuxiliary)
+      clsPattern :+ generateConstructorCoalesced(classDef) :+ generateConstructorUncoalesced(classDef)
+    else
+      clsPattern
   }
 
   private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -414,7 +412,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val fields = classDef.fields.flatMap {
       case FieldDef(_, _, Name(name), ty, _, _) if ty.asSet.isDefined =>
-        println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
+        println(s"WARNING: Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
         None
       case f => Some(f)
     }
@@ -1175,7 +1173,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val compCon = Datalog.Computed(foldVar, aggregation)
 
         aggType.flatten(aggIndex) match {
-          case td@TClass(ClassRef(clsName)) =>
+          case TClass(ClassRef(clsName)) =>
             val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
             val uncoalesce = Datalog.Call(uncoalescedPatName(clsName.raw), Seq(foldVar, foldVarUncoalesced))
             (Seq(foldVarUncoalesced), projCons.flatten :+ compCon :+ uncoalesce)

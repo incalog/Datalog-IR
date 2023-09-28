@@ -1,11 +1,13 @@
 package inca.backend.optimize
 import inca.backend.ir.Datalog.{Body, Call, Module, Pattern, Var}
 import inca.runtime.context.DataModel
-import inca.util.{Gensym, Scala}
+import inca.util.Gensym
 
 // If a pattern has too many atoms, the generated Java Method for the pattern will exceed 65535 bytes. To prevent this
 // issue, we limit pattern to a total of 600 atoms. If a pattern contains more than 600 atoms, bodies will be outlined
 // to new relations, until the pattern contains less than 600 atoms.
+// Note: You should execute this optimization after all other optimization are applied. This is a last resort to
+//       workaround a limitation in the JVM.
 // Note: This optimization does not consider pattern with a single body that has more than 600 atoms.
 object ExtractLargeBodies extends Optimization {
   // The maximum number of atoms a pattern can contain
@@ -16,8 +18,7 @@ object ExtractLargeBodies extends Optimization {
 
     override def optimizeModule(module: Module): Module = {
       val patNames = module.pats.map(_.name)
-      gensym.register(it = patNames)
-
+      gensym.register(patNames)
       super.optimizeModule(module)
     }
 
