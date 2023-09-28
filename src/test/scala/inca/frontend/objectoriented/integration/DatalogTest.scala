@@ -14,6 +14,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class DatalogTest extends AnyFunSuite {
   def options: ObjectOptions = ObjectOptions(
     //transformations = ObjectOptions.defaultTransformations(EclipseStructuralMutationTransformation)
+    transformations = ObjectOptions.defaultTransformations(StructuralMutationTransformation)
   ) //  Seq(DeriveDemandPatterns, DemandTransformation))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {

@@ -3,7 +3,14 @@ import inca.backend.ir.Datalog.{Body, Call, Module, Pattern, Var}
 import inca.runtime.context.DataModel
 import inca.util.{Gensym, Scala}
 
+// If a pattern has too many atoms, the generated Java Method for the pattern will exceed 65535 bytes. To prevent this
+// issue, we limit pattern to a total of 600 atoms. If a pattern contains more than 600 atoms, bodies will be outlined
+// to new relations, until the pattern contains less than 600 atoms.
+// Note: This optimization does not consider pattern with a single body that has more than 600 atoms.
 object ExtractLargeBodies extends Optimization {
+  // The maximum number of atoms a pattern can contain
+  val maxNumAtoms = 600
+
   override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
     val gensym = new Gensym(Seq.empty)
 
@@ -17,29 +24,23 @@ object ExtractLargeBodies extends Optimization {
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val Pattern(vis, name, params, bodies) = pat
 
-      val maxNumAtoms = 600
-      var bodiesBySize = bodies.sortBy(_.atoms.size)
-      var numAtoms = bodies.map(_.atoms.size).sum
+      // Partition bodies by threshold
+      val remainingBodies :: groupedBodies = bodies.sortBy(_.atoms.size).foldLeft(Seq(Seq.empty[Body])) {
+        case (acc, body) =>
+          val currentBin = acc.last
+          val currentBinSize = currentBin.map(_.atoms.size).sum
+          val bodySize = body.atoms.size
 
-      var extractedBodies: Seq[Body] = Seq()
-      while (numAtoms > maxNumAtoms) {
-        val (head :: tail) = bodiesBySize
-        numAtoms -= head.atoms.size
-        bodiesBySize = tail
-        extractedBodies :+= head
+          if (currentBinSize + bodySize <= maxNumAtoms)
+            acc.init :+ (currentBin :+ body)
+          else
+            acc :+ Seq(body)
       }
 
-      if (extractedBodies.nonEmpty) {
-        val extractedPatternName = gensym.fresh(name)
-        val callExtractedPatternBody = Body(Seq(
-          Call(extractedPatternName, params.map(p => Var(p.name)))
-        ))
-
-        val newPat = Pattern(vis, extractedPatternName, params, extractedBodies)
-        optimizePattern(newPat) :+ Pattern(vis, name, params, bodiesBySize :+ callExtractedPatternBody)
-      } else {
-        Seq(pat)
-      }
+      val newPattern = groupedBodies.map(bs => Pattern(vis, gensym.fresh(name), params, bs))
+      val paramArgs = params.map(p => Var(p.name))
+      val newBodies = newPattern.map(p => Body(Seq(Call(p.name, paramArgs))))
+      newPattern :+ Pattern(vis, name, params, remainingBodies ++ newBodies)
     }
   }
 }

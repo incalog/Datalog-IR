@@ -343,11 +343,17 @@ object TestDefinition {
 
   def fsConstantAnalysis: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    // TODO: Fix expected output
+
     TestDefinition("FSConstantAnalysis", "ConstantAnalysis", "main", Seq(), SetResult(
-      /*TupleResult("m", "SomeConstant(3)"),
-      TupleResult("n", "NoConstant"),
-      TupleResult("acc", "NoConstant")*/
+      TupleResult("VarDef(n, Num(5))", "n", "SomeConstant(5)"),
+      TupleResult("VarDef(acc, Num(1))", "n", "SomeConstant(5)"),
+      TupleResult("VarDef(acc, Num(1))", "acc", "SomeConstant(1)"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "n", "NoConstant"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "acc", "NoConstant"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "n", "NoConstant"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "acc", "NoConstant"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "n", "NoConstant"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "acc", "NoConstant")
     ))
   }
 
