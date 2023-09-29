@@ -243,4 +243,8 @@ class DatalogTest extends AnyFunSuite {
   test("Flow-insensitive SignAnalysis") {
     performTests(fiSignAnalysis)
   }
+
+  test("Flow-sensitive Sign Analysis") {
+    performTests(fsSignAnalysis)
+  }
 }

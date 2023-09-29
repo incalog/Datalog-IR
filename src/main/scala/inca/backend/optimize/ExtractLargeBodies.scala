@@ -41,7 +41,7 @@ object ExtractLargeBodies extends Optimization {
       val newPattern = groupedBodies.map(bs => Pattern(vis, gensym.fresh(name), params, bs))
       val paramArgs = params.map(p => Var(p.name))
       val newBodies = newPattern.map(p => Body(Seq(Call(p.name, paramArgs))))
-      newPattern :+ Pattern(vis, name, params, remainingBodies ++ newBodies)
+      Pattern(vis, name, params, remainingBodies ++ newBodies) +: newPattern
     }
   }
 }

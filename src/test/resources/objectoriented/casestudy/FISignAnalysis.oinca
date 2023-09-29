@@ -243,6 +243,7 @@ class Visitor {
 case class MSign extends BalancedMonotone[MSign, MSign] {
     @static
     def init(): MSign = { new BotSign() }
+
     @static
     def join(c1: MSign, c2: MSign): MSign = { c1.joined(c2) }
 
@@ -275,17 +276,17 @@ case class TopSign extends MSign {
 case class PosSign extends MSign {
     @override
 	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[PosSign]) this else new TopSign()
+		if (that.isInstanceOf[PosSign] || that.isInstanceOf[BotSign]) this else new TopSign()
 	}
 
     @override
 	def add(that: MSign): MSign = {
-        if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+        if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign]) this else new TopSign()
     }
 
     @override
     def sub(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+		if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign]) this else new TopSign()
     }
 
     @override
@@ -303,24 +304,24 @@ case class PosSign extends MSign {
 case class NegSign extends MSign {
     @override
 	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[NegSign]) this else new TopSign()
+		if (that.isInstanceOf[NegSign] || that.isInstanceOf[BotSign]) this else new TopSign()
 	}
 
     @override
 	def add(that: MSign): MSign = {
-        if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+        if (that.isInstanceOf[NegSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign]) this else new TopSign()
     }
 
     @override
     def sub(that: MSign): MSign = {
-		if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign]) this else new TopSign()
+		if (that.isInstanceOf[PosSign] || that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign]) this else new TopSign()
     }
 
     @override
     def mul(that: MSign): MSign = {
 		if (that.isInstanceOf[NegSign])
 			new PosSign()
-		else if (that.isInstanceOf[PosSign])
+		else if (that.isInstanceOf[PosSign] || that.isInstanceOf[BotSign])
 			this
 		else if (that.isInstanceOf[ZeroSign])
 			that
@@ -335,7 +336,7 @@ case class NegSign extends MSign {
 case class ZeroSign extends MSign {
     @override
 	def joined(that: MSign): MSign = {
-		if (that.isInstanceOf[ZeroSign]) this else new TopSign()
+		if (that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign]) this else new TopSign()
 	}
 
     @override
@@ -347,7 +348,7 @@ case class ZeroSign extends MSign {
 			new PosSign()
 		else if (that.isInstanceOf[PosSign])
 			new NegSign()
-		else if (that.isInstanceOf[ZeroSign])
+		else if (that.isInstanceOf[ZeroSign] || that.isInstanceOf[BotSign])
 			this
 		else
 			new TopSign()

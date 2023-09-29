@@ -268,6 +268,10 @@ class InterpreterTest extends AnyFunSuite {
     performTests(fsConstantAnalysis)
   }
 
+  test("Flow-sensitive Sign Analysis") {
+    performTests(fsSignAnalysis)
+  }
+
  /* test("Path measurement") {
     performTests(pathMeasurementTest)
   }

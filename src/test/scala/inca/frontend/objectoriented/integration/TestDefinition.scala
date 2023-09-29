@@ -365,6 +365,22 @@ object TestDefinition {
     ))
   }
 
+  def fsSignAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+
+    TestDefinition("FSSignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
+      TupleResult("VarDef(n, Num(5))", "n", "Pos"),
+      TupleResult("VarDef(acc, Num(1))", "n", "Pos"),
+      TupleResult("VarDef(acc, Num(1))", "acc", "Pos"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "n", "Top"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "acc", "Top"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "n", "Top"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "acc", "Top"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "n", "Top"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "acc", "Top")
+    ))
+  }
+
   def primitiveMonotone: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     TestDefinition("PrimitiveMonotone", "Example", "main", Seq(), SetResult())
