@@ -395,7 +395,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value + that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -404,7 +404,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value - that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -413,7 +413,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value * that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -425,7 +425,7 @@ case class SomeConstant(val value: Int) extends MConstant {
             else
                 new SomeConstant(0)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -562,7 +562,7 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
         // Comment in this line to compute the correct fixpoint using the interpreter
-        // fix this.iterate()
+        fix this.iterate()
         return
     }
 
