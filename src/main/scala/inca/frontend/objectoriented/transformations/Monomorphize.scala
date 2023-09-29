@@ -214,6 +214,28 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   }
 
 
+  private def generateMonomorphicVersionNames(): Unit = {
+    polymorphicClassDef.foreach{
+      case (name,classDef) =>
+        polymorphicClassDefWithConcreteTypes.getOrElse(name, Seq()).foreach{tyArgs =>
+          val monoName = monomorphName(name,tyArgs)
+          polymorphicToMonomorphic(name -> tyArgs) = monoName
+        }
+    }
+    polymorphicMethodDef.foreach{
+      case ((clsName,name), methodDef) =>
+        polymorphicMethodDefWithConcreteTypes.getOrElse((clsName,name),Seq()).foreach{tyArgs =>
+          val monoName = monomorphName(name,tyArgs)
+          polymorphicToMonomorphic(name -> tyArgs) = monoName
+          //doesn`t matter if method with same name in other class since it well get same monoName if used with same tyArgs
+        }
+    }
+  }
+
+  private def monomorphName(name: Name, typeArgs: Seq[Type]): Name =
+    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(_.prettyprint).mkString))
+
+
 
   /*
   private def collectModuleContent(): Unit = {
