@@ -81,12 +81,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = Monomorphize.transformModule(ssaModule)
 
     if (CompilerFlags.DEBUGMODE) {
-      println("\nDefun Module")
+      println("\nMonomorph Module")
       println(module)
 
       if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("\nDefun Module - AST")
+        println("\nMonomorph Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }

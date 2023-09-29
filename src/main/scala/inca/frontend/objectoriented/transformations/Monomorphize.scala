@@ -208,9 +208,37 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     // make sure the class name is unique
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
-    val transClasses = classes.flatMap(transClass)
     collectTypeApplications()
+    // generate names of monomorphic versions
+    generateMonomorphicVersionNames()
+    // TODO generate monomorphic versions of ClassDefs & MethodDefs and replace their usages (e.g. by overriding methods like transClassInternal)
+    val transClasses = classes.flatMap {
+      case classDef@ClassDef(annos, vis, name, genericTypeParams, parentClassRefs, content) if classDef.isGeneric => transClass(classDef)
+      case classDef@ClassDef(annos, vis, name, genericTypeParams, parentClassRefs, content) => Seq(classDef)
+    }
     Module(name, imports, transClasses)
+  }
+
+  override private[transformations] def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
+    val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
+    val tyArgsSeq = polymorphicClassDefWithConcreteTypes(name).distinct
+
+    val classDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
+      tyArgs =>
+        val monoName = polymorphicToMonomorphic(name, tyArgs)
+        // val subst = typeParams.map(_.name).zip(tyArgs).toMap
+
+        val newContent = content.flatMap(c => transContent(c, classDef))
+
+        // TODO necessary ?
+//        val parentClasses = parents.map { c =>
+//          val tname = TName(c.name)
+//          tname.tyArgs = c.tyArgs
+//          tname
+//        }
+        ClassDef(annos, vis, monoName, Seq(), parents, newContent)
+    }
+    classDefs.toSeq
   }
 
 
@@ -227,7 +255,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         polymorphicMethodDefWithConcreteTypes.getOrElse((clsName,name),Seq()).foreach{tyArgs =>
           val monoName = monomorphName(name,tyArgs)
           polymorphicToMonomorphic(name -> tyArgs) = monoName
-          //doesn`t matter if method with same name in other class since it well get same monoName if used with same tyArgs
+          //doesn`t matter if method with same name in other class since it will get same monoName if used with same tyArgs
         }
     }
   }
