@@ -37,6 +37,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   var polymorphicClassDefWithConcreteTypes: Map[Name, mutable.ArrayBuffer[Seq[Type]]] = Map[Name, mutable.ArrayBuffer[Seq[Type]]]()
   var polymorphicMethodDefWithConcreteTypes: Map[(Name,Name), mutable.ArrayBuffer[Seq[Type]]] = Map[(Name,Name), mutable.ArrayBuffer[Seq[Type]]]()
 
+  private var subst: mutable.Map[Name, Type] = mutable.Map[Name, Type]() // maps generic parameters to types
 
     private def collectTypeApplications(): Unit = {
 
@@ -184,21 +185,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     case TSet(ty) => isMonomorphic(ty)
   }
 
-  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
-    val MethodDef(annos, vis, name, genericTypeParams, params, outType, body) = methodDef
-
-    val newParams = transParams(params)
-    val newBody = transStatements(body)
-    val newOutTypes = transType(outType)
-    Seq(methodDef)
-  }
-
-  override def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
-    val ClassDef(annos, vis, name, genericTypeParams, parentClassRefs, content) = classDef
-    Seq(classDef)
-  }
-
-
   override def transExpressionInternal(expression: Expression): Seq[Expression] = super.transExpressionInternal(expression)
 
 
@@ -226,7 +212,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     val classDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
       tyArgs =>
         val monoName = polymorphicToMonomorphic(name, tyArgs)
-        // val subst = typeParams.map(_.name).zip(tyArgs).toMap
+        subst = mutable.Map(typeParams.map(_.name).zip(tyArgs):_*)
 
         val newContent = content.flatMap(c => transContent(c, classDef))
 
@@ -239,6 +225,56 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         ClassDef(annos, vis, monoName, Seq(), parents, newContent)
     }
     classDefs.toSeq
+  }
+
+  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
+    val MethodDef(annos, vis, name, genericTypeParams, params, outType, body) = methodDef
+
+    if (genericTypeParams.isEmpty) {
+      return Seq(methodDef)
+    }
+
+    val tyArgsSeq = polymorphicMethodDefWithConcreteTypes((classDef.name,name)).distinct
+
+    val methodDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
+      tyArgs =>
+        val monoName = polymorphicToMonomorphic(name, tyArgs)
+        subst ++= mutable.Map(genericTypeParams.map(_.name).zip(tyArgs):_*)
+
+        val newParams = transParams(params)
+        val newBody = transStatements(body)
+
+        MethodDef(annos, vis, monoName, genericTypeParams, newParams, transType(outType), newBody)
+    }
+    methodDefs.toSeq
+  }
+
+  // TODO transExpressionInternal
+
+  // TODO finish transTypeInternal or fix subst (= map defined above)
+  override private[transformations] def transTypeInternal(typ: Type): Type = {
+    typ match {
+      case TAny => TAny
+      case TNull => TNull
+      case TTuple(ts) => TTuple(ts.map(transType))
+      case TSet(ty) => TSet(transType(ty))
+      case TScala(ty) => TScala(ty)
+      case TName(name) =>
+        if (subst.contains(name)){
+          subst(name)
+        }
+        //val newName = polymorphicToMonomorphic.getOrElse(name,name)
+        val ty = TName(name)
+        ty.tyArgs = typ.tyArgs
+        ty
+      case tcls@TClass(TName(name)) =>
+        if (subst.contains(name)) {
+          subst(name)
+        }
+        val ty = TClass(TName(name))
+        ty.tyParams = tcls.tyParams.map(transType)
+        ty
+    }
   }
 
 
