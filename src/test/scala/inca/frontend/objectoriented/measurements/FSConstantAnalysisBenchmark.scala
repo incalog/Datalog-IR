@@ -2,7 +2,8 @@ package inca.frontend.objectoriented.measurements
 
 import inca.compiler.Compiler
 import inca.frontend.ir.Relation
-import inca.frontend.objectoriented.compiler.ObjectOptions
+import inca.frontend.objectoriented
+import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
 import inca.frontend.objectoriented.core.{ClassDef, ClassRef, Expression, FieldDef, Module, Name, SetExpr, TClass, TScalaString, TSet}
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
@@ -39,9 +40,23 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     header +: rows
   }
 
-  /*private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
+  private def insertProgIntoMudoule(mod: Module, numAssigns: Int, numWhiles: Int): Module = {
+    val astProg = GenerateWhileLanguageProg.generateProgramAst(numAssigns, numWhiles)
+    val varSetExpr = GenerateWhileLanguageProg.generateVarSetExr(numAssigns, numWhiles)
+    val classes = mod.classes.filter(_.name.raw != "Examples")
+    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
+      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
+      FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true)
+    ))
+    Module(mod.name, mod.imports, classes :+ exampleClass)
+  }
+
+  private def measureDatalog(c: FSConfig, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
-    val module = Compiler.compileObject(code, options)
+    val parsed = objectoriented.parser.Parser.parse(code)
+
+    val mod = insertProgIntoMudoule(parsed, c.numAssign, c.numWhiles)
+    val module = CompiledObjectModule(mod, options)
 
     //println(MetricUtils.printStatistics(module.optimized))
     //System.exit(1)
@@ -49,7 +64,7 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("ProgEntry", "main", edb, args:_*)
+      datalog.measure("ConstantAnalysis", "main", edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -69,26 +84,15 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
       System.exit(1)*/
 
       //val start = System.nanoTime()
-      val diff = datalog.measure("ProgEntry", "main", edb, args:_*)
+      val diff = datalog.measure("ConstantAnalysis", "main", edb, args:_*)
       //val diff = System.nanoTime() - start
-      println("diff: " + diff.toDouble/1000000d)
+      println("diff: " + diff.toDouble/1000000000d)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
 
       diff
     }
-  }*/
-
-  private def insertProgIntoMudoule(mod: Module, numAssigns: Int, numWhiles: Int): Module = {
-    val astProg = GenerateWhileLanguageProg.generateProgramAst(numAssigns, numWhiles)
-    val varSetExpr = GenerateWhileLanguageProg.generateVarSetExr(numAssigns, numWhiles)
-    val classes = mod.classes.filter(_.name.raw != "Examples")
-    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
-      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
-      FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true)
-    ))
-    Module(mod.name, mod.imports, classes :+ exampleClass)
   }
 
   private def measureInterpreter(c: FSConfig, prog: String, edb: Map[String, Value], args: Seq[Value]): IndexedSeq[Long] = {
@@ -146,6 +150,14 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     }
 
     val prog = progFolder + s"FSConstantAnalysis.oinca"
+
+    // You probably don't want to run this, since this is way to slow
+    //  TODO: Hand optimize the Datalog code
+    // OODL - Datalog
+    /*val datalogMeasurements = for (c <- configs) yield {
+      c.numWhiles -> measureDatalog(c, prog, Seq(), Seq())
+    }
+    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))*/
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
