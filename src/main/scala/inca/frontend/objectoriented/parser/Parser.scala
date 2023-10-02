@@ -303,9 +303,9 @@ trait Parser {
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
+      constructorExpr |
       setExpr |
       setComprehensionExpr |
-      constructorExpr |
       variableReadExpr |
       baseLitExpr |
       baseApplyExpr
