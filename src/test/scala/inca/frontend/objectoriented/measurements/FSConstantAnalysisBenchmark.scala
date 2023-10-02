@@ -141,7 +141,7 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
   }
 
   def run(): Unit = {
-    val configs = for (i <- 1 to 10 by 1) yield {
+    val configs = for (i <- 4 to 20 by 4) yield {
       FSConfig(warmups, runs, s"FSConstant", 10, i)
     }
 
