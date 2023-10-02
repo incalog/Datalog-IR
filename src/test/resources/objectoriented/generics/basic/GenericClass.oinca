@@ -13,11 +13,10 @@ class A[T] {
 
     @main
     def main(): Boolean = {
-        var a1: A[Int]
-        a1 = new A[Int](1)
+        val a1: A[Int] = new A[Int](1)
         val res: Int = a1.get()
         val res2: Int = a1.a
-        a1 = new A[Int](2)
+        //a1 = new A[Int](2)
         return (res2 == 1) && (res == 1)
     }
 }

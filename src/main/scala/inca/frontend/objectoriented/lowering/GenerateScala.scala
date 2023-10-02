@@ -45,6 +45,7 @@ class GenerateScala {
 
   def transType(t: Type): MetaType = t match {
     case TClass(ref) => MetaType.Name(ref.name.raw)
+    case TName(ref) => MetaType.Name(ref.raw)
     case TAny =>  t.asScala
     case TTuple(ts) =>
       if (ts.nonEmpty)

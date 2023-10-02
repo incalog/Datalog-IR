@@ -63,9 +63,11 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         Seq((classDef.name,genTypes))
 
          */
+
         println(polymorphicClassDefWithConcreteTypes)
         println(polymorphicMethodDefWithConcreteTypes)
       }
+
 
       def collectMethodDef(classDef: ClassDef, methodDef: MethodDef): Unit = {
         if (methodDef.isGeneric){
@@ -97,16 +99,35 @@ class Monomorphize(val module: Module) extends ModuleLowering {
               polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(tyArgs))
             }
           }
+          // TODO fix problem with inheritance chain where middle class is not in polymorphicClassDefWithConcreteTypes
+          //    maybe problem here
+          classDef.parentClassRefs.foreach { tname =>
+            if (tname.tyArgs.nonEmpty) {
+              val newSuperTyArgs = tname.tyArgs.map{ arg =>
+                if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
+                  val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
+                  tyArgs(index)
+                }
+              }
+              if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == tname.name)) {
+                polymorphicClassDefWithConcreteTypes(tname.name).append(tname.tyArgs)
+              }
+              else {
+                polymorphicClassDefWithConcreteTypes += (tname.name -> mutable.ArrayBuffer(tname.tyArgs))
+              }
+            }
+          }
+
         case SuperExpr(args) =>
           args.foreach(collectExpression(_))
-        case MethodCallExpr(recv, fun, tyArgs, args, isFix) =>
+        case MethodCallExpr(recv, funName, tyArgs, args, isFix) =>
           collectExpression(recv)
           if (tyArgs.nonEmpty){
-            if (polymorphicMethodDefWithConcreteTypes.keys.exists(_ == (classDef.name,fun))) {
-              polymorphicMethodDefWithConcreteTypes(classDef.name,fun).append(tyArgs)
+            if (polymorphicMethodDefWithConcreteTypes.keys.exists(_ == (classDef.name,funName))) {
+              polymorphicMethodDefWithConcreteTypes(classDef.name,funName).append(tyArgs)
             }
             else {
-              polymorphicMethodDefWithConcreteTypes += ((classDef.name,fun) -> mutable.ArrayBuffer(tyArgs))
+              polymorphicMethodDefWithConcreteTypes += ((classDef.name,funName) -> mutable.ArrayBuffer(tyArgs))
             }
 
           }
@@ -207,7 +228,10 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 
   override private[transformations] def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
     val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
-    val tyArgsSeq = polymorphicClassDefWithConcreteTypes(name).distinct
+    val tyArgsSeq = polymorphicClassDefWithConcreteTypes.getOrElse(name,Seq()).distinct
+
+    if (tyArgsSeq.isEmpty)
+      return Seq(classDef)
 
     val classDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
       tyArgs =>
@@ -222,7 +246,26 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 //          tname.tyArgs = c.tyArgs
 //          tname
 //        }
-        ClassDef(annos, vis, monoName, Seq(), parents, newContent)
+
+        val newParents = parents.flatMap { tname =>
+          val tyArgsSuper = polymorphicClassDefWithConcreteTypes.getOrElse(tname.name,Seq()).distinct
+          //          val temp = tname.tyArgs.map {
+          //            case TName(n) => subst(n)
+          //          }
+          val tnames: Seq[TName] = tyArgsSuper.map { tyArs =>
+            tname.tyArgs = tyArs
+            //TName(polymorphicToMonomorphic(tname.name,tyArs))
+            ///TName(monomorphName(tname.name,tyArs))
+            transType(tname) match {
+              case tn@TName(_) => tn
+              case _ => throw new Exception("expected TName")
+            }
+            //tname
+          }.toSeq
+          tnames
+        }
+
+        ClassDef(annos, vis, monoName, Seq(), newParents, newContent)
     }
     classDefs.toSeq
   }
@@ -230,26 +273,98 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
     val MethodDef(annos, vis, name, genericTypeParams, params, outType, body) = methodDef
 
-    if (genericTypeParams.isEmpty) {
-      return Seq(methodDef)
+    val tyArgsSeqClass = polymorphicClassDefWithConcreteTypes(classDef.name).distinct
+
+    val tyArgsSeq = polymorphicMethodDefWithConcreteTypes.getOrElse((classDef.name,name),Seq()).distinct
+
+    val methodDefs = { // TODO refactor
+      var monoName = name
+
+
+      val methodDefsTemp = tyArgsSeq.map {
+        tyArgs =>
+          monoName = polymorphicToMonomorphic(name, tyArgs)
+          subst ++= mutable.Map(genericTypeParams.map(_.name).zip(tyArgs): _*) // TODO test scoping ....
+
+          val newParams = transParams(params)
+          val newBody = transStatements(body)
+          val newOutType = transType(outType)
+
+          MethodDef(annos, vis, monoName, Seq(), newParams, newOutType, newBody)
+      }
+
+      val newParams = transParams(params)
+      val newBody = transStatements(body)
+      val newOutType = transType(outType)
+
+      println("#### " + name)
+      println(newOutType)
+
+      methodDefsTemp :+ MethodDef(annos, vis, monoName, Seq(), newParams, newOutType, newBody)
     }
-
-    val tyArgsSeq = polymorphicMethodDefWithConcreteTypes((classDef.name,name)).distinct
-
-    val methodDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
-      tyArgs =>
-        val monoName = polymorphicToMonomorphic(name, tyArgs)
-        subst ++= mutable.Map(genericTypeParams.map(_.name).zip(tyArgs):_*)
-
-        val newParams = transParams(params)
-        val newBody = transStatements(body)
-
-        MethodDef(annos, vis, monoName, genericTypeParams, newParams, transType(outType), newBody)
-    }
-    methodDefs.toSeq
+    methodDefs.toSeq.distinct
   }
 
   // TODO transExpressionInternal
+  override private[transformations] def transExpressionInternal(expression: Expression): Seq[Expression] = Seq(expression match {
+    case FieldReadExpr(recv, targetName) =>
+      FieldReadExpr(transExpression(recv).head, targetName)
+    case VarReadExpr(targetName) =>
+      VarReadExpr(targetName)
+    case constr@ConstructorExpr(n@TName(name), tyArgs, args) =>
+      n.tyArgs = tyArgs
+      val newName = transType(n) match {
+        case newN@TName(_) => newN
+        case _ => throw new Exception("expected TName in Constructor")
+      }
+      newName.tyArgs = Seq()
+      val newConstr = ConstructorExpr(newName, Seq(), transExpressions(args))
+      newConstr.tyParams = constr.tyParams.map(transType)
+      newConstr
+    case SuperExpr(args) =>
+      SuperExpr(transExpressions(args))
+    case MethodCallExpr(recv, funName, tyArgs, args, isFix) =>
+      val newName = polymorphicToMonomorphic.getOrElse((funName,tyArgs),funName)
+      MethodCallExpr(transExpression(recv).head, newName, Seq(), transExpressions(args), isFix)
+    case TypeCastExpr(recv, toTyp) =>
+      TypeCastExpr(transExpression(recv).head, transType(toTyp))
+    case InstanceOfExpr(recv, ofTyp) =>
+      InstanceOfExpr(transExpression(recv).head, transType(ofTyp))
+    case TupleExpr(exps) =>
+      TupleExpr(transExpressions(exps))
+    case TupleReadExpr(recv, index) =>
+      TupleReadExpr(transExpression(recv).head, index)
+    case SetExpr(exps, tty) =>
+      SetExpr(transExpressions(exps), if (tty.isDefined) Some(transType(tty.get)) else None)
+    case SetMemberExpr(name, recv, predicate) =>
+      val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
+      SetMemberExpr(name, transExpression(recv).head, pred)
+    case SetFold(recv, projection, TName(name), method, neutral) =>
+      SetFold(transExpression(recv).head, transExpressions(projection), TName(name), method, transExpression(neutral).head)
+    case SetComprehension(exps, body) =>
+      SetComprehension(transExpressions(exps), transExpression(body).head)
+    case BaseApplyExpr(fun, args) =>
+      BaseApplyExpr(fun, transExpressions(args))
+    case BaseApplyInfixExpr(left, op, right) =>
+      BaseApplyInfixExpr(transExpression(left).head, op, transExpression(right).head)
+    case BaseApplyMethodExpr(recv, method, args) =>
+      val argsOptions =
+        if (args.isEmpty)
+          None
+        else
+          Some(transExpressions(args.get))
+      BaseApplyMethodExpr(transExpression(recv).head, method, argsOptions)
+    case BaseApplyUnaryExpr(op, exp) =>
+      BaseApplyUnaryExpr(op, transExpression(exp).head)
+    case NullExpr() =>
+      NullExpr()
+    case BaseLitExpr(code) =>
+      BaseLitExpr(code)
+    case SetFromEdb(edbName, tty) =>
+      SetFromEdb(edbName, transType(tty))
+    case expr =>
+      throw new RuntimeException(s"Can not transform expression: $expr")
+  })
 
   // TODO finish transTypeInternal or fix subst (= map defined above)
   override private[transformations] def transTypeInternal(typ: Type): Type = {
@@ -261,19 +376,31 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       case TScala(ty) => TScala(ty)
       case TName(name) =>
         if (subst.contains(name)){
-          subst(name)
+          return subst(name)
         }
-        //val newName = polymorphicToMonomorphic.getOrElse(name,name)
-        val ty = TName(name)
-        ty.tyArgs = typ.tyArgs
-        ty
+        else if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
+          val newName = polymorphicToMonomorphic(name,typ.tyArgs)
+          return TName(newName)
+        }
+        else {
+          //val newName = polymorphicToMonomorphic.getOrElse(name,name)
+          val ty = TName(name)
+          ty.tyArgs = typ.tyArgs
+          return ty
+        }
       case tcls@TClass(TName(name)) =>
         if (subst.contains(name)) {
-          subst(name)
+          return subst(name)
         }
-        val ty = TClass(TName(name))
-        ty.tyParams = tcls.tyParams.map(transType)
-        ty
+        else if (polymorphicToMonomorphic.contains((name, typ.tyArgs))) {
+          val newName = polymorphicToMonomorphic(name, typ.tyArgs)
+          return TName(newName)
+        }
+        else {
+          val ty = TClass(TName(name))
+          ty.tyParams = tcls.tyParams.map(transType)
+          return ty
+        }
     }
   }
 

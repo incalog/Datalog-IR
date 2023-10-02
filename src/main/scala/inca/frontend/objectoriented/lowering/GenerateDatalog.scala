@@ -1315,7 +1315,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TNull | TClass(_) => GP_URI
+    case TNull | TClass(_) | TName(_) => GP_URI   //TODO TName correct here???
     case TScala(ty) => Datalog.TScala(ty)
     case TSet(ty) => transType(ty)
     // Note: Most of the times we want to flatten the tuple, but for monotones we expect this to work
