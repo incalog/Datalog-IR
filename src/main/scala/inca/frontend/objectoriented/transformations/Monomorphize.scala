@@ -99,21 +99,22 @@ class Monomorphize(val module: Module) extends ModuleLowering {
               polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(tyArgs))
             }
           }
-          // TODO fix problem with inheritance chain where middle class is not in polymorphicClassDefWithConcreteTypes
-          //    maybe problem here
-          classDef.parentClassRefs.foreach { tname =>
-            if (tname.tyArgs.nonEmpty) {
-              val newSuperTyArgs = tname.tyArgs.map{ arg =>
-                if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
-                  val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
-                  tyArgs(index)
+          // TODO refactor ?
+          if (classRef.classDef.isDefined) {
+            classRef.classDef.get.parentClassRefs.foreach { parentTname =>
+              if (parentTname.tyArgs.nonEmpty) {
+                val newSuperTyArgs = parentTname.tyArgs.map { arg =>
+                  if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
+                    val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
+                    tyArgs(index)
+                  }
                 }
-              }
-              if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == tname.name)) {
-                polymorphicClassDefWithConcreteTypes(tname.name).append(tname.tyArgs)
-              }
-              else {
-                polymorphicClassDefWithConcreteTypes += (tname.name -> mutable.ArrayBuffer(tname.tyArgs))
+                if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
+                  polymorphicClassDefWithConcreteTypes(parentTname.name).append(newSuperTyArgs.asInstanceOf[Seq[Type]])
+                }
+                else {
+                  polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(newSuperTyArgs.asInstanceOf[Seq[Type]]))
+                }
               }
             }
           }
@@ -218,7 +219,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     collectTypeApplications()
     // generate names of monomorphic versions
     generateMonomorphicVersionNames()
-    // TODO generate monomorphic versions of ClassDefs & MethodDefs and replace their usages (e.g. by overriding methods like transClassInternal)
     val transClasses = classes.flatMap {
       case classDef@ClassDef(annos, vis, name, genericTypeParams, parentClassRefs, content) if classDef.isGeneric => transClass(classDef)
       case classDef@ClassDef(annos, vis, name, genericTypeParams, parentClassRefs, content) => Seq(classDef)
@@ -239,13 +239,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         subst = mutable.Map(typeParams.map(_.name).zip(tyArgs):_*)
 
         val newContent = content.flatMap(c => transContent(c, classDef))
-
-        // TODO necessary ?
-//        val parentClasses = parents.map { c =>
-//          val tname = TName(c.name)
-//          tname.tyArgs = c.tyArgs
-//          tname
-//        }
 
         val newParents = parents.flatMap { tname =>
           val tyArgsSuper = polymorphicClassDefWithConcreteTypes.getOrElse(tname.name,Seq()).distinct
@@ -305,7 +298,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     methodDefs.toSeq.distinct
   }
 
-  // TODO transExpressionInternal
   override private[transformations] def transExpressionInternal(expression: Expression): Seq[Expression] = Seq(expression match {
     case FieldReadExpr(recv, targetName) =>
       FieldReadExpr(transExpression(recv).head, targetName)
@@ -366,7 +358,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       throw new RuntimeException(s"Can not transform expression: $expr")
   })
 
-  // TODO finish transTypeInternal or fix subst (= map defined above)
+
   override private[transformations] def transTypeInternal(typ: Type): Type = {
     typ match {
       case TAny => TAny
@@ -424,7 +416,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   }
 
   private def monomorphName(name: Name, typeArgs: Seq[Type]): Name =
-    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(_.prettyprint).mkString))
+    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(_.prettyprint).mkString))  // TODO fix error
 
 
 
@@ -436,7 +428,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 
     module.classes.foreach(classDef => classDef.methods.foreach(methodDef =>
       if (methodDef.isGeneric) {polymorphicMethodDef.put(methodDef.name, methodDef)}
-      else {monomorphicMethodDef.put(methodDef.name, methodDef)})) //TODO speichern der Methoden Klasse?? -> oben ergänzt
+      else {monomorphicMethodDef.put(methodDef.name, methodDef)}))
 
     println("polymophicClassDef :", polymorphicClassDef)
     println("monomophicClassDef :", monomorphicClassDef)
