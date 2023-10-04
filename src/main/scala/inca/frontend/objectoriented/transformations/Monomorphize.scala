@@ -4,6 +4,7 @@ import inca.frontend.functional.core.{TConstr, TNothing}
 import inca.frontend.objectoriented.core.{ClassDef, MethodDef}
 import inca.frontend.objectoriented.core._
 import inca.frontend.functional.util.Collect
+import inca.frontend.objectoriented.core.Type.suffix
 import inca.util.{Gensym, Scala, TupleOps}
 import truechange.SortType
 
@@ -416,7 +417,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   }
 
   private def monomorphName(name: Name, typeArgs: Seq[Type]): Name =
-    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(_.prettyprint).mkString))  // TODO fix error
+    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(suffix(_)).mkString))  // TODO fix error
 
 
 
