@@ -1,10 +1,9 @@
 package inca.frontend.objectoriented.measurements
 
-import inca.compiler.Compiler
 import inca.frontend.ir.Relation
 import inca.frontend.objectoriented
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
-import inca.frontend.objectoriented.core.{ClassDef, ClassRef, Expression, FieldDef, Module, Name, SetExpr, TClass, TScalaString, TSet}
+import inca.frontend.objectoriented.core.{ClassDef, ClassRef, FieldDef, Module, Name, TClass, TScalaString, TSet}
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
 import inca.frontend.objectoriented.parser.Parser
@@ -74,18 +73,7 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
 
       val datalog = new ObjectOrientedDatalog(module)
 
-      /*datalog.update(EDBChange.insertions(edb))
-      val run = datalog.run("ProgEntry", "main", args:_*)
-      datalog.readAll.foreach { rel =>
-        println()
-        println(rel.asTable)
-      }
-      println(run)
-      System.exit(1)*/
-
-      //val start = System.nanoTime()
       val diff = datalog.measure("ConstantAnalysis", "main", edb, args:_*)
-      //val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000000d)
 
       EnginePool.disposeAllEngines()
@@ -154,15 +142,15 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     // You probably don't want to run this, since this is way to slow
     //  TODO: Hand optimize the Datalog code
     // OODL - Datalog
-    /*val datalogMeasurements = for (c <- configs) yield {
+    val datalogMeasurements = for (c <- configs) yield {
       c.numWhiles -> measureDatalog(c, prog, Seq(), Seq())
     }
-    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
-    val interpreterMeasurements = for (c <- configs) yield {
+    /*val interpreterMeasurements = for (c <- configs) yield {
       c.numWhiles -> measureInterpreter(c, prog, Map(), Seq())
     }
-    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
   }
 }
