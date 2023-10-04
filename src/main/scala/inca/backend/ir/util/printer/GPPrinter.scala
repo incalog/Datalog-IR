@@ -2,7 +2,7 @@ package inca.backend.ir.util.printer
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, MkMono, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Result, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Add, Var, Visibility}
+import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, MkMono, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, ResultMono, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 
@@ -74,8 +74,8 @@ object GPPrinter {
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
     case MkMono(m, cls) => s"${prettyTerm(m)} = new $cls()"
-    case Add(m, t) => s"${prettyTerm(m)} <- ${prettyTerm(t)}"
-    case Result(m, t) => s"${prettyTerm(m)} -> ${prettyTerm(t)}"
+    case AddMono(m, t) => s"${prettyTerm(m)} <- ${prettyTerm(t)}"
+    case ResultMono(m, t) => s"${prettyTerm(m)} -> ${prettyTerm(t)}"
   }) + atom.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
 
   def prettyLink(link: Link): String = link match {

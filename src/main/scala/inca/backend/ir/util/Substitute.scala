@@ -23,6 +23,9 @@ class Substitute(subst: Var => Term) {
     case NoPath(t, ty, link, termIsSource) => NoPath(substTerm(t), ty, link, termIsSource)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
     case Undef(t) => Undef(substTerm(t))
+    case MkMono(m, cls) => MkMono(m, cls)
+    case AddMono(m, t) => AddMono(m, substTerm(t))
+    case ResultMono(m, t) => ResultMono(m, substTerm(t))
   }).withHints(atom)
 
   def substTerm(term: Term): Term = term match {

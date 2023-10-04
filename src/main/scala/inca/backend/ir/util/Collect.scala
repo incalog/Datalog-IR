@@ -42,6 +42,9 @@ trait Collect[R] {
     case NoPath(t, ty, link, termIsSource) => transTerm(t)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
     case Undef(t) => transTerm(t)
+    case MkMono(m, cls) => Seq()
+    case AddMono(m, t) => transTerm(t)
+    case ResultMono(m, t) => transTerm(t)
   }
 
   def transTerm(v: Term): Seq[R] = v match {
