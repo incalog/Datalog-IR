@@ -1,0 +1,7 @@
+module ComposeLambda
+
+def compose(f: Int => Int, g: Int => Int): Int => Int =
+  (n: Int) => g(f(n))
+
+@main def main(): String =
+  compose((n: Int) => n + n, (n: Int) => n * n)(2)

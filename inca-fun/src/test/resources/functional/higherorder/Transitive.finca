@@ -1,0 +1,7 @@
+module Transitive
+
+def transitive(r: () => Set[(Int, Int)]): Set[(Int, Int)] =
+  r() ++ {(n1,n3) | (n1,n2) in r(), (n2,n3) in transitive(r)}
+
+@main def foo(): Set[(Int, Int)] = transitive(() => {(1,2), (2,3), (3,1)})
+@main def bar(): Set[(Int, Int)] = transitive(() => {(1,2), (2,3), (3,1), (2,4), (4,3)})

@@ -1,0 +1,5 @@
+module Var
+@main def main(): Int =
+  let x = 7 in
+    let y = 3 in
+      x + (12 * y)
