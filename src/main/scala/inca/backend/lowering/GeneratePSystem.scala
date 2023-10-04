@@ -18,6 +18,7 @@ import truechange.{AnyType, JavaLitType, ListType, SortType}
 import scala.collection.immutable.MultiDict
 import scala.meta.{Init, Lit, Pat, Source, Stat, Term}
 import scala.meta.quasiquotes._
+import inca.backend.lowering.PSystem.{Module => PSystemModule}
 
 object GeneratePSystem {
   val PARAMPREFIX = "param_"

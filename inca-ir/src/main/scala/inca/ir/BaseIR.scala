@@ -53,6 +53,8 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   }
   def signature: Seq[Type] = params.map(_.ty)
 
+  def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
+
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
   override def toString: String = s"$name: $ty"
 

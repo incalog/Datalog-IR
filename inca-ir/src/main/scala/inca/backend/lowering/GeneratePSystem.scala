@@ -1,16 +1,13 @@
 package inca.backend.lowering
 
-import inca.ir.{Module, Param, Relation, TAny, Type}
-import inca.runtime.Query.Specification
-import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.eclipse.viatra.query.runtime.matchers.psystem.PBody
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+import inca.Scala
+import inca.Scala.Literal
+import inca.backend.util.{LitCollector, VarCollector}
+import inca.ir.extension.primitiveScala.{Constant, TScala}
+import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
+import inca.util.Gensym
 
-import java.util
-import scala.collection.mutable
-import scala.quoted.*
-
-object GeneratePSystem {
+object GeneratePSystem:
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
@@ -18,148 +15,155 @@ object GeneratePSystem {
 
   /** Maps rule name to the name of the module that defines it. */
   type RuleEnvironment = Map[String, String]
-  type MetaModule = Quotes ?=> Expr[Any]
-  type MetaRelation = Quotes ?=> Expr[Any]
+  type Code = String
 
-  def compileModules(modules: Seq[Module]): Seq[MetaModule] = {
-    val env: RuleEnvironment = modules.flatMap { m =>
-      m.relations.keys.map(r => r -> m.name.name)
-    }.toMap
-    modules.map { m =>
-      compileModule(m)(using env)
-    }
+  def compileModules(modules: Seq[Module]): Code = {
+    val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
+    modules.map(m => compileModule(m)(env)).mkString("\n")
   }
 
-  def compileModule(module: Module)(implicit env: RuleEnvironment): MetaModule = {
-    // makes sure this module's names are found first
-    val myenv = env ++ module.relations.keys.map(r => r -> module.name.name)
-    val funs = module.relations.values.map(r => compileRelation(module.name.name, r)(using env))
+  def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
+    // TODO: handle module.imports
 
-    var code = '{
-      //import inca.runtime.Query.Specification
-      //import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter}
+    val myenv = env ++ module.relations.keys.map(r => r -> module.name.name) // makes sure this module's names are found first
+    val funs = module.relations.values.map(r => compileRelation(module.name, r)(indent=2)(myenv)).toList
 
-      ${funs.reduce((a, b) => '{$a;$b})}
+    val nonEmptyRels = module.relations.values.filter(!_.isEmpty).map {
+      r => s""""${r.name}" -> (() => ${r.name}.instance)"""
     }
 
-    /*code = '{
-      var x = scala.collection.mutable.Map[String, Int]()
-      x("a") = 5
-    }*/
+    val indent = "  "
 
-    println("The code...")
-
-    /*code = '{
-      new BasePQuery(PVisibility.PUBLIC):
-        override def doGetContainedBodies(): util.Set[PBody] = ???
-        override def getFullyQualifiedName: String = ???
-        override def getParameters: util.List[PParameter] = ???
-    }*/
-
-    import quotes.reflect.asTerm
-    println(code.asTerm.show)
-    code
+    s"""
+      |import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+      |import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+      |import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+      |
+      |import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
+      |
+      |import java.util
+      |
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+      |
+      |import inca.backend.lowering.PSystem
+      |import inca.runtime.Query.Specification
+      |import inca.runtime.index.NamedRelationKey
+      |
+      |object ${module.name} extends PSystem.Module {
+      |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
+      |  ${funs.mkString("\n")}
+      |}
+    """.stripMargin
   }
 
-  /*private def genInputKeyAndType(typ: Datalog.Type): Option[(meta.Term, meta.Term)] = typ match {
-    case TAny => None
-    case _: TScala => None
-    case _: TData => None
-    case tlit@TLiteral(litType) =>
-      litType match {
-          case JavaLitType(cl) =>
-          val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
-          Some(q"$oPrimitiveKey($gentyp)", gentyp)
-        case _ => throw new UnsupportedOperationException
-      }
-    case _: TLinked =>
-      val gentyp = genNodeType(typ)
-      Some(q"$oNodeTypeKey($gentyp)", gentyp)
-  }*/
+  private def compileBody(moduleName: String, relation: Relation, content: Code)(indent: Int = 0)(implicit env: RuleEnvironment): Code =
+    s"""
+      |val body: PBody = new PBody(this)
+      |${relation.params.map(genBodyParam).mkString("\n")}
+      |val exportedParams = new util.ArrayList[ExportedParameter]()
+      ${relation.params.map { p =>
+          s"|exportedParams.add(new ExportedParameter(body, $VARPREFIX${p.name}, $PARAMPREFIX${p.name}))"
+        }.mkString("\n")}
+      |
+      |body.setSymbolicParameters(exportedParams)
+      |$content
+      |body""".stripMargin.indent(indent)
 
-  inline private def genInputKeyAndType(typ: Type)(implicit quotes: Quotes): Option[(Expr[IInputKey], Expr[String])] = typ match {
-    case TAny => None
-    /*case tlit@TLiteral(litType) =>
-      litType match {
-        case JavaLitType(cl) =>
-          val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
-          Some(q"$oPrimitiveKey($gentyp)", gentyp)
-        case _ => throw new UnsupportedOperationException
-      }
-    case _: TLinked =>
-      val gentyp = genNodeType(typ)
-      Some(q"$oNodeTypeKey($gentyp)", gentyp)*/
-  }
-
-  inline private def genPParam(param: Param)(using quotes: Quotes): Expr[PParameter] = { // quotes.reflect.ValDef = { // Expr[PParameter] = {
-    val paramName = Expr(param.name.name)
-    val pparam = genInputKeyAndType(param.ty) match {
-      case Some((key, gentyp)) =>
-        '{ new PParameter($paramName, $gentyp, $key) }
-      case None =>
-        '{ new PParameter($paramName) }
-    }
-
-    pparam
-
-    //import quotes.reflect.*
-    //val valSymbol = Symbol.newVal(Symbol.spliceOwner, s"$PARAMPREFIX${param.name}", TypeRepr.of[PParameter], Flags.EmptyFlags, Symbol.noSymbol)
-    //ValDef(valSymbol, Some(pparam.asTerm))
-  }
-
-  private def compileRelation(moduleName: String, relation: Relation)(implicit env: RuleEnvironment): MetaRelation = {
+  def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
     val qname = s"${moduleName}_${relation.name}"
 
-    val relName: String = qname//.toLowerCase()
+    val paramNames = relation.params.map(_.name.name)
+    val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
+    val allVars = VarCollector.collectAll(relation)
 
-    import quotes.reflect.*
-    import quotes.reflect.asTerm
+    val gensym = new Gensym(allVars)
 
-    val paramDefs = relation.params.map(p => Expr(p.name.name) -> genPParam(p)).toList
-    val bodies = relation.bodies
 
-    val body = '{
-      new Specification(new BasePQuery(PVisibility.PUBLIC) { q =>
-        // I have not found a way to insert code without a block aka directly into the class
-        // body. Therefore we use a map and fill it inside a block
-        val pparams: Map[String, PParameter] = Map[String, PParameter](
-          ${ paramDefs.map { case (p, pparam) =>
-            '{ ($p, $pparam) }
-          }.reduce((a, b) => '{$a;$b}) }
-        )
-
-        override def doGetContainedBodies(): util.Set[PBody] = util.Set.of(
-          ${
-            bodies.map { b =>
-              '{
-                val body: PBody = new PBody(null)
-                body
-              }
-            }.reduce((a, b) => '{$a;$b})
-          }
-        )
-        override def getFullyQualifiedName: String = ???
-        override def getParameters: util.List[PParameter] = ???
-      })
+    if (relation.isEmpty) {
+      return s"""
+         |object ${relation.name} {
+         |  val error = "This pattern was empty"
+         |}""".stripMargin
     }
 
-    val valSymbol = Symbol.newVal(Symbol.spliceOwner, relName, TypeRepr.of[Specification], Flags.EmptyFlags, Symbol.noSymbol)
-    val valDef = ValDef(valSymbol, Some(body.asTerm))
+    val bodies = if (relation.bodies.nonEmpty)
+      relation.bodies.map { body =>
+        val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
+        val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
+        val atomContent = body.atoms.map(compileAtom).mkString("\n")
+        compileBody(moduleName, relation, s"$varContent\n$litContent\n$atomContent")(indent + 4)
+      }
+    else {
+      val content = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
+      Seq(compileBody(moduleName, relation, content)(indent + 4))
+    }
 
-    val relCode: Quotes ?=> Expr[Any] = Block(
-        List(valDef),
-        '{()}.asTerm
-        //Ref(valSymbol)
-      ).asExpr
-
-    /*val relCode: Quotes ?=> Expr[Any] = '{
-      ${Block(
-        List(valDef),
-        Ref(valSymbol)
-      ).asExpr}
-    }*/
-
-    relCode
+    s"""
+     |object ${relation.name} {
+     |  lazy val instance: Specification = new Specification(generatedPQuery)
+     |
+     |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+     |    ${relation.params.map(genPParam).mkString(s"\n    ")}
+     |
+     |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of(${bodies.mkString("{", "}, {", "}")} )
+     |
+     |    override def getFullyQualifiedName: String = "$qname"
+     |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
+     |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
+     |  }
+     |}""".stripMargin.indent(indent)
   }
 
-}
+  private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
+    case Call(name, args) =>
+      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      s"new PositivePatternCall(body, $argTuple, $callQuery)"
+    case NegCall(name, args) =>
+      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      s"new NegativePatternCall(body, $argTuple, $callQuery)"
+    case ExtensionalCall(name, args) =>
+      val key = s"""NamedRelationKey($name, ${args.size})"""
+      val tuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      s"new TypeConstraint(body, $tuple, $key)"
+    case NegExtensionalCall(name, args) =>
+      // use a type filter ?
+      ???
+    case Eq(lhs, rhs) =>
+      s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+    case Neq(lhs, rhs) =>
+      s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+
+  private def compileTerm(v: Term): Code = v match {
+    case Var(name) => s"$VARPREFIX$name"
+    case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
+  }
+
+  private def genLiteralVar[T](lit: Scala.Literal[T], ty: TScala): Code = {
+    val varName = genLiteralVarName(lit, ty)
+    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${lit.value})"
+  }
+
+  private def genLiteralVarName[T](lit: Scala.Literal[T], ty: TScala): String = {
+    val TScala(tty) = ty
+    tty.toString + lit.value.hashCode
+  }
+
+  private def genPParam(param: Param): Code = {
+    s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
+  }
+
+  private def genBodyParam(param: Param): Code = {
+    s"""val $VARPREFIX${param.name}: PVariable = body.getOrCreateVariableByName("${param.name}")"""
+  }
+
+  private def genTempVar(name: String): Code = {
+    s"""val $VARPREFIX$name: PVariable = body.getOrCreateVariableByName("$name")"""
+  }
