@@ -33,7 +33,8 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 //    val monotoneModule = InsertBuiltInMonotones.transformModule(fun)
 //    AddMissingDefinitions.transformModule(monotoneModule)
     var mod = InsertBuiltInMonotones.transformModule(fun)
-      mod = AddMissingDefinitions.transformModule(mod)
+    mod = AddMissingDefinitions.transformModule(mod)
+    typer.typecheck(mod)  // have to typecheck before monomorphing so that targets are set correctly
     Monomorphize.transformModule(mod)
 
   }

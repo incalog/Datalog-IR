@@ -10,6 +10,7 @@ import truechange.SortType
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable
+import scala.runtime.BoxedUnit
 
 
 object Monomorphize {
@@ -86,6 +87,37 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       // Output Seq[(ClassName, Seq[GenParamName, Seq[Type]])]
 
 
+      def collectSuperClasses(classRef: TName, tyArgs: Seq[Type]): Unit = {
+        if (classRef.classDef.isDefined) {
+          val classDef: ClassDef = classRef.classDef.get
+          classDef.parentClassRefs.foreach { parentTname =>
+            if (parentTname.tyArgs.nonEmpty) {
+              val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg =>
+                if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
+                  val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
+                  //Some(polymorphicClassDefWithConcreteTypes.getOrElse(classRef.name, throw new Exception("....."))
+                  Some(tyArgs(index))
+                }
+                else {
+                  None: Option[Type]
+                }
+              }
+              val finalSuperTyArgs: Seq[Type] = newSuperTyArgs.filter(_.isDefined).map(_.get)
+              println("finalSuperTyArgs " + finalSuperTyArgs)
+
+              if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
+                polymorphicClassDefWithConcreteTypes(parentTname.name).append(finalSuperTyArgs)
+              }
+              else {
+                polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(finalSuperTyArgs))
+              }
+              collectSuperClasses(parentTname, finalSuperTyArgs)
+            }
+          }
+        }
+      }
+
+
       def collectExpression(exp: Expression)(implicit classDef: ClassDef): Unit = exp match {
         case VarReadExpr(targetName) =>
         case FieldReadExpr(recv, targetName) => collectExpression(recv)
@@ -101,24 +133,32 @@ class Monomorphize(val module: Module) extends ModuleLowering {
             }
           }
           // TODO refactor ?
-          if (classRef.classDef.isDefined) {
-            classRef.classDef.get.parentClassRefs.foreach { parentTname =>
-              if (parentTname.tyArgs.nonEmpty) {
-                val newSuperTyArgs = parentTname.tyArgs.map { arg =>
-                  if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
-                    val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
-                    tyArgs(index)
-                  }
-                }
-                if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
-                  polymorphicClassDefWithConcreteTypes(parentTname.name).append(newSuperTyArgs.asInstanceOf[Seq[Type]])
-                }
-                else {
-                  polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(newSuperTyArgs.asInstanceOf[Seq[Type]]))
-                }
-              }
-            }
-          }
+//          if (classRef.classDef.isDefined) {
+//            classRef.classDef.get.parentClassRefs.foreach { parentTname =>
+//              if (parentTname.tyArgs.nonEmpty) {
+//                val parent = classRef.classDef.get
+//                val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg =>
+//                  if (parent.genericTypeParams.exists(p => TName(p.name) == arg)) {
+//                    val index = parent.genericTypeParams.indexOf(parent.genericTypeParams.filter(p => TName(p.name) == arg).head)
+//                    Some(tyArgs(index))
+//                  }
+//                  else{
+//                    None: Option[Type]
+//                  }
+//                }
+//                val finalSuperTyArgs: Seq[Type] = newSuperTyArgs.filter(_.isDefined).map(_.get)
+//                println("finalSuperTyArgs " + finalSuperTyArgs)
+//
+//                if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
+//                  polymorphicClassDefWithConcreteTypes(parentTname.name).append(finalSuperTyArgs)
+//                }
+//                else {
+//                  polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(finalSuperTyArgs))
+//                }
+//              }
+//            }
+//          }
+          collectSuperClasses(classRef,tyArgs)
 
         case SuperExpr(args) =>
           args.foreach(collectExpression(_))
@@ -427,8 +467,13 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     }
   }
 
-  private def monomorphName(name: Name, typeArgs: Seq[Type]): Name =
-    Name(gensym.freshGlobal(name.toString + "$" + typeArgs.map(suffix(_)).mkString))  // TODO fix error
+  private def monomorphName(name: Name, typeArgs: Seq[Type]): Name = {
+    val mapped = typeArgs.map(suffix(_))
+    val m = mapped.mkString
+    val s = name.toString + "$" + m
+    val n = gensym.freshGlobal(s)
+    Name(n)
+  }
 
 
 
