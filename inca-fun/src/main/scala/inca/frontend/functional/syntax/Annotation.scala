@@ -1,6 +1,9 @@
 package inca.frontend.functional.syntax
 
 import inca.frontend.functional.syntax.Annotation.Key
+import inca.ir.util.SourceLocation
+
+import scala.sys.process.ProcessBuilder.Source
 
 trait Annotations {
   protected val annos: Seq[Annotation]
@@ -15,15 +18,17 @@ trait Annotations {
   def annoString: String = annos.mkString(" ")
 }
 
-trait Annotation {
+trait Annotation extends SourceLocation {
   def key: Annotation.Key
 }
 object Annotation {
   type Key = String
 }
 
-object MainFunctionAnno extends Annotation {
-  override def key: Annotation.Key = "MAIN_FUNCTION"
+object MainFunctionAnno:
+  val KEY: Annotation.Key = "MAIN_FUNCTION"
+case class MainFunctionAnno() extends Annotation {
+  override def key: Annotation.Key = MainFunctionAnno.KEY
 
   override def toString: String = "@main"
 }

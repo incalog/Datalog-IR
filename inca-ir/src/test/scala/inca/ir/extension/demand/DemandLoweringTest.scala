@@ -17,14 +17,18 @@ class DemandLoweringTest extends AnyFunSuiteLike:
     val lowering = new Lowering {}
 
     val mod = Module("M", BaseIR.language, relations)
+    var printedMod = false
     var lowered: Module = null
     try {
       typecheckerBefore.typecheck(mod)
       println(mod)
+      printedMod = true
       lowered = lowering.visit(mod)
       typecheckerAfter.typecheck(lowered)
       lowered
     } finally {
+      if (!printedMod)
+        println(mod)
       println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors

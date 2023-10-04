@@ -1,11 +1,8 @@
 package inca.frontend.functional.syntax
 
 import inca.ir.typing.Resolvable
+import inca.ir.Name
 import inca.ir.util.SourceLocation
-
-case class Name(name: String) extends SourceLocation {
-  override def toString: String = name
-}
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   extends SourceLocation with Import.Target {
@@ -39,7 +36,7 @@ sealed trait Visibility extends SourceLocation {
   def prettyprint(implicit indent: String): String
 }
 
-case object Private extends Visibility {
+case class Private() extends Visibility {
   def prettyprint(implicit indent: String): String = "private"
 }
 
@@ -49,7 +46,7 @@ trait ModuleContent extends SourceLocation with Annotations {
   def calls: Set[Call]
 }
 
-case class ParametricType(name: Name) extends TName.Target
+case class ParametricType(name: Name) extends TName.Target with SourceLocation
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Expression)
   extends ModuleContent with Var.Target {
@@ -106,15 +103,15 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
 
   def constructorType(data: DataDef): TFun = {
     if (data.tyVars.nonEmpty)
-      TFun(paramTypes, TConstr(data.name, data.tyVars.map(x => TName(x.name))))
+      TFun(paramTypes, TApply(TName(data.name), data.tyVars.map(x => TName(x.name))))
     else
       TFun(paramTypes, TName(data.name))
   }
 
   def constructorType(data: Name): TFun =
     TFun(paramTypes, TName(data))
-  def constructorType: TConstr =
-    TConstr(name, paramTypes)
+  def constructorType: TApply =
+    TApply(TName(name), paramTypes)
 
 
   def selectorName: String = "un$_" + name.name

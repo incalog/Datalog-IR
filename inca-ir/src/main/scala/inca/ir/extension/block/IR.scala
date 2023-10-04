@@ -22,3 +22,6 @@ case class Block(at: Seq[Atom], t: Term) extends Term:
       s"{${at.mkString(", ")}, $t}"
 
   override def vars: Seq[Var] = t.vars
+
+object Block:
+  def apply(at: Atom, t: Term): Block = Block(Seq(at), t)

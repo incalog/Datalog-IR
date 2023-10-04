@@ -1,6 +1,7 @@
 package inca.frontend.functional.syntax
 
 import inca.Scala
+import inca.ir.Name
 import inca.ir.typing.Resolvable
 import inca.ir.util.SourceLocation
 
@@ -31,6 +32,10 @@ case class TFun(from: Seq[Type], to: Type) extends Type {
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TName] = to.freeTvars ++ from.flatMap(_.freeTvars)
 }
+object TFun:
+  def apply(from: Type, to: Type): TFun = from match
+    case TTuple(ts) => TFun(ts, to)
+    case _ => TFun(Seq(from), to)
 
 val TUnit: TTuple = TTuple(Seq.empty)
 
@@ -62,31 +67,12 @@ object TName {
   trait Target
 }
 
-case class TConstr(name: Name, tys: Seq[Type]) extends Type with Resolvable[TName.Target] {
+case class TApply(op: Type, tys: Seq[Type]) extends Type with Resolvable[TName.Target] {
   override def prettyprint: String =
-    s"${name.name}" + (if(tys.isEmpty) "" else s"[${tys.map(_.prettyprint).mkString(", ")}]")
+    s"${op.prettyprint}" + (if(tys.isEmpty) "" else s"[${tys.map(_.prettyprint).mkString(", ")}]")
   override def flatten: Seq[Type] = Seq(this)
   // TODO fix?
-  override def freeTvars: Seq[TName] = tys.flatMap(_.freeTvars)
-}
-
-case class TScala(ty: Scala.Type) extends Type {
-  override def prettyprint: String = s"`$ty`"
-  override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TName] = Seq()
-}
-object TScalaBoolean extends TScala(Scala.TypeName("Boolean"))
-object TScalaInt extends TScala(Scala.TypeName("Int"))
-object TScalaLong extends TScala(Scala.TypeName("Long"))
-object TScalaDouble extends TScala(Scala.TypeName("Double"))
-object TScalaString extends TScala(Scala.TypeName("String"))
-object TScalaAny extends TScala(Scala.TypeName("Any"))
-
-
-case class TOption(ty: Type) extends Type {
-  override def prettyprint: String = s"Option[${ty.prettyprint}]"
-  override def flatten: Seq[Type] = ty.flatten
-  override def freeTvars: Seq[TName] = ty.freeTvars
+  override def freeTvars: Seq[TName] = op.freeTvars ++ tys.flatMap(_.freeTvars)
 }
 
 case class TSet(ty: Type) extends Type {

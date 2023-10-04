@@ -20,7 +20,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
  * someCall(y: Set[Int], z: Set[Int]) :- z == (y U Set(2,4))
  *
  * Lowering:
- * SetADT_Int = Set$0 | Set$1 | Set$2(y)
+ * SetADT_Int = Set$empty | Set$0 | Set$1 | Set$2(y)
  * SetADT_String = Set$S$0 | Set$S$1 | Set$S$2(y)
  *
  * set$Any(s: SetADT, x: Any) :- ...

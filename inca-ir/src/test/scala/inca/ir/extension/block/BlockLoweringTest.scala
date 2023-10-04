@@ -10,7 +10,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
   val baseIR = new BaseIR {}
-  val blockIR: block.IR = IR
+  val blockIR: block.IR$ = IR
   val lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())

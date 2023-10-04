@@ -21,7 +21,7 @@ trait Lowering extends not.Lowering:
   override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
     case BoolAtom(t) =>
       for (v <- visitTerm(t))
-        yield Eq(v, IntNum(1))
+        yield Eq(v, TrueNum)
     case _ => super.visitAtom(atom))
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match

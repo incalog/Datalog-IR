@@ -43,14 +43,8 @@ lazy val inca_fun = (project in file("inca-fun"))
       ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
-      // Additional data structures, such as MultiDict
-      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
-      // Datalog query engine
-      "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
-      // Required for runtime reflection and code execution
-      "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
-      // Parse scala code into an AST representation
-      //("org.scalameta" %% "scalameta" % "4.8.10").cross(CrossVersion.for3Use2_13)
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
     )
   )
 
