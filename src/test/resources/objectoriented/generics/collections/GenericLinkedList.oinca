@@ -67,6 +67,14 @@ class LinkedList[T] {
         this.head = null
     }
 
+    @main
+    def main(): Int = {
+        val lst: LinkedList[Int] = new LinkedList[Int]()
+        val res1: Int = lst.insert(1)
+        val res2: Int = lst.insert(2)
+        return res1 + res2
+    }
+
     def insert(value: T): Int = {
         return this.insert(value,this.head)
     }
@@ -85,11 +93,6 @@ class LinkedList[T] {
         }
     }
 
-    @main
-    def main(): Int = {
-        val lst: LinkedList[Int] = new LinkedList[Int]()
-        val res1: Int = lst.insert(1)
-        val res2: Int = lst.insert(2)
-        return res1 + res2
-    }
+
 }
+

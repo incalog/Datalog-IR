@@ -125,12 +125,34 @@ class Monomorphize(val module: Module) extends ModuleLowering {
           args.foreach(e => collectExpression(e))
           // check whether constructor belongs to generic class and if save types
           if (tyArgs.nonEmpty) {
-            if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == classRef.name)) {
-              polymorphicClassDefWithConcreteTypes(classRef.name).append(tyArgs)
+            val substTyArgs = tyArgs.map{
+              case tname@TName(n) =>
+                val index = classDef.genericTypeParams.indexOf(GenericParamDef(n))
+                if (index >= 0){
+                  polymorphicClassDefWithConcreteTypes(classDef.name).map(types => types(index)).toSeq
+                }
+                else {
+                  Seq(tname)
+                }
+              case other => Seq(other)
             }
-            else {
-              polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(tyArgs))
+
+            (0 until substTyArgs(0).length).foreach{i =>
+              val currentTyArgs = substTyArgs.map(s => s(i))
+              if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == classRef.name)) {
+                polymorphicClassDefWithConcreteTypes(classRef.name).append(currentTyArgs)
+              }
+              else {
+                polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(currentTyArgs))
+              }
             }
+
+//            if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == classRef.name)) {
+//              polymorphicClassDefWithConcreteTypes(classRef.name).append(tyArgs)
+//            }
+//            else {
+//              polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(tyArgs))
+//            }
           }
           // TODO refactor ?
 //          if (classRef.classDef.isDefined) {
@@ -356,7 +378,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
     case constr@ConstructorExpr(n@TName(name), tyArgs, args) =>
-      n.tyArgs = tyArgs
+      val newTyArgs = tyArgs.map(transType(_))
+      n.tyArgs = newTyArgs
       val newName = transType(n) match {
         case newN@TName(_) => newN
         case _ => throw new Exception("expected TName in Constructor")
