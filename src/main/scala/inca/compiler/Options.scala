@@ -27,6 +27,7 @@ object Options {
     InferVarTypes,
     FoldConstantAtoms,
     EliminateNonproductiveRelations,
+    EliminateClones,
     ExtractLargeBodies
   )
 }

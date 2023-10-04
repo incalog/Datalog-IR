@@ -572,6 +572,11 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
             this.put(to, y, this.get(from, y))
         return
     }
+
+    def stringResult(): Set[(String,String,String)] = {
+        (for (k <- this.after.keys() if !this.after.get(k).isInstanceOf[BotConstant])
+            yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, this.after.get(k).stringValue()))
+    }
 }
 
 
@@ -623,8 +628,9 @@ class ConstantAnalysis {
         val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), varNames)
         constantProp.run()
 
-        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
-            yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
+         constantProp.stringResult()
+//        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
+//            yield (k.`_1`.asInstanceOf[Stm], k.`_2`, constantProp.after.get(k)))
     }
 }
 

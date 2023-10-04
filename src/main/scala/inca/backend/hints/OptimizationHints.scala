@@ -21,4 +21,5 @@ object OptimizationHints {
   case object NoInlineInput extends Hint {
     override def key: Key = NoInlineInputKey
   }
+
 }

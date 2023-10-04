@@ -23,8 +23,12 @@ object GPPrinter {
 
   def prettyPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
-    val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
-    header +  bodies
+    if (gp.bodies.isEmpty)
+      header + " = nil"
+    else {
+      val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
+      header + bodies
+    }
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {
@@ -88,7 +92,7 @@ object GPPrinter {
       case Datalog.IntLiteral(v) => v.toString
       case Datalog.LongLiteral(v) => v.toString
       case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => v
+      case Datalog.StringLiteral(v) => s""" "$v" """
       case Datalog.BooleanLiteral(v) => v.toString
     }
   }
