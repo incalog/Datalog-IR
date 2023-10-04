@@ -29,7 +29,7 @@ import scala.collection.mutable.ListBuffer
   1. Create collection relations and rules for MonoAdd.
   2. Replace ResultMono by aggregation.
  */
-object MonoTransformation extends Transformation {
+object MonoTrans extends Transformation {
 
   def replaceTermName(t : Datalog.Term, oldName : String, newName : String) : Datalog.Term = {
     t match {
@@ -176,6 +176,9 @@ object MonoTransformation extends Transformation {
         val atoms : ListBuffer[Atom] = ListBuffer()
         for (atom <- body.atoms) {
           atom match {
+            case MkMono(m, cls) =>
+              val clsObj = cls + "()"
+              atoms += Computed(m, Evaluation(Seq(), TScala(Scala(t"$cls")), Scala(meta.Term.Function(List(), clsObj.parse[meta.Term].get))))
             case ResultMono(m, t) =>
               val agg : CustomAggregation = CustomAggregation(
                 TScalaInt,

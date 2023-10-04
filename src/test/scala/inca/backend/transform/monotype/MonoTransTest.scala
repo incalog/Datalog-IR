@@ -27,12 +27,6 @@ case class CountMono() extends MonoAggregation[Int, (String, Int), Int] {
 }
 
 class MonoTransTest extends AnyFunSuiteLike {
-//  // a = ("t", 1)
-//  private lazy val bindPair : Atom = Computed(Var("a"), Evaluation(
-//    Seq(),
-//    TScala(Scala(t"(String, Int)")),
-//    Scala(q"()=> (t, 1)")
-//  ))
 
   private lazy val treeSize1: Module = {
 
@@ -73,12 +67,11 @@ class MonoTransTest extends AnyFunSuiteLike {
     // main(t, v) :- MkMono(m, CountMono), size(t, m),t = "A", m -> v
     lazy val pat2Body: Body = Body(Seq(
       MkMono(Var("m"), "inca.backend.transform.monotype.CountMono"),
+      Eq(Var("t"), StringConstant("A")),
       Call("size", Seq(
         Var("t"),
         Var("m")
       )).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
-
-      Eq(Var("t"), StringConstant("A")),
       ResultMono(Var("m"), Var("v")),
     ))
 
@@ -87,7 +80,7 @@ class MonoTransTest extends AnyFunSuiteLike {
       Seq(Param("t", TScalaString),
         Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono")))),
       Seq(pat1Body1, pat1Body2)
-    ).addHint(MagicSetHints.Main(Seq(true, true)))
+    )
 
     lazy val pat2: Pattern = Pattern(
       None, "main",
@@ -362,7 +355,7 @@ class MonoTransTest extends AnyFunSuiteLike {
       override def transformations: Seq[Transformation] = Seq(
         DeriveDemandPatterns,
         DemandTransformation,
-        MonoTransformation
+        MonoTrans
       )
 
       override def stopOnError: Boolean = true
@@ -384,14 +377,16 @@ class MonoTransTest extends AnyFunSuiteLike {
   }
 
   test("Transform MonoCount") {
+    println(treeSize1)
+    println("--------------------------------------")
+
     val prog: DatalogAPI = new DatalogAPI(treeSize1Module)
     println(treeSize1Module.transformed)
     val edb1: EDBChange = EDBChange.insertions(
       Seq(
         Relation3("btree", Seq("t", "l", "r"), Seq(Seq("A", "B", "C"), Seq("C", "D", "E"))),
         Relation1("leaf", Seq("t"), Seq(Seq("B"), Seq("D"), Seq("E"))),
-        Relation1("ext_input$main$bf", Seq("t$0"), Seq(Seq("A"))),
-        Relation2("ext_input$size$bb", Seq("t", "m"), Seq(Seq("A", CountMono())))
+        Relation1("ext_input$main$bf", Seq("t"), Seq(Seq("A"))),
       )
     )
     prog.update(edb1)
