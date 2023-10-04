@@ -234,7 +234,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     if (tyArgsSeq.isEmpty)
       return Seq(classDef)
 
-    val classDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
+    var classDefs = tyArgsSeq.map { // create a new classDef for every tyArgs used to create an instance of it
       tyArgs =>
         val monoName = polymorphicToMonomorphic(name, tyArgs)
         subst = mutable.Map(typeParams.map(_.name).zip(tyArgs):_*)
@@ -259,7 +259,18 @@ class Monomorphize(val module: Module) extends ModuleLowering {
           tnames
         }
 
-        ClassDef(annos, vis, monoName, Seq(), newParents, newContent)
+        // remove main methode from monomorphed class
+        val filteredContent = newContent.filter{c =>
+          c match {
+            case meth@MethodDef(annos, vis, name, genericTypeParams, params, outType, body) => !meth.isMain
+            case _ => true
+          }
+        }
+        ClassDef(annos, vis, monoName, Seq(), newParents, filteredContent)
+    }
+    // and insert original class with just the main methode
+    if (classDef.containsMain){
+      classDefs = classDefs :+ ClassDef(annos, vis, name, Seq(), Seq(), transMethodInternal(classDef.getMain.head, classDef))
     }
     classDefs.toSeq
   }
