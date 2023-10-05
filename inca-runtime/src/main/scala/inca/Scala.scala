@@ -31,7 +31,7 @@ object Scala:
   case class DoubleLiteral(value: Double) extends Literal[Double]
   case class StringLiteral(value: String) extends Literal[String]
 
-  // TODO: Fill the signature
+  // TODO: Complete these cases
   case class Id(x: String) extends Term:
     override def toString: String = x
 

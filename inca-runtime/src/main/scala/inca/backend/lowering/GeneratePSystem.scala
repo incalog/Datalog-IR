@@ -163,6 +163,11 @@ object GeneratePSystem:
         |  }
         |}, $result)""".stripMargin
 
+  private def compileTerm(v: Term): Code = v match {
+    case Var(name) => s"$VARPREFIX$name"
+    case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
+  }
+
   private def compileScalaTerm(term: Scala.Term): Code = term match
     case Id(x) => x
     case Select(t, name) =>
@@ -178,12 +183,7 @@ object GeneratePSystem:
 
   private def compileScalaType(t: Scala.Type): Code = t match {
     case TypeName(s) => s
-    case FunType(args, ret) => s"Function[${args.map(compileScalaType).mkString(",")}]"
-  }
-
-  private def compileTerm(v: Term): Code = v match {
-    case Var(name) => s"$VARPREFIX$name"
-    case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
+    case FunType(args, ret) => s"Function[${(args :+ ret).map(compileScalaType).mkString(",")}]"
   }
 
   private def genConstantLamVarName(lam: Lam): String = lam.hashCode().toString
@@ -196,8 +196,7 @@ object GeneratePSystem:
   }
 
   private def genLiteralVarName[T](lit: Scala.Literal[T], ty: TScala): String = {
-    val TScala(tty) = ty
-    compileScalaType(tty) + lit.value.hashCode
+    compileScalaType(ty.ty) + lit.value.hashCode
   }
 
   private def genPParam(param: Param): Code = {

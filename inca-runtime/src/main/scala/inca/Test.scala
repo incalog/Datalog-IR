@@ -65,11 +65,13 @@ def main() = {
   val scope = new QueryScope(new DataModel())
   val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
   val mainMatcher = engine.getMatcher(mainSpec)
-  val res = mainMatcher.getAllMatches
+  //val res = mainMatcher.getAllMatches
+
+  val res = runtime.Relation.fromMatcher(mainMatcher)
 
   println()
   //println(s"PSystemModule: $psystemModule")
   //println(s"PSystemModule: ${psystemModule.patterns}")
   //println(s"PSystemModule: ${mainSpec}")
-  println(s"Result: $res")
+  println(s"Result:\n${res.asTable}")
 }
