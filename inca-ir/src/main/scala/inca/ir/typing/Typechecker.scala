@@ -13,7 +13,7 @@ trait Typechecker extends BaseIRTypechecker
   with demand.Typechecker
   with not.Typechecker
   with set.Typechecker
-  with primitiveScala.Typechecker
+  //with primitiveScala.Typechecker
 
 enum Mode:
   case Binding

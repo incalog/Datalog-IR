@@ -2,15 +2,12 @@ package inca.ir.extension.arithmetic
 
 import inca.Scala
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Eq, Language, Name, Term, TermType, Type, Var}
-import inca.ir.extension.*
-import inca.ir.extension.bool.{BoolTrue, TBoolean}
-import inca.ir.extension.arithmetic.IR
-import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 import inca.ir.lowering.BaseLowering
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, TermType, Type, Var, string2name}
+import inca.ir.extension.block
+import inca.ir.extension.primitiveScala
+import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 
-
-object ScalaLowering extends ScalaLowering
 trait ScalaLowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(primitiveScala.IR, block.IR)

@@ -11,7 +11,7 @@ trait IRVisitor extends BaseIRVisitor
   with demand.Visitor
   with disjunction.Visitor
   with not.Visitor
-  with primitiveScala.Visitor
+  //with primitiveScala.Visitor
   with set.Visitor
   with string.Visitor
   with tuple.Visitor

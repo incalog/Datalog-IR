@@ -3,9 +3,10 @@ package inca.backend.util
 import inca.Scala
 import inca.ir.extension.primitiveScala.{Constant, TScala}
 import inca.ir.visitors.IRVisitor
+import inca.ir.extension.primitiveScala
 import inca.ir.{Body, Module, Relation, Term, Var, name2string}
 
-trait Collector[T] extends IRVisitor {
+trait Collector[T] extends IRVisitor with primitiveScala.Visitor {
   private var collection: Seq[T] = Seq()
 
   protected def collect(ele: T): Unit = collection :+= ele

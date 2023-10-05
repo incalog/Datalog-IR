@@ -32,6 +32,28 @@ lazy val inca_ir = (project in file("inca-ir")).settings(
   )
 )
 
+lazy val inca_runtime = (project in file("inca-runtime"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
+      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+      ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+      // Datalog query engine
+      "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
+      "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
+      "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
+    )
+)
+
 lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
   .settings(

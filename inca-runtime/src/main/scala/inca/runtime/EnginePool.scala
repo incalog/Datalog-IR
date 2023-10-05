@@ -1,7 +1,7 @@
 package inca.runtime
 
 import inca.runtime.db.Database
-import org.eclipse.viatra.query.runtime.api.*
+import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
@@ -9,7 +9,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 
 import java.lang.ref.WeakReference
 import java.util
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 
 object EnginePool {
   private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] = new util.WeakHashMap
@@ -24,7 +24,7 @@ object EnginePool {
           .withDefaultBackend(backendFactory)
           .withDefaultCachingBackend(backendFactory)
           .withDefaultSearchBackend(DummySearchBackendFactory)
-//          .withDefaultHint(new QueryEvaluationHint(Collections.singletonMap(ReteHintOptions.cacheOutputOfEvaluatorsByDefault, false), BackendRequirement.UNSPECIFIED))
+          //          .withDefaultHint(new QueryEvaluationHint(Collections.singletonMap(ReteHintOptions.cacheOutputOfEvaluatorsByDefault, false), BackendRequirement.UNSPECIFIED))
           .build
         val e = AdvancedViatraQueryEngine.createUnmanagedEngine(scope, options)
         EnginePool.engineMap.put(scope, new WeakReference(e))
@@ -53,7 +53,7 @@ object EnginePool {
     for (ref <- EnginePool.engineMap.values.asScala) {
       val engine = ref.get
       if (engine != null) {
-//        System.err.println("Disposing engine " + engine)
+        //        System.err.println("Disposing engine " + engine)
         engine.dispose()
       }
     }
