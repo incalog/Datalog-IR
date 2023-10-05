@@ -63,6 +63,7 @@ case class Var(name: Name) extends Expression with Resolvable[Var.Target] {
 object Var {
   def apply(name: String): Var = new Var(Name(name))
   trait Target extends SourceLocation
+  object BuiltInFunction extends Target
 }
 
 case class If(cnd: Expression, thn: Expression, els: Expression) extends Expression {
