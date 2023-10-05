@@ -22,6 +22,8 @@ lazy val inca_ir = (project in file("inca-ir")).settings(
     // Additional data structures, such as MultiDict
     "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
     // Datalog query engine
+    "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
+    "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
     "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
     // Required for runtime reflection and code execution
     "org.scala-lang" %% "scala3-staging" % scalaVersion.value,

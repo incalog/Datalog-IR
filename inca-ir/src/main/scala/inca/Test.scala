@@ -23,7 +23,7 @@ def main() = {
   def term(i: Int): Term = Var(s"x_$i")
 
   def module(language: Language, atoms: Seq[Atom]): Module = Module("MyModule", language, Seq(
-      Relation("Test", Seq(Param("a", TAny), Param("b", TAny)), Seq(Body(atoms), Body(atoms))),
+      Relation("Test", Seq(Param("a", TAny), Param("b", TAny)), Seq(Body(atoms))),
       //Relation("Test2", Seq(Param("p", TAny), Param("q", TAny)), Seq(Body(atoms))),
     ))
 
@@ -31,7 +31,7 @@ def main() = {
   val mod = module(IR.language, Seq(
     //Eq(term(0), IntNum(4)),
     Eq(IntNum(1), Var("b")),
-    Eq(term(2), Var("a")),
+    Eq(IntNum(2), Var("a")),
     //Call("Test2", Seq(term(1), term(2)))
   ))
 
@@ -65,6 +65,7 @@ def main() = {
   }*/
 
   val loweredMod = ScalaLowering.lower(mod)
+  println(loweredMod)
 
   var code = GeneratePSystem.compileModules(Seq(loweredMod))
   code = s"$code; MyModule"
@@ -82,8 +83,8 @@ def main() = {
   val res = mainMatcher.getAllMatches
 
   println()
-  println(s"PSystemModule: $psystemModule")
-  println(s"PSystemModule: ${psystemModule.patterns}")
+  //println(s"PSystemModule: $psystemModule")
+  //println(s"PSystemModule: ${psystemModule.patterns}")
+  //println(s"PSystemModule: ${mainSpec}")
   println(s"Result: $res")
-
 }
