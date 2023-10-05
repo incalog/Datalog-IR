@@ -1,16 +1,19 @@
 package inca.frontend.functional.compile
 
-import inca.ir.{CompiledModule, Name, Module => IRModule}
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.util.SourceLocation
-import inca.backend.lowering.GeneratePSystem
+import inca.backend.lowering.{GeneratePSystem, PSystem}
+import inca.util.ScalaCompiler
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
 
   override def name: Name = fun.name
 
   override def sourceLocation: SourceLocation = fun.name
+
+  lazy val scalaCompiler = new ScalaCompiler()
 
   lazy val typed: Module = {
     val typer: Typechecker = new Typechecker
@@ -50,7 +53,12 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
   }
 
   lazy val psystemSource: String = {
-    val source = GeneratePSystem.compileModule(ir)(Map())
+    val source = GeneratePSystem.compileModule(lowered)(Map())
     source
+  }
+
+  lazy val psystemModule: PSystem.Module = {
+    val loadSource = s"${psystemSource}; $name"
+    scalaCompiler.compileAndLoadScala[PSystem.Module](loadSource)
   }
 }
