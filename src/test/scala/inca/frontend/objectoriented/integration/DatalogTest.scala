@@ -316,7 +316,7 @@ class DatalogTest extends AnyFunSuite {
     performTests(genericClassInheritanceMethodWithArgument)
   }
 
-  test("r Type Parameter") {
+  test("generic Class Inheritance With Fixed Type Parameter") {
     performTests(genericClassInheritanceWithFixedTypeParameter)
   }
 

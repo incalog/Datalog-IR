@@ -99,7 +99,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
                   Some(tyArgs(index))
                 }
                 else {
-                  None: Option[Type]
+                  //None: Option[Type]
+                  Some(arg)
                 }
               }
               val finalSuperTyArgs: Seq[Type] = newSuperTyArgs.filter(_.isDefined).map(_.get)
@@ -181,6 +182,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 //            }
 //          }
           collectSuperClasses(classRef,tyArgs)
+          println("constructorExpr " + classRef + "  " + tyArgs)
+          println(tyArgs.map(_.tyArgs).mkString)
 
         case SuperExpr(args) =>
           args.foreach(collectExpression(_))
@@ -387,6 +390,11 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       newName.tyArgs = Seq()
       val newConstr = ConstructorExpr(newName, Seq(), transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
+
+      println("transform constructorExpr " + n + "  " + tyArgs)
+      println(tyArgs.map(_.tyArgs).mkString)
+      println(newConstr, newConstr.tyArgs, newConstr.tyArgs.map(_.tyArgs))
+
       newConstr
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
@@ -435,6 +443,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 
 
   override private[transformations] def transTypeInternal(typ: Type): Type = {
+    typ.tyArgs = typ.tyArgs.map(transTypeInternal(_))
     typ match {
       case TAny => TAny
       case TNull => TNull
@@ -442,17 +451,21 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       case TName(name) =>
+        println("---------polymorphicToMonomorphic " + name,  typ.tyArgs, polymorphicToMonomorphic)
         if (subst.contains(name)){
+          println("---------subst " + name, subst(name))
           return subst(name)
         }
         else if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
           val newName = polymorphicToMonomorphic(name,typ.tyArgs)
+          println("---------polymorphicToMonomorphic " + name, newName, typ.tyArgs)
           return TName(newName)
         }
         else {
           //val newName = polymorphicToMonomorphic.getOrElse(name,name)
           val ty = TName(name)
           ty.tyArgs = typ.tyArgs
+          println("---------else " + name,  typ.tyArgs)
           return ty
         }
       case tcls@TClass(TName(name)) =>
