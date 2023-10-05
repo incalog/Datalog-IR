@@ -9,6 +9,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
+import inca.ir.typing.Mode
 import inca.util.Gensym
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
@@ -66,13 +67,13 @@ trait Lowering extends BaseLowering:
         val count = constructorCount(memTy)
         constructorCount += memTy -> (count + 1)
         val name = constructorNameOf(memTy, count)
-        val vars = originalTerm.vars.distinct.map(v => v.name ->
-          visitType(
-            v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")).ty
-          )
-        )
-        constructors += (memTy, originalTerm) -> SetConstructor(name, vars, setEnum)
-        (name, vars)
+        val vars = originalTerm.vars
+        vars.foreach(v => v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")))
+        val (boundVars, bindingVars) = vars.partition(_.typ.get.mode == Mode.Bound)
+        val freeVars = boundVars.toSet diff bindingVars.toSet
+        val constructorParams = freeVars.toSeq.map(v => v.name -> visitType(v.typ.get.ty))
+        constructors += (memTy, originalTerm) -> SetConstructor(name, constructorParams, setEnum)
+        (name, constructorParams)
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
     val cons = Construct(name, vars.map(v => Var(v._1)))
