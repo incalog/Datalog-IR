@@ -34,6 +34,8 @@ trait Typechecker extends BaseIRTypechecker:
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case LT(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
+    case LE(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
     case GT(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
+    case GE(lhs, rhs) => inferInfixOpType(lhs, rhs, atom)
     case _ => super.checkAtom(atom, mode)
 

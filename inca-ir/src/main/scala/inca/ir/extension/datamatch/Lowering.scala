@@ -13,7 +13,7 @@ import scala.collection.mutable.ListBuffer
 trait Lowering extends BaseLowering:
 
   override val loweredIRs: Set[BaseIR] = Set(IR)
-  override val requiredIRs: Set[BaseIR] = Set(data.IR)
+  override val requiredIRs: Set[BaseIR] = Set(data.IR, disjunction.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case Match(matchee, cases) =>

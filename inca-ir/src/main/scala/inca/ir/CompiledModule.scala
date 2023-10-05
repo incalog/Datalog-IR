@@ -1,8 +1,7 @@
 package inca.ir
 
-import inca.ir.extension.block
-import inca.ir.extension.set
-import inca.ir.extension.set.Lowering
+import inca.ir.extension.*
+import inca.ir.lowering.BaseLowering
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
 import inca.util.CompilationMessage
@@ -16,25 +15,10 @@ trait CompiledModule {
 
   def ir: Module
 
-//  lazy val patternDependencies: MultiDict[Name, Name] = {
-//    var deps = MultiDict[Name, Name]()
-//    for (pat <- ir.pats;
-//         body <- pat.bodies;
-//         atom <- body.atoms) atom match {
-//      case Datalog.Call(trg, _, _, _) => deps += pat.name -> trg
-//      case _ => // nothing
-//    }
-//    deps
-//  }
-
-//  lazy val patternDependenciesTrans: MultiDict[Name, Name] = transClosure(patternDependencies)
-
   def printStatistics(): Unit = {
     val rels = ir.relations.values
     println(s"IR relations: ${rels.size}")
     println(s"IR bodies: ${rels.map(_.bodies.size).sum}")
-//    val recs = patternDependenciesTrans.sets.filter(p => p._2.contains(p._1))
-//    println(s"Recursive GP relations: ${recs.size}")
   }
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
@@ -56,6 +40,27 @@ trait CompiledModule {
     try checker.typecheck(ir)
     finally println(ir)
     ir
+
+  val lowerings: List[() => BaseLowering] = List(
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new datamatch.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {}
+  )
+
+  lazy val lowered: Module =
+    lowerings.foldLeft(checked) { case (m, lowering) =>
+      val lowFun = lowering()
+      println(s"Lowering ${lowFun.loweredIRs}")
+      val l = lowFun.lower(m)
+      val checker = new IRTypechecker
+      try checker.typecheck(l)
+      finally println(l)
+      l
+    }
 }
 
 object CompiledModule {

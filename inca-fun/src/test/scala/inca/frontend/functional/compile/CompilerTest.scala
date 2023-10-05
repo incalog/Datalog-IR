@@ -20,6 +20,7 @@ class CompilerTest extends AnyFunSuite {
     println(module)
     val compiled = CompiledFunctionalModule(module)
     compiled.checked
+    compiled.lowered
 
   Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {
     override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =

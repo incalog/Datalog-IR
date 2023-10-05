@@ -19,14 +19,26 @@ trait Lowering extends BaseLowering:
       case _ => super.visitAtom(atom)
   }
 
-  def negateAtom(atom: Atom): Atom = atom match
-    case Call(name, args) => NegCall(name, args)
-    case NegCall(name, args) => Call(name, args)
-    case ExtensionalCall(name, args) => NegExtensionalCall(name, args)
-    case NegExtensionalCall(name, args) => ExtensionalCall(name, args)
-    case Eq(lhs, rhs) => Neq(lhs, rhs)
-    case Neq(lhs, rhs) => Eq(lhs, rhs)
-    case Not(at) => at
 
 
+//main_result$0: >TInt< == 
+//  {x: >TInt< == 7; 
+//    {{AtomAsBool(x: <TInt> > 0) == true, if_result$0: >TInt< == x: <TInt>} or 
+//    {AtomAsBool(x: <TInt> > 0) == false, if_result$0: >TInt< == x: <TInt> * -1}; 
+//  if_result$0: <TInt>}}
+//
+//  main_result$0: >TInt< == 
+//    {x: >TInt< == 7; 
+//      {{{{x: <TInt> > 0, Boolean$0: >TInt< == 1} or 
+//         {not(x: <TInt> > 0), Boolean$0: >TInt< == 0}; Boolean$0: <TInt>} == 1, if_result$0: >TInt< == x: <TInt>} or 
+//      {{{x: <TInt> > 0, Boolean$1: >TInt< == 1} or
+//        {not(x: <TInt> > 0), Boolean$1: >TInt< == 0}; Boolean$1: <TInt>} == 0, if_result$0: >TInt< == x: <TInt> * -1}; if_result$0: <TInt>}}
 
+//{{x: <TInt> > 0, Boolean$0: >TInt< == 1} or
+// {not(x: <TInt> > 0), Boolean$0: >TInt< == 0}, 
+// Boolean$0: <TInt> == 1, if_result$0: >TInt< == x: <TInt>} or
+//      
+//{{x: <TInt> > 0, Boolean$1: >TInt< == 1} or
+// {not(x: <TInt> > 0), Boolean$1: >TInt< == 0}, 
+// Boolean$1: <TInt> == 0, if_result$0: >TInt< == x: <TInt> * -1}
+//  

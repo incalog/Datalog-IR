@@ -116,7 +116,7 @@ trait BaseIR:
     case _ => false
 
   override def hashCode(): Int = name.hashCode
-  override def toString: String = language.toString
+//  override def toString: String = language.toString
 
   /** The IR language. Subclasses should override with `super.language + IRExtension` */
   def language: Language = Language.Datalog

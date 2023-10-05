@@ -11,32 +11,19 @@ trait Lowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
-  type Alternatives[A] = Seq[A]
-  private var alternativeAtoms: Alternatives[Seq[Atom]] = Seq()
-
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    alternativeAtoms = Seq(Seq())
-    super.visitBody(body)
-    alternativeAtoms.map(Body.apply)
-  }
-
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
-    atom match
-      case Disjunction(ass) =>
-        val before = alternativeAtoms
-
-        val alternatives: ListBuffer[Seq[Atom]] = ListBuffer.empty
-        val rss = ass.map { as =>
-          val rs = as.flatMap(visitAtom)
-          alternatives ++= alternativeAtoms
-          alternativeAtoms = before
-          rs
-        }
-
-        alternativeAtoms = alternatives.toSeq
-        Seq(Disjunction(rss))
-      case _ =>
-        val as = super.visitAtom(atom)
-        alternativeAtoms = alternativeAtoms.map(_ ++ as)
-        as
+    val before: ListBuffer[Atom] = ListBuffer.empty
+    var after: Seq[Atom] = body.atoms
+    while (after.nonEmpty && !after.head.isInstanceOf[Disjunction]) {
+      before += after.head
+      after = after.tail
+    }
+    if (after.isEmpty)
+      super.visitBody(body)
+    else {
+      val disj = after.head.asInstanceOf[Disjunction]
+      after = after.tail
+      val bodies = disj.alternatives.map(as => Body(before.toList ++ as ++ after))
+      bodies.flatMap(visitBody)
+    }
   }

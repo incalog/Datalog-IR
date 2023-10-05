@@ -38,7 +38,6 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
     typer.typecheck(module)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
-    println(module)
     stopIfNeeded()
     module
   }
@@ -46,7 +45,6 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
   lazy val ir: IRModule = {
     val compiler = new GenerateDatalog
     val module = compiler.compileModule(defunModule)
-    println(module)
     module
   }
 }
