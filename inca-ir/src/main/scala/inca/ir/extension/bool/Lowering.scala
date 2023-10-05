@@ -40,11 +40,9 @@ trait Lowering extends not.Lowering:
           Seq(Not(a), Eq(Var(x), FalseNum))
         ))), Var(x)))
     case BoolAnd(t1, t2) =>
-      for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
-        yield Min(v1, v2)
+      visitTerm(t1).zip(visitTerm(t2)).map(Min.apply)
     case BoolOr(t1, t2) =>
-      for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
-        yield Max(v1, v2)
+      visitTerm(t1).zip(visitTerm(t2)).map(Max.apply)
     case BoolNot(t) =>
       for (v <- visitTerm(t))
         yield Sub(IntNum(1), v)

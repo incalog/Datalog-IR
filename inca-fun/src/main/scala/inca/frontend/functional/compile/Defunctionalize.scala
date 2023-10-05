@@ -2,7 +2,7 @@ package inca.frontend.functional.compile
 
 import inca.frontend.functional.syntax.*
 import inca.ir.Name
-import inca.ir.util.Gensym
+import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 
@@ -160,9 +160,7 @@ class Defunctionalize {
     case Call(fun, tyArgs, args) =>
       val argTrans = args.map(a => transformExp(a))
       fun match {
-        case v@Var(name)
-          if v.target.forall(_.isInstanceOf[FunctionDef]) || v.target.forall(_.isInstanceOf[DataConstructor]) =>
-          // regular call to first-order function
+        case v@Var(name) if isFirstOrderCall(v) =>
           Call(Var(name), Seq(), argTrans)
         case _ => fun.typ match
           case Some(tfun: TFun) =>
@@ -216,4 +214,8 @@ class Defunctionalize {
     }
   }
 
+  def isFirstOrderCall(v: Var): Boolean = v.target match
+    case Some(_: (DataConstructor | FunctionDef | Var.BuiltInFunction.type)) => true
+    case Some(_) => false
+    case None => throw new IllegalArgumentException()
 }

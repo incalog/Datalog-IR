@@ -3,7 +3,7 @@ package inca.frontend.functional.compile
 import inca.frontend.functional.syntax.*
 import inca.frontend.functional.typechecker.TypeUtil
 import inca.ir.Name
-import inca.ir.util.Gensym
+import inca.util.Gensym
 
 import scala.collection.mutable
 

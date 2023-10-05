@@ -32,14 +32,17 @@ class Typechecker extends TypeContext with TypeIO {
     // bind symbols first
     module.content.foreach {
       case fun: FunctionDef => bindFun(fun, module)
-      case data: DataDef =>
-        bindData(data, module)
-        typecheck(data)
+      case data: DataDef => bindData(data, module)
     }
 
     bindVar(Name("min"), Var.BuiltInFunction, TFun(Seq(TInt, TInt), TInt))
     bindVar(Name("max"), Var.BuiltInFunction, TFun(Seq(TInt, TInt), TInt))
     bindVar(Name("abs"), Var.BuiltInFunction, TFun(Seq(TInt, TInt), TInt))
+
+    module.content.foreach {
+      case fun: FunctionDef => // checked below
+      case data: DataDef => typecheck(data)
+    }
 
     module.content.foreach {
       case fun: FunctionDef => typecheck(fun)

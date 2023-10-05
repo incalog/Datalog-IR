@@ -74,8 +74,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         registerVar(name, v, TAny)
         bindVar(name)
         Mode.Bound
-      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresBound =>
+      case Some(VarInfo(_, ty, VarMode.Unbound)) if mode.requiresBound =>
         error(s"Unbound variable $v not allowed here", v)
+        assertComparable(ty, expected, v)
         bindVar(name)
         Mode.Bound
       case None => // register and bind new variable

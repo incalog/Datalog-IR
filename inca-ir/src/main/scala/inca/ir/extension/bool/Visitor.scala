@@ -7,8 +7,8 @@ import inca.ir.visitors.BaseIRVisitor
 trait Visitor extends BaseIRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case BoolAtom(t) =>
-      for (v <- visitTerm(t))
-        yield BoolAtom(t)
+      val ts = visitTerm(t)
+      ts.map(BoolAtom.apply)
     case _ => super.visitAtom(atom))
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
@@ -17,14 +17,12 @@ trait Visitor extends BaseIRVisitor:
 
   def visitBoolTerm(term: BoolTerm): Seq[Term] = term match
     case AtomAsBool(a) =>
-      for (v <- visitAtom(a))
-        yield AtomAsBool(v)
+      val as = visitAtom(a)
+      as.map(AtomAsBool.apply)
     case BoolAnd(t1, t2) =>
-      for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
-        yield BoolAnd(v1, v2)
+      visitTerm(t1).zip(visitTerm(t2)).map(BoolAnd.apply)
     case BoolOr(t1, t2) =>
-      for (v1 <- visitTerm(t1); v2 <- visitTerm(t2))
-        yield BoolOr(v1, v2)
+      visitTerm(t1).zip(visitTerm(t2)).map(BoolOr.apply)
     case BoolNot(t) =>
       for (v <- visitTerm(t))
         yield BoolNot(v)

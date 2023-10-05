@@ -1,6 +1,8 @@
 package inca.ir
 
 import inca.ir.extension.block
+import inca.ir.extension.set
+import inca.ir.extension.set.Lowering
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
 import inca.util.CompilationMessage
@@ -51,11 +53,9 @@ trait CompiledModule {
 
   lazy val checked: Module =
     val checker = new IRTypechecker
-    val lowering = new block.Lowering {}
-    val noBlockModule = lowering.lower(ir)
-    try checker.typecheck(noBlockModule)
-    finally println(noBlockModule)
-    noBlockModule
+    try checker.typecheck(ir)
+    finally println(ir)
+    ir
 }
 
 object CompiledModule {

@@ -32,6 +32,14 @@ def final(stm: Stm): Set[Stm] = stm match {
   case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
 }
 
+def assignments(stm: Stm): Set[Stm] = stm match {
+  case Assign(x, a) => {stm}
+  case Skip() => {stm}
+  case Sequence(s1, s2) => assignments(s1) ++ assignments(s2)
+  case If(c, s1, s2) => assignments(s1) ++ assignments(s2)
+  case While(c, s) => assignments(s)
+}
+
 def transitive(cfg: () => Set[(Stm, Stm)]): Set[(Stm, Stm)] =
   cfg() ++ {(s1,s3) | (s1,s2) in cfg(), (s2,s3) in transitive(cfg)}
 
@@ -115,6 +123,6 @@ def exit_RD(stm: Stm, prog: Stm): Set[(String,MaybeDef)] =
 @main def final_RD(prog: Stm): Set[(String,MaybeDef)] =
   {(x,a) | s in final(prog), (x,a) in exit_RD(s, prog)}
 @main def allEntries_RD(prog: Stm): Set[(Stm, String, MaybeDef)] =
-  {(s, x, d) | s in Stm, (x, d) in entry_RD(s, prog)}
+  {(s, x, d) | s in assignments(prog), (x, d) in entry_RD(s, prog)}
 @main def allExits_RD(prog: Stm): Set[(Stm, String, MaybeDef)] =
-  {(s, x, d) | s in Stm, (x, d) in exit_RD(s, prog)}
+  {(s, x, d) | s in assignments(prog), (x, d) in exit_RD(s, prog)}
