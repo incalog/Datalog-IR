@@ -73,8 +73,8 @@ class MonoTransTest extends AnyFunSuiteLike {
         Var("m")
       )).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
       ResultMono(Var("m"), Var("v")),
-      MkMono(Var("m2"), "inca.backend.transform.monotype.CountMono"),
-      ResultMono(Var("m2"), Var("v1")),
+//      MkMono(Var("m2"), "inca.backend.transform.monotype.CountMono"),
+      ResultMono(Var("m"), Var("v1")),
     ))
 
     lazy val pat1: Pattern = Pattern(
