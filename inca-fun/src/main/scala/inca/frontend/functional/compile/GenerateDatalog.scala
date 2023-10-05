@@ -14,7 +14,7 @@ import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
-import inca.ir.util.Gensym
+import inca.util.Gensym
 
 class GenerateDatalog {
 

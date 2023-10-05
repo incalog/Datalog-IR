@@ -8,5 +8,4 @@ object PSystem {
   trait Module {
     val patterns: Map[String, () => Query.Specification]
   }
-
 }

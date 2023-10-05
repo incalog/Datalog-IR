@@ -63,8 +63,7 @@ trait ScalaLowering extends BaseLowering:
       val relName = relationName(dataName, name)
       val outName = Var(freshName())
       Seq(block.Block(
-        // TODO: We want to generate new data here. That is, insert a prefix or demand
-        //  placeholder.
+        // TODO: We want to generate new data here. That is, insert demand here
         Seq(Call(relName, data.flatMap(visitTerm) :+ outName)),
         outName
       ))

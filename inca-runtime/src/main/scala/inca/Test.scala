@@ -3,16 +3,12 @@ package inca
 import inca.backend.lowering.{GeneratePSystem, PSystem}
 import inca.ir.{Atom, Body, Call, Eq, Language, Module, Param, Relation, TAny, Term, Var, string2name}
 import inca.ir.extension.arithmetic.{Add, IR, IntNum}
-import inca.ir.typing.Typechecker
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.{CompilationMessage, ScalaCompiler}
 import inca.ir.extension.arithmetic.ScalaLowering
 import inca.ir.extension.primitiveScala
 
 import scala.collection.immutable.Seq
-import scala.quoted.*
-import scala.quoted.staging
-import inca.runtime
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 

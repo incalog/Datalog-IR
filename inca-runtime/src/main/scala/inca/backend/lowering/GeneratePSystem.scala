@@ -78,10 +78,9 @@ object GeneratePSystem:
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
-    val allVars = VarCollector.collectAll(relation)
+    //val allVars = VarCollector.collectAll(relation)
 
-    val gensym = new Gensym(allVars)
-
+    //val gensym = new Gensym(allVars)
 
     if (relation.isEmpty) {
       return s"""
@@ -140,6 +139,7 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+    // TODO: Application
 
   private def compileTerm(v: Term): Code = v match {
     case Var(name) => s"$VARPREFIX$name"
