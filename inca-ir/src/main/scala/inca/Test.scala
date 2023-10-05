@@ -2,9 +2,9 @@ package inca.ir
 
 import inca.backend.lowering.{GeneratePSystem, PSystem}
 import inca.ir.extension.arithmetic.{Add, IR, IntNum, ScalaLowering}
-import inca.ir.typing.{CompilationMessage, Typechecker}
+import inca.ir.typing.Typechecker
 import inca.runtime.context.{DataModel, QueryScope}
-import inca.util.ScalaCompiler
+import inca.util.{CompilationMessage, ScalaCompiler}
 
 import scala.collection.immutable.Seq
 import scala.quoted.*
