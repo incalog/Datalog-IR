@@ -1,4 +1,4 @@
-package inca.frontend.functional.execute
+package inca.frontend.functional.executor
 
 import dotty.tools.io.File
 import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateDatalog}
@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 import inca.frontend.functional.syntax.*
 
-class ExecuteTest extends AnyFunSuite {
+class ExecutorTest extends AnyFunSuite {
   test("Base 1 ") {
     val file = Source.fromResource("functional/unittests/Base1.finca")
     val code = file.getLines().mkString("\n")
