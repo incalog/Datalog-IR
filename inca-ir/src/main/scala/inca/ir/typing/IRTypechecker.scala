@@ -13,5 +13,6 @@ class IRTypechecker extends BaseIRTypechecker
   with not.Typechecker
   with primitiveScala.Typechecker
   with set.Typechecker
+  with string.Typechecker
   with tuple.Typechecker
 

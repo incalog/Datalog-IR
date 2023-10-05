@@ -12,13 +12,12 @@ object IR extends IR { }
 case object TBoolean extends Type
 
 case class BoolAtom(t: Term) extends Atom:
-  override def toString: String = s"$t"
   override def vars: Seq[Var] = t.vars
 
 sealed trait BoolTerm extends Term
 
 case class AtomAsBool(a: Atom) extends BoolTerm:
-  override def toString: String = s"bool($a)"
+  override def vars: Seq[Var] = a.vars
 
 case class BoolAnd(t1: Term, t2: Term) extends BoolTerm:
   override def toString: String = s"$t1 && $t2"

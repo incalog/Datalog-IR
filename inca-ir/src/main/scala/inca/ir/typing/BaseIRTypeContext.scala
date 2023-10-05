@@ -1,6 +1,6 @@
 package inca.ir.typing
 
-import inca.ir.{Module, ModuleEntry, Name, Param, Relation, Term, TermType, Type, Var}
+import inca.ir.{Module, ModuleEntry, Name, Param, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
@@ -32,6 +32,13 @@ trait BaseIRTypeContext extends TypeIO:
     vars = varsSaved
     entries = entriesSaved
     modules = modulesSaved
+    t
+  }
+
+  def scopedVariables[T](vs: Set[Name])(f: => T): T = {
+    val varsSaved = vars.filter(kv => vs(kv._1))
+    val t = f
+    vars = vars ++ varsSaved
     t
   }
 

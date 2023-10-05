@@ -7,7 +7,7 @@ import inca.ir.{Atom, Term, TermType, Type}
 trait Typechecker extends BaseIRTypechecker:
   protected override def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
     case Block(at, t) =>
-      at.foreach(checkAtom(_, mode))
+      at.foreach(checkAtom(_, Mode.Binding))
       checkTerm(t, expected, mode)
     case _ => super.checkTermExtend(term, expected, mode)
 

@@ -190,3 +190,25 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     term.typed(inferred, force = true)
     inferred
 
+  protected def checkAlternatives[A](as: Iterable[A])(f: A => Unit): Unit =
+    if (as.isEmpty) {
+      // do nothing
+    } else {
+      val a = as.head
+      val rest = as.tail
+      val varsBefore = this.vars
+      f(a)
+      var varsAfter = this.vars
+      rest.foreach { a =>
+        this.vars = varsBefore
+        f(a)
+        val varsAfterThis = vars
+        // remove variables not bound by this alternative
+        varsAfter = varsAfter.filter(kv => varsAfterThis.contains(kv._1))
+        for ((x, VarInfo(_, ty2, vmode2)) <- varsAfter) varsAfter.get(x) match
+          case None => // nothing
+          case Some(VarInfo(trg1, ty1, vmode1)) =>
+            varsAfter += x -> VarInfo(trg1, meet(ty1, ty2), vmode1 && vmode2)
+      }
+      this.vars = varsAfter
+    }

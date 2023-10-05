@@ -14,3 +14,4 @@ def D(): Set[Int] = {15}
   {x | x in A()} & {x | x in B()} & {x | x in C()}
 @main def main6(): Set[Int] =
   {x | x in A(), y in B(), x == y}
+

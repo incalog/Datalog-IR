@@ -9,14 +9,8 @@ trait TypeContext extends BaseIRTypeContext:
   var caseDefs: Map[Name, (DataDefinition, CaseDefinition)] = Map()
 
   override def scopedTypeContext[T](f: => T): T = {
-    val modulesSaved = modules
-    val entriesSaved = entries
-    val varsSaved = vars
     val caseSaved = caseDefs
-    val t = f
-    vars = varsSaved
-    entries = entriesSaved
-    modules = modulesSaved
+    val t = super.scopedTypeContext(f)
     caseDefs = caseSaved
     t
   }

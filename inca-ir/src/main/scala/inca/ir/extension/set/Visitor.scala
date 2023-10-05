@@ -17,8 +17,15 @@ trait Visitor extends BaseIRVisitor:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case SetLit(ts) => Seq(SetLit(ts.flatMap(visitTerm)))
-      case SetIntersection(t1, t2) => visitTerm(t1).zip(visitTerm(t2)).map { case (s1, s2) => SetIntersection(s1, s2) }
-      case SetUnion(t1, t2) => visitTerm(t1).zip(visitTerm(t2)).map { case (s1, s2) => SetUnion(s1, s2) }
+      case SetIntersection(t1, t2) => 
+        for (v1 <- visitTerm(t1); v2 <- visitTerm(t2)) yield
+          SetIntersection(v1, v2)
+      case SetUnion(t1, t2) =>
+        for (v1 <- visitTerm(t1); v2 <- visitTerm(t2)) yield
+          SetUnion(v1, v2)
+      case SetComprehension(elem, atoms) =>
+        for (v <- visitTerm(elem)) yield
+          SetComprehension(v, atoms.flatMap(visitAtom))
       case _ => super.visitTerm(term)
   }
 

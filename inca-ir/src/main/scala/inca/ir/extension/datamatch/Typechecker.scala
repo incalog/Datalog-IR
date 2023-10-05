@@ -13,21 +13,20 @@ trait Typechecker extends data.Typechecker:
         case TData(name) => Some(name.name)
         case ty => error(s"Expected data type but got $ty", matchee); None
 
-      cases.foreach {
-        case Case(name, patVars, body) =>
-          val params = lookupConstruct(name, atom) match
-            case Some((DataDefinition(dname, _), CaseDefinition(_, params))) =>
-              if (!dataType.forall(_ == dname.name))
-                error(s"Constructor $name does not belong to matchee's data type $dataType", name)
-              params
-            case None => Seq()
+      checkAlternatives(cases) { case Case(name, patVars, body) =>
+        val params = lookupConstruct(name, atom) match
+          case Some((DataDefinition(dname, _), CaseDefinition(_, params))) =>
+            if (!dataType.forall(_ == dname.name))
+              error(s"Constructor $name does not belong to matchee's data type $dataType", name)
+            params
+          case None => Seq()
 
-          if (params.size != patVars.size)
-            error(s"Expected ${params.size} arguments, but got ${patVars.size}", atom)
+        if (params.size != patVars.size)
+          error(s"Expected ${params.size} arguments, but got ${patVars.size}", atom)
 
-          scopedTypeContext {
-            patVars.zip(params).foreach { (v, ty) => checkTerm(v, ty, mode) }
-            body.foreach(at => checkAtom(at, mode))
-          }
+        scopedVariables(patVars.map(_.name).toSet) {
+          patVars.zip(params).foreach { (v, ty) => checkTerm(v, ty, mode) }
+          body.foreach(at => checkAtom(at, mode))
+        }
       }
     case _ => super.checkAtom(atom, mode)
