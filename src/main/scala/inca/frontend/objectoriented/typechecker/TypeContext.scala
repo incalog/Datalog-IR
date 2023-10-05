@@ -348,6 +348,7 @@ trait TypeContext extends TypeIO {
   // but the given types of the arguments are the types according to the scope of the subclass
   // -> substitution works but since the class that defines type parameters isn`t present subtyping failed
   // -> solution: give ClassDef of subclass that attempts to call constructor of superclass
+  // -> now used subclass always when other class then clazz determines binding of generic params
   def lookupConstructorCandidates(clazz: Option[ClassDef], tyArgs: Seq[Type], args: Seq[Type], subClass: Option[ClassDef] = None): Seq[(ClassDef, ConstructorDef)] = {
     val collected = collect[ConstructorDef](clazz, c => {
       c.params.size == args.size

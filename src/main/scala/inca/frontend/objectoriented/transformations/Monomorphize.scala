@@ -90,27 +90,22 @@ class Monomorphize(val module: Module) extends ModuleLowering {
           val classDef: ClassDef = classRef.classDef.get
           classDef.parentClassRefs.foreach { parentTname =>
             if (parentTname.tyArgs.nonEmpty) {
-              val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg => // TODO refactor
+              val newSuperTyArgs: Seq[Type] = parentTname.tyArgs.map { arg =>
                 if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
                   val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
-                  //Some(polymorphicClassDefWithConcreteTypes.getOrElse(classRef.name, throw new Exception("....."))
-                  Some(tyArgs(index))
+                  tyArgs(index)
                 }
                 else {
-                  //None: Option[Type]
-                  Some(arg)
+                  arg
                 }
               }
-              val finalSuperTyArgs: Seq[Type] = newSuperTyArgs.filter(_.isDefined).map(_.get)
-              println("finalSuperTyArgs " + finalSuperTyArgs)
-
               if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
-                polymorphicClassDefWithConcreteTypes(parentTname.name).append(finalSuperTyArgs)
+                polymorphicClassDefWithConcreteTypes(parentTname.name).append(newSuperTyArgs)
               }
               else {
-                polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(finalSuperTyArgs))
+                polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(newSuperTyArgs))
               }
-              collectSuperClasses(parentTname, finalSuperTyArgs)
+              collectSuperClasses(parentTname, newSuperTyArgs)
             }
           }
         }
@@ -161,8 +156,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
           }
 
           collectSuperClasses(classRef,tyArgs)
-          println("constructorExpr " + classRef + "  " + tyArgs)
-          println(tyArgs.map(_.tyArgs).mkString)
+//          println("constructorExpr " + classRef + "  " + tyArgs)
+//          println(tyArgs.map(_.tyArgs).mkString)
 
         case SuperExpr(args) =>
           args.foreach(collectExpression(_))
@@ -262,8 +257,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
     collectTypeApplications()
-    println("polymorphicClassDefWithConcreteTypes " + polymorphicClassDefWithConcreteTypes)
-    println("polymorphicMethodDefWithConcreteTypes " + polymorphicMethodDefWithConcreteTypes)
+//    println("polymorphicClassDefWithConcreteTypes " + polymorphicClassDefWithConcreteTypes)
+//    println("polymorphicMethodDefWithConcreteTypes " + polymorphicMethodDefWithConcreteTypes)
     // generate names of monomorphic versions
     generateMonomorphicVersionNames()
     val transClasses = classes.flatMap {
@@ -331,11 +326,10 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     val methodDefs = { // TODO refactor
       var monoName = name
 
-
       val methodDefsTemp = tyArgsSeq.map {
         tyArgs =>
           monoName = polymorphicToMonomorphic(name, tyArgs)
-          subst ++= mutable.Map(genericTypeParams.map(_.name).zip(tyArgs): _*) // TODO test scoping ....
+          subst ++= mutable.Map(genericTypeParams.map(_.name).zip(tyArgs): _*)
 
           val newParams = transParams(params)
           val newBody = transStatements(body)
@@ -348,8 +342,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       val newBody = transStatements(body)
       val newOutType = transType(outType)
 
-      println("#### " + name)
-      println(newOutType)
+//      println("#### " + name)
+//      println(newOutType)
 
       methodDefsTemp :+ MethodDef(annos, vis, monoName, Seq(), newParams, newOutType, newBody)
     }
@@ -372,9 +366,9 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       val newConstr = ConstructorExpr(newName, Seq(), transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
 
-      println("transform constructorExpr " + n + "  " + tyArgs)
-      println(tyArgs.map(_.tyArgs).mkString)
-      println(newConstr, newConstr.tyArgs, newConstr.tyArgs.map(_.tyArgs))
+//      println("transform constructorExpr " + n + "  " + tyArgs)
+//      println(tyArgs.map(_.tyArgs).mkString)
+//      println(newConstr, newConstr.tyArgs, newConstr.tyArgs.map(_.tyArgs))
 
       newConstr
     case SuperExpr(args) =>
@@ -432,21 +426,20 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       case TName(name) =>
-        println("---------polymorphicToMonomorphic " + name,  typ.tyArgs, polymorphicToMonomorphic)
+        //println("---------polymorphicToMonomorphic " + name,  typ.tyArgs, polymorphicToMonomorphic)
         if (subst.contains(name)){
-          println("---------subst " + name, subst)
+          //println("---------subst " + name, subst)
           return subst(name)
         }
         if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
           val newName = polymorphicToMonomorphic(name,typ.tyArgs)
-          println("---------polymorphicToMonomorphic " + name, newName, typ.tyArgs)
+          //println("---------polymorphicToMonomorphic " + name, newName, typ.tyArgs)
           return TName(newName)
         }
         else {
-          //val newName = polymorphicToMonomorphic.getOrElse(name,name)
           val ty = TName(name)
           ty.tyArgs = typ.tyArgs
-          println("---------else " + name,  typ.tyArgs)
+          //println("---------else " + name,  typ.tyArgs)
           return ty
         }
       case tcls@TClass(TName(name)) =>
