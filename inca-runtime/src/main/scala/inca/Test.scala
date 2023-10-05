@@ -7,6 +7,7 @@ import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.{CompilationMessage, ScalaCompiler}
 import inca.ir.extension.arithmetic.ScalaLowering
 import inca.ir.extension.primitiveScala
+import inca.ir.extension.block
 
 import scala.collection.immutable.Seq
 import inca.runtime.EnginePool
@@ -30,14 +31,21 @@ def main() = {
   val mod = module(IR.language, Seq(
     //Eq(term(0), IntNum(4)),
     Eq(IntNum(1), Var("b")),
-    Eq(IntNum(2), Var("a")),
+    Eq(IntNum(3), Var("a")),
+    //Eq(Add(Var("a"), IntNum(2)), Var("a")),
     //Call("Test2", Seq(term(1), term(2)))
   ))
 
-  val loweredMod = new ScalaLowering {}.lower(mod)
-  val typechecker = new primitiveScala.Typechecker {}
-  typechecker.typecheck(loweredMod)
+  // This lowering introduces blocks
+  var loweredMod = new ScalaLowering {}.lower(mod)
+  // Get rid of the blocks
+  trait Lowering extends block.Lowering with primitiveScala.Visitor
+  loweredMod = new Lowering {}.lower(loweredMod)
   println(loweredMod)
+
+  //val typechecker = new primitiveScala.Typechecker {}
+  //typechecker.typecheck(loweredMod)
+
 
   var code = GeneratePSystem.compileModules(Seq(loweredMod))
   code = s"$code; MyModule"

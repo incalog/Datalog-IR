@@ -2,10 +2,6 @@ package inca.ir.extension.set
 
 import inca.ir.*
 
-// TODO Discuss: Do we want to include SetComprehension in the IR ?
-//  We need type information to defunctionalize
-//  How do we encode empty sets ?
-
 case class TSet(ty: Type) extends Type:
   override def toString: String = s"Set[$ty]"
 
@@ -37,12 +33,6 @@ case class SetComprehension(elem: Term, atoms: Seq[Atom]) extends Term:
 case class SetMember(mem: Term, s: Term) extends Atom:
   override def toString: String = s"($mem in $s)"
   override def vars: Seq[Var] = mem.vars ++ s.vars
-
-
-
-// TODO: Discuss: Do we want something like this ?
-//  Probably yes, since we do not know the relation a set is defunctionalized to
-//case class SetFold(t1: Term, neutral: Scala.Term fun: Scala.Term)
 
 trait IR extends BaseIR:
   override val name: String = "Set"

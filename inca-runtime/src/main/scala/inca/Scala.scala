@@ -7,6 +7,7 @@ object Scala:
 
   case class TypeName(s: String) extends Type:
     override def toString: String = s
+
   
   case class FunType(args: Seq[Type], ret: Type) extends Type:
     override def toString: String = s"(${args.mkString(", ")}) => $ret"
@@ -34,16 +35,11 @@ object Scala:
   case class Id(x: String) extends Term:
     override def toString: String = x
 
-  case class Lam(params: Seq[(String, Option[Type])], t: Term) extends Term:
-    override def toString: String = {
-      val paramsString = params.map { case (name, ty) =>
-        if (ty.nonEmpty)
-          s"$name: ${ty.get}"
-        else
-          s"$name"
-      }
-      s"(${paramsString.mkString(", ")}) => $t"
-    }
+  case class Param(name: String, ty: Type):
+    override def toString: String = s"$name: $ty"
+
+  case class Lam(params: Seq[Param], t: Term) extends Term:
+    override def toString: String = s"(${params.mkString(", ")}) => $t"
 
   case class App(fun: Term, args: Seq[Term]) extends Term:
     override def toString: String = s"($fun)(${args.mkString(", ")})"

@@ -1,7 +1,7 @@
 package inca.ir.extension.data
 
 import inca.Scala
-import inca.Scala.{App, AppInfix, Id, Lam, Select, StringLiteral}
+import inca.Scala.{AppInfix, Id, Lam, Select, StringLiteral}
 import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, TermType, Type, Var, string2name}
 import inca.ir.extension.{data, *}

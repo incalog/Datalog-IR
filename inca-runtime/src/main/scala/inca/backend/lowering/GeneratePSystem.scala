@@ -1,9 +1,9 @@
 package inca.backend.lowering
 
 import inca.Scala
-import inca.Scala.Literal
+import inca.Scala.{AppInfix, FunType, Id, Lam, Literal, Select, TypeName}
 import inca.backend.util.{LitCollector, VarCollector}
-import inca.ir.extension.primitiveScala.{Constant, TScala}
+import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
 import inca.util.Gensym
 
@@ -139,21 +139,63 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    // TODO: Application
+    case Application(out, ty, lam, args) if args.isEmpty =>
+      val varName = genConstantLamVarName(lam)
+      val rhs = EVALPREFIX + varName
+      s"""new Equality(body, ${compileTerm(out)}, $rhs)"""
+    case Application(out, TScala(ty), lam@Lam(params, t), args) =>
+      val result = compileTerm(out)
+      val description = s"eval(${lam.toString})"
+      val paramNames = args.toList.flatMap {
+        case Var(name) => Some(name)
+        case _ => None
+      }
+      val argTerms = args.zip(params).toList.map {
+        case (Var(name), p) => s"env.getValue($name).asInstanceOf[${compileScalaType(p.ty)}]"
+        case (Constant(lit, ty), p) => genLiteral(lit)
+      }
+      s"""
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = $description
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ${compileScalaTerm(lam)}(..$argTerms)
+          }
+        }, $result)
+         """
+
+  private def compileScalaTerm(term: Scala.Term): Code = term match
+    case Id(x) => x
+    case Select(t, name) =>
+      s"${compileScalaTerm(t)}.$name"
+    case Lam(params, t) =>
+      val args = params.map(p => s"${p.name}: ${compileScalaType(p.ty)}")
+      s"(${args.mkString(", ")}) => ${compileScalaTerm(t)}"
+    case AppInfix(t1, op, t2) =>
+      s"${compileScalaTerm(t1)} $op ${compileScalaTerm(t2)}"
+
+  private def compileScalaType(t: Scala.Type): Code = t match {
+    case TypeName(s) => s
+    case FunType(args, ret) => s"Function[${args.map(compileScalaType).mkString(",")}]"
+  }
 
   private def compileTerm(v: Term): Code = v match {
     case Var(name) => s"$VARPREFIX$name"
     case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
   }
 
+  private def genConstantLamVarName(lam: Lam): String = lam.hashCode().toString
+
+  private def genLiteral[T](lit: Scala.Literal[T]): Code = s"${lit.value}"
+
   private def genLiteralVar[T](lit: Scala.Literal[T], ty: TScala): Code = {
     val varName = genLiteralVarName(lit, ty)
-    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${lit.value})"
+    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
   private def genLiteralVarName[T](lit: Scala.Literal[T], ty: TScala): String = {
     val TScala(tty) = ty
-    tty.toString + lit.value.hashCode
+    compileScalaType(tty) + lit.value.hashCode
   }
 
   private def genPParam(param: Param): Code = {

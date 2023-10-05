@@ -1,0 +1,24 @@
+package inca.runtime.index.unary
+
+import inca.runtime.index.IndexKey
+
+import scala.collection.mutable
+
+class UnarySetIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
+  // mutable.Set seems faster than Eclipse's MutableSet
+  protected val index: mutable.Set[V] = mutable.Set()
+
+  override def entries: Iterable[V] = index
+  override def index(v: V): Int = if (index.contains(v)) 1 else 0
+
+  override def insert(v: V): Unit = {
+    index += v
+    notify(v, isInsertion = true)
+  }
+
+  override def delete(v: V): Unit = {
+    index -= v
+    notify(v, isInsertion = false)
+  }
+
+}

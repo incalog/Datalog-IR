@@ -19,37 +19,37 @@ trait ScalaLowering extends BaseLowering:
     Name(x)
 
   // TODO: How do we handle this best so that it is extensible ?
-  private def asScala(ty: Option[Type]): Option[Scala.Type] = ty match
+  private def asScala(ty: Type): Scala.Type = ty match
     //case Some(TAny) => Some(Scala.TypeName("Any"))
-    case Some(TInt) => Some(Scala.TypeName("Int"))
-    case Some(TDouble) => Some(Scala.TypeName("Double"))
-    case Some(TScala(ty)) => Some(ty)
-    case None => None
+    case TInt => Scala.TypeName("Int")
+    case TDouble => Scala.TypeName("Double")
+    case TScala(ty) => ty
+    case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
-  private def lamOp(op: String, lhs: (String, Option[Scala.Type]), rhs: (String, Option[Scala.Type])): Scala.Term =
+  private def lamOp(op: String, lhs: Scala.Param, rhs: Scala.Param): Scala.Lam =
     Scala.Lam(Seq(lhs, rhs), Scala.AppInfix(Scala.Id(lhs._1), op, Scala.Id(rhs._1)))
 
-  private def app(op: String, ty: TScala, lhsParam: (Term, Option[Type]), rhsParam: (Term, Option[Type])): (Var, Application) = {
+  private def app(op: String, ty: TScala, lhsParam: (Term, Type), rhsParam: (Term, Type)): (Var, Application) = {
     val x = Var(freshName())
     val (lhs, lhsTy) = lhsParam
     val (rhs, rhsTy) = rhsParam
-    val calc = lamOp(op, "lhs" -> asScala(lhsTy), "rhs" -> asScala(rhsTy))
+    val calc = lamOp(op, Scala.Param("lhs", asScala(lhsTy)), Scala.Param("rhs", asScala(rhsTy)))
     val appl = Application(x, ty, calc, Seq(lhs, rhs))
     (x, appl)
   }
 
-  private def blockApp(op: String, ty: TScala, lhs: (Term, Option[Type]), rhs: (Term, Option[Type])): Term = {
+  private def blockApp(op: String, ty: TScala, lhs: (Term, Type), rhs: (Term, Type)): Term = {
     val (x, appl) = app(op, ty, lhs, rhs)
     block.Block(Seq(appl), x)
   }
 
-  private def typedParams(t: Term): Seq[(Term, Option[Type])] = {
+  private def typedParams(t: Term): Seq[(Term, Type)] = {
     val ty = t.typ match
       case Some(TermType(ty,_)) => ty.flatten
-      case None => Seq()
+      case None => throw new IllegalStateException(s"Untyped term $t")
 
     for ((t, i) <- visitTerm(t).zipWithIndex)
-      yield t -> ty.lift(i)
+      yield t -> ty(i)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
