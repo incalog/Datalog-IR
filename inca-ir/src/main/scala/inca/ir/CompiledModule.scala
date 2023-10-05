@@ -9,7 +9,7 @@ import inca.util.CompilationMessage
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 
-trait CompiledModule {
+trait CompiledModule:
   def name: Name
   def sourceLocation: SourceLocation
 
@@ -61,8 +61,6 @@ trait CompiledModule {
       finally println(l)
       l
     }
-}
 
-object CompiledModule {
+object CompiledModule:
   case class Failed(module: CompiledModule, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
-}

@@ -6,12 +6,18 @@ import inca.backend.util.{LitCollector, VarCollector}
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
 import inca.util.Gensym
+import inca.ir.extension.{block, demand, primitiveScala, arithmetic, data}
+import inca.ir.typing
 
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
+
+  private trait BlockLowering extends block.Lowering with primitiveScala.Visitor
+  private trait DemandLowering extends demand.Lowering with primitiveScala.Visitor
+  private trait Typechecker extends typing.IRTypechecker with primitiveScala.Typechecker
 
   /** Maps rule name to the name of the module that defines it. */
   type RuleEnvironment = Map[String, String]
@@ -22,13 +28,37 @@ object GeneratePSystem:
     modules.map(m => compileModule(m)(env)).mkString("\n")
   }
 
+  private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
+    val lowerings = Seq(
+      new arithmetic.ScalaLowering {}, // Get rid of arithmetic
+      new data.ScalaLowering {}, // Get rid of data
+      new BlockLowering {}, // Get rid of reintroduced blocks
+      new DemandLowering {} // Get rid of reintroduced demand symbols
+    )
+
+    // we need type information to translate the datalog code to scala code
+    val typechecker = new Typechecker {}
+    typechecker.typecheck(module)
+    typechecker.failOnError()
+
+    // apply and typecheck each lowering
+    lowerings.foldLeft(module) {
+      case (mod, lowering) =>
+        val lowered = lowering.lower(mod)
+        typechecker.typecheck(lowered)
+        typechecker.failOnError()
+        lowered
+    }
+  }
+
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
     // TODO: handle module.imports
+    val mod = lowerAndTypeModule(module)
 
-    val myenv = env ++ module.relations.keys.map(r => r -> module.name.name) // makes sure this module's names are found first
-    val funs = module.relations.values.map(r => compileRelation(module.name, r)(indent=2)(myenv)).toList
+    val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
+    val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent=2)(myenv)).toList
 
-    val nonEmptyRels = module.relations.values.filter(!_.isEmpty).map {
+    val nonEmptyRels = mod.relations.values.filter(!_.isEmpty).map {
       r => s""""${r.name}" -> (() => ${r.name}.instance)"""
     }
 
@@ -53,7 +83,7 @@ object GeneratePSystem:
       |import inca.runtime.Query.Specification
       |import inca.runtime.index.NamedRelationKey
       |
-      |object ${module.name} extends PSystem.Module {
+      |object ${mod.name} extends PSystem.Module {
       |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
       |  ${funs.mkString("\n")}
       |}

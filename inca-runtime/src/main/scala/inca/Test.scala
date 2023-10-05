@@ -36,25 +36,7 @@ def main() = {
     //Call("Test2", Seq(term(1), term(2)))
   ))
 
-  trait Lowering extends block.Lowering with primitiveScala.Visitor
-  trait Typechecker extends typing.IRTypechecker with primitiveScala.Typechecker
-
-  println(mod)
-
-  val typechecker = new Typechecker {}
-  typechecker.typecheck(mod)
-
-  // This lowering introduces blocks
-  var loweredMod = new ScalaLowering {}.lower(mod)
-  typechecker.typecheck(loweredMod)
-
-  // Get rid of the blocks
-  loweredMod = new Lowering {}.lower(loweredMod)
-  typechecker.typecheck(loweredMod)
-
-  println(loweredMod)
-
-  var code = GeneratePSystem.compileModules(Seq(loweredMod))
+  var code = GeneratePSystem.compileModules(Seq(mod))
   code = s"$code; MyModule"
   //println(code)
 

@@ -8,7 +8,8 @@ Test / parallelExecution := false
 
 val truediffVersion = "0.1.5-SNAPSHOT"
 
-lazy val inca_ir = (project in file("inca-ir")).settings(
+lazy val inca_ir = (project in file("inca-ir"))
+  .settings(
   scalaVersion := "3.3.0",
 
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
@@ -52,10 +53,11 @@ lazy val inca_runtime = (project in file("inca-runtime"))
       "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
       "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
     )
-)
+  )
 
 lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_runtime % "compile->compile")
   .settings(
     scalaVersion := "3.3.0",
 
