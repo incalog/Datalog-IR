@@ -623,6 +623,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transMethodWithSameQualifiedName(qualifiedName: String, pairs: Seq[(ClassDef, MethodDef)]): Datalog.Pattern = gensym.scoped {
+    println("++++" + pairs)
     val allMethods = pairs.map(_._2)
     allMethods.foreach { m => gensym.register(m.vars.keys.map(_.raw) + "this") }
 

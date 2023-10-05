@@ -24,8 +24,9 @@ object Options {
     ConstantPropagation,
     EliminateAliases,
     EvalFusion,
-    InferVarTypes,
+    // InferVarTypes, //TODO: methods of generic classes should compile to different relations
     FoldConstantAtoms,
     EliminateNonproductiveRelations
+
   )
 }

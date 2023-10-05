@@ -96,7 +96,8 @@ object InferVarTypes extends Optimization {
           val meetType = meet(tys, dataModel)
           meetType match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
-            case None => throwBodyMustFail()
+            case None =>
+              throwBodyMustFail()
           }
         }
         super.optimizeBody(body, pat)
