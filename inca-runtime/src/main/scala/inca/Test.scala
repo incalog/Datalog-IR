@@ -52,12 +52,6 @@ def main() = {
   loweredMod = new Lowering {}.lower(loweredMod)
   typechecker.typecheck(loweredMod)
 
-
-
-  // Get required type information
-
-
-
   println(loweredMod)
 
   var code = GeneratePSystem.compileModules(Seq(loweredMod))

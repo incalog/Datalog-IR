@@ -1,7 +1,7 @@
 package inca.backend.lowering
 
 import inca.Scala
-import inca.Scala.{AppInfix, FunType, Id, Lam, Literal, Select, TypeName}
+import inca.Scala.{App, AppInfix, FunType, Id, Lam, Literal, Select, TypeName}
 import inca.backend.util.{LitCollector, VarCollector}
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
@@ -170,6 +170,9 @@ object GeneratePSystem:
     case Lam(params, t) =>
       val args = params.map(p => s"${p.name}: ${compileScalaType(p.ty)}")
       s"(${args.mkString(", ")}) => ${compileScalaTerm(t)}"
+    case App(fun, args) =>
+      val inArgs = args.map(compileScalaTerm).mkString(",")
+      s"${compileScalaTerm(fun)}($inArgs})"
     case AppInfix(t1, op, t2) =>
       s"${compileScalaTerm(t1)} $op ${compileScalaTerm(t2)}"
 
