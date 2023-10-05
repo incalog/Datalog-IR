@@ -7,6 +7,7 @@ import inca.ir.typing.Typechecker
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.{CompilationMessage, ScalaCompiler}
 import inca.ir.extension.arithmetic.ScalaLowering
+import inca.ir.extension.primitiveScala
 
 import scala.collection.immutable.Seq
 import scala.quoted.*
@@ -17,7 +18,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  @main
+@main
 def main() = {
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
@@ -38,6 +39,8 @@ def main() = {
   ))
 
   val loweredMod = new ScalaLowering {}.lower(mod)
+  val typechecker = new primitiveScala.Typechecker {}
+  typechecker.typecheck(loweredMod)
   println(loweredMod)
 
   var code = GeneratePSystem.compileModules(Seq(loweredMod))

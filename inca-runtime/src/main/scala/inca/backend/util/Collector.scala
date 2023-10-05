@@ -6,14 +6,14 @@ import inca.ir.visitors.IRVisitor
 import inca.ir.extension.primitiveScala
 import inca.ir.{Body, Module, Relation, Term, Var, name2string}
 
-trait Collector[T] extends IRVisitor with primitiveScala.Visitor {
+private trait Collector[T] extends IRVisitor with primitiveScala.Visitor {
   private var collection: Seq[T] = Seq()
 
   protected def collect(ele: T): Unit = collection :+= ele
   def get(): Seq[T] = collection
 }
 
-class VarCollector extends Collector[String] {
+protected[backend] class VarCollector extends Collector[String] {
   override def visitTerm(term: Term): Seq[Term] = term match
     case Var(name) =>
       collect(name)
@@ -22,7 +22,7 @@ class VarCollector extends Collector[String] {
       super.visitTerm(term)
 }
 
-object VarCollector {
+protected[backend] object VarCollector {
   def collectAll(relation: Relation): Seq[String] = {
     val varCollector = new VarCollector()
     varCollector.visitRelation(relation)
@@ -36,7 +36,7 @@ object VarCollector {
   }
 }
 
-class LitCollector extends Collector[(Scala.Literal[_], TScala)] {
+protected[backend] class LitCollector extends Collector[(Scala.Literal[_], TScala)] {
   override def visitTerm(term: Term): Seq[Term] = term match
     case Constant(lit, ty) =>
       collect((lit, ty))
@@ -45,7 +45,7 @@ class LitCollector extends Collector[(Scala.Literal[_], TScala)] {
       super.visitTerm(term)
 }
 
-object LitCollector {
+protected[backend] object LitCollector {
   def collectAll(relation: Relation): Seq[(Scala.Literal[_], TScala)] = {
     val litCollector = new LitCollector()
     litCollector.visitRelation(relation)
