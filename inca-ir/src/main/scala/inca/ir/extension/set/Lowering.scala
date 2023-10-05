@@ -9,7 +9,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
-import inca.ir.util.Gensym
+import inca.util.Gensym
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 

@@ -1,4 +1,4 @@
-package inca.ir.util
+package inca.util
 
 import inca.ir.Name
 

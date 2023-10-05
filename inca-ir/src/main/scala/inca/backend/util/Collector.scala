@@ -1,5 +1,7 @@
 package inca.backend.util
 
+import inca.Scala
+import inca.ir.extension.primitiveScala.{Constant, TScala}
 import inca.ir.visitors.IRVisitor
 import inca.ir.{Body, Module, Relation, Term, Var, name2string}
 
@@ -30,5 +32,28 @@ object VarCollector {
     val varCollector = new VarCollector()
     varCollector.visitBody(body)
     varCollector.get()
+  }
+}
+
+class LitCollector extends Collector[(Scala.Literal[_], TScala)] {
+  override def visitTerm(term: Term): Seq[Term] = term match
+    case Constant(lit, ty) =>
+      collect((lit, ty))
+      super.visitTerm(term)
+    case _ =>
+      super.visitTerm(term)
+}
+
+object LitCollector {
+  def collectAll(relation: Relation): Seq[(Scala.Literal[_], TScala)] = {
+    val litCollector = new LitCollector()
+    litCollector.visitRelation(relation)
+    litCollector.get()
+  }
+
+  def collectAll(body: Body): Seq[(Scala.Literal[_], TScala)] = {
+    val litCollector = new LitCollector()
+    litCollector.visitBody(body)
+    litCollector.get()
   }
 }

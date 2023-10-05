@@ -11,7 +11,7 @@ object TScala:
   def bool = TScala(Scala.TypeName("Boolean"))
 
 // TODO: Eval instead of Constant and Application ?
-case class Constant(value: Scala.Term, ty: TScala) extends Term
+case class Constant[T](value: Scala.Literal[T], ty: TScala) extends Term
 case class Application(out: Term, ty: TScala, fun: Scala.Term, args: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = out.vars ++ args.flatMap(_.vars)
 

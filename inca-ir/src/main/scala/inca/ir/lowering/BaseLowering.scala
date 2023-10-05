@@ -1,9 +1,9 @@
 package inca.ir.lowering
 
 import inca.ir.Hint.preserveHints
-import inca.ir.util.Gensym
 import inca.ir.{Atom, BaseIR, Body, Call, Module, ModuleEntry, Param, Relation, Term, Var, name2string}
 import inca.ir.visitors.IRVisitor
+import inca.util.Gensym
 
 trait BaseLowering extends IRVisitor:
 

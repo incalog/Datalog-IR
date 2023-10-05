@@ -3,9 +3,9 @@ package inca.ir.extension.demand
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.lowering.BaseLowering
-import inca.ir.util.Gensym
 import inca.ir.visitors.VarCollector
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
+import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 
