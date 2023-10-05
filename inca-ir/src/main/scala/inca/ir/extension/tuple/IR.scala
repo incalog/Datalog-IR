@@ -15,8 +15,16 @@ case class TTuple(tys: Seq[Type]) extends Type:
   override def flatten: Seq[Type] = tys.flatMap(_.flatten)
 
 case class TupleLit(ts: Seq[Term]) extends Term:
+  if (ts.size == 1)
+    throw new IllegalArgumentException(s"Unary tuples are not allowed.")
   override def toString: String = ts.mkString("(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
+object TupleLit:
+  def make(ts: Seq[Term]): Term =
+    if (ts.size == 1)
+      ts.head
+    else
+      TupleLit(ts)
 
 case class Project(t: Term, idx: Int) extends Term:
   override def toString: String = s"$t._$idx"

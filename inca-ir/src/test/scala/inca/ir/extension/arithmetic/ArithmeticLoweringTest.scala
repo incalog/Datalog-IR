@@ -4,7 +4,8 @@ import inca.Scala
 import inca.ir.*
 import inca.ir.extension.*
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala, IR as ScalaIR}
-import inca.ir.typing.{CompilationMessage, Typechecker}
+import inca.ir.typing.Typechecker
+import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 

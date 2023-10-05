@@ -1,6 +1,5 @@
 package inca.frontend.functional.syntax
 
-import inca.Scala
 import inca.ir.Name
 import inca.ir.typing.Resolvable
 import inca.ir.util.SourceLocation
@@ -57,11 +56,18 @@ object TTuple {
     case ts => TTuple(ts)
   }
 }
+
 case class TName(name: Name) extends Type with Resolvable[TName.Target] {
   override def prettyprint: String = name.name
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TName] = Seq(this)
+  def isBuiltIn: Boolean = builtInTypes.contains(name.name)
 }
+val builtInTypes = Set("Int", "Boolean", "String", "Double")
+def TInt: Type = TName(Name("Int"))
+def TDouble: Type = TName(Name("Double"))
+def TBoolean: Type = TName(Name("Boolean"))
+def TString: Type = TName(Name("String"))
 
 object TName {
   trait Target

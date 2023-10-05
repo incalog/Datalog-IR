@@ -65,7 +65,7 @@ object Parser:
   val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ Some('_')).void
-  val opSymbol: P[Unit] = P.charIn("!@#$%^&*()+=<>,.:?/\\_").void
+  val opSymbol: P[Unit] = P.charIn("!@#$%^&*()+=<>,.:?/\\_|").void
 
   val id: P[String] =
     (letter ~ letterDigit.rep0)
@@ -155,7 +155,7 @@ object Parser:
   def setExpMore(e: Expression): P0[Expression] =
     (op(',') *> recExpression.repSep(op(','))).mapWithLoc(es => SetExp(e +: es.toList)) |
     (op('|') *> setPredicate.repSep(op(','))).mapWithLoc(es => SetComprehension(e, es.toList)) |
-      P.pure(e)
+      P.pure(SetExp(Seq(e)))
 
   lazy val setExp: P[Expression] =
     inBraces((recExpression flatMap setExpMore) | P.pure(SetExp(Seq())))
@@ -230,10 +230,10 @@ object Parser:
     oneOperator(List("==", ">=", "<=", "!=", "<", ">"))
 
   val additiveOperator: P[String] =
-    oneOperator(List("++", "+", "-", "||"))
+    oneOperator(List("++", "+", "-"))
 
   val multiplicativeOperator: P[String] =
-    oneOperator(List("*", "/", "&&", "&", "%"))
+    oneOperator(List("*", "/", "&", "%")).backtrack
 
   lazy val binMultiplicativeExpression: P[Expression] =
     (callExp ~ (multiplicativeOperator ~ P.defer(binMultiplicativeExpression)).?).mapWithLoc {
@@ -253,7 +253,19 @@ object Parser:
       case (lhs, None) => lhs
     }
 
-  val binOpExp: P[Expression] = binCompareExpression
+  lazy val binBoolAndExpression: P[Expression] =
+    (binCompareExpression ~ (operator("&&") ~ P.defer(binBoolAndExpression)).?).mapWithLoc {
+      case (lhs, Some(op, rhs)) => BinOp(lhs, "&&", rhs)
+      case (lhs, None) => lhs
+    }
+
+  lazy val binBoolOrExpression: P[Expression] =
+    (binBoolAndExpression ~ (operator("||") ~ P.defer(binBoolOrExpression)).?).mapWithLoc {
+      case (lhs, Some(op, rhs)) => BinOp(lhs, "||", rhs)
+      case (lhs, None) => lhs
+    }
+
+  val binOpExp: P[Expression] = binBoolOrExpression
 
   def infixExpRec(e: Expression): P0[Expression] =
     (infixExpStep(e) flatMap infixExpRec) | P.pure(e)

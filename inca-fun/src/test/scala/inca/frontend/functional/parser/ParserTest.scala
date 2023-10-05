@@ -1,4 +1,4 @@
-package inca.frontend.functiona.parser
+package inca.frontend.functional.parser
 
 import inca.frontend.functional.syntax.*
 import inca.ir.Name
@@ -67,6 +67,11 @@ class ParserTest extends AnyFunSuite {
 
   test("expressions") {
     testSuccessAny(Parser.expression)("let x = 1 + 2 in x")
+    testSuccessAny(Parser.expression)("1 == 2")
+    testSuccessAny(Parser.expression)("1 && 2")
+    testSuccessAny(Parser.expression)("1 || 2")
+    testSuccess(Parser.expression)("1 == 2 && 2 == 3", BinOp(BinOp(IntLit(1), "==", IntLit(2)), "&&", BinOp(IntLit(2), "==", IntLit(3))))
+    testSuccess(Parser.expression)("1 == 2 || 2 == 3", BinOp(BinOp(IntLit(1), "==", IntLit(2)), "||", BinOp(IntLit(2), "==", IntLit(3))))
 
     testSuccessAny(Parser.unaryOperator)("-")
     testSuccessAny(Parser.unaryOperator ~ Parser.infixExp)("-x")
@@ -81,9 +86,9 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(Parser.expression)("m match { case Foo() => 1 }")
     testSuccessAny(Parser.expression)("plus(Succ(Succ(Succ(Zero()))), Succ(Succ(Zero())))")
 
-    testSuccessAny(Parser.expression)("{}")
-    testSuccessAny(Parser.expression)("{1}")
-    testSuccessAny(Parser.expression)("{1, 2, 3}")
+    testSuccess(Parser.expression)("{}", SetExp(Seq()))
+    testSuccess(Parser.expression)("{1}", SetExp(Seq(IntLit(1))))
+    testSuccess(Parser.expression)("{1, 2, 3}", SetExp(Seq(IntLit(1), IntLit(2), IntLit(3))))
 
     testSuccess(Parser.expression)("x ++ y", BinOp(Var("x"), "++", Var("y")))
     testSuccessAny(Parser.expression)("flip()")
@@ -167,7 +172,7 @@ class ParserTest extends AnyFunSuite {
 
   test("Module test") {
     val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
-    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TName(Name("Bool")))), TName(Name("Bool")),
+    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TBoolean)), TBoolean,
       Match(Var("b"), Seq(
         (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq(), Seq())),
         (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq(), Seq())))))
@@ -186,10 +191,10 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("FunctionDef test") {
-    val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(), Seq(Param(Name("x"), TName(Name("Int")))), TName(Name("Int")), If(Var("x"), IntLit(1), IntLit(2)))
+    val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(), Seq(Param(Name("x"), TInt)), TInt, If(Var("x"), IntLit(1), IntLit(2)))
     testSuccess(Parser.functionDef)("def foo(x: Int): Int = if (x) 1 else 2", funDef)
 
-    val annoFunDef = FunctionDef(Seq(MainFunctionAnno()), None, Name("foo"), Seq(), Seq(Param(Name("x"), TName(Name("Int")))), TName(Name("Int")), If(Var("x"), IntLit(1), IntLit(2)))
+    val annoFunDef = FunctionDef(Seq(MainFunctionAnno()), None, Name("foo"), Seq(), Seq(Param(Name("x"), TInt)), TInt, If(Var("x"), IntLit(1), IntLit(2)))
     val annoFunString = "@main def foo(x: Int): Int = if (x) 1 else 2"
     Parser.functionDef.parse(annoFunString) match {
       case Right((_, value)) =>

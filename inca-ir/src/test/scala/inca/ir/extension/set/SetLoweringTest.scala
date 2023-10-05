@@ -2,7 +2,7 @@ package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.{BaseIR, Body, Call, Eq, Language, Module, Neq, Param, Relation, TAny, Type, Var, string2name}
-import inca.ir.typing.{CompilationMessage, IRTypechecker, Typechecker}
+import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}

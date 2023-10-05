@@ -29,13 +29,22 @@ case class Mul(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "*")
 case class Div(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "/")
 case class Min(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
 case class Max(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
+case class Abs(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "abs")
 
 case class LT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs < $rhs"
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
+case class LE(lhs: Term, rhs: Term) extends Atom:
+  override def toString: String = s"$lhs <= $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+
 case class GT(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs > $rhs"
+  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+
+case class GE(lhs: Term, rhs: Term) extends Atom:
+  override def toString: String = s"$lhs >= $rhs"
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 object IR extends IR { }

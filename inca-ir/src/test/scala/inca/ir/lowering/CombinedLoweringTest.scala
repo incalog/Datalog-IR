@@ -5,7 +5,8 @@ import inca.ir.extension.*
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.tuple.TTuple
 import inca.ir.extension.tuple.Lowering.separator
-import inca.ir.typing.{CompilationMessage, Typechecker}
+import inca.ir.typing.Typechecker
+import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
