@@ -199,6 +199,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       error(s"Constructor '${classDef.name}' can not be static", constructorDef)
 
     val overriddenConstructors = lookupConstructorCandidates(Some(classDef), Seq(), constructorDef.params.map(_.typ))   // TODO no tyArgs???
+    //val overriddenConstructors = lookupConstructorCandidates(Some(classDef), classDef.genericTypeParams.map(param=>TName(param.name)), constructorDef.params.map(_.typ))   // TODO no tyArgs???
 
     overriddenConstructors.foreach { case (_, m) =>
       m.params.zip(constructorDef.params).foreach { case (p1, p2) =>
@@ -389,14 +390,15 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TAny
       }
     case construtorExpr@ConstructorExpr(className, tyArgs, args) =>
-      tyArgs.foreach(param => typecheck(param,className.name))
+      //tyArgs.foreach(param => typecheck(param,className.name))
+      tyArgs.foreach(param => typecheck(param,classDef.name)) // TODO
 
       lookupClassRef(className) match {
         case None => TAny
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
 
-          lookupConstructor(classDefOption, tyArgs, argTypes, expression) match {
+          lookupConstructor(classDefOption, tyArgs, argTypes, expression, Some(classDef)) match { // TODO test whether giving classDef breaks something
             case Some((cls, constructorDef)) if cls == clazz =>
               resolveTarget(construtorExpr)(constructorDef)
 

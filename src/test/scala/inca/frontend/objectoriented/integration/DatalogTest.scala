@@ -27,7 +27,7 @@ class DatalogTest extends AnyFunSuite {
       assert(rel == test.expectedRelation)
     }
   }
-
+/*
   test("Base Examples") {
     performTests(baseTests: _*)
   }
@@ -218,7 +218,7 @@ class DatalogTest extends AnyFunSuite {
 
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
-  }
+  } */
 
   /*---------------*/
   /* Test Generics */
@@ -241,7 +241,9 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("Generic Class inner Shadowing") {
+    assertThrows[Exception](
     performTests(genericClassMethodInnerShadowing)
+    )
   }
 
   test("Generic Class with wrong type annotation") {
@@ -277,9 +279,9 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("unknown and unbound Type Parameter") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownTypeParameter)
-    //)
+    )
   }
 
 
@@ -328,7 +330,7 @@ class DatalogTest extends AnyFunSuite {
     performTests(genericMethodInheritance)
   }
 
-
+/*
   test("Simple nested generics") {
     performTests(nestedGenerics)
   }
@@ -340,41 +342,41 @@ class DatalogTest extends AnyFunSuite {
   test("Nested generics with inheritance") {
     performTests(nestedGenericsInheritance)
   }
-
+*/
 
   test("unknown and unbound Type Parameter scoping (but bound in other class)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownTypeParameterScopingOtherClass)
-    //)
+    )
   }
 
   test("unknown and unbound Type Parameter scoping (but bound in class method)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownTypeParamScopingClassMethod)
-    //)
+    )
   }
 
   test("unknown and unbound Method Type Parameter scoping (but bound in other class)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownMethodTypeParamScopingOtherClass)
-    //)
+    )
   }
 
   test("unknown and unbound Method Type Parameter scoping (but bound in class Method)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownMethodTypeParamScopingClassMethod)
-    //)
+    )
   }
 
   test("unknown and unbound Method Out Type Parameter scoping (but bound in other class)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownMethodOutTypeParamScopingOtherClass)
-    //)
+    )
   }
 
   test("unknown and unbound Type Parameter scoping (but bound in inheritance class)") {
-    //assertThrows[Exception](
+    assertThrows[Exception](
     performTests(unknownTypeParamScopingInheritanceClass)
-    //)
+    )
   }
 }

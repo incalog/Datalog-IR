@@ -57,6 +57,7 @@ class GenerateDataModel(module: Module) {
     case TScalaAny => Some(JavaLitType(classOf[Any]))
     case TScala(_) => None
     case TSet(_) => None
+    case TName(_) => None
   }
 
 }

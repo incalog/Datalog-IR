@@ -92,7 +92,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
           val classDef: ClassDef = classRef.classDef.get
           classDef.parentClassRefs.foreach { parentTname =>
             if (parentTname.tyArgs.nonEmpty) {
-              val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg =>
+              val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg => // TODO refactor
                 if (classDef.genericTypeParams.exists(p => TName(p.name) == arg)) {
                   val index = classDef.genericTypeParams.indexOf(classDef.genericTypeParams.filter(p => TName(p.name) == arg).head)
                   //Some(polymorphicClassDefWithConcreteTypes.getOrElse(classRef.name, throw new Exception("....."))
