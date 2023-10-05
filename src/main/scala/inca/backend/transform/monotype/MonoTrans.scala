@@ -190,8 +190,7 @@ object MonoTrans extends Transformation {
                 Seq(m, Var("v@mono")),
                 1
               )
-              val tmpVar = Var("tmp$" + tmpCounter)
-              tmpCounter += 1
+              val tmpVar = Var("tmp")
               val tmp : Computed = Computed(
                 tmpVar,
                 agg
