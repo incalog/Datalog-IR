@@ -145,24 +145,23 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(out)}, $rhs)"""
     case Application(out, TScala(ty), lam@Lam(params, t), args) =>
       val result = compileTerm(out)
-      val description = s"eval(${lam.toString})"
+      val description = s""""eval(${lam.toString})""""
       val paramNames = args.toList.flatMap {
-        case Var(name) => Some(name)
+        case Var(name) => Some(s""""$name"""")
         case _ => None
       }
       val argTerms = args.zip(params).toList.map {
-        case (Var(name), p) => s"env.getValue($name).asInstanceOf[${compileScalaType(p.ty)}]"
+        case (Var(name), p) => s"""env.getValue("$name").asInstanceOf[${compileScalaType(p.ty)}]"""
         case (Constant(lit, ty), p) => genLiteral(lit)
       }
       s"""
-        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
-          override def getShortDescription: String = $description
-          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
-          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-            ${compileScalaTerm(lam)}(..$argTerms)
-          }
-        }, $result)
-         """
+        |new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+        |  override def getShortDescription: String = $description
+        |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
+        |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+        |    (${compileScalaTerm(lam)})(${argTerms.mkString(",")})
+        |  }
+        |}, $result)""".stripMargin
 
   private def compileScalaTerm(term: Scala.Term): Code = term match
     case Id(x) => x
