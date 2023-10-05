@@ -8,6 +8,7 @@ import inca.frontend.objectoriented.core.Type.suffix
 import inca.util.{Gensym, Scala, TupleOps}
 import truechange.SortType
 
+import scala.annotation.tailrec
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable
 import scala.runtime.BoxedUnit
@@ -35,14 +36,15 @@ class Monomorphize(val module: Module) extends ModuleLowering {
   private val polymorphicToMonomorphic = mutable.Map[(Name, Seq[Type]), Name]()
 
   // in this maps: class/method-name -> list of the used Types for the type-parameters
-  // so that they can each be zipped later TODO ?
+  // so that they can each be zipped later
   var polymorphicClassDefWithConcreteTypes: Map[Name, mutable.ArrayBuffer[Seq[Type]]] = Map[Name, mutable.ArrayBuffer[Seq[Type]]]()
   var polymorphicMethodDefWithConcreteTypes: Map[(Name,Name), mutable.ArrayBuffer[Seq[Type]]] = Map[(Name,Name), mutable.ArrayBuffer[Seq[Type]]]()
 
   private var subst: mutable.Map[Name, Type] = mutable.Map[Name, Type]() // maps generic parameters to types
 
     private def collectTypeApplications(): Unit = {
-
+      // ugly fix for unknown generic class & parameters
+      module.classes.foreach(clsDef => collectClassDef(clsDef))
       module.classes.foreach(clsDef => collectClassDef(clsDef))
 
       def collectClassDef(classDef: ClassDef): Unit = {
@@ -66,8 +68,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
 
          */
 
-        println(polymorphicClassDefWithConcreteTypes)
-        println(polymorphicMethodDefWithConcreteTypes)
       }
 
 
@@ -83,8 +83,6 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         constructorDef.body.foreach(stm => collectStatement(stm))
       }
 
-
-      // Output Seq[(ClassName, Seq[GenParamName, Seq[Type]])]
 
 
       def collectSuperClasses(classRef: TName, tyArgs: Seq[Type]): Unit = {
@@ -129,7 +127,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
             val substTyArgs = tyArgs.map{
               case tname@TName(n) =>
                 val index = classDef.genericTypeParams.indexOf(GenericParamDef(n))
-                if (index >= 0){
+                if (index >= 0 && polymorphicClassDefWithConcreteTypes.contains(classDef.name)){
                   polymorphicClassDefWithConcreteTypes(classDef.name).map(types => types(index)).toSeq
                 }
                 else {
@@ -138,49 +136,30 @@ class Monomorphize(val module: Module) extends ModuleLowering {
               case other => Seq(other)
             }
 
-            (0 until substTyArgs(0).length).foreach{i =>
+            save_types(substTyArgs,classDef.genericTypeParams,0)
+
+            @tailrec
+            def save_types(substTyArgs: Seq[Seq[Type]], genericTypeParams: Seq[GenericParamDef], i: Int): Unit = {
+              if (i >= substTyArgs.head.length){
+                return
+              }
               val currentTyArgs = substTyArgs.map(s => s(i))
+              // do not save generic parameters
+              if (currentTyArgs.intersect(genericTypeParams.map(n => TName(n.name))).nonEmpty) {
+                return
+              }
+
               if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == classRef.name)) {
                 polymorphicClassDefWithConcreteTypes(classRef.name).append(currentTyArgs)
               }
               else {
                 polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(currentTyArgs))
               }
+              save_types(substTyArgs,genericTypeParams,i+1)
             }
 
-//            if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == classRef.name)) {
-//              polymorphicClassDefWithConcreteTypes(classRef.name).append(tyArgs)
-//            }
-//            else {
-//              polymorphicClassDefWithConcreteTypes += (classRef.name -> mutable.ArrayBuffer(tyArgs))
-//            }
           }
-          // TODO refactor ?
-//          if (classRef.classDef.isDefined) {
-//            classRef.classDef.get.parentClassRefs.foreach { parentTname =>
-//              if (parentTname.tyArgs.nonEmpty) {
-//                val parent = classRef.classDef.get
-//                val newSuperTyArgs: Seq[Option[Type]] = parentTname.tyArgs.map { arg =>
-//                  if (parent.genericTypeParams.exists(p => TName(p.name) == arg)) {
-//                    val index = parent.genericTypeParams.indexOf(parent.genericTypeParams.filter(p => TName(p.name) == arg).head)
-//                    Some(tyArgs(index))
-//                  }
-//                  else{
-//                    None: Option[Type]
-//                  }
-//                }
-//                val finalSuperTyArgs: Seq[Type] = newSuperTyArgs.filter(_.isDefined).map(_.get)
-//                println("finalSuperTyArgs " + finalSuperTyArgs)
-//
-//                if (polymorphicClassDefWithConcreteTypes.keys.exists(_ == parentTname.name)) {
-//                  polymorphicClassDefWithConcreteTypes(parentTname.name).append(finalSuperTyArgs)
-//                }
-//                else {
-//                  polymorphicClassDefWithConcreteTypes += (parentTname.name -> mutable.ArrayBuffer(finalSuperTyArgs))
-//                }
-//              }
-//            }
-//          }
+
           collectSuperClasses(classRef,tyArgs)
           println("constructorExpr " + classRef + "  " + tyArgs)
           println(tyArgs.map(_.tyArgs).mkString)
@@ -283,6 +262,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
     collectTypeApplications()
+    println("polymorphicClassDefWithConcreteTypes " + polymorphicClassDefWithConcreteTypes)
+    println("polymorphicMethodDefWithConcreteTypes " + polymorphicMethodDefWithConcreteTypes)
     // generate names of monomorphic versions
     generateMonomorphicVersionNames()
     val transClasses = classes.flatMap {
@@ -453,10 +434,10 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       case TName(name) =>
         println("---------polymorphicToMonomorphic " + name,  typ.tyArgs, polymorphicToMonomorphic)
         if (subst.contains(name)){
-          println("---------subst " + name, subst(name))
+          println("---------subst " + name, subst)
           return subst(name)
         }
-        else if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
+        if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
           val newName = polymorphicToMonomorphic(name,typ.tyArgs)
           println("---------polymorphicToMonomorphic " + name, newName, typ.tyArgs)
           return TName(newName)
