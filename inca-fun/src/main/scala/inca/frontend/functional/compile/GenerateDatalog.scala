@@ -97,6 +97,7 @@ class GenerateDatalog {
     case BinOp(e1, "*", e2) => irarith.Mul(compileExp(e1), compileExp(e2))
     case BinOp(e1, "-", e2) => irarith.Sub(compileExp(e1), compileExp(e2))
     case BinOp(e1, "/", e2) => irarith.Div(compileExp(e1), compileExp(e2))
+    case BinOp(e1, "%", e2) => irarith.Remainder(compileExp(e1), compileExp(e2))
     case BinOp(e1, ">", e2) => bool.AtomAsBool(irarith.GT(compileExp(e1), compileExp(e2)))
     case BinOp(e1, ">=", e2) => bool.AtomAsBool(irarith.GE(compileExp(e1), compileExp(e2)))
     case BinOp(e1, "<", e2) => bool.AtomAsBool(irarith.LT(compileExp(e1), compileExp(e2)))

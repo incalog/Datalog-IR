@@ -21,7 +21,8 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
   }
 
   lazy val monoModule: Module = {
-    val module = typed // new Monomorph(typed).transModule()
+    val mono = new Monomorph
+    val module = mono.transModule(typed)
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
     messages ++= typer.getErrors
@@ -31,7 +32,8 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
   }
 
   lazy val defunModule: Module = {
-    val module = monoModule // new Defunctionalize(monoModule).transModule()
+    val defun = new Defunctionalize
+    val module = defun.transModule(monoModule)
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
     messages ++= typer.getErrors

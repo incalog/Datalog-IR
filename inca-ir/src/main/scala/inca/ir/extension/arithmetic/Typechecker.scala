@@ -27,6 +27,7 @@ trait Typechecker extends BaseIRTypechecker:
     case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
     case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
     case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
+    case Remainder(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
     case IntNum(_) => TInt.closed
     case DoubleNum(_) => TDouble.closed
     case _ => super.inferTermExtend(term, mode)
