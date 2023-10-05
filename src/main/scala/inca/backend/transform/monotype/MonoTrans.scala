@@ -93,6 +93,8 @@ object MonoTrans extends Transformation {
     atom.isInstanceOf[AddMono] || atom.isInstanceOf[ResultMono] || atom.isInstanceOf[MkMono]
   }
 
+  var tmpCounter : Int = 0
+
   override def transformer(dataModel: DataModel) : Transformer = new Transformer {
 
     override def transformModule(module: Datalog.Module): Datalog.Module = {
@@ -188,18 +190,20 @@ object MonoTrans extends Transformation {
                 Seq(m, Var("v@mono")),
                 1
               )
+              val tmpVar = Var("tmp$" + tmpCounter)
+              tmpCounter += 1
               val tmp : Computed = Computed(
-                Var("tmp"),
+                tmpVar,
                 agg
               )
               val res : Computed = Computed(
                 t, Evaluation(
                   Seq(
                     m -> TScala(Scala(t"inca.backend.transform.monotype.CountMono")),
-                    Var("tmp") -> TScalaInt
+                    tmpVar -> TScalaInt
                   ),
                   TScalaInt,
-                  Scala(q"(m : inca.backend.transform.monotype.CountMono, tmp: Int) => m.result(tmp)")
+                  Scala(q"""(m : inca.backend.transform.monotype.CountMono, tmpVar: Int) => m.result(tmpVar)""")
                 )
               )
               atoms += tmp
