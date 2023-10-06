@@ -2,6 +2,7 @@ package inca.backend.lowering
 
 import inca.Scala
 import inca.Scala.{App, AppInfix, FunType, Id, Lam, Literal, Select, TypeName}
+import inca.backend.optimize.{ConstantFolding, ConstantPropagation, EliminateAliases, Optimization}
 import inca.backend.util.{LitCollector, VarCollector}
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
 import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
@@ -54,8 +55,26 @@ object GeneratePSystem:
     }
   }
 
+  // TODO: Move this to a better place. It should not be here
+  def optimizeModule(module: Module): Module = {
+    val optimizations: List[Optimization] = List(
+      ConstantPropagation,
+      EliminateAliases,
+      ConstantFolding
+    )
+
+    optimizations.foldLeft(module) { case (m, optimization) =>
+      // TODO: Use correct data model
+      val mod = optimization.optimizer().visit(m)
+      println(s"Optimize: ${optimization.name}")
+      println(mod)
+      mod
+    }
+  }
+
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
-    val mod = lowerAndTypeModule(module)
+    var mod = lowerAndTypeModule(module)
+    mod = optimizeModule(mod)
 
     val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent=2)(myenv)).toList

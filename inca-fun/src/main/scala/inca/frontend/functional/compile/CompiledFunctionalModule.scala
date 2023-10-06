@@ -52,6 +52,7 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
     module
   }
 
+
   lazy val psystemSource: String = {
     val source = GeneratePSystem.compileModule(lowered)(Map())
     source

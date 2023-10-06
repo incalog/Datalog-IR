@@ -28,7 +28,7 @@ class ExecutorTest extends AnyFunSuite {
     val code = FileUtil.readFile("functional/unittests/Fib.finca")
     val compiled = FunctionalExecutor.compileFunction(code)
     val loaded = FunctionalExecutor.loadFunction(compiled)
-    val res = loaded.execute("main", Seq(5))
-    assertResult(120)(res.entries.head)
+    val res = loaded.execute("main", Seq(7))
+    assertResult(13)(res.entries.head)
   }
 }
