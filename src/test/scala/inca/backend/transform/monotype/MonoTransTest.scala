@@ -12,18 +12,29 @@ import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPa
 import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.runtime.aggregate.MonoAggregation
+import inca.runtime.aggregate.{JoinAggregation, MonoAggregation}
 import inca.runtime.context.DataModel
 
 
-case class CountMono() extends MonoAggregation[Int, (String, Int), Int] {
+case class CountMono() extends MonoAggregation[Int, Int, Int] {
   override val name: String = ""
 
   override def init: Int = 0
 
-  override def add(st : Int, a : (String, Int)) : Int = st + 1
+  override def add(st : Int, a : Int) : Int = st + 1
 
   override def result(st : Int) : Int = st
+}
+
+case class CountAgg() extends JoinAggregation[Int] {
+  override val name : String  = ""
+  override def init : Int = 0
+
+  override def join(v1: Int, v2: Int): Int = v1 + 1
+
+  override val isAssociative: Boolean = true
+
+  override val isCommutative: Boolean = true
 }
 
 class MonoTransTest extends AnyFunSuiteLike {
@@ -397,4 +408,85 @@ class MonoTransTest extends AnyFunSuiteLike {
     prog.update(edb1)
     println(prog.readAll)
   }
+
+  val AggTwiceModule : CompiledModule = new CompiledModule {
+    override val options: Options = new Options {
+      override def optimizations: Seq[Optimization] = Seq()
+
+      override def transformations: Seq[Transformation] = Seq()
+
+      override def stopOnError: Boolean = true
+
+      override def stopOnWarning: Boolean = true
+
+      override def withOptimizations(opts: Seq[Optimization]): Options = ???
+
+      override def withTransformations(trans: Seq[Transformation]): Options = ???
+    }
+
+    override def name: Name = "testAggTwice"
+
+    override def sourceLocation: SourceLocation = ???
+
+    val agg: CustomAggregation = CustomAggregation(
+      TScalaInt,
+      None,
+      Scala(q"""new inca.backend.transform.monotype.CountMono()"""),
+      "Coll",
+      Seq(Var("m"), Var("st")),
+      1
+    )
+
+    val joinAgg : CustomAggregation = CustomAggregation(
+      TScalaInt,
+      None,
+      Scala(q"""new inca.backend.transform.monotype.CountAgg()"""),
+      "Coll",
+      Seq(Var("m"), Var("st")),
+      1
+    )
+    val computed1: Computed = Computed(Var("b1"), joinAgg)
+    val computed2: Computed = Computed(Var("b2"), joinAgg)
+    val body: Body = Body(
+      Seq(
+        Eq(Var("m"), StringConstant("m")),
+        computed1,
+        computed2,
+      )
+    )
+
+    /// main(m, b1, b2) :- b1 = Agg(m, st), b2 = Agg(m, st)
+    val mainPat: Pattern = Pattern(
+      None,
+      "main",
+      Seq(
+        Param("m", TScalaString),
+        Param("b1", TScalaInt),
+        Param("b2", TScalaInt)
+      ),
+      Seq(body)
+    )
+
+
+    /// Coll(m, st) :- CollAux(m, st)
+    val collPatBody : Body = Body(Seq(ExtensionalCall("CollAux", Seq(Var("m"), Var("st")))))
+    val collPat : Pattern = Pattern(None, "Coll", Seq(Param("m", TScalaString), Param("st", TScalaInt)), Seq(collPatBody))
+
+
+    override def ir: Module = Module("testAggTwice", Seq(), Seq(mainPat, collPat), Seq())
+
+    override def dataModel: DataModel = new DataModel()
+  }
+
+  test("Repeat doing JoinAggregation on the same set of fact twice"){
+    val prog : DatalogAPI = new DatalogAPI(AggTwiceModule)
+    val edb : EDBChange = EDBChange.insertions(
+      Seq(
+        Relation2("CollAux", Seq("m", "st"), Seq(Seq("m", 1)))
+      )
+    )
+    prog.update(edb)
+    println(prog.readAll)
+  }
+
 }
