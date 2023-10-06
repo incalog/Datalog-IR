@@ -222,7 +222,9 @@ class DatalogTest extends AnyFunSuite {
 
   test("Path with dummy measurement") {
     performTests(pathWithDummyMeasurementTest)
-  } */
+  }
+  */
+ */
 
   /*---------------*/
   /* Test Generics */

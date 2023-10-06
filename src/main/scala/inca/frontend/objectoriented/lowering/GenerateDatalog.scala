@@ -691,7 +691,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             val outVar = Datalog.Var(gensym.fresh("out"))
             val coalArg = Datalog.Var(argParams.last.name)
             val clsName = repCls.montoneTypes.get._2 match {
-              case TClass(ClassRef(name)) => name.raw
+              case TClass(TName(name)) => name.raw
               case ty => throw new IllegalStateException(s"Can not coalesced none class type $ty")
             }
             val call = Datalog.Call(coalescedPatName(clsName), Seq(coalArg, outVar))
@@ -842,7 +842,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val resultVars = flattenVars("result", resType, genFresh = true)
           val unpackCons = {
             resType match {
-              case clazz@TClass(ClassRef(clsName)) =>
+              case clazz@TClass(TName(clsName)) =>
                 val uncoalescedCall = Datalog.Call(uncoalescedPatName(clsName.raw), Seq(aggVar, resultVars.head._1))
                 Seq(uncoalescedCall)
               case _ =>
@@ -1010,7 +1010,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
             val resultVar = Datalog.Var(gensym.fresh("result"))
             val unpackCons = resType match {
-              case TClass(ClassRef(clsName)) =>
+              case TClass(TName(clsName)) =>
                 Seq(Datalog.Call(uncoalescedPatName(clsName.raw), Seq(aggVar, resultVar)))
               case _ =>
                 Seq() // We never get here. We already fail before.
@@ -1138,7 +1138,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
       val aggregandPat = aggType.flatten(aggIndex) match {
-        case td@TClass(ClassRef(clsName)) =>
+        case td@TClass(TName(clsName)) =>
           val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
 
           val outParamSize = aggType.flatten.size
@@ -1174,7 +1174,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val compCon = Datalog.Computed(foldVar, aggregation)
 
         aggType.flatten(aggIndex) match {
-          case TClass(ClassRef(clsName)) =>
+          case TClass(TName(clsName)) =>
             val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
             val uncoalesce = Datalog.Call(uncoalescedPatName(clsName.raw), Seq(foldVar, foldVarUncoalesced))
             (Seq(foldVarUncoalesced), projCons.flatten :+ compCon :+ uncoalesce)
