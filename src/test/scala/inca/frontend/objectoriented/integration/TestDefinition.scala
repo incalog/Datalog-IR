@@ -434,5 +434,165 @@ object TestDefinition {
   def pathWithCycleMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_right_cycles", "Graph", "main", Seq(q"12", q"1"), SetResult())
-  }*/
+  } */
+
+  /*---------------*/
+  /* Test Generics */
+  /*---------------*/
+
+  def genericClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClass", "A", "main", Seq(), true)
+  }
+
+  // genericClassAndMethods (?)
+
+  def genericClassGenericParamAdditionFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClassGenericParamAdditionFailure", "A", "main", Seq(), None)
+  }
+
+  def genericClassInstancesWithDifferentTypes: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClassInstancesWithDifferentTypes", "A", "main", Seq(), true)
+  }
+
+  def genericClassMethodInnerShadowing: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClassMethodInnerShadowing", "A", "main", Seq(), true)
+  }
+
+  def genericClassTypeAnnotationFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClassTypeAnnotationFailure", "A", "main", Seq(), None)
+  }
+
+  def genericClassWithMultipleTypes: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericClassWithMultipleTypes", "A", "main", Seq(), true)
+  }
+
+  def genericMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericMethod", "A", "main", Seq(), true)
+  }
+
+  def genericMethodOutTypeFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericMethodOutTypeFailure", "A", "main", Seq(), None)
+  }
+
+  def genericMethodTypeFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericMethodTypeFailure", "A", "main", Seq(), None)
+  }
+
+  def genericMethodTypeFailure2: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("GenericMethodTypeFailure", "A", "main", Seq(), None)
+  }
+
+  def unknownTypeParameter: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/basic")
+    TestDefinition("UnknownTypeParameter", "A", "main", Seq(), None)
+  }
+
+
+  def genericLinkedList: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/collections")
+    TestDefinition("GenericLinkedList", "LinkedList", "main", Seq(), Seq(2))
+  }
+
+  def genericLinkedListShadowing: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/collections")
+    TestDefinition("GenericLinkedListShadowing", "LinkedList", "main", Seq(), Seq(2))
+  }
+
+
+  def genericClassInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritance", "A", "main", Seq(), true)
+  }
+
+  def genericClassInheritanceChain: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritanceChain", "A", "main", Seq(), true)
+  }
+
+  def genericClassInheritanceGenericParamAdditionFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritanceGenericParamAdditionFailure", "A", "main", Seq(), None)
+  }
+
+  def genericClassInheritanceMethodTypeFailure: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritanceMethodTypeFailure", "A", "main", Seq(), None)
+  }
+
+  def genericClassInheritanceMethodWithArgument: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritanceMethodWithArgument", "A", "main", Seq(), true)
+  }
+
+  def genericClassInheritanceWithFixedTypeParameter: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("genericClassInheritanceWithFixedTypeParameter", "A", "main", Seq(), true)
+  }
+
+  def genericClassInheritanceWithMultipleTypeParameters: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericClassInheritanceWithMultipleTypeParameters", "A", "main", Seq(), true)
+  }
+
+  def genericMethodInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/inheritance")
+    TestDefinition("GenericMethodInheritance", "A", "main", Seq(), true)
+  }
+
+
+  def nestedGenerics: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/nested")
+    TestDefinition("NestedGenerics", "A", "main", Seq(), true)
+  }
+
+  def nestedGenerics2: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/nested")
+    TestDefinition("NestedGenerics2", "A", "main", Seq(), true)
+  }
+
+  def nestedGenericsInheritance: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/nested")
+    TestDefinition("NestedGenericsInheritance", "A", "main", Seq(), true)
+  }
+
+
+  def unknownTypeParameterScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+  //new scoping Tests
+  def unknownTypeParamScopingClassMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingClassMethod", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodTypeParamScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodTypeParamScopingClassMethod: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodTypeParamScopingClassMethod", "A", "main", Seq(), None)
+  }
+
+  def unknownMethodOutTypeParamScopingOtherClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownMethodOutTypeParamScopingOtherClass", "A", "main", Seq(), None)
+  }
+
+  def unknownTypeParamScopingInheritanceClass: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("generics/scoping")
+    TestDefinition("UnknownTypeParamScopingInheritanceClass", "A", "main", Seq(), None)
+  }
 }

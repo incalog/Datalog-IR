@@ -1,0 +1,41 @@
+module GenericClassInheritanceChain
+
+
+class A[T] {
+    var a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        // val a1: A[Int] = new A[Int](1)
+        val c1: C[Int,String,Boolean] = new C[Int,String,Boolean](0,"1",true)
+        return (c1.c == 0) && ((c1.b == "1") && (c1.a && c1.get()))
+    }
+}
+
+class B[T1,T2] extends A[T2]{
+    var b: T1
+
+    def this(value: T1, value2: T2) = {
+            super(value2)
+            this.b = value
+        }
+}
+
+class C[T1,T2,T3] extends B[T2,T3] {
+    var c: T1
+
+    def this(value: T1, value2: T2, value3: T3) = {
+        super(value2, value3)
+        this.c = value
+    }
+}
+
+

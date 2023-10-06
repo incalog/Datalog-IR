@@ -33,13 +33,14 @@ case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression 
     s"$recv.$targetName"
 }
 
-case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
+case class ConstructorExpr(classRef: TName, tyArgs: Seq[Type], args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
   def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"new $classRef($argsS)"
+    val tyArgsS = if (tyArgs.isEmpty) "" else s"[${tyArgs.map(_.prettyprint).mkString(",")}]"
+    s"new $classRef$tyArgsS($argsS)"
   }
-  var tyParams: Seq[Type] = Seq()
+  var tyParams: Seq[Type] = Seq() //ignorieren oder entfernen
 }
 
 case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)] {
@@ -50,13 +51,14 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(
   }
 }
 
-case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression], isFix: Boolean = false) extends Expression with Resolvable[(ClassDef, MethodDef)] {
+case class MethodCallExpr(recv: Expression, fun: Name, tyArgs: Seq[Type], args: Seq[Expression], isFix: Boolean = false) extends Expression with Resolvable[(ClassDef, MethodDef)] {
   def vars: Map[Name, Option[Type]] = recv.vars ++ args.flatMap(_.vars).toMap
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
+    val tyArgsS = if (tyArgs.isEmpty) "" else s"[${tyArgs.map(_.prettyprint).mkString(",")}]"
     val fixPrefix = if (isFix) "fix " else ""
-    s"$fixPrefix$recv.$fun($argsS)"
+    s"$fixPrefix$recv.$fun$tyArgsS($argsS)"
   }
 }
 
@@ -121,7 +123,7 @@ case class SetComprehension(member: Seq[Expression], body: Expression) extends E
   }
 }
 
-case class SetFold(recv: Expression, projection: Seq[Expression], opClass: ClassRef, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
+case class SetFold(recv: Expression, projection: Seq[Expression], opClass: TName, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
   def vars: Map[Name, Option[Type]] = recv.vars
 
   lazy val aggIndex: Int = projection.indexWhere {

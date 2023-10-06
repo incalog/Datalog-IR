@@ -1,0 +1,26 @@
+module GenericMethod
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T2](value: T2): T2 = {
+            return value
+        }
+
+    def get2[T2,T3](value: T2): T2 = {
+        return value
+    }
+
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: Int = A1.get[Int](1)
+        val res2: String = A1.get2[String,Int]("Hello World")
+        return ((A1.a == 1) && (res == 1)) && (res2 == "Hello World")
+    }
+}

@@ -1,0 +1,21 @@
+module GenericMethodOutTypeFailure
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T2](value: String): T2 = {     // should not work (Wrong OutType)
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: Int = A1.get[Int]("Hello World!")
+        return res == "Hello World!"                    // test (res == 1) works too ?!?!?! (should not)
+    }
+
+}

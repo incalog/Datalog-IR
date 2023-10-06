@@ -1,0 +1,20 @@
+module UnknownTypeParamScopingClassMethod
+
+class A[T] {
+    val a: T2   // should throw error
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def give[T2](value: T2): T2 = {
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: String = A1.give[String]("Hello World!")
+        return (res == "Hello World!")
+    }
+}

@@ -1,0 +1,21 @@
+module GenericMethodTypeFailure
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+    
+    def get[A](value: Int): Int = {     // should not work (A is already a Class)
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int] = new A[Int](1)
+        val res: Int = A1.get[Int](1)
+        return res == 1
+    }
+
+}

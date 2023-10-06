@@ -1,0 +1,28 @@
+module NestedGenerics
+
+class A[T] {
+    var a: T
+    def this(value: T) = {
+        this.a = value
+    }
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+      val a1: A[Int] = new A[Int](1)
+      val b1: B[A[Int]] = new B[A[Int]](a1)
+      return b1.b.a == 1
+    }
+}
+
+class B[T] {
+    var b: T
+    def this(value: T) = {
+        this.b = value
+    }
+    def get(): T = {
+        return this.b
+    }
+}

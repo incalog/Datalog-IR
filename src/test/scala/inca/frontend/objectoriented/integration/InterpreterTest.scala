@@ -7,7 +7,7 @@ import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.util.FileUtil
-import inca.frontend.objectoriented.core.{ClassDef, ClassRef, FieldDef, Module, Name, TClass}
+import inca.frontend.objectoriented.core.{ClassDef, TName, FieldDef, Module, Name, TClass}
 import inca.frontend.objectoriented.measurements.GenerateWhileLanguageProg
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -295,8 +295,8 @@ class InterpreterTest extends AnyFunSuite {
 
     // Insert program into ast
     val classes = mod.classes.filter(_.name.raw != "Examples")
-    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
-      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true)
+    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(), Seq(
+      FieldDef(Seq(), None, Name("nestedWhile"), TClass(TName(Name("Stm"))), Some(astProg), immutable = true)
     ))
     mod = Module(mod.name, mod.imports, classes :+ exampleClass)
 

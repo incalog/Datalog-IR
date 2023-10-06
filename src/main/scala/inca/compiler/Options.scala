@@ -23,8 +23,8 @@ object Options {
     InlineSimpleRelations,
     ConstantPropagation,
     EliminateAliases,
-    //EvalFusion,
-    InferVarTypes,
+    // EvalFusion,
+    // InferVarTypes, //TODO: methods of generic classes should compile to different relations
     FoldConstantAtoms,
     EliminateNonproductiveRelations,
     EliminateClones,

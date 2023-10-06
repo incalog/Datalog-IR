@@ -17,10 +17,10 @@ object AddMissingDefinitions {
  */
 class AddMissingDefinitions(val module: Module) extends ModuleLowering {
 
-  override def transClassInternal(classDef: ClassDef): ClassDef = {
-    val ClassDef(annos, vis, name, parents, content) = classDef
+  override def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
+    val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
     val missingConstructor = generateMissingConstructor(classDef)
-    super.transClassInternal(ClassDef(annos, vis, name, parents, content ++ missingConstructor))
+    super.transClassInternal(ClassDef(annos, vis, name, typeParams, parents, content ++ missingConstructor))
   }
 
   private def generateMissingConstructor(classDef: ClassDef): Option[ConstructorDef] = {
@@ -30,10 +30,10 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
       None
   }
 
-  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    val MethodDef(annos, vis, name, params, outType, content) = methodDef
+  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
+    val MethodDef(annos, vis, name, genericTypeParams, params, outType, content) = methodDef
     val missingReturn = generateReturnStatement(content)
-    super.transMethodInternal(MethodDef(annos, vis, name, params, outType, content.dropRight(1) ++ missingReturn), classDef)
+    super.transMethodInternal(MethodDef(annos, vis, name, genericTypeParams, params, outType, content.dropRight(1) ++ missingReturn), classDef)
   }
 
   private def generateReturnStatement(content: Seq[Statement]): Seq[Statement] = {

@@ -31,11 +31,12 @@ trait ModuleLowering {
   // These methods wrap the internal methods to preserve the source location start and end index information.
 
   protected[frontend] def transModule(): Module = preserveLoc(module)(transModuleInternal)
-  protected[frontend] def transClass(classDef: ClassDef): ClassDef = preserveLoc(classDef)(transClassInternal)
-  protected[frontend] def transContent(content: ClassContent, classDef: ClassDef): ClassContent = content match {
-    case constructor: ConstructorDef => preserveLoc(constructor)(c => transConstructorInternal(c, classDef))
-    case method: MethodDef => preserveLoc(method)(m => transMethodInternal(m, classDef))
-    case field: FieldDef => preserveLoc(field)(f => transFieldInternal(f, classDef))
+  protected[frontend] def transClass(classDef: ClassDef): Seq[ClassDef] = preserveLocs(classDef)(transClassInternal)
+  protected[frontend] def transContent(content: ClassContent, classDef: ClassDef): Seq[ClassContent] = content match {
+    case constructor: ConstructorDef => Seq(preserveLoc(constructor)(c => transConstructorInternal(c, classDef)))
+    case method: MethodDef =>
+      preserveLocs(method)(m => transMethodInternal(m, classDef))
+    case field: FieldDef => Seq(preserveLoc(field)(f => transFieldInternal(f, classDef)))
   }
   protected[frontend] def transStatements(stmts: Seq[Statement]): Seq[Statement] = stmts.flatMap(transStatement)
   protected[frontend] def transStatement(stmt: Statement): Seq[Statement] = preserveLocs(stmt)(transStatementInternal)
@@ -50,14 +51,19 @@ trait ModuleLowering {
 
   private[transformations] def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
-    val transClasses = classes.map(transClass)
+    val transClasses = classes.flatMap(transClass)
     Module(name, imports, transClasses)
   }
 
-  private[transformations] def transClassInternal(classDef: ClassDef): ClassDef = {
-    val ClassDef(annos, vis, name, parents, content) = classDef
-    val newContent = content.map(c => transContent(c, classDef))
-    ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
+  private[transformations] def transClassInternal(classDef: ClassDef): Seq[ClassDef] = {
+    val ClassDef(annos, vis, name, typeParams, parents, content) = classDef
+    val newContent = content.flatMap(c => transContent(c, classDef))
+    val parentClasses = parents.map { c =>
+      val tname = TName(c.name)
+      tname.tyArgs = c.tyArgs
+      tname
+    }
+    Seq(ClassDef(annos, vis, name, typeParams, parentClasses, newContent))
   }
 
   private[transformations] def transParamInternal(param: Param): Param =
@@ -69,11 +75,11 @@ trait ModuleLowering {
     FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
-  private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    val MethodDef(annos, vis, name, params, outType, body) = methodDef
+  private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
+    val MethodDef(annos, vis, name, genericTypeParams, params, outType, body) = methodDef
     val newParams = transParams(params)
     val newBody = transStatements(body)
-    MethodDef(annos, vis, name, newParams, transType(outType), newBody)
+    Seq(MethodDef(annos, vis, name, genericTypeParams, newParams, transType(outType), newBody))
   }
 
   private[transformations] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
@@ -109,14 +115,14 @@ trait ModuleLowering {
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       VarReadExpr(targetName)
-    case constr@ConstructorExpr(ClassRef(name), args) =>
-      val newConstr = ConstructorExpr(ClassRef(name), transExpressions(args))
+    case constr@ConstructorExpr(TName(name), tyArgs, args) =>
+      val newConstr = ConstructorExpr(TName(name), tyArgs, transExpressions(args))
       newConstr.tyParams = constr.tyParams.map(transType)
       newConstr
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
-    case MethodCallExpr(recv, fun, args, isFix) =>
-      MethodCallExpr(transExpression(recv).head, fun, transExpressions(args), isFix)
+    case MethodCallExpr(recv, fun, tyArgs, args, isFix) =>
+      MethodCallExpr(transExpression(recv).head, fun, tyArgs, transExpressions(args), isFix)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(transExpression(recv).head, transType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
@@ -130,8 +136,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
-    case SetFold(recv, projection, ClassRef(name), method, neutral) =>
-      SetFold(transExpression(recv).head, transExpressions(projection), ClassRef(name), method, transExpression(neutral).head)
+    case SetFold(recv, projection, TName(name), method, neutral) =>
+      SetFold(transExpression(recv).head, transExpressions(projection), TName(name), method, transExpression(neutral).head)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>
@@ -164,9 +170,14 @@ trait ModuleLowering {
       case TTuple(ts) => TTuple(ts.map(transType))
       case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
+      case TName(name) =>
+        val ty = TName(name)
+        ty.tyArgs = typ.tyArgs
+        ty
+      // TODO: Do we need this
       // create a new ClassRef to invalidate the current target
-      case tcls@TClass(ClassRef(name)) =>
-        val ty = TClass(ClassRef(name))
+      case tcls@TClass(TName(name)) =>
+        val ty = TClass(TName(name))
         ty.tyParams = tcls.tyParams.map(transType)
         ty
     }

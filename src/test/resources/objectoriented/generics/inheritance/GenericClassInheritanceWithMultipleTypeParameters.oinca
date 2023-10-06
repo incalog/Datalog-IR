@@ -1,0 +1,31 @@
+module GenericClassInheritanceWithMultipleTypeParameters
+
+
+class A[T] {
+    var a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        // val a1: A[Int] = new A[Int](1)
+        val b1: B[Int,Boolean] = new B[Int,Boolean](0,true)
+        return (b1.get() == 0) && b1.b && (b1.a == 0)
+    }
+}
+
+
+class B[T1, T2] extends A[T1] {
+    var b: T2
+
+    def this(value: T1, value2: T2) = {
+        super(value)
+        this.b = value2
+    }
+}

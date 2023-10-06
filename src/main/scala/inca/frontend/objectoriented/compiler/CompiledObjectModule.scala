@@ -6,7 +6,7 @@ import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
 import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog}
-import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, Defunctionalize, InsertBuiltInMonotones, StaticSingleAssignment}
+import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, Defunctionalize, InsertBuiltInMonotones, StaticSingleAssignment, Monomorphize}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -30,8 +30,13 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       }
     }
 
-    val monotoneModule = InsertBuiltInMonotones.transformModule(fun)
-    AddMissingDefinitions.transformModule(monotoneModule)
+//    val monotoneModule = InsertBuiltInMonotones.transformModule(fun)
+//    AddMissingDefinitions.transformModule(monotoneModule)
+    var mod = InsertBuiltInMonotones.transformModule(fun)
+    mod = AddMissingDefinitions.transformModule(mod)
+    typer.typecheck(mod)  // have to typecheck before monomorphing so that targets are set correctly
+    Monomorphize.transformModule(mod)
+
   }
 
   lazy val typed: Module = {
@@ -75,6 +80,29 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
     module
   }
+
+//  lazy val monomorphModule: Module = {
+//    val dataModel = new GenerateDataModel(ssaModule)
+//    val module = Monomorphize.transformModule(ssaModule)
+//
+//    if (CompilerFlags.DEBUGMODE) {
+//      println("\nMonomorph Module")
+//      println(module)
+//
+//      if (CompilerFlags.DebugConfig.AST_STEPS) {
+//        println()
+//        println("\nMonomorph Module - AST")
+//        println(new AbstractSyntaxTree(module).toGraphViz)
+//      }
+//    }
+//
+//    typer.typecheck(module)
+//    messages ++= typer.getErrors
+//    messages ++= typer.getWarnings
+//    stopIfNeeded()
+//
+//    module
+//  }
 
   lazy val coreModule: Module = {
     val dataModel = new GenerateDataModel(ssaModule)

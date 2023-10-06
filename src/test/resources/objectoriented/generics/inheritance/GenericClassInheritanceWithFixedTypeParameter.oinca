@@ -1,0 +1,38 @@
+module GenericClassInheritanceWithFixedTypeParameter
+
+
+
+class A[T] {
+    var a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        //val a1: A[Int] = new A[Int](1)
+        val c1: C[Int] = new C[Int](true, 1)
+        return c1.get() && ((c1.c == 1) && c1.a)
+    }
+}
+
+
+class C[T2] extends A[Boolean] {
+    var c: T2
+
+    def this(value: Boolean, value2: T2) = {
+        super(value)
+        this.c = value2
+    }
+
+}
+
+
+
+
+

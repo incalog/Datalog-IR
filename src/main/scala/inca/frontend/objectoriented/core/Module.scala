@@ -34,9 +34,14 @@ trait ClassContent extends SourceLocation with Annotations {
   override def toString: String = prettyprint("")
 }
 
+case class GenericParamDef(name: Name) extends SourceLocation with TName.Target {
+  def prettyprint(implicit indent: String): String = name.toString
+  override def toString: String = prettyprint("")
+}
+
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
-  extends SourceLocation with Annotations with VarReadExpr.Target {
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[GenericParamDef], parentClassRefs: Seq[TName], content: Seq[ClassContent])
+  extends SourceLocation with Annotations with TName.Target with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
     case field: FieldDef => field.name
@@ -51,6 +56,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def isMonotoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation]) || isMonotoneMapClass
   def isMonotoneMapClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneMapAnnotation])
   def isAbstract: Boolean = annos.contains(AbstractAnnotation)
+  def isGeneric: Boolean = genericTypeParams.nonEmpty
+  def containsMain: Boolean = methods.exists(m => m.isMain)
+  def getMain: Seq[MethodDef] = methods.filter(m => m.isMain)
+
   def isDefunAuxiliary: Boolean = annos.contains(DefunAuxiliaryAnnotation)
   def montoneTypes: Option[(Type, Type)] = annos.flatMap {
     case MonotoneMapAnnotation(types) => Some((types.head, types.last))
@@ -59,9 +68,11 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }.headOption
 
   def typ: TClass = {
-    val ref = ClassRef(name)
+    val ref = TName(name)
     ref.target = Some(this)
-    TClass(ref)
+    val tclass = TClass(ref)
+//    tclass.tyArgs = ref.tyArgs
+    tclass
   }
 
   def prettyprint(implicit indent: String): String = {
@@ -73,13 +84,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
       s"""extends ${parentClassRefs.head} $tailS"""
     } else
       s""
-    s"""$annoPrefix$indent${visS}class $name $parentClassesS {$contentS\n$indent}""".stripMargin
+    val genericTypeParam = if (genericTypeParams.nonEmpty) genericTypeParams.mkString("[", ", ", "]") else ""
+    s"""$annoPrefix$indent${visS}class $name$genericTypeParam $parentClassesS {$contentS\n$indent}""".stripMargin
   }
   override def toString: String = prettyprint("")
-}
-
-case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef] {
-  override def toString: String = name.toString
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
@@ -94,7 +102,7 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }
 }
 
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, genericTypeParams: Seq[GenericParamDef], params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
@@ -102,6 +110,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
   def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
+  def isGeneric: Boolean = genericTypeParams.nonEmpty
 
   // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
   // to correctly identify matching methods from the parent class.
@@ -112,7 +121,9 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    s"""$annoPrefix$indent${visS}def $name($paramsS): $outS = {
+    val genericTypeParam = if (genericTypeParams.nonEmpty) genericTypeParams.mkString("[", ", ", "]") else ""
+
+    s"""$annoPrefix$indent${visS}def $name$genericTypeParam($paramsS): $outS = {
        |$bodyS
        |$indent}""".stripMargin
   }
@@ -144,3 +155,5 @@ case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.
   override def toString: String = prettyprint
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
+
+

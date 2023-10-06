@@ -159,11 +159,11 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(exprNode, recv, Some("recv"))
       case VarReadExpr(targetName) =>
         // nothing
-      case ConstructorExpr(classRef, args) =>
+      case ConstructorExpr(classRef, tyArgs, args) =>
         analyzeExpressions(exprNode, args)
       case SuperExpr(args) =>
         analyzeExpressions(exprNode, args)
-      case MethodCallExpr(recv, fun, args, fix) =>
+      case MethodCallExpr(recv, fun, tyArgs, args, fix) =>
         analyzeExpression(exprNode, recv, Some("recv"))
         analyzeExpressions(exprNode, args)
       case TypeCastExpr(recv, toTyp) =>

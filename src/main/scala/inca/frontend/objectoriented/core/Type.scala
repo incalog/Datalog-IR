@@ -13,6 +13,8 @@ sealed trait Type extends SourceLocation {
   def asSet: Option[TSet] = None
   def isUnit: Boolean = false
   override def toString: String = prettyprint
+
+  var tyArgs: Seq[Type] = Seq()
 }
 
 object Type {
@@ -21,8 +23,9 @@ object Type {
     case TNull => "Null"
     case TTuple(ts) => "Tuple_" + ts.map(suffix).mkString("_")
     case TScala(ty) => ty.syntax
-    case TClass(ClassRef(Name(raw))) => raw
+    case TClass(TName(Name(raw))) => raw
     case TSet(ty) => "Set_" + suffix(ty)
+    case TName(n) => n.raw
   }
 }
 
@@ -81,8 +84,12 @@ object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 
-case class TClass(ref: ClassRef) extends Type {
-  override def prettyprint: String = ref.toString
+case class TClass(ref: TName) extends Type {
+
+  override def prettyprint: String = {
+    val tyS = if (tyArgs.nonEmpty) tyArgs.mkString("[", ",", "]") else ""
+    "TClass " + ref.toString + tyS
+  }
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"inca.runtime.data.objectoriented.Identity" //t"truechange.URI"
   var tyParams: Seq[Type] = Seq()
@@ -93,4 +100,29 @@ case class TSet(ty: Type) extends Type {
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
   override def asSet: Option[TSet] = Some(this)
+}
+
+
+
+case class TName(name: Name) extends Type with Resolvable[TName.Target] {
+  override def prettyprint: Signature = {
+    val tyS = if (tyArgs.nonEmpty) tyArgs.mkString("[", ",", "]") else ""
+    "TName: " + name.toString + tyS
+  }
+  override def flatten: Seq[Type] = Seq()
+  override def asScala: meta.Type = t"Any"
+
+  def classDef: Option[ClassDef] = this.target match {
+      case Some(classDef: ClassDef) => Some(classDef)
+      case None => None
+  }
+
+  def genericParamDef: Option[GenericParamDef] = this.target match {
+    case Some(genericParamDef: GenericParamDef) => Some(genericParamDef)
+    case None => None
+  }
+}
+
+object TName {
+  trait Target extends SourceLocation
 }

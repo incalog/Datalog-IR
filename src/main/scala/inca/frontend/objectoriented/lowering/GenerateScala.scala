@@ -45,6 +45,7 @@ class GenerateScala {
 
   def transType(t: Type): MetaType = t match {
     case TClass(ref) => MetaType.Name(ref.name.raw)
+    case TName(ref) => MetaType.Name(ref.raw)
     case TAny =>  t.asScala
     case TTuple(ts) =>
       if (ts.nonEmpty)
@@ -311,7 +312,7 @@ class GenerateScala {
       val default = Term.Select(transRecv, fieldTerm)
       recv.typ match {
         case Some(TClass(ref)) =>
-          ref.target match {
+          ref.classDef match {
             case Some(classDef) if classDef.isMonotoneClass && targetName.raw == "result" =>
               throw BodyMustFailException("Illegal usage of result field!")
             case None | Some(_) => default
@@ -320,7 +321,7 @@ class GenerateScala {
         case None => throw new IllegalArgumentException(s"Untyped expression $expr!")
       }
 
-    case MethodCallExpr(recv, fun, args, _) =>
+    case MethodCallExpr(recv, fun, _, args, _) =>
       val tArgs = args.map(transExpression).toList
       val tRecv = transExpression(recv)
       val tFun = Term.Select(tRecv, Term.Name(fun.raw))
@@ -339,12 +340,12 @@ class GenerateScala {
       q"${fun.tree}(..${args.toList.map(e => transExpression(e))})"
     case BaseApplyInfixExpr(left, op, right) =>
       q"${transExpression(left)} ${op.tree} ${transExpression(right)}"
-    case ConstructorExpr(classRef, args) =>
+    case ConstructorExpr(classRef, _, args) =>
       val cArgs = args.map(transExpression).toList
       Term.New(Init(MetaType.Name(classRef.name.raw), MetaName.Anonymous(), List(cArgs)))
     case TypeCastExpr(recv, toTyp) =>
       // TODO: support tuples and sets
-      val TClass(ClassRef(tyName)) = toTyp
+      val TClass(TName(tyName)) = toTyp
       val term = Term.Select(transExpression(recv), Term.Name("asInstanceOf"))
       Term.ApplyType(term, List(MetaType.Name(tyName.raw)))
     case InstanceOfExpr(recv, ofTyp) =>
@@ -355,7 +356,7 @@ class GenerateScala {
           q"${transExpression(recv)} == null"
         case TTuple(ts) => ???
         case TScala(ty) => ???
-        case TClass(ClassRef(name)) =>
+        case TClass(TName(name)) =>
           val term = Term.Select(transExpression(recv), Term.Name("isInstanceOf"))
           Term.ApplyType(term, List(MetaType.Name(name.raw)))
         case TSet(ty) => ???

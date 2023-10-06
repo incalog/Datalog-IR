@@ -161,6 +161,8 @@ trait Parser {
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
       (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
+
+
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
@@ -171,15 +173,42 @@ trait Parser {
   protected[frontend] def setType: P[TSet] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
-  protected[frontend] val classRef: P[ClassRef] =
-    identifier.mapWithLoc(ClassRef)
+//  protected[frontend] def genericType: P[TGeneric] =
+//    (atomicTypeAnno ~ typesForGenerics).mapWithLoc(t1 => TGeneric(t1._1,t1._2))
+//
 
-  protected[frontend] val classType: P[TClass] =
-    classRef.mapWithLoc(TClass)
+  // class A[ParamDef] extends ...
+  // def method[ParamDef](...) = { ... }
+  protected[frontend] def genericParamDefs: P[Seq[GenericParamDef]] = {
+    // TODO: Insert possible type bounds here after the identifier
+    val param = identifier.mapWithLoc(GenericParamDef)
+    inBrackets(seq0(param, min = 1))
+  }
+
+  protected[frontend] def genericArguments: P[Seq[Type]] =
+    inBrackets(seq0(P.defer(atomicTypeAnno), min = 1))
+
+  // Name[T1, T2, Name[T3], ...]
+  protected[frontend] def nameWithGenericArguments: P[TName] = {
+    (identifier ~ genericArguments.?).mapWithLoc {
+      case (name, tyArgs) =>
+        val tName = TName(name)
+        tName.tyArgs = tyArgs.getOrElse(Seq())
+        tName
+    }
+  }
+
+  /*protected[frontend] val classRef: P[TName] = {
+    (identifier ~ (genericParameterTypes | genericTypeParameters).?).mapWithLoc {
+      case (name, tyArgs) =>
+        val tName = TName(name)
+        tName.genericTypeParams = tyArgs.getOrElse(Seq())
+    }
+  }*/
 
   protected[frontend] def monoMapType: P[TClass] =
     (keyword(MONOMAP) *> inBrackets(seq0(P.defer(typeAnno), min=2, max=2))).mapWithLoc { typeParams =>
-        val monoMapType = TClass(ClassRef(Name(MONOMAP.toString)))
+        val monoMapType = TClass(TName(Name(MONOMAP.toString)))
         monoMapType.tyParams = typeParams
         monoMapType
     }
@@ -190,15 +219,26 @@ trait Parser {
       simpleType("Null", TNull) |
       simpleType("Unit", TTuple(Seq())) |
       scalaType |
-      classType |
+      nameWithGenericArguments |
       tupleType
     )
 
-  protected[frontend] val typeAnno: P[Type] =
-    monoMapType | setType | atomicTypeAnno
+
+
+
+  protected[frontend] val typeAnno: P[Type] = {
+     monoMapType | setType | atomicTypeAnno //| (atomicTypeAnno ~ typesForGenerics.?).mapWithLoc {
+//       case (t1, None) => t1
+//       case (t1, Some(t2)) => println(t2); t1 //TGeneric(t1, t2)
+//     }
+    // monoMapType | setType | atomicTypeAnno | genericType
+    // parsing typeannotations with generic types does not work like this
+  }
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
+
+
 
   private lazy val assignmentOp: P[AssignmentOp] = (
       op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
@@ -219,7 +259,7 @@ trait Parser {
 //          case varRead@VarReadExpr(name) if isAggAssign =>
 //            pass(ExprStmt(MethodCallExpr(varRead, op.name, Seq(valueExpr))))
           case exp if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(exp, op.name, Seq(valueExpr))))
+            pass(ExprStmt(MethodCallExpr(exp, op.name, Seq(), Seq(valueExpr)))) // TODO really not generic ???
           case _ =>
             fail(s"Can not assign a value to expression: $targetExpr")
         }
@@ -236,8 +276,10 @@ trait Parser {
 
   private def varDeclareStmt(immutable: Boolean): P[VarDeclareStmt] = {
     val kw = if (immutable) VAL else VAR
+    //println("varDeclareStmt")
     (keyword(kw) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
+        // println(s"varDeclareStmt: typeAnno = $typeAnno")
         VarDeclareStmt(name, typeAnno, valueExpr, immutable)
     }
   }
@@ -257,8 +299,12 @@ trait Parser {
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
 
-  private val call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
-    (identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr))))
+  private def call: P[((Name, Option[Seq[Type]]), Seq[Expression])] =
+    // identifier.soft ~ inBrackets(seq0(P.defer(typeAnno))).? ~ inParentheses(seq0(P.defer(expr)))
+    identifier.soft ~ genericArguments.? ~ inParentheses(seq0(P.defer(expr)))
+
+
+
 
   private val asInstanceOfCall: P[(Name, Type)] =
     P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
@@ -278,9 +324,9 @@ trait Parser {
     variable.mapWithLoc(VarReadExpr.apply)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
-    (keyword(NEW) *> call).mapWithLoc { case ((name, tyParams), argList) =>
-      val constr = ConstructorExpr(ClassRef(name), argList)
-      constr.tyParams = tyParams.getOrElse(Seq())
+    (keyword(NEW) *> call).mapWithLoc { case ((name, tyArgs), argList) =>
+      val constr = ConstructorExpr(TName(name), tyArgs.getOrElse(Seq()), argList)
+      // constr.tyParams = tyParams.getOrElse(Seq()) // ggf. entfernen oder ignorieren (für Mono types)
       constr
     }
 
@@ -319,7 +365,7 @@ trait Parser {
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
     // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
-    val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | variable | call | tupleIndex | baseApplyMethod)).rep0
+    val nestedPath =  indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | call.backtrack | variable | tupleIndex | baseApplyMethod)).rep0
     val nestedStart =  ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
 
     // TODO: This does only allow nested expressions with a fix at the start
@@ -329,6 +375,7 @@ trait Parser {
     // same time we allow tuple reads by index on nested structures which might contain tuples
     ((keyword(FIX).?.with1 ~ (tupStart | nestedStart)) ~ nestedPath).mapWithLoc {
       case ((fix, (startExpr, firstIdentifier)), pathIdentifiers) =>
+
         (firstIdentifier ++ pathIdentifiers).foldLeft(startExpr) {
           case (prev, indexedCurrent) =>
             // we need to track the start and end index manually
@@ -347,9 +394,9 @@ trait Parser {
                   case Some(TupleExpr(proj: Seq[Expression])) => proj
                   case None => Seq(VarReadExpr(Name("#")))
                 }
-                SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
-              case ((name: Name, tyParams: Option[Seq[Type]]), argList: Seq[Expression]) =>
-                MethodCallExpr(prev, name, argList, isFix = fix.isDefined)
+                SetFold(prev, projection, TName(aggClass), aggMethod, neutral)
+              case ((name: Name, tyArgs: Option[Seq[Type]]), argList: Seq[Expression]) =>
+                MethodCallExpr(prev, name, tyArgs.getOrElse(Seq()), argList, isFix = fix.isDefined)
               case (name: Name, argList: Option[Seq[Expression]]) =>
                 BaseApplyMethodExpr(prev, name, argList)
             }
@@ -357,6 +404,7 @@ trait Parser {
             nextExpr.endIndex = endIndex
             nextExpr
         }
+
     }
   }
 
@@ -489,14 +537,14 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
-      <* keyword(DEF)).backtrack ~ identifier ~ defParams)
+      <* keyword(DEF)).backtrack ~ identifier ~ genericParamDefs.? ~ defParams) // added optional typeparameter
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.flatMapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case ((((((overrideAnnotation, visibility), funcName), genericTypeNames), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
         case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
-        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content))
+        case _ => pass(MethodDef(anno, visibility, funcName, genericTypeNames.getOrElse(Seq()), params, typeAnno, content))
       }
     }
   }
@@ -531,13 +579,15 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
-    val parentClassName = keyword(EXTENDS) *> classRef
+    val genericTypes = genericParamDefs.?      // optional: generic type
+    val parentClassName = keyword(EXTENDS) *> nameWithGenericArguments
     val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ genericTypes ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-    (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
+      (header ~ content).mapWithLoc { case ((((visibility, caseAnno), ((name, genericTypeParams), fieldConstr)), parents), content) =>
+
       // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
         content
@@ -554,16 +604,16 @@ trait Parser {
       val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
           case (monotoneName: Name, types: Seq[Type]) =>
             (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
-              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), TUnit, Seq(
-                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))),
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(),
+                Seq(Param(Name("value"), types.head)), TUnit, Seq(
+                ExprStmt(MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(), Seq(VarReadExpr(Name("value"))))),
                 ReturnStmt(TupleExpr())
               ))
             ))
-          case c: ClassRef =>
+          case c: TName =>
             (None, Some(c), None)
       }.unzip3
-
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, genericTypeParams.getOrElse(Seq()), parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
 
@@ -578,14 +628,17 @@ trait Parser {
   }
 
   implicit class Ploc[T](p: => P[T]) {
-    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] = {
       indexed(p).map {
         case ((start, t), end) =>
           val u = f(t)
           u.startIndex = start
           u.endIndex = end
+          //println(s"mapWithLoc: u = ${u}")
           u
+
       }
+    }
 
     def flatMapWithLoc[U <: SourceLocation](f: T => P0[U]): P[U] =
       indexed(p).flatMap {
@@ -594,6 +647,7 @@ trait Parser {
           up.map { u =>
             u.startIndex = start
             u.endIndex = end
+            //println(s"flatMapWithLoc: u = ${u}")
             u
           }
       }

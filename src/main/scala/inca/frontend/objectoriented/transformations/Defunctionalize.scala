@@ -42,7 +42,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       Seq()
     case TNull =>
       dataModel.directNodeSupertypes.get(SortType("Null"))
-        .map(s => TClass(ClassRef(Name(s.name)))).toSeq
+        .map(s => TClass(TName(Name(s.name)))).toSeq
     case TTuple(ts) =>
       val ttys = TupleOps.cartesianProduct(ts.map { ty =>
         val sTys = supertypes(ty)
@@ -56,9 +56,9 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case TScala(Scala(metaTy)) =>
       // TODO: Support supertypes for scala types
       Seq()
-    case TClass(ClassRef(Name(raw))) =>
+    case TClass(TName(Name(raw))) =>
       dataModel.directNodeSupertypes.get(SortType(raw))
-        .map(s => TClass(ClassRef(Name(s.name)))).toSeq
+        .map(s => TClass(TName(Name(s.name)))).toSeq
     case TSet(ty) =>
       supertypes(ty).map(TSet)
     case _ =>
@@ -76,16 +76,16 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     val parentRefs = parentClassDefs.map(_.typ.ref)
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), Seq(), ty, Seq()) // TODO really not generic?
     val methods = Seq(constr, apply)
 
     val clsName = Name(gensym.fresh("Defun" + Type.suffix(ty)))
-    val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, parentRefs, methods)
+    val clazz = ClassDef(Seq(AbstractAnnotation), Some(Private), clsName, Seq(), parentRefs, methods) // TODO really not generic?
     defnClassDefs += ty -> clazz
     clazz
   }
 
-  private def genAuxDef(constrVars: Map[Name, Type], typ: Type, parent: ClassRef, expr: Expression): ClassDef = {
+  private def genAuxDef(constrVars: Map[Name, Type], typ: Type, parent: TName, expr: Expression): ClassDef = {
     // rename all "this" to obj$i, since "this" is reserved
     val subst = constrVars.map {
       case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
@@ -96,7 +96,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     // return the precomputed set
     val ret = ReturnStmt(FieldReadExpr(VarReadExpr(Name("this")), Name("content")))
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), contentType, Seq(ret))
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), Seq(), contentType, Seq(ret)) // TODO really not generic?
     // create a default constructor
     val constrParams = constrVars.map { case (subst(name), typ) => Param(name, clearType(typ)) }.toSeq
 
@@ -106,7 +106,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     }
     val constr = ConstructorDef(Seq(PrimaryAnnotation), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux" + Type.suffix(typ)))
-    val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
+    val clazz = ClassDef(Seq(DefunAuxiliaryAnnotation), Some(Private), clsName, Seq(), Seq(parent), fields :+ constr :+ apply)  // TODO really not generic?
     auxClassDefs += clazz
     clazz
   }
@@ -118,11 +118,11 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     // make sure the defun class name is unique
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
-    val transClasses = classes.map(transClass)
+    val transClasses = classes.flatMap(transClass)
     Module(name, imports, transClasses ++ auxClassDefs ++ defnClassDefs.values)
   }
 
-  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+  override private[transformations] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): Seq[MethodDef] = {
     usedVars = Map(Name("this") -> classDef.typ)
     super.transMethodInternal(methodDef, classDef)
   }
@@ -189,7 +189,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   def apply(expression: Expression, typ: Option[Type]): Expression = {
     val isSet = typ.exists(_.asSet.isDefined)
     if (isSet)
-      MethodCallExpr(clearExpression(expression), Name("apply"), Seq())
+      MethodCallExpr(clearExpression(expression), Name("apply"), Seq(), Seq())    // TODO really not generic ?
     else
       clearExpression(expression)
   }
@@ -212,7 +212,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
           val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
           val auxClass = genAuxDef(vars, clearType(typ.get), genDefunClassDef(typ.get).typ.ref, expression)
           val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
-          ConstructorExpr(auxClass.typ.ref, args)
+          ConstructorExpr(auxClass.typ.ref, Seq(), args) // TODO really not generic ?
         case _ =>
           throw new IllegalArgumentException(s"Unexpected expression $expression")
       }
@@ -249,20 +249,20 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldReadExpr(sanitize(recv), targetName)
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
-    case ConstructorExpr(ClassRef(name), args) =>
-      ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
+    case ConstructorExpr(TName(name), tyArgs, args) =>
+      ConstructorExpr(TName(name), tyArgs, args.map(sanitize(_)))
     case SuperExpr(args) =>
       SuperExpr(args.map(sanitize(_)))
-    case MethodCallExpr(recv, fun, args, isFix) =>
-      unapply(MethodCallExpr(sanitize(recv), fun, args.map(sanitize(_)), isFix), requiresTrueSet, expression.typ)
+    case MethodCallExpr(recv, fun, tyArgs, args, isFix) =>
+      unapply(MethodCallExpr(sanitize(recv), fun, tyArgs, args.map(sanitize(_)), isFix), requiresTrueSet, expression.typ)
     case TypeCastExpr(recv, toTyp) =>
       TypeCastExpr(sanitize(recv), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
       InstanceOfExpr(sanitize(recv), clearType(ofTyp))
     case SetExpr(exps, tty) =>
       unapply(SetExpr(exps.map(sanitize(_)), if (tty.isDefined) Some(clearType(tty.get)) else None), requiresTrueSet, expression.typ)
-    case SetFold(recv, projection, ClassRef(name), opMethod, neutral) =>
-      SetFold(sanitize(recv, requiresTrueSet = true), projection.map(sanitize(_)), ClassRef(name), opMethod, sanitize(neutral))
+    case SetFold(recv, projection, TName(name), opMethod, neutral) =>
+      SetFold(sanitize(recv, requiresTrueSet = true), projection.map(sanitize(_)), TName(name), opMethod, sanitize(neutral))
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(sanitize(predicate.get)) else None
       SetMemberExpr(name, sanitize(recv, requiresTrueSet = true), pred)

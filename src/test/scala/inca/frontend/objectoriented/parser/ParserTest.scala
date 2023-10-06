@@ -50,7 +50,18 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module)(code)
   }
 
-  private def testSuccessAny[T](parser: P[Module]): String => Assertion =
+  test("Generics 1") {
+    val code = FileUtil.readFile("objectoriented/generics/basic/GenericClassAndMethods.oinca")
+    println("Code: ")
+    println(code)
+    println()
+
+    println("Parsed: ")
+    println(parser.module.parse(code))
+    testSuccessAny(parser.module)(code)
+  }
+
+  private def testSuccessAny(parser: P[Module]): String => Assertion =
     (input: String) => {
        parser.parse(input) match {
          case Right((str, module)) =>

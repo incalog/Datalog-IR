@@ -1,0 +1,30 @@
+module GenericMethodInheritance
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get[T2](value: T2): T2 = {
+        return value
+    }
+
+    @main
+    def main(): Boolean = {
+        val B1: B[Int] = new B[Int](1)
+        val res: String = B1.get[String]("Hello World")
+        return ((B1.b == 1) && (res == "Hello World"))
+    }
+}
+
+class B[T] extends A[T] {
+    val b: T
+
+    def this(value: T) = {
+        super(value)
+        this.b = value
+    }
+}
+

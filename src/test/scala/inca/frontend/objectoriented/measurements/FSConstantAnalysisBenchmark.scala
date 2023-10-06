@@ -4,7 +4,7 @@ import inca.compiler.Compiler
 import inca.frontend.ir.Relation
 import inca.frontend.objectoriented
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
-import inca.frontend.objectoriented.core.{ClassDef, ClassRef, Expression, FieldDef, Module, Name, SetExpr, TClass, TScalaString, TSet}
+import inca.frontend.objectoriented.core.{ClassDef, TName, Expression, FieldDef, Module, Name, SetExpr, TClass, TScalaString, TSet}
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
 import inca.frontend.objectoriented.parser.Parser
@@ -44,8 +44,8 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     val astProg = GenerateWhileLanguageProg.generateProgramAst(numAssigns, numWhiles)
     val varSetExpr = GenerateWhileLanguageProg.generateVarSetExr(numAssigns, numWhiles)
     val classes = mod.classes.filter(_.name.raw != "Examples")
-    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
-      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
+    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(), Seq(
+      FieldDef(Seq(), None, Name("nestedWhile"), TClass(TName(Name("Stm"))), Some(astProg), immutable = true),
       FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true)
     ))
     Module(mod.name, mod.imports, classes :+ exampleClass)

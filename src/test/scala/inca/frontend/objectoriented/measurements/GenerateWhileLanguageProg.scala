@@ -19,21 +19,21 @@ class BinOp(left: Exp, right: Exp) extends Exp {
 
   override def toAst: Expression = {
     val clsName = this.getClass.getSimpleName
-    ConstructorExpr(ClassRef(Name(clsName)), Seq(left.toAst, right.toAst))
+    ConstructorExpr(TName(Name(clsName)), Seq(), Seq(left.toAst, right.toAst))
   }
 }
 case class Var(name: String) extends Exp {
   override def toString: String = s"""new Var("$name")"""
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("Var")), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name)))))
+    ConstructorExpr(TName(Name("Var")), Seq(), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name)))))
   }
 }
 case class Num(i: Int) extends Exp {
   override def toString: String = s"new Num($i)"
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("Num")), Seq(BaseLitExpr(Scala(scala.meta.Lit.Int(i)))))
+    ConstructorExpr(TName(Name("Num")), Seq(), Seq(BaseLitExpr(Scala(scala.meta.Lit.Int(i)))))
   }
 }
 case class Add(left: Exp, right: Exp) extends BinOp(left, right)
@@ -46,7 +46,7 @@ case class Sequence(s1: Stm, s2: Stm) extends Stm {
   override def toString: String = s"new Sequence($s1, $s2)"
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("Sequence")), Seq(s1.toAst, s2.toAst))
+    ConstructorExpr(TName(Name("Sequence")), Seq(), Seq(s1.toAst, s2.toAst))
   }
 }
 
@@ -54,7 +54,7 @@ case class VarDef(name: String, exp: Exp) extends Stm {
   override def toString: String = s"""new VarDef("$name", $exp)"""
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("VarDef")), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))), exp.toAst))
+    ConstructorExpr(TName(Name("VarDef")), Seq(), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))), exp.toAst))
   }
 }
 
@@ -62,7 +62,7 @@ case object Skip extends Stm {
   override def toString: String = s"new Skip()"
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("Skip")), Seq())
+    ConstructorExpr(TName(Name("Skip")), Seq(), Seq())
   }
 }
 
@@ -70,21 +70,21 @@ case class ValDef(name: String, exp: Exp) extends Stm {
   override def toString: String = s"""new ValDef("$name", $exp)"""
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("ValDef")), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))), exp.toAst))
+    ConstructorExpr(TName(Name("ValDef")), Seq(),Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))),exp.toAst))
   }
 }
 case class Assign(name: String, exp: Exp) extends Stm {
   override def toString: String = s"""new Assign("$name", $exp)"""
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("Assign")), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))), exp.toAst))
+    ConstructorExpr(TName(Name("Assign")), Seq(), Seq(BaseLitExpr(Scala(scala.meta.Lit.String(name))), exp.toAst))
   }
 }
 case class While(cnd: Exp, body: Stm) extends Stm {
   override def toString: String = s"new While($cnd, $body)"
 
   override def toAst: Expression = {
-    ConstructorExpr(ClassRef(Name("While")), Seq(cnd.toAst, body.toAst))
+    ConstructorExpr(TName(Name("While")), Seq(), Seq(cnd.toAst, body.toAst))
   }
 }
 

@@ -1,0 +1,28 @@
+module GenericClassWithMultipleTypes
+
+class A[T1,T2] {
+    val a: T1
+    val b: T2
+
+    def this(value1: T1, value2: T2) = {
+        this.a = value1
+        this.b = value2
+    }
+
+    def getA(): T1 = {
+        return this.a
+    }
+
+    def getB(): T2 = {
+        return this.b
+    }
+
+    @main
+    def main(): Boolean = {
+        val A1: A[Int,Int] = new A[Int,Int](1,2)
+        return (A1.a == 1) && (A1.b == 2)
+
+        val A2: A[Int,String] = new A[Int,String](1,"Hello")
+        return (A2.a == 1) && (A2.b == "Hello")
+    }
+}

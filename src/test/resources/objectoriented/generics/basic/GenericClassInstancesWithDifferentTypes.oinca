@@ -1,0 +1,24 @@
+module GenericClassInstancesWithDifferentTypes
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        val a1: A[Int] = new A[Int](1)
+        val a2: A[String] = new A[String]("Hello")
+
+        val res1: Int = a1.get()
+        val res2: String = a2.get()
+
+        return (res1 == 1) && (res2 == "Hello")
+    }
+}

@@ -1,0 +1,44 @@
+module NestedGenerics2
+
+class A[T] {
+    val a: T
+
+    def this(value: T) = {
+        this.a = value
+    }
+
+    def get(): T = {
+        return this.a
+    }
+
+    @main
+    def main(): Boolean = {
+        val a1: A[B[Int]] = new A[B[Int]](new B[Int](1))
+        val c1: C[Int] = new C[Int](new B[Int](0))
+        return (a1.a.b == 1) && (c1.c.b == 0)
+    }
+}
+
+class B[T] {
+    val b: T
+
+    def this(value: T) = {
+        this.b = value
+    }
+
+    def get(): T = {
+        return this.b
+    }
+}
+
+class C[T] {
+    val c: B[T]
+
+    def this(value: B[T]) = {
+        this.c = value
+    }
+
+    def get(): B[T] = {
+        return this.c
+    }
+}
