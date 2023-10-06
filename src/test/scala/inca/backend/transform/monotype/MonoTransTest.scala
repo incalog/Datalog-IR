@@ -16,12 +16,12 @@ import inca.runtime.aggregate.{JoinAggregation, MonoAggregation}
 import inca.runtime.context.DataModel
 
 
-case class CountMono() extends MonoAggregation[Int, Int, Int] {
+case class CountMono() extends MonoAggregation[Int, (String, Int), Int] {
   override val name: String = ""
 
   override def init: Int = 0
 
-  override def add(st : Int, a : Int) : Int = st + 1
+  override def add(st : Int, a : (String, Int)) : Int = st + 1
 
   override def result(st : Int) : Int = st
 }

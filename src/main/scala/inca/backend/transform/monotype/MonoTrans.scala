@@ -94,8 +94,8 @@ object MonoTrans extends Transformation {
   def isMonoTypeAtom(atom : Atom) : Boolean = {
     atom.isInstanceOf[AddMono] || atom.isInstanceOf[ResultMono] || atom.isInstanceOf[MkMono]
   }
-
-  var tmpCounter : Int = 0
+  
+  var vmonoCounter : Int = 0
 
   override def transformer(dataModel: DataModel) : Transformer = new Transformer {
 
@@ -186,18 +186,16 @@ object MonoTrans extends Transformation {
               val clsObj = cls + "()"
               atoms += Computed(m, Evaluation(Seq(), TScala(Scala(t"$cls")), Scala(meta.Term.Function(List(), clsObj.parse[meta.Term].get))))
             case ResultMono(m, t) =>
-//              atoms += Datalog.Call("MonoResult", Seq(m, t))
-
               val agg : CustomAggregation = CustomAggregation(
                 TScalaInt,
                 None,
                 Scala(q"""new inca.backend.transform.monotype.CountMono()"""),
                 "Coll",
-                Seq(m, Var("v@mono")),
+                Seq(m, Var("v@mono" + vmonoCounter)),
                 1
               )
-              val tmpVar = Var("tmp$" + tmpCounter)
-              tmpCounter += 1
+              vmonoCounter += 1
+              val tmpVar = Var("tmp")
               val tmp : Computed = Computed(
                 tmpVar,
                 agg
@@ -230,38 +228,7 @@ object MonoTrans extends Transformation {
       }
       Pattern(pat.vis, pat.name, pat.params, bodies.toSeq)
     }
-/*
-    // Create a rule to represent mono result
-    // MonoResult(m, b) :- Agg()
-    def addMonoResult() : Pattern = {
-      val agg = CustomAggregation(
-        TScalaInt,
-        None,
-        Scala(q"""new inca.backend.transform.monotype.CountMono()"""),
-        "Coll",
-        Seq(Var("m"), Var("v@mono")),
-        1
-      )
-      val computed1 : Computed = Computed(
-        Var("tmp"), agg
-      )
 
-      val computed2 : Computed = Computed(
-        Var("m"), Evaluation(
-          Seq(),
-          TScala(Scala(t"inca.backend.transform.monotype.CountMono")),
-          Scala(q"() => inca.backend.transform.monotype.CountMono()")
-        )
-      )
-
-      Pattern(
-        None,
-        "MonoResult",
-        Seq(Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono"))), Param("tmp", TScalaInt)),
-        Seq(Body(Seq(computed1, computed2)))
-      )
-    }
-*/
     override def transformAtom(atom: Datalog.Atom): Seq[Datalog.Atom] = Seq(atom)
   }
 }
