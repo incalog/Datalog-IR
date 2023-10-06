@@ -13,8 +13,16 @@ trait Visitor extends BaseIRVisitor:
     case _ => super.visitAtom(atom))
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
-    case DataDefinition(name, cases) => Seq(DataDefinition(name, cases))
+    case data: DataDefinition => Seq(visitDataDefinition(data))
     case _ => super.visitModuleEntry(moduleEntry))
+
+  def visitDataDefinition(data: DataDefinition): DataDefinition = preserveHints(data) {
+    DataDefinition(data.name, data.cases.map(visitDataCase))
+  }
+
+  def visitDataCase(c: CaseDefinition): CaseDefinition = preserveHints(c) {
+    CaseDefinition(c.name, c.args.map(visitType))
+  }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case Construct(name, data) => Seq(Construct(name, data.flatMap(visitTerm)))

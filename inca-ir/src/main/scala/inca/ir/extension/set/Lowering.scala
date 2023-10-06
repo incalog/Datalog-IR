@@ -1,6 +1,7 @@
 package inca.ir.extension.set
 
 import inca.ir.*
+import inca.util.namify
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.block.Block
@@ -80,9 +81,9 @@ trait Lowering extends BaseLowering:
 //    cons.typed(TSet(memTy).closed)
     cons
 
-  private def dataNameOf(memTy: Type): Name = Name(s"Set$$$memTy")
-  private def constructorNameOf(memTy: Type, count: Int) = Name(s"Set$$$memTy$$$count")
-  private def relNameOf(memTy: Type): Name = Name(s"Set$$$memTy$$enum")
+  private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}")
+  private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
+  private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}$$enum")
 
   private def makeSetDefinitions: Seq[ModuleEntry] =
     val types = constructors.groupBy(_._1._1).toSeq
@@ -143,7 +144,7 @@ trait Lowering extends BaseLowering:
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] =
           val args = rel.params.map(p => Var(gensym.freshName(p.name)))
-          Seq(Call(name, args), Eq(TupleLit(args), Var(elemVar)))
+          Seq(Call(name, args), Eq(TupleLit.make(args), Var(elemVar)))
       Seq(callAddConstructor(term, setEnum))
     case SetUnion(t1, t2) =>
       val Seq(s1) = visitTerm(t1)
@@ -172,7 +173,10 @@ trait Lowering extends BaseLowering:
     case SetComprehension(build, atoms) =>
       val ats = atoms.flatMap(visitAtom)
       val ts = visitTerm(build)
-      ts.map(t => Block(ats, t))
+      val setEnum = new SetEnum:
+        override def apply(elemVar: Name): Seq[Atom] =
+          ats :+ Eq(TupleLit.make(ts), Var(elemVar))
+      Seq(callAddConstructor(term, setEnum))
     case _ => super.visitTerm(term)
   }
 

@@ -2,6 +2,11 @@ package inca.util
 
 import inca.ir.Name
 
+def namify(s: String): String =
+  s.replaceAll("[ ]", "")
+   .replaceAll("[\\(\\)\\[\\]\\{\\}]", "\\$")
+   .replaceAll("[,;\\+\\-]", "_")
+
 class Gensym(init: Iterable[String] = Seq.empty) {
   /** map of used symbols, each of which must end with '$' */
   private var used: Map[String, Int] = Map()

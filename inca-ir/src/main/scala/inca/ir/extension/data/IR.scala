@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 case class TData(name: Name) extends Type:
   override def toString: String = s"$name"
 
-case class CaseDefinition(name: Name, args: Seq[Type]):
+case class CaseDefinition(name: Name, args: Seq[Type]) extends Hints:
   override def toString: String = s"""$name(${args.mkString(",")})"""
 
 case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry:

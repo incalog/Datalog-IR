@@ -38,10 +38,11 @@ trait Typechecker extends BaseIRTypechecker:
       val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
       val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
       TermType(TSet(join(ty1, ty2)), m1 || m2)
-    case SetComprehension(elem, atoms) =>
+    case SetComprehension(elem, atoms) => scopedTypeContext {
       atoms.foreach(checkAtom(_, Mode.Binding))
       val TermType(ty, m) = inferTerm(elem, mode)
       TermType(TSet(ty), m)
+    }
     case _ => super.inferTermExtend(term, mode)
 
   private def inferSetTerm(t: Term, mode: Mode): (TSet,Mode) = inferTerm(t, mode) match

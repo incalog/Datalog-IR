@@ -131,9 +131,9 @@ class GenerateDatalog {
     case BinOp(e1, ">=", e2) => bool.AtomAsBool(irarith.GE(compileExp(e1), compileExp(e2)))
     case BinOp(e1, "<", e2) => bool.AtomAsBool(irarith.LT(compileExp(e1), compileExp(e2)))
     case BinOp(e1, "<=", e2) => bool.AtomAsBool(irarith.LE(compileExp(e1), compileExp(e2)))
-    case Call(Var(Name("min")), _, Seq(e1, e2)) => irarith.Min(compileExp(e1), compileExp(e2))
-    case Call(Var(Name("max")), _, Seq(e1, e2)) => irarith.Max(compileExp(e1), compileExp(e2))
-    case Call(Var(Name("abs")), _, Seq(e1, e2)) => irarith.Abs(compileExp(e1), compileExp(e2))
+    case Call(Var(Name("min")), Seq(), Seq(e1, e2)) => irarith.Min(compileExp(e1), compileExp(e2))
+    case Call(Var(Name("max")), Seq(), Seq(e1, e2)) => irarith.Max(compileExp(e1), compileExp(e2))
+    case Call(Var(Name("abs")), Seq(), Seq(e1, e2)) => irarith.Abs(compileExp(e1), compileExp(e2))
 
     case BoolLit(b) => if (b) bool.BoolTrue else bool.BoolFalse
     case BinOp(e1, "&&", e2) => bool.BoolAnd(compileExp(e1), compileExp(e2))
@@ -151,7 +151,10 @@ class GenerateDatalog {
       bool.AtomAsBool(memTerm)
     case SetComprehension(build, predicates) =>
       irset.SetComprehension(compileExp(build),
-        predicates.map(p => bool.BoolAtom(compileExp(p)))
+        predicates.map(p => compileExp(p) match
+          case bool.AtomAsBool(at) => at
+          case t => bool.BoolAtom(t)
+        )
       )
     case BinOp(e1, "++", e2) => // set union
       irset.SetUnion(compileExp(e1), compileExp(e2))
