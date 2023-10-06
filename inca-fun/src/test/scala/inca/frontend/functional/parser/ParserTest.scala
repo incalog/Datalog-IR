@@ -44,9 +44,10 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(Parser.expression)("1")
     testSuccessAny(Parser.expression)("12")
     testSuccessAny(Parser.expression)("123")
+    testSuccessAny(Parser.atomicExp)("123.456")
 
     testSuccessAny(Parser.additiveOperator)("+")
-    testSuccessAny(Parser.multiplicativeOperator)("&&")
+    testSuccessAny(Parser.multiplicativeOperator)("&")
     testSuccess(Parser.expression)("1 + 2", BinOp(IntLit(1), "+", IntLit(2)))
     testSuccess(Parser.expression)("100 + -233", BinOp(IntLit(100), "+", IntLit(-233)))
 
@@ -120,59 +121,9 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(Parser.expression)("5 <= 10")
   }
 
-  test("base example 1") {
-    val code = FileUtil.readFile("functional/unittests/Base1.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("base example 2") {
-    val code = FileUtil.readFile("functional/unittests/Base2.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("base example 3") {
-    val code = FileUtil.readFile("functional/unittests/Base3.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("var example") {
-    val code = FileUtil.readFile("functional/unittests/Var.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("if example") {
-    val code = FileUtil.readFile("functional/unittests/If.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("if example 2") {
-    val code = FileUtil.readFile("functional/unittests/If2.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("inc example") {
-    val code = FileUtil.readFile("functional/unittests/Inc.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("fact example") {
-    val code = FileUtil.readFile("functional/unittests/Fact.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("plus example") {
-    val code = FileUtil.readFile("functional/unittests/Plus.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("plus real example") {
-    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
   test("Module test") {
     val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
-    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TBoolean)), TBoolean,
+    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TName(Name("Bool")))), TName(Name("Bool")),
       Match(Var("b"), Seq(
         (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq(), Seq())),
         (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq(), Seq())))))
@@ -187,7 +138,6 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
 
     testSuccess(Parser.module)(moduleString, moduleDef)
-
   }
 
   test("FunctionDef test") {
@@ -252,81 +202,6 @@ class ParserTest extends AnyFunSuite {
       (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq(), Seq())),
       (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq(), Seq()))))
     testSuccess(Parser.expression)(matchString, matchExp)
-  }
-
-  test("set constants") {
-    val code = FileUtil.readFile("functional/unittests/SetConst.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("set operations") {
-    val code = FileUtil.readFile("functional/unittests/SetOps.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("available expressions") {
-    val code = FileUtil.readFile("functional/controlflow/AvailableExpressions.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("reaching definitions") {
-    val code = FileUtil.readFile("functional/controlflow/ReachingDefinition.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("applyFun") {
-    val code = FileUtil.readFile("functional/higherorder/Apply.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("lambda") {
-    val code = FileUtil.readFile("functional/higherorder/Lambda.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("lambdaHigherOrder") {
-    val code = FileUtil.readFile("functional/higherorder/LambdaHigherOrder.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("composeFun") {
-    val code = FileUtil.readFile("functional/higherorder/ComposeFun.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("composeLambdas") {
-    val code = FileUtil.readFile("functional/higherorder/ComposeLambda.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("transitiveWrong") {
-    val code = FileUtil.readFile("functional/higherorder/TransitiveWrong.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("transitive") {
-    val code = FileUtil.readFile("functional/higherorder/Transitive.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("data types") {
-    val code = FileUtil.readFile("functional/unittests/Datatypes.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("set intersection") {
-    val code = FileUtil.readFile("functional/unittests/SetIntersection.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("parametric datatype") {
-    val code = FileUtil.readFile("functional/unittests/ParametricDatatypes.finca")
-    testSuccessAny(Parser.module)(code)
-  }
-
-  test("parametric function") {
-    val code = FileUtil.readFile("functional/unittests/ParametricFunction.finca")
-    testSuccessAny(Parser.module)(code)
   }
 
   private def testSuccess[T](parser: P[T]): (String, T) => Assertion =

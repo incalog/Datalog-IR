@@ -171,11 +171,11 @@ object Parser:
   )
 
   val intLit: P[IntLit] = spaced(
-    Numbers.signedIntString.mapWithLoc(s => IntLit(s.toInt)).backtrack
+    Numbers.signedIntString.mapWithLoc(s => IntLit(s.toInt))
   )
 
   val doubleLit: P[DoubleLit] = spaced(
-    (Numbers.signedIntString.backtrack ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
+    (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
       case (a,b) => DoubleLit(s"$a.$b".toDouble)
     })
 
@@ -200,9 +200,9 @@ object Parser:
       lambdaExp |
       tupleExp |
       boolLit |
-      intLit |
-      doubleLit |
       stringLit |
+      doubleLit.backtrack |
+      intLit.backtrack |
       unaryExp |
       identifier.mapWithLoc(Var.apply)
 
