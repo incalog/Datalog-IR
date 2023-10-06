@@ -225,14 +225,16 @@ class Typechecker extends TypeContext with TypeIO {
         error(s"Required numeric type, but got $eTy", e)
       eTy
     case BinOp(e1, op, e2) =>
-      val t1 = typecheckExp(e1, None)
-      val t2 = typecheckExp(e2, None)
       op match
         case "==" | "!=" =>
+          val t1 = typecheckExp(e1, anno)
+          val t2 = typecheckExp(e2, anno)
           if (meet(t1, t2) == TNothing)
             error(s"Incomparable expressions of type $t1 and $t2", exp)
           TBoolean
         case "+" =>
+          val t1 = typecheckExp(e1, anno)
+          val t2 = typecheckExp(e2, anno)
           if (subtype(t1, TString) && subtype(t2, TString))
             TString
           else if (subtype(t1, TInt) && subtype(t2, TInt))
@@ -244,6 +246,8 @@ class Typechecker extends TypeContext with TypeIO {
             TDouble
           }
         case "-" | "*" | "/" =>
+          val t1 = typecheckExp(e1, anno)
+          val t2 = typecheckExp(e2, anno)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TInt
           else if (subtype(t2, TDouble) && subtype(t2, TDouble))
@@ -253,6 +257,8 @@ class Typechecker extends TypeContext with TypeIO {
             TDouble
           }
         case "%" =>
+          val t1 = typecheckExp(e1, TInt)
+          val t2 = typecheckExp(e2, TInt)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TInt
           else {
@@ -260,6 +266,8 @@ class Typechecker extends TypeContext with TypeIO {
             TInt
           }
         case ">" | ">=" | "<=" | "<" =>
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TBoolean
           else if (subtype(t2, TDouble) && subtype(t2, TDouble))
@@ -269,6 +277,8 @@ class Typechecker extends TypeContext with TypeIO {
             TBoolean
           }
         case "&&" | "||" =>
+          val t1 = typecheckExp(e1, TBoolean)
+          val t2 = typecheckExp(e2, TBoolean)
           if (subtype(t1, TBoolean) && subtype(t2, TBoolean))
             TBoolean
           else {
@@ -276,6 +286,8 @@ class Typechecker extends TypeContext with TypeIO {
             TInt
           }
         case "++" | "&" =>
+          val t1 = typecheckExp(e1, anno)
+          val t2 = typecheckExp(e2, anno)
           if (subtype(t1, TSet(TAny)) && subtype(t2, TSet(TAny))) {
             if (op == "++") join(t1, t2) else meet(t1, t2)
           } else {

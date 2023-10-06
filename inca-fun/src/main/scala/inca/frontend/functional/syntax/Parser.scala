@@ -158,7 +158,7 @@ object Parser:
       P.pure(SetExp(Seq(e)))
 
   lazy val setExp: P[Expression] =
-    inBraces((recExpression flatMap setExpMore) | P.pure(SetExp(Seq())))
+    inBraces((recExpression flatMap setExpMore) | P.index.map(_ => SetExp(Seq())))
 
   lazy val tupleExp: P[Expression] = inParens(recExpression.repSep0(op(','))).mapWithLoc {
     case e::Nil => e
