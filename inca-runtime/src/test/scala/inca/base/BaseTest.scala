@@ -21,7 +21,7 @@ class BaseTest extends AnyFunSuiteLike:
         Body(
           Seq(
             Eq(Var("x"), IntNum(1)),
-            Neq(Var("x"), Var("x"))
+            Neq(Var("x"), IntNum(1))
           )
         )
       ))

@@ -5,11 +5,10 @@ import inca.Scala.{App, AppInfix, FunType, Id, Lam, Literal, Select, TypeName}
 import inca.backend.optimize.{ConstantFolding, ConstantPropagation, EliminateAliases, Optimization}
 import inca.backend.util.{LitCollector, VarCollector}
 import inca.ir.extension.primitiveScala.{Application, Constant, TScala}
-import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string}
+import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string, typing}
 import inca.util.Gensym
 import inca.ir.extension.{arithmetic, block, data, demand, primitiveScala}
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing
 
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
@@ -217,6 +216,7 @@ object GeneratePSystem:
   private def compileTerm(v: Term): Code = v match {
     case Var(name) => s"$VARPREFIX$name"
     case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
+    case Cast(t, ty) => compileTerm(t)
   }
 
   private def compileScalaTerm(term: Scala.Term): Code = term match
