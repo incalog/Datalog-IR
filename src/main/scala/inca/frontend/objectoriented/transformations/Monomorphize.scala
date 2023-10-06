@@ -293,6 +293,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
             ///TName(monomorphName(tname.name,tyArs))
             transType(tname) match {
               case tn@TName(_) => tn
+              case tclass@TClass(_) => tclass.ref
               case _ => throw new Exception("expected TName")
             }
             //tname
@@ -360,6 +361,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
       n.tyArgs = newTyArgs
       val newName = transType(n) match {
         case newN@TName(_) => newN
+        case newClass@TClass(_) => newClass.ref
         case _ => throw new Exception("expected TName in Constructor")
       }
       newName.tyArgs = Seq()
@@ -434,7 +436,8 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         if (polymorphicToMonomorphic.contains((name,typ.tyArgs))) {
           val newName = polymorphicToMonomorphic(name,typ.tyArgs)
           //println("---------polymorphicToMonomorphic " + name, newName, typ.tyArgs)
-          return TName(newName)
+          //return TName(newName)
+          return TClass(TName(newName))
         }
         else {
           val ty = TName(name)
@@ -448,7 +451,7 @@ class Monomorphize(val module: Module) extends ModuleLowering {
         }
         else if (polymorphicToMonomorphic.contains((name, typ.tyArgs))) {
           val newName = polymorphicToMonomorphic(name, typ.tyArgs)
-          return TName(newName)
+          return TClass(TName(newName))
         }
         else {
           val ty = TClass(TName(name))
