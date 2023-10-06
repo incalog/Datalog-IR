@@ -12,8 +12,13 @@ trait BaseIRVisitor:
 
   def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
     case rel: Relation => visitRelation(rel)
+    case rel: ExtensionalRelation => visitExtensionalRelation(rel)
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $moduleEntry")
   })
+
+  def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] = preserveHints(relation) {
+    Seq(ExtensionalRelation(relation.name, relation.params.flatMap(visitParam)))
+  }
 
   def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     Seq(Relation(relation.name, relation.params.flatMap(visitParam), relation.bodies.flatMap(visitBody)))

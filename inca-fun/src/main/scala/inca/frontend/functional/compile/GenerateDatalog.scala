@@ -1,20 +1,27 @@
 package inca.frontend.functional.compile
 
+import inca.frontend.functional.compile.GenerateDatalog.extensionalRelationName
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{Language, Name}
+import inca.ir.{ExtensionalRelation, Language, Name, string2name}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.block
 import inca.ir.extension.bool
 import inca.ir.extension.data as irdata
 import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.demand
+import inca.ir.extension.demand.demandRelationName
 import inca.ir.extension.disjunction
 import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
 import inca.util.Gensym
+import inca.ir.name2string
+
+object GenerateDatalog:
+  def extensionalRelationPrefix = "ext_"
+  def extensionalRelationName(name: String) = extensionalRelationPrefix + demandRelationName(name)
 
 class GenerateDatalog {
 
@@ -25,10 +32,32 @@ class GenerateDatalog {
   val gensym: Gensym = new Gensym()
 
   def compileModule(m: Module): ir.Module =
-    ir.Module(m.name, irLang, m.content.map {
+    val mainFunctions = m.content.flatMap {
+      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
+      case _ => None
+    }
+    val extMainInputRelations = mainFunctions.map { f =>
+      val name = extensionalRelationName(f.name)
+      val params = f.params.map(p => ir.Param(p.name, compileType(p.typ)))
+      ExtensionalRelation(name, params)
+    }
+    val moduleEntries = m.content.map {
+      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => compileMainFun(f)
       case f: FunctionDef => compileFun(f)
       case d: DataDef => compileData(d)
-    })
+    } ++ extMainInputRelations
+    ir.Module(m.name, irLang, moduleEntries)
+
+  def compileMainFun(f: FunctionDef): ir.Relation =
+    val result = gensym.fresh(f.name.name + "_result")
+    val resultParam = ir.Param(Name(result), compileType(f.outType))
+    val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
+    ir.Relation(f.name, params, Seq(ir.Body(
+      Seq(
+        ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))),
+        ir.Eq(ir.Var(Name(result)), compileExp(f.body)))
+      )
+    ))
 
   def compileFun(f: FunctionDef): ir.Relation =
     val result = gensym.fresh(f.name.name + "_result")

@@ -59,6 +59,8 @@ class ScalaCompiler {
          |  }
          |}""".stripMargin
 
+    //println(prog)
+
     val outputDirectory = VirtualDirectory("(memory)")
     compileCode(prog, List() /*files.map(f => AbstractFile.getFile(f.toURI.toURL.getPath)).toList*/ , outputDirectory)
     val classLoader = AbstractFileClassLoader(outputDirectory, this.getClass.getClassLoader /*depClassLoader*/)

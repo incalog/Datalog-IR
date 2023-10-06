@@ -31,6 +31,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match {
       case relation: Relation => scopedTypeContext { typecheck(relation) }
+      case relation: ExtensionalRelation => // nothing
       case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
   }
 
@@ -124,6 +125,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
     lookupModuleEntry(name) match
       case Some(Relation(_, params, _)) =>
+        if (args.size != params.size)
+          error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
+
+        args.zip(params).foreach { case (t, Param(_, ty)) =>
+          checkTerm(t, ty, mode)
+        }
+      case Some(ExtensionalRelation(_, params)) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 

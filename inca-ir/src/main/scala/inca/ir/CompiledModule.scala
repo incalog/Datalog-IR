@@ -54,6 +54,7 @@ trait CompiledModule:
   lazy val lowered: Module =
     lowerings.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
+      println()
       println(s"Lowering ${lowFun.loweredIRs}")
       val l = lowFun.lower(m)
       val checker = new IRTypechecker

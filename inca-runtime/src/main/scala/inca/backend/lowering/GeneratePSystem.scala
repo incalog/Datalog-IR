@@ -55,7 +55,6 @@ object GeneratePSystem:
   }
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
-    // TODO: handle module.imports
     val mod = lowerAndTypeModule(module)
 
     val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
@@ -106,7 +105,7 @@ object GeneratePSystem:
       |$content
       |body""".stripMargin.indent(indent)
 
-  def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
+  private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
     val qname = s"${moduleName}_${relation.name}"
 
     val paramNames = relation.params.map(_.name.name)
@@ -119,7 +118,7 @@ object GeneratePSystem:
       return s"""
          |object ${relation.name} {
          |  val error = "This pattern was empty"
-         |}""".stripMargin
+         |}""".stripMargin.indent(indent)
     }
 
     val bodies = if (relation.bodies.nonEmpty)
@@ -162,7 +161,7 @@ object GeneratePSystem:
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new NegativePatternCall(body, $argTuple, $callQuery)"
     case ExtensionalCall(name, args) =>
-      val key = s"""NamedRelationKey($name, ${args.size})"""
+      val key = s"""NamedRelationKey("$name", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       s"new TypeConstraint(body, $tuple, $key)"
     case NegExtensionalCall(name, args) =>
