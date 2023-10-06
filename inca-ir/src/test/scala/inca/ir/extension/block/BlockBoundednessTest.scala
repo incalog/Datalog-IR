@@ -1,7 +1,7 @@
 package inca.ir.extension.block
 
 import inca.ir.*
-import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, block, not}
 import inca.ir.typing.{BaseIRTypechecker, TypeErrorException, Typechecker}
@@ -18,19 +18,19 @@ class BlockBoundednessTest extends AnyFunSuiteLike:
   test("eq block binds contained terms") {
     implicit val typechecker = new BaseIRTypechecker with block.Typechecker with arithmetic.Typechecker {}
     module(
-      Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+      Relation("R", Seq(Param("p", TInt)), Seq(Body(Seq(
         Eq(Block(Seq(Eq(IntNum(0), IntNum(0))), Var("p")), IntNum(1))
       ))))
     )
 
     module(
-      Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+      Relation("R", Seq(Param("p", TInt)), Seq(Body(Seq(
         Eq(IntNum(1), Block(Seq(Eq(IntNum(0), IntNum(0))), Var("p")))
       ))))
     )
 
     module(
-      Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+      Relation("R", Seq(Param("p", TInt)), Seq(Body(Seq(
         Eq(Block(Seq(Eq(IntNum(0), IntNum(0))), IntNum(5)), Block(Seq(Eq(IntNum(0), IntNum(0))), Var("p")))
       ))))
     )

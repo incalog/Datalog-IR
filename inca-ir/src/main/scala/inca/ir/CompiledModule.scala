@@ -49,7 +49,7 @@ trait CompiledModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {}
-  )
+  ) // arith + string + data
 
   lazy val lowered: Module =
     lowerings.foldLeft(checked) { case (m, lowering) =>

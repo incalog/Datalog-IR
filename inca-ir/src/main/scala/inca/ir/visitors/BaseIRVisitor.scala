@@ -44,6 +44,9 @@ trait BaseIRVisitor:
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case Var(name) => Seq(Var(name))
+    case Cast(t, ty) =>
+      val tty = visitType(ty)
+      visitTerm(t).map(Cast(_, tty))
     case _ => throw IllegalStateException(s"Can not visit unknown term: $term")
   })
 

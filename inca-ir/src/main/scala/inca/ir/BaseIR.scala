@@ -1,7 +1,7 @@
 package inca.ir
 
 import inca.ir.*
-import inca.ir.typing.{Typeable, Mode}
+import inca.ir.typing.{Mode, Typeable}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions

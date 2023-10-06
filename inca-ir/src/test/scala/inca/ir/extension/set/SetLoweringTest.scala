@@ -1,13 +1,14 @@
 package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.{BaseIR, Body, Call, Eq, Language, Module, Neq, Param, Relation, TAny, Type, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Neq, Param, Relation, TAny, TNothing, Type, Var, string2name}
 import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.lowering.BaseLowering
+import inca.ir.typing.TypeErrorException
 import inca.util.TupleOps
 
 class SetLoweringTest extends AnyFunSuite {
@@ -50,6 +51,54 @@ class SetLoweringTest extends AnyFunSuite {
 
     val mod = module(mainRelation)
 
+  }
+
+  test("Empty set") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(Param("x", TSet(TNothing))), Seq(
+      Body(Seq(
+        Eq(Var("y"), IntNum(0)),
+        Eq(Var("x"), SetLit(Seq()))
+      ))
+    ))
+
+    val mod = module(mainRelation)
+  }
+
+  test("Empty set casted") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(Param("x", TSet(TInt))), Seq(
+      Body(Seq(
+        Eq(Var("y"), IntNum(0)),
+        Eq(Var("x"), Cast(SetLit(Seq()), TSet(TInt)))
+      ))
+    ))
+
+    val mod = module(mainRelation)
+  }
+
+  test("Empty set computed") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(Param("x", TSet(TInt))), Seq(
+      Body(Seq(
+        Eq(Var("y"), IntNum(0)),
+        Eq(Var("x"), SetIntersection(SetLit(Seq(IntNum(1))), SetLit(Seq(IntNum(2)))))
+      ))
+    ))
+
+    val mod = module(mainRelation)
+  }
+
+  test("No set cast") {
+    val outParam = Param("x", TSet(TAny))
+    val mainRelation = Relation("main", Seq(Param("x", TSet(TAny))), Seq(
+      Body(Seq(
+        Eq(Var("y"), IntNum(0)),
+        Eq(Var("x"), SetLit(Seq(IntNum(1))))
+      ))
+    ))
+
+    assertThrows[TypeErrorException](module(mainRelation))
   }
 
   /*test("Set union Test no refun") {

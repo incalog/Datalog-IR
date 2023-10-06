@@ -54,7 +54,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     body.atoms.foreach(at => checkAtom(at, Mode.Binding))
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
-    if (meet(ty, outside) == TNothing)
+    if (ty != outside)
       error(s"$t of type $ty is not comparable to $outside")
 
   def checkTerm(term: Term, expected: Type, mode: Mode): Mode =
@@ -88,10 +88,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         bindVar(name)
         assertComparable(ty, expected, v)
         if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
-    case Cast(t, ty) =>
-      val m = checkTerm(t, ty, mode)
-      assertComparable(ty, expected, term)
-      m
     case _ => // fallback to infer + compatibility check
       val TermType(ty,m) = inferTerm(term, mode)
       assertComparable(ty, expected, term)
@@ -118,8 +114,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         val m = if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
         TermType(ty,m)
     case Cast(t, ty) =>
-      val m = checkTerm(t, ty, mode)
-      TermType(ty,m)
+      val TermType(_, m) = inferTerm(t, mode)
+      assignType(t)(TermType(ty, m))
+      TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
   def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
@@ -182,18 +179,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
 
 
-  protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
-    case (TNothing, _) => ty2
-    case (_, TNothing) => ty1
-    case _ => if (ty1 == ty2) ty1 else TAny
-
-  protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match
-    case (TAny, _) => ty2
-    case (_, TAny) => ty1
-    case _ => if (ty1 == ty2) ty1 else TNothing
-
-  protected final def joinTypes(tys: Iterable[Type]): Type = tys.foldLeft[Type](TNothing)(join)
-
   private def assignType(term: Typeable[TermType] with SourceLocation)(computeType: => TermType): TermType =
     val inferred = computeType
     term.typed(inferred, force = true)
@@ -214,10 +199,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         val varsAfterThis = vars
         // remove variables not bound by this alternative
         varsAfter = varsAfter.filter(kv => varsAfterThis.contains(kv._1))
-        for ((x, VarInfo(_, ty2, vmode2)) <- varsAfter) varsAfter.get(x) match
-          case None => // nothing
-          case Some(VarInfo(trg1, ty1, vmode1)) =>
-            varsAfter += x -> VarInfo(trg1, meet(ty1, ty2), vmode1 && vmode2)
+        for ((x, VarInfo(_, ty2, vmode2)) <- varsAfterThis) varsAfter.get(x) match
+          case Some(VarInfo(trg1, ty1, vmode1)) if ty1 == ty2 =>
+            varsAfter += x -> VarInfo(trg1, ty1, vmode1 && vmode2)
+          case _ => // nothing
       }
       this.vars = varsAfter
     }

@@ -18,7 +18,7 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case Match(matchee, cases) =>
       val alternatives = cases.map { case Case(name, patVars, body) =>
-        Deconstruct(matchee, name, patVars) +: body
+        Deconstruct(matchee, name, patVars) +: body.flatMap(visitAtom)
       }
       Seq(Disjunction((alternatives)))
     case _ => super.visitAtom(atom)

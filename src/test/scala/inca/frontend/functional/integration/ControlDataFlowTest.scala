@@ -10,6 +10,7 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("flow ex 2.1") {
     val code = FileUtil.readFile("functional/controlflow/CFlow.finca")
     val fun = loadFunction(code)
+    println(fun.compiled.ir)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
     assert(fun.executeInput("flow", input).res.size == 4)
     assert(fun.output("flowR", input._2).res.isEmpty)

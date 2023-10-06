@@ -8,7 +8,7 @@ import inca.ir.extension.block.Block
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.Disjunction
-import inca.ir.extension.tuple.TupleLit
+import inca.ir.extension.tuple.{TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 import inca.ir.typing.Mode
 import inca.util.Gensym
@@ -103,16 +103,16 @@ trait Lowering extends BaseLowering:
       val caseDef = CaseDefinition(consName, caseVars.map(_._2))
 
       val atoms = setEnum(elemParam.name)
-      val rule = Body(
-        Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1))) +:
-        atoms
-      )
-
-      (caseDef, rule)
+      if (atoms.isEmpty) {
+        (caseDef, None)
+      } else {
+        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1))) +: atoms)
+        (caseDef, Some(rule))
+      }
     }.unzip
 
     val data = DataDefinition(dataName, cases)
-    val rel = Relation(relName, Seq(setParam, elemParam), rules)
+    val rel = Relation(relName, Seq(setParam, elemParam), rules.flatten)
     (data, rel)
 
   private var currentModule: Module = _
@@ -135,9 +135,11 @@ trait Lowering extends BaseLowering:
     case SetLit(ts) =>
       val elems = ts.map(visitTerm)
       val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Disjunction(elems.map(ts => ts.map(Eq(Var(elemVar), _))))
-        )
+        override def apply(elemVar: Name): Seq[Atom] =
+          if (elems.isEmpty)
+            Seq()
+          else
+            Seq(Disjunction(elems.map(ts => ts.map(Eq(Var(elemVar), _)))))
       Seq(callAddConstructor(term, setEnum))
     case SetRef(name) =>
       val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
@@ -189,3 +191,9 @@ trait Lowering extends BaseLowering:
     }
     case _ => super.visitAtom(atom)
 
+/**
+
+ def test(): Set[Any] =
+   {1,2,3}
+
+*/

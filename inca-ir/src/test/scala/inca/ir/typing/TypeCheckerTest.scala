@@ -2,7 +2,7 @@ package inca.ir.typing
 
 import inca.ir.*
 import inca.ir.extension.arithmetic
-import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.not
 import inca.ir.extension.not.Not
 import inca.ir.extension.demand
@@ -35,10 +35,10 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   test("bound param") {
     implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
-    module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+    module(Relation("R", Seq(Param("p", TInt)), Seq(Body(Seq(
       Eq(Var("p"), IntNum(1))
     )))))
-    module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq(
+    module(Relation("R", Seq(Param("p", TInt)), Seq(Body(Seq(
       Eq(IntNum(1), Var("p"))
     )))))
   }
@@ -46,7 +46,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
   test("unbound param 2") {
     implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException](
-      module(Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+      module(Relation("R", Seq(Param("p1", TInt), Param("p2", TAny)), Seq(Body(Seq(
         Eq(Var("p1"), IntNum(1))
       )))))
     )
@@ -54,7 +54,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   test("bound param 2") {
     implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
-    module(Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
+    module(Relation("R", Seq(Param("p1", TInt), Param("p2", TInt)), Seq(Body(Seq(
       Eq(Var("p1"), IntNum(1)),
       Eq(Var("p1"), Var("p2"))
     )))))

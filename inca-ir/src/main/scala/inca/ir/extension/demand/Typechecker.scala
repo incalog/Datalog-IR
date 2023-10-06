@@ -41,11 +41,6 @@ trait Typechecker extends BaseIRTypechecker:
       bindVar(param.name)
     case _ => super.typecheckParam(param)
 
-  override protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match
-    case (TDemand(t1), TDemand(t2)) => TDemand(meet(t1, t2))
-    case (TDemand(_), _) | (_, TDemand(_)) => TNothing
-    case _ => super.meet(ty1, ty2)
-
   override def checkTerm(term: Term, expected: Type, mode: Mode): Mode = expected match
     case TDemand(ty) => checkTerm(term, ty, Mode.Bound)
     case _ => super.checkTerm(term, expected, mode)
