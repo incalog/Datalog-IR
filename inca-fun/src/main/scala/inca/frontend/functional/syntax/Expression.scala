@@ -1,10 +1,10 @@
 package inca.frontend.functional.syntax
 
-import inca.ir.typing.{Resolvable, Typeable}
+import inca.ir.typing.{Resolvable, TypeCastable}
 import inca.ir.Name
 import inca.ir.util.SourceLocation
 
-trait Expression extends Typeable[Type] with SourceLocation {
+trait Expression extends TypeCastable[Type] with SourceLocation {
   def vars: Map[Name, Option[Type]]
   def freevars: Seq[Var]
   def freeTvars: Seq[TName] = typ.toSeq.flatMap(_.freeTvars)

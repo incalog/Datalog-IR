@@ -71,7 +71,11 @@ class GenerateDatalog {
   def compileData(d: DataDef): irdata.DataDefinition =
     irdata.DataDefinition(d.name, d.constrs.map(c => irdata.CaseDefinition(c.name, c.paramTypes.map(compileType))))
 
-  def compileExp(e: Expression): ir.Term = e match
+  def compileExp(e: Expression): ir.Term = e.cast match
+    case None => compileCastedExp(e)
+    case Some(trgTy) => ir.Cast(compileCastedExp(e), compileType(trgTy))
+
+  def compileCastedExp(e: Expression): ir.Term = e match
     case Var(name) => ir.Var(name)
     case Let(names, ty, bound, body) =>
       block.Block(

@@ -24,3 +24,13 @@ trait Typeable[T]:
     this.typ = this.typ.orElse(Some(ty))
     this
   }
+
+trait TypeCastable[T] extends Typeable[T]:
+  var cast: Option[T] = None
+
+  def casted(ty: T, force: Boolean = false): this.type = {
+    if (!force && this.cast.nonEmpty && this.cast.get != ty)
+      throw new IllegalArgumentException(s"May not overwrite annotated type ${this.cast} with $ty for $this.")
+    this.cast = Some(ty)
+    this
+  }

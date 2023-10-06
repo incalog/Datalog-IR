@@ -2,7 +2,7 @@ package inca.frontend.functional.typechecker
 
 import inca.frontend.functional.syntax.*
 import inca.ir.Name
-import inca.ir.typing.{Resolvable, Typeable}
+import inca.ir.typing.{Resolvable, TypeCastable}
 import inca.ir.util.SourceLocation
 
 class Typechecker extends TypeContext with TypeIO {
@@ -64,7 +64,7 @@ class Typechecker extends TypeContext with TypeIO {
     val oldFunctionDef = currentFunctionDef
     try {
       currentFunctionDef = Some(fun)
-      val ty = typecheck(fun.body)
+      val ty = typecheckExp(fun.body, fun.outType)
       if (!subtype(ty, fun.outType))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
     } finally {
@@ -116,7 +116,8 @@ class Typechecker extends TypeContext with TypeIO {
    * Expressions
    */
 
-  final def typecheck(exp: Expression): Type = assignType(exp)(typecheckInternal(exp, exp.typ))
+  final def typecheckExp(exp: Expression, anno: Type): Type = typecheckExp(exp, Some(anno))
+  final def typecheckExp(exp: Expression, anno: Option[Type]): Type = assignType(exp, anno)(typecheckInternal(exp, anno))
 
   protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type =
     typecheckCore(exp, anno)
@@ -132,8 +133,8 @@ class Typechecker extends TypeContext with TypeIO {
         case None =>
           TAny
       }
-    case let@Let(names, anno, bound, body) =>
-      val ty = typecheck(bound)
+    case let@Let(names, letanno, bound, body) =>
+      val ty = typecheckExp(bound, letanno)
       val namesStr = names.mkString("(", ", ", ")")
       scopedTypeContext {
         ty match {
@@ -158,18 +159,21 @@ class Typechecker extends TypeContext with TypeIO {
               case (name, ty) => bindVar(name, let, ty)
             }
         }
-        typecheck(body)
+        typecheckExp(body, anno)
       }
     case If(cnd, thn, els) =>
-      val cty = typecheck(cnd)
+      val cty = typecheckExp(cnd, TBoolean)
       if (!subtype(cty, TBoolean))
         error(s"Expected Boolean condition, but got $cty", cnd)
-      val tty = typecheck(thn)
-      val ety = typecheck(els)
+      val tty = typecheckExp(thn, anno)
+      val ety = typecheckExp(els, anno)
       join(tty, ety)
 
     case Tuple(exps) =>
-      val tys = exps.map(typecheck)
+      val tys = anno match
+        case Some(TTuple(ttys)) if ttys.size == exps.size =>
+          exps.zip(ttys).map(p => typecheckExp(p._1, p._2))
+        case _ => exps.map(typecheckExp(_, None))
       TTuple(tys)
 
     case lam@Lambda(vs, body) => scopedTypeContext {
@@ -177,12 +181,14 @@ class Typechecker extends TypeContext with TypeIO {
         bindVar(v, lam, ty)
         typecheck(ty)
       }
-      val ty = typecheck(body)
+      val ty = anno match
+        case Some(TFun(_, tbody)) => typecheckExp(body, tbody)
+        case _ => typecheckExp(body, None)
       TFun(vs.map(_._2), ty)
     }
 
     case Call(fun, tyArgs, args) =>
-      val tfun = typecheck(fun)
+      val tfun = typecheckExp(fun, None)
       tfun match {
         case tfun: TFun =>
           typecheckFunDefCall(fun, tfun, tyArgs, args, exp)
@@ -192,19 +198,19 @@ class Typechecker extends TypeContext with TypeIO {
       }
 
     case Match(matchee, cases) =>
-      val matcheeTy = typecheck(matchee)
+      val matcheeTy = typecheckExp(matchee, None)
       matcheeTy match {
         case td: TName if isData(td.name) && td.target.isDefined =>
-          typecheckTNameMatch(exp, cases, td)
+          typecheckTNameMatch(exp, cases, td, anno)
         case td: TName if isTypeVar(td.name) =>
           error(s"Cannot match on parametric type $td", matchee)
-          val ctys = cases.map(c => typecheck(c._2))
+          val ctys = cases.map(c => typecheckExp(c._2, anno))
           join(ctys)
         case td: TApply if td.target.isDefined =>
-          typecheckTConstrMatch(exp, cases, td)
+          typecheckTConstrMatch(exp, cases, td, anno)
         case ty =>
           error(s"Cannot match on type $ty", matchee)
-          val ctys = cases.map(c => typecheck(c._2))
+          val ctys = cases.map(c => typecheckExp(c._2, anno))
           join(ctys)
       }
 
@@ -214,13 +220,13 @@ class Typechecker extends TypeContext with TypeIO {
     case BoolLit(i) => TBoolean
 
     case UnOp("-", e) =>
-      val eTy = typecheck(e)
+      val eTy = typecheckExp(e, anno)
       if (!subtype(eTy, TInt) && !subtype(eTy, TDouble))
         error(s"Required numeric type, but got $eTy", e)
       eTy
     case BinOp(e1, op, e2) =>
-      val t1 = typecheck(e1)
-      val t2 = typecheck(e2)
+      val t1 = typecheckExp(e1, None)
+      val t2 = typecheckExp(e2, None)
       op match
         case "==" | "!=" =>
           if (meet(t1, t2) == TNothing)
@@ -281,7 +287,10 @@ class Typechecker extends TypeContext with TypeIO {
           TAny
 
     case SetExp(es) =>
-      val etys = es.map(typecheck)
+      val elemAnno = anno match
+        case Some(TSet(ty)) => Some(ty)
+        case _ => None
+      val etys = es.map(typecheckExp(_, elemAnno))
       val joined = join(etys)
       TSet(joined)
 
@@ -296,20 +305,23 @@ class Typechecker extends TypeContext with TypeIO {
           typecheckSetMember(mem, bindTupVars = true)
 
         case pred =>
-          val tyPred = typecheck(pred)
+          val tyPred = typecheckExp(pred, TBoolean)
           if (!subtype(tyPred, TBoolean))
             error(s"Comprehension predicate must have Boolean type, but got  $tyPred", pred)
       }
 
       // then check build and predicates
-      val tyb = typecheck(build)
+      val elemAnno = anno match
+        case Some(TSet(ty)) => Some(ty)
+        case _ => None
+      val tyb = typecheckExp(build, elemAnno)
       TSet(tyb)
     }
 
     case SetFold(tyAnno, init, op, set) =>
-      val tyInit = typecheck(init)
-      val tyOp = typecheck(op)
-      val tySet = typecheck(set)
+      val tyInit = typecheckExp(init, anno)
+      val tyOp = typecheckExp(op, None)
+      val tySet = typecheckExp(set, None)
       val tySetContent = tySet match {
         case TSet(ty) => ty
         case ty =>
@@ -337,7 +349,7 @@ class Typechecker extends TypeContext with TypeIO {
         TName(name).resolved(lookupData(name).get)
 
       case SetMember(_, set, _) =>
-        val tset = typecheck(set)
+        val tset = typecheckExp(set, None)
         tset match {
           case TSet(tsetContent) =>
             tsetContent
@@ -348,13 +360,13 @@ class Typechecker extends TypeContext with TypeIO {
     }
 
     if (mem.neg || !bindTupVars) {
-      val tyTup = typecheck(mem.tup)
+      val tyTup = typecheckExp(mem.tup, Some(tySetContent))
       if (!subtype(tyTup, tySetContent))
         error(s"Expected $tySetContent, but got $tyTup")
     } else mem.tup match {
       case v: Var if isFreeVar(v.name) =>
         bindVar(v.name, mem, tySetContent)
-        assignType(v)(tySetContent)
+        assignType(v, None)(tySetContent)
       case Tuple(es) if tySetContent.isInstanceOf[TTuple] =>
         val tys = tySetContent.asInstanceOf[TTuple].ts
         if (tys.size != es.size)
@@ -362,26 +374,26 @@ class Typechecker extends TypeContext with TypeIO {
         tys.zipAll(es, null, null).foreach {
           case (null, v@Var(x)) if isFreeVar(x) =>
             bindVar(x, mem, TAny)
-            assignType(v)(TAny)
+            assignType(v, None)(TAny)
           case (null, e) =>
-            typecheck(e)
+            typecheckExp(e, None)
           case (ty, null) =>
           case (ty, v@Var(x)) if isFreeVar(x) =>
             bindVar(x, mem, ty)
-            assignType(v)(ty)
+            assignType(v, None)(ty)
           case (ty, e) =>
-            val tye = typecheck(e)
+            val tye = typecheckExp(e, Some(ty))
             if (!subtype(tye, ty))
               error(s"Expected $ty, but got $tye", e)
         }
       case _ =>
-        val tyTup = typecheck(mem.tup)
+        val tyTup = typecheckExp(mem.tup, Some(tySetContent))
         if (!subtype(tyTup, tySetContent))
           error(s"Expected $tySetContent, but got $tyTup")
     }
   }
 
-  private def typecheckTNameMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TName): Type = {
+  private def typecheckTNameMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TName, anno: Option[Type]): Type = {
     val data = td.target.get.asInstanceOf[DataDef]
 
     var seenConstrs = Set[Name]()
@@ -405,13 +417,13 @@ class Typechecker extends TypeContext with TypeIO {
                 // TODO fix do type substitution for actual type
                 case (v, ty) => bindVar(v.name, pat, ty)
               }
-              typecheck(e)
+              typecheckExp(e, anno)
             }
           case None =>
             error(s"Cannot match constructor $constr against matchee of type $td", constr)
             scopedTypeContext {
               vars.foreach(v => bindVar(v.name, pat, TAny))
-              typecheck(e)
+              typecheckExp(e, anno)
             }
         }
       case (pat, e) =>
@@ -419,7 +431,7 @@ class Typechecker extends TypeContext with TypeIO {
         scopedTypeContext {
           val dummy = ConstructorPattern(Name("?"), Seq())
           pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
-          typecheck(e)
+          typecheckExp(e, anno)
         }
     }
     val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
@@ -428,7 +440,7 @@ class Typechecker extends TypeContext with TypeIO {
     join(ctys)
   }
 
-  private def typecheckTConstrMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TApply): Type = {
+  private def typecheckTConstrMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TApply, anno: Option[Type]): Type = {
     val data = td.target.get.asInstanceOf[DataDef]
     var seenConstrs = Set[Name]()
     val subst = data.tyVars.map(v => TName(v.name)).zip(td.tys).toMap
@@ -454,13 +466,13 @@ class Typechecker extends TypeContext with TypeIO {
                 case (v, null) => bindVar(v.name, pat, TAny)
                 case (v, ty) => bindVar(v.name, pat, ty)
               }
-              typecheck(e)
+              typecheckExp(e, anno)
             }
           case None =>
             error(s"Cannot match constructor $constr against matchee of type $td", constr)
             scopedTypeContext {
               vars.foreach(v => bindVar(v.name, pat, TAny))
-              typecheck(e)
+              typecheckExp(e, anno)
             }
         }
       case (pat, e) =>
@@ -468,7 +480,7 @@ class Typechecker extends TypeContext with TypeIO {
         scopedTypeContext {
           val dummy = ConstructorPattern(Name("?"), Seq())
           pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
-          typecheck(e)
+          typecheckExp(e, anno)
         }
     }
     val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
@@ -494,11 +506,11 @@ class Typechecker extends TypeContext with TypeIO {
 
     substTFun.from.zipAll(args, null, null) foreach {
       case (null, arg) =>
-        typecheck(arg)
+        typecheckExp(arg, None)
       case (param, null) =>
       // nothing
       case (tparam, arg) =>
-        val argTy = typecheck(arg)
+        val argTy = typecheckExp(arg, tparam)
         val meetTy = meet(tparam, argTy)
         if (meetTy == TNothing) {
           error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
@@ -552,9 +564,9 @@ class Typechecker extends TypeContext with TypeIO {
     case _ => TAny
   }
 
-  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
+  def assignType(term: TypeCastable[Type] with SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
     val inferred = computeType
-    term.typ match {
+    val result = term.typ match {
       case Some(annotated) =>
         if (!subtype(inferred, annotated))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
@@ -563,6 +575,11 @@ class Typechecker extends TypeContext with TypeIO {
         term.typed(inferred)
         inferred
     }
+    expected match
+      case Some(ty) if ty != inferred =>
+        term.casted(ty)
+      case _ => // nothing
+    result
   }
 
   def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
