@@ -12,6 +12,7 @@ import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.demand
 import inca.ir.extension.demand.demandRelationName
 import inca.ir.extension.disjunction
+import inca.ir.extension.disjunction.DisjunctionAlternative
 import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
@@ -81,8 +82,8 @@ class GenerateDatalog {
       val cndTerm = compileExp(cnd)
       block.Block(
         disjunction.Disjunction(Seq(
-          Seq(ir.Eq(cndTerm, bool.BoolTrue), ir.Eq(ir.Var(Name(tmp)), compileExp(thn))),
-          Seq(ir.Eq(cndTerm, bool.BoolFalse), ir.Eq(ir.Var(Name(tmp)), compileExp(els)))
+          DisjunctionAlternative(ir.Eq(cndTerm, bool.BoolTrue), ir.Eq(ir.Var(Name(tmp)), compileExp(thn))),
+          DisjunctionAlternative(ir.Eq(cndTerm, bool.BoolFalse), ir.Eq(ir.Var(Name(tmp)), compileExp(els)))
         )),
         ir.Var(Name(tmp))
       )

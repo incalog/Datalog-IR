@@ -7,5 +7,5 @@ import inca.ir.typing.{BaseIRTypechecker, Mode}
 trait Typechecker extends BaseIRTypechecker:
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Disjunction(alts) =>
-      checkAlternatives(alts)(as => as.foreach(checkAtom(_, mode)))
+      checkAlternatives(alts)(alt => alt.atoms.foreach(checkAtom(_, mode)))
     case _ => super.checkAtom(atom, mode)

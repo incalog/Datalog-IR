@@ -184,21 +184,21 @@ class DisjunctionLoweringTest extends AnyFunSuiteLike:
               Call("Pre", Seq()),
               Disjunction(
                 Seq(
-                  Seq(
+                  DisjunctionAlternative(
                     Call("A", Seq()),
                     Disjunction(
                       Seq(
-                        Seq(Call("A1", Seq())),
-                        Seq(Call("A2", Seq()))
+                        DisjunctionAlternative(Call("A1", Seq())),
+                        DisjunctionAlternative(Call("A2", Seq()))
                       )
                     )
                   ),
-                  Seq(
+                  DisjunctionAlternative(
                     Call("B", Seq()),
                     Disjunction(
                       Seq(
-                        Seq(Call("B1", Seq())),
-                        Seq(Call("B2", Seq()))
+                        DisjunctionAlternative(Call("B1", Seq())),
+                        DisjunctionAlternative(Call("B2", Seq()))
                       )
                     )
                   )

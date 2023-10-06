@@ -7,7 +7,7 @@ import inca.ir.extension.*
 import inca.ir.extension.block.Block
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.disjunction.Disjunction
+import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 import inca.ir.typing.Mode
@@ -139,7 +139,7 @@ trait Lowering extends BaseLowering:
           if (elems.isEmpty)
             Seq()
           else
-            Seq(Disjunction(elems.map(ts => ts.map(Eq(Var(elemVar), _)))))
+            Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
       Seq(callAddConstructor(term, setEnum))
     case SetRef(name) =>
       val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
@@ -156,8 +156,8 @@ trait Lowering extends BaseLowering:
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
           Disjunction(Seq(
-            Seq(Call(relNameOf(memTy1), Seq(s1, Var(elemVar)))),
-            Seq(Call(relNameOf(memTy2), Seq(s2, Var(elemVar))))
+            DisjunctionAlternative(Call(relNameOf(memTy1), Seq(s1, Var(elemVar)))),
+            DisjunctionAlternative(Call(relNameOf(memTy2), Seq(s2, Var(elemVar))))
           ))
         )
       Seq(callAddConstructor(term, setEnum))

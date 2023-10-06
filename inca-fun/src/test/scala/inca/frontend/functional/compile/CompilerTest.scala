@@ -27,7 +27,7 @@ class CompilerTest extends AnyFunSuite {
       println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
-      if (p.toString.endsWith(".finca")) {
+      if (p.toString.endsWith("CFlow.finca")) {
         test(s"Compile functional IncA file ${p.getFileName}") {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")

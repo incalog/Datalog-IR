@@ -184,7 +184,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     term.typed(inferred, force = true)
     inferred
 
-  protected def checkAlternatives[A](as: Iterable[A])(f: A => Unit): Unit =
+  protected def checkAlternatives[A <: SourceLocation](as: Iterable[A])(f: A => Unit): Unit =
     if (as.isEmpty) {
       // do nothing
     } else {
@@ -202,7 +202,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         for ((x, VarInfo(_, ty2, vmode2)) <- varsAfterThis) varsAfter.get(x) match
           case Some(VarInfo(trg1, ty1, vmode1)) if ty1 == ty2 =>
             varsAfter += x -> VarInfo(trg1, ty1, vmode1 && vmode2)
-          case _ => // nothing
+          case Some(VarInfo(trg1, ty1, vmode1)) =>
+            error(s"Alternative has conflicting type for variable $x: $ty2 instead of $ty1", a)
+            varsAfter += x -> VarInfo(trg1, TAny, vmode1 && vmode2)
+          case None => // nothing
       }
       this.vars = varsAfter
     }
