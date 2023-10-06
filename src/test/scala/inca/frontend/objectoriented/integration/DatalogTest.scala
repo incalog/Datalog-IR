@@ -1,17 +1,21 @@
 package inca.frontend.objectoriented.integration
 
-import inca.backend.optimize.EliminateNonproductiveRelations
+import inca.backend.optimize.{EliminateAliases, EliminateNonproductiveRelations, EvalFusion, InlineSimpleRelations}
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
+import inca.backend.transform.objectoriented.{EclipseStructuralMutationTransformation, StructuralMutationTransformation}
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.util.FileUtil.readFile
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions() //  Seq(DeriveDemandPatterns, DemandTransformation))
+  def options: ObjectOptions = ObjectOptions(
+    //transformations = ObjectOptions.defaultTransformations(EclipseStructuralMutationTransformation)
+    //transformations = ObjectOptions.defaultTransformations(StructuralMutationTransformation)
+  )
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -172,14 +176,6 @@ class DatalogTest extends AnyFunSuite {
     performTests(foldSetProjectionTest)
   }*/
 
-  test("CGFVisitor") {
-    performTests(cfgVisitorTest)
-  }
-
-  test("While lang case study") {
-    performTests(whileLangTest)
-  }
-
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
   }
@@ -208,9 +204,17 @@ class DatalogTest extends AnyFunSuite {
     performTests(loopTest)
   }
 
-  /*test("Primitive Monotone") {
+  test("Mutation measurement") {
+    performTests(mutationMeasurement)
+  }
+
+  /*test("Simple Add") {
+    performTests(simpleAdd)
+  }
+
+  test("Primitive Monotone") {
     performTests(primitiveMonotone)
-  }*/
+  }
 
   test("Path measurement") {
     performTests(pathMeasurementTest)

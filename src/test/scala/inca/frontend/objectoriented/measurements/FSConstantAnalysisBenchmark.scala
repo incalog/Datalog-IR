@@ -1,9 +1,10 @@
 package inca.frontend.objectoriented.measurements
 
-import inca.backend.optimize.EliminateNonproductiveRelations
-import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.ir.{EDBChange, Relation, Relation2, Datalog => DatalogAPI}
-import inca.frontend.objectoriented.compiler.ObjectOptions
+import inca.compiler.Compiler
+import inca.frontend.ir.Relation
+import inca.frontend.objectoriented
+import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
+import inca.frontend.objectoriented.core.{ClassDef, ClassRef, Expression, FieldDef, Module, Name, SetExpr, TClass, TScalaString, TSet}
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
 import inca.frontend.objectoriented.parser.Parser
@@ -12,11 +13,11 @@ import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.EnginePool
 import inca.util.FileUtil
 import inca.util.measurement.CSVUtil.{CSV, csvToString}
-import inca.util.measurement.{MemoryUtil, MetricUtils}
+import inca.util.measurement.MemoryUtil
 
 import scala.meta.Term
 
-case class ASGBenchmark(warmups: Int, runs: Int) {
+case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
 
@@ -25,7 +26,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     val runs: Int
     val name: String
   }
-  case class ASGConfig(warmup: Int, runs: Int, name: String, endNode: Int, step: Int) extends Config
+  case class FSConfig(warmup: Int, runs: Int, name: String, numAssign: Int, numWhiles: Int) extends Config
 
 
   def options: ObjectOptions = ObjectOptions()
@@ -39,9 +40,23 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     header +: rows
   }
 
-  private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
+  private def insertProgIntoMudoule(mod: Module, numAssigns: Int, numWhiles: Int): Module = {
+    val astProg = GenerateWhileLanguageProg.generateProgramAst(numAssigns, numWhiles)
+    val varSetExpr = GenerateWhileLanguageProg.generateVarSetExr(numAssigns, numWhiles)
+    val classes = mod.classes.filter(_.name.raw != "Examples")
+    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
+      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
+      FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true)
+    ))
+    Module(mod.name, mod.imports, classes :+ exampleClass)
+  }
+
+  private def measureDatalog(c: FSConfig, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
-    val module = Compiler.compileObject(code, options)
+    val parsed = objectoriented.parser.Parser.parse(code)
+
+    val mod = insertProgIntoMudoule(parsed, c.numAssign, c.numWhiles)
+    val module = CompiledObjectModule(mod, options)
 
     //println(MetricUtils.printStatistics(module.optimized))
     //System.exit(1)
@@ -49,7 +64,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
-      datalog.measure("ProgEntry", "main", edb, args:_*)
+      datalog.measure("ConstantAnalysis", "main", edb, args:_*)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -69,9 +84,9 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
       System.exit(1)*/
 
       //val start = System.nanoTime()
-      val diff = datalog.measure("ProgEntry", "main", edb, args:_*)
+      val diff = datalog.measure("ConstantAnalysis", "main", edb, args:_*)
       //val diff = System.nanoTime() - start
-      println("diff: " + diff.toDouble/1000000d)
+      println("diff: " + diff.toDouble/1000000000d)
 
       EnginePool.disposeAllEngines()
       MemoryUtil.collectGarbage()
@@ -80,14 +95,20 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     }
   }
 
-  private def measureInterpreter(c: Config, prog: String, edb: Map[String, Value], args: Seq[Value]): IndexedSeq[Long] = {
+  private def measureInterpreter(c: FSConfig, prog: String, edb: Map[String, Value], args: Seq[Value]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     var mod = Parser.parse(code)
+
+    // Insert input data into program
+    mod = insertProgIntoMudoule(mod, c.numAssign, c.numWhiles)
+    //println(mod)
+    //System.exit(1)
+
     mod = InsertBuiltInMonotones.transformModule(mod)
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
 
-    val mainClass = "ProgEntry"
+    val mainClass = "ConstantAnalysis"
     val mainMethod = "main"
     val mainClasses = mod.classes.filter(_.name.raw == mainClass)
     val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == mainMethod))
@@ -115,10 +136,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
       val start = System.nanoTime()
       interp.run(main, args)
       val diff = System.nanoTime() - start
-      println("diff: " + diff.toDouble/1000000d)
-      /*println(res.asSet.size)
-      println(res.asSet)
-      System.exit(1)*/
+      println("diff: " + diff.toDouble/1000000000d)
 
       MemoryUtil.collectGarbage()
 
@@ -126,23 +144,25 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     }
   }
 
-  def run() = {
-    val configs = for (i <- 10 until 520 by 50) yield {
-      ASGConfig(warmups, runs, s"ASG", i, 10)
+  def run(): Unit = {
+    val configs = for (i <- 4 to 20 by 4) yield {
+      FSConfig(warmups, runs, s"FSConstant", 10, i)
     }
 
-    val prog = progFolder + s"AbstractSyntaxGraph.oinca"
+    val prog = progFolder + s"FSConstantAnalysis.oinca"
 
-    // OODL
-    val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.step)))
+    // You probably don't want to run this, since this is way to slow
+    //  TODO: Hand optimize the Datalog code
+    // OODL - Datalog
+    /*val datalogMeasurements = for (c <- configs) yield {
+      c.numWhiles -> measureDatalog(c, prog, Seq(), Seq())
     }
-    FileUtil.writeFile(s"$resultPath/asg/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))*/
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
-      c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
+      c.numWhiles -> measureInterpreter(c, prog, Map(), Seq())
     }
-    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 }

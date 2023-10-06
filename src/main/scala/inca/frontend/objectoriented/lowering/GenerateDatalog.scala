@@ -28,9 +28,7 @@ object GenerateDatalog {
   def dispatchPatName(methodNameWithSignature: String): String = "dispatch" + sep + s"${methodNameWithSignature}"
   def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
   def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
-  def coalescedPatName(): String = s"${internalPrefix}coalesced"
   def uncoalescedPatName(className: String): String = s"${internalPrefix}uncoalesced_$className"
-  def uncoalescedPatName(): String = s"${internalPrefix}uncoalesced"
   def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
   def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
@@ -90,6 +88,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
     (objVar, constrComp)
   }
+
+  private def objNullGuard(objVar: Datalog.Var, objType: Datalog.Type, isNull: Boolean) = Datalog.Computed(
+    if (isNull) Datalog.True else Datalog.False,
+    Datalog.Evaluation(
+      Seq(objVar -> objType),
+      Datalog.TScalaBoolean,
+      Scala(q"""(objOrNull: Any) => objOrNull == null""")
+    )
+  )
 
   private def createNullObject(): (Datalog.Var, Computed) = {
     val objVar = Datalog.Var(gensym.fresh("null"))
@@ -189,7 +196,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             Datalog.Eq(Datalog.Var("className"), Datalog.StringConstant(c.name.raw)),
             Datalog.Eq(Datalog.Var("implClass"), Datalog.StringConstant(implC.name.raw)),
           ))
-        })
+        }).addHint(MagicSetHints.NoInputRelation)
     }.toSeq
 
     // Translate all methods
@@ -197,41 +204,38 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       case (qualifiedMethodName, clsMapping) => transMethodWithSameQualifiedName(qualifiedMethodName, clsMapping.map(_._2))
     }.toSeq
 
-    // translate dynamic dispatching for coalescing
-    val normalClasses = classes.filter(!_.isDefunAuxiliary)
-    val coalescedBodies = normalClasses.map { cls =>
-      val guard = Datalog.Computed(
-        Datalog.StringConstant(cls.name.raw),
-        Datalog.Evaluation(
-          Seq(Datalog.Var("this") -> transType(cls.typ)),
-          Datalog.TScalaString,
-          Scala(q"(obj: $tyID) => obj.typ")
-        )
+    val uriParam = Datalog.Param("uri", GP_URI)
+    val uriVar = Datalog.Var("uri")
+    val objVar = Datalog.Var("obj")
+
+    // Uncoalesced Null
+    val uncoalescedObjType = Datalog.TScala(Scala(t"Any"))
+    val uncoalescedObjParam = Datalog.Param("obj", uncoalescedObjType)
+    val (nullVar, nullComp) = createNullObject()
+    val uncoalescedNullBody = Datalog.Body(
+      Seq(
+        objNullGuard(objVar, uncoalescedObjType, isNull = true),
+        nullComp,
+        Datalog.Call(constructorPatName("Null"), Seq(nullVar)),
+        Datalog.Eq(uriVar, nullVar)
       )
-      val coalescedCall = Datalog.Call(coalescedPatName(cls.name.raw), Seq(Datalog.Var("this"), Datalog.Var("obj")))
-      Datalog.Body(Seq(guard, coalescedCall))
-    }
+    )
+    val uncoalescedNullPat = Datalog.Pattern(
+      None, uncoalescedPatName("Null"), Seq(uncoalescedObjParam, uriParam), Seq(uncoalescedNullBody)
+    )
 
-    // translate dynamic dispatching for uncoalescing
-    val uncoalescedBodies = normalClasses.map { cls =>
-      val guard = Datalog.Computed(
-        Datalog.StringConstant(cls.name.raw),
-        Datalog.Evaluation(
-          Seq(Datalog.Var("obj") -> Datalog.TScala(Scala(t"AnyRef"))),
-          Datalog.TScalaString,
-          Scala(q"(obj: AnyRef) => obj.getClass.getSimpleName")
-        )
-      )
-      val uncoalescedCall = Datalog.Call(uncoalescedPatName(cls.name.raw), Seq(Datalog.Var("obj"), Datalog.Var("this")))
-      Datalog.Body(Seq(guard, uncoalescedCall))
-    }
+    // Coalesced Null
+    val coalescedObjType = Datalog.TScala(Scala(t"Null"))
+    val coalescedObjParam = Datalog.Param("obj", coalescedObjType)
+    val genNullObj = Datalog.Computed(objVar, Datalog.Evaluation(Seq(), coalescedObjType, Scala(q"() => null")))
+    val coalescedNullBody = Datalog.Body(
+      Seq(getURIIsNull(uriVar, Datalog.True), genNullObj)
+    )
+    val coalescedNullPat = Datalog.Pattern(
+      None, coalescedPatName("Null"), Seq(uriParam, coalescedObjParam), Seq(coalescedNullBody)
+    )
 
-    val thisParam = Datalog.Param("this", GP_URI)
-    val objParam = Datalog.Param("obj", Datalog.TScala(Scala(t"AnyRef")))
-    val coalescedPat = Datalog.Pattern(None, coalescedPatName(), Seq(thisParam, objParam), coalescedBodies)
-    val uncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(), Seq(objParam, thisParam), uncoalescedBodies)
-
-    (methodPats ++ dispatchPats) :+ coalescedPat :+ uncoalescedPat
+    (methodPats ++ dispatchPats) :+ coalescedNullPat :+ uncoalescedNullPat
   }
 
   private def transNull(): Datalog.Pattern = gensym.scoped {
@@ -286,12 +290,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
-    val unCoalescingPattern =
-      if (!classDef.isDefunAuxiliary)
-        Seq(generateConstructorCoalesced(classDef), generateConstructorUncoalesced(classDef))
-      else
-        Seq()
-
     val clsPattern = classDef.content.flatMap {
       case field: FieldDef if !classDef.isCaseClass =>
         Seq(transField(classDef, field))
@@ -302,9 +300,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
-      case _ => Seq() // Member methods are handled in dynamic dispatch translation
+      case _ => // Member methods are handled in dynamic dispatch translation
+        Seq()
     }
-    (clsPattern ++ unCoalescingPattern)
+    if (!classDef.isDefunAuxiliary)
+      clsPattern :+ generateConstructorCoalesced(classDef) :+ generateConstructorUncoalesced(classDef)
+    else
+      clsPattern
   }
 
   private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -347,9 +349,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       // coalesced fields if required
       val (coalescedChildCalls, vars) = fieldReadVars.zip(f.typ.flatten).map { case (v, t) =>
         t match {
-          case TClass(_) =>
+          case TClass(TName(clsName)) =>
             val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
-            val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(), Seq(v, coalescedChildVar)))
+            val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(clsName.raw), Seq(v, coalescedChildVar)))
             (coalescedChildCall, coalescedChildVar)
           case _ =>
             (Seq(), v)
@@ -375,15 +377,31 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val fieldDataTypes = GP_URI +: fields.flatMap(_.typ.flatten).map(transDataType)
     val evalParams = fieldVarsFlat.zip(fieldDataTypes).map { case (v, t) => v -> t }
     val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
+    val clsGuard = Datalog.Computed(
+      Datalog.StringConstant(classDef.name.raw),
+      Datalog.Evaluation(
+        Seq(Datalog.Var("uri") -> transType(classDef.typ)),
+        Datalog.TScalaString,
+        Scala(q"(obj: $tyID) => obj.typ")
+      )
+    )
     val bodyWithObject = Datalog.Body(
-      getURIIsNull(uriVar, Datalog.False) +: readFields.flatten :+ genOutObj
+      clsGuard +: getURIIsNull(uriVar, Datalog.False) +: readFields.flatten :+ genOutObj
     )
 
-    val genNullObj = Datalog.Computed(objVar, Datalog.Evaluation(Seq(), objType, Scala(q"() => null")))
+    val directSubclasses = coreModule.classes.filter { cls =>
+      cls.parentClassRefs.exists(_.name.raw == className)
+    }
+    val subclassBodies = directSubclasses.map { subCls =>
+      Datalog.Body(Seq(
+          Datalog.Call(coalescedPatName(subCls.name.raw), Seq(uriVar, objVar))
+      ))
+    }
+
     val bodyWithNull = Datalog.Body(
-      Seq(getURIIsNull(uriVar, Datalog.True), genNullObj)
+      Seq(Datalog.Call(coalescedPatName("Null"), Seq(uriVar, objVar)))
     )
-    val bodies = Seq(bodyWithObject, bodyWithNull)
+    val bodies = bodyWithObject +: subclassBodies :+ bodyWithNull
     val params = Seq(uriParam, objParam)
     val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(classDef.name.raw), params, bodies)
     constrCoalescedPat
@@ -394,7 +412,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val fields = classDef.fields.flatMap {
       case FieldDef(_, _, Name(name), ty, _, _) if ty.asSet.isDefined =>
-        println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
+        println(s"WARNING: Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
         None
       case f => Some(f)
     }
@@ -433,7 +451,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case (ty@TClass(TName(name)), i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           val childUri = Datalog.Var(gensym.fresh(f.name.raw))
-          val call = Datalog.Call(uncoalescedPatName(), Seq(fieldReadVar, childUri))
+          val call = Datalog.Call(uncoalescedPatName(name.raw), Seq(fieldReadVar, childUri))
           (childUri, Seq(fieldReadComp, call))
         case (ty, i) =>
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
@@ -449,15 +467,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val identityObjectOptionType = TScala(Scala(t"Option[$tyID]"))
     val (identityObjectVar, identityObjectComp) = readFieldComp("__identity", identityObjectOptionType, None)
-
-    def objIsNull(isNull: Boolean) = Datalog.Computed(
-      if (isNull) Datalog.True else Datalog.False,
-      Datalog.Evaluation(
-        Seq(objVar -> objType),
-        Datalog.TScalaBoolean,
-        Scala(q"""(objOrNull: ${genScala.transType(classDef.typ)}) => objOrNull == null""")
-      )
-    )
 
     def objectIsDefinedComp(isDefined: Boolean) = Datalog.Computed(
       if (isDefined) Datalog.True else Datalog.False,
@@ -484,8 +493,18 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       GP_URI,
       Scala(q"(identityOption: Option[$tyID]) => identityOption.get")
     ))
+
+    val clsGuard = Datalog.Computed(
+      Datalog.StringConstant(className),
+      Datalog.Evaluation(
+        Seq(Datalog.Var("obj") -> Datalog.TScala(Scala(t"AnyRef"))),
+        Datalog.TScalaString,
+        Scala(q"(obj: AnyRef) => obj.getClass.getSimpleName")
+      )
+    )
+
     val bodyWithExistingObject = Datalog.Body(
-      objIsNull(false) +: identityObjectComp +: objectIsDefinedComp(true) +: assignUri +: allSetterCalls
+      objNullGuard(objVar, objType, isNull=false) +: clsGuard +: identityObjectComp +: objectIsDefinedComp(true) +: assignUri +: allSetterCalls
     )
 
     // new object was created in scala
@@ -503,19 +522,26 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     }
 
     val bodyWithNewObject = Datalog.Body(
-      objIsNull(false) +: identityObjectComp +: objectIsDefinedComp(false) +: objComps
+      objNullGuard(objVar, objType, isNull=false)  +: clsGuard +: identityObjectComp +: objectIsDefinedComp(false) +: objComps
     )
-
 
     // object is null
-    val (nullVar, nullComp) = createNullObject()
-    val nullConstrCall = Datalog.Call(constructorPatName("Null"), Seq(nullVar))
     val bodyWithNull = Datalog.Body(
-      Seq(objIsNull(true), nullComp, nullConstrCall, Datalog.Eq(uriVar, nullVar))
+      Seq(Datalog.Call(uncoalescedPatName("Null"), Seq(objVar, uriVar)))
     )
 
+    // uncoalesced subclasses
+    val directSubclasses = coreModule.classes.filter { cls =>
+      cls.parentClassRefs.exists(_.name.raw == className)
+    }
+    val subclassBodies = directSubclasses.map { subCls =>
+      Datalog.Body(Seq(
+        Datalog.Call(uncoalescedPatName(subCls.name.raw), Seq(objVar, uriVar))
+      ))
+    }
+
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithNull, bodyWithExistingObject, bodyWithNewObject)
+    val bodies = bodyWithNull +: bodyWithExistingObject +: bodyWithNewObject +: subclassBodies
     Datalog.Pattern(None, uncoalescedPatName(classDef.name.raw), params, bodies)
   }
 
@@ -661,9 +687,14 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             }
             transStatements(body.dropRight(1) :+ ReturnStmt(liftExp), None, m)
           } else if (isMonotoneAdd && repCls.isMonotoneMapClass) {
+
             val outVar = Datalog.Var(gensym.fresh("out"))
             val coalArg = Datalog.Var(argParams.last.name)
-            val call = Datalog.Call(coalescedPatName(), Seq(coalArg, outVar))
+            val clsName = repCls.montoneTypes.get._2 match {
+              case TClass(ClassRef(name)) => name.raw
+              case ty => throw new IllegalStateException(s"Can not coalesced none class type $ty")
+            }
+            val call = Datalog.Call(coalescedPatName(clsName), Seq(coalArg, outVar))
             Seq((Some(Seq(outVar)), Seq(call), None))
           } else {
             transStatements(m.body, None, m)
@@ -811,9 +842,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val resultVars = flattenVars("result", resType, genFresh = true)
           val unpackCons = {
             resType match {
-              case clazz: TClass =>
-                val clsName = clazz.ref.name.raw
-                val uncoalescedCall = Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVars.head._1))
+              case clazz@TClass(ClassRef(clsName)) =>
+                val uncoalescedCall = Datalog.Call(uncoalescedPatName(clsName.raw), Seq(aggVar, resultVars.head._1))
                 Seq(uncoalescedCall)
               case _ =>
                 // we got a single value back from the aggregation
@@ -876,7 +906,19 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         }
       } else {
         val argRes = args.map(e => transExpression(e))
-        val (constructedVar, constrComp) = createObject(classDef.name.raw, classDef.typ)
+        val (constructedVar, constrComp) = if (classDef.isDefunAuxiliary) {
+          // TODO: This is problematic for cases such as:
+          //  Set(a, 1, 2) and Set(a, 3, 4), since they would be represented by the same object when defunctionalized
+          //  Or worse: Is this the same set Set(1,2,3) and Set(2,3,4) or are these different classes ?
+          val primaryConstructor = classDef.constructors.filter(_.isPrimary).head
+          val constructorArgs = primaryConstructor.params.zip(argRes).flatMap {
+            case (p, a) =>
+              val (terms, _) = a.unzip
+              terms.map(t => (p.name.raw, p.typ, t))
+          }
+          createCaseClassObject(classDef.name.raw, classDef.typ, constructorArgs)
+        } else
+          createObject(classDef.name.raw, classDef.typ)
         val constrName = constructorPatName(classRef.name.raw) + constructorDef.signature
 
         // create single call constraint when no arguments are passed
@@ -932,7 +974,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         } else if (argRes.isEmpty) {
           val methodCall = Datalog.Call(methodName, dispatchTypeVar +: term +: outVars)
           val call = Seq(runtimeTypeComp, dispatchCall, methodCall)
-          return Seq((outVars, cons ++ call))
+
+          return if (isFix) {
+            if (methodDef.returnsUnit)
+              Seq((Seq(), Seq()), (outVars, cons ++ call))
+            else
+              throw new RuntimeException("Fixpoint iterations for none unit method are currently not supported.")
+          } else {
+            Seq((outVars, cons ++ call))
+          }
         }
 
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
@@ -960,8 +1010,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
             val resultVar = Datalog.Var(gensym.fresh("result"))
             val unpackCons = resType match {
-              case TClass(_) =>
-                Seq(Datalog.Call(uncoalescedPatName(), Seq(aggVar, resultVar)))
+              case TClass(ClassRef(clsName)) =>
+                Seq(Datalog.Call(uncoalescedPatName(clsName.raw), Seq(aggVar, resultVar)))
               case _ =>
                 Seq() // We never get here. We already fail before.
             }
@@ -985,8 +1035,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           Seq((Seq(), Seq()), (terms, atoms))
         else
           throw new RuntimeException("Fixpoint iterations for none unit method are currently not supported.")
-      } else
+      } else {
         Seq((terms, atoms))
+      }
 
     case TypeCastExpr(recv, toTyp) =>
       for ((Seq(term), cons) <- transExpression(recv)) yield {
@@ -1087,7 +1138,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
       val aggregandPat = aggType.flatten(aggIndex) match {
-        case td: TClass =>
+        case td@TClass(ClassRef(clsName)) =>
           val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
 
           val outParamSize = aggType.flatten.size
@@ -1096,7 +1147,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val oldOutName = pat.params(leftParams.size).name
           val newOutName = gensym.fresh("out")
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
-          val coalesceCon = Datalog.Call(coalescedPatName(), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
+          val coalesceCon = Datalog.Call(coalescedPatName(clsName.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
           pat.copy(params = leftParams ++ (newOutParam +: rightParams), bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
         case _ =>
           generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
@@ -1123,9 +1174,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val compCon = Datalog.Computed(foldVar, aggregation)
 
         aggType.flatten(aggIndex) match {
-          case td: TClass =>
+          case TClass(ClassRef(clsName)) =>
             val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
-            val uncoalesce = Datalog.Call(uncoalescedPatName(), Seq(foldVar, foldVarUncoalesced))
+            val uncoalesce = Datalog.Call(uncoalescedPatName(clsName.raw), Seq(foldVar, foldVarUncoalesced))
             (Seq(foldVarUncoalesced), projCons.flatten :+ compCon :+ uncoalesce)
           case _ =>
             (Seq(foldVar), projCons.flatten :+ compCon)

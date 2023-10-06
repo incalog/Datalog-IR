@@ -23,10 +23,11 @@ object Options {
     InlineSimpleRelations,
     ConstantPropagation,
     EliminateAliases,
-    EvalFusion,
+    // EvalFusion,
     // InferVarTypes, //TODO: methods of generic classes should compile to different relations
     FoldConstantAtoms,
-    EliminateNonproductiveRelations
-
+    EliminateNonproductiveRelations,
+    EliminateClones,
+    ExtractLargeBodies
   )
 }

@@ -1,8 +1,9 @@
 package inca.frontend.ir
 
-import inca.frontend.ir.{ Datalog => DatalogAPI }
+import inca.backend.hints.MagicSetHints
+import inca.frontend.ir.{Datalog => DatalogAPI}
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.Name
+import inca.backend.ir.Datalog.{IntLiteral, Name}
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.{CompiledModule, Options, SourceLocation}

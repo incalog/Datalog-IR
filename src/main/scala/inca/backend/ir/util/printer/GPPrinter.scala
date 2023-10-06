@@ -23,8 +23,12 @@ object GPPrinter {
 
   def prettyPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
-    val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
-    header + " " + gp.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("") +  bodies
+    if (gp.bodies.isEmpty)
+      header + " = nil"
+    else {
+      val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
+      header + bodies
+    }
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {
@@ -49,7 +53,7 @@ object GPPrinter {
 
   def prettyBody(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
 
-  def prettyAtom(atom: Atom): String = (atom match {
+  def prettyAtom(atom: Atom): String = atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
     case NotHasType(v, typ) => "not " + prettyType(typ) + "(" + prettyTerm(v) + ")"
@@ -73,7 +77,7 @@ object GPPrinter {
       s"${neg}extensional find $call"
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
-  }) + atom.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
+  }
 
   def prettyLink(link: Link): String = link match {
     case Datalog.ParentLink => "parent"
@@ -88,7 +92,7 @@ object GPPrinter {
       case Datalog.IntLiteral(v) => v.toString
       case Datalog.LongLiteral(v) => v.toString
       case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => v
+      case Datalog.StringLiteral(v) => s""" "$v" """
       case Datalog.BooleanLiteral(v) => v.toString
     }
   }

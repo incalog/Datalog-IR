@@ -1,6 +1,6 @@
 package inca.backend.transform.magic.demand
 
-import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
+import inca.backend.hints.MagicSetHints.{Adornments, InputCall, InputCallKey}
 import inca.backend.hints.{Hints, MagicSetHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
@@ -9,6 +9,7 @@ import inca.runtime.context.DataModel
 import inca.util.Gensym
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
@@ -20,6 +21,8 @@ object DemandTransformation extends Transformation {
 
   def extensionalInputPatternName(name: Name, demandPat: Seq[Boolean]): String = demandPatternExtensionalPrefix + name + "$" + demandPat.map(a => if (a) "b" else "f").mkString
 
+  val PREFIX_THRESHHOLD: Int = Int.MaxValue
+
 //  private val extractCandidates: ListBuffer[Seq[Atom]] = ListBuffer.empty
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
@@ -27,15 +30,18 @@ object DemandTransformation extends Transformation {
     val gensym = new Gensym(Seq())
 
     override def transformModule(mod: Module): Module = {
-      val insertedInputCallPats = mod.pats.flatMap(transformPattern)
+      var insertedInputCallPats = mod.pats.flatMap(transformPattern)
       insertedInputCallPats.foreach(p => gensym.register(CollectVars.transPattern(p)))
 
       val inputPatterns = mod.pats.flatMap { pat =>
         val demandPats = getDemandPatterns(pat)
-        demandPats.adorn.flatMap { demandPat =>
-          deriveInputPattern(pat, demandPat, insertedInputCallPats)
+        demandPats.adorn.flatMap { adorn =>
+          val (inputPat, updatedPatterns) = deriveInputPattern(pat, adorn, insertedInputCallPats)
+          insertedInputCallPats = updatedPatterns
+          inputPat
         }
       }
+
 
       // remove bodies with calls to input relations that don't exist
       val inputPatNames = inputPatterns.map(_.name).toSet
@@ -171,9 +177,12 @@ object DemandTransformation extends Transformation {
       params.forall(p => currentlyBound.contains(p.name))
     }
 
-    private def deriveInputPattern(pat: Pattern, demandPat: Seq[Boolean], patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
+    /** Returns derived input patterns and updated patterns */
+    private def deriveInputPattern(pat: Pattern, adorn: Seq[Boolean], patterns: Seq[Pattern]): (Option[Pattern], Seq[Pattern]) = gensym.scoped {
       if (!shouldDeriveInput(pat))
-        return Seq()
+        return (None, patterns)
+
+      val patName = pat.name
 
       // generate new names for pattern params to avoid name collision
       val params = pat.params.map { p =>
@@ -181,7 +190,7 @@ object DemandTransformation extends Transformation {
         Param(name, p.typ)
       }
 
-      val boundIndices = deriveBoundIndices(pat, demandPat)
+      val boundIndices = deriveBoundIndices(pat, adorn)
       val boundParams = boundIndices.map(params)
       val dummyParam =
         if (boundIndices.isEmpty)
@@ -190,60 +199,87 @@ object DemandTransformation extends Transformation {
           None
       val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
 
+      val inputBodies: ListBuffer[Body] = ListBuffer.empty
+
+      val updatedPatterns: ListBuffer[Pattern] = ListBuffer.empty
+
       // for each body there can be multiple input bodies (due to multiple pattern calls)
-      val inputPatterns = patterns.flatMap { visitedPat =>
-        visitedPat.bodies.flatMap { body =>
-          body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
+      patterns.foreach { visitedPat =>
+        val updatedBodies: ListBuffer[Body] = ListBuffer.empty
+        visitedPat.bodies.foreach { body =>
+          var atoms = body.atoms
+          val prefixAtoms: ListBuffer[Atom] = ListBuffer()
+          var prefixCallCount = 0
+
+          while (atoms.nonEmpty) {
+            val atom = atoms.head
+            atoms = atoms.tail
             atom.asCall match {
-              case Some((name, args)) =>
-                val ignoreCall = atom.hints.contains(MagicSetHints.IgnoreCallKey)
-                if (ignoreCall || name != pat.name) {
-                  Seq() // ignore this call
-                } else {
-                  val callAdornment = atom.hints.getOrElse(MagicSetHints.AdornmentsKey, MagicSetHints.Adornments.empty).asInstanceOf[MagicSetHints.Adornments]
-                  if (callAdornment.adorn.contains(demandPat)) {
-                    val bindings = boundIndices.map { i =>
-                      Eq(args(i), Var(params(i).name))
-                    }
-                    val prefixAtoms = body.atoms.take(atomix)
-                    // check if every param is bound, else we do not generate rule
-                    val inputPatternBody = Body(prefixAtoms ++ bindings ++ dummyBinding).withHints(body)
-                    if (allParamsBound(inputPatternBody, (boundParams ++ dummyParam))) {
-//                      println(s"Prefix size ${prefixAtoms.size}: ${prefixAtoms.mkString("; ")}")
-//                      val extractCandidate = body.atoms.slice(0, atomix)
-//                      extractCandidates += extractCandidate
-//                      println(s"Extract candidate size ${extractCandidate.size}: ${extractCandidate.mkString("; ")}")
-                      Seq(inputPatternBody)
-                    } else {
-                      Seq()
-                    }
+              case Some((`patName`, args)) if
+                (!atom.isInstanceOf[Call] || !atom.asInstanceOf[Call].neg) &&
+                !atom.hints.contains(MagicSetHints.IgnoreCallKey) &&
+                Adornments.get(atom).contains(adorn) =>
+
+                val bindings = boundIndices.map { i =>
+                  Eq(args(i), Var(params(i).name))
+                }
+                val prefixPatternName = gensym.freshGlobal(visitedPat.name + "$prefix")
+                val prefixAtomSeq = prefixAtoms.toSeq
+
+                // check if every param is bound, else we do not generate rule
+                if (allParamsBound(Body(prefixAtomSeq ++ bindings ++ dummyBinding), boundParams ++ dummyParam)) {
+                  if (prefixCallCount >= PREFIX_THRESHHOLD) {
+                    val prefixBody = Body(prefixAtomSeq)
+                    val prefixVars = CollectVars.transBody(prefixBody).distinct
+                    val prefixPattern = Pattern(None, prefixPatternName,
+                      prefixVars.map(v => Param(v, TAny)),
+                      Seq(prefixBody)
+                    )
+                    val prefixCall = Call(prefixPatternName, prefixVars.map(Var.apply))
+                    updatedPatterns += prefixPattern
+                    prefixAtoms.clear()
+                    prefixAtoms += prefixCall
+                    prefixCallCount = 1
+
+                    val inputPatternBody = Body(prefixCall +: (bindings ++ dummyBinding)).withHints(body)
+                    inputBodies += inputPatternBody
                   } else {
-                    Seq()
+                    val inputPatternBody = Body(prefixAtomSeq ++  bindings ++ dummyBinding).withHints(body)
+                    inputBodies += inputPatternBody
                   }
                 }
-              case _ => Seq()
+              case _ => // skip atom
             }
+            prefixAtoms += atom
+            if (atom.isInstanceOf[Call])
+              prefixCallCount += 1
           }
+
+          val newBody = Body(prefixAtoms.toSeq).withHints(body)
+          updatedBodies += newBody
         }
+        val newPat = Pattern(visitedPat.vis, visitedPat.name, visitedPat.params, updatedBodies.toSeq).withHints(visitedPat)
+        updatedPatterns += newPat
       }
 
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name, demandPat), boundParams.map(p => Var(p.name)))
+        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name, adorn), boundParams.map(p => Var(p.name)))
         Some(Body(Seq(extCall) ++ dummyBinding))
       } else {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name, demandPat), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      val inputPat = Pattern(None,
+        inputPatternName(pat.name, adorn),
+        boundParams ++ dummyParam,
+        inputBodies.toSeq ++ extensionalBody)
+        .addHint(MagicSetHints.InputRelation)
       if (pat.hasHint(OptimizationHints.NoInlineInputKey)) {
         inputPat.addHint(OptimizationHints.NoInline)
       }
 
-      if (inputPat.bodies.nonEmpty)
-        Seq(inputPat)
-      else
-        Seq()
+      (Option.when(inputPat.bodies.nonEmpty)(inputPat), updatedPatterns.toSeq)
     }
 
     private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =

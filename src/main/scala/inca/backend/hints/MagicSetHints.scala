@@ -65,6 +65,10 @@ object MagicSetHints {
   object Adornments {
     def empty: Adornments = Adornments(Set())
     def singleton(adorn: Seq[Boolean]): Adornments = Adornments(Set(adorn))
+    def get(h: Hints): Set[Seq[Boolean]] = {
+      val adornments = h.hints.getOrElse(MagicSetHints.AdornmentsKey, empty).asInstanceOf[Adornments]
+      adornments.adorn
+    }
   }
 
   case class InputCall(name: String) extends Hint {

@@ -88,7 +88,7 @@ class GenerateScala {
     classDef.fields.map { f =>
       val fieldTerm = Term.Name(f.name.raw)
       q"""${Term.Name("other")}.$fieldTerm == ${Term.Name("this")}.$fieldTerm"""
-    } :+ q"other.__identity == this.__identity"
+    } ++ (if (classDef.isCaseClass) None else Some(q"other.__identity == this.__identity"))
     fieldComps =
       if (parentRefOption.isDefined)
         q"super.equals(${Term.Name("other")}) == true" +: fieldComps
@@ -101,10 +101,10 @@ class GenerateScala {
       else
         q"true"
 
-    var hashComps = q"${Term.Name("this")}.getClass.getSimpleName.##" +: classDef.fields.map { f =>
+    var hashComps = (q"${Term.Name("this")}.getClass.getSimpleName.##" +: classDef.fields.map { f =>
       val fieldTerm = Term.Name(f.name.raw)
       q"""${Term.Name("this")}.$fieldTerm.##"""
-    } :+ q"this.__identity.##"
+    }) ++ (if (classDef.isCaseClass) None else Some(q"this.__identity.##"))
     hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
     val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
 

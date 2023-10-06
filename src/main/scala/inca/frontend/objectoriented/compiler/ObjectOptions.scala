@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.compiler
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
-import inca.backend.transform.objectoriented.{AllocationTransformation, MutationTransformation}
+import inca.backend.transform.objectoriented.{AllocationTransformation, NumericMutationTransformation, StructuralMutationTransformation}
 import inca.compiler.Options
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.objectoriented.compiler.ObjectOptions.defaultTransformations
@@ -31,10 +31,13 @@ case class ObjectOptions(optimizations: Seq[Optimization] = defaultOptimizations
 }
 
 object ObjectOptions {
-  val defaultTransformations: Seq[Transformation] = Seq(
-    //    RemoveBodyOfUnusedDataConstructor,
-    AllocationTransformation,
-    MutationTransformation,
-    DeriveDemandPatterns,
-    DemandTransformation)
+  def defaultTransformations(mutationCounter: Transformation): Seq[Transformation] = {
+    Seq(
+      AllocationTransformation,
+      mutationCounter,
+      DeriveDemandPatterns,
+      DemandTransformation)
+  }
+
+  val defaultTransformations: Seq[Transformation] = defaultTransformations(NumericMutationTransformation)
 }

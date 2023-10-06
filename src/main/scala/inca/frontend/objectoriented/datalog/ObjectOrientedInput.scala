@@ -19,7 +19,7 @@ protected[datalog] final case class ObjectOrientedInput(terms: Seq[meta.Term], c
     import scala.meta._
     q"object O {..${compiled.psystemSource.stats}}".syntax
   }
-  private lazy val specification: Specification = compiled.psystemModule.patterns(relName)()
+  private lazy val specification: Specification = compiled.psystemModule.patterns.getOrElse(relName, throw new IllegalArgumentException(s"Unknown relation $relName"))()
 
   private def input(args: Seq[meta.Term]): (EDBChange, Relation, Seq[AnyRef]) = {
     val (ess, cargs, diffables) = vals(args: _*).map {

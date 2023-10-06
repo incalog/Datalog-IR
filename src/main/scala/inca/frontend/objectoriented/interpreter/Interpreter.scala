@@ -1,6 +1,10 @@
 package inca.frontend.objectoriented.interpreter
 
 import inca.frontend.objectoriented.core._
+import inca.frontend.objectoriented.core.TScalaBoolean
+import inca.util.Scala
+
+import scala.meta.XtensionQuasiquoteType
 import scala.util.{Failure, Success, Try}
 
 final case class TypeCastException(obj: Object, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
@@ -92,6 +96,7 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
         case Some(classDef) => classDef.isMonotoneMapClass
         case None => throw new IllegalStateException(s"Unresolved classRef $ref")
       }
+      case Some(ty) => throw new IllegalStateException(s"None class type $ty is never a monotone in expression $expr")
       case None => throw new IllegalStateException(s"Untyped expression $expr")
     }
   }
@@ -326,8 +331,9 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
         val obj@Object(cls, _, _) = v.asObject(heap)
         if (classTable.isSubclassOf(Name(cls), ofName))
           v
-        else
+        else {
           throw TypeCastException(obj, ofName.raw)
+        }
       }
     case TypeCastExpr(_, ofTyp) =>
       throw new UnsupportedOperationException(s"asInstanceOf is only supported for class types, but got $ofTyp")
@@ -415,6 +421,18 @@ class Interpreter(module: Module, edb: Map[String, Value] = Map()) {
     case BaseApplyExpr(_, args) =>
       val argVals = args.map(e => eval(e).asScala)
       packInScalaValue(scalaInterpreter.evalClosure(expr, argVals:_*))
+    // Short circuit "&&"
+    case BaseApplyInfixExpr(left, op, right) if op.tree.value == "&&" =>
+      eval(left).asScala match {
+        case false => packInScalaValue(false)
+        case lhs => packInScalaValue(scalaInterpreter.evalClosure(expr, lhs, eval(right).asScala))
+      }
+    // Short circuit "||"
+    case BaseApplyInfixExpr(left, op, right) if op.tree.value == "||" =>
+      eval(left).asScala match {
+        case true => packInScalaValue(true)
+        case lhs => packInScalaValue(scalaInterpreter.evalClosure(expr, lhs, eval(right).asScala))
+      }
     case BaseApplyInfixExpr(left, _, right) =>
       val lhs = eval(left).asScala
       val rhs = eval(right).asScala

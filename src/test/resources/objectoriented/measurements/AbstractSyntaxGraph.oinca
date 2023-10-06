@@ -69,11 +69,8 @@ class NameAnalysis(val prog: Prog) extends Visitor {
 case class Edge(val from: Def, val to: Def) { }
 
 class DependencyAnalysis extends Visitor {
-  // mono.Set[Edge]
-  // var edges: Set[Edge]
   val edges: MonotoneSet = new MonotoneSet()
 
-  // hack to retrieve a Datalog set from this.edges
   def edgeSet(): Set[Edge] = {
     val set: `scala.collection.immutable.Set[Any]` = this.edges.get()
     val list: `scala.collection.immutable.Vector[Any]` = set.`toVector`
@@ -107,17 +104,6 @@ class DependencyAnalysis extends Visitor {
       yield d3
   }
 }
-
-// mono.Set[A] ~> Relation[A]
-// mono.Map[A,B] ~> Relation[A,B]
-// mono.List[A] ~> Relation[Int,A], Int->A
-
-// mono.Avg
-
-// Map[A,Set[B]]
-// ~> Relation[A, Set[B]], A->Set[B]
-// ~> Relation[A, Relation[B]], A->Relation[B]
-// ~> Relation[A, B]
 
 class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
     @static
@@ -185,8 +171,6 @@ class Mapper {
 class ProgEntry {
   @main
   def main(endNode: Int, step: Int): Unit = {
-    // we can not input objects from the outside. Therefore we need to construct the data inside the program.
-
     val mapper: Mapper = new Mapper()
 
     val defs: `List[Any]` = mapper.prog(0, endNode, step)
@@ -198,7 +182,5 @@ class ProgEntry {
 
     val depending: DependencyAnalysis = new DependencyAnalysis()
     prog.accept(depending)
-    //main.accept(depending)
-    //val depResult: Set[Def] = depending.dependencies(main)
   }
 }

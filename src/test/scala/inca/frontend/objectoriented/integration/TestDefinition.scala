@@ -332,12 +332,52 @@ object TestDefinition {
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  def whileLangTest: TestDefinition[SetResult[Any]] = {
+  def fiConstantAnalysis: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("casestudy")
-    TestDefinition("WhileLang", "ConstantPropagation", "factorial", Seq(), SetResult(
+    TestDefinition("FIConstantAnalysis", "ConstantAnalysis", "main", Seq(), SetResult(
       TupleResult("m", "SomeConstant(3)"),
       TupleResult("n", "NoConstant"),
       TupleResult("acc", "NoConstant")
+    ))
+  }
+
+  def fsConstantAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+
+    TestDefinition("FSConstantAnalysis", "ConstantAnalysis", "main", Seq(), SetResult(
+      TupleResult("VarDef(n, Num(5))", "n", "SomeConstant(5)"),
+      TupleResult("VarDef(acc, Num(1))", "n", "SomeConstant(5)"),
+      TupleResult("VarDef(acc, Num(1))", "acc", "SomeConstant(1)"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "n", "NoConstant"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "acc", "NoConstant"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "n", "NoConstant"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "acc", "NoConstant"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "n", "NoConstant"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "acc", "NoConstant")
+    ))
+  }
+
+  def fiSignAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("FISignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
+      TupleResult("m", "Pos"),
+      TupleResult("n", "Top")
+    ))
+  }
+
+  def fsSignAnalysis: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+
+    TestDefinition("FSSignAnalysis", "SignAnalysis", "main", Seq(), SetResult(
+      TupleResult("VarDef(n, Num(5))", "n", "Pos"),
+      TupleResult("VarDef(acc, Num(1))", "n", "Pos"),
+      TupleResult("VarDef(acc, Num(1))", "acc", "Pos"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "n", "Top"),
+      TupleResult("Assign(n, Sub(Var(n), Num(1)))", "acc", "Top"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "n", "Top"),
+      TupleResult("Assign(acc, Mul(Var(acc), Var(n)))", "acc", "Top"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "n", "Top"),
+      TupleResult("While(GT(Var(n), Num(1)), Sequence(Assign(acc, Mul(Var(acc), Var(n))), Assign(n, Sub(Var(n), Num(1)))))", "acc", "Top")
     ))
   }
 
@@ -356,13 +396,32 @@ object TestDefinition {
     TestDefinition("AbstractSyntaxGraph", "Main", "main", Seq(), SetResult("a", "c"))
   }
 
+  def simpleAdd: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("unittests")
+    TestDefinition("Add", "Nat", "main", Seq(), SetResult())
+  }
+
   def loopTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("graphs")
     TestDefinition("Loop", "Main", "main", Seq(), SetResult(0.5, 2.0))
   }
 
+  def mutationMeasurement: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("measurements")
+    TestDefinition("MutationCounter", "Prog", "main", Seq(q"10", q"10"), SetResult())
+  }
+
+  def cfgVisitorExtendedTest: TestDefinition[SetResult[Any]] = {
+    val expectedRes = SetResult(
+      TupleResult("VarDef", "While"),
+      TupleResult("VarDef", "VarDef"), TupleResult("Assign", "Assign") // TupleResult("Skip", "Skip")
+    )
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("CfgVisitorExtended", "Examples", "main", Seq(), expectedRes)
+  }
+
   // TODO: Fix expected result
-  def pathMeasurementTest: TestDefinition[Any] = {
+  /*def pathMeasurementTest: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("measurements")
     TestDefinition("Path_left", "Graph", "main", Seq(q"10"), SetResult())
   }

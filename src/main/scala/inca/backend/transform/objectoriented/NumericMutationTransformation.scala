@@ -3,34 +3,12 @@ package inca.backend.transform.objectoriented
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
+import inca.backend.transform.objectoriented.transformer.NumericCountTransformer
 import inca.backend.transform.{Transformation, Transformer}
-import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel
 import inca.util.Scala
 
 import scala.meta.XtensionQuasiquoteTerm
-
-case class MaxAgg() extends Aggregation[Int] {
-  override val name: String = "max"
-  override def init: Int = Int.MinValue
-  override def join(v1: Int, v2: Int): Int = v1.max(v2)
-  //override def unjoin(v1: Int, v2: Int): Int = v1 - v2
-  override val isAssociative: Boolean = true
-  override val isCommutative: Boolean = true
-  override val hasUnjoin: Boolean = false
-}
-
-
-// TODO: Required for set comprehension
-/*case class ListAgg() extends Aggregation[List[Any]] {
-  override val name: String = "listAgg"
-  override def init: List[Any] = List()
-  override def join(v1: List[Any], v2: List[Any]): List[Any] = v1 ++ v2
-  //override def unjoin(v1: Int, v2: Int): Int = v1 - v2
-  override val isAssociative: Boolean = true
-  override val isCommutative: Boolean = false
-  override val hasUnjoin: Boolean = false
-}*/
 
 /**
  * Should be applied after alloc transformation.
@@ -40,7 +18,7 @@ case class MaxAgg() extends Aggregation[Int] {
  * 2. Modify all affected methods that are neither a Field (leaf), nor a root to take an `tsIn` and `tsOut` param.
  * 3. Modify all Fields (leafs) to take an additional timestamp argument (`ts`).
  * 3. Introduce a filter pattern for each Field (leaf) that has the same parameters as the corresponding field with one
- *    additional parameter `tsMax`. This pattern allows filtering based the timestamp.
+ * additional parameter `tsMax`. This pattern allows filtering based the timestamp.
  * 3. Modify all calls according to the following scheme based on their target:
  *    - target: Field (Get) =>
  *        - Insert a max aggregation over the filtered field pattern (only timestamp smaller than `tsIn`)
@@ -53,8 +31,8 @@ case class MaxAgg() extends Aggregation[Int] {
  *    - target: Call (Ignore) =>
  *        - Insert two arguments, one for `tsIn` and one for `tsOut`
  */
-object MutationTransformation extends Transformation {
-  override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
+object NumericMutationTransformation extends Transformation {
+  override def transformer(dataModel: DataModel): Transformer = new NumericCountTransformer(
     ObjectHints.FieldRootKey,
     ObjectHints.FieldKey,
     "ts", "tsIn", "tsOut"
@@ -82,10 +60,11 @@ object MutationTransformation extends Transformation {
      * Find the biggest timestamp in the field pattern, that is smaller than maxTs. In a first step, the filtered field
      * pattern is used to eliminate all entries with a timestamp bigger than maxTs. The maximum aggregation is then
      * performed on the filtered pattern on column 2 (timestamp column) with the specified object.
+     *
      * @param fieldPatName The name of the field pattern to find the timestamp for.
-     * @param obj The object to get the field for.
-     * @param outVar The output timestamp calculated by the aggregation.
-     * @param maxTs The upperbound for the timestamps to consider.
+     * @param obj          The object to get the field for.
+     * @param outVar       The output timestamp calculated by the aggregation.
+     * @param maxTs        The upperbound for the timestamps to consider.
      * @return The Computed atom.
      */
     private def maxAgg(fieldPatName: String, args: Seq[Term], outVar: Var, maxTs: Var): Computed =
@@ -94,7 +73,7 @@ object MutationTransformation extends Transformation {
         CustomAggregation(
           TScalaInt,
           Some("Maximum aggregation"),
-          Scala(q"""new inca.backend.transform.objectoriented.MaxAgg()"""),
+          Scala(q"""new inca.backend.transform.objectoriented.transformer.MaxAgg()"""),
           filterPatternName(fieldPatName),
           args :+ Var(gensym.fresh("_")) :+ maxTs, // args + ts + maxTs
           args.size // aggregate over ts, not maxTs

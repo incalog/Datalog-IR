@@ -1,15 +1,23 @@
 package inca.frontend.objectoriented.integration
 
+import inca.compiler.CompilationMessage
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.frontend.objectoriented.interpreter.{Interpreter, Object, ObjectValue, ScalaInterpreter, ScalaValue, SetValue, StructuralObjectValue, TupleValue, TypeCastException, Value}
 import inca.frontend.objectoriented.parser.Parser
 import inca.frontend.objectoriented.transformations.{AddMissingDefinitions, InsertBuiltInMonotones}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.util.FileUtil
+import inca.frontend.objectoriented.core.{ClassDef, ClassRef, FieldDef, Module, Name, TClass}
+import inca.frontend.objectoriented.measurements.GenerateWhileLanguageProg
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.meta.contrib.DocToken.Example
+
 class InterpreterTest extends AnyFunSuite {
+  case class Failed(module: Module, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+
+
   val parser: Parser = new Parser {}
   val typechecker: Typechecker = new Typechecker {}
 
@@ -36,9 +44,13 @@ class InterpreterTest extends AnyFunSuite {
   def runProg(path: String, mainClass: String, mainMethod: String, args: Seq[Any]): Any = {
     val code = FileUtil.readFile(path)
     var mod = Parser.parse(code)
+    println("Parsed...")
     mod = InsertBuiltInMonotones.transformModule(mod)
     mod = AddMissingDefinitions.transformModule(mod)
     typechecker.typecheck(mod)
+    if (typechecker.getErrors.nonEmpty) {
+        throw Failed(mod, typechecker.getErrors)
+    }
 
     val mainClasses = mod.classes.filter(_.name.raw == mainClass)
     val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == mainMethod))
@@ -53,7 +65,13 @@ class InterpreterTest extends AnyFunSuite {
       throw new IllegalArgumentException(s"Method $mainMethod for class $mainClass is not a main method!")
     }
 
-    val res = new Interpreter(mod).run(main, args.map(ScalaValue))
+    println("Run interpreter....")
+    val interp = new Interpreter(mod)
+    val start = System.nanoTime()
+    val res = interp.run(main, args.map(ScalaValue))
+    val diff = System.nanoTime() - start
+    println("Time diff: ", diff.toDouble / 1000 / 1000 / 1000)
+
     // transform tuples to seq for checking the result
     convertResultToScala(res) match {
       case s: Seq[Any] => fullFlatten(s)
@@ -65,7 +83,11 @@ class InterpreterTest extends AnyFunSuite {
     tests.map { test =>
       val input = test.input.map(arg => ScalaInterpreter.run(arg.syntax))
       val actual = runProg(test.filePath, test.mainClass, test.mainMethod, input)
-      print(actual.asInstanceOf[Set[Any]].size)
+
+      println(actual.asInstanceOf[Set[Any]].size)
+      actual.asInstanceOf[Set[Any]].foreach {
+        println
+      }
       assert(actual == test.expectedResult)
     }
   }
@@ -221,7 +243,7 @@ class InterpreterTest extends AnyFunSuite {
   }
 
   test("While lang case study") {
-    performTests(whileLangTest)
+    performTests(fiConstantAnalysis)
   }
 
   test("Binary Tree Example") {
@@ -252,7 +274,71 @@ class InterpreterTest extends AnyFunSuite {
     performTests(loopTest)
   }
 
-  test("Path measurement") {
+  test("Flow-sensitive Constant Analysis") {
+    performTests(fsConstantAnalysis)
+  }
+
+  test("Flow-sensitive Sign Analysis") {
+    performTests(fsSignAnalysis)
+  }
+
+  test("Flow-sensitive Constant Analysis with data") {
+    val astProg = GenerateWhileLanguageProg.generateProgramAst(10, 10)
+
+    val test = fsConstantAnalysis
+    val input = test.input.map(arg => ScalaInterpreter.run(arg.syntax))
+
+    val code = FileUtil.readFile(test.filePath)
+    var mod = Parser.parse(code)
+    println("Parsed...")
+    println(mod)
+
+    // Insert program into ast
+    val classes = mod.classes.filter(_.name.raw != "Examples")
+    val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
+      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true)
+    ))
+    mod = Module(mod.name, mod.imports, classes :+ exampleClass)
+
+    println(mod)
+    //System.exit(1)
+
+    mod = InsertBuiltInMonotones.transformModule(mod)
+    mod = AddMissingDefinitions.transformModule(mod)
+    typechecker.typecheck(mod)
+    if (typechecker.getErrors.nonEmpty) {
+      throw Failed(mod, typechecker.getErrors)
+    }
+
+    val mainClasses = mod.classes.filter(_.name.raw == test.mainClass)
+    val mainMethods = mainClasses.flatMap(c => c.methods.filter(_.name.raw == test.mainMethod))
+    if (mainMethods.size < 1) {
+      throw new IllegalArgumentException(s"No main method with name $test.mainMethod for class $test.mainClass found!")
+    } else if (mainMethods.size > 1) {
+      throw new IllegalArgumentException(s"Ambiguous method with name $test.mainMethod for class $test.mainClass found!")
+    }
+
+    val main = mainMethods.head
+    if (!main.isMain) {
+      throw new IllegalArgumentException(s"Method $test.mainMethod for class $test.mainClass is not a main method!")
+    }
+
+    println("Run interpreter....")
+    val interp = new Interpreter(mod)
+    val start = System.nanoTime()
+    val res = interp.run(main, test.input.map(ScalaValue))
+    val diff = System.nanoTime() - start
+    println("Time diff: ", diff.toDouble / 1000 / 1000 / 1000)
+
+    // transform tuples to seq for checking the result
+    val out = convertResultToScala(res) match {
+      case s: Seq[Any] => fullFlatten(s)
+      case r => r
+    }
+    println(out)
+  }
+
+ /* test("Path measurement") {
     performTests(pathMeasurementTest)
   }
 
@@ -262,5 +348,5 @@ class InterpreterTest extends AnyFunSuite {
 
   test("Path with cycle measurement") {
     performTests(pathWithCycleMeasurementTest)
-  }
+  }*/
 }

@@ -7,7 +7,7 @@ import org.eclipse.collections.api.factory.BiMaps
 import scala.jdk.CollectionConverters._
 
 /*
- * In a BidirectionalOneToOneIndex, each key uniquely identifies the correponding value and vice versa.
+ * In a BidirectionalOneToOneIndex, each key uniquely identifies the corresponding value and vice versa.
  */
 class BidirectionalOneToOneIndex[K,V](val key: IndexKey[_]) extends BinaryMapIndex[K,V] {
   private[inca] val index: MutableBiMap[K, V] = BiMaps.mutable.empty()

@@ -1,0 +1,417 @@
+module WhileLang
+
+class Exp {
+    // abstract
+    def accept(v: Visitor): Unit = { }
+
+    def aevalConst(p: ValueProvider): MConstant = {
+        new NoConstant()
+    }
+}
+
+class Var(val name: String) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitVar(this)
+    }
+
+    @override
+    def aevalConst(p: ValueProvider): MConstant = {
+        p.getValue(this.name)
+    }
+}
+
+class Num(val num: Int) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitNum(this)
+    }
+
+    @override
+    def aevalConst(p: ValueProvider): MConstant = {
+        new SomeConstant(this.num)
+    }
+}
+
+class BinOp(val left: Exp, val right: Exp) extends Exp {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.left.accept(v)
+        this.right.accept(v)
+        this.binOpAccept(v)
+    }
+    // abstract
+    def binOpAccept(v: Visitor): Unit = { }
+
+    @override
+    def aevalConst(p: ValueProvider): MConstant = {
+        this.binOpConst(this.left.aevalConst(p), this.right.aevalConst(p))
+    }
+    // abstract
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1
+    }
+}
+class Add extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitAdd(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.add(c2)
+    }
+}
+class Sub extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitSub(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.sub(c2)
+    }
+}
+class Mul extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitMul(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.mul(c2)
+    }
+}
+class GT extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitGT(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.gt(c2)
+    }
+}
+
+class Stm {
+    // abstract
+    def accept(v: Visitor): Unit = {
+    }
+    def first(): Stm = {
+        this
+    }
+    def last(): Stm = {
+        this
+    }
+
+    def stringValue(): String = {
+        "Stm"
+    }
+}
+class Assign(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitAssign(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Assign"
+    }
+}
+class Skip extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitSkip(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Skip"
+    }
+}
+class Sequence(val s1: Stm, val s2: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.s1.accept(v)
+        this.s2.accept(v)
+        v.visitSequence(this)
+    }
+    @override
+    def first(): Stm = {
+        this.s1.first()
+    }
+    @override
+    def last(): Stm = {
+        this.s2.last()
+    }
+
+    @override
+    def stringValue(): String = {
+        "Sequence"
+    }
+}
+class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.thn.accept(v)
+        this.els.accept(v)
+        v.visitIf(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "If"
+    }
+}
+class While(val cnd: Exp, val body: Stm) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.body.accept(v)
+        v.visitWhile(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "While"
+    }
+}
+class ValDef(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitValDef(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Val"
+    }
+}
+class VarDef(val name: String, val rhs: Exp) extends Stm {
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitVarDef(this)
+    }
+
+    @override
+    def stringValue(): String = {
+        "Var"
+    }
+}
+
+
+class Visitor {
+    // Exp
+    def visitVar(e: Var): Unit = { }
+    def visitNum(e: Num): Unit = { }
+    def visitAdd(e: Add): Unit = { }
+    def visitSub(e: Sub): Unit = { }
+    def visitMul(e: Mul): Unit = {}
+    def visitGT(e: GT): Unit = {}
+
+    // Stm
+    def visitAssign(s: Assign): Unit = { }
+    def visitSkip(s: Skip): Unit = { }
+    def visitSequence(s: Sequence): Unit = { }
+    def visitIf(s: If): Unit = { }
+    def visitWhile(s: While): Unit = { }
+    def visitValDef(s: ValDef): Unit = { }
+    def visitVarDef(s: VarDef): Unit = { }
+}
+
+case class MConstant extends BalancedMonotone[MConstant, MConstant] {
+    @static
+    def init(): MConstant = {
+        new BotConstant()
+    }
+
+    @static
+    def join(c1: MConstant, c2: MConstant): MConstant = {
+        c1.joined(c2)
+    }
+
+    // The current hack ignores the lift
+    def lift(v: MConstant): MConstant = {
+        v
+    }
+
+    def joined(that: MConstant): MConstant = {
+        this
+    }
+
+    def num(n: Int): MConstant = {
+        new SomeConstant(n)
+    }
+    def add(that: MConstant): MConstant = {
+        this
+    }
+    def sub(that: MConstant): MConstant = {
+        this
+    }
+    def mul(that: MConstant): MConstant = {
+        this
+    }
+    def gt(that: MConstant): MConstant = {
+        this
+    }
+
+    def stringValue(): String = {
+        "MConstant"
+    }
+}
+
+case class NoConstant extends MConstant {
+    @override
+    def stringValue(): String = {
+        "NoConstant"
+    }
+}
+
+case class BotConstant extends MConstant {
+    @override
+    def stringValue(): String = {
+        "BotConstant"
+    }
+
+    @override
+    def joined(that: MConstant): MConstant = {
+        that
+    }
+}
+
+case class SomeConstant(val value: Int) extends MConstant {
+    @override
+    def joined(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].value == this.value) {
+            this
+        } else if (that.isInstanceOf[BotConstant]) {
+            this
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def add(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value + that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def sub(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value - that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def mul(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.value * that.asInstanceOf[SomeConstant].value)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def gt(that: MConstant): MConstant = {
+        if (that.isInstanceOf[SomeConstant]) {
+            if(this.value > that.asInstanceOf[SomeConstant].value)
+                new SomeConstant(1)
+            else
+                new SomeConstant(0)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    @override
+    def stringValue(): String = {
+        "SomeConstant(" + this.value + ")"
+    }
+}
+
+class ValueProvider extends Visitor {
+    def getValue(s: String): MConstant = {
+        new NoConstant()
+    }
+}
+
+class FIConstantAnalysisVisitor extends ValueProvider {
+    /** The Map type separates keys from aggregated values */
+    val vars: MonoMap[String, MConstant] = new MonoMap[String, MConstant]()
+
+    @override
+    def getValue(s: String): MConstant = {
+        this.vars.get(s) // this aggregates automatically
+    }
+
+    @override
+    def visitValDef(s: ValDef): Unit = {
+        this.vars += (s.name, s.rhs.aevalConst(this))
+    }
+
+    @override
+    def visitVarDef(s: VarDef): Unit = {
+        this.vars += (s.name, s.rhs.aevalConst(this))
+    }
+
+    @override
+    def visitAssign(s: Assign): Unit = {
+        this.vars += (s.name, s.rhs.aevalConst(this))
+    }
+}
+
+class Examples {
+    val factorial: Stm =
+    new Sequence(new ValDef("m", new Num(3)),
+    new Sequence(new Assign("m", new Num(3)),
+        new Sequence(new VarDef("n", new Num(5)),
+            new Sequence(new VarDef("acc", new Num(1)),
+                new While(
+                    new GT(new Var("n"), new Num(1)),
+                    new Sequence(
+                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                        new Assign("n", new Sub(new Var("n"), new Num(1)))
+                    )
+                )
+            )
+        )
+    )
+    )
+}
+
+
+class ConstantAnalysis {
+    @main
+    def main(): Set[(String, String)] = {
+        val constantProp: FIConstantAnalysisVisitor = new FIConstantAnalysisVisitor()
+        val examples: Examples = new Examples()
+        examples.factorial.accept(constantProp)
+        // By using result directly we force the aggregation to appear here. Somehow this fixes the double
+        // aggregation error.
+        for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).stringValue())
+    }
+}

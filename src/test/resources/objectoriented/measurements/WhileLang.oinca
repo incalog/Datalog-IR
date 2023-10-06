@@ -385,30 +385,29 @@ class FIConstantPropagationVisitor extends ValueProvider {
 }
 
 class Examples {
-    val factorial: Stm =
-    new Sequence(new ValDef("m", new Num(3)),
-    new Sequence(new Assign("m", new Num(3)),
-        new Sequence(new VarDef("n", new Num(5)),
-            new Sequence(new VarDef("acc", new Num(1)),
-                new While(
-                    new GT(new Var("n"), new Num(1)),
-                    new Sequence(
-                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
-                        new Assign("n", new Sub(new Var("n"), new Num(1)))
-                    )
-                )
-            )
-        )
-    )
-    )
+    def constructProg(size: Int, step: Int): Stm = {
+        val m: Int = size % step
+        if (size <= 1) {
+            return new VarDef("n" + size.`toString`, new Num(size))
+        } else {
+            if (m == 0) {
+                val v1: VarDef = new VarDef("n" + m.`toString`, new Num(size))
+                return new Sequence(v1, this.constructProg(size-1, step))
+            } else {
+                val v2: VarDef = new VarDef("n" + size.`toString`, new Num(size))
+                return new Sequence(v2, this.constructProg(size-1, step))
+            }
+       }
+    }
 }
 
 class ConstantPropagation {
     @main
-    def factorial(): Set[(String, String)] = {
+    def main(endNode: Int, step: Int): Set[(String, String)] = {
         val constantProp: FIConstantPropagationVisitor = new FIConstantPropagationVisitor()
         val examples: Examples = new Examples()
-        examples.factorial.accept(constantProp)
+        val prog: Stm = examples.constructProg(endNode, step)
+        prog.accept(constantProp)
         // By using result directly we force the aggregation to appear here. Somehow this fixes the double
         // aggregation error.
         for (k <- constantProp.vars.keys()) yield (k, constantProp.vars.get(k).stringValue())

@@ -393,7 +393,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       tyArgs.foreach(param => typecheck(param,classDef.name))
 
       lookupClassRef(className) match {
-        case None => TAny
+        case None =>
+          TAny
         case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
 

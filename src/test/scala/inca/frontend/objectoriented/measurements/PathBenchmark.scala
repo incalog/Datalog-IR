@@ -156,7 +156,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     }
   }
 
-  def runPathWithEDB(recursive: String) = {
+  def runPathWithEDB(recursive: String): Unit = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -188,7 +188,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/edb/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathAllocationWithEDB(recursive: String) = {
+  def runPathAllocationWithEDB(recursive: String): Unit = {
     val configs = for (i <- 10 until 50000 by 5000) yield {
       PathAllocationConfig(warmups, runs, s"PATH_ALLOC_${i}", i)
     }
@@ -210,7 +210,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/edb/Path_Interpreter_${recursive}_recursive_alloc.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathCyclesWithEDB(recursive: String) = {
+  def runPathCyclesWithEDB(recursive: String): Unit = {
     // number of nodes should be: n * k + (sum i=(k+1) to n (n-i))
     // where k is the last node that is fully connected
 
@@ -249,7 +249,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/edb/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathWithoutEDB(recursive: String) = {
+  def runPathWithoutEDB(recursive: String): Unit = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 140 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -277,7 +277,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathAllocationWithoutEDB(recursive: String) = {
+  def runPathAllocationWithoutEDB(recursive: String): Unit = {
     val configs = for (i <- 10 until 50000 by 5000) yield {
       PathAllocationConfig(warmups, runs, s"PATH_ALLOC_${i}", i)
     }
@@ -296,7 +296,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_alloc.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathNodesWithoutEDB(recursive: String) = {
+  def runPathNodesWithoutEDB(recursive: String): Unit = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 160 by 20) yield {
       PathConfig(warmups, runs, s"PATH_${i}", i)
@@ -317,7 +317,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_nodes.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runPathCyclesWithoutEDB(recursive: String) = {
+  def runPathCyclesWithoutEDB(recursive: String): Unit = {
     // number of nodes should be: n * k + (sum i=(k+1) to n (n-i))
     // where k is the last node that is fully connected
 
@@ -353,7 +353,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     FileUtil.writeFile(s"$resultPath/no_edb/Path_Interpreter_${recursive}_recursive_cycles.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 
-  def runSec3(recursive: String) = {
+  def runSec3(recursive: String): Unit = {
     // 1 -> .. 10 -> endNode  endNode -> 10
     val configs = for (i <- 10 until 160 by 20) yield {
       PathCycleConfig(warmups, runs, s"PATH_${i}", i, 10)
@@ -386,7 +386,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
   def run(recursive: String): Unit = {
     runSec3(recursive)
 
-    runPathWithEDB(recursive)
+    /*runPathWithEDB(recursive)
     runPathWithoutEDB(recursive)
 
     runPathAllocationWithEDB(recursive)
@@ -396,6 +396,6 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     runPathCyclesWithoutEDB(recursive)
 
     // There is no way to put node objects in the edb
-    runPathNodesWithoutEDB(recursive)
+    runPathNodesWithoutEDB(recursive)*/
   }
 }
