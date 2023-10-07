@@ -55,7 +55,7 @@ class TreeSize1Test extends AnyFunSuiteLike {
 
       // main(t, v) :- MkMono(m, CountMono), size(t, m),t = "A", m -> v
       lazy val pat2Body: Body = Body(Seq(
-        MkMono(Var("m"), "inca.backend.transform.monotype.CountMono"),
+        MkMono(Var("m"), TScala(Scala(t"inca.backend.transform.monotype.CountMono"))),
         Eq(Var("t"), StringConstant("A")),
         Call("size", Seq(Var("t"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
         ResultMono(Var("m"), Var("b"))
@@ -109,6 +109,7 @@ class TreeSize1Test extends AnyFunSuiteLike {
     }
 
     val prog: DatalogAPI = new DatalogAPI(compiledModule)
+    println(compiledModule.transformed)
     val edb: EDBChange = EDBChange.insertions(
       Seq(
         Relation3("btree", Seq("t", "l", "r"), Seq(Seq("A", "B", "C"), Seq("C", "D", "E"))),

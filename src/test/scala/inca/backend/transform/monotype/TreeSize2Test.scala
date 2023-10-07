@@ -54,11 +54,11 @@ class TreeSize2Test extends AnyFunSuiteLike {
 
       // main(t, v) :- MkMono(m, CountMono), size(t, m),t = "A", m -> v
       lazy val pat2Body: Body = Body(Seq(
-        MkMono(Var("m"), "inca.backend.transform.monotype.CountMono"),
+        MkMono(Var("m"), TScala(Scala(t"inca.backend.transform.monotype.CountMono"))),
         Eq(Var("t"), StringConstant("A")),
         Call("size", Seq(Var("t"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
         ResultMono(Var("m"), Var("v")),
-        MkMono(Var("m2"), "inca.backend.transform.monotype.CountMono"),
+        MkMono(Var("m2"), TScala(Scala(t"inca.backend.transform.monotype.CountMono"))),
         ResultMono(Var("m2"), Var("v1")),
       ))
 

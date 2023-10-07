@@ -2,13 +2,20 @@ package inca.backend.transform.monotype
 
 import scala.meta._
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{AddMono, Atom, Body, Computed, CustomAggregation, Evaluation, IntConstant, IntLiteral, MkMono, Module, Param, Pattern, ResultMono, TScala, TScalaInt, Var}
+import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Computed, Constant, CustomAggregation, Evaluation, IntConstant, IntLiteral, MkMono, Module, Param, Pattern, ResultMono, TScala, TScalaInt, Var}
+import inca.backend.ir.util.Substitute
 import inca.backend.transform.Transformer
 import inca.backend.transform.Transformation
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import jdk.jshell.spi.ExecutionControl.NotImplementedException
+
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+
+final case class MonoTransException(private val message: String = "",
+                                 private val cause: Throwable = None.orNull)
+  extends Exception(message, cause)
 
 
 /** Convert a Datalog program to a mono-types free program.
@@ -18,178 +25,126 @@ import scala.collection.mutable.ListBuffer
      they have different semantics);
   2. It is supposed to be performed after demand transformation, because there will always exist
      a control flow when using mono-types;
-  3. There is only one mono-type variable in the program (all of the derived MonoAdd can be used to do
-     aggregation).
 
-  The translation have two steps:
-  1. Create collection relations and rules for MonoAdd.
-  2. Replace ResultMono by aggregation.
+  The translation does three things:
+  1. Create collection relations and rules for MonoAdd;
+  2. Replace MkMono(m, cls) by m = new cls();
+  3. Replace ResultMono by aggregation.
  */
 object MonoTransformation extends Transformation {
-
-  def replaceTermName(t : Datalog.Term, oldName : String, newName : String) : Datalog.Term = {
-    t match {
-      case Var(a) => if (a == oldName) Var(newName) else Var(a)
-      case x => x
-    }
-  }
-
-  def repalceComputationName(t : Datalog.Computation, oldName : String, newName : String) : Datalog.Computation = {
-    t match {
-      case Datalog.Evaluation(evalArgs, resultType, code) =>
-        Datalog.Evaluation(
-          evalArgs = evalArgs.map{
-            case (k : Datalog.Term, typ : Datalog.Type) =>
-              (replaceTermName(k, oldName, newName), typ)},
-          resultType,
-          code
-        )
-      case x => x
-    }
-  }
-
-  def replaceAtomName(a : Atom, oldName : String, newName : String) : Atom = {
-    a match {
-      case Datalog.Call(name, args, transitive, neg) =>
-        Datalog.Call(name, args.map(a => replaceTermName(a, oldName, newName)), transitive, neg)
-      case Datalog.ExtensionalCall(name, args, neg) =>
-        Datalog.ExtensionalCall(name, args.map(a => replaceTermName(a, oldName, newName)), neg)
-      case Datalog.Compare(comp, lhs, rhs) =>
-        Datalog.Compare(comp, replaceTermName(lhs, oldName, newName), replaceTermName(rhs, oldName, newName))
-      case Datalog.HasType(t, typ) => Datalog.HasType(replaceTermName(t, oldName, newName), typ)
-      case Datalog.NotHasType(t, typ) => Datalog.NotHasType(replaceTermName(t, oldName, newName), typ)
-      case Datalog.Computed(lhs, computation) => Datalog.Computed(replaceTermName(lhs, oldName, newName), repalceComputationName(computation, oldName, newName))
-      case x => x
-    }
-  }
-
-  /** Given a variable and a list of atoms,
-   * find if there exists an Computed term in which v is the lhs.
-   *
-   */
-  def findEvaluation(v : String, body : Body) : Option[Datalog.Evaluation] = {
-    for (atom <- body.atoms) {
-      atom match {
-        case Computed(lhs, computation) =>
-          lhs match {
-            case Var(l) =>
-              if (l == v) computation match {
-                case Evaluation(evalArgs, resultType, code) =>
-                  return Some(Evaluation(evalArgs, resultType, code))
-                case x => throw new NotImplementedException("Cannot handle other kinds of inserted terms yet " + x)
-              }
-          }
-        case x => x
-      }
-    }
-    None
-  }
-
-  def isMonoTypeAtom(atom : Atom) : Boolean = {
-    atom.isInstanceOf[AddMono] || atom.isInstanceOf[ResultMono] || atom.isInstanceOf[MkMono]
-  }
-
-  var vmonoCounter : Int = 0
-
   override def transformer(dataModel: DataModel) : Transformer = new Transformer {
+    private def isMonoTypeAtom(atom: Atom): Boolean = {
+      atom.isInstanceOf[AddMono] || atom.isInstanceOf[ResultMono] || atom.isInstanceOf[MkMono]
+    }
+
+    // used to distinguish different Aggregation atoms
+    private var aggCounter: Int = 0
+
+    private var tmpCounter : Int = 0
+
+    private type TypCtx = Map[String, Seq[Param]]
 
     override def transformModule(module: Datalog.Module): Datalog.Module = {
-      var pats : ListBuffer[Pattern] = ListBuffer()
+      // Collects the type context for each pattern
+      val ctx : TypCtx = module.pats.map(pat => pat.name -> pat.params).toMap
 
-      // First step: collect all of the MonoAdd side effects
-      pats ++= module.pats.flatMap(p => transformAddMono(p))
+      var pats : Seq[Pattern] = module.pats
 
-      // Second step: replace MonoResult by aggregation
-      pats ++= module.pats.map(p => transformResultMono(p))
 
-      //      pats += addMonoResult()
+      // First step: replace MkMono by Computed, replace MonoResult by aggregation
+      pats = pats.map(p => transformMkMono(p, ctx))
+      pats = pats.map(p => transformResultMono(p, ctx))
 
-      // Third step: remove all of the Mono atoms
+      // Third step: collect all of the MonoAdd side effects
+      val collPats = pats.flatMap(p => transformAddMono(p, ctx))
+
+      // Last step: remove all of the Mono atoms
       pats = pats.map(p => removeMonoTypes(p))
 
 
-      Module(module.name, module.imports, pats.toSeq, module.scalaContent)
+      Module(module.name, module.imports, pats ++ collPats, module.scalaContent)
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] = ???
 
 
-    /** This method Create relation and rules to describe the effects of all the MonoAdd atoms.
-     *
-     *
-     * @param pat
-     * @return
+    /** Determine the type of term in the given body and type context.
      */
-    def transformAddMono(pat : Pattern) : Seq[Pattern] = {
-      val varName: String = "v@mono" // TODO: use gensym instead
-      val collName: String = "Coll"
-      val collBodies: ListBuffer[Body] = ListBuffer()
-      val monoVars: ListBuffer[Var] = ListBuffer()
-      for (body <- pat.bodies) {
-        val addMonoAtoms: Seq[AddMono] = body.atoms.collect { case monoAdd : AddMono => monoAdd}
-        val otherAtoms: Seq[Atom] = body.atoms.filterNot(_.isInstanceOf[AddMono])
-        for (addAtom <- addMonoAtoms) {
-          monoVars += addAtom.m
-          addAtom.t match {
-            // rename the inserted variable by varName in the other atoms
-            case Var(v) =>
-              collBodies += Datalog.Body(otherAtoms.map(a => replaceAtomName(a, v, varName)))
-            case _ => throw new NotImplementedException("Cannot handle other kinds of inserted terms yet")
+    def findTyp(term: Datalog.Term, atoms : Seq[Atom], ctx: TypCtx, patName: String): Datalog.Type = {
+      term match {
+        case Constant(lit) => lit.typ
+        case Var(v) =>
+          // if the variable is in the head, we can find its type directly
+          for (param <- ctx(patName) if param.name == v)
+            return param.typ
+          // otherwise, we need to derive its type through other atoms in the same body
+          for (atom <- atoms) {
+            atom match {
+              case Computed(lhs, computation) =>
+                lhs match {
+                  case Var(l) =>
+                    if (l == v) computation match {
+                      case Evaluation(_, resultType, _) =>
+                        return resultType
+                      case _ => ???
+                    }
+                  case _ => ???
+                }
+              case Call(name, args, _, _) =>
+                for ((arg, param) <- args zip ctx(name) if arg == Var(v))
+                    return param.typ
+              case _ =>
+            }
           }
-        }
+          throw MonoTransException(s"Can't determine the type of $v in $atoms and $ctx")
       }
-      // if there is no
-      if (collBodies.isEmpty) return Seq()
-
-      // we need to check that there is only one mono-type variable in the
-      // rule body
-      require(monoVars.toSet.size == 1)
-      val monoVar: Var = monoVars.toList.head
-
-      // Find the mono-type parameter in the rule head
-      val monoParam : Datalog.Param =
-        pat.params.find(p => p.name == monoVar.name).
-          getOrElse(throw new NoSuchElementException("Can't find the mono-type parameter in the head " + pat.name))
-
-      // Find the type of terms inserted into mono-type variables
-      // TODO: Replace Var with MonoVar to store the type information
-      val evaluation = findEvaluation(varName, collBodies.toList.head).getOrElse(throw new RuntimeException("Can't find the evaluation which computes the inserted term of mono-types"))
-      val inputTyp = evaluation.resultType
-
-
-      // if the mono-type variable does not occur in the rule head, we cannot
-      // determine its type in the collection pattern.
-      require(pat.params.exists(p => p.name == monoVar.name))
-
-      Seq(Pattern(None, collName, Seq(monoParam, Datalog.Param(varName, inputTyp)),
-        collBodies.toList))
     }
 
-    /** Transform all of the MonoResult to aggregation and m.result()
+    def transformMkMono(pat: Pattern, ctx: TypCtx): Pattern = {
+      // Store the bodies after transformation
+      val bodies: ListBuffer[Body] = ListBuffer()
+
+      for (body <- pat.bodies) {
+        val atoms: ListBuffer[Atom] = ListBuffer()
+        for (atom <- body.atoms) {
+          atom match {
+            case MkMono(m, cls) =>
+              atoms += Computed(m, Evaluation(Seq(), cls, Scala(meta.Term.Function(List(), s"new ${cls.asScala.toString()}()".parse[meta.Term].get))))
+            case x => atoms += x
+          }
+        }
+        bodies += Body(atoms.toSeq)
+      }
+      Pattern(pat.vis, pat.name, pat.params, bodies.toSeq)
+    }
+
+    /** Transform all of the MkMono and MonoResult to Datalog IR terms.
      *
-     * @param pat
-     * @return
      */
-    def transformResultMono(pat : Pattern) : Pattern = {
+    def transformResultMono(pat : Pattern, ctx: TypCtx) : Pattern = {
+      // Store the bodies after transformation
       val bodies : ListBuffer[Body] = ListBuffer()
+
       for (body <- pat.bodies) {
         val atoms : ListBuffer[Atom] = ListBuffer()
         for (atom <- body.atoms) {
           atom match {
-            case MkMono(m, cls) =>
-              val clsObj = cls + "()"
-              atoms += Computed(m, Evaluation(Seq(), TScala(Scala(t"$cls")), Scala(meta.Term.Function(List(), clsObj.parse[meta.Term].get))))
             case ResultMono(m, t) =>
+              val monoTyp = findTyp(m, body.atoms, ctx, pat.name)
+              val outputTyp = findTyp(t, body.atoms, ctx, pat.name)
+              // As we can't determine the type of state in mono-types currently,
+              // we assume state type is the same as output.
               val agg : CustomAggregation = CustomAggregation(
-                TScalaInt,
+                outputTyp,
                 None,
-                Scala(q"""new inca.backend.transform.monotype.CountMono()"""),
-                "Coll",
-                Seq(m, Var("v@mono" + vmonoCounter)),
+                Scala(s"new ${monoTyp.asScala.toString()}()".parse[meta.Term].get),
+                "Coll$" + monoTyp.asScala.toString.split('.').last,
+                Seq(m, Var("mono$input" + aggCounter)),
                 1
               )
-              vmonoCounter += 1
-              val tmpVar = Var("tmp")
+              aggCounter += 1
+              val tmpVar = Var("tmp$" + tmpCounter)
+              tmpCounter += 1
               val tmp : Computed = Computed(
                 tmpVar,
                 agg
@@ -197,11 +152,11 @@ object MonoTransformation extends Transformation {
               val res : Computed = Computed(
                 t, Evaluation(
                   Seq(
-                    m -> TScala(Scala(t"inca.backend.transform.monotype.CountMono")),
-                    tmpVar -> TScalaInt
+                    m -> monoTyp,
+                    tmpVar -> outputTyp
                   ),
-                  TScalaInt,
-                  Scala(q"""(m : inca.backend.transform.monotype.CountMono, tmpVar: Int) => m.result(tmpVar)""")
+                  outputTyp,
+                  Scala(q"""(m : ${monoTyp.asScala}, tmpVar: ${outputTyp.asScala}) => m.result(tmpVar)""")
                 )
               )
               atoms += tmp
@@ -214,6 +169,67 @@ object MonoTransformation extends Transformation {
       Pattern(pat.vis, pat.name, pat.params, bodies.toSeq)
     }
 
+    /** This method create relations and rules to describe the effects of all the MonoAdd atoms.
+     *
+     * @param pat
+     * @return
+     */
+    def transformAddMono(pat: Pattern, ctx: TypCtx): Seq[Pattern] = {
+      // Name of the aggregation column
+      val inputName: String = "mt$input" // TODO: use gensym instead
+
+      // Name of the mono type variable
+      val monoName: String = "mt$var"
+
+      // Prefix of the collection relation name for MonoAdd
+      // (it is not possible to create a unified Coll relation because different mono types
+      // may have different indexed keys)
+      val collName: String = "Coll$"
+
+      // Mapping from (type of mono-type variable, type of input) to the corresponding bodies
+      // e.g. the collecting pattern of CountMono is (m : CountMono, v : (String, Int)) :- ...
+      val collPats: mutable.Map[(Datalog.Type, Datalog.Type), ListBuffer[Body]] = mutable.Map()
+
+      for (body <- pat.bodies) {
+        // Find all of the MonoAdd atoms in the current body
+        // (assume there is no dependency relation between these MonoAdds)
+        val addMonoAtoms: Seq[AddMono] = body.atoms.collect { case monoAdd: AddMono => monoAdd }
+
+        // Other atoms in the body (assume there are no MkMono and ResultMono if AddMono exists)
+        require(addMonoAtoms.isEmpty ||
+          !body.atoms.exists(a => a.isInstanceOf[MkMono] || a.isInstanceOf[ResultMono]))
+        val otherAtoms: Seq[Atom] = body.atoms.filterNot(_.isInstanceOf[AddMono])
+
+        // Make a Cartesian product between MonoAdd terms and other terms.
+        for (addAtom <- addMonoAtoms) {
+          val monoTyp = findTyp(addAtom.m, otherAtoms, ctx, pat.name)
+          val inputTyp = findTyp(addAtom.t, otherAtoms, ctx, pat.name)
+          val subst: mutable.Map[Var, Datalog.Term] = mutable.Map(addAtom.m -> Var(monoName))
+          addAtom.t match {
+            case Var(v) =>
+              subst(Var(v)) = Var(inputName)
+            case Constant(_) =>
+            case _ => ???
+          }
+          val body = Datalog.Body(otherAtoms.map(a =>
+            Substitute.fromMap(subst.toMap).substAtom(a)))
+          if (!collPats.contains((monoTyp, inputTyp)))
+            collPats((monoTyp, inputTyp)) = ListBuffer(body)
+          else
+            collPats((monoTyp, inputTyp)) += body
+        }
+      }
+      val pats = collPats.toMap map { case ((monoTyp, inputTyp), body) =>
+        Pattern(
+          None,
+          name = collName + monoTyp.asInstanceOf[TScala].ty.toString.split('.').last,
+          Seq(Param(monoName, monoTyp), Param(inputName, inputTyp)),
+          body.toSeq
+        )
+      }
+      pats.toSeq
+    }
+
     // Remove all of the mono-type atoms
     def removeMonoTypes(pat : Pattern) : Pattern = {
       val bodies : ListBuffer[Body] = ListBuffer()
@@ -222,6 +238,7 @@ object MonoTransformation extends Transformation {
       }
       Pattern(pat.vis, pat.name, pat.params, bodies.toSeq)
     }
+
 
     override def transformAtom(atom: Datalog.Atom): Seq[Datalog.Atom] = Seq(atom)
   }
