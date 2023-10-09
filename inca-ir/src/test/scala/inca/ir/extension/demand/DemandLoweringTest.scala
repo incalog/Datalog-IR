@@ -8,8 +8,6 @@ import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
-import scala.collection.immutable.MultiDict
-
 class DemandLoweringTest extends AnyFunSuiteLike:
   def module(relations: Relation*): Module =
     val typecheckerBefore = new IRTypechecker

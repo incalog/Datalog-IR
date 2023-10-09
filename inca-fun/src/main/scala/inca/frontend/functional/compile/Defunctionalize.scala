@@ -174,7 +174,10 @@ class Defunctionalize {
       val constrSym = gensym.freshGlobal("Lambda")
       val free = lam.freevars.distinct
       val body = transformExp(lam.body)
-      val tfun@TFun(_, _) = lam.typ.get
+      val tfun = lam.typ.get match {
+        case tfun: TFun => tfun
+        case ty => throw new IllegalArgumentException(s"Lambda does not have function type, but has $ty: $lam")
+      }
       anonymousFunctions += AnonFun(
         transformNested(tfun),
         lam.vs.map(_._1),

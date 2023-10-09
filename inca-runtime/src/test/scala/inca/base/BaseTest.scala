@@ -1,16 +1,15 @@
 package inca.base
 
-import inca.backend.lowering.{GeneratePSystem, PSystem}
-import inca.backend.optimize.EliminateAliases
+import inca.viatra.compile.{GeneratePSystem, PSystem}
+import inca.viatra.optimize.EliminateAliases
 import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.ir.{Body, Eq, Language, Module, Neq, Param, Relation, Var}
+import inca.ir.{Body, Eq, Language, Module, Neq, Param, Relation, Var, execution, string2name}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.arithmetic
-import inca.ir.string2name
-import inca.runtime.EnginePool
-import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.ScalaCompiler
-import inca.runtime
+import inca.viatra.runtime
+import inca.viatra.runtime.EnginePool
+import inca.viatra.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 class BaseTest extends AnyFunSuiteLike:
@@ -42,5 +41,11 @@ class BaseTest extends AnyFunSuiteLike:
     val mainMatcher = engine.getMatcher(mainSpec)
     //val res = mainMatcher.getAllMatches
 
-    val res = runtime.Relation.fromMatcher(mainMatcher)
+    import scala.jdk.CollectionConverters.*
+
+    val res = execution.Relation.fromMatches(
+      mainMatcher.getPatternName,
+      mainMatcher.getParameterNames.asScala.toList,
+      mainMatcher.getAllMatchArrays.map(_.toSeq))
+
   }

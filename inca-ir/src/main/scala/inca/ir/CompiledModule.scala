@@ -6,7 +6,6 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
 import inca.util.CompilationMessage
 
-import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 
 trait CompiledModule:

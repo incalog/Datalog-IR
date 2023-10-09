@@ -2,7 +2,6 @@ package inca.ir.typing
 
 import inca.ir.util.SourceLocation
 import inca.ir.*
-import inca.ir.extension.data.DataDefinition
 import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq

@@ -4,7 +4,6 @@ import inca.ir.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.demand.*
 import inca.ir.extension.not.*
-//import inca.ir.extension.primitiveScala.*
 import inca.ir.extension.set.{TSet, *}
 import inca.ir.extension.tuple.*
 import inca.ir.util.SourceLocation

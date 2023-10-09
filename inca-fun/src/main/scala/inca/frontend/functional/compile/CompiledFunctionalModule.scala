@@ -4,7 +4,7 @@ import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.util.SourceLocation
-import inca.backend.lowering.{GeneratePSystem, PSystem}
+import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.util.ScalaCompiler
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
@@ -50,16 +50,5 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
     val compiler = new GenerateDatalog
     val module = compiler.compileModule(defunModule)
     module
-  }
-
-
-  lazy val psystemSource: String = {
-    val source = GeneratePSystem.compileModule(lowered)(Map())
-    source
-  }
-
-  lazy val psystemModule: PSystem.Module = {
-    val loadSource = s"${psystemSource}; $name"
-    scalaCompiler.compileAndLoadScala[PSystem.Module](loadSource)
   }
 }
