@@ -2,14 +2,12 @@ package inca.backend.transform.monotype
 
 import scala.meta._
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Computed, Constant, CustomAggregation, Evaluation, IntConstant, IntLiteral, MkMono, Module, Param, Pattern, ResultMono, TScala, TScalaInt, Var}
 import inca.backend.ir.util.Substitute
+import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Computed, Constant, CustomAggregation, Evaluation, MkMono, Module, Param, Pattern, ResultMono, TScala, Var}
 import inca.backend.transform.Transformer
 import inca.backend.transform.Transformation
 import inca.runtime.context.DataModel
 import inca.util.Scala
-import jdk.jshell.spi.ExecutionControl.NotImplementedException
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -37,11 +35,6 @@ object MonoTransformation extends Transformation {
       atom.isInstanceOf[AddMono] || atom.isInstanceOf[ResultMono] || atom.isInstanceOf[MkMono]
     }
 
-    // used to distinguish different Aggregation atoms
-    private var aggCounter: Int = 0
-
-    private var tmpCounter : Int = 0
-
     private type TypCtx = Map[String, Seq[Param]]
 
     override def transformModule(module: Datalog.Module): Datalog.Module = {
@@ -52,7 +45,7 @@ object MonoTransformation extends Transformation {
 
 
       // First step: replace MkMono by Computed, replace MonoResult by aggregation
-      pats = pats.map(p => transformMkMono(p, ctx))
+      pats = pats.map(p => transformMkMono(p))
       pats = pats.map(p => transformResultMono(p, ctx))
 
       // Third step: collect all of the MonoAdd side effects
@@ -100,7 +93,7 @@ object MonoTransformation extends Transformation {
       }
     }
 
-    def transformMkMono(pat: Pattern, ctx: TypCtx): Pattern = {
+    def transformMkMono(pat: Pattern): Pattern = {
       // Store the bodies after transformation
       val bodies: ListBuffer[Body] = ListBuffer()
 
@@ -122,6 +115,10 @@ object MonoTransformation extends Transformation {
      *
      */
     def transformResultMono(pat : Pattern, ctx: TypCtx) : Pattern = {
+      // used to distinguish different Aggregation atoms
+      var aggCounter: Int = 0
+      var tmpCounter: Int = 0
+
       // Store the bodies after transformation
       val bodies : ListBuffer[Body] = ListBuffer()
 
@@ -132,6 +129,8 @@ object MonoTransformation extends Transformation {
             case ResultMono(m, t) =>
               val monoTyp = findTyp(m, body.atoms, ctx, pat.name)
               val outputTyp = findTyp(t, body.atoms, ctx, pat.name)
+              // We assume the aggregated column is always the last column
+              val aggArgs = Seq(m, Var("mono$input" + aggCounter))
               // As we can't determine the type of state in mono-types currently,
               // we assume state type is the same as output.
               val agg : CustomAggregation = CustomAggregation(
@@ -139,28 +138,21 @@ object MonoTransformation extends Transformation {
                 None,
                 Scala(s"new ${monoTyp.asScala.toString()}()".parse[meta.Term].get),
                 "Coll$" + monoTyp.asScala.toString.split('.').last,
-                Seq(m, Var("mono$input" + aggCounter)),
-                1
+                aggArgs,
+                aggArgs.size - 1
               )
               aggCounter += 1
               val tmpVar = Var("tmp$" + tmpCounter)
               tmpCounter += 1
-              val tmp : Computed = Computed(
-                tmpVar,
-                agg
-              )
+              val tmp : Computed = Computed(tmpVar, agg)
               val res : Computed = Computed(
                 t, Evaluation(
-                  Seq(
-                    m -> monoTyp,
-                    tmpVar -> outputTyp
-                  ),
+                  Seq(m -> monoTyp, tmpVar -> outputTyp),
                   outputTyp,
-                  Scala(q"""(m : ${monoTyp.asScala}, tmpVar: ${outputTyp.asScala}) => m.result(tmpVar)""")
+                  Scala(q"(m : ${monoTyp.asScala}, tmpVar: ${outputTyp.asScala}) => m.result(tmpVar)")
                 )
               )
-              atoms += tmp
-              atoms += res
+              atoms ++= ListBuffer(tmp, res)
             case x => atoms += x
           }
         }
