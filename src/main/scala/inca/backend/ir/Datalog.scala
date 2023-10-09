@@ -179,7 +179,7 @@ object Datalog {
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)
   }
 
-  case class MkMono(m: Var, cls: Type) extends Atom
+  case class MkMono(m: Var, cls: Type, annotation: Seq[Type]) extends Atom
 
   case class AddMono(m: Var, t: Term) extends Atom
 

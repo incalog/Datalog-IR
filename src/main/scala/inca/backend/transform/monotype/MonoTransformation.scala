@@ -3,11 +3,12 @@ package inca.backend.transform.monotype
 import scala.meta._
 import inca.backend.ir.Datalog
 import inca.backend.ir.util.Substitute
-import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Computed, Constant, CustomAggregation, Evaluation, MkMono, Module, Param, Pattern, ResultMono, TScala, Var}
+import inca.backend.ir.Datalog.{AddMono, Atom, Body, Call, Computed, Constant, CustomAggregation, Evaluation, IntConstant, MkMono, Module, Param, Pattern, ResultMono, TScala, Var}
 import inca.backend.transform.Transformer
 import inca.backend.transform.Transformation
 import inca.runtime.context.DataModel
 import inca.util.Scala
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -36,6 +37,8 @@ object MonoTransformation extends Transformation {
     }
 
     private type TypCtx = Map[String, Seq[Param]]
+
+    val monoCtx : mutable.Map[Datalog.Type, Seq[Datalog.Type]] = mutable.Map()
 
     override def transformModule(module: Datalog.Module): Datalog.Module = {
       // Collects the type context for each pattern
@@ -101,8 +104,9 @@ object MonoTransformation extends Transformation {
         val atoms: ListBuffer[Atom] = ListBuffer()
         for (atom <- body.atoms) {
           atom match {
-            case MkMono(m, cls) =>
+            case MkMono(m, cls, annotation) =>
               atoms += Computed(m, Evaluation(Seq(), cls, Scala(meta.Term.Function(List(), s"new ${cls.asScala.toString()}()".parse[meta.Term].get))))
+              monoCtx(cls) = annotation
             case x => atoms += x
           }
         }
@@ -130,7 +134,7 @@ object MonoTransformation extends Transformation {
               val monoTyp = findTyp(m, body.atoms, ctx, pat.name)
               val outputTyp = findTyp(t, body.atoms, ctx, pat.name)
               // We assume the aggregated column is always the last column
-              val aggArgs = Seq(m, Var("mono$input" + aggCounter))
+              val aggArgs = Seq(m) ++ monoCtx(monoTyp).zipWithIndex.map{case (_, i) => Var("v$"+ aggCounter + "$" + i)}
               // As we can't determine the type of state in mono-types currently,
               // we assume state type is the same as output.
               val agg : CustomAggregation = CustomAggregation(
@@ -161,15 +165,60 @@ object MonoTransformation extends Transformation {
       Pattern(pat.vis, pat.name, pat.params, bodies.toSeq)
     }
 
+    def findTuple(v: String, atoms: Seq[Atom]) : Seq[meta.Term] = {
+      for (atom <- atoms) {
+        atom match {
+          case Computed(lhs, computation) =>
+            lhs match {
+              case Var(name) => if (v == name)
+                computation match {
+                  case Evaluation(evalArgs, resultType, code) =>
+                    code.tree match {
+                      case meta.Term.Function(params, body) =>
+                        body match {
+                          case meta.Term.Tuple(args) => return args
+                          case x => return Seq(x)
+                        }
+                      case _ =>
+                    }
+                  case _ => ???
+                }
+              case x => x
+            }
+          case x => x
+        }
+      }
+      ???
+    }
+
+    /**
+     * Given a tuple of meta terms, assign each element a name.
+     * @param tuple
+     * @param body
+     * @return
+     */
+    def decomposeTuple(tuple: Seq[meta.Term]) : Seq[Atom] = {
+      val atoms : ListBuffer[Atom] = ListBuffer()
+      val name = "v$"
+      var counter = 0
+      for (elem <- tuple){
+        elem match {
+          case meta.Lit.Int(n) => atoms += Datalog.Eq(Var(name + counter), IntConstant(n))
+          case meta.Lit.String(s) => atoms += Datalog.Eq(Var(name + counter), Datalog.StringConstant(s))
+          case meta.Term.Name(s) => atoms += Datalog.Eq(Var(name + counter), Datalog.Var(s))
+          case _ => ???
+        }
+        counter = counter + 1
+      }
+      atoms.toSeq
+    }
+
     /** This method create relations and rules to describe the effects of all the MonoAdd atoms.
      *
      * @param pat
      * @return
      */
     def transformAddMono(pat: Pattern, ctx: TypCtx): Seq[Pattern] = {
-      // Name of the aggregation column
-      val inputName: String = "mt$input" // TODO: use gensym instead
-
       // Name of the mono type variable
       val monoName: String = "mt$var"
 
@@ -180,7 +229,7 @@ object MonoTransformation extends Transformation {
 
       // Mapping from (type of mono-type variable, type of input) to the corresponding bodies
       // e.g. the collecting pattern of CountMono is (m : CountMono, v : (String, Int)) :- ...
-      val collPats: mutable.Map[(Datalog.Type, Datalog.Type), ListBuffer[Body]] = mutable.Map()
+      val collPats: mutable.Map[(Datalog.Type, Seq[Datalog.Type]), ListBuffer[Body]] = mutable.Map()
 
       for (body <- pat.bodies) {
         // Find all of the MonoAdd atoms in the current body
@@ -195,16 +244,17 @@ object MonoTransformation extends Transformation {
         // Make a Cartesian product between MonoAdd terms and other terms.
         for (addAtom <- addMonoAtoms) {
           val monoTyp = findTyp(addAtom.m, otherAtoms, ctx, pat.name)
-          val inputTyp = findTyp(addAtom.t, otherAtoms, ctx, pat.name)
+          val inputTyp = monoCtx(monoTyp)
+          val inputAtoms : ListBuffer[Datalog.Atom] = ListBuffer()
           val subst: mutable.Map[Var, Datalog.Term] = mutable.Map(addAtom.m -> Var(monoName))
           addAtom.t match {
             case Var(v) =>
-              subst(Var(v)) = Var(inputName)
+              inputAtoms ++= decomposeTuple(findTuple(v, otherAtoms))
             case Constant(_) =>
             case _ => ???
           }
-          val body = Datalog.Body(otherAtoms.map(a =>
-            Substitute.fromMap(subst.toMap).substAtom(a)))
+          val body = Body(otherAtoms.map(a =>
+            Substitute.fromMap(subst.toMap).substAtom(a)) ++ inputAtoms)
           if (!collPats.contains((monoTyp, inputTyp)))
             collPats((monoTyp, inputTyp)) = ListBuffer(body)
           else
@@ -215,7 +265,7 @@ object MonoTransformation extends Transformation {
         Pattern(
           None,
           name = collName + monoTyp.asInstanceOf[TScala].ty.toString.split('.').last,
-          Seq(Param(monoName, monoTyp), Param(inputName, inputTyp)),
+          Seq(Param(monoName, monoTyp)) ++ inputTyp.zipWithIndex.map{case (t, i) => Param("v$"+i, t)},
           body.toSeq
         )
       }

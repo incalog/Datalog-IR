@@ -42,7 +42,7 @@ trait Collect[R] {
     case NoPath(t, ty, link, termIsSource) => transTerm(t)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
     case Undef(t) => transTerm(t)
-    case MkMono(m, _) => transTerm(m)
+    case MkMono(m, _, _) => transTerm(m)
     case AddMono(m, t) => transTerm(m) ++ transTerm(t)
     case ResultMono(m, t) => transTerm(m) ++ transTerm(t)
   }

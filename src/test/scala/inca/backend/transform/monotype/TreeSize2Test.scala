@@ -54,11 +54,11 @@ class TreeSize2Test extends AnyFunSuiteLike {
 
       // main(t, v) :- MkMono(m, CountMono), size(t, m),t = "A", m -> v
       lazy val pat2Body: Body = Body(Seq(
-        MkMono(Var("m"), TScala(Scala(t"inca.backend.transform.monotype.CountMono"))),
+        MkMono(Var("m"), TScala(Scala(t"inca.backend.transform.monotype.CountMono")), Seq(TScalaString, TScalaInt)),
         Eq(Var("t"), StringConstant("A")),
         Call("size", Seq(Var("t"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
         ResultMono(Var("m"), Var("v")),
-        MkMono(Var("m2"), TScala(Scala(t"inca.backend.transform.monotype.CountMono"))),
+        MkMono(Var("m2"), TScala(Scala(t"inca.backend.transform.monotype.CountMono")), Seq(TScalaString, TScalaInt)),
         ResultMono(Var("m2"), Var("v1")),
       ))
 
@@ -125,6 +125,7 @@ class TreeSize2Test extends AnyFunSuiteLike {
     // Bug: prog.read(Relation2("main", Seq("m", "b1"), Seq())) also produces the same result
     val res = prog.read(Relation3("main", Seq("m", "b1", "b2"), Seq()))
     assert(res.size == 1)
+    print(prog.readAll)
     assert(res.toSet.toList.head == ("A", 5, 5))
   }
 }

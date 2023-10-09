@@ -73,7 +73,7 @@ object GPPrinter {
       s"${neg}extensional find $call"
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
-    case MkMono(m, cls) => s"${prettyTerm(m)} = new $cls()"
+    case MkMono(m, cls, annotation) => s"${prettyTerm(m)} = new $cls()@$annotation"
     case AddMono(m, t) => s"${prettyTerm(m)} <- ${prettyTerm(t)}"
     case ResultMono(m, t) => s"${prettyTerm(m)} -> ${prettyTerm(t)}"
   }) + atom.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
