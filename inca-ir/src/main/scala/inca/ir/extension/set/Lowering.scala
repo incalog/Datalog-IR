@@ -70,7 +70,7 @@ trait Lowering extends BaseLowering:
         val name = constructorNameOf(memTy, count)
         val vars = originalTerm.vars
         vars.foreach(v => v.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires types IR in $v")))
-        val (boundVars, bindingVars) = vars.partition(_.typ.get.mode == Mode.Bound)
+        val (boundVars, bindingVars) = vars.partition(!_.typ.get.mode.isBinding)
         val freeVars = boundVars.toSet diff bindingVars.toSet
         val constructorParams = freeVars.toSeq.map(v => v.name -> visitType(v.typ.get.ty))
         constructors += (memTy, originalTerm) -> SetConstructor(name, constructorParams, setEnum)

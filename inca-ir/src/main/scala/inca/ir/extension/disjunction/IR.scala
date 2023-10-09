@@ -16,6 +16,7 @@ case class DisjunctionAlternative(atoms: Seq[Atom]) extends SourceLocation:
 object DisjunctionAlternative:
   def apply(at: Atom): DisjunctionAlternative = DisjunctionAlternative(Seq(at))
   def apply(at: Atom, ats: Atom*): DisjunctionAlternative = DisjunctionAlternative(at +: ats)
+
 case class Disjunction(alternatives: Seq[DisjunctionAlternative]) extends Atom:
   override def toString: String =
     alternatives.mkString(" or ")

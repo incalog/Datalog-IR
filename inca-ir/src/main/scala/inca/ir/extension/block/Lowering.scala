@@ -27,4 +27,3 @@ trait Lowering extends BaseLowering:
       embeddedAtoms ++= as.flatMap(visitAtom)
       visitTerm(t)
     case _ => super.visitTerm(term))
-  

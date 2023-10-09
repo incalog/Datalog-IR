@@ -15,5 +15,5 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.checkAtom(atom, mode)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Constant(value, ty) => ty.closed
+    case Constant(value, ty) => ty.bound
     case _ => super.inferTermExtend(term, mode)

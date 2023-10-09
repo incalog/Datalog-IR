@@ -77,10 +77,4 @@ trait BaseIRTypeContext extends TypeIO:
     case Some(VarInfo(_, _, VarMode.Bound)) => true
     case _ => false
 
-  inline def isFreeVar(name: Name): Boolean = !isBoundVar(name)
-
-  inline def isFreeVar(term: Term): Boolean = term match
-    case Var(name) => !isBoundVar(name)
-    case _ => false
-
   def isParam(name: Name): Boolean = vars.get(name).exists(_.target.isInstanceOf[Param])

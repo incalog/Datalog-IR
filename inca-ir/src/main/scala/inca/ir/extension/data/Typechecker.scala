@@ -14,14 +14,14 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
     case Construct(name, args) => lookupConstruct(name, term) match
       case None =>
         error(s"Unknown constructor $name", term)
-        TAny.closed
+        TAny.bound
       case Some((DataDefinition(dataName, _), CaseDefinition(_, params))) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
         args.zip(params).foreach { case (t, ty) =>
           checkTerm(t, ty, Mode.Bound)
         }
-        TData(dataName).closed
+        TData(dataName).bound
     case _ => super.inferTermExtend(term, mode)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match

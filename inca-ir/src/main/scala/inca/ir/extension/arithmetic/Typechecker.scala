@@ -21,15 +21,15 @@ trait Typechecker extends BaseIRTypechecker:
         TInt
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Add(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Sub(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Mul(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case Remainder(lhs, rhs) => inferInfixOpType(lhs, rhs, term).closed
-    case IntNum(_) => TInt.closed
-    case DoubleNum(_) => TDouble.closed
+    case Add(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Sub(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Mul(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Div(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Min(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Max(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case Remainder(lhs, rhs) => inferInfixOpType(lhs, rhs, term).bound
+    case IntNum(_) => TInt.bound
+    case DoubleNum(_) => TDouble.bound
     case _ => super.inferTermExtend(term, mode)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match

@@ -13,18 +13,18 @@ trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case AtomAsBool(at: Atom) =>
       checkAtom(at, Mode.Bound)
-      TBoolean.closed
+      TBoolean.bound
     case BoolAnd(t1, t2) =>
       checkTerm(t1, TBoolean, Mode.Bound)
       checkTerm(t2, TBoolean, Mode.Bound)
-      TBoolean.closed
+      TBoolean.bound
     case BoolOr(t1, t2) =>
       checkTerm(t1, TBoolean, Mode.Bound)
       checkTerm(t2, TBoolean, Mode.Bound)
-      TBoolean.closed
+      TBoolean.bound
     case BoolNot(t) =>
       checkTerm(t, TBoolean, Mode.Bound)
-      TBoolean.closed
-    case BoolFalse => TBoolean.closed
-    case BoolTrue => TBoolean.closed
+      TBoolean.bound
+    case BoolFalse => TBoolean.bound
+    case BoolTrue => TBoolean.bound
     case _ => super.inferTermExtend(term, mode)

@@ -95,7 +95,28 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     )
   }
 
-  test("neg call requires bound arguments") {
+  test("neg call cannot bind arguments") {
+    {
+      implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
+      module(
+        Relation("R", Seq(), Seq(Body(Seq(
+          NegCall("T", Seq(Var("x"), Var("y")))
+        )))),
+        Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+
+    assertThrows[TypeErrorException] {
+      implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
+      module(
+        Relation("R", Seq(), Seq(Body(Seq(
+          NegCall("T", Seq(Var("x"), Var("y"))),
+          Neq(Var("x"), Var("y"))
+        )))),
+        Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
+      )
+    }
+
     assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(

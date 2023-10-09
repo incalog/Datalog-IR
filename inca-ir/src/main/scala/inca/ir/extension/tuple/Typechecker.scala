@@ -13,13 +13,13 @@ trait Typechecker extends BaseIRTypechecker:
       }
       TermType(TTuple(tys), m)
     case Project(t, idx) => inferTerm(t, Mode.Bound).ty match {
-      case TTuple(tys) if 0 <= idx && idx < tys.size => tys(idx).closed
+      case TTuple(tys) if 0 <= idx && idx < tys.size => tys(idx).bound
       case TTuple(tys) =>
         error("Projection index out of bounds", term)
-        TAny.closed
+        TAny.bound
       case ty =>
         error(s"Expected tuple type but got $ty", term)
-        TAny.closed
+        TAny.bound
     }
     case _ => super.inferTermExtend(term, mode)
   }

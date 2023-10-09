@@ -10,24 +10,24 @@ trait Typechecker extends BaseIRTypechecker:
     case SetLit(ts) =>
       val tys = ts.map(inferTerm(_, Mode.Bound).ty)
       if (tys.isEmpty)
-        TSet(TNothing).closed
+        TSet(TNothing).bound
       else if (tys.tail.forall(_ == tys.head))
-        TSet(tys.head).closed
+        TSet(tys.head).bound
       else {
         error(s"Set alternatives must have the same type, but got $tys", term)
-        TSet(TAny).closed
+        TSet(TAny).bound
       }
     case SetRef(name) =>
       lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
           val tys = params.map(_.ty)
           if (tys.size == 1)
-            TSet(tys.head).closed
+            TSet(tys.head).bound
           else
-            TSet(TTuple(tys)).closed
+            TSet(TTuple(tys)).bound
         case _ =>
           error(s"Cannot find relation $name", term)
-          TSet(TAny).closed
+          TSet(TAny).bound
     case SetIntersection(t1, t2) =>
       val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
       val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
@@ -39,7 +39,7 @@ trait Typechecker extends BaseIRTypechecker:
       assertComparable(ty2, ty1, term)
       TermType(TSet(ty1), m1 || m2)
     case SetComprehension(elem, atoms) => scopedTypeContext {
-      atoms.foreach(checkAtom(_, mode))
+      atoms.foreach(checkAtom(_, mode.inverted))
       val TermType(ty, m) = inferTerm(elem, mode)
       TermType(TSet(ty), m)
     }

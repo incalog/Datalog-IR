@@ -7,6 +7,8 @@ import inca.ir.Hint.preserveHints
 import scala.collection.immutable.Seq
 
 trait BaseIRVisitor:
+  case object FailedBody extends Throwable
+
   def visit(module: ir.Module): ir.Module =
     ir.Module(module.name, module.lang, module.contents.flatMap(visitModuleEntry))
 
@@ -29,7 +31,8 @@ trait BaseIRVisitor:
   }
 
   def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    Seq(Body(body.atoms.flatMap(visitAtom)))
+    try Seq(Body(body.atoms.flatMap(visitAtom)))
+    catch { case FailedBody => Seq() }
   }
 
   def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {

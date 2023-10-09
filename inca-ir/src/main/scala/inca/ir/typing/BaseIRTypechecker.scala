@@ -69,50 +69,75 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
-    case v@Var(name) => lookupVar(name) match
-      case None if mode.requiresBound =>
-        error(s"Undefined variable $v at closed position", v)
-        registerVar(name, v, TAny)
-        bindVar(name)
-        Mode.Bound
-      case Some(VarInfo(_, ty, VarMode.Unbound)) if mode.requiresBound =>
-        error(s"Unbound variable $v not allowed here", v)
-        assertComparable(ty, expected, v)
-        bindVar(name)
-        Mode.Bound
-      case None => // register and bind new variable
-        registerVar(name, v, expected)
-        bindVar(name)
-        Mode.Binding
-      case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
-        bindVar(name)
-        assertComparable(ty, expected, v)
-        if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
+    case v@Var(name) => mode match
+      case Mode.Binding => lookupVar(name) match
+        case None =>
+          registerVar(name, v, expected)
+          bindVar(name)
+          Mode.Binding
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          assertComparable(ty, expected, v)
+          bindVar(name)
+          Mode.Binding
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          assertComparable(ty, expected, v)
+          Mode.Bound
+      case Mode.Bound => lookupVar(name) match
+        case None =>
+          error(s"Undefined variable $v at closed position", v)
+          Mode.Bound
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          error(s"Unbound variable $v at closed position", v)
+          assertComparable(ty, expected, v)
+          Mode.Bound
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          assertComparable(ty, expected, v)
+          Mode.Bound
+      case Mode.Collapse => lookupVar(name) match
+        case None =>
+          Mode.Collapse
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          assertComparable(ty, expected, v)
+          Mode.Collapse
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          assertComparable(ty, expected, v)
+          Mode.Bound
+
     case _ => // fallback to infer + compatibility check
       val TermType(ty,m) = inferTerm(term, mode)
       assertComparable(ty, expected, term)
       m
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case v@Var(name) => lookupVar(name) match
-      case None if mode.requiresBound =>
-        error(s"Undefined variable $v at closed position", v)
-        registerVar(name, v, TAny)
-        bindVar(name)
-        TAny.closed
-      case Some(VarInfo(_, _, VarMode.Unbound)) if mode.requiresBound =>
-        error(s"Unbound variable $v not allowed here", v)
-        bindVar(name)
-        TAny.closed
-      case None => // register and bind new variable
-        error(s"Cannot infer type of Undefined variable $v", v)
-        registerVar(name, v, TAny)
-        bindVar(name)
-        TAny.closing
-      case Some(VarInfo(_, ty, vm)) => // bind variable (if needed) and assure type compatibility
-        bindVar(name)
-        val m = if (vm == VarMode.Bound) Mode.Bound else Mode.Binding
-        TermType(ty,m)
+    case v@Var(name) => mode match
+      case Mode.Binding => lookupVar(name) match
+        case None =>
+          error(s"Cannot infer type of Undefined variable $v", v)
+          registerVar(name, v, TAny)
+          bindVar(name)
+          TAny.binding
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          bindVar(name)
+          ty.binding
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          ty.bound
+      case Mode.Bound => lookupVar(name) match
+        case None =>
+          error(s"Undefined variable $v at closed position", v)
+          TAny.bound
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          error(s"Unbound variable $v at closed position", v)
+          ty.bound
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          ty.bound
+      case Mode.Collapse => lookupVar(name) match
+        case None =>
+          TAny.collapsed
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          ty.collapsed
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          ty.bound
+
     case Cast(t, ty) =>
       val TermType(_, m) = inferTerm(t, mode)
       assignType(t)(TermType(ty, m))
@@ -120,24 +145,31 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
   def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
-    lookupModuleEntry(name) match
+    val params = lookupModuleEntry(name) match
       case Some(Relation(_, params, _)) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
-
-        args.zip(params).foreach { case (t, Param(_, ty)) =>
-          checkTerm(t, ty, mode)
-        }
+        params
       case Some(ExtensionalRelation(_, params)) =>
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
-
-        args.zip(params).foreach { case (t, Param(_, ty)) =>
-          checkTerm(t, ty, mode)
-        }
+        params
       case _ =>
         error(s"Unknown relation: $name", atom)
-        args.foreach(t => inferTerm(t, mode))
+        Seq()
+    val argMode = mode match
+      case Mode.Binding => Mode.Binding
+      case Mode.Bound => Mode.Collapse
+      case Mode.Collapse => Mode.Collapse
+    args.zipAll(params, null, null).foreach {
+      case (t, Param(_, ty)) =>
+        checkTerm(t, ty, argMode)
+      case (t, null) => // missing param
+        inferTerm(t, argMode)
+      case (null, _) => // missing argument
+        // nothing
+    }
+
 
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Call(name, args) => checkCall(name, args, atom, mode)

@@ -18,15 +18,25 @@ trait Typechecker extends BaseIRTypechecker
 enum Mode:
   case Binding
   case Bound
+  case Collapse
 
-  inline def requiresBound: Boolean = this == Bound
+//  inline def requiresBound: Boolean = this == Bound || this == Collapse
+
+  def isBinding: Boolean = this == Binding
+  def isBound: Boolean = this == Bound
+  def isCollapse: Boolean = this == Collapse
+
   def inverted: Mode = this match
     case Binding => Bound
-    case Bound => Binding
+    case Bound | Collapse => Binding
   
   def ||(that: Mode): Mode = this match
     case Binding => Binding
-    case Bound => that
+    case Bound => that match
+      case Binding => Binding
+      case Bound => Bound
+      case Collapse => Bound
+    case Collapse => that
 
 enum VarMode:
   case Bound

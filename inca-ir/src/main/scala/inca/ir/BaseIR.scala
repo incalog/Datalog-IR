@@ -35,13 +35,20 @@ trait Type extends SourceLocation with Hints:
   def size: Int = 1
   def flatten: Seq[Type] = Seq(this)
 
-  def closed: TermType = TermType(this, Mode.Bound)
-  def closing: TermType = TermType(this, Mode.Binding)
+  def bound: TermType = TermType(this, Mode.Bound)
+  def binding: TermType = TermType(this, Mode.Binding)
+  def collapsed: TermType = TermType(this, Mode.Collapse)
 
 case class TermType(ty: Type, mode: Mode):
-  override def toString: String = mode match
-    case Mode.Binding => s">$ty<"
-    case Mode.Bound => s"<$ty>"
+  override def toString: String =
+    if (mode.isBound)
+      s"<$ty>"
+    else if (mode.isBinding)
+      s">$ty<"
+    else if (mode.isCollapse)
+      s"<_>"
+    else
+      ???
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   override def toString: String = {
@@ -81,7 +88,11 @@ object Var {
 }
 
 case class Cast(t: Term, ty: Type) extends Term:
-  override def toString: String = s"$t:$ty"
+  override def toString: String =
+    if (t.typ.exists(_.ty == ty))
+      t.toString
+    else
+      s"$t:$ty"
   override def vars: Seq[Var] = t.vars
 
 case class Call(name: Name, args: Seq[Term]) extends Atom:
