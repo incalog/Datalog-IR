@@ -9,7 +9,6 @@ import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.lowering.BaseLowering
 import inca.ir.typing.TypeErrorException
-import inca.util.TupleOps
 
 class SetLoweringTest extends AnyFunSuite {
   val lowering = new Lowering {}

@@ -52,12 +52,14 @@ lazy val inca_runtime = (project in file("inca-runtime"))
       "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
       "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
       "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
+      // Required for runtime reflection and code execution
+      "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
     )
   )
 
 lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
-  .dependsOn(inca_runtime % "compile->compile")
+  .dependsOn(inca_runtime % "test->test")
   .settings(
     scalaVersion := "3.3.0",
 
