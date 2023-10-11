@@ -138,7 +138,7 @@ class GenerateDatalog {
     case BinOp(e1, "<=", e2) => bool.AtomAsBool(irarith.LE(compileExp(e1), compileExp(e2)))
     case Call(Var(Name("min")), Seq(), Seq(e1, e2)) => irarith.Min(compileExp(e1), compileExp(e2))
     case Call(Var(Name("max")), Seq(), Seq(e1, e2)) => irarith.Max(compileExp(e1), compileExp(e2))
-    case Call(Var(Name("abs")), Seq(), Seq(e1, e2)) => irarith.Abs(compileExp(e1), compileExp(e2))
+    case Call(Var(Name("abs")), Seq(), Seq(e)) => irarith.Abs(compileExp(e))
 
     case BoolLit(b) => if (b) bool.BoolTrue else bool.BoolFalse
     case BinOp(e1, "&&", e2) => bool.BoolAnd(compileExp(e1), compileExp(e2))

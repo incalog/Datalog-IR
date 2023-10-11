@@ -55,15 +55,9 @@ trait ScalaLowering extends BaseLowering:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case LT(lhs, rhs) =>
+    case BinCompare(lhs, rhs, op) =>
       typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) =>
-        val (x, appl) = app("<", TScala.bool, l, r)
-        // TODO: We get back a scala bool here...
-        Eq(Constant(Scala.BoolLiteral(true), TScala.bool), x)
-      }
-    case GT(lhs, rhs) =>
-      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) =>
-        val (x, appl) = app(">", TScala.bool, l, r)
+        val (x, appl) = app(op, TScala.bool, l, r)
         // TODO: We get back a scala bool here...
         Eq(Constant(Scala.BoolLiteral(true), TScala.bool), x)
       }
@@ -75,14 +69,8 @@ trait ScalaLowering extends BaseLowering:
       Seq(Constant(Scala.IntLiteral(i), TScala.int))
     case DoubleNum(d) =>
       Seq(Constant(Scala.DoubleLiteral(d), TScala.double))
-    case Add(lhs, rhs) =>
-      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("+", TScala.int, l, r) }
-    case Sub(lhs, rhs) =>
-      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("-", TScala.int, l, r) }
-    case Mul(lhs, rhs) =>
-      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("*", TScala.int, l, r) }
-    case Div(lhs, rhs) =>
-      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp("/", TScala.int, l, r) }
+    case BinOp(lhs, rhs, op) =>
+      typedParams(lhs).zip(typedParams(rhs)).map { case (l, r) => blockApp(op, TScala.int, l, r) }
     case _ =>
       super.visitTerm(term)
   })

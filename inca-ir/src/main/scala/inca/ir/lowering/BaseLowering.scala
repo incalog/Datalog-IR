@@ -12,21 +12,27 @@ trait BaseLowering extends IRVisitor:
   def loweredIRs: Set[BaseIR]
   def requiredIRs: Set[BaseIR]
 
-  def lower(module: Module): Module = gensym.scoped {
-    val loweredLang = module.lang -- loweredIRs
-    if (loweredLang.features.size == module.lang.features.size) {
-      // module does not use any features lowered here
-      module
-    } else {
-      val resultLang = loweredLang ++ requiredIRs
-      //println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
-      visit(module).copy(lang = resultLang)
+  override def toString: String = s"Lowering ${loweredIRs.mkString(", ")}"
+
+  def lower(m: Module): Module = visitProgram(Seq(m)).head
+
+  override def visitProgram(modules: Seq[Module]): Seq[Module] = gensym.scoped {
+    modules.map { module =>
+      val loweredLang = module.lang -- loweredIRs
+      if (loweredLang.features.size == module.lang.features.size) {
+        // module does not use any features lowered here
+        module
+      } else {
+        val resultLang = loweredLang ++ requiredIRs
+        //println(s"module lang ${module.lang}, lowered $loweredIRs, lowered lang $loweredLang")
+        visitModule(module).copy(lang = resultLang)
+      }
     }
   }
 
-  override def visit(module: Module): Module = {
+  override def visitModule(module: Module): Module = {
     gensym.register(module.contents.map(_.name.toString))
-    super.visit(module)
+    super.visitModule(module)
   }
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match

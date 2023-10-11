@@ -19,34 +19,35 @@ case class IntNum(value: Int) extends Term:
 case class DoubleNum(value: Double) extends Term:
   override def toString: String = s"$value"
 
-trait BinOp(lhs: Term, rhs: Term, op: String) extends Term:
-  override def toString: String = s"$lhs $op $rhs"
+case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
+  override def toString: String =
+    if (analysis.isEmpty)
+      s"$lhs $op $rhs"
+    else
+      s"($lhs $op $rhs)" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
-case class Add(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "+")
-case class Sub(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "-")
-case class Mul(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "*")
-case class Div(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "/")
-case class Remainder(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "%")
-case class Min(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
-case class Max(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "min")
-case class Abs(lhs: Term, rhs: Term) extends BinOp(lhs, rhs, "abs")
+case class UnOp(t: Term, op: String) extends Term:
+  override def toString: String = s"$op $t"
+  override def vars: Seq[Var] = t.vars
 
-case class LT(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs < $rhs"
+case class BinCompare(lhs: Term, rhs: Term, op: String) extends Atom:
+  override def toString: String = s"$lhs $op $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
-case class LE(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs <= $rhs"
-  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+def Add(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "+")
+def Sub(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "-")
+def Mul(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "*")
+def Div(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "/")
+def Remainder(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "%")
+def Min(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "min")
+def Max(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "min")
+def Abs(t: Term): UnOp = UnOp(t, "abs")
 
-case class GT(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs > $rhs"
-  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
-
-case class GE(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs >= $rhs"
-  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+def LT(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<")
+def LE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<=")
+def GT(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, ">")
+def GE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, ">=")
 
 object IR extends IR { }
 trait IR extends BaseIR:

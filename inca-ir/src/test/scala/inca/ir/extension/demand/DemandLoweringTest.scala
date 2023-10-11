@@ -21,7 +21,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
       typecheckerBefore.typecheck(mod)
       println(mod)
       printedMod = true
-      lowered = lowering.visit(mod)
+      lowered = lowering.visitModule(mod)
       typecheckerAfter.typecheck(lowered)
       lowered
     } finally {

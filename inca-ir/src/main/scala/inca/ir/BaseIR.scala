@@ -1,6 +1,7 @@
 package inca.ir
 
 import inca.ir.*
+import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Typeable}
 import inca.ir.util.SourceLocation
 
@@ -26,10 +27,11 @@ trait ModuleEntry extends SourceLocation with Hints:
 
 
 
-trait Atom extends SourceLocation with Hints:
+trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
-trait Term extends Typeable[TermType] with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var] = Seq()
+  def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
 
 trait Type extends SourceLocation with Hints:
   def size: Int = 1
@@ -77,9 +79,9 @@ case class Body(atoms: Seq[Atom]) extends Hints:
 case class Var(name: Name) extends Term with Var.Target:
   override def toString: String =
     if (typ.isEmpty)
-      s"$name"
+      s"$name" + analysisString
     else
-      s"$name: ${typ.get}"
+      s"$name: ${typ.get}" + analysisString
   override def vars: Seq[Var] = Seq(this)
 
 object Var {
@@ -96,27 +98,27 @@ case class Cast(t: Term, ty: Type) extends Term:
   override def vars: Seq[Var] = t.vars
 
 case class Call(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"$name${args.mkString("(", ", ", ")")}"
+  override def toString: String = s"$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"!$name${args.mkString("(", ", ", ")")}"
+  override def toString: String = s"!$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}"
+  override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}"
+  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs == $rhs"
+  override def toString: String = s"$lhs == $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class Neq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs != $rhs"
+  override def toString: String = s"$lhs != $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case object TAny extends Type

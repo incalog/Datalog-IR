@@ -70,7 +70,7 @@ object TypeCheckerDefinitional:
       case Some((ty, VarMode.Unbound)) => throw TypeError(s"Unbound variable $x not allowed here")
       case None => throw TypeError(s"Undefined variable $x")
     case IntNum(n) => assertComparable(TInt, expected, t)
-    case Add(t1, t2) =>
+    case BinOp(t1, t2, "+") =>
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       assertComparable(TInt, expected, t)
@@ -119,7 +119,7 @@ object TypeCheckerDefinitional:
         case IntNum(n) =>
           assertComparable(TInt, expected, t)
           (Bound, ctx)
-        case Add(t1, t2) =>
+        case BinOp(t1, t2, "+") =>
           checkBound(t1, ctx, TInt)
           checkBound(t2, ctx, TInt)
           assertComparable(TInt, expected, t)
@@ -158,7 +158,7 @@ object TypeCheckerDefinitional:
       case Some((ty, VarMode.Unbound)) => throw TypeError(s"Unbound variable $x not allowed here")
       case None => throw TypeError(s"Undefined variable $x")
     case IntNum(n) => TInt
-    case Add(t1, t2) =>
+    case BinOp(t1, t2, "+") =>
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       TInt
@@ -184,7 +184,7 @@ object TypeCheckerDefinitional:
         (ty, cl, ctx + (x.name -> (ty, VarMode.Bound)))
       case None => throw TypeError(s"Undefined variable $x, cannot infer type")
     case IntNum(n) => (TInt, Bound, ctx)
-    case Add(t1, t2) =>
+    case BinOp(t1, t2, "+") =>
       checkBound(t1, ctx, TInt)
       checkBound(t2, ctx, TInt)
       (TInt, Bound, ctx)

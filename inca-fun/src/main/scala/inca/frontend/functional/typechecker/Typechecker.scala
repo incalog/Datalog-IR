@@ -227,8 +227,8 @@ class Typechecker extends TypeContext with TypeIO {
     case BinOp(e1, op, e2) =>
       op match
         case "==" | "!=" =>
-          val t1 = typecheckExp(e1, anno)
-          val t2 = typecheckExp(e2, anno)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, Some(t1))
           if (meet(t1, t2) == TNothing)
             error(s"Incomparable expressions of type $t1 and $t2", exp)
           TBoolean

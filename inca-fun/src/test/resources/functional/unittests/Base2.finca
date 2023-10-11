@@ -1,2 +1,0 @@
-module Base2
-@main def main(): Int = 7 + (12 * 3)

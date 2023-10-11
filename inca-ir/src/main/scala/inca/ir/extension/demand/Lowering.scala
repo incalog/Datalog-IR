@@ -3,7 +3,6 @@ package inca.ir.extension.demand
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.lowering.BaseLowering
-import inca.ir.visitors.VarCollector
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
 import inca.util.Gensym
 
@@ -47,12 +46,12 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  override def visit(module: ir.Module): ir.Module = {
+  override def visitModule(module: ir.Module): ir.Module = {
     currentModule = module
     phase = Phase.InsertDemandGuards
-    val m1 = super.visit(module)
+    val m1 = super.visitModule(module)
     phase = Phase.DeriveDemandRules
-    val m2 = super.visit(m1)
+    val m2 = super.visitModule(m1)
     val demandRels = deriveDemandRelations()
     m2.copy(contents = m2.contents ++ demandRels)
   }

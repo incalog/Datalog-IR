@@ -49,11 +49,10 @@ object GeneratePSystem:
     lowerings.foldLeft(module) {
       case (mod, lowering) =>
         val low = lowering()
-        println()
-        println(s"Backend lowering ${low.loweredIRs}")
-        val lowered = low.lower(mod)
-        try typechecker.typecheck(lowered)
-        finally println(lowered)
+//        println()
+//        println(s"Backend lowering ${low.loweredIRs}")
+        val Seq(lowered) = low.visitProgram(Seq(mod))
+        typechecker.typecheck(lowered)
         typechecker.failOnError()
         lowered
     }
@@ -62,14 +61,14 @@ object GeneratePSystem:
   // TODO: Move this to a better place. It should not be here
   def optimizeModule(module: Module): Module = {
     val optimizations: List[Optimization] = List(
-      ConstantPropagation,
-      EliminateAliases,
-      ConstantFolding
+//      ConstantPropagation,
+//      EliminateAliases,
+//      ConstantFolding
     )
 
     optimizations.foldLeft(module) { case (m, optimization) =>
       // TODO: Use correct data model
-      val mod = optimization.optimizer().visit(m)
+      val mod = optimization.optimizer().visitModule(m)
       println(s"Optimize: ${optimization.name}")
       println(mod)
       mod
