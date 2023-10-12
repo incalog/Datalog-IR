@@ -548,21 +548,24 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         this.after += (`Tuple2.apply`(s, v), m)
     }
 
-    def run(): Unit = {
+    def runInternal(): Unit = {
         val start: Stm = new Skip()
         for (v <- this.varNames) yield
             this.put(start, v, new BotConstant())
         this.head.transfer(start, this)
         this.iterate()
+    }
 
-        return
+    def run(): Set[(String, String, String)] = {
+        this.runInternal()
+        return this.readableResult()
     }
 
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
         // Comment in this line to compute the correct fixpoint using the interpreter
-        fix this.iterate()
+        //fix this.iterate()
         return
     }
 
@@ -573,7 +576,7 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         return
     }
 
-    def stringResult(): Set[(String,String,String)] = {
+    def readableResult(): Set[(String, String, String)] = {
         (for (k <- this.after.keys() if !this.after.get(k).isInstanceOf[BotConstant])
             yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, this.after.get(k).stringValue()))
     }
@@ -581,7 +584,9 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
 
 
 class Examples {
-    val factorial: Stm =
+    val varNames: Set[String] = Set("n", "m", "acc")
+
+    def factorial(): Stm = {
         new Sequence(new VarDef("n", new Num(5)),
             new Sequence(new VarDef("acc", new Num(1)),
                 new While(
@@ -593,8 +598,11 @@ class Examples {
                 )
             )
         )
+    }
 
-    val assignments: Stm =
+    // Do not comment this in ! This will triple the execution time...
+    // I assume because the demand transformation rewrites this somehow
+    /*val assignments: Stm =
         new Sequence(new VarDef("m", new Num(3)),
             new Sequence(new Assign("m", new Num(2)),
                 new Sequence(
@@ -608,29 +616,29 @@ class Examples {
         new Sequence(
             new ValDef("n", new Num(5)),
             new ValDef("acc", new Num(1))
-        )
+        )*/
+}
+
+class CFGHelper(val prog: Stm) {
+    def getCFG(): Set[(Stm, Stm)] = {
+        // Calculate CFG
+        val cfgVisitor: CfgVisitor = new CfgVisitor()
+        this.prog.accept(cfgVisitor)
+        return cfgVisitor.cfgSet()
+    }
 }
 
 class ConstantAnalysis {
     @main
     def main(): Set[(String, String, String)] = {
         // TODO: Automatically get all vars
-        val varNames: Set[String] = Set("n", "m", "acc")
-
         val examples: Examples = new Examples()
-        val prog: Stm = examples.factorial
-
-        // Calculate CFG
-        val cfgVisitor: CfgVisitor = new CfgVisitor()
-        prog.accept(cfgVisitor)
+        val prog: Stm = examples.factorial()
+        val cfgHelper: CFGHelper = new CFGHelper(prog)
 
         // Do constant propagation
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), varNames)
+        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgHelper.getCFG(), examples.varNames)
         constantProp.run()
-
-         constantProp.stringResult()
-//        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
-//            yield (k.`_1`.asInstanceOf[Stm], k.`_2`, constantProp.after.get(k)))
     }
 }
 

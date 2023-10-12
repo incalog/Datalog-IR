@@ -1,6 +1,18 @@
 module SimpleAdd
 
-class Nat {
+
+class Num(var value: Int) {
+    def add(i: Int): Int = {
+        return this.value + i
+    }
+
+    @main
+    def main(): Int = {
+        new Num(1).add(1)
+    }
+}
+
+/*class Nat {
     def add(that: Nat): Nat = {
         that
     }
@@ -21,7 +33,7 @@ class Succ(val pred: Nat) extends Nat {
         val nPred: Nat = this.pred.add(that)
         new Succ(nPred)
     }
-}
+}*/
 
 
 

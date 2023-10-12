@@ -398,7 +398,7 @@ object TestDefinition {
 
   def simpleAdd: TestDefinition[Any] = {
     implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("Add", "Nat", "main", Seq(), SetResult())
+    TestDefinition("Add", "Num", "main", Seq(), SetResult())
   }
 
   def loopTest: TestDefinition[Any] = {

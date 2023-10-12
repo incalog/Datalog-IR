@@ -210,9 +210,9 @@ class DatalogTest extends AnyFunSuite {
 
   /*test("Simple Add") {
     performTests(simpleAdd)
-  }
+  }*/
 
-  test("Primitive Monotone") {
+  /*test("Primitive Monotone") {
     performTests(primitiveMonotone)
   }
 

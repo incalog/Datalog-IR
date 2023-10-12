@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.measurements
 import inca.frontend.ir.Relation
 import inca.frontend.objectoriented
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
-import inca.frontend.objectoriented.core.{ClassDef, ClassRef, FieldDef, Module, Name, TClass, TScalaString, TSet}
+import inca.frontend.objectoriented.core.{ClassDef, ClassRef, FieldDef, MethodDef, Module, Name, Param, ReturnStmt, TClass, TScalaString, TSet}
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
 import inca.frontend.objectoriented.parser.Parser
@@ -43,10 +43,14 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     val astProg = GenerateWhileLanguageProg.generateProgramAst(numAssigns, numWhiles)
     val varSetExpr = GenerateWhileLanguageProg.generateVarSetExr(numAssigns, numWhiles)
     val classes = mod.classes.filter(_.name.raw != "Examples")
+    val exampleMethods = mod.classes.filter(_.name.raw == "Examples").head.methods.filter(_.name.raw != "nestedWhile")
     val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
-      FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
-      FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true)
-    ))
+      FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true),
+      //FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
+      MethodDef(Seq(), None, Name("nestedWhile"), Seq(), TClass(ClassRef(Name("Stm"))), Seq(
+        ReturnStmt(astProg)
+      ))
+    ) ++ exampleMethods)
     Module(mod.name, mod.imports, classes :+ exampleClass)
   }
 
@@ -133,7 +137,7 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
   }
 
   def run(): Unit = {
-    val configs = for (i <- 4 to 20 by 4) yield {
+    val configs = for (i <- 2 to 3 by 4) yield {
       FSConfig(warmups, runs, s"FSConstant", 10, i)
     }
 

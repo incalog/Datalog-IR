@@ -126,17 +126,17 @@ case class CFGBenchmark(val warmups: Int, val runs: Int) {
   }
 
   def run() = {
-    val configs = for (i <- 10 until 11 by 2) yield {
+    val configs = for (i <- 510 until 511 by 100) yield {
       CFGConfig(warmups, runs, s"CFG", i, 10)
     }
 
     val prog = progFolder + s"CfgVisitor.oinca"
 
     // OODL - Interp
-    /*val interpreterMeasurements = for (c <- configs) yield {
+    val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/cfg/CFG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/cfg/CFG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {

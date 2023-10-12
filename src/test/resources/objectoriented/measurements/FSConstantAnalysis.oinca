@@ -395,7 +395,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value + that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -404,7 +404,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value - that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -413,7 +413,7 @@ case class SomeConstant(val value: Int) extends MConstant {
         if (that.isInstanceOf[SomeConstant]) {
             new SomeConstant(this.value * that.asInstanceOf[SomeConstant].value)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -425,7 +425,7 @@ case class SomeConstant(val value: Int) extends MConstant {
             else
                 new SomeConstant(0)
         } else {
-            new NoConstant()
+            that
         }
     }
 
@@ -535,7 +535,7 @@ class ValueManager {
     def transferAll(from: Stm, to: Stm): Unit = { }
 }
 
-class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: Set[String]) extends ValueManager {
+/*class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: Set[String]) extends ValueManager {
     val after: MonoMap[`(Any, String)`, MConstant] = new MonoMap[`(Any, String)`, MConstant]()
 
     @override
@@ -554,15 +554,13 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
             this.put(start, v, new BotConstant())
         this.head.transfer(start, this)
         this.iterate()
-
-        return
     }
 
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
         // Comment in this line to compute the correct fixpoint using the interpreter
-        fix this.iterate()
+        //fix this.iterate()
         return
     }
 
@@ -572,33 +570,41 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
             this.put(to, y, this.get(from, y))
         return
     }
-}
+}*/
 
 
 class Examples {
-    val nestedWhile: Stm = null // Inserted by benchmark
-    val varNames: Set[String] = Set("a")
+    def nestedWhile(): Stm = { return new Skip() } // Inserted by benchmark
+    val varNames: Set[String] = Set("a") // Inserted by benchmark
+
+    def getCFG(prog: Stm): Set[(Stm, Stm)] = {
+        // Calculate CFG
+        val cfgVisitor: CfgVisitor = new CfgVisitor()
+        prog.accept(cfgVisitor)
+        return cfgVisitor.cfgSet()
+    }
+}
+
+class CFGHelper(val prog: Stm) {
+    def getCFG(): Set[(Stm, Stm)] = {
+        // Calculate CFG
+        val cfgVisitor: CfgVisitor = new CfgVisitor()
+        this.prog.accept(cfgVisitor)
+        return cfgVisitor.cfgSet()
+    }
 }
 
 class ConstantAnalysis {
     @main
-    def main(): Set[(String, String, String)] = {
-        // TODO: Automatically get all vars
-        //val varNames: Set[String] = Set("n", "m", "acc")
-
+    def main(): Unit = {
         val examples: Examples = new Examples()
-        val prog: Stm = examples.nestedWhile
-
-        // Calculate CFG
-        val cfgVisitor: CfgVisitor = new CfgVisitor()
-        prog.accept(cfgVisitor)
-
+        val prog: Stm = examples.nestedWhile()
+        val cfgHelper: CFGHelper = new CFGHelper(prog)
+        cfgHelper.getCFG()
+        return
         // Do constant propagation
-        val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgVisitor.cfgSet(), examples.varNames)
-        constantProp.run()
-
-        (for (k <- constantProp.after.keys() if !constantProp.after.get(k).isInstanceOf[BotConstant])
-            yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, constantProp.after.get(k).stringValue()))
+        //val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgHelper.getCFG(prog), examples.varNames)
+        //constantProp.run()
     }
 }
 
