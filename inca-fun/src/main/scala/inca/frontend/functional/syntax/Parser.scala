@@ -179,7 +179,7 @@ object Parser:
       case (a,b) => DoubleLit(s"$a.$b".toDouble)
     })
 
-  val stringLit: P[StringLit]= spaced(
+  val stringLit: P[StringLit] = spaced(
     P.char('"') *> P.charsWhile0(_ != '\"') <* P.char('"')
   ).mapWithLoc(StringLit.apply)
 
