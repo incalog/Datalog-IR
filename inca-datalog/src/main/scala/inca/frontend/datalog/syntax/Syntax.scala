@@ -11,7 +11,7 @@ case class Relation(name: Name, params: Seq[Type], rules: Seq[Rule]) extends Sou
   override def toString: String =
     val sig = s"$name(${params.mkString(",")})."
     val rs = rules.map(_.toString(name)).mkString("\n")
-    sig + "\n" + rs
+    sig + "\n" + rs + "\n"
 
 case class Rule(head: Seq[Param], body: Seq[Atom]) extends SourceLocation:
   def toString(name: Name): String =
@@ -55,10 +55,12 @@ enum Atom extends SourceLocation:
 enum Term extends SourceLocation:
   case Var(name: Name)
   case Constant(lit: Literal)
+  case BinOp(lhs: Term, op: String, rhs: Term)
 
   override def toString: String = this match
     case Var(name) => name.toString
     case Constant(lit) => lit.toString
+    case BinOp(lhs, op, rhs) => s"($lhs $op $rhs)"
 
 enum Literal extends SourceLocation:
   case Int(i: scala.Int)

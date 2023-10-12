@@ -130,9 +130,19 @@ object Parser:
 
   val literal: P[Literal] = doubleLit.backtrack | intLit | stringLit
 
-  val term: P[Term] =
+  val atomicTerm: P[Term] =
     literal.mapWithLoc(Term.Constant.apply) |
-    identifier.mapWithLoc(Term.Var.apply)
+    identifier.mapWithLoc(Term.Var.apply) |
+    inParens(P.defer(term))
+
+  val binop: P[String] =
+    oneOperator(List("+","-","*","/"))
+
+  lazy val term: P[Term] =
+    (atomicTerm ~ (binop ~ P.defer(term)).?).mapWithLoc {
+      case (t, None) => t
+      case (t1, Some((op, t2))) => Term.BinOp(t1, op, t2)
+    }
 
   val call: P[Atom.Call] =
     (keyword("not").?.with1 ~ identifier ~ inParens(term.repSep0(op(',')))).mapWithLoc {
