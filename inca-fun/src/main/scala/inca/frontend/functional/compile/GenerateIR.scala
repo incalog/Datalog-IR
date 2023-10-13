@@ -1,6 +1,6 @@
 package inca.frontend.functional.compile
 
-import inca.frontend.functional.compile.GenerateDatalog.extensionalRelationName
+import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.syntax.*
 import inca.ir
 import inca.ir.{ExtensionalRelation, Language, Name, string2name}
@@ -20,11 +20,11 @@ import inca.ir.extension.tuple as irtuple
 import inca.util.Gensym
 import inca.ir.name2string
 
-object GenerateDatalog:
+object GenerateIR:
   def extensionalRelationPrefix = "ext_"
   def extensionalRelationName(name: String) = extensionalRelationPrefix + demandRelationName(name)
 
-class GenerateDatalog {
+class GenerateIR {
 
   val irLang: Language = new Language(Set(ir.BaseIR)
       + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR +

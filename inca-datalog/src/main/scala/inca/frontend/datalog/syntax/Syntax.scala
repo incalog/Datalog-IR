@@ -1,6 +1,7 @@
 package inca.frontend.datalog.syntax
 
 import inca.ir.Name
+import inca.ir.typing.Typeable
 import inca.ir.util.SourceLocation
 
 case class Module(relations: Seq[Relation]) extends SourceLocation {
@@ -52,7 +53,7 @@ enum Atom extends SourceLocation:
         "") + s"$name(${args.mkString(",")})"
     case Compare(lhs, op, rhs) => s"$lhs $op $rhs"
 
-enum Term extends SourceLocation:
+enum Term extends Typeable[Type] with SourceLocation:
   case Var(name: Name)
   case Constant(lit: Literal)
   case BinOp(lhs: Term, op: String, rhs: Term)
@@ -62,7 +63,7 @@ enum Term extends SourceLocation:
     case Constant(lit) => lit.toString
     case BinOp(lhs, op, rhs) => s"($lhs $op $rhs)"
 
-enum Literal extends SourceLocation:
+enum Literal extends Typeable[Type] with SourceLocation:
   case Int(i: scala.Int)
   case Double(d: scala.Double)
   case String(s: Predef.String)

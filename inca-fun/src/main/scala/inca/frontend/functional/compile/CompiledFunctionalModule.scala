@@ -47,7 +47,7 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
   }
 
   lazy val ir: IRModule = {
-    val compiler = new GenerateDatalog
+    val compiler = new GenerateIR
     val module = compiler.compileModule(defunModule)
     module
   }

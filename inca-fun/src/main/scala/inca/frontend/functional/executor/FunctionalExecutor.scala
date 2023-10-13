@@ -1,8 +1,8 @@
 package inca.frontend.functional.executor
 
 import inca.ir
-import inca.frontend.functional.compile.GenerateDatalog.extensionalRelationName
-import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateDatalog}
+import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
+import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateIR}
 import inca.util.ScalaCompiler
 import inca.frontend.functional.syntax.*
 import inca.ir.execution.{IRExecutor, Relation}

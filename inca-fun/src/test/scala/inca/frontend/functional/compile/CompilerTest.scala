@@ -15,7 +15,7 @@ class CompilerTest extends AnyFunSuite {
   val uri = classOf[CompilerTest].getResource("/functional").toURI;
 
   def testCompile(code: String): Unit =
-    val compiler = new GenerateDatalog
+    val compiler = new GenerateIR
     val module = Parser.parseModule(code)
     println(module)
     val compiled = CompiledFunctionalModule(module)

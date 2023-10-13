@@ -1,6 +1,6 @@
 package inca.frontend.functional.executor
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateDatalog}
+import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateIR}
 import inca.frontend.functional.executor.FunctionalExecutor
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.syntax.*
