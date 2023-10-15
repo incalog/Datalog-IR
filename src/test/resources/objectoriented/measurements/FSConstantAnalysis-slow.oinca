@@ -152,8 +152,8 @@ class Stm {
     def first(): Stm = {
         this
     }
-    def last(): Stm = {
-        this
+    def last(): Set[Stm] = {
+        Set(this)
     }
 
     def stringValue(): String = {
@@ -213,7 +213,7 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     }
 
     @override
-    def last(): Stm = {
+    def last(): Set[Stm] = {
         this.s2.last()
     }
 
@@ -227,7 +227,7 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
         // Does not occur
     }
 }
-/*class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
+class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
         this.cnd.accept(v)
@@ -252,7 +252,7 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
         manager.transferAll(from, this.thn)
         manager.transferAll(from, this.els)
     }
-}*/
+}
 class While(val cnd: Exp, val body: Stm) extends Stm {
     @override
     def accept(v: Visitor): Unit = {
@@ -271,13 +271,10 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
         manager.transferAll(from, this)
         manager.transferAll(from, this.body.first())
 
-        fix manager.transferAll(this.body.last(), this)
-        fix manager.transferAll(this.body.last(), this.body.first())
-
-        /*for (l2 <- this.body.last()) yield
+        for (l2 <- this.body.last()) yield
             manager.transferAll(l2, this)
         for (l <- this.body.last()) yield
-            manager.transferAll(l, this.body.first())*/
+            manager.transferAll(l, this.body.first())
 
         return
     }
@@ -453,7 +450,7 @@ class Visitor {
     def visitAssign(s: Assign): Unit = { }
     def visitSkip(s: Skip): Unit = { }
     def visitSequence(s: Sequence): Unit = { }
-    //def visitIf(s: If): Unit = { }
+    def visitIf(s: If): Unit = { }
     def visitWhile(s: While): Unit = { }
     def visitValDef(s: ValDef): Unit = { }
     def visitVarDef(s: VarDef): Unit = { }
@@ -505,26 +502,23 @@ class CfgVisitor extends Visitor {
 
   @override
   def visitSequence(s: Sequence): Unit = {
-    this.addPath(s.s1.last(), s.s2.first())
-    /*
-     val to: Stm = s.s2.first()
-     for (from <- s.s1.last())
-        yield this.addPath(from, to)*/
+    val to: Stm = s.s2.first()
+    for (from <- s.s1.last())
+        yield this.addPath(from, to)
     return
   }
 
-  /*@override
+  @override
   def visitIf(s: If): Unit = {
     this.cfg += (s,s.thn.first())
     this.cfg += (s,s.els.first())
-  }*/
+  }
 
   @override
   def visitWhile(s: While): Unit = {
     this.cfg += (s, s.body.first())
-    this.addPath(s.body.last(), s)
-    /*for (from <- s.body.last())
-        yield this.addPath(from, s)*/
+    for (from <- s.body.last())
+        yield this.addPath(from, s)
     return
   }
 }
@@ -562,11 +556,6 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
         this.iterate()
     }
 
-    /*def run(): Unit = {
-        this.runInternal()
-        return this.readableResult()
-    }*/
-
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
@@ -581,41 +570,18 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
             this.put(to, y, this.get(from, y))
         return
     }
-
-    /*def readableResult(): Set[(String, String, String)] = {
-        (for (k <- this.after.keys() if !this.after.get(k).isInstanceOf[BotConstant])
-            yield (k.`_1`.asInstanceOf[Stm].stringValue(), k.`_2`, this.after.get(k).stringValue()))
-    }*/
 }
 
 
 class Examples {
-    val varNames: Set[String] = Set("a") // set by benchmark
+    def nestedWhile(): Stm = { return new Skip() } // Inserted by benchmark
+    val varNames: Set[String] = Set("a") // Inserted by benchmark
 
-    def generateWhile(size: Int, cur: Int, numAssign: Int, varName: String): Stm = {
-        if (cur == 0) {
-          val lastName: String = `((x: String, s: Int) => (x(0) + s).toChar.toString)`("a", size - 1)
-          return new Assign("a", new Add(new Var("a"), new Var(lastName)))
-        }
-
-        val vName: String = `((x: String) => (x(0) + 1).toChar.toString)`(varName)
-        if (cur == size)
-          return new While(
-            new Num(1), this.generateAssignSequence(numAssign, numAssign, varName, this.generateWhile(size, cur-1, numAssign, vName))
-          )
-        else
-          return new While(
-            new Num(1), this.generateAssignSequence(numAssign, numAssign, varName, this.generateWhile(size, cur-1, numAssign, vName))
-          )
-    }
-
-    def generateAssignSequence(size: Int, cur: Int, varName: String, last: Stm): Stm = {
-        if (cur == 0)
-          return last
-        if (cur == size)
-           return new Sequence(new VarDef(varName, new Num(1)), this.generateAssignSequence(size, cur-1, varName, last))
-        else
-           return new Sequence(new Assign(varName, new Num(1)), this.generateAssignSequence(size, cur-1, varName, last))
+    def getCFG(prog: Stm): Set[(Stm, Stm)] = {
+        // Calculate CFG
+        val cfgVisitor: CfgVisitor = new CfgVisitor()
+        prog.accept(cfgVisitor)
+        return cfgVisitor.cfgSet()
     }
 }
 
@@ -630,16 +596,13 @@ class CFGHelper(val prog: Stm) {
 
 class ConstantAnalysis {
     @main
-    def main(numWhiles: Int, numAssigns: Int): Unit = {
+    def main(): Unit = {
         val examples: Examples = new Examples()
-        val prog: Stm = examples.generateWhile(numWhiles, numWhiles, numAssigns, "a")
+        val prog: Stm = examples.nestedWhile()
         val cfgHelper: CFGHelper = new CFGHelper(prog)
-
         // Do constant propagation
         val constantProp: FSConstantAnalysis = new FSConstantAnalysis(prog.first(), cfgHelper.getCFG(), examples.varNames)
         constantProp.run()
     }
 }
-
-
 

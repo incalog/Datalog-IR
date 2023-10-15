@@ -23,7 +23,7 @@ object EliminateClones extends Optimization {
         .sortThisBy(p => Integer.valueOf(- p.getTwo.size()))
 
       import scala.jdk.CollectionConverters._
-      clonedCalls.asScala.foreach(p => println(p.getTwo.size()+":"+p))
+      //clonedCalls.asScala.foreach(p => println(p.getTwo.size()+":"+p))
 
       atoms.forEachKey { (atom) =>
         val set = atoms.get(atom)
@@ -46,7 +46,7 @@ object EliminateClones extends Optimization {
 
 
 
-      println(s"$count atoms occur $minSize times or more")
+      //println(s"$count atoms occur $minSize times or more")
       module
     }
 

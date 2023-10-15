@@ -21,7 +21,6 @@ object EliminateNonproductiveRelations extends Optimization {
       while (dirty) {
         dirty = false
         module.pats.foreach { pat =>
-          //println(pat.name, !productivePats.contains(pat.name), isProductive(pat))
           if (!productivePats.contains(pat.name) && isProductive(pat)) {
             productivePats += pat.name
             dirty = true
@@ -31,7 +30,7 @@ object EliminateNonproductiveRelations extends Optimization {
 
       // Since all pattern without a call are considered productive, we remove
       // all patterns that are not called and are not a main pattern in a second step
-      val mainPats = module.pats.filter(_.hasHint(MagicSetHints.MainKey)).map(_.name)
+      /*val mainPats = module.pats.filter(_.hasHint(MagicSetHints.MainKey)).map(_.name)
       productivePats = productivePats.filter { patName =>
         lazy val isMain = mainPats.contains(patName)
         lazy val inCall = module.pats.exists { p =>
@@ -45,7 +44,7 @@ object EliminateNonproductiveRelations extends Optimization {
           }
         }
         isMain || inCall
-      }
+      }*/
 
       super.optimizeModule(module)
     }

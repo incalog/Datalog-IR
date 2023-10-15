@@ -1,5 +1,7 @@
 package inca.frontend.objectoriented.measurements
 
+import inca.backend.analyze.DependencyGraph.{DependencyEdge, NegativeCall}
+import inca.backend.analyze.{DependencyGraph, Graph}
 import inca.frontend.ir.Relation
 import inca.frontend.objectoriented
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
@@ -47,9 +49,9 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     val exampleClass = ClassDef(Seq(), None, Name("Examples"), Seq(), Seq(
       FieldDef(Seq(), None, Name("varNames"), TSet(TScalaString), Some(varSetExpr), immutable = true),
       //FieldDef(Seq(), None, Name("nestedWhile"), TClass(ClassRef(Name("Stm"))), Some(astProg), immutable = true),
-      MethodDef(Seq(), None, Name("nestedWhile"), Seq(), TClass(ClassRef(Name("Stm"))), Seq(
+      /*MethodDef(Seq(), None, Name("nestedWhile"), Seq(), TClass(ClassRef(Name("Stm"))), Seq(
         ReturnStmt(astProg)
-      ))
+      ))*/
     ) ++ exampleMethods)
     Module(mod.name, mod.imports, classes :+ exampleClass)
   }
@@ -60,9 +62,6 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
 
     val mod = insertProgIntoMudoule(parsed, c.numAssign, c.numWhiles)
     val module = CompiledObjectModule(mod, options)
-
-    //println(MetricUtils.printStatistics(module.optimized))
-    //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {
       println(s"Warmup Datalog ${c.name}: ${i + 1}")
@@ -125,6 +124,7 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
       println(s"Run Interpreter ${c.name}: ${i + 1}")
       val interp = new Interpreter(mod, edb)
 
+      println("Run.....")
       val start = System.nanoTime()
       interp.run(main, args)
       val diff = System.nanoTime() - start
@@ -137,23 +137,21 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
   }
 
   def run(): Unit = {
-    val configs = for (i <- 2 to 3 by 4) yield {
+    val configs = for (i <- 16 to 21 by 2) yield {
       FSConfig(warmups, runs, s"FSConstant", 10, i)
     }
 
     val prog = progFolder + s"FSConstantAnalysis.oinca"
 
-    // You probably don't want to run this, since this is way to slow
-    //  TODO: Hand optimize the Datalog code
     // OODL - Datalog
     val datalogMeasurements = for (c <- configs) yield {
-      c.numWhiles -> measureDatalog(c, prog, Seq(), Seq())
+      c.numWhiles -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.numWhiles), meta.Lit.Int(c.numAssign)))
     }
     FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
     /*val interpreterMeasurements = for (c <- configs) yield {
-      c.numWhiles -> measureInterpreter(c, prog, Map(), Seq())
+      c.numWhiles -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.numWhiles), ScalaValue(c.numAssign)))
     }
     FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
   }

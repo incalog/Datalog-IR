@@ -460,7 +460,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     case SetComprehension(member, body) =>
       member.foreach(typecheck)
-      TSet(typecheck(body))
+      val bodyTy = typecheck(body)
+      TSet(bodyTy)
+
+      // Hack to allow Set[Unit]
+      /*bodyTy match {
+        case TUnit => bodyTy
+        case _ => TSet(bodyTy)
+      }*/
 
     case setFold@SetFold(recv, projection, classRef, methodName, neutral) =>
       typecheck(recv) match {

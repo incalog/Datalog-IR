@@ -49,22 +49,22 @@ msToS <- function(ms) {
 }
 
 
-cfgInterp <- colMeans(readTime("FSConstant_Interpreter.csv"))
-#cfgDatalog <- colMeans(readTime("CFG_Datalog.csv"))
+fscInterp <- colMeans(readTime("FSConstant_Interpreter.csv"))
+fscDatalog <- colMeans(readTime("FSConstant_Datalog.csv"))
 
 pdf(file = paste(graphpath, "FSConstant.pdf", sep="/"))
-plot(data.matrix(cfgDatalog),
+plot(data.matrix(fscDatalog),
      main = "(A) Measuring execution time of Constant-Anaylsis example",
      type = "o",
-     col = color3,
+     col = color2,
      ylab = "Running time (s)",
      xlab = "Number of nested while-loops",
      xaxt = "n",
-     ylim = c(0, 23), # TODO change regarding upper bound of measurevalues
+     ylim = c(0, 310), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
 )
-#lines(data.matrix(cfgInterp), type = "o", col = color3, lwd = 1.5)
-axis(1, at = c(1:6), labels = seq(4, 25, by = 4))
-legend("topleft", legend=c("Interpreter"),
-       col=c(color3, color4), lty=1:1, lwd = 3)
+lines(data.matrix(fscInterp), type = "o", col = color3, lwd = 1.5)
+axis(1, at = c(1:10), labels = seq(2, 21, by = 2))
+legend("topleft", legend=c("Datalog", "Interpreter"),
+       col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
