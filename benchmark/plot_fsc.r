@@ -65,6 +65,6 @@ plot(data.matrix(fscDatalog),
 )
 lines(data.matrix(fscInterp), type = "o", col = color3, lwd = 1.5)
 axis(1, at = c(1:10), labels = seq(2, 21, by = 2))
-legend("topleft", legend=c("Datalog", "Interpreter"),
+legend("topleft", legend=c("OODL-Datalog", "Interpreter"),
        col=c(color2, color3, color4), lty=1:1, lwd = 3)
 dev.off()
