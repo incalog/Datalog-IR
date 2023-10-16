@@ -100,8 +100,16 @@ trait BaseAbstractInterpreter[V, B]:
       }
     }
 
-  def evalBody(b: Body): Unit =
-    b.atoms.foreach(evalAtom)
+  def evalBody(b: Body): B =
+    var rest = b.atoms
+    var bodySuccess = trueBool
+    while (rest.nonEmpty) {
+      val aa = evalAtom(rest.head)
+      // if (a == false) return false
+      bodySuccess = boolOps.and(bodySuccess, aa.value)
+      rest = rest.tail
+    }
+    bodySuccess
 
   final def evalAtom(at: Atom): AtomResult =
     val b = evalAtomExtend(at)

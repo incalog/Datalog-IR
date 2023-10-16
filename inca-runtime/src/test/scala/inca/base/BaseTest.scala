@@ -1,16 +1,15 @@
 package inca.base
 
-import inca.viatra.compile.{GeneratePSystem, PSystem}
-import inca.viatra.optimize.EliminateAliases
-import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.ir.{Body, Eq, Language, Module, Neq, Param, Relation, Var, execution, string2name}
-import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.arithmetic
+import inca.ir.extension.arithmetic.{IntNum, TInt}
+import inca.ir.{Body, Eq, Language, Module, Neq, Param, Relation, Var, execution, string2name}
 import inca.util.ScalaCompiler
+import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.scalatest.funsuite.AnyFunSuiteLike
 
 class BaseTest extends AnyFunSuiteLike:
   // Viatra does not like this

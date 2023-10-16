@@ -1,16 +1,13 @@
 package inca.viatra.compile
 
-import inca.util.Scala.*
-import inca.viatra.optimize.{ConstantFolding, ConstantPropagation, EliminateAliases, Optimization}
-import inca.viatra.util.{LitCollector, VarCollector}
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Type, Var, name2string, typing}
-import inca.util.{Gensym, Scala}
+import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Var, name2string, typing}
+import inca.util.Scala
+import inca.util.Scala.*
 import inca.viatra.ir.arithmetic.ScalaLowering
 import inca.viatra.ir.primitiveScala
 import inca.viatra.ir.primitiveScala.{Application, Constant, TScala}
-import inca.viatra.optimize.{ConstantFolding, ConstantPropagation, EliminateAliases, Optimization}
 import inca.viatra.util.{LitCollector, VarCollector}
 
 object GeneratePSystem:
@@ -58,26 +55,8 @@ object GeneratePSystem:
     }
   }
 
-  // TODO: Move this to a better place. It should not be here
-  def optimizeModule(module: Module): Module = {
-    val optimizations: List[Optimization] = List(
-//      ConstantPropagation,
-//      EliminateAliases,
-//      ConstantFolding
-    )
-
-    optimizations.foldLeft(module) { case (m, optimization) =>
-      // TODO: Use correct data model
-      val mod = optimization.optimizer().visitModule(m)
-      println(s"Optimize: ${optimization.name}")
-      println(mod)
-      mod
-    }
-  }
-
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
-    var mod = lowerAndTypeModule(module)
-    mod = optimizeModule(mod)
+    val mod = lowerAndTypeModule(module)
 
     val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent=2)(myenv)).toList

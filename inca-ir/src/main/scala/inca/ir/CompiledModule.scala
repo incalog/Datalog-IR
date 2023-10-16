@@ -56,16 +56,24 @@ trait CompiledModule:
       l
     }
 
-    val aeval = new IRAbstractInterpreter
-    aeval.evalModule(l)
-//    println(l)
-
     StatisticsCollector.printStatistics(l, s"before optimization")
+    val p1 = optimize(Seq(l))
+    StatisticsCollector.printStatistics(p1.head, s"after optimization 1")
+    val p2 = optimize(p1)
+    StatisticsCollector.printStatistics(p2.head, s"after optimization 2")
+    println(p2)
+
+    p2.head
+
+  def optimize(p: Seq[Module]): Seq[Module] =
+    val aeval = new IRAbstractInterpreter
+    aeval.evalModule(p.head)
+    println(p.head)
     val opt = new IROptimizer(aeval)
-    val Seq(o) = opt.visitProgram(Seq(l))
-    StatisticsCollector.printStatistics(o, s"after optimization")
-//    println(o)
-    o
+    val po = opt.visitProgram(p)
+    val checker = new IRTypechecker
+    checker.typecheck(po)
+    po
 
 
 object CompiledModule:
