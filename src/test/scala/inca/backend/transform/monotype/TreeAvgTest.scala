@@ -1,5 +1,6 @@
 package inca.backend.transform.monotype
 
+import scala.meta._
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog.{AddMono, Body, Call, Computed, Eq, Evaluation, ExtensionalCall, MkMono, Module, Name, Param, Pattern, ResultMono, StringConstant, TScala, TScalaInt, TScalaString, Var}
 import inca.backend.optimize.Optimization
@@ -9,64 +10,62 @@ import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.frontend.ir.{EDBChange, Relation1, Relation2, Relation3, Datalog => DatalogAPI}
 import inca.runtime.context.DataModel
 import inca.util.Scala
-import scala.meta._
 import org.scalatest.funsuite.AnyFunSuiteLike
 
-
 /**
- * Test case: create two CountMono variables in the same rule body and see whether
- * they output different result when feeding them different values. (Not passed!)
+ * Test case: Two AddMono atoms in the same rule body, they have different mono-types.
  *
- *
- * ----------------------------------------------------------------------
- * size(t, m) :- leaf(t), m <- (t, 1).
- *            :- btree(t, l, r), size(<l>, <m>), size(<r>, <m>), m <- (t, 1).
- * main(<t>, >b1<, >b2<) :- MkMono(m1, CountMono), MkMono(m2, CountMono),
- *                          size(<t>, <m1>),t = "A", m1 -> b1, m2 -> b2.
- * ----------------------------------------------------------------------
- *
- * The assumed output for the main relation is ("A", 5, 0).
+ * avg(t, m1, m2) :- leaf(t), label(t, a), m1 <- (t, a), m2 <- (t, a)
+ *                :- btree(t, l, r), label(t, a), m1 <- (t, a), m2 <- (t, a)
+ * main(t, b1, b2) :- m1 = AddMono@(String, Int), m2 = ProdMono@(String, Int),
+ *                    avg("A", m1, m2), m1 -> b1, m2 -> b2
  */
 
-class TreeSize2Test extends AnyFunSuiteLike {
+class TreeAvgTest extends AnyFunSuiteLike {
   test("Two mono type instances") {
     val treeSize1: Module = {
       lazy val pat1Body1: Body = Body(Seq(
         ExtensionalCall("leaf", Seq(Var("t"))),
+        ExtensionalCall("label", Seq(Var("t"), Var("n"))),
         Computed(Var("a"), Evaluation(
-          Seq(Var("t") -> TScalaString),
+          Seq(Var("t") -> TScalaString, Var("n") -> TScalaInt),
           TScala(Scala(t"(String, Int)")),
-          Scala(q"(t : String) => (t, 1)")
+          Scala(q"(t : String, n : Int) => (t, n)")
         )),
-        AddMono(Var("m"), Var("a"))
+        AddMono(Var("m1"), Var("a")),
+        AddMono(Var("m2"), Var("a"))
       ))
 
       lazy val pat1Body2: Body = Body(Seq(
         ExtensionalCall("btree", Seq(Var("t"), Var("l"), Var("r"))),
-        Call("size", Seq(Var("l"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
-        Call("size", Seq(Var("r"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
+        ExtensionalCall("label", Seq(Var("t"), Var("n"))),
+        Call("ps", Seq(Var("l"), Var("m1"), Var("m2"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        Call("ps", Seq(Var("r"), Var("m1"), Var("m2"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true, true))),
         Computed(Var("a"), Evaluation(
-          Seq(Var("t") -> TScalaString),
+          Seq(Var("t") -> TScalaString, Var("n") -> TScalaInt),
           TScala(Scala(t"(String, Int)")),
-          Scala(q"(t : String) => (t, 1)")
+          Scala(q"(t : String, n : Int) => (t, n)")
         )),
-        AddMono(Var("m"), Var("a"))
+        AddMono(Var("m1"), Var("a")),
+        AddMono(Var("m2"), Var("a"))
       ))
 
-      // main(t, v) :- MkMono(m, CountMono), size(t, m),t = "A", m -> v
       lazy val pat2Body: Body = Body(Seq(
-        MkMono(Var("m"), TScala(Scala(t"inca.backend.transform.monotype.CountMono")), Seq(TScalaString, TScalaInt)),
+        MkMono(Var("m1"), TScala(Scala(t"inca.backend.transform.monotype.AddMono")), Seq(TScalaString, TScalaInt)),
+        MkMono(Var("m2"), TScala(Scala(t"inca.backend.transform.monotype.ProdMono")), Seq(TScalaString, TScalaInt)),
         Eq(Var("t"), StringConstant("A")),
-        Call("size", Seq(Var("t"), Var("m"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true))),
-        ResultMono(Var("m"), Var("v")),
-        MkMono(Var("m2"), TScala(Scala(t"inca.backend.transform.monotype.CountMono")), Seq(TScalaString, TScalaInt)),
-        ResultMono(Var("m2"), Var("v1")),
+        Call("ps", Seq(Var("t"), Var("m1"), Var("m2"))).addHint(MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        ResultMono(Var("m1"), Var("v1")),
+        ResultMono(Var("m2"), Var("v2"))
       ))
 
       lazy val pat1: Pattern = Pattern(
-        None, "size",
-        Seq(Param("t", TScalaString),
-          Param("m", TScala(Scala(t"inca.backend.transform.monotype.CountMono")))),
+        None, "ps",
+        Seq(
+          Param("t", TScalaString),
+          Param("m1", TScala(Scala(t"inca.backend.transform.monotype.AddMono"))),
+          Param("m2", TScala(Scala(t"inca.backend.transform.monotype.ProdMono")))
+        ),
         Seq(pat1Body1, pat1Body2)
       )
 
@@ -74,15 +73,15 @@ class TreeSize2Test extends AnyFunSuiteLike {
         None, "main",
         Seq(
           Param("t", TScalaString),
-          Param("v", TScalaInt),
-          Param("v1", TScalaInt)
+          Param("v1", TScalaInt),
+          Param("v2", TScalaInt)
         ),
         Seq(pat2Body)
       ).addHint(MagicSetHints.Main(Seq(true, false, false)))
 
 
       Module(
-        "treeSize2", Seq(), Seq(pat1, pat2), Seq()
+        "treeAddProd", Seq(), Seq(pat1, pat2), Seq()
       )
     }
 
@@ -105,7 +104,7 @@ class TreeSize2Test extends AnyFunSuiteLike {
         override def withTransformations(trans: Seq[Transformation]): Options = ???
       }
 
-      override def name: Name = "treeSize2"
+      override def name: Name = "treeAddProd"
 
       override def sourceLocation: SourceLocation = ???
 
@@ -119,14 +118,13 @@ class TreeSize2Test extends AnyFunSuiteLike {
       Seq(
         Relation3("btree", Seq("t", "l", "r"), Seq(Seq("A", "B", "C"), Seq("C", "D", "E"))),
         Relation1("leaf", Seq("t"), Seq(Seq("B"), Seq("D"), Seq("E"))),
+        Relation2("label", Seq("t", "l"), Seq(Seq("A", 1), Seq("B", 2), Seq("C", 3), Seq("D", 4), Seq("E", 5))),
         Relation1("ext_input$main$bff", Seq("t"), Seq(Seq("A"))),
       )
     )
     prog.update(edb)
-    // Bug: prog.read(Relation2("main", Seq("m", "b1"), Seq())) also produces the same result
+    println(prog.readAll)
     val res = prog.read(Relation3("main", Seq("m", "b1", "b2"), Seq()))
-    assert(res.size == 1)
-    print(prog.readAll)
-    assert(res.toSet.toList.head != ("A", 5, 1))
+    assert(res.toSet.toList.head == ("A", 15, 120))
   }
 }
