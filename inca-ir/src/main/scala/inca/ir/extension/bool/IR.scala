@@ -32,7 +32,9 @@ case class BoolNot(t: Term) extends BoolTerm:
   override def vars: Seq[Var] = t.vars
 
 case object BoolTrue extends BoolTerm:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = "true"
 
 case object BoolFalse extends BoolTerm:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = "false"

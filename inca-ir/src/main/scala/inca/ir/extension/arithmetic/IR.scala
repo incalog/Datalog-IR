@@ -1,6 +1,7 @@
 package inca.ir.extension.arithmetic
 
 import inca.ir.*
+import inca.ir.extension.aggregation.AggregationOperatorBuiltIn
 import inca.ir.extension.block
 import inca.ir.extension.bool
 
@@ -14,9 +15,11 @@ case object TInt extends Type
 case object TDouble extends Type
 
 case class IntNum(value: Int) extends Term:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = s"$value"
 
 case class DoubleNum(value: Double) extends Term:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = s"$value"
 
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
@@ -48,6 +51,20 @@ def LT(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<")
 def LE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<=")
 def GT(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, ">")
 def GE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, ">=")
+
+enum ArithmeticAggregationOperator extends AggregationOperatorBuiltIn:
+  case Count
+  case Sum
+  case Min
+  case Max
+
+  override def typecheck(in: Seq[Type]): Either[String, Type] = this match
+    case ArithmeticAggregationOperator.Count => Right(TInt)
+    case ArithmeticAggregationOperator.Sum | ArithmeticAggregationOperator.Min | ArithmeticAggregationOperator.Max =>
+      if (in == Seq(TInt) || in == Seq(TDouble))
+        Right(in.head)
+      else
+        Left(s"Cannot compute $this for values of type $in")
 
 object IR extends IR { }
 trait IR extends BaseIR:

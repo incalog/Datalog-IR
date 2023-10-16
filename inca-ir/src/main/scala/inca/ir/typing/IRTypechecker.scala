@@ -3,6 +3,7 @@ package inca.ir.typing
 import inca.ir.extension.*
 
 class IRTypechecker extends BaseIRTypechecker
+  with aggregation.Typechecker
   with arithmetic.Typechecker
   with block.Typechecker
   with bool.Typechecker

@@ -8,6 +8,7 @@ import inca.ir.extension.bool
 case object TString extends Type
 
 case class StringLit(value: String) extends Term:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = s"\"$value\""
 
 case class StringConcat(lhs: Term, rhs: Term) extends Term:

@@ -144,18 +144,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
   def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
-    val params = lookupModuleEntry(name) match
-      case Some(Relation(_, params, _)) =>
-        if (args.size != params.size)
-          error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
-        params
-      case Some(ExtensionalRelation(_, params)) =>
-        if (args.size != params.size)
-          error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
-        params
-      case _ =>
-        error(s"Unknown relation: $name", atom)
-        Seq()
+    val params = lookupRelationParams(name, args.size, atom)
     val argMode = mode match
       case Mode.Binding => Mode.Binding
       case Mode.Bound => Mode.Collapse
@@ -168,6 +157,20 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case (t, Param(_, ty)) =>
         checkTerm(t, ty, argMode)
     }
+
+  def lookupRelationParams(name: Name, argCount: Int, s: SourceLocation): Seq[Param] =
+    lookupModuleEntry(name) match
+      case Some(Relation(_, params, _)) =>
+        if (argCount != params.size)
+          error(s"Expected ${params.size} arguments but got: $argCount", s)
+        params
+      case Some(ExtensionalRelation(_, params)) =>
+        if (argCount != params.size)
+          error(s"Expected ${params.size} arguments but got: $argCount", s)
+        params
+      case _ =>
+        error(s"Unknown relation: $name", s)
+        Seq()
 
 
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match

@@ -11,6 +11,7 @@ object TScala:
   def bool = TScala(Scala.TypeName("Boolean"))
 
 case class Constant[T](value: Scala.Literal[T], ty: TScala) extends Term:
+  override def vars: Seq[Var] = Seq()
   override def toString: String = s"""$value"""
 
 case class Application(out: Term, ty: TScala, fun: Scala.Lam, args: Seq[Term]) extends Atom:

@@ -30,7 +30,7 @@ trait ModuleEntry extends SourceLocation with Hints:
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
-  def vars: Seq[Var] = Seq()
+  def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
 
 trait Type extends SourceLocation with Hints:
