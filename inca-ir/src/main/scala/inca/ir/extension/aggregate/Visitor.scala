@@ -1,4 +1,4 @@
-package inca.ir.extension.aggregation
+package inca.ir.extension.aggregate
 
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.not

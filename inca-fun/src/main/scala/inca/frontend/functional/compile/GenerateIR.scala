@@ -1,9 +1,12 @@
 package inca.frontend.functional.compile
 
 import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
+import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
 import inca.ir.{ExtensionalRelation, Language, Name, string2name}
+import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.block
 import inca.ir.extension.bool
@@ -165,6 +168,22 @@ class GenerateIR {
       irset.SetUnion(compileExp(e1), compileExp(e2))
     case BinOp(e1, "&", e2) => // set intersection
       irset.SetIntersection(compileExp(e1), compileExp(e2))
+    case SetFold(anno, init, op@Var(opname), Call(Var(name), Seq(), args)) =>
+      /* For each fold(init, op, set) the following holds
+       *  1. set == Call(Var(setName), setArgs) for some setName and setArgs
+       *  2. the fold construct occurs in its own function as to avoid duplicate aggregation
+       */
+      val f = op.target match
+        case Some(f: FunctionDef) => f
+        case trg => throw new IllegalArgumentException(s"Cannot compile fold with non-function op target $trg")
+      val aggOp = FunctionalIncaAggregationOperator(f)
+
+      val aggResult = Name(gensym.fresh("foldResult"))
+      val argTerms = args.map(compileExp)
+      val aggArgs = argTerms.map(iragg.AggregateArg.Arg.apply) :+
+        iragg.AggregateArg.AggregateColumn(ir.Var(aggResult))
+      val agg = iraggset.AggregateSet(name, aggArgs, aggOp)
+      block.Block(Seq(agg), ir.Var(aggResult))
 
     case _ =>
       throw new IllegalArgumentException(s"Cannot compile $e")

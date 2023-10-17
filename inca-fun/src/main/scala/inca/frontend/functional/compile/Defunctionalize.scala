@@ -53,6 +53,10 @@ class Defunctionalize {
     val Module(name, imports, contents) = module
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
+    contents.foreach {
+      case fun: FunctionDef => gensym.register(fun.vars.keys.map(_.name))
+      case _ => // skip
+    }
 
     val newcontents = contents.map(transformModuleContent)
 

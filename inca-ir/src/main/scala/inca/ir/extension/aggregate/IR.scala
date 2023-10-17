@@ -1,4 +1,4 @@
-package inca.ir.extension.aggregation
+package inca.ir.extension.aggregate
 
 import inca.ir.{Atom, BaseIR, Language, Name, Term, Type, Var}
 
@@ -9,10 +9,12 @@ trait IR extends BaseIR:
   override def requires: Language = Language(IR)
 
 case class Aggregate(rel: Name, args: Seq[AggregateArg], op: AggregationOperator) extends Atom:
+  override def toString: String = s"aggregate($rel(${args.mkString(", ")}), $op)"
   override def vars: Seq[Var] = args.flatMap {
     case AggregateArg.Arg(t) => t.vars
     case AggregateArg.AggregateColumn(t) => t.vars
   }
+
 
 
 enum AggregateArg:

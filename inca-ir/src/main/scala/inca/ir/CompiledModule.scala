@@ -36,6 +36,7 @@ trait CompiledModule:
     ir
 
   val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},

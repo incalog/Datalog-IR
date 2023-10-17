@@ -121,6 +121,14 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(Parser.expression)("5 <= 10")
   }
 
+  test("Fold test") {
+    testSuccessAny(Parser.expression)("0")
+    testSuccessAny(Parser.expression)("add")
+    testSuccessAny(Parser.expression)("fromTo(start, end)")
+    testSuccessAny(Parser.foldExp)("fold(0, add, fromTo(start, end))")
+  }
+
+
   test("Module test") {
     val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
     val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TName(Name("Bool")))), TName(Name("Bool")),

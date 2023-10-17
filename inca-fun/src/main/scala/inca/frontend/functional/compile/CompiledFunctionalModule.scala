@@ -46,9 +46,21 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
     module
   }
 
+  lazy val normalizedFoldModule: Module = {
+    val norm = new NormalizeFold
+    val module = norm.visitModule(defunModule)
+    println(module)
+    val typer: Typechecker = new Typechecker
+    typer.typecheck(module)
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+    module
+  }
+
   lazy val ir: IRModule = {
     val compiler = new GenerateIR
-    val module = compiler.compileModule(defunModule)
+    val module = compiler.compileModule(normalizedFoldModule)
     module
   }
 }

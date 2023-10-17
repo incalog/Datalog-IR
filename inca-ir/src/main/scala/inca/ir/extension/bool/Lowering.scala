@@ -12,11 +12,7 @@ trait Lowering extends not.Lowering:
   override val loweredIRs: Set[BaseIR] = Set(IR) ++ super.loweredIRs
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, block.IR, disjunction.IR, not.IR) ++ super.requiredIRs
 
-  private var freshCount = 0
-  def freshName(): Name =
-    val x = IR.name + "$" + freshCount
-    freshCount += 1
-    Name(x)
+  private def freshName(): Name = gensym.freshName(Name(IR.name))
 
   override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
     case BoolAtom(t) =>

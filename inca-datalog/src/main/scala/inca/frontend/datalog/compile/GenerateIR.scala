@@ -1,7 +1,7 @@
 package inca.frontend.datalog.compile
 
 import inca.ir
-import inca.ir.extension.aggregation
+import inca.ir.extension.aggregate
 import inca.ir.extension.arithmetic
 import inca.ir.extension.string
 import inca.frontend.datalog.syntax.*
@@ -35,10 +35,10 @@ class GenerateIR {
       val aggregateParam = r.rules.head.head(aggregateIndex).asInstanceOf[Param.Aggregated]
 
       val aggOp = compileAggregationOperator(aggregateParam.agg.name)
-      val args = vars.map(v => aggregation.AggregateArg.Arg(ir.Var(v._1)))
+      val args = vars.map(v => aggregate.AggregateArg.Arg(ir.Var(v._1)))
       val aggArgs = args.updated(aggregateIndex,
-        aggregation.AggregateArg.AggregateColumn(ir.Var(vars(aggregateIndex)._1)))
-      val aggAtom = aggregation.Aggregate(collectName, aggArgs, aggOp)
+        aggregate.AggregateArg.AggregateColumn(ir.Var(vars(aggregateIndex)._1)))
+      val aggAtom = aggregate.Aggregate(collectName, aggArgs, aggOp)
 
       val collectArgs = vars.map(_._1)
         .updated(aggregateIndex, Name(gensym.fresh("dummy")))
@@ -53,7 +53,7 @@ class GenerateIR {
     }
   }
 
-  def compileAggregationOperator(name: String): aggregation.AggregationOperator = name match
+  def compileAggregationOperator(name: String): aggregate.AggregationOperator = name match
     case "count" => arithmetic.ArithmeticAggregationOperator.Count
     case "sum" => arithmetic.ArithmeticAggregationOperator.Sum
     case "min" => arithmetic.ArithmeticAggregationOperator.Min

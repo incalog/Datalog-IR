@@ -1,7 +1,7 @@
 package inca.ir.extension.arithmetic
 
 import inca.ir.*
-import inca.ir.extension.aggregation.AggregationOperatorBuiltIn
+import inca.ir.extension.aggregate.AggregationOperatorBuiltIn
 import inca.ir.extension.block
 import inca.ir.extension.bool
 

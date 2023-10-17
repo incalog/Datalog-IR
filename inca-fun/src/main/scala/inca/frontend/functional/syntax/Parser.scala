@@ -53,7 +53,8 @@ object Parser:
     "match",
     "case",
     "true",
-    "false"
+    "false",
+    "fold"
   )
 
   def keyword(s: String): P[Unit] =
@@ -195,7 +196,15 @@ object Parser:
   val unaryExp: P[Expression] =
     (unaryOperator ~ recInfixExp).mapWithLoc(UnOp.apply)
 
+  val foldExp: P[SetFold] =
+    (keyword("fold") *> inBrackets(typ).? ~
+      inParens(recExpression.repSep0(op(',')))).flatMap {
+      case (ty, init :: op :: set :: Nil) => P.pure(SetFold(ty, init, op, set))
+      case (ty, args) => P.failWith(s"Wrong number of fold arguments, expected 3 but got ${args.size}: $args")
+    }
+
   lazy val atomicExp: P[Expression] =
+      foldExp.backtrack |
       setExp |
       lambdaExp |
       tupleExp |
@@ -207,7 +216,7 @@ object Parser:
       identifier.mapWithLoc(Var.apply)
 
   def callExpStep(e: Expression): P[Call] =
-    (inBrackets(typ.repSep(op(','))).?.with1 ~ inParens(recExpression.repSep0(op(',')))).map {
+    (inBrackets(typ.repSep(op(','))).?.with1 ~ inParens(recExpression.repSep0(op(',')))).mapWithLoc {
       case (tys, args) => Call(e, tys.map(_.toList).getOrElse(Seq.empty), args)
     }
 

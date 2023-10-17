@@ -3,7 +3,8 @@ package inca.ir.visitors
 import inca.ir.extension.*
 
 trait IRVisitor extends BaseIRVisitor
-  with aggregation.Visitor
+  with aggregate.Visitor
+  with aggregateset.Visitor
   with arithmetic.Visitor
   with block.Visitor
   with bool.Visitor

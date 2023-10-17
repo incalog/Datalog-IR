@@ -24,6 +24,14 @@ def final(stm: Stm): Set[Stm] = stm match {
   case While(b, s) => {stm}
 }
 
+def assignments(stm: Stm): Set[Stm] = stm match {
+  case Assign(x, a) => {stm}
+  case Skip() => {stm}
+  case Sequence(s1, s2) => assignments(s1) ++ assignments(s2)
+  case If(c, s1, s2) => assignments(s1) ++ assignments(s2)
+  case While(c, s) => assignments(s)
+}
+
 @main def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
   case Assign(x, a) => {}
   case Skip() => {}
@@ -122,7 +130,7 @@ def entry_AE(stm: Stm, prog: Stm): Set[Exp] =
     {}
   else
     fold(
-      () => {e | e in Exp},
+      () => {e | e in AExpStm(prog)},
       intersect,
       {() => exit_AE(pred, prog) | (pred, stm) in flow(prog)}
     )()
@@ -134,6 +142,6 @@ def exit_AE(stm: Stm, prog: Stm): Set[Exp] =
 @main def final_AE(prog: Stm): Set[Exp] =
   {rd | s in final(prog), rd in exit_AE(s, prog)}
 @main def allEntries_AE(prog: Stm): Set[(Stm, Exp)] =
-  {(s, e) | s in Stm, e in entry_AE(s, prog)}
+  {(s, e) | s in assignments(prog), e in entry_AE(s, prog)}
 @main def allExits_AE(prog: Stm): Set[(Stm, Exp)] =
-  {(s, e) | s in Stm, e in exit_AE(s, prog)}
+  {(s, e) | s in assignments(prog), e in exit_AE(s, prog)}
