@@ -13,7 +13,7 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
 
   override def sourceLocation: SourceLocation = fun.name
 
-  lazy val scalaCompiler = new ScalaCompiler()
+  //lazy val scalaCompiler = new ScalaCompiler()
 
   lazy val typed: Module = {
     val typer: Typechecker = new Typechecker

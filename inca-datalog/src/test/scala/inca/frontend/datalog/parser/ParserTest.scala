@@ -1,4 +1,4 @@
-package inca.frontend.datalog
+package inca.frontend.datalog.parser
 
 import cats.parse.{Parser as P, Parser0 as P0}
 import inca.frontend.datalog.syntax.*
