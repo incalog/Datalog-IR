@@ -15,9 +15,18 @@ class ExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFile("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code)
     val loaded = exec.loadDatalog(compiled)
-    val res = loaded.read("Path", (__, 5))
-    println(res)
-    //assertResult(120)(res.entries.head)
+
+    var res = loaded.read("Path", (__, __))
+    assertResult(res.size)(11)
+
+    res = loaded.read("Path", (__, 5))
+    assertResult(res.size)(3)
+
+    res = loaded.read("Path", (1, __))
+    assertResult(res.size)(4)
+
+    res = loaded.read("Path", (2, 5))
+    assertResult(res.size)(1)
   }
 
   /*test("ShortestPath") {
