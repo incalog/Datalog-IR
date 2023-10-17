@@ -18,7 +18,7 @@ import inca.util.measurement.MemoryUtil
 
 import scala.meta.Term
 
-case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
+case class FSAnalysisBenchmark(warmups: Int, runs: Int) {
   val progFolder: String = s"objectoriented/measurements/"
   val resultPath: String = "benchmark/objectoriented"
 
@@ -136,23 +136,33 @@ case class FSConstantAnalysisBenchmark(warmups: Int, runs: Int) {
     }
   }
 
-  def run(): Unit = {
-    val configs = for (i <- 16 to 21 by 2) yield {
-      FSConfig(warmups, runs, s"FSConstant", 10, i)
+  def runConstant(): Unit = {
+    run("FSConstantAnalysis")
+  }
+
+  def runSign(): Unit = {
+    run("FSSignAnalysis")
+  }
+
+  def run(progName: String): Unit = {
+    val configs = for (i <- 16 to 17 by 2) yield {
+      FSConfig(warmups, runs, progName, 10, i)
     }
 
-    val prog = progFolder + s"FSConstantAnalysis.oinca"
+    val prog = progFolder + progName + ".oinca"
 
     // OODL - Datalog
+    // IMPORTANT: Don't forget to comment out the "fix this.iterate" line to compute the correct fixpoint
     val datalogMeasurements = for (c <- configs) yield {
       c.numWhiles -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.numWhiles), meta.Lit.Int(c.numAssign)))
     }
-    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/fsc/${progName}_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
-    /*val interpreterMeasurements = for (c <- configs) yield {
+    // IMPORTANT: Don't forget to uncomment the "fix this.iterate" line to compute the correct fixpoint
+    val interpreterMeasurements = for (c <- configs) yield {
       c.numWhiles -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.numWhiles), ScalaValue(c.numAssign)))
     }
-    FileUtil.writeFile(s"$resultPath/fsc/FSConstant_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/fsc/${progName}_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 }

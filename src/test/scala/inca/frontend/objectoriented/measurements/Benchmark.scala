@@ -2,11 +2,11 @@ package inca.frontend.objectoriented.measurements
 
 object Benchmark {
   def main(args: Array[String]): Unit = {
-    val warmups = 2
-    val runs = 3
+    val warmups = 0
+    val runs = 1
 
-    val fsBenchmark = FSConstantAnalysisBenchmark(warmups, runs)
-    fsBenchmark.run()
+    val fsBenchmark = FSAnalysisBenchmark(warmups, runs)
+    fsBenchmark.runSign()
 
     //val mutationBenchmark = MutationBenchmark(warmups, runs)
     //mutationBenchmark.run()
