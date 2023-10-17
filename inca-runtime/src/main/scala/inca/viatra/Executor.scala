@@ -24,12 +24,15 @@ object Executor extends IRExecutor:
         matcher.getAllMatchArrays.map(_.toSeq))
       res
 
+    override def readAll(): Seq[Relation] =
+      val pattern = module.patterns.keys.toSeq.sorted
+      pattern.map(n => read(n))
+
     override def insertAll(edb: String, tuples: Iterable[Seq[Any]]): Unit =
       for (tuple <- tuples) {
         val input = Tuples.flatTupleOf(tuple:_*)
         feed.insertExtensionalTuple(edb, input)
       }
-
 
   override def instantiate(m: CompiledModule): Engine =
     val code = GeneratePSystem.compileModules(Seq(m.lowered))

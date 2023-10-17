@@ -14,10 +14,12 @@ import scala.jdk.CollectionConverters.*
 
 class FunctionalExecutor(val exec: IRExecutor):
   case class Loaded(engine: exec.Engine, compiled: CompiledFunctionalModule):
-    //lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
       val rel = engine.read(pat)
+      engine.readAll().foreach { r =>
+        println(r.asTable)
+      }
       rel.project(tuple.size, Int.MaxValue)
     }
 
