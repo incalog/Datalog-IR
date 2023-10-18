@@ -1,7 +1,7 @@
 package inca.frontend.datalog.executor
 
 import inca.frontend.datalog.compile.GenerateIR
-import inca.frontend.datalog.executor.DatalogExecutor.__
+import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.frontend.datalog.syntax.*
 import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.typing.IRTypechecker
@@ -16,17 +16,17 @@ class ExecutorTest extends AnyFunSuite:
     val compiled = exec.compileDatalog(code)
     val loaded = exec.loadDatalog(compiled)
 
-    var res = loaded.read("Path", (__, __))
-    assertResult(res.size)(11)
+    var res = loaded.query("Path", (?, ?))
+    assertResult(11)(res.size)
 
-    res = loaded.read("Path", (__, 5))
-    assertResult(res.size)(3)
+    res = loaded.query("Path", (?, 5), (3, ?))
+    assertResult(5)(res.size)
 
-    res = loaded.read("Path", (1, __))
-    assertResult(res.size)(4)
+    res = loaded.query("Path", (1, ?))
+    assertResult(4)(res.size)
 
-    res = loaded.read("Path", (2, 5))
-    assertResult(res.size)(1)
+    res = loaded.query("Path", (2, 5))
+    assertResult(1)(res.size)
   }
 
   /*test("ShortestPath") {
