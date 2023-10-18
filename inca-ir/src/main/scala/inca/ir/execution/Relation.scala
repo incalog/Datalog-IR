@@ -6,6 +6,10 @@ import inca.util.Tabulator
 type RelationName = String
 
 object Relation {
+  def from(relName: RelationName, matches: Seq[Any]): Relation =
+    val params = matches.indices.map(i => s"param_$i")
+    Relation.from(relName, params, Seq(matches))
+
   def from(relName: RelationName, parameterNames: Seq[RelationName], matches: Iterable[Seq[Any]]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)
@@ -63,6 +67,8 @@ trait Relation {
   def name: RelationName
   def arity: Int
   def size: Int
+  def nonEmpty: Boolean = size > 0
+  def isEmpty: Boolean = size == 0
   def parameterNames: Seq[String]
   def entries: Iterable[Tuple]
   def toSet: Set[Tuple] = entries.toSet
