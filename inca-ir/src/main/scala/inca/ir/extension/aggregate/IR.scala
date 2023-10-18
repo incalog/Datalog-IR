@@ -29,4 +29,4 @@ trait AggregationOperator:
   def typecheck(in: Seq[Type]): Either[String, Type]
 
 trait AggregationOperatorBuiltIn extends AggregationOperator
-
+trait AggregationOperatorUserDefined extends AggregationOperator
