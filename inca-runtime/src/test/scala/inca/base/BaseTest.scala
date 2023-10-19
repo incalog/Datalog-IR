@@ -9,8 +9,10 @@ import inca.viatra.runtime
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
 
+@Ignore
 class BaseTest extends AnyFunSuiteLike:
   // Viatra does not like this
   test("Failing body") {

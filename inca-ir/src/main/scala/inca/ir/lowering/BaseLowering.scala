@@ -19,7 +19,8 @@ trait BaseLowering extends IRVisitor:
   override def visitProgram(modules: Seq[Module]): Seq[Module] = gensym.scoped {
     modules.map { module =>
       val loweredLang = module.lang -- loweredIRs
-      if (loweredLang.features.size == module.lang.features.size) {
+      val loweringNecessary = loweredIRs.exists { l => module.lang.features.contains(l) }
+      if (!loweringNecessary) {
         // module does not use any features lowered here
         module
       } else {

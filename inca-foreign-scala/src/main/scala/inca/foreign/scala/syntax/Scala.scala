@@ -1,4 +1,4 @@
-package inca.util
+package inca.foreign.scala.syntax
 
 object Scala:
   trait Tree

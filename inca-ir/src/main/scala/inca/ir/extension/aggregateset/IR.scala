@@ -6,7 +6,7 @@ import inca.ir.extension.aggregate.*
 
 object IR extends IR { }
 trait IR extends BaseIR:
-  override val name: String = "Arithmetic"
+  override val name: String = "AggregateSet"
   override def language: Language = super.language + IR
   override def requires: Language = Language(IR) + aggregate.IR
 

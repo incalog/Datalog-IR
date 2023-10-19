@@ -4,7 +4,7 @@ import inca.ir.CompiledModule
 
 trait ExecutorEngine:
   /* The input to this method is best understood using an example.
-   * Consider the inoput for a standard path program:
+   * Consider the input for a standard path program:
    *     IR-Module: path(x,y) :- ...
    * The input you could provide to this functions might be:
    *      Relation2("path", Seq("x", "y"), Seq(Seq(null, 2), Seq(1, 3)))

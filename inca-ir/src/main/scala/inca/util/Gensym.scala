@@ -49,7 +49,7 @@ class Gensym(init: Iterable[String] = Seq.empty) {
     globals :+= v
     v
   }
-
+  
   private def decompileName(s: String): (String, Option[Int]) = {
     val ix = s.lastIndexOf('$')
     if (ix <= 0) {
