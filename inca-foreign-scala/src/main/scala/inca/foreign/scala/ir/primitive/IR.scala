@@ -24,24 +24,23 @@ object ScalaType:
   def double: ScalaType = ScalaType(Scala.TypeName("Double"))
   def bool: ScalaType = ScalaType(Scala.TypeName("Boolean"))
 
-// This is not a case class on purpose. We want to differentiate instances with the same arguments in GeneratePSystem
 case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends ForeignTerm(args):
   code match
     case _: Scala.Lam | _: Scala.Literal[_] => // nothing
     case _ =>
-      throw IllegalStateException(s"PSystem currently does not support $code inside a ScalaTerm. Use a Lam instead.")
+      throw IllegalStateException(s"PSystem currently does not support ${code.getClass.getSimpleName} inside a ScalaTerm. Use a Lam instead.")
 
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-  def inTypes: Seq[Type] = args.map { a =>
+  def inTypes: Seq[ScalaType] = args.map { a =>
     val tty = a.typ match
       case Some(TermType(ty, _)) => ty
       case _ => throw IllegalStateException(s"Untyped argument $a")
     ScalaInca.compileType(tty)
   }
 
-  def outTypes: Seq[Type] = Seq(ty)
+  def outTypes: Seq[ScalaType] = Seq(ty)
 
   override def toString: String = s"""($code)(${args.mkString(", ")})"""
 

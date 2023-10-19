@@ -120,6 +120,9 @@ object GeneratePSystem:
   /** Map expressions to their output variable */
   var evalExp: Seq[(Code, String)] = Seq()
 
+  /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
+  var pVar2Code: Map[String, (Option[String], Code)] = Map()
+
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
     val qname = s"${moduleName}_${relation.name}"
 
@@ -145,7 +148,7 @@ object GeneratePSystem:
         pVar2Code = Map()
 
         val atomContent = body.atoms.map(compileAtom).mkString("\n")
-        val exprsDef = evalExp.map(e => genExprVar(e._2)).mkString("\n")
+        val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
         val exprsContent = evalExp.map(_._1).mkString("\n")
 
         val bodyContent = s"$varContent\n$litContent\n$exprsDef\n$exprsContent\n$atomContent"
@@ -175,8 +178,6 @@ object GeneratePSystem:
      |}""".stripMargin.indent(indent)
   }
 
-  var pVar2Code: Map[String, (Option[String], Code)] = Map()
-
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
     case Call(name, args) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
@@ -200,6 +201,7 @@ object GeneratePSystem:
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
 
+  // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {
     case Var(name) =>
       val ty = t.typ match
@@ -219,7 +221,6 @@ object GeneratePSystem:
       val lamCode = compileScalaTerm(lam)
       val tyCode = compileScalaType(sty.ty)
 
-      // We assume that compile term always yields a PVariable name
       val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
       val argTys = lamParams.map(p => compileScalaType(p.ty))
       val argsCode = compiledArgs.map(c => pVar2Code(c)._2)
@@ -265,7 +266,7 @@ object GeneratePSystem:
 
   private def genLiteral[T](lit: Scala.Literal[T]): Code = s"${lit.value}"
 
-  private def genExprVar(name: String): Code = {
+  private def genExprEvalVar(name: String): Code = {
     s"""val ${EVALPREFIX + name}: PVariable = body.getOrCreateVariableByName("$name")""".stripMargin
   }
 
