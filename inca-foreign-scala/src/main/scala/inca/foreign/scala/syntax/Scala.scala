@@ -1,24 +1,33 @@
 package inca.foreign.scala.syntax
 
+// TODO: Complete this
 object Scala:
   trait Tree
 
   trait Type extends Tree
+  trait Stat extends Tree
+  trait Template extends Tree
+  trait Defn extends Stat
 
   case class TypeName(s: String) extends Type:
     override def toString: String = s
 
-  
   case class FunType(args: Seq[Type], ret: Type) extends Type:
     override def toString: String = s"(${args.mkString(", ")}) => $ret"
 
   //case class TupleType(tys: Seq[Type]) extends Type:
   //  override def toString: String = s"(${tys.mkString(", ")})"
 
-  trait Stat extends Tree
-  trait Defn extends Stat
+  // Defn
+
+  // TODO: complete this
+  case class Object(name: String, template: Template) extends Defn
+
+
+  // Terms
 
   trait Term extends Stat
+
   case class Var(x: String) extends Term:
     override def toString: String = x
 
@@ -31,7 +40,6 @@ object Scala:
   case class DoubleLiteral(value: Double) extends Literal[Double]
   case class StringLiteral(value: String) extends Literal[String]
 
-  // TODO: Complete these cases
   case class Id(x: String) extends Term:
     override def toString: String = x
 
@@ -46,6 +54,9 @@ object Scala:
 
   case class AppInfix(t1: Term, op: String, t2: Term) extends Term:
     override def toString: String = s"$t1 $op $t2"
+
+  case class AppUnary(t: Term, op: String) extends Term:
+    override def toString: String = s"$op$t"
 
   case class Select(t: Term, name: String) extends Term
 

@@ -31,6 +31,15 @@ trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
     ScalaTerm(lambda, ty, Seq(lhs, rhs))
   }
 
+  protected[ir] def createScalaUnOp(op: String, ty: ScalaType, param: (Term, ScalaType)): ScalaTerm = {
+    val (arg, argTy) = param
+    val lambda = Scala.Lam(
+      Seq(Scala.Param("arg", argTy.ty)),
+      Scala.AppUnary(Scala.Id("arg"), op)
+    )
+    ScalaTerm(lambda, ty, Seq(arg))
+  }
+
   protected[ir] def typedParams(t: Term): Seq[(Term, Type)] = {
     val ty = t.typ match
       case Some(TermType(ty, _)) => ty.flatten
