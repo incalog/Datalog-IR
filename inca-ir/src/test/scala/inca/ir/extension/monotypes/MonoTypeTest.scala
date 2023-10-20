@@ -2,6 +2,7 @@ package inca.ir.extension.monotypes
 
 import inca.ir.{Var, *}
 import inca.ir.extension.monotypes
+import inca.ir.extension.monotypes.ArithmeticMono.CountMono
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
@@ -31,10 +32,10 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      MkMono(Var("m"), "MaxMono", Seq(), TMono(TInt, TInt, Seq(TString))),
+      Eq(Var("m"), MkMono(CountMono, Seq(), TMono(TInt, TInt, Seq(TString)))),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
-      ResultMono(Var("m"), Var("b"))
+      Eq(Var("b"), ResultMono(Var("m")))
     )))
   )
 
@@ -85,10 +86,10 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      MkMono(Var("m"), "MaxMono", Seq(), TMono(TInt, TString, Seq(TString))),
+      Eq(Var("m"), MkMono(CountMono, Seq(), TMono(TInt, TString, Seq(TString)))),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
-      ResultMono(Var("m"), Var("b"))
+      Eq(Var("b"), ResultMono(Var("m")))
     )))
   )
 
