@@ -171,8 +171,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case _ =>
         error(s"Unknown relation: $name", s)
         Seq()
-
-
+  
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Call(name, args) => checkCall(name, args, atom, mode)
     case NegCall(name, args) => checkCall(name, args, atom, mode.inverted)

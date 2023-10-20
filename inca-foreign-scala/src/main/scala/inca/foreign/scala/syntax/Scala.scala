@@ -18,7 +18,16 @@ object Scala:
   trait Stat extends Tree
   trait Defn extends Stat
 
+  // Defn
+
+  // TODO: complete this
+  // case class Object(name: String) extends Defn
+
+
+  // Terms
+
   trait Term extends Stat
+
   case class Var(x: String) extends Term:
     override def toString: String = x
 
@@ -46,6 +55,9 @@ object Scala:
 
   case class AppInfix(t1: Term, op: String, t2: Term) extends Term:
     override def toString: String = s"$t1 $op $t2"
+
+  case class AppUnary(t: Term, op: String) extends Term:
+    override def toString: String = s"$op$t"
 
   case class Select(t: Term, name: String) extends Term
 

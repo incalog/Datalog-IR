@@ -7,6 +7,11 @@ import inca.ir.Hint.preserveHints
 import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case ScalaAggregationAtom(agg, rel, out, ty, args, col) =>
+      Seq(ScalaAggregationAtom(agg, rel, visitTerm(out).head, ty, args.flatMap(visitTerm), col))
+    case _ => super.visitAtom(atom)
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case ScalaTerm(closure, ty, args) => Seq(ScalaTerm(closure, ty, args.flatMap(visitTerm)))

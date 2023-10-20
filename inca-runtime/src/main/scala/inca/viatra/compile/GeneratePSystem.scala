@@ -8,7 +8,7 @@ import inca.viatra.util.{LitCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaTerm, ScalaType}
 import inca.foreign.scala.syntax.Scala
 import inca.util.Gensym
 
@@ -36,12 +36,13 @@ object GeneratePSystem:
   }
 
   private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
+    // Do not change this order
     val lowerings: List[() => BaseLowering] = List(
-      () => new arithmetic.ScalaLowering {}, // Get rid of arithmetic
-      () => new string.ScalaLowering {}, // Get rid of strings
-      //() => new data.ScalaLowering {}, // Get rid of data
-      () => new BlockLowering {}, // Get rid of reintroduced blocks
-      () => new DemandLowering {} // Get rid of reintroduced demand symbols
+      () => new arithmetic.ScalaLowering {}, // lower arithmetic
+      () => new string.ScalaLowering {}, // lower strings
+      //() => new data.ScalaLowering {}, // lower data
+      () => new BlockLowering {}, // lower reintroduced blocks
+      () => new DemandLowering {} // lower reintroduced demand symbols (necessary ?)
     )
 
     // we need type information to translate the datalog code to scala code
@@ -97,6 +98,10 @@ object GeneratePSystem:
       |import inca.viatra.runtime.Query.Specification
       |import inca.viatra.runtime.index.NamedRelationKey
       |
+      |import inca.viatra.runtime.aggregate.builtin
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
+      |import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
+      |
       |object ${mod.name} extends PSystem.Module {
       |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
       |  ${funs.mkString("\n")}
@@ -119,7 +124,6 @@ object GeneratePSystem:
 
   /** Map expressions to their output variable */
   var evalExp: Seq[(Code, String)] = Seq()
-
   /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
   var pVar2Code: Map[String, (Option[String], Code)] = Map()
 
@@ -142,7 +146,6 @@ object GeneratePSystem:
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
         val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
-        // TODO: We might collect literals here, that are only used as an argument and are therefore inlined
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
 
         evalExp = Seq()
@@ -181,7 +184,7 @@ object GeneratePSystem:
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
     case Call(name, args) =>
-      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new PositivePatternCall(body, $argTuple, $callQuery)"
@@ -201,6 +204,20 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+    case primitive.ScalaAggregationAtom(agg, rel, out, sty, args, aggregatedColumn) =>
+      val result = compileTerm(out)
+      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+
+      val scalaTyp = compileScalaType(sty.ty)
+      agg match
+        case ScalaAggregation.Count =>
+          s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
+        case ScalaAggregation.Min | ScalaAggregation.Max | ScalaAggregation.Sum =>
+          val boundAggOp = s"new BoundAggregator(${compileBuiltInScalaAggregation(agg, sty)}, classOf[$scalaTyp], classOf[$scalaTyp])"
+          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+        case ScalaAggregation.Custom => ???
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {
@@ -249,6 +266,14 @@ object GeneratePSystem:
       pvarName
   }
 
+  private def compileBuiltInScalaAggregation(agg: primitive.ScalaAggregation, sty: primitive.ScalaType) =
+    val prefix = "builtin.arithmetic"
+    val suffix = "Aggregation.aggregator"
+    agg match
+      case primitive.ScalaAggregation.Min => s"$prefix.Min${compileScalaType(sty.ty)}$suffix"
+      case primitive.ScalaAggregation.Max => s"$prefix.Max${compileScalaType(sty.ty)}$suffix"
+      case primitive.ScalaAggregation.Sum => s"$prefix.Sum${compileScalaType(sty.ty)}$suffix"
+
   private def compileScalaTerm(term: Scala.Term): Code = term match
     case Scala.Id(x) => x
     case Scala.Select(t, name) =>
@@ -259,6 +284,8 @@ object GeneratePSystem:
     case Scala.App(fun, args) =>
       val inArgs = args.map(compileScalaTerm).mkString(",")
       s"${compileScalaTerm(fun)}($inArgs})"
+    case Scala.AppUnary(t, op) =>
+      s"$op${compileScalaTerm(t)}"
     case Scala.AppInfix(t1, op, t2) =>
       s"${compileScalaTerm(t1)} $op ${compileScalaTerm(t2)}"
 
@@ -269,7 +296,10 @@ object GeneratePSystem:
 
   private def genLamVarName(lam: Scala.Lam): String = lam.hashCode().toString
 
-  private def genLiteral[T](lit: Scala.Literal[T]): Code = s"${lit.value}"
+  private def genLiteral[T](lit: Scala.Literal[T]): Code = lit match
+    case Scala.StringLiteral(value) => s""""${lit.value}""""
+    case _ => s"${lit.value}"
+
 
   private def genExprEvalVar(name: String): Code = {
     s"""val ${EVALPREFIX + name}: PVariable = body.getOrCreateVariableByName("$name")""".stripMargin

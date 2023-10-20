@@ -5,12 +5,6 @@ import inca.ir.extension.aggregate.AggregationOperatorBuiltIn
 import inca.ir.extension.block
 import inca.ir.extension.bool
 
-
-// TODO Discuss: Do we want to support doubles in this IR or do we want to split the IR in Int and double IR ?
-
-// TODO: With the design below we probably want a cast term as well. Something such as asInt, asDouble or we do it
-//  implicitly.
-
 case object TInt extends Type
 case object TDouble extends Type
 

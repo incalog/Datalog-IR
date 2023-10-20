@@ -2,7 +2,7 @@ package inca.foreign.scala.ir.primitive
 
 import inca.foreign.scala.syntax.Scala
 import inca.ir.*
-import inca.ir.extension.foreign.{ForeignLanguage, ForeignTerm, ForeignType}
+import inca.ir.extension.foreign.{ForeignAtom, ForeignLanguage, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.string.TString
@@ -29,16 +29,37 @@ case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends F
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-  def inTypes: Seq[ScalaType] = args.map { a =>
+  override def inTypes: Seq[ScalaType] = args.map { a =>
     val tty = a.typ match
       case Some(TermType(ty, _)) => ty
       case _ => throw IllegalStateException(s"Untyped argument $a")
     ScalaInca.compileType(tty)
   }
+  override def outTypes: Seq[ScalaType] = Seq(ty)
 
-  def outTypes: Seq[ScalaType] = Seq(ty)
+  override def toString: String =
+    if (args.nonEmpty)
+      s"""($code)(${args.mkString(", ")})"""
+    else
+      s"$code"
 
-  override def toString: String = s"""($code)(${args.mkString(", ")})"""
+
+enum ScalaAggregation:
+  case Min
+  case Max
+  case Sum
+  case Count  // TODO: not yet supported
+  case Custom // TODO: not supported
+
+case class ScalaAggregationAtom(agg: ScalaAggregation, rel: String, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+  override def vars: Seq[Var] = args.flatMap(_.vars)
+
+  override def toString: String =
+    val inArgs = args.zipWithIndex.map {
+      case (_, i) if i == aggregatedColumn => "#"
+      case (a, _) => s"$a"
+    }
+    s"""$out: $ty = aggregate $rel(${inArgs.mkString(", ")}) with $agg"""
 
 
 trait IR extends BaseIR:

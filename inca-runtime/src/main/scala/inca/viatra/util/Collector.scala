@@ -1,10 +1,10 @@
 package inca.viatra.util
 
-import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaType, Visitor}
+import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaAggregationAtom, ScalaType, Visitor}
 import inca.foreign.scala.syntax.Scala
 import inca.ir.visitors.IRVisitor
 import inca.viatra.ir.primitiveScala
-import inca.ir.{Body, Module, Relation, Term, Var, name2string}
+import inca.ir.{Atom, Body, Module, Relation, Term, Var, name2string}
 
 private trait Collector[T] extends IRVisitor with Visitor {
   private var collection: Seq[T] = Seq()
@@ -37,10 +37,18 @@ protected[viatra] object VarCollector {
 }
 
 protected[viatra] class LitCollector extends Collector[(Scala.Literal[_], ScalaType)] {
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case _: ScalaAggregationAtom => Seq()
+    case _ => super.visitAtom(atom)
+
   override def visitTerm(term: Term): Seq[Term] = term match
     case ScalaTerm(lit: Scala.Literal[_], ty, _) => // Ignore all arguments if the body is a literal
       collect((lit, ty))
-      super.visitTerm(term)
+      Seq()
+      //super.visitTerm(term)
+    case ScalaTerm(_, _ , _) =>
+      // Do not collect literals that are used as arguments for a scala term
+      Seq()
     case _ =>
       super.visitTerm(term)
 }
