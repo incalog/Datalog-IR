@@ -1,32 +1,37 @@
-package inca.frontend.datalog
+package inca.frontend.datalog.typechecker
 
-import inca.frontend.datalog.compile.GenerateIR
 import inca.frontend.datalog.syntax.*
 import inca.frontend.datalog.typecheck.Typechecker
-import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuite
 
-class CompileTest extends AnyFunSuite {
+class TypecheckerTest extends AnyFunSuite {
 
-  def compile(r: Relation): Unit =
-    compile(Module(Seq(r)))
+  def check(l: Literal): Unit =
+    val typechecker = new Typechecker
+    typechecker.inferLiteral(l)
+    typechecker.failOnError()
 
-  def compile(m: Module): Unit =
+  def check(r: Relation): Unit =
+    check(Module(Seq(r)))
+
+  def check(m: Module): Unit =
     val typechecker = new Typechecker
     typechecker.checkModule(m)
     typechecker.failOnError()
-    val compiler = new GenerateIR
-    val c = compiler.compileModule(m)
-    val irtypechecker = new IRTypechecker
-    try irtypechecker.typecheck(c)
-    finally println(c)
 
+  test("various") {
+    check(Parser.literal.parseAll("1").getOrElse(???))
+    check(Parser.literal.parseAll("12").getOrElse(???))
+    check(Parser.literal.parseAll("12").getOrElse(???))
+    check(Parser.literal.parseAll("123").getOrElse(???))
+    check(Parser.literal.parseAll("123.456").getOrElse(???))
+  }
 
   test("Edge") {
     val m = s"""Edge(Int, Int).
                |Edge(1,2).
                |""".stripMargin
-    compile(Parser.relation.parseAll(m).getOrElse(???))
+    check(Parser.relation.parseAll(m).getOrElse(???))
 
     val m2 =
       s"""Edge(Int, Int).
@@ -36,14 +41,14 @@ class CompileTest extends AnyFunSuite {
          |Edge(4,5).
          |Edge(3,1).
          |""".stripMargin
-    compile(Parser.relation.parseAll(m2).getOrElse(???))
+    check(Parser.relation.parseAll(m2).getOrElse(???))
 
     val m3 =
       s"""Edge(Int, Int).
          |Edge(1,2).
          |Edge(1,2).
          |""".stripMargin
-    compile(Parser.relation.parseAll(m3).getOrElse(???))
+    check(Parser.relation.parseAll(m3).getOrElse(???))
   }
 
   test("Path") {
@@ -55,7 +60,7 @@ class CompileTest extends AnyFunSuite {
          |Path(X,Y) :- Edge(X,Y)
          |          :- Edge(X,Z), Path(Z,Y).
          |""".stripMargin
-    compile(Parser.module.parseAll(m).getOrElse(???))
+    check(Parser.module.parseAll(m).getOrElse(???))
 
     val m2 =
       s"""Edge(Int, Int).
@@ -69,7 +74,7 @@ class CompileTest extends AnyFunSuite {
          |Path(X,Y) :- Edge(X,Y)
          |          :- Edge(X,Z), Path(Z,Y).
          |""".stripMargin
-    compile(Parser.module.parseAll(m2).getOrElse(???))
+    check(Parser.module.parseAll(m2).getOrElse(???))
 
     val m3 =
       s"""Edge(Int, Int).
@@ -83,7 +88,7 @@ class CompileTest extends AnyFunSuite {
          |Path(X,Y) :- Edge(X,Y).
          |Path(X,Z) :- Edge(X,Y), Path(Y,Z).
          |""".stripMargin
-    compile(Parser.module.parseAll(m3).getOrElse(???))
+    check(Parser.module.parseAll(m3).getOrElse(???))
   }
 
   test("ShortestPath") {
@@ -95,6 +100,6 @@ class CompileTest extends AnyFunSuite {
          |SPath(X,Y,min(n)) :- Edge(X,Y,n)
          |                  :- Edge(X,Z,n1), SPath(Z,Y,n2), n == n1 + n2.
          |""".stripMargin
-    compile(Parser.module.parseAll(m).getOrElse(???))
+    check(Parser.module.parseAll(m).getOrElse(???))
   }
 }

@@ -1,10 +1,12 @@
 package inca.ir.extension.foreign
 
-import inca.ir.extension.aggregate.AggregationOperator
+import inca.ir.extension.aggregate.AggregationOperatorUserDefined
 import inca.ir.{Term, Type, Var}
 
 trait ForeignLanguage:
   type Code
+
+trait ForeignType extends Type
 
 trait ForeignTerm(args: Seq[Term]) extends Term:
   val lang: ForeignLanguage
@@ -15,6 +17,7 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-trait ForeignAggregationOperator extends AggregationOperator:
+
+trait ForeignAggregationOperator extends AggregationOperatorUserDefined:
   val lang: ForeignLanguage
   val code: lang.Code

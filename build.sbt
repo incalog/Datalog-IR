@@ -46,8 +46,19 @@ lazy val inca_datalog = (project in file("inca-datalog"))
     )
   )
 
+lazy val inca_foreign_scala = (project in file("inca-foreign-scala"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    )
+  )
+
 lazy val inca_runtime = (project in file("inca-runtime"))
   .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
     scalaVersion := "3.3.0",
 

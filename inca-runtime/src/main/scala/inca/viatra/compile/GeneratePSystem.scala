@@ -2,13 +2,17 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, Var, name2string, typing}
-import inca.util.Scala
-import inca.util.Scala.*
-import inca.viatra.ir.arithmetic.ScalaLowering
+import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
 import inca.viatra.ir.primitiveScala
-import inca.viatra.ir.primitiveScala.{Application, Constant, TScala}
 import inca.viatra.util.{LitCollector, VarCollector}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.arithmetic
+import inca.foreign.scala.ir.string
+import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaType}
+import inca.foreign.scala.syntax.Scala
+import inca.util.Gensym
+
+import scala.annotation.tailrec
 
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
@@ -16,9 +20,11 @@ object GeneratePSystem:
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
 
-  private trait BlockLowering extends primitiveScala.Visitor with block.Lowering
-  private trait DemandLowering extends primitiveScala.Visitor with demand.Lowering
-  private trait Typechecker extends typing.IRTypechecker with primitiveScala.Typechecker
+  private trait BlockLowering extends primitive.Visitor with block.Lowering
+  private trait DemandLowering extends primitive.Visitor with demand.Lowering
+  private trait Typechecker extends typing.IRTypechecker with primitive.Typechecker
+
+  val gensym = new Gensym()
 
   /** Maps rule name to the name of the module that defines it. */
   type RuleEnvironment = Map[String, String]
@@ -31,7 +37,8 @@ object GeneratePSystem:
 
   private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
     val lowerings: List[() => BaseLowering] = List(
-      () => new ScalaLowering {}, // Get rid of arithmetic
+      () => new arithmetic.ScalaLowering {}, // Get rid of arithmetic
+      () => new string.ScalaLowering {}, // Get rid of strings
       //() => new data.ScalaLowering {}, // Get rid of data
       () => new BlockLowering {}, // Get rid of reintroduced blocks
       () => new DemandLowering {} // Get rid of reintroduced demand symbols
@@ -46,9 +53,10 @@ object GeneratePSystem:
     lowerings.foldLeft(module) {
       case (mod, lowering) =>
         val low = lowering()
-//        println()
-//        println(s"Backend lowering ${low.loweredIRs}")
+        println()
+        println(s"Backend lowering ${low}")
         val Seq(lowered) = low.visitProgram(Seq(mod))
+        println(lowered)
         typechecker.typecheck(lowered)
         typechecker.failOnError()
         lowered
@@ -57,6 +65,9 @@ object GeneratePSystem:
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
     val mod = lowerAndTypeModule(module)
+    println()
+    println("After: ")
+    println(mod)
 
     val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent=2)(myenv)).toList
@@ -106,6 +117,12 @@ object GeneratePSystem:
       |$content
       |body""".stripMargin.indent(indent)
 
+  /** Map expressions to their output variable */
+  var evalExp: Seq[(Code, String)] = Seq()
+
+  /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
+  var pVar2Code: Map[String, (Option[String], Code)] = Map()
+
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
     val qname = s"${moduleName}_${relation.name}"
 
@@ -126,10 +143,21 @@ object GeneratePSystem:
       relation.bodies.map { body =>
         val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
+
+        evalExp = Seq()
+        pVar2Code = Map()
+
         val atomContent = body.atoms.map(compileAtom).mkString("\n")
-        compileBody(moduleName, relation, s"$varContent\n$litContent\n$atomContent")(indent + 4)
+        val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
+        val exprsContent = evalExp.map(_._1).mkString("\n")
+
+        val bodyContent = s"$varContent\n$litContent\n$exprsDef\n$exprsContent\n$atomContent"
+        compileBody(moduleName, relation, bodyContent)(indent + 4)
       }
     else {
+      evalExp = Seq()
+      pVar2Code = Map()
+
       val content = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
       Seq(compileBody(moduleName, relation, content)(indent + 4))
     }
@@ -172,64 +200,82 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case Application(out, ty, lam, args) if args.isEmpty =>
-      val varName = genConstantLamVarName(lam)
-      val rhs = EVALPREFIX + varName
-      s"""new Equality(body, ${compileTerm(out)}, $rhs)"""
-    case Application(out, TScala(ty), lam@Lam(params, t), args) =>
-      val result = compileTerm(out)
-      val description = s""""eval(${lam.toString})""""
-      val paramNames = args.toList.flatMap {
-        case Var(name) => Some(s""""$name"""")
-        case _ => None
-      }
-      val argTerms = args.zip(params).toList.map {
-        case (Var(name), p) => s"""env.getValue("$name").asInstanceOf[${compileScalaType(p.ty)}]"""
-        case (Constant(lit, ty), p) => genLiteral(lit)
-      }
-      s"""
-        |new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
-        |  override def getShortDescription: String = $description
-        |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
-        |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-        |    (${compileScalaTerm(lam)})(${argTerms.mkString(",")})
-        |  }
-        |}, $result)""".stripMargin
 
-  private def compileTerm(v: Term): Code = v match {
-    case Var(name) => s"$VARPREFIX$name"
-    case Constant(value, ty) => s"$LITPREFIX${genLiteralVarName(value, ty)}"
+  // This method should always return the name of a PVariable
+  private def compileTerm(t: Term): Code = t match {
+    case Var(name) =>
+      val ty = t.typ match
+        case Some(TermType(ScalaType(sty), _)) => compileScalaType(sty)
+        case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty")
+        case _ => throw IllegalStateException(s"Untyped term $t")
+      val pvarName = s"$VARPREFIX$name"
+      pVar2Code += pvarName -> (Some(name), s"""env.getValue("$name").asInstanceOf[$ty]""")
+      pvarName
     case Cast(t, ty) => compileTerm(t)
+    case primitive.ScalaTerm(lit: Scala.Literal[_], ty, args) =>
+      val pvarName = s"$LITPREFIX${genLiteralVarName(lit, ty)}"
+      pVar2Code += (pvarName -> (None, s"${lit.value}"))
+      pvarName
+    case primitive.ScalaTerm(lam@Scala.Lam(lamParams, t), sty, args) =>
+      val compiledArgs = args.map(compileTerm)
+      val lamCode = compileScalaTerm(lam)
+      val tyCode = compileScalaType(sty.ty)
+
+      val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
+      val argTys = lamParams.map(p => compileScalaType(p.ty))
+      val argsCode = compiledArgs.map(c => pVar2Code(c)._2)
+
+      val description = s""""eval(${lam.toString})""""
+      val outName = gensym.fresh("out")
+      val pvarName = EVALPREFIX + outName
+
+      val evalExpCode =
+        s"""
+           |new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+           |  override def getShortDescription: String = $description
+           |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
+           |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+           |    ($lamCode)(${argsCode.mkString(", ")})
+           |  }
+           |}, $pvarName)""".stripMargin
+
+      evalExp :+= (evalExpCode, outName)
+      pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${compileScalaType(sty.ty)}]"""))
+      pvarName
   }
 
   private def compileScalaTerm(term: Scala.Term): Code = term match
-    case Id(x) => x
-    case Select(t, name) =>
+    case Scala.Id(x) => x
+    case Scala.Select(t, name) =>
       s"${compileScalaTerm(t)}.$name"
-    case Lam(params, t) =>
+    case Scala.Lam(params, t) =>
       val args = params.map(p => s"${p.name}: ${compileScalaType(p.ty)}")
       s"(${args.mkString(", ")}) => ${compileScalaTerm(t)}"
-    case App(fun, args) =>
+    case Scala.App(fun, args) =>
       val inArgs = args.map(compileScalaTerm).mkString(",")
       s"${compileScalaTerm(fun)}($inArgs})"
-    case AppInfix(t1, op, t2) =>
+    case Scala.AppInfix(t1, op, t2) =>
       s"${compileScalaTerm(t1)} $op ${compileScalaTerm(t2)}"
 
   private def compileScalaType(t: Scala.Type): Code = t match {
-    case TypeName(s) => s
-    case FunType(args, ret) => s"Function[${(args :+ ret).map(compileScalaType).mkString(",")}]"
+    case Scala.TypeName(s) => s
+    case Scala.FunType(args, ret) => s"Function[${(args :+ ret).map(compileScalaType).mkString(",")}]"
   }
 
-  private def genConstantLamVarName(lam: Lam): String = lam.hashCode().toString
+  private def genLamVarName(lam: Scala.Lam): String = lam.hashCode().toString
 
   private def genLiteral[T](lit: Scala.Literal[T]): Code = s"${lit.value}"
 
-  private def genLiteralVar[T](lit: Scala.Literal[T], ty: TScala): Code = {
+  private def genExprEvalVar(name: String): Code = {
+    s"""val ${EVALPREFIX + name}: PVariable = body.getOrCreateVariableByName("$name")""".stripMargin
+  }
+
+  private def genLiteralVar[T](lit: Scala.Literal[T], ty: primitive.ScalaType): Code = {
     val varName = genLiteralVarName(lit, ty)
     s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
-  private def genLiteralVarName[T](lit: Scala.Literal[T], ty: TScala): String = {
+  private def genLiteralVarName[T](lit: Scala.Literal[T], ty: primitive.ScalaType): String = {
     compileScalaType(ty.ty) + lit.value.hashCode
   }
 

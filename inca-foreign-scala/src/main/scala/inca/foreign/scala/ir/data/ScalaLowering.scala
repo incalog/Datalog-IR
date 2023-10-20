@@ -1,19 +1,15 @@
-package inca.viatra.ir.data
+package inca.foreign.scala.ir.data
 
-import inca.util.Scala.{AppInfix, Id, Lam, Select, StringLiteral}
-import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Language, ModuleEntry, Name, Param, Relation, Term, TermType, Type, Var, string2name}
-import inca.ir.extension.*
-import inca.ir.extension.data.*
-import inca.ir.extension.disjunction.Disjunction
+import inca.foreign.scala.syntax.Scala.{AppInfix, Id, Lam, Select, StringLiteral}
+import inca.ir.{BaseIR, Name}
 import inca.ir.lowering.BaseLowering
-import inca.util.Scala
-import inca.viatra.ir.primitiveScala
-import inca.viatra.ir.primitiveScala.{Application, Constant, TScala}
+import inca.ir.extension.block
+import inca.ir.extension.disjunction
+import inca.foreign.scala.ir.primitive.{IR, ScalaInca, ScalaTerm, ScalaType}
 
 trait ScalaLowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
-  override val requiredIRs: Set[BaseIR] = Set(primitiveScala.IR, block.IR, disjunction.IR)
+  override val requiredIRs: Set[BaseIR] = Set(IR, block.IR, disjunction.IR)
 
   private var freshCount = 0
 
@@ -24,7 +20,7 @@ trait ScalaLowering extends BaseLowering:
 
   private def relationName(dataName: Name, caseName: Name) = s"${dataName}_${caseName}"
 
-  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
+  /*override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
     case DataDefinition(dataName, cases) =>
       cases.map { case CaseDefinition(caseName, args) =>
         val dataTy = visitType(TData(dataName))
@@ -78,4 +74,4 @@ trait ScalaLowering extends BaseLowering:
 
   override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TData(name) => TScala(Scala.TypeName("String"))
-    case _ => super.visitType(ty))
+    case _ => super.visitType(ty))*/

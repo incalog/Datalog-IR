@@ -4,7 +4,7 @@ import inca.ir.{Atom, BaseIR, Language, Name, Term, Type, Var}
 
 object IR extends IR { }
 trait IR extends BaseIR:
-  override val name: String = "Arithmetic"
+  override val name: String = "Aggregate"
   override def language: Language = super.language + IR
   override def requires: Language = Language(IR)
 
@@ -29,4 +29,4 @@ trait AggregationOperator:
   def typecheck(in: Seq[Type]): Either[String, Type]
 
 trait AggregationOperatorBuiltIn extends AggregationOperator
-
+trait AggregationOperatorUserDefined extends AggregationOperator
