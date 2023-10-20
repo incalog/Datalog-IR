@@ -11,6 +11,7 @@ object ScalaInca extends ForeignLanguage:
   type Code = Scala.Term
 
   def compileType(ty: Type): ScalaType = ty match
+    case sty@ScalaType(_) => sty
     case TString => ScalaType.string
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
@@ -25,11 +26,6 @@ object ScalaType:
   def bool: ScalaType = ScalaType(Scala.TypeName("Boolean"))
 
 case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends ForeignTerm(args):
-  code match
-    case _: Scala.Lam | _: Scala.Literal[_] => // nothing
-    case _ =>
-      throw IllegalStateException(s"PSystem currently does not support ${code.getClass.getSimpleName} inside a ScalaTerm. Use a Lam instead.")
-
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 

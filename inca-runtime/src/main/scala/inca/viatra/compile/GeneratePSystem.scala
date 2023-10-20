@@ -142,6 +142,7 @@ object GeneratePSystem:
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
         val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
+        // TODO: We might collect literals here, that are only used as an argument and are therefore inlined
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
 
         evalExp = Seq()
@@ -216,16 +217,20 @@ object GeneratePSystem:
       val pvarName = s"$LITPREFIX${genLiteralVarName(lit, ty)}"
       pVar2Code += (pvarName -> (None, s"${lit.value}"))
       pvarName
-    case primitive.ScalaTerm(lam@Scala.Lam(lamParams, t), sty, args) =>
+    case scalaTerm@primitive.ScalaTerm(term, sty, args) =>
       val compiledArgs = args.map(compileTerm)
-      val lamCode = compileScalaTerm(lam)
+      val termCode = compileScalaTerm(scalaTerm.code)
       val tyCode = compileScalaType(sty.ty)
 
       val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
-      val argTys = lamParams.map(p => compileScalaType(p.ty))
-      val argsCode = compiledArgs.map(c => pVar2Code(c)._2)
+      val argTys = scalaTerm.inTypes.map(sty => compileScalaType(sty.ty))
+      val argsCode =
+        if (compiledArgs.isEmpty)
+          ""
+        else
+          s"""(${compiledArgs.map(c => pVar2Code(c)._2).mkString(", ")})"""
 
-      val description = s""""eval(${lam.toString})""""
+      val description = s""""eval(${scalaTerm.toString})""""
       val outName = gensym.fresh("out")
       val pvarName = EVALPREFIX + outName
 
@@ -235,7 +240,7 @@ object GeneratePSystem:
            |  override def getShortDescription: String = $description
            |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
            |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-           |    ($lamCode)(${argsCode.mkString(", ")})
+           |    ($termCode)$argsCode
            |  }
            |}, $pvarName)""".stripMargin
 
