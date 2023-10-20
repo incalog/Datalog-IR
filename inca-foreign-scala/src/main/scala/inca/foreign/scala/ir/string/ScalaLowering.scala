@@ -15,18 +15,14 @@ trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(string.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs
 
-  private def createScalaStringConcat(lhs: Term, rhs: Term): ScalaTerm = {
-    createScalaBinOp("+", ScalaType.string, lhs -> ScalaType.string, rhs -> ScalaType.string)
-  }
-
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case StringLit(value) =>
-        Seq(ScalaTerm(Scala.StringLiteral(value), ScalaType.int, Seq()))
+        Seq(ScalaTerm(Scala.StringLiteral(value), ScalaType.string, Seq()))
       case StringConcat(lhs, rhs) =>
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, TString), (r, TString)) =>
-            createScalaStringConcat(l, r)
+            createScalaBinOp("+", ScalaType.string, lhs -> ScalaType.string, rhs -> ScalaType.string)
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not concat types $lty and $rty")
         }
