@@ -17,7 +17,7 @@ case class TMono(input: Type, output: Type, cols: Seq[Type]) extends Type:
 case class MkMono(m : Var, cls: Name, args: Seq[Term], typ: TMono) extends Atom:
   override def vars: Seq[Var] = Seq(m) ++ args.flatMap(_.vars)
 
-  override def toString: String = s"$m = new $cls()"
+  override def toString: String = s"$m = new $cls()@${typ.cols}"
 
 case class AddMono(m: Var, input: Term, keys: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = Seq(m) ++ input.vars ++ keys.flatMap(_.vars)
