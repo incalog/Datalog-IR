@@ -3,7 +3,6 @@ package inca.ir.extension.tuple
 import inca.ir.*
 import inca.ir.extension.tuple
 import inca.ir.extension.tuple.{IR, Project, TTuple}
-import Lowering.separator
 import inca.ir.typing.Typechecker
 import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -46,18 +45,18 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
-      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
+      Relation("T", Seq(Param("a$0", TAny), Param("a$1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny)
+          Param("a$0", TAny),
+          Param("a$1", TAny)
         ),
         Seq(
           Body(Seq(
             Call("S", Seq(
-              Var("a" + separator + "0"),
-              Var("a" + separator + "1")
+              Var("a$0"),
+              Var("a$1")
             ))
           ))
         )
@@ -66,12 +65,12 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       Relation(
         "S",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
           Body(Seq(
-            Call("T", Seq(Var("a_0"), Var("a_1")))
+            Call("T", Seq(Var("a$0"), Var("a$1")))
           ))
         )
       )
@@ -117,7 +116,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
-      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
+      Relation("T", Seq(Param("a$0", TAny), Param("a$1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
@@ -137,12 +136,12 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       Relation(
         "S",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
           Body(Seq(
-            Call("T", Seq(Var("a_0"), Var("a_1")))
+            Call("T", Seq(Var("a$0"), Var("a$1")))
           ))
         )
       )
@@ -171,18 +170,18 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
     val expectedMod = Module("Test", Language(baseIR), Seq(
-      Relation("T", Seq(Param("a_0", TAny), Param("a_1", TAny)), Seq()),
+      Relation("T", Seq(Param("a$0", TAny), Param("a$1", TAny)), Seq()),
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
           Body(Seq(
-            Call("T", Seq(Var("a_0"), Var("a_1"))),
-            Eq(Var("x" + separator + "0"), Var("a" + separator + "0")),
-            Eq(Var("x" + separator + "1"), Var("a" + separator + "1")),
+            Call("T", Seq(Var("a$0"), Var("a$1"))),
+            Eq(Var("x$0"), Var("a$0")),
+            Eq(Var("x$1"), Var("a$1")),
           ))
         )
       )
@@ -236,20 +235,20 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1" + separator + "0", TAny),
-          Param("a" + separator + "1" + separator + "1", TAny)
+          Param("a$0", TAny),
+          Param("a$2", TAny),
+          Param("a$3", TAny)
         ),
         Seq(
           Body(Seq(
             Call("T", Seq(Var("t"))),
-            Eq(Var("a_0"), Var("t")),
-            Eq(Var("a_1_0"), Var("t")),
-            Eq(Var("a_1_1"), Var("t")),
+            Eq(Var("a$0"), Var("t")),
+            Eq(Var("a$2"), Var("t")),
+            Eq(Var("a$3"), Var("t")),
             Call("Test", Seq(
-              Var("a" + separator + "1" + separator + "1"),
-              Var("a" + separator + "1" + separator + "0"),
-              Var("a" + separator + "1" + separator + "1")
+              Var("a$3"),
+              Var("a$2"),
+              Var("a$3")
             ))
           ))
         )
@@ -258,16 +257,16 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       Relation(
         "Test",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1" + separator + "0", TAny),
-          Param("a" + separator + "1" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$2", TAny),
+          Param("a$3", TAny),
         ),
         Seq(
           Body(Seq(
             Call("T", Seq(Var("t"))),
-            Eq(Var("a_0"), Var("t")),
-            Eq(Var("a_1_0"), Var("t")),
-            Eq(Var("a_1_1"), Var("t")),
+            Eq(Var("a$0"), Var("t")),
+            Eq(Var("a$2"), Var("t")),
+            Eq(Var("a$3"), Var("t")),
           ))
         )
       )

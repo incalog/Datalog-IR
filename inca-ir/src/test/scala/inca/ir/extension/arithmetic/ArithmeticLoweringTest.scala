@@ -9,11 +9,6 @@ import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-// TODO: Discuss: LT, GT how do we handle the scala boolean return ?
-// TODO: block.IR is per se not required, but its nice to have to express infix operators.
-//  Thats why lower produces a result with a block inside. This is not nice, since we need to
-//  create a new intermediate IR for this.
-
 //class ArithmeticLoweringTest extends AnyFunSuiteLike:
 //  case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 //
