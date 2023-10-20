@@ -25,10 +25,10 @@ object ScalaType:
   def bool: ScalaType = ScalaType(Scala.TypeName("Boolean"))
 
 case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends ForeignTerm(args):
-  code match
+  /*code match
     case _: Scala.Lam | _: Scala.Literal[_] => // nothing
     case _ =>
-      throw IllegalStateException(s"PSystem currently does not support ${code.getClass.getSimpleName} inside a ScalaTerm. Use a Lam instead.")
+      throw IllegalStateException(s"PSystem currently does not support ${code.getClass.getSimpleName} inside a ScalaTerm. Use a Lam instead.")*/
 
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)

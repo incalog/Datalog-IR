@@ -5,45 +5,15 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt}
 import inca.ir.extension.block
-import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.{BaseScalaLowering, primitive}
 import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaTerm, ScalaType}
 import inca.foreign.scala.syntax.Scala
 import inca.ir
 import inca.ir.Hint.preserveHints
 
-trait ScalaLowering extends primitive.Visitor with BaseLowering:
+trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
-  override val requiredIRs: Set[BaseIR] = Set(primitive.IR, block.IR)
-
-  private var freshCount = 0
-  def freshName(): Name =
-    val x = primitive.IR.name + "$" + freshCount
-    freshCount += 1
-    Name(x)
-
-  private def createScalaBinOp(op: String, ty: ScalaType, lhsParam: (Term, ScalaType), rhsParam: (Term, ScalaType)): ScalaTerm = {
-    val (lhs, lhsTy) = lhsParam
-    val (rhs, rhsTy) = rhsParam
-    val lambda = Scala.Lam(
-      Seq(
-        Scala.Param("lhs", lhsTy.ty),
-        Scala.Param("rhs", rhsTy.ty)
-      ),
-      Scala.AppInfix(
-        Scala.Id("lhs"), op, Scala.Id("rhs")
-      )
-    )
-    ScalaTerm(lambda, ty, Seq(lhs, rhs))
-  }
-
-  private def typedParams(t: Term): Seq[(Term, Type)] = {
-    val ty = t.typ match
-      case Some(TermType(ty,_)) => ty.flatten
-      case None => throw new IllegalStateException(s"Untyped term $t")
-
-    for ((t, i) <- visitTerm(t).zipWithIndex)
-      yield t -> ty(i)
-  }
+  override val requiredIRs: Set[BaseIR] = super.requiredIRs ++ Set(block.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
@@ -91,7 +61,6 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match
-      case TInt => ScalaType.int
-      case TDouble => ScalaType.double
+      case TInt | TDouble => ScalaInca.compileType(ty)
       case _ => super.visitType(ty)
   }
