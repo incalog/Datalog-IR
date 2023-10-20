@@ -39,9 +39,9 @@ case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends F
 
   override def toString: String =
     if (args.nonEmpty)
-      s"""($code)(${args.mkString(", ")})"""
+      s"""`($code)(${args.mkString(", ")})`"""
     else
-      s"$code"
+      s"`$code`"
 
 
 enum ScalaAggregation:

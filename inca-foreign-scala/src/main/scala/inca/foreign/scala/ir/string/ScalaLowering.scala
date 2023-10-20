@@ -13,6 +13,8 @@ trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(string.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs
 
+  override def supportedTypes: Seq[Type] = Seq(TString)
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case StringLit(value) =>
@@ -26,10 +28,4 @@ trait ScalaLowering extends BaseScalaLowering:
         }
       case _ =>
         super.visitTerm(term)
-  }
-
-  override def visitType(ty: Type): Type = preserveHints(ty) {
-    ty match
-      case TString => ScalaInca.compileType(ty)
-      case _ => super.visitType(ty)
   }

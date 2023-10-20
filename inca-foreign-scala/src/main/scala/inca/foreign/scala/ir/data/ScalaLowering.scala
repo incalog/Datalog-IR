@@ -4,12 +4,11 @@ import inca.foreign.scala.syntax.Scala.{AppInfix, Id, Lam, Select, StringLiteral
 import inca.ir.{BaseIR, Name}
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.block
-import inca.ir.extension.disjunction
 import inca.foreign.scala.ir.primitive.{IR, ScalaInca, ScalaTerm, ScalaType}
 
 trait ScalaLowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
-  override val requiredIRs: Set[BaseIR] = Set(IR, block.IR, disjunction.IR)
+  override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
 
   private var freshCount = 0
 
