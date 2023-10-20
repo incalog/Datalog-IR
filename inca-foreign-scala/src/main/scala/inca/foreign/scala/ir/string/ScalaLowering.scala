@@ -6,11 +6,9 @@ import inca.foreign.scala.syntax.Scala
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*
-import inca.ir.extension.{block, string}
-import inca.ir.lowering.BaseLowering
+import inca.ir.extension.string
 import inca.ir.*
 
-// TODO: Refactor this with numeric lowering
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(string.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs

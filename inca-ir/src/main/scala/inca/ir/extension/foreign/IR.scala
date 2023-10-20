@@ -8,6 +8,8 @@ trait ForeignLanguage:
 
 trait ForeignType extends Type
 
+trait ForeignAtom extends Atom
+
 trait ForeignTerm(args: Seq[Term]) extends Term:
   val lang: ForeignLanguage
   val code: lang.Code
@@ -16,8 +18,6 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   def outTypes: Seq[Type]
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
-
-trait ForeignAtom extends Atom
 
 trait ForeignAggregationOperator extends AggregationOperatorUserDefined:
   val lang: ForeignLanguage

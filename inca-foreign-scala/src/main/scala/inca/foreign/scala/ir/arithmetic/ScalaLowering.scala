@@ -2,8 +2,7 @@ package inca.foreign.scala.ir.arithmetic
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, Relation, Term, TermType, Type, Var}
-import inca.ir.lowering.BaseLowering
+import inca.ir.{Atom, BaseIR, Eq, Term, TermType, Type, Var}
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{BinCompare, BinOp, UnOp, DoubleNum, IntNum, TDouble, TInt, ArithmeticAggregationOperator}
 import inca.ir.extension.block

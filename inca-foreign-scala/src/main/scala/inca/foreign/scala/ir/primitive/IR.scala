@@ -48,8 +48,8 @@ enum ScalaAggregation:
   case Min
   case Max
   case Sum
-  case Count  // TODO: not yet supported
-  case Custom // TODO: not supported
+  case Count
+  case Custom(defn: Scala.Object) // TODO: not supported
 
 case class ScalaAggregationAtom(agg: ScalaAggregation, rel: String, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
