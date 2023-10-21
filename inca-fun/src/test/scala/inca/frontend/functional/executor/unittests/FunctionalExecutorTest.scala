@@ -1,13 +1,10 @@
 package inca.frontend.functional.executor.unittests
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateIR}
 import inca.frontend.functional.executor.FunctionalExecutor
-import inca.frontend.functional.syntax.*
-import inca.ir.execution.IRExecutor
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
-class ExecutorTest extends AnyFunSuite {
+class FunctionalExecutorTest extends AnyFunSuite {
   val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
 
   test("Base 1") {

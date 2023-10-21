@@ -217,7 +217,7 @@ object GeneratePSystem:
         case ScalaAggregation.Min | ScalaAggregation.Max | ScalaAggregation.Sum =>
           val boundAggOp = s"new BoundAggregator(${compileBuiltInScalaAggregation(agg, sty)}, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-        case ScalaAggregation.Custom => ???
+        case ScalaAggregation.Custom(_) => ???
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {

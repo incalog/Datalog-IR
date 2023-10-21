@@ -4,28 +4,46 @@ import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.tuple.{IR, Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
+import inca.ir.{name2string, string2name}
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
-
-object Lowering:
-  val separator: String = "_"
-import Lowering.separator
 
 trait Lowering extends BaseLowering:
 
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
-  private def flatten(name: Name, typ: Type): Seq[(Name, Type)] = typ match {
-    // TODO: Use gensym
-    case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
-      flatten(Name(name.name + separator + ix), visitType(ty))
-    }
-    case _ => Seq((name, visitType(typ)))
-  }
+  /** Remember for each variable how we flattened it */
+  private var cachedFlatten: Map[Name, Seq[(Name, Type)]] = Map()
+
+  private def flatten(name: Name, typ: Type): Seq[(Name, Type)] =
+    cachedFlatten.get(name) match
+      case Some(cached) =>
+        cached
+      case None =>
+        val res = typ match
+          case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
+            flatten(gensym.fresh(name), visitType(ty))
+          }
+          case _ => Seq((name, visitType(typ)))
+        cachedFlatten += name -> res
+        res
 
   private def flatten(param: Param): Seq[Param] =
     flatten(param.name, param.ty).map { case (n, t) => Param(n, t) }
+
+  override def visitRelation(relation: Relation): Seq[Relation] =
+    // Reset the cache of flattened variables
+    cachedFlatten = Map()
+    super.visitRelation(relation)
+
+  override def visitBody(body: Body): Seq[Body] =
+    // save the flattened params
+    val flattenParams = cachedFlatten
+    val res = super.visitBody(body)
+    // forget all flattened vars of this body, but remember the flattened params
+    cachedFlatten = flattenParams
+    res
 
   override def visitParam(param: Param): Seq[Param] = preserveHints(param)(flatten(param))
 

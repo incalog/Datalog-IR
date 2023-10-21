@@ -41,6 +41,15 @@ trait BaseLowering extends IRVisitor:
     case _ => super.visitModuleEntry(moduleEntry)
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
+    // Make sure to register all variables in all bodies before we process the relation
+    val allVarNames = relation.bodies.flatMap { b =>
+      b.atoms.flatMap { a =>
+        a.vars.map(_.name.name)
+      }
+    }
+    val allParamNames = relation.params.map(p => p.name.name)
+    gensym.register(allVarNames ++ allParamNames)
+
     Seq(
       Relation(
         relation.name,
@@ -51,16 +60,4 @@ trait BaseLowering extends IRVisitor:
       )
     )
   }
-
-  override def visitParam(param: Param): Seq[Param] = {
-    gensym.register(param.name)
-    super.visitParam(param)
-  }
-
-  override def visitTerm(term: Term): Seq[Term] = term match
-    case Var(name) =>
-      gensym.register(name)
-      super.visitTerm(term)
-    case _ =>
-      super.visitTerm(term)
 

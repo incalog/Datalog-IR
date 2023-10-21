@@ -17,15 +17,15 @@ trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs ++ Set(block.IR)
 
+  override def supportedTypes: Seq[Type] = Seq(TInt, TDouble)
+
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
       case BinCompare(lhs, rhs, op) =>
         val constTrue = ScalaTerm(Scala.BoolLiteral(true), ScalaType.bool, Seq())
         typedParams(lhs).zip(typedParams(rhs)).map {
-          case ((l, TInt), (r, TInt)) =>
-            Eq(constTrue, createScalaBinOp(op, ScalaType.bool, l -> ScalaType.int, r -> ScalaType.int))
-          case ((l, TDouble), (r, TDouble)) =>
-            Eq(constTrue, createScalaBinOp(op, ScalaType.bool, l -> ScalaType.double, r -> ScalaType.double))
+          case ((l, lty), (r, rty)) if lty == rty =>
+            Eq(constTrue, createScalaBinOp(op, ScalaType.bool, l -> compileType(lty), r -> compileType(rty)))
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not compare types $lty and $rty")
         }
@@ -46,9 +46,7 @@ trait ScalaLowering extends BaseScalaLowering:
         val aggInfo = args.zipWithIndex.flatMap {
           case (aggregate.AggregateArg.AggregateColumn(t), i) =>
             t.typ match
-              case Some(TermType(TInt, _)) => Some((ScalaType.int, i))
-              case Some(TermType(TDouble, _)) => Some((ScalaType.double, i))
-              case Some(ty) => throw IllegalAccessException(s"Illegal aggregate term: $t of type: $ty")
+              case Some(TermType(ty, _)) => Some((compileType(ty), i))
               case _ => throw IllegalAccessException(s"Illegal aggregate term: $t of unknown type")
           case _ => None
         }.headOption
@@ -64,8 +62,6 @@ trait ScalaLowering extends BaseScalaLowering:
         super.visitAtom(atom)
   }
 
-  private def assignmentBlock(lhs: Term, rhs: Term) = block.Block(Eq(lhs, rhs), lhs)
-
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case IntNum(i) =>
@@ -74,34 +70,18 @@ trait ScalaLowering extends BaseScalaLowering:
         Seq(ScalaTerm(Scala.DoubleLiteral(d), ScalaType.double, Seq()))
       case BinOp(lhs, rhs, op) =>
         typedParams(lhs).zip(typedParams(rhs)).map {
-          case ((l, TInt), (r, TInt)) =>
-            assignmentBlock(
-              Var(freshName()),
-              createScalaBinOp(op, ScalaType.int, l -> ScalaType.int, r -> ScalaType.int)
-            )
-          case ((l, TDouble), (r, TDouble)) =>
-            assignmentBlock(
-              Var(freshName()),
-              createScalaBinOp(op, ScalaType.double, l -> ScalaType.double, r -> ScalaType.double)
-            )
-          case _ =>
-            throw IllegalStateException(s"Can not lower incompatible binary operation: $term")
+          case ((l, lty), (r, rty)) if lty == rty =>
+            val ty = compileType(lty)
+            val v = Var(freshName())
+            block.Block(Eq(v, createScalaBinOp(op, ty, l -> ty, r -> ty)), v)
+          case ((_, lty), (_, rty)) =>
+            throw IllegalStateException(s"Can not apply `$op` to incompatible types: $lty and $rty")
         }
       case UnOp(term, op) =>
-        typedParams(term).map {
-          case (t, TInt) =>
-            createScalaUnOp(op, ScalaType.int, t -> ScalaType.int)
-          case (t, TDouble) =>
-            createScalaUnOp(op, ScalaType.double, t -> ScalaType.double)
-          case (_, ty) =>
-            throw IllegalStateException(s"Can not apply unary operation $op to: $term of type $ty")
+        typedParams(term).map { case (t, ty) =>
+          val sty = compileType(ty)
+          createScalaUnOp(op, sty, t -> sty)
         }
       case _ =>
         super.visitTerm(term)
-  }
-
-  override def visitType(ty: Type): Type = preserveHints(ty) {
-    ty match
-      case TInt | TDouble => ScalaInca.compileType(ty)
-      case _ => super.visitType(ty)
   }

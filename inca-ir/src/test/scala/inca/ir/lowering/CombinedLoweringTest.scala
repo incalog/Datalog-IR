@@ -4,7 +4,6 @@ import inca.ir.*
 import inca.ir.extension.*
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.tuple.TTuple
-import inca.ir.extension.tuple.Lowering.separator
 import inca.ir.typing.Typechecker
 import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -71,20 +70,20 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny)
+          Param("a$0", TAny),
+          Param("a$1", TAny)
         ),
         Seq(
           Body(Seq(
             Call("S", Seq(
-              Var("a" + separator + "0"),
-              Var("a" + separator + "1")
+              Var("a$0"),
+              Var("a$1")
             ))
           )),
           Body(Seq(
             Call("T", Seq(
-              Var("a" + separator + "0"),
-              Var("a" + separator + "1")
+              Var("a$0"),
+              Var("a$1")
             ))
           ))
         )
@@ -93,22 +92,22 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "S",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
-          Body(Seq(Call("S", Seq(Var("a_0"), Var("a_1")))))
+          Body(Seq(Call("S", Seq(Var("a$0"), Var("a$1")))))
         )
       ),
 
       Relation(
         "T",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
-          Body(Seq(Call("T", Seq(Var("a_0"), Var("a_1")))))
+          Body(Seq(Call("T", Seq(Var("a$0"), Var("a$1")))))
         )
       )
     ))
@@ -170,22 +169,22 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "R",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny)
+          Param("a$0", TAny),
+          Param("a$1", TAny)
         ),
         Seq(
           Body(Seq(
             Disjunction(
               Seq(
                 Call("S", Seq(
-                  Var("a" + separator + "0"),
-                  Var("a" + separator + "1")
+                  Var("a$0"),
+                  Var("a$1")
                 ))
               ),
               Seq(
                 Call("T", Seq(
-                  Var("a" + separator + "0"),
-                  Var("a" + separator + "1")
+                  Var("a$0"),
+                  Var("a$1")
                 ))
               )
             )
@@ -196,22 +195,22 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       Relation(
         "S",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
-          Body(Seq(Call("S", Seq(Var("a_0"), Var("a_1")))))
+          Body(Seq(Call("S", Seq(Var("a$0"), Var("a$1")))))
         )
       ),
 
       Relation(
         "T",
         Seq(
-          Param("a" + separator + "0", TAny),
-          Param("a" + separator + "1", TAny),
+          Param("a$0", TAny),
+          Param("a$1", TAny),
         ),
         Seq(
-          Body(Seq(Call("T", Seq(Var("a_0"), Var("a_1")))))
+          Body(Seq(Call("T", Seq(Var("a$0"), Var("a$1")))))
         )
       )
     ))
