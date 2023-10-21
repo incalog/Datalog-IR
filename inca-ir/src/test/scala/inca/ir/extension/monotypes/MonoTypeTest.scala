@@ -2,14 +2,11 @@ package inca.ir.extension.monotypes
 
 import inca.ir.{Var, *}
 import inca.ir.extension.monotypes
-import inca.ir.extension.monotypes.ArithmeticMono.CountMono
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
-import inca.ir.extension.demand
-import inca.ir.extension.demand.{TDemand, demandRelationName}
-import inca.ir.typing.{BaseIRTypechecker, TypeErrorException, Typechecker}
+import inca.ir.typing.{BaseIRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.immutable.Seq
@@ -32,7 +29,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), TMono(TInt, TInt, Seq(TString)))),
+      Eq(Var("m"), MkMono(new CountMono {}, Seq(), Seq(TString))),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ResultMono(Var("m")))
@@ -86,7 +83,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), TMono(TInt, TString, Seq(TString)))),
+      Eq(Var("m"), MkMono(new CountMono {override val input : Type = TString}, Seq(), Seq(TString))),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ResultMono(Var("m")))
