@@ -2,6 +2,7 @@ package inca.ir.extension.monotypes
 
 import inca.ir.{Var, *}
 import inca.ir.extension.monotypes
+import inca.ir.extension.monotypes.ArithmeticMono.CountMono
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
@@ -29,7 +30,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(new CountMono {}, Seq(), Seq(TString))),
+      Eq(Var("m"), MkMono(CountMono, Seq(), TString)),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ResultMono(Var("m")))
@@ -41,17 +42,17 @@ class MonoTypeTest extends AnyFunSuiteLike {
   //               t += 1@(t)
   private lazy val relation2 : Relation = Relation(
     "size",
-    Seq(Param("t", TString), Param("m", TMono(TInt, TInt, Seq(TString)))),
+    Seq(Param("t", TString), Param("m", TMono(TInt, TInt, TString))),
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        AddMono(Var("m"), IntNum(1), Var("t"))
       )),
       Body(Seq(
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        AddMono(Var("m"), IntNum(1), Var("t"))
       ))
     )
   )
@@ -81,9 +82,9 @@ class MonoTypeTest extends AnyFunSuiteLike {
   // would let type checker throws an error
   private lazy val relation1UnSafe: Relation = Relation(
     "main",
-    Seq(Param("t", TString), Param("b", TInt)),
+    Seq(Param("t", TString), Param("b", TString)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(new CountMono {override val input : Type = TString}, Seq(), Seq(TString))),
+      Eq(Var("m"), MkMono(CountMono, Seq(), TString)),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ResultMono(Var("m")))
@@ -94,17 +95,17 @@ class MonoTypeTest extends AnyFunSuiteLike {
   // would let the type checker throws an error
   private lazy val relation2Unsafe: Relation = Relation(
     "size",
-    Seq(Param("t", TString), Param("m", TMono(TInt, TInt, Seq(TString)))),
+    Seq(Param("t", TString), Param("m", TMono(TInt, TInt, TString))),
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), StringLit("1"), Seq(Var("t")))
+        AddMono(Var("m"), StringLit("1"), Var("t"))
       )),
       Body(Seq(
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), StringLit("1"), Seq(Var("t")))
+        AddMono(Var("m"), StringLit("1"), Var("t"))
       ))
     )
   )
