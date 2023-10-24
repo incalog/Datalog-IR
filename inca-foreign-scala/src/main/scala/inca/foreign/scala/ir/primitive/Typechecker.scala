@@ -1,7 +1,6 @@
 package inca.foreign.scala.ir.primitive
 
 import inca.foreign.scala.ir.primitive.*
-import inca.foreign.scala.syntax.Scala
 import inca.ir.extension.data.DataDefinition
 import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.ir.typing.{BaseIRTypechecker, Mode}
@@ -9,7 +8,7 @@ import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, Te
 
 trait Typechecker extends BaseIRTypechecker:
   override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match
-    case ScalaDefnModuleEntry(_) => // nothing
+    case ScalaDefnModuleEntry(_, _) => // nothing
     case _ => super.typecheck(moduleEntry)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
@@ -32,7 +31,9 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.checkAtom(atom, mode)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case ScalaTerm(_, ty, args) =>
+    case ScalaTerm(_, ty, args, _) =>
       args.foreach(inferTerm(_, Mode.Bound))
+      ty.bound
+    case ScalaConstantTerm(_, ty) =>
       ty.bound
     case _ => super.inferTermExtend(term, mode)

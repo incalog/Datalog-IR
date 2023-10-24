@@ -3,7 +3,6 @@ package inca.foreign.scala.ir
 import inca.ir.lowering.BaseLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaTerm, ScalaType}
-import inca.foreign.scala.syntax.Scala
 import inca.ir.Hint.preserveHints
 import inca.ir.{BaseIR, Name, Term, TermType, Type}
 
@@ -22,25 +21,14 @@ trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
   protected[ir] def createScalaBinOp(op: String, ty: ScalaType, lhsParam: (Term, ScalaType), rhsParam: (Term, ScalaType)): ScalaTerm = {
     val (lhs, lhsTy) = lhsParam
     val (rhs, rhsTy) = rhsParam
-    val lambda = Scala.Lam(
-      Seq(
-        Scala.Param("lhs", lhsTy.ty),
-        Scala.Param("rhs", rhsTy.ty)
-      ),
-      Scala.AppInfix(
-        Scala.Id("lhs"), op, Scala.Id("rhs")
-      )
-    )
-    ScalaTerm(lambda, ty, Seq(lhs, rhs))
+    val lambdaCode = s"(lhs: ${lhsTy.name}, rhs: ${rhsTy.name}) => lhs $op rhs"
+    ScalaTerm(lambdaCode, ty, Seq(lhs, rhs))
   }
 
   protected[ir] def createScalaUnOp(op: String, ty: ScalaType, param: (Term, ScalaType)): ScalaTerm = {
     val (arg, argTy) = param
-    val lambda = Scala.Lam(
-      Seq(Scala.Param("arg", argTy.ty)),
-      Scala.AppUnary(Scala.Id("arg"), op)
-    )
-    ScalaTerm(lambda, ty, Seq(arg))
+    val lambdaCode = s"(arg: $argTy) => ${op}arg"
+    ScalaTerm(lambdaCode, ty, Seq(arg))
   }
 
   protected[ir] def typedParams(t: Term): Seq[(Term, Type)] = {
@@ -52,6 +40,7 @@ trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
       yield t -> ty(i)
   }
 
+  // Throws an error if the type is unsupported
   protected[ir] def compileType(ty: Type): ScalaType =
     if (isTypeSupported(ty))
       ScalaInca.compileType(ty)

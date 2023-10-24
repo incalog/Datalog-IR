@@ -4,14 +4,12 @@ import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, BaseIR, Eq, Term, TermType, Type, Var}
 import inca.ir.extension.arithmetic
-import inca.ir.extension.arithmetic.{BinCompare, BinOp, UnOp, DoubleNum, IntNum, TDouble, TInt, ArithmeticAggregationOperator}
+import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
 import inca.ir.{name2string, string2name}
-
 import inca.foreign.scala.ir.{BaseScalaLowering, primitive}
-import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaTerm, ScalaAggregationAtom, ScalaType, ScalaAggregation}
-import inca.foreign.scala.syntax.Scala
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaAggregationAtom, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
@@ -24,10 +22,9 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
       case BinCompare(lhs, rhs, op) =>
-        val constTrue = ScalaTerm(Scala.BoolLiteral(true), ScalaType.bool, Seq())
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, lty), (r, rty)) if lty == rty =>
-            Eq(constTrue, createScalaBinOp(op, ScalaType.bool, l -> compileType(lty), r -> compileType(rty)))
+            Eq(ScalaConstantTerm.TRUE, createScalaBinOp(op, ScalaType.bool, l -> compileType(lty), r -> compileType(rty)))
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not compare types $lty and $rty")
         }
@@ -67,9 +64,9 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case IntNum(i) =>
-        Seq(ScalaTerm(Scala.IntLiteral(i), ScalaType.int, Seq()))
+        Seq(ScalaConstantTerm(s"$i", ScalaType.int))
       case DoubleNum(d) =>
-        Seq(ScalaTerm(Scala.DoubleLiteral(d), ScalaType.double, Seq()))
+        Seq(ScalaConstantTerm(s"$d", ScalaType.double))
       case BinOp(lhs, rhs, op) =>
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, lty), (r, rty)) if lty == rty =>

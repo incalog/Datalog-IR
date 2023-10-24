@@ -8,7 +8,7 @@ import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
-    case ScalaDefnModuleEntry(defn) => Seq(ScalaDefnModuleEntry(defn))
+    case ScalaDefnModuleEntry(name, defn) => Seq(ScalaDefnModuleEntry(name, defn))
     case _ => super.visitModuleEntry(moduleEntry)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
@@ -18,7 +18,8 @@ trait Visitor extends BaseIRVisitor:
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
-      case ScalaTerm(closure, ty, args) => Seq(ScalaTerm(closure, ty, args.flatMap(visitTerm)))
+      case ScalaTerm(code, ty, args, isApp) => Seq(ScalaTerm(code, ty, args.flatMap(visitTerm), isApp))
+      case ScalaConstantTerm(code, ty) => Seq(ScalaConstantTerm(code, ty))
       case _ => super.visitTerm(term)
   }
 

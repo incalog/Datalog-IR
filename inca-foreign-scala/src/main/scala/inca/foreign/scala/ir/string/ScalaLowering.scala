@@ -1,8 +1,7 @@
 package inca.foreign.scala.ir.string
 
 import inca.foreign.scala.ir.{BaseScalaLowering, primitive}
-import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaTerm, ScalaType}
-import inca.foreign.scala.syntax.Scala
+import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*
@@ -20,7 +19,7 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case StringLit(value) =>
-        Seq(ScalaTerm(Scala.StringLiteral(value), ScalaType.string, Seq()))
+        Seq(ScalaConstantTerm(s""""$value"""", ScalaType.string))
       case StringConcat(lhs, rhs) =>
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, TString), (r, TString)) =>

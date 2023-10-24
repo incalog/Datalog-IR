@@ -9,8 +9,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
-import inca.foreign.scala.syntax.Scala
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaDefnModuleEntry, ScalaTerm, ScalaConstantTerm, ScalaType}
 import inca.ir.extension.data.DataDefinition
 import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.util.Gensym
@@ -79,7 +78,7 @@ object GeneratePSystem:
     }
 
     val defns = mod.contents.flatMap {
-      case ScalaDefnModuleEntry(defn) => Some(compileScalaDefn(defn).indent(indent))
+      case ScalaDefnModuleEntry(_, defn) => Some(defn.indent(indent))
       case _ => None
     }
 
@@ -215,7 +214,7 @@ object GeneratePSystem:
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
 
-      val scalaTyp = compileScalaType(sty.ty)
+      val scalaTyp = sty.name
       agg match
         case ScalaAggregation.Count =>
           s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
@@ -228,29 +227,28 @@ object GeneratePSystem:
   private def compileTerm(t: Term): Code = t match {
     case Var(name) =>
       val ty = t.typ match
-        case Some(TermType(ScalaType(sty), _)) => compileScalaType(sty)
+        case Some(TermType(ScalaType(sty), _)) => sty
         case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
       pVar2Code += pvarName -> (Some(name), s"""env.getValue("$name").asInstanceOf[$ty]""")
       pvarName
     case Cast(t, ty) => compileTerm(t)
-    case primitive.ScalaTerm(lit: Scala.Literal[_], ty, args) =>
-      val pvarName = s"$LITPREFIX${genLiteralVarName(lit, ty)}"
-      pVar2Code += (pvarName -> (None, s"${lit.value}"))
+    case primitive.ScalaConstantTerm(code, ty) =>
+      val pvarName = s"$LITPREFIX${genLiteralVarName(code, ty)}"
+      pVar2Code += (pvarName -> (None, code))
       pvarName
-    case scalaTerm@primitive.ScalaTerm(term, sty, args) =>
+    case scalaTerm@primitive.ScalaTerm(termCode, sty, args, isApp) =>
       val compiledArgs = args.map(compileTerm)
-      val termCode = compileScalaTerm(scalaTerm.code)
-      val tyCode = compileScalaType(sty.ty)
+      val tyCode = sty.name
 
       val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
-      val argTys = scalaTerm.inTypes.map(sty => compileScalaType(sty.ty))
+      val argTys = scalaTerm.inTypes.map(sty => sty.name)
       val argsCode =
-        if (compiledArgs.isEmpty)
-          ""
-        else
+        if (isApp)
           s"""(${compiledArgs.map(c => pVar2Code(c)._2).mkString(", ")})"""
+        else
+          ""
 
       val description = s""""eval(${scalaTerm.toString})""""
       val outName = gensym.fresh("out")
@@ -267,7 +265,7 @@ object GeneratePSystem:
            |}, $pvarName)""".stripMargin
 
       evalExp :+= (evalExpCode, outName)
-      pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${compileScalaType(sty.ty)}]"""))
+      pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${sty.name}]"""))
       pvarName
   }
 
@@ -275,82 +273,21 @@ object GeneratePSystem:
     val prefix = "builtin.arithmetic"
     val suffix = "Aggregation.aggregator"
     agg match
-      case primitive.ScalaAggregation.Min => s"$prefix.Min${compileScalaType(sty.ty)}$suffix"
-      case primitive.ScalaAggregation.Max => s"$prefix.Max${compileScalaType(sty.ty)}$suffix"
-      case primitive.ScalaAggregation.Sum => s"$prefix.Sum${compileScalaType(sty.ty)}$suffix"
-
-  private def compileScalaMod(mod: Scala.Mod): Code = mod match
-    case Scala.Case => "case"
-    case _ => throw IllegalArgumentException(s"Unsupported mod $mod")
-
-  private def compileScalaMods(mods: Seq[Scala.Mod]): Code =
-    if (mods.isEmpty)
-      ""
-    else
-      mods.map(compileScalaMod).mkString("", ", ", " ")
-
-  private def compileScalaExtends(extending: Seq[String]): Code =
-    if (extending.isEmpty)
-      ""
-    else
-      s"extends ${extending.mkString(" with ")}"
-
-  private def compileScalaDefn(defn: Scala.Defn): Code = defn match
-    case Scala.Enum(name, cases) =>
-      val enumCases = cases.map(compileScalaDefn)
-      s"""enum $name {\n${enumCases.mkString("\n")}\n}"""
-    case Scala.EnumCase(name, values) =>
-      s"""case $name(${values.map(compileScalaTerm).mkString(", ")})"""
-    case Scala.Object(name, mods, extending) =>
-      val modString = mods.map(compileScalaMod).mkString("", " ", " ")
-      s"""${compileScalaMods(mods)}object $name ${compileScalaExtends(extending)}"""
-    case Scala.Trait(name, mods, extending, params) =>
-      val paramString = params.map(compileScalaTerm).mkString("(", ", ", ")")
-      s"""${compileScalaMods(mods)}trait $name$paramString ${compileScalaExtends(extending)}"""
-    case Scala.Class(name, mods, extending, params) =>
-      val paramString = params.map(compileScalaTerm).mkString("(", ", ", ")")
-      s"""${compileScalaMods(mods)}class $name$paramString ${compileScalaExtends(extending)}"""
-    case _ => throw IllegalArgumentException(s"Unsupported definition $defn")
-
-  private def compileScalaTerm(term: Scala.Term): Code = term match
-    case Scala.Id(x) => x
-    case Scala.Select(t, name) =>
-      s"${compileScalaTerm(t)}.$name"
-    case Scala.Param(name, ty) =>
-      s"${name}: ${compileScalaType(ty)}"
-    case Scala.Lam(params, t) =>
-      s"(${params.map(compileScalaTerm).mkString(", ")}) => ${compileScalaTerm(t)}"
-    case Scala.App(fun, args) =>
-      val inArgs = args.map(compileScalaTerm).mkString(",")
-      s"${compileScalaTerm(fun)}($inArgs})"
-    case Scala.AppUnary(t, op) =>
-      s"$op${compileScalaTerm(t)}"
-    case Scala.AppInfix(t1, op, t2) =>
-      s"${compileScalaTerm(t1)} $op ${compileScalaTerm(t2)}"
-
-  private def compileScalaType(t: Scala.Type): Code = t match {
-    case Scala.TypeName(s) => s
-    case Scala.FunType(args, ret) => s"Function[${(args :+ ret).map(compileScalaType).mkString(",")}]"
-  }
-
-  private def genLamVarName(lam: Scala.Lam): String = lam.hashCode().toString
-
-  private def genLiteral[T](lit: Scala.Literal[T]): Code = lit match
-    case Scala.StringLiteral(value) => s""""${lit.value}""""
-    case _ => s"${lit.value}"
-
+      case primitive.ScalaAggregation.Min => s"$prefix.Min${sty.name}$suffix"
+      case primitive.ScalaAggregation.Max => s"$prefix.Max${sty.name}$suffix"
+      case primitive.ScalaAggregation.Sum => s"$prefix.Sum${sty.name}$suffix"
 
   private def genExprEvalVar(name: String): Code = {
     s"""val ${EVALPREFIX + name}: PVariable = body.getOrCreateVariableByName("$name")""".stripMargin
   }
 
-  private def genLiteralVar[T](lit: Scala.Literal[T], ty: primitive.ScalaType): Code = {
+  private def genLiteralVar[T](lit: String, ty: primitive.ScalaType): Code = {
     val varName = genLiteralVarName(lit, ty)
-    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${genLiteral(lit)})"
+    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${lit})"
   }
 
-  private def genLiteralVarName[T](lit: Scala.Literal[T], ty: primitive.ScalaType): String = {
-    compileScalaType(ty.ty) + lit.value.hashCode
+  private def genLiteralVarName[T](lit: String, ty: primitive.ScalaType): String = {
+    ty.name + lit.hashCode
   }
 
   private def genPParam(param: Param): Code = {

@@ -120,7 +120,15 @@ class FunctionalExecutorTest extends AnyFunSuite {
     val compiled = exec.compileFunction(code)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
-    println(res.entries)
-    //assertResult(-5)(res.entries.head)
+    assertResult("Succ(Succ(Succ(Succ(Succ(Zero())))))")(res.entries.head.toString)
+  }
+
+  test("Complex set intersection") {
+    val code = FileUtil.readFile("functional/unittests/ComplexSetIntersection.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("main", Seq())
+    println(res)
+    //assertResult("Succ(Succ(Succ(Succ(Succ(Zero())))))")(res.entries.head.toString)
   }
 }

@@ -1,6 +1,5 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.foreign.scala.syntax.Scala
 import inca.ir.*
 import inca.ir.extension.foreign.{ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
@@ -8,10 +7,8 @@ import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
 
-type Code = String
-
 object ScalaInca extends ForeignLanguage:
-  type Code = Scala.Term
+  type Code = String
 
   def compileType(ty: Type): ScalaType = ty match
     case sty@ScalaType(_) => sty
@@ -19,18 +16,17 @@ object ScalaInca extends ForeignLanguage:
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
-    case TData(name) => ScalaType.named(name)
+    case TData(name) => ScalaType(name)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
-case class ScalaType(ty: Scala.Type) extends ForeignType
+case class ScalaType(name: String) extends ForeignType
 object ScalaType:
-  def string: ScalaType = ScalaType(Scala.TypeName("String"))
-  def int: ScalaType = ScalaType(Scala.TypeName("Int"))
-  def double: ScalaType = ScalaType(Scala.TypeName("Double"))
-  def bool: ScalaType = ScalaType(Scala.TypeName("Boolean"))
-  def named(name: String): ScalaType = ScalaType(Scala.TypeName(name))
+  def string: ScalaType = ScalaType("String")
+  def int: ScalaType = ScalaType("Int")
+  def double: ScalaType = ScalaType("Double")
+  def bool: ScalaType = ScalaType("Boolean")
 
-case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends ForeignTerm(args):
+case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -41,12 +37,24 @@ case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends F
     ScalaInca.compileType(tty)
   }
   override def outTypes: Seq[ScalaType] = Seq(ty)
-
   override def toString: String =
-    if (args.nonEmpty)
+    if (isApp)
       s"""`($code)(${args.mkString(", ")})`"""
     else
-      s"`$code`"
+      s"""`$code`"""
+
+
+// Note: We do want to have this type for performance reasons
+case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Seq()):
+  override val lang: ScalaInca.type = ScalaInca
+  override def vars: Seq[Var] = Seq()
+  override def inTypes: Seq[ScalaType] = Seq()
+  override def outTypes: Seq[ScalaType] = Seq(ty)
+  override def toString: String = s"`$code`"
+
+object ScalaConstantTerm:
+  val TRUE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
+  val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
 
 
 enum ScalaAggregation:
@@ -54,9 +62,9 @@ enum ScalaAggregation:
   case Max
   case Sum
   case Count
-  case Custom(defn: Scala.Object) // TODO: not supported
+  case Custom(defn: String) // TODO: not supported
 
-case class ScalaAggregationAtom(agg: ScalaAggregation, rel: String, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+case class ScalaAggregationAtom(agg: ScalaAggregation, rel: Name, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
   override def toString: String =
@@ -64,19 +72,11 @@ case class ScalaAggregationAtom(agg: ScalaAggregation, rel: String, out: Term, t
       case (_, i) if i == aggregatedColumn => "#"
       case (a, _) => s"$a"
     }
-    s"""$out: $ty = aggregate $rel(${inArgs.mkString(", ")}) with $agg"""
+    s"""$out: $ty = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $agg"""
 
 
-case class ScalaDefnModuleEntry(defn: Scala.Defn) extends ForeignModuleEntry:
-  override val name: Name = defn match
-    case Scala.Enum(name, cases) => name
-    case Scala.EnumCase(name, values) => name
-    case Scala.Object(name, _, _) => name
-    case Scala.Trait(name, _, _, _) => name
-    case Scala.Class(name, _, _, _) => name
-    case _ => ??? // Add support for your case
-
-  override def toString: String = s"$defn"
+case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
+  override def toString: String = code
 
 
 trait IR extends BaseIR:

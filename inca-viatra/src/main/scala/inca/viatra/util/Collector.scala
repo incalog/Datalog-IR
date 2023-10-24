@@ -1,7 +1,6 @@
 package inca.viatra.util
 
-import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaAggregationAtom, ScalaType, Visitor}
-import inca.foreign.scala.syntax.Scala
+import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaConstantTerm, ScalaAggregationAtom, ScalaType, Visitor}
 import inca.ir.visitors.IRVisitor
 import inca.viatra.ir.primitiveScala
 import inca.ir.{Atom, Body, Module, Relation, Term, Var, name2string}
@@ -36,17 +35,16 @@ protected[viatra] object VarCollector {
   }
 }
 
-protected[viatra] class LitCollector extends Collector[(Scala.Literal[_], ScalaType)] {
+protected[viatra] class LitCollector extends Collector[(String, ScalaType)] {
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case _: ScalaAggregationAtom => Seq()
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case ScalaTerm(lit: Scala.Literal[_], ty, _) => // Ignore all arguments if the body is a literal
-      collect((lit, ty))
+    case ScalaConstantTerm(code, ty) =>
+      collect((code, ty))
       Seq()
-      //super.visitTerm(term)
-    case ScalaTerm(_, _ , _) =>
+    case ScalaTerm(_, _ , _, _) =>
       // Do not collect literals that are used as arguments for a scala term
       Seq()
     case _ =>
@@ -54,13 +52,13 @@ protected[viatra] class LitCollector extends Collector[(Scala.Literal[_], ScalaT
 }
 
 protected[viatra] object LitCollector {
-  def collectAll(relation: Relation): Seq[(Scala.Literal[_], ScalaType)] = {
+  def collectAll(relation: Relation): Seq[(String, ScalaType)] = {
     val litCollector = new LitCollector()
     litCollector.visitRelation(relation)
     litCollector.get()
   }
 
-  def collectAll(body: Body): Seq[(Scala.Literal[_], ScalaType)] = {
+  def collectAll(body: Body): Seq[(String, ScalaType)] = {
     val litCollector = new LitCollector()
     litCollector.visitBody(body)
     litCollector.get()
