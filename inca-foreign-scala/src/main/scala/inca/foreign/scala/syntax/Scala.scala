@@ -8,6 +8,7 @@ object Scala:
   trait Stat extends Tree
   trait Template extends Tree
   trait Defn extends Stat
+  trait Mod extends Tree
 
   case class TypeName(s: String) extends Type:
     override def toString: String = s
@@ -18,11 +19,20 @@ object Scala:
   //case class TupleType(tys: Seq[Type]) extends Type:
   //  override def toString: String = s"(${tys.mkString(", ")})"
 
+  // Mods
+  case object Case extends Mod
+
   // Defn
 
-  // TODO: complete this
-  case class Object(name: String, template: Template) extends Defn
+  // TODO: complete these
+  case class Object(name: String, mods: Seq[Mod] = Seq(), extending: Seq[String] = Seq()) extends Defn
+  case class Trait(name: String, mods: Seq[Mod] = Seq(), extending: Seq[String] = Seq(), params: Seq[Param] = Seq()) extends Defn
+  case class Class(name: String, mods: Seq[Mod] = Seq(), extending: Seq[String] = Seq(), params: Seq[Param] = Seq()) extends Defn
 
+
+  // Fixme: This makes problem with the java class loader hack. Use traits instead
+  case class EnumCase(name: String, values: Seq[Param]) extends Defn
+  case class Enum(name: String, cases: Seq[EnumCase]) extends Defn
 
   // Terms
 
@@ -43,7 +53,7 @@ object Scala:
   case class Id(x: String) extends Term:
     override def toString: String = x
 
-  case class Param(name: String, ty: Type):
+  case class Param(name: String, ty: Type) extends Term:
     override def toString: String = s"$name: $ty"
 
   case class Lam(params: Seq[Param], t: Term) extends Term:
@@ -58,5 +68,6 @@ object Scala:
   case class AppUnary(t: Term, op: String) extends Term:
     override def toString: String = s"$op$t"
 
-  case class Select(t: Term, name: String) extends Term
+  case class Select(t: Term, name: String) extends Term:
+    override def toString: String = s"$t.$name"
 

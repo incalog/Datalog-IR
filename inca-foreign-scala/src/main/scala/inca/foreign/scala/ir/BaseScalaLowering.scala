@@ -10,7 +10,7 @@ import inca.ir.{BaseIR, Name, Term, TermType, Type}
 trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
 
-  def supportedTypes: Seq[Type]
+  def isTypeSupported(ty: Type): Boolean
 
   private var freshCount = 0
 
@@ -43,19 +43,6 @@ trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
     ScalaTerm(lambda, ty, Seq(arg))
   }
 
-  protected[ir] def compileType(ty: Type): ScalaType =
-    if (supportedTypes.contains(ty))
-      ScalaInca.compileType(ty)
-    else
-      throw IllegalArgumentException(s"Unexpected type: $ty")
-
-  override def visitType(ty: Type): Type = preserveHints(ty) {
-    if (supportedTypes.contains(ty))
-      compileType(ty)
-    else
-      super.visitType(ty)  
-  }
-  
   protected[ir] def typedParams(t: Term): Seq[(Term, Type)] = {
     val ty = t.typ match
       case Some(TermType(ty, _)) => ty.flatten
@@ -63,4 +50,17 @@ trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
 
     for ((t, i) <- visitTerm(t).zipWithIndex)
       yield t -> ty(i)
+  }
+
+  protected[ir] def compileType(ty: Type): ScalaType =
+    if (isTypeSupported(ty))
+      ScalaInca.compileType(ty)
+    else
+      throw IllegalArgumentException(s"Unexpected type: $ty")
+
+  override def visitType(ty: Type): Type = preserveHints(ty) {
+    if (isTypeSupported(ty))
+      compileType(ty)
+    else
+      super.visitType(ty)  
   }

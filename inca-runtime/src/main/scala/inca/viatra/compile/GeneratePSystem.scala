@@ -2,14 +2,17 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
+import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
 import inca.viatra.ir.primitiveScala
 import inca.viatra.util.{LitCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
+import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
 import inca.foreign.scala.syntax.Scala
+import inca.ir.extension.data.DataDefinition
+import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.util.Gensym
 
 import scala.annotation.tailrec
@@ -40,7 +43,7 @@ object GeneratePSystem:
     val lowerings: List[() => BaseLowering] = List(
       () => new arithmetic.ScalaLowering {}, // lower arithmetic
       () => new string.ScalaLowering {}, // lower strings
-      //() => new data.ScalaLowering {}, // lower data
+      () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
       () => new DemandLowering {} // lower reintroduced demand symbols (necessary ?)
     )
@@ -65,19 +68,20 @@ object GeneratePSystem:
   }
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
+    val indent = 2
     val mod = lowerAndTypeModule(module)
-    println()
-    println("After: ")
-    println(mod)
 
     val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
-    val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent=2)(myenv)).toList
+    val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
 
     val nonEmptyRels = mod.relations.values.filter(!_.isEmpty).map {
       r => s""""${r.name}" -> (() => ${r.name}.instance)"""
     }
 
-    val indent = "  "
+    val defns = mod.contents.flatMap {
+      case ScalaDefnModuleEntry(defn) => Some(compileScalaDefn(defn).indent(indent))
+      case _ => None
+    }
 
     s"""
       |import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
@@ -103,8 +107,9 @@ object GeneratePSystem:
       |import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
       |
       |object ${mod.name} extends PSystem.Module {
+      |${defns.mkString("")}
       |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
-      |  ${funs.mkString("\n")}
+      |${funs.mkString("\n")}
       |}
     """.stripMargin
   }
@@ -132,8 +137,8 @@ object GeneratePSystem:
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
-    //val allVars = VarCollector.collectAll(relation)
 
+    //val allVars = VarCollector.collectAll(relation)
     //val gensym = new Gensym(allVars)
 
     if (relation.isEmpty) {
@@ -274,13 +279,47 @@ object GeneratePSystem:
       case primitive.ScalaAggregation.Max => s"$prefix.Max${compileScalaType(sty.ty)}$suffix"
       case primitive.ScalaAggregation.Sum => s"$prefix.Sum${compileScalaType(sty.ty)}$suffix"
 
+  private def compileScalaMod(mod: Scala.Mod): Code = mod match
+    case Scala.Case => "case"
+    case _ => throw IllegalArgumentException(s"Unsupported mod $mod")
+
+  private def compileScalaMods(mods: Seq[Scala.Mod]): Code =
+    if (mods.isEmpty)
+      ""
+    else
+      mods.map(compileScalaMod).mkString("", ", ", " ")
+
+  private def compileScalaExtends(extending: Seq[String]): Code =
+    if (extending.isEmpty)
+      ""
+    else
+      s"extends ${extending.mkString(" with ")}"
+
+  private def compileScalaDefn(defn: Scala.Defn): Code = defn match
+    case Scala.Enum(name, cases) =>
+      val enumCases = cases.map(compileScalaDefn)
+      s"""enum $name {\n${enumCases.mkString("\n")}\n}"""
+    case Scala.EnumCase(name, values) =>
+      s"""case $name(${values.map(compileScalaTerm).mkString(", ")})"""
+    case Scala.Object(name, mods, extending) =>
+      val modString = mods.map(compileScalaMod).mkString("", " ", " ")
+      s"""${compileScalaMods(mods)}object $name ${compileScalaExtends(extending)}"""
+    case Scala.Trait(name, mods, extending, params) =>
+      val paramString = params.map(compileScalaTerm).mkString("(", ", ", ")")
+      s"""${compileScalaMods(mods)}trait $name$paramString ${compileScalaExtends(extending)}"""
+    case Scala.Class(name, mods, extending, params) =>
+      val paramString = params.map(compileScalaTerm).mkString("(", ", ", ")")
+      s"""${compileScalaMods(mods)}class $name$paramString ${compileScalaExtends(extending)}"""
+    case _ => throw IllegalArgumentException(s"Unsupported definition $defn")
+
   private def compileScalaTerm(term: Scala.Term): Code = term match
     case Scala.Id(x) => x
     case Scala.Select(t, name) =>
       s"${compileScalaTerm(t)}.$name"
+    case Scala.Param(name, ty) =>
+      s"${name}: ${compileScalaType(ty)}"
     case Scala.Lam(params, t) =>
-      val args = params.map(p => s"${p.name}: ${compileScalaType(p.ty)}")
-      s"(${args.mkString(", ")}) => ${compileScalaTerm(t)}"
+      s"(${params.map(compileScalaTerm).mkString(", ")}) => ${compileScalaTerm(t)}"
     case Scala.App(fun, args) =>
       val inArgs = args.map(compileScalaTerm).mkString(",")
       s"${compileScalaTerm(fun)}($inArgs})"

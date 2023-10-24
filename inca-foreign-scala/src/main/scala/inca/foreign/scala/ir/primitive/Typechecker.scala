@@ -2,11 +2,16 @@ package inca.foreign.scala.ir.primitive
 
 import inca.foreign.scala.ir.primitive.*
 import inca.foreign.scala.syntax.Scala
+import inca.ir.extension.data.DataDefinition
+import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, TAny, Term, TermType, Type}
-import inca.ir.string2name
+import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, TermType, Type, string2name}
 
 trait Typechecker extends BaseIRTypechecker:
+  override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match
+    case ScalaDefnModuleEntry(_) => // nothing
+    case _ => super.typecheck(moduleEntry)
+
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case ScalaAggregationAtom(_, rel, out, ty, args, aggregatedColumn) =>
       if (aggregatedColumn >= args.size)
@@ -27,7 +32,7 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.checkAtom(atom, mode)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case ScalaTerm(_ , ty, args) =>
+    case ScalaTerm(_, ty, args) =>
       args.foreach(inferTerm(_, Mode.Bound))
       ty.bound
     case _ => super.inferTermExtend(term, mode)

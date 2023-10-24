@@ -2,9 +2,10 @@ package inca.foreign.scala.ir.primitive
 
 import inca.foreign.scala.syntax.Scala
 import inca.ir.*
-import inca.ir.extension.foreign.{ForeignAtom, ForeignLanguage, ForeignTerm, ForeignType}
+import inca.ir.extension.foreign.{ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
+import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
 
 object ScalaInca extends ForeignLanguage:
@@ -16,6 +17,7 @@ object ScalaInca extends ForeignLanguage:
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
+    case TData(name) => ScalaType.named(name)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(ty: Scala.Type) extends ForeignType
@@ -24,6 +26,7 @@ object ScalaType:
   def int: ScalaType = ScalaType(Scala.TypeName("Int"))
   def double: ScalaType = ScalaType(Scala.TypeName("Double"))
   def bool: ScalaType = ScalaType(Scala.TypeName("Boolean"))
+  def named(name: String): ScalaType = ScalaType(Scala.TypeName(name))
 
 case class ScalaTerm(code: Scala.Term, ty: ScalaType, args: Seq[Term]) extends ForeignTerm(args):
   override val lang: ScalaInca.type = ScalaInca
@@ -60,6 +63,18 @@ case class ScalaAggregationAtom(agg: ScalaAggregation, rel: String, out: Term, t
       case (a, _) => s"$a"
     }
     s"""$out: $ty = aggregate $rel(${inArgs.mkString(", ")}) with $agg"""
+
+
+case class ScalaDefnModuleEntry(defn: Scala.Defn) extends ForeignModuleEntry:
+  override val name: Name = defn match
+    case Scala.Enum(name, cases) => name
+    case Scala.EnumCase(name, values) => name
+    case Scala.Object(name, _, _) => name
+    case Scala.Trait(name, _, _, _) => name
+    case Scala.Class(name, _, _, _) => name
+    case _ => ??? // Add support for your case
+
+  override def toString: String = s"$defn"
 
 
 trait IR extends BaseIR:

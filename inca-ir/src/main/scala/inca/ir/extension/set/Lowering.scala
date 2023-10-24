@@ -16,7 +16,7 @@ import inca.util.Gensym
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
 /*
- * Proposal 1: Represent set with IDs expressed as ADTs
+ * Proposal: Represent set with IDs expressed as ADTs
  * E.g
  * main(z: Set[Int]) :- y == Set(1,2,3), somCall(y, z).
  * someCall(y: Set[Int], z: Set[Int]) :- z == (y U Set(2,4))
@@ -43,9 +43,8 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
  *
  * We replace a Set with an ID that we represent by an ADT. Instead of passing around
  * a set, we pass around an ADT value. The ADT case must include all variables bound
- * in the Set expression. We create one (or multiple) set relation that include all
- * atoms up to this point as a prefix. When we read a set, we query this set relation
- * with the ID we generated for the set.
+ * in the Set expression. When we read a set, we query this set relation with the ID
+ * we generated for the set.
  */
 trait Lowering extends BaseLowering:
 

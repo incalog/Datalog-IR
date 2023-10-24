@@ -114,4 +114,13 @@ class FunctionalExecutorTest extends AnyFunSuite {
     val res = loaded.execute("main", Seq(1))
     assertResult(13)(res.entries.head)
   }*/
+
+  test("Plus") {
+    val code = FileUtil.readFile("functional/unittests/Plus.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("main", Seq())
+    println(res.entries)
+    //assertResult(-5)(res.entries.head)
+  }
 }

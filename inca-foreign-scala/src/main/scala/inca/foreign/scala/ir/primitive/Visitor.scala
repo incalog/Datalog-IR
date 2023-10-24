@@ -1,12 +1,16 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.ir.{Atom, BaseIR, Term, Type}
+import inca.ir.{Atom, BaseIR, ModuleEntry, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.Hint.preserveHints
 
 import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case ScalaDefnModuleEntry(defn) => Seq(ScalaDefnModuleEntry(defn))
+    case _ => super.visitModuleEntry(moduleEntry)
+
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case ScalaAggregationAtom(agg, rel, out, ty, args, col) =>
       Seq(ScalaAggregationAtom(agg, rel, visitTerm(out).head, ty, args.flatMap(visitTerm), col))

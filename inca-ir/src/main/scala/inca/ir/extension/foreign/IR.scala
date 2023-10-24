@@ -1,7 +1,7 @@
 package inca.ir.extension.foreign
 
 import inca.ir.extension.aggregate.AggregationOperatorUserDefined
-import inca.ir.{Term, Atom, Type, Var}
+import inca.ir.{Term, Atom, Type, Var, ModuleEntry}
 
 trait ForeignLanguage:
   type Code
@@ -9,6 +9,8 @@ trait ForeignLanguage:
 trait ForeignType extends Type
 
 trait ForeignAtom extends Atom
+
+trait ForeignModuleEntry extends ModuleEntry
 
 trait ForeignTerm(args: Seq[Term]) extends Term:
   val lang: ForeignLanguage

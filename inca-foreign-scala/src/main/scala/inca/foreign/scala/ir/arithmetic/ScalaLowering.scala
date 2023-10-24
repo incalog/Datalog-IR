@@ -17,7 +17,9 @@ trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs ++ Set(block.IR)
 
-  override def supportedTypes: Seq[Type] = Seq(TInt, TDouble)
+  override def isTypeSupported(ty: Type): Boolean = ty match
+    case TInt | TDouble  => true
+    case _ => false
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match

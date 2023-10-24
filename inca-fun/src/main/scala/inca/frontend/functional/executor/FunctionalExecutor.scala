@@ -17,7 +17,7 @@ class FunctionalExecutor(val exec: IRExecutor):
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
       val rel = engine.read(UnitRelation(pat))
-      // engine.readAll().foreach { r => println(r.asTable) }
+      engine.readAll().foreach { r => println(r.asTable) }
       rel.project(tuple.size, Int.MaxValue)
     }
 
