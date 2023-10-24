@@ -1,9 +1,9 @@
 module Plus
 data Nat = Zero() | Succ(Nat)
-/*def plus(m: Nat, n: Nat): Nat = m match {
+def plus(m: Nat, n: Nat): Nat = m match {
   case Zero() => n
   case Succ(pred) => Succ(plus(pred, n))
-}*/
+}
 
-@main def main(): Nat = Succ(Zero())
-  //plus(Succ(Succ(Succ(Zero()))), Succ(Succ(Zero())))
+@main def main(): Nat =
+  plus(Succ(Succ(Succ(Zero()))), Succ(Succ(Zero())))

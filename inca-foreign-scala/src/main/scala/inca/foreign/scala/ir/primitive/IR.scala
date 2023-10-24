@@ -8,6 +8,8 @@ import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
 
+type Code = String
+
 object ScalaInca extends ForeignLanguage:
   type Code = Scala.Term
 

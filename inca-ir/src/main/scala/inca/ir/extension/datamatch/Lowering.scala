@@ -23,3 +23,8 @@ trait Lowering extends BaseLowering:
       Seq(Disjunction((alternatives)))
     case _ => super.visitAtom(atom)
   }
+
+// r(T) :- guard(x), x match { case Zero() => a1 a2 a3; case Succ(p) => a4 a5 a6 }
+
+// r(T) :- guard(x), true == x.isInstanceOf[Zero], a1 a2 a3
+// r(T) :- guard(x), true == x.isInstanceOf[Succ], p = x.asInstanceOf[Succ].param a4 a5 a6

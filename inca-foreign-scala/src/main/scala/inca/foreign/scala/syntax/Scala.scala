@@ -9,6 +9,7 @@ object Scala:
   trait Template extends Tree
   trait Defn extends Stat
   trait Mod extends Tree
+  trait Term extends Stat
 
   case class TypeName(s: String) extends Type:
     override def toString: String = s
@@ -36,7 +37,7 @@ object Scala:
 
   // Terms
 
-  trait Term extends Stat
+  case class Block(stats: Seq[Stat]) extends Term
 
   case class Var(x: String) extends Term:
     override def toString: String = x
@@ -59,7 +60,8 @@ object Scala:
   case class Lam(params: Seq[Param], t: Term) extends Term:
     override def toString: String = s"(${params.mkString(", ")}) => $t"
 
-  case class App(fun: Term, args: Seq[Term]) extends Term:
+  // TODO: Update toString
+  case class App(fun: Term, args: Seq[Seq[Term]]) extends Term:
     override def toString: String = s"($fun)(${args.mkString(", ")})"
 
   case class AppInfix(t1: Term, op: String, t2: Term) extends Term:
