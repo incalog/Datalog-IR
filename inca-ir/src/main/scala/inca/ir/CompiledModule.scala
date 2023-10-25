@@ -52,8 +52,8 @@ trait CompiledModule:
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
-      println(l)
-      println()
+      //println(l)
+      //println()
       val checker = new IRTypechecker
       checker.typecheck(l)
       l

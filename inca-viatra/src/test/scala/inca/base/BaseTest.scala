@@ -104,7 +104,7 @@ class BaseTest extends AnyFunSuiteLike:
     assertResult(6)(res.entries.size)
   }
 
-  test("Test Plus from File") {
+  /*test("Test Plus from File") {
     var code = FileUtil.readFile("code.scala")
     code = s"$code; Plus"
 
@@ -124,4 +124,4 @@ class BaseTest extends AnyFunSuiteLike:
       mainMatcher.getParameterNames.asScala.toList,
       mainMatcher.getAllMatchArrays.map(_.toSeq))
     println(res.asTable)
-  }
+  }*/

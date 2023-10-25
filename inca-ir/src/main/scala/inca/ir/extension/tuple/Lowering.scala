@@ -30,7 +30,6 @@ trait Lowering extends BaseLowering:
         res
 
   private def flatten(param: Param): Seq[Param] =
-    println(s"Visit param: $param")
     flatten(param.name, param.ty).map { case (n, t) => Param(n, t) }
 
   override def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] =
