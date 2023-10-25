@@ -2,7 +2,6 @@ package inca.viatra.util
 
 import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaConstantTerm, ScalaAggregationAtom, ScalaType, Visitor}
 import inca.ir.visitors.IRVisitor
-import inca.viatra.ir.primitiveScala
 import inca.ir.{Atom, Body, Module, Relation, Term, Var, name2string}
 
 private trait Collector[T] extends IRVisitor with Visitor {

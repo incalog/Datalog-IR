@@ -3,7 +3,6 @@ package inca.viatra.compile
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
-import inca.viatra.ir.primitiveScala
 import inca.viatra.util.{LitCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
