@@ -4,8 +4,10 @@ import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
-class FunctionalExecutorTest extends AnyFunSuite {
+class FunctionalExecutorTest extends AnyFunSuite:
   val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
+
+  // Unittests
 
   test("Base 1") {
     val code = FileUtil.readFile("functional/unittests/Base1.finca")
@@ -115,12 +117,33 @@ class FunctionalExecutorTest extends AnyFunSuite {
     assertResult(13)(res.entries.head)
   }*/
 
+  // ADT-tests
+
   test("Plus") {
     val code = FileUtil.readFile("functional/unittests/Plus.finca")
     val compiled = exec.compileFunction(code)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
+    // TODO: Do not compare by string
     assertResult("Succ(Succ(Succ(Succ(Succ(Zero())))))")(res.entries.head.toString)
+  }
+
+  test("Set const") {
+    val code = FileUtil.readFile("functional/unittests/SetConst.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    var res = loaded.execute("grades", Seq())
+    assertResult(Set("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"))(res.toSet)
+    res = loaded.execute("flip", Seq())
+    assertResult(Set(0, 1))(res.toSet)
+  }
+
+  test("Set intersection") {
+    val code = FileUtil.readFile("functional/unittests/SetIntersection.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    var res = loaded.execute("main", Seq())
+    assertResult(Set(1, 3))(res.toSet)
   }
 
   test("Complex set intersection") {
@@ -142,4 +165,20 @@ class FunctionalExecutorTest extends AnyFunSuite {
     res = loaded.execute("main7", Seq())
     assertResult(Set())(res.toSet)
   }
-}
+
+  test("Set Ops") {
+    val code = FileUtil.readFile("functional/unittests/SetOps.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("union", Seq())
+    assertResult(Set(0, 1))(res.toSet)
+  }
+
+  test("Parametric Datatypes") {
+    val code = FileUtil.readFile("functional/unittests/ParametricDatatypes.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("main", Seq())
+    // TODO: Do not compare by string
+    assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
+  }

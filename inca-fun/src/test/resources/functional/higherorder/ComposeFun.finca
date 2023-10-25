@@ -3,7 +3,7 @@ module ComposeFun
 def compose(f: Int => Int, g: Int => Int): Int => Int =
   (n: Int) => g(f(n))
 
-def double(n: Int): Int =  n + n
+def double(n: Int): Int = n + n
 def square(n: Int): Int = n * n
 
 @main def main(): Int = compose(double, square)(2)
