@@ -3,12 +3,8 @@ package inca.frontend.functional.executor
 import inca.ir
 import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateIR}
-import inca.util.ScalaCompiler
 import inca.frontend.functional.syntax.*
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
-import inca.viatra.runtime.context.{DataModel, QueryScope}
-import inca.viatra.runtime.db.{DBValue, Database, DatabaseInspector}
-import inca.viatra.runtime.{EnginePool, Query}
 
 import scala.jdk.CollectionConverters.*
 

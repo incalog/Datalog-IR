@@ -1,6 +1,7 @@
 package inca.frontend.functional.executor.unittests
 
 import inca.frontend.functional.executor.FunctionalExecutor
+import inca.ir.execution.Relation
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -143,6 +144,14 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
+    val setAdt: Any = res.entries.head
+    //println(setAdt)
+    val query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(null, null)))
+    res = loaded.engine.read(query)
+    val myres = loaded.engine.readAll()
+    myres.foreach { r =>
+      println(r.asTable)
+    }
     assertResult(Set(1, 3))(res.toSet)
   }
 

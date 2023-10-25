@@ -22,7 +22,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   }
 
   def typecheck(module: Module): Unit = scopedTypeContext {
-    // TODO: Bind EDB entries
     module.contents.sorted.foreach(bindModuleEntry)
     module.contents.sorted.foreach(typecheck)
     this.failOnError()

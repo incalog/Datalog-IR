@@ -1,8 +1,8 @@
 package inca.viatra.util
 
-import inca.foreign.scala.ir.primitive.{ScalaTerm, ScalaConstantTerm, ScalaAggregationAtom, ScalaType, Visitor}
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, Visitor}
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, Body, Module, Relation, Term, Var, name2string}
+import inca.ir.{Atom, Body, Module, ModuleEntry, Relation, Term, Var, name2string}
 
 private trait Collector[T] extends IRVisitor with Visitor {
   private var collection: Seq[T] = Seq()
@@ -61,5 +61,29 @@ protected[viatra] object LitCollector {
     val litCollector = new LitCollector()
     litCollector.visitBody(body)
     litCollector.get()
+  }
+}
+
+protected[viatra] class ScalaModuleEntryCollector extends Collector[ScalaDefnModuleEntry] {
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case defn: ScalaDefnModuleEntry =>
+      collect(defn)
+      super.visitModuleEntry(moduleEntry)
+    case _ => 
+      super.visitModuleEntry(moduleEntry)
+
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case ScalaAggregationAtom(ScalaAggregation.Custom(defn), _, _, _, _, _) => 
+      collect(defn)
+      super.visitAtom(atom)
+    case _ => 
+      super.visitAtom(atom)
+}
+
+protected[viatra] object ScalaModuleEntryCollector {
+  def collectAll(module: Module): Seq[ScalaDefnModuleEntry] = {
+    val defnCollector = new ScalaModuleEntryCollector()
+    defnCollector.visitModule(module)
+    defnCollector.get()
   }
 }

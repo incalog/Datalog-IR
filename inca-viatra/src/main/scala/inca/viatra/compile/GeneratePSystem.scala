@@ -3,17 +3,13 @@ package inca.viatra.compile
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
-import inca.viatra.util.{LitCollector, VarCollector}
+import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaDefnModuleEntry, ScalaTerm, ScalaConstantTerm, ScalaType}
-import inca.ir.extension.data.DataDefinition
-import inca.ir.extension.foreign.ForeignModuleEntry
+import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
 import inca.util.Gensym
-
-import scala.annotation.tailrec
 
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
@@ -76,9 +72,9 @@ object GeneratePSystem:
       r => s""""${r.name}" -> (() => ${r.name}.instance)"""
     }
 
-    val defns = mod.contents.flatMap {
-      case ScalaDefnModuleEntry(_, defn) => Some(defn.indent(indent))
-      case _ => None
+    // collect all external scala definitions
+    val defns = ScalaModuleEntryCollector.collectAll(mod).map {
+      case ScalaDefnModuleEntry(_, defn) => defn.indent(indent)
     }
 
     s"""
@@ -220,7 +216,9 @@ object GeneratePSystem:
         case ScalaAggregation.Min | ScalaAggregation.Max | ScalaAggregation.Sum =>
           val boundAggOp = s"new BoundAggregator(${compileBuiltInScalaAggregation(agg, sty)}, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-        case ScalaAggregation.Custom(_) => ???
+        case ScalaAggregation.Custom(ScalaDefnModuleEntry(name, _)) =>
+          val boundAggOp = s"new BoundAggregator($name, classOf[$scalaTyp], classOf[$scalaTyp])"
+          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {

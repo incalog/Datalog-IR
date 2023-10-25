@@ -62,7 +62,8 @@ enum ScalaAggregation:
   case Max
   case Sum
   case Count
-  case Custom(defn: String) // TODO: not supported
+  // The ScalaDefnModuleEntry should define an `object` and the name should be the name of the object.
+  case Custom(defn: ScalaDefnModuleEntry)
 
 case class ScalaAggregationAtom(agg: ScalaAggregation, rel: Name, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override def vars: Seq[Var] = args.flatMap(_.vars)

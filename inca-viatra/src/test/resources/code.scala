@@ -60,6 +60,8 @@ object Plus extends PSystem.Module {
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("out$0")
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
             (Succ)(env.getValue("out$0").asInstanceOf[Nat])
+
+            // You can use Try here to actually see the error messages, otherwise viatra just fails the body
             /*Try(
               env.getValue("out$0") match {
                 case Nat.Zero => "A"

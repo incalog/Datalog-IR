@@ -30,7 +30,13 @@ trait Lowering extends BaseLowering:
         res
 
   private def flatten(param: Param): Seq[Param] =
+    println(s"Visit param: $param")
     flatten(param.name, param.ty).map { case (n, t) => Param(n, t) }
+
+  override def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] =
+    // Reset the cache of flattened variables
+    cachedFlatten = Map()
+    super.visitExtensionalRelation(relation)
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     // Reset the cache of flattened variables
@@ -56,7 +62,7 @@ trait Lowering extends BaseLowering:
           case Some(TermType(ty@TTuple(tys), _)) if idx > tys.size =>
             throw IndexOutOfBoundsException(s"Projection index $idx out of bounds!")
           case Some(TermType(ty,_)) =>
-            throw IllegalStateException(s"Term $t has type ${ty}, but expected TTuple.")
+            throw IllegalStateException(s"Term $t has type $ty, but expected TTuple.")
           case None =>
             throw IllegalStateException(s"Untyped term $t")
         }

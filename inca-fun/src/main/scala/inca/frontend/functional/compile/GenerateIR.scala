@@ -54,18 +54,10 @@ class GenerateIR {
     } ++ extMainInputRelations
     ir.Module(m.name, irLang, moduleEntries)
 
-  def compileMainFun(f: FunctionDef): ir.Relation =
+  /*def compileMainFun(f: FunctionDef): ir.Relation =
     val result = gensym.fresh(f.name.name + "_result")
-    val setMemberResult = gensym.fresh("set_result")
-    // Automatically unpack sets
-    // Note: this might be problematic if we can return sets nested in tuples
-    val returnsSet = f.outType.isInstanceOf[TSet]
-    val outType = f.outType match
-      case TSet(ty) => compileType(ty)
-      case ty => compileType(ty)
-    val resultParam = ir.Param(Name(result), outType)
+    val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    val edbCall = ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name)))
     ir.Relation(f.name, params, Seq(ir.Body(
       if (returnsSet)
         Seq(
@@ -78,6 +70,18 @@ class GenerateIR {
           edbCall,
           ir.Eq(ir.Var(Name(result)), compileExp(f.body))
         )
+    )))*/
+
+  def compileMainFun(f: FunctionDef): ir.Relation =
+    val result = gensym.fresh(f.name.name + "_result")
+    val setMemberResult = gensym.fresh("set_result")
+    val resultParam = ir.Param(Name(result), compileType(f.outType))
+    val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
+    ir.Relation(f.name, params, Seq(ir.Body(
+      Seq(
+        ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))),
+        ir.Eq(ir.Var(Name(result)), compileExp(f.body))
+      )
     )))
 
   def compileFun(f: FunctionDef): ir.Relation =
