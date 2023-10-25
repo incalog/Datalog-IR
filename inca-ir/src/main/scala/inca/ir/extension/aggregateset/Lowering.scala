@@ -3,7 +3,7 @@ package inca.ir.extension.aggregateset
 import inca.ir
 import inca.ir.*
 import inca.ir.extension.*
-import inca.ir.extension.aggregate.*
+import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
 import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.lowering.BaseLowering
 

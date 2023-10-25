@@ -30,8 +30,10 @@ object GenerateIR:
 class GenerateIR {
 
   val irLang: Language = new Language(Set(ir.BaseIR)
-      + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR +
-      demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR)
+      + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
+      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
+      + iragg.IR + iraggset.IR
+  )
 
   val gensym: Gensym = new Gensym()
 
