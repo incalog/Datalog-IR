@@ -6,11 +6,17 @@ import inca.ir.{Term, Atom, Type, Var, ModuleEntry}
 trait ForeignLanguage:
   type Code
 
-trait ForeignType extends Type
+trait ForeignType extends Type:
+  val lang: ForeignLanguage
+  val code: lang.Code
 
-trait ForeignAtom extends Atom
+trait ForeignAtom extends Atom:
+  val lang: ForeignLanguage
+  val code: lang.Code
 
-trait ForeignModuleEntry extends ModuleEntry
+trait ForeignModuleEntry extends ModuleEntry:
+  val lang: ForeignLanguage
+  val code: lang.Code
 
 trait ForeignTerm(args: Seq[Term]) extends Term:
   val lang: ForeignLanguage

@@ -12,7 +12,8 @@ object FunctionalInca extends ForeignLanguage:
   def compileType(ty: Type): ir.Type =
     new GenerateIR().compileType(ty)
 
-
+// Idea:
+// The scala frontend must lower to the inca-foreign-scala IR, otherwise we get a dependency conflict again
 case class FunctionalIncaAggregationOperator(code: FunctionDef) extends ForeignAggregationOperator:
   override val lang: FunctionalInca.type = FunctionalInca
 

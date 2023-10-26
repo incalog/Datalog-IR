@@ -8,7 +8,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregation, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
 import inca.util.Gensym
 
 object GeneratePSystem:
@@ -203,7 +203,7 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Neq(lhs, rhs) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case primitive.ScalaAggregationAtom(agg, rel, out, sty, args, aggregatedColumn) =>
+    case primitive.ScalaAggregationAtom(agg@ScalaAggregationOperator(sty, aggOpCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
@@ -211,14 +211,14 @@ object GeneratePSystem:
 
       val scalaTyp = sty.name
       agg match
-        case ScalaAggregation.Count =>
+        case ScalaAggregationOperator.Count =>
           s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
-        case ScalaAggregation.Min | ScalaAggregation.Max | ScalaAggregation.Sum =>
-          val boundAggOp = s"new BoundAggregator(${compileBuiltInScalaAggregation(agg, sty)}, classOf[$scalaTyp], classOf[$scalaTyp])"
+        case _ =>
+          val boundAggOp = s"new BoundAggregator($aggOpCode, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-        case ScalaAggregation.Custom(ScalaDefnModuleEntry(name, _)) =>
-          val boundAggOp = s"new BoundAggregator($name, classOf[$scalaTyp], classOf[$scalaTyp])"
-          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+    case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
+      throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
+
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {
@@ -265,14 +265,6 @@ object GeneratePSystem:
       pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${sty.name}]"""))
       pvarName
   }
-
-  private def compileBuiltInScalaAggregation(agg: primitive.ScalaAggregation, sty: primitive.ScalaType) =
-    val prefix = "builtin.arithmetic"
-    val suffix = "Aggregation.aggregator"
-    agg match
-      case primitive.ScalaAggregation.Min => s"$prefix.Min${sty.name}$suffix"
-      case primitive.ScalaAggregation.Max => s"$prefix.Max${sty.name}$suffix"
-      case primitive.ScalaAggregation.Sum => s"$prefix.Sum${sty.name}$suffix"
 
   private def genExprEvalVar(name: String): Code = {
     s"""val ${EVALPREFIX + name}: PVariable = body.getOrCreateVariableByName("$name")""".stripMargin

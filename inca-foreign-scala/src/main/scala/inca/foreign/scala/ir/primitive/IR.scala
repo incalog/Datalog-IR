@@ -1,11 +1,12 @@
 package inca.foreign.scala.ir.primitive
 
 import inca.ir.*
-import inca.ir.extension.foreign.{ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignTerm, ForeignType}
+import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
+import inca.ir.extension.aggregate.AggregationOperator
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -19,7 +20,10 @@ object ScalaInca extends ForeignLanguage:
     case TData(name) => ScalaType(name)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
-case class ScalaType(name: String) extends ForeignType
+case class ScalaType(name: String) extends ForeignType:
+  override val lang: ScalaInca.type = ScalaInca
+  override val code: String = name
+
 object ScalaType:
   def string: ScalaType = ScalaType("String")
   def int: ScalaType = ScalaType("Int")
@@ -57,15 +61,24 @@ object ScalaConstantTerm:
   val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
 
 
-enum ScalaAggregation:
-  case Min
-  case Max
-  case Sum
-  case Count
-  // The ScalaDefnModuleEntry should define an `object` and the name should be the name of the object.
-  case Custom(defn: ScalaDefnModuleEntry)
+case class ScalaAggregationOperator(ty: ScalaType, code: String) extends ForeignAggregationOperator:
+  override val lang: ScalaInca.type = ScalaInca
+  def typecheck(in: Seq[Type]): Either[String, Type] = Right(ty)
 
-case class ScalaAggregationAtom(agg: ScalaAggregation, rel: Name, out: Term, ty: ScalaType, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+object ScalaAggregationOperator:
+  def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation.aggregator")
+  def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation.aggregator")
+  def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation.aggregator")
+  val Count: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, "")
+  def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
+
+
+case class ScalaAggregationAtom(agg: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+  override val lang: ScalaInca.type = ScalaInca
+  override val code: String = agg match
+    case ScalaAggregationOperator(_, code) => code
+    case _ => "???"
+
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
   override def toString: String =
@@ -73,12 +86,11 @@ case class ScalaAggregationAtom(agg: ScalaAggregation, rel: Name, out: Term, ty:
       case (_, i) if i == aggregatedColumn => "#"
       case (a, _) => s"$a"
     }
-    s"""$out: $ty = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $agg"""
-
+    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $agg"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
+  override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
-
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"

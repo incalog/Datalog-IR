@@ -12,7 +12,7 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.typecheck(moduleEntry)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case ScalaAggregationAtom(_, rel, out, ty, args, aggregatedColumn) =>
+    case ScalaAggregationAtom(ScalaAggregationOperator(ty, _), rel, out, args, aggregatedColumn) =>
       if (aggregatedColumn >= args.size)
         error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
       val params = lookupRelationParams(rel, args.size, atom)

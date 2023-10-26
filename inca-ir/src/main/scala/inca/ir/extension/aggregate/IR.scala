@@ -21,6 +21,10 @@ enum AggregateArg:
   case Arg(t: Term)
   case AggregateColumn(t: Term)
 
+  def term: Term = this match
+    case Arg(t) => t
+    case AggregateColumn(t) => t
+
   override def toString: String = this match
     case Arg(t) => t.toString
     case AggregateColumn(t) => s"#$t"
