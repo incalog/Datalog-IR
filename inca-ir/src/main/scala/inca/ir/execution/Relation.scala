@@ -78,7 +78,7 @@ trait Relation {
   if (parameterNames.size != arity)
     throw new IllegalArgumentException(s"Expected $arity parameter names but got ${parameterNames.size}.")
 
-  def project(from: Int, until: Int): Relation = {
+  def project(from: Int, until: Int = Int.MaxValue): Relation = {
     val outputParamNames = parameterNames.slice(from, until)
     val outputValues = matches.map(_.slice(from, until).toSeq)
     Relation.from(name, outputParamNames, outputValues)

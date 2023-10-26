@@ -2,6 +2,7 @@ package inca.frontend.functional.executor.higherorder
 
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.FileUtil
+import inca.ir.execution.Relation
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalExecutorTest extends AnyFunSuite:
@@ -52,7 +53,14 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("foo", Seq())
+    var setAdt = res.entries.head
+    var query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    res = loaded.engine.read(query).project(1)
     assertResult(Set((2, 2), (2, 1), (1, 2), (1, 1), (3, 2), (3, 1), (3, 3), (2, 3), (1, 3)))(res.toSet)
+
     res = loaded.execute("bar", Seq())
+    setAdt = res.entries.head
+    query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    res = loaded.engine.read(query).project(1)
     assertResult(Set((2, 2), (4, 1), (1, 2), (1, 4), (1, 1), (2, 4), (3, 2), (3, 1), (3, 3), (4, 3), (2, 3), (1, 3), (3, 4), (2, 1), (4, 2), (4, 4)))(res.toSet)
   }

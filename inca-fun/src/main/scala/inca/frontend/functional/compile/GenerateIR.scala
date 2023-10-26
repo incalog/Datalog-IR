@@ -54,34 +54,23 @@ class GenerateIR {
     } ++ extMainInputRelations
     ir.Module(m.name, irLang, moduleEntries)
 
-  /*def compileMainFun(f: FunctionDef): ir.Relation =
-    val result = gensym.fresh(f.name.name + "_result")
-    val resultParam = ir.Param(Name(result), compileType(f.outType))
-    val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    ir.Relation(f.name, params, Seq(ir.Body(
-      if (returnsSet)
-        Seq(
-          edbCall,
-          irset.SetMember(ir.Var(Name(setMemberResult)), compileExp(f.body)),
-          ir.Eq(ir.Var(Name(result)), ir.Var(Name(setMemberResult)))
-        )
-      else
-        Seq(
-          edbCall,
-          ir.Eq(ir.Var(Name(result)), compileExp(f.body))
-        )
-    )))*/
-
   def compileMainFun(f: FunctionDef): ir.Relation =
     val result = gensym.fresh(f.name.name + "_result")
-    val setMemberResult = gensym.fresh("set_result")
+    // TODO: How do we handle this case correctly ?
+    //   If the main function returns a set there might be no demand on the set relation.
+    //   We now force a demand by introducing a SetMember at the end of the main function.
+    val returnsSet = f.outType.isInstanceOf[TSet]
+    val setMember = if (returnsSet)
+      Some(irset.SetMember(ir.Var(Name(gensym.fresh("_"))), ir.Var(Name(result))))
+    else
+      None
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
     ir.Relation(f.name, params, Seq(ir.Body(
       Seq(
         ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))),
         ir.Eq(ir.Var(Name(result)), compileExp(f.body))
-      )
+      ) ++ setMember
     )))
 
   def compileFun(f: FunctionDef): ir.Relation =
