@@ -186,7 +186,7 @@ class GenerateIR {
       val f = op.target match
         case Some(f: FunctionDef) => f
         case trg => throw new IllegalArgumentException(s"Cannot compile fold with non-function op target $trg")
-      val aggOp = FunctionalIncaAggregationOperator(f)
+      val aggOp = FunctionalIncaAggregationOperator(f, init, op)
 
       val aggResult = Name(gensym.fresh("foldResult"))
       val argTerms = args.map(compileExp)

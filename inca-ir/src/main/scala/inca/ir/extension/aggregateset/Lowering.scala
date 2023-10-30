@@ -4,8 +4,10 @@ import inca.ir
 import inca.ir.*
 import inca.ir.extension.*
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.lowering.BaseLowering
+import inca.ir.typing.Mode
 
 import scala.collection.mutable.ListBuffer
 
@@ -36,7 +38,10 @@ trait Lowering extends BaseLowering:
           val param = rel.params(ix)
           val TSet(ty) = param.ty : @unchecked
           val newparamName = gensym.freshName(param.name)
-          val newparams = rel.params.updated(ix, Param(newparamName, ty))
+          val newparams = rel.params/*.map {
+            case Param(name, TDemand(ty)) => Param(name, ty)
+            case p => p
+          }*/.updated(ix, Param(newparamName, ty))
           val memberAtom = SetMember(ir.Var(newparamName), ir.Var(param.name))
           rel = rel.copy(params = newparams, bodies = rel.bodies.map(b => Body(b.atoms :+ memberAtom)))
       newrels += rel

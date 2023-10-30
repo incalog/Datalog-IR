@@ -51,10 +51,10 @@ object GeneratePSystem:
     lowerings.foldLeft(module) {
       case (mod, lowering) =>
         val low = lowering()
-        println()
-        println(s"Backend lowering ${low}")
+        //println()
+        //println(s"Backend lowering ${low}")
         val Seq(lowered) = low.visitProgram(Seq(mod))
-        println(lowered)
+        //println(lowered)
         typechecker.typecheck(lowered)
         typechecker.failOnError()
         lowered
@@ -165,6 +165,8 @@ object GeneratePSystem:
       Seq(compileBody(moduleName, relation, content)(indent + 4))
     }
 
+    val bodiesS = bodies.mkString("{", "}, {", "}")
+
     s"""
      |object ${relation.name} {
      |  lazy val instance: Specification = new Specification(generatedPQuery)
@@ -172,7 +174,7 @@ object GeneratePSystem:
      |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
      |    ${relation.params.map(genPParam).mkString(s"\n    ")}
      |
-     |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of(${bodies.mkString("{", "}, {", "}")} )
+     |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
      |
      |    override def getFullyQualifiedName: String = "$qname"
      |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
@@ -241,11 +243,11 @@ object GeneratePSystem:
 
       val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
       val argTys = scalaTerm.inTypes.map(sty => sty.name)
-      val argsCode =
+      val code =
         if (isApp)
-          s"""(${compiledArgs.map(c => pVar2Code(c)._2).mkString(", ")})"""
+          s"""($termCode)(${compiledArgs.map(c => pVar2Code(c)._2).mkString(", ")})"""
         else
-          ""
+          s"$termCode"
 
       val description = s""""eval(${scalaTerm.toString})""""
       val outName = gensym.fresh("out")
@@ -257,7 +259,7 @@ object GeneratePSystem:
            |  override def getShortDescription: String = $description
            |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
            |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-           |    ($termCode)$argsCode
+           |    $code
            |  }
            |}, $pvarName)""".stripMargin
 

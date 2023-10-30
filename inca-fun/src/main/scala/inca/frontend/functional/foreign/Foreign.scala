@@ -14,7 +14,7 @@ object FunctionalInca extends ForeignLanguage:
 
 // Idea:
 // The scala frontend must lower to the inca-foreign-scala IR, otherwise we get a dependency conflict again
-case class FunctionalIncaAggregationOperator(code: FunctionDef) extends ForeignAggregationOperator:
+case class FunctionalIncaAggregationOperator(code: FunctionDef, init: Expression, op: Expression) extends ForeignAggregationOperator:
   override val lang: FunctionalInca.type = FunctionalInca
 
   val tfun@TFun(from, to) = code.funType

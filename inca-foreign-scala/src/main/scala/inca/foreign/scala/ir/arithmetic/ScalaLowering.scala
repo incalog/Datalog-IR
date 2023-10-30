@@ -28,6 +28,19 @@ trait ScalaLowering extends BaseScalaLowering:
       case ArithmeticAggregationOperator.Max => ScalaAggregationOperator.Max(compileType(ty))
       case _ => op
 
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case BinCompare(lhs, rhs, op) =>
+        typedParams(lhs).zip(typedParams(rhs)).map {
+          case ((l, lty), (r, rty)) if lty == rty =>
+            val ty = compileType(lty)
+            Eq(ScalaConstantTerm.TRUE, createScalaBinOp(op, ScalaType.bool, l -> ty, r -> ty))
+          case ((_, lty), (_, rty)) =>
+            throw IllegalStateException(s"Can not apply `$op` to incompatible types: $lty and $rty")
+        }
+      case _ => super.visitAtom(atom)
+  }
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case IntNum(i) =>

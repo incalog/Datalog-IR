@@ -225,3 +225,11 @@ class FunctionalExecutorTest extends AnyFunSuite:
     // TODO: Do not compare by string
     assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
   }
+
+  test("Fold Int") {
+    val code = FileUtil.readFile("functional/unittests/FoldInt.finca")
+    val compiled = exec.compileFunction(code)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("sum", Seq(1, 5))
+    assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
+  }

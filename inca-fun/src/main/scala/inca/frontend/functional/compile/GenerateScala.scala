@@ -28,6 +28,7 @@ class GenerateScala:
   def genCalled(trg: Var.Target, typ: Option[Type], loc: SourceLocation): Unit = trg match {
     case fun: FunctionDef =>
       genFunDef(fun)
+    case _: Var.BuiltInFunction.type => // TODO: What do I do here ?
     case _: DataConstructor =>
       val data = typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TName]
         .target.getOrElse(throw new IllegalArgumentException(s"Unresolved data type ${typ.get}")).asInstanceOf[DataDef]
@@ -121,7 +122,7 @@ class GenerateScala:
     val scalaTy = transType(typ)
     s"""
      new inca.viatra.runtime.aggregate.Aggregation[$scalaTy] {
-       override val name = $name
+       override val name = "$name"
        override def init: $scalaTy = ${transExp(init)}
        override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExp(op)}(v1, v2)
        override val isAssociative = true

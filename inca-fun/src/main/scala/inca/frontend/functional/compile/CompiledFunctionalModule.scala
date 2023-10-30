@@ -1,11 +1,13 @@
 package inca.frontend.functional.compile
 
-import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.frontend.functional.foreign.Lowering
+import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.util.SourceLocation
+import inca.ir.visitors.BaseIRVisitor
 
-case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
+case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
   override def name: Name = fun.name
 
@@ -59,4 +61,8 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule {
     val module = compiler.compileModule(normalizedFoldModule)
     module
   }
-}
+
+  // lower all our functional code for folding without typechecking
+  override lazy val lowered: IRModule =
+    val scalaLowering = () => new Lowering {}
+    scalaLowering().lower(super.lowered)

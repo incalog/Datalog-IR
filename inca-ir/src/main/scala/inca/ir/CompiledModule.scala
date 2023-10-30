@@ -47,13 +47,14 @@ trait CompiledModule:
     () => new tuple.Lowering {},
   ) // arith + string + data
 
-  lazy val lowered: Module =
+  def lowered: Module =
     StatisticsCollector.printStatistics(checked, "before lowering")
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
-      //println(l)
-      //println()
+
+      println(l)
+      println()
       val checker = new IRTypechecker
       checker.typecheck(l)
       l
