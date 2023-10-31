@@ -13,12 +13,19 @@ import scala.collection.mutable.ListBuffer
 trait Lowering extends BaseLowering:
 
   override val loweredIRs: Set[BaseIR] = Set(IR)
-  override val requiredIRs: Set[BaseIR] = Set(data.IR, disjunction.IR)
+  override val requiredIRs: Set[BaseIR] = Set(data.IR, disjunction.IR, not.IR)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case Match(matchee, cases) =>
+      val previous: ListBuffer[Deconstruct] = ListBuffer.empty
       val alternatives = cases.map { case Case(name, patVars, body) =>
-        DisjunctionAlternative(Deconstruct(matchee, name, patVars) +: body.flatMap(visitAtom))
+        previous += Deconstruct(matchee, name, patVars)
+        // TODO non-overlapping patterns?
+        val notPrevious = Seq() // previous.map(not.Not.apply).toList
+        DisjunctionAlternative(
+          Deconstruct(matchee, name, patVars) +:
+            (notPrevious ++ body.flatMap(visitAtom))
+        )
       }
       Seq(Disjunction((alternatives)))
     case _ => super.visitAtom(atom)

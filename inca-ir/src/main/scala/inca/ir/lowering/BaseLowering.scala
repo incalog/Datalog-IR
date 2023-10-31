@@ -31,7 +31,7 @@ trait BaseLowering extends IRVisitor:
     }
   }
 
-  override def visitModule(module: Module): Module = {
+  protected override def visitModule(module: Module): Module = {
     gensym.register(module.contents.map(_.name.toString))
     super.visitModule(module)
   }

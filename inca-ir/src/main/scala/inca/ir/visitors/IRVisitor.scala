@@ -12,6 +12,7 @@ trait IRVisitor extends BaseIRVisitor
   with datamatch.Visitor
   with demand.Visitor
   with disjunction.Visitor
+  with impure.Visitor
   with not.Visitor
   //with primitiveScala.Visitor
   with set.Visitor

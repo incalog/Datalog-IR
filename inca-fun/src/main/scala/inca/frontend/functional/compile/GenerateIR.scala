@@ -99,8 +99,12 @@ class GenerateIR {
       val cndTerm = compileExp(cnd)
       block.Block(
         disjunction.Disjunction(Seq(
-          DisjunctionAlternative(ir.Eq(cndTerm, bool.BoolTrue), ir.Eq(ir.Var(Name(tmp)), compileExp(thn))),
-          DisjunctionAlternative(ir.Eq(cndTerm, bool.BoolFalse), ir.Eq(ir.Var(Name(tmp)), compileExp(els)))
+          DisjunctionAlternative(
+            ir.Eq(cndTerm, bool.BoolTrue),
+            ir.Eq(ir.Var(Name(tmp)), compileExp(thn))),
+          DisjunctionAlternative(
+            ir.Eq(cndTerm, bool.BoolFalse),
+            ir.Eq(ir.Var(Name(tmp)), compileExp(els)))
         )),
         ir.Var(Name(tmp))
       )

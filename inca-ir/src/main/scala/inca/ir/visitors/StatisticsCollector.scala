@@ -4,7 +4,7 @@ import inca.ir.{Atom, Body, Module, Relation, Term}
 object StatisticsCollector:
   def printStatistics(m: Module, hint: String): Unit =
     val s = new StatisticsCollector
-    s.visitModule(m)
+    s.visitProgram(Seq(m))
     println(
       s"""Statistics for ${m.name} $hint:
          |\tRelations: ${s.relations}

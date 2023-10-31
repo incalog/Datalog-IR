@@ -83,7 +83,7 @@ protected[viatra] class ScalaModuleEntryCollector extends Collector[ScalaDefnMod
 protected[viatra] object ScalaModuleEntryCollector {
   def collectAll(module: Module): Seq[ScalaDefnModuleEntry] = {
     val defnCollector = new ScalaModuleEntryCollector()
-    defnCollector.visitModule(module)
+    defnCollector.visitProgram(Seq(module))
     defnCollector.get()
   }
 }

@@ -12,7 +12,7 @@ trait BaseIRVisitor:
   def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
     modules.map(visitModule)
 
-  def visitModule(module: ir.Module): ir.Module =
+  protected def visitModule(module: ir.Module): ir.Module =
     ir.Module(module.name, module.lang, module.contents.flatMap(visitModuleEntry))
 
   def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {

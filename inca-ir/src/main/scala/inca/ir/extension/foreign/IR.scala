@@ -1,7 +1,13 @@
 package inca.ir.extension.foreign
 
 import inca.ir.extension.aggregate.AggregationOperatorUserDefined
-import inca.ir.{Term, Atom, Type, Var, ModuleEntry}
+import inca.ir.{Atom, BaseIR, Language, ModuleEntry, Term, Type, Var}
+
+object IR extends IR { }
+trait IR extends BaseIR:
+  override val name: String = "Foreign"
+  override def language: Language = super.language + IR
+  override def requires: Language = Language()
 
 trait ForeignLanguage:
   type Code

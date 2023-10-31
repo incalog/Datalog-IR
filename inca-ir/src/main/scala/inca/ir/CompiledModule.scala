@@ -32,6 +32,7 @@ trait CompiledModule:
 
   lazy val checked: Module =
     val checker = new IRTypechecker
+    println(ir)
     checker.typecheck(ir)
     ir
 
@@ -43,6 +44,7 @@ trait CompiledModule:
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
+    () => new impure.Lowering {},
     () => new demand.Lowering {},
     () => new tuple.Lowering {},
   ) // arith + string + data
@@ -51,6 +53,7 @@ trait CompiledModule:
     StatisticsCollector.printStatistics(checked, "before lowering")
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
+      println(s"Lowering $lowFun")
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
       println(l)

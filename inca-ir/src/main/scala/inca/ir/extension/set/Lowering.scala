@@ -115,7 +115,7 @@ trait Lowering extends BaseLowering:
     (data, rel)
 
   private var currentModule: Module = _
-  override def visitModule(module: Module): Module =
+  protected override def visitModule(module: Module): Module =
     currentModule = module
     constructors = Map()
     val m = super.visitModule(module)
