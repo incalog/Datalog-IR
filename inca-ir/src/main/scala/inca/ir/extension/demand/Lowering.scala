@@ -2,6 +2,7 @@ package inca.ir.extension.demand
 
 import inca.ir
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.aggregate.Aggregate
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
 import inca.util.Gensym
@@ -95,6 +96,17 @@ trait Lowering extends BaseLowering:
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
+            case (Param(_, TDemand(_)), arg) => Some(arg)
+            case _ => None
+          }
+          if (demandedArgs.nonEmpty)
+            addDemandRule(rel, bodyPrefix.toList, demandedArgs)
+          super.visitAtom(atom)
+        case Aggregate(rel, args, op) =>
+          val params = currentModule.relations.get(rel.name) match
+            case None => Seq()
+            case Some(r) => r.params
+          val demandedArgs = params.zip(args.map(_.term)).flatMap {
             case (Param(_, TDemand(_)), arg) => Some(arg)
             case _ => None
           }

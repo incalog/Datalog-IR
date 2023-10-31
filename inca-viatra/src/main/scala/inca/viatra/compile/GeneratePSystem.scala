@@ -61,14 +61,53 @@ object GeneratePSystem:
     }
   }
 
+  /**
+   * Filter out all relations without a body and all relations that transitively depend on such a relation.
+   */
+  private def getProductiveRelations(module: Module): Map[String, Relation] = {
+    val (nonEmptyRelations, emptyRelations) = module.relations.partition {
+      case (_, r) => r.nonEmpty
+    }
+
+    var emptyRelationNames = emptyRelations.keys.toSet
+    var result = nonEmptyRelations
+    var isDirty = true
+
+    while (isDirty) {
+      isDirty = false
+      result = result.filter {
+        case (n, _) if emptyRelationNames.contains(n) =>
+          isDirty = true
+          false
+        case (_, r) => !r.bodies.exists { b =>
+          b.atoms.exists {
+            case Call(name, args) if emptyRelationNames.contains(name.name) =>
+              isDirty = true
+              emptyRelationNames += r.name.name
+              true
+            case primitive.ScalaAggregationAtom(_, rel, _, _, _) if emptyRelationNames.contains(rel.name) =>
+              isDirty = true
+              emptyRelationNames += r.name.name
+              true
+            case _ =>
+              false
+          }
+        }
+      }
+    }
+    result
+  }
+
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
     val indent = 2
     val mod = lowerAndTypeModule(module)
 
-    val myenv = env ++ mod.relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
-    val funs = mod.relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
+    val relations = getProductiveRelations(mod)
 
-    val nonEmptyRels = mod.relations.values.filter(!_.isEmpty).map {
+    val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
+    val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
+
+    val nonEmptyRels = relations.values.filter(!_.isEmpty).map {
       r => s""""${r.name}" -> (() => ${r.name}.instance)"""
     }
 

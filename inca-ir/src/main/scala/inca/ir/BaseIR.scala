@@ -64,6 +64,8 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
 
+  def nonEmpty: Boolean = !isEmpty
+
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
 

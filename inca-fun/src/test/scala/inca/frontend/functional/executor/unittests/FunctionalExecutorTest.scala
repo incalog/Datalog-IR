@@ -231,5 +231,5 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
-    assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
+    assertResult(15)(res.entries.head)
   }
