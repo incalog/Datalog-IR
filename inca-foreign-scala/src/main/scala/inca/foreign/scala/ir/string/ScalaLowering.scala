@@ -1,7 +1,7 @@
 package inca.foreign.scala.ir.string
 
-import inca.foreign.scala.ir.{BaseScalaLowering, primitive}
-import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.primitive.{ScalaLowering => BaseScalaLowering, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*

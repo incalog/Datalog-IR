@@ -102,6 +102,9 @@ object GeneratePSystem:
     val indent = 2
     val mod = lowerAndTypeModule(module)
 
+    if (mod.contents.exists(c => c.name == mod.name))
+      throw IllegalArgumentException("Modules must have a unique name different from all content entries")
+
     val relations = getProductiveRelations(mod)
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
@@ -295,7 +298,7 @@ object GeneratePSystem:
       val evalExpCode =
         s"""
            |new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
-           |  override def getShortDescription: String = $description
+           |  override def getShortDescription: String = \"\"\"$description\"\"\"
            |  override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(${paramNames.mkString(",")})
            |  override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
            |    $code

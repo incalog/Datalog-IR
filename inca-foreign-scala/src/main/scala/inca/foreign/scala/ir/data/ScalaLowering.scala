@@ -1,11 +1,10 @@
 package inca.foreign.scala.ir.data
 
-import inca.foreign.scala.ir.BaseScalaLowering
 import inca.ir.{Atom, BaseIR, Eq, ExtensionalRelation, ModuleEntry, Name, Relation, Term, TermType, Type, name2string}
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.block
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaLowering => BaseScalaLowering, IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 

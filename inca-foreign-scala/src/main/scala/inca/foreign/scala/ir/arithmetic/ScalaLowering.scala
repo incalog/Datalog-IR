@@ -9,8 +9,9 @@ import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, 
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
 import inca.ir.{name2string, string2name}
-import inca.foreign.scala.ir.{BaseScalaLowering, primitive}
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaAggregationAtom, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.ir.util.SourceLocation
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)

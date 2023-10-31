@@ -1,14 +1,13 @@
-package inca.foreign.scala.ir
+package inca.foreign.scala.ir.primitive
 
-import inca.ir.lowering.BaseLowering
-import inca.ir.{Var, name2string, string2name}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate
-import inca.ir.{Atom, BaseIR, Name, Term, TermType, Type}
+import inca.ir.lowering.BaseLowering
+import inca.ir.*
 
-trait BaseScalaLowering extends primitive.Visitor with BaseLowering:
+trait ScalaLowering extends primitive.Visitor with BaseLowering:
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
 
   def isTypeSupported(ty: Type): Boolean

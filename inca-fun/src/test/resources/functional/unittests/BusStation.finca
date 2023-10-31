@@ -1,4 +1,5 @@
-module BusStation
+module BusStationTest
+
 data Node = BusStation(String, Int) | TrainStation(String, Int) | NoStation()
 
 def stations(): Set[Node] = { TrainStation("A", 10), BusStation("B", 5), BusStation("C", 2) }
