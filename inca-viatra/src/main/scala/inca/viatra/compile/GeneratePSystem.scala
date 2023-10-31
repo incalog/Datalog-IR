@@ -18,7 +18,6 @@ object GeneratePSystem:
   val EVALPREFIX = "eval_"
 
   private trait BlockLowering extends primitive.Visitor with block.Lowering
-  private trait DemandLowering extends primitive.Visitor with demand.Lowering
   private trait Typechecker extends typing.IRTypechecker with primitive.Typechecker
 
   val gensym = new Gensym()
@@ -39,7 +38,6 @@ object GeneratePSystem:
       () => new string.ScalaLowering {}, // lower strings
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
-      () => new DemandLowering {} // lower reintroduced demand symbols (necessary ?)
     )
 
     // we need type information to translate the datalog code to scala code
@@ -51,10 +49,7 @@ object GeneratePSystem:
     lowerings.foldLeft(module) {
       case (mod, lowering) =>
         val low = lowering()
-        //println()
-        //println(s"Backend lowering ${low}")
         val Seq(lowered) = low.visitProgram(Seq(mod))
-        //println(lowered)
         typechecker.typecheck(lowered)
         typechecker.failOnError()
         lowered
@@ -173,9 +168,6 @@ object GeneratePSystem:
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
-
-    //val allVars = VarCollector.collectAll(relation)
-    //val gensym = new Gensym(allVars)
 
     if (relation.isEmpty) {
       return s"""

@@ -26,16 +26,10 @@ class GenerateScala:
   }
 
   def genCalled(trg: Var.Target, typ: Option[Type], loc: SourceLocation): Unit = trg match {
-    case fun: FunctionDef =>
-      genFunDef(fun)
-    case _: Var.BuiltInFunction.type => // TODO: What do I do here ?
-    case _: DataConstructor =>
-      val data = typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TName]
-        .target.getOrElse(throw new IllegalArgumentException(s"Unresolved data type ${typ.get}")).asInstanceOf[DataDef]
-      // Nothing to do, since the DataType should already be created by PSystem for the ADT representation
-      //genDataDef(data)
-    case trg =>
-      throw new IllegalArgumentException(s"Unknown call target $trg")
+    case fun: FunctionDef => genFunDef(fun)
+    case _: Var.BuiltInFunction.type => // nothing
+    case _: DataConstructor => // nothing, our ADT lowering already creates these
+    case trg => throw new IllegalArgumentException(s"Unknown call target $trg")
   }
 
   def transType(t: Type): Code = t match {
@@ -44,9 +38,7 @@ class GenerateScala:
     case TTuple(ts) => ts.map(transType).mkString("(", ", ", ")")
     case t: TName if t.isBuiltIn => t.name.name
     case t: TName => t.target match {
-      case Some(data: DataDef) =>
-        //genDataDef(data)
-        data.name.name
+      case Some(data: DataDef) => data.name.name
       case Some(t) => throw new IllegalArgumentException(s"Unknown data target $t")
       case _ => throw new IllegalArgumentException(s"Cannot compile unresolved type $t")
     }
