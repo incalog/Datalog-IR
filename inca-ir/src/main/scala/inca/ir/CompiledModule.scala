@@ -51,23 +51,19 @@ trait CompiledModule:
 
   def lowered: Module =
     StatisticsCollector.printStatistics(checked, "before lowering")
-    println()
-    println(checked)
-    println()
+    //println()
+    //println(checked)
+    //println()
     var i = 0
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
-      println(s"Lowering $lowFun")
+      //println(s"Lowering $lowFun")
       val Seq(l) = lowFun.visitProgram(Seq(m))
-
-      println(s"Lowering: $i")
-      println(l)
-      println()
+      //println(l)
+      //println()
 
       val checker = new IRTypechecker
       checker.typecheck(l)
-
-      println(s"Typed: $i")
       i += 1
       l
     }
