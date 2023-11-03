@@ -1,0 +1,16 @@
+module SetTest
+
+class A {
+  def someSet(): Set[Int] = {
+    return Set(1, 2, 3)
+  }
+
+  def doSomething(as: Set[Int]): Set[Int] = {
+    return for (a <- as if a <= 2) yield a
+  }
+}
+
+@main def main(): Set[Int] = {
+    val a: A = new A()
+    return a.doSomething(a.someSet())
+}

@@ -1,0 +1,11 @@
+module TypeCastFail
+
+class A
+class B
+
+@main
+def main(): Unit = {
+    val a: A = new A()
+    a.asInstanceOf[B]
+    return
+}

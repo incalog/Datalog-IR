@@ -1,0 +1,8 @@
+module SetTest
+
+@main def main(): Set[Int] = {
+    val b: Int = 3
+    val c: Int = 2
+    val a: Int = 1
+    return Set(a, c, b)
+}

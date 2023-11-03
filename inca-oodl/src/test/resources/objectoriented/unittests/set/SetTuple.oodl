@@ -1,0 +1,5 @@
+module SetTest
+
+@main def main(): Set[(Int, String)] = {
+    return Set((1, "A"), (2, "B"), (3, "C"))
+}

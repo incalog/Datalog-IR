@@ -1,0 +1,6 @@
+module SetTest
+
+
+@main def main(): Set[(Int, Int)] = {
+    return for (a <- Set(1,2)) yield (a, 1)
+}

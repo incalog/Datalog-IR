@@ -1,0 +1,6 @@
+module ReturnImplicitTest
+
+@main
+def main(): Int = {
+    1
+}

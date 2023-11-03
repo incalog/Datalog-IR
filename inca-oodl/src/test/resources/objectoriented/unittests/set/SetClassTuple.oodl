@@ -1,0 +1,16 @@
+module SetTest
+
+class Num(var value: Int)
+
+class Integer(value: Int) extends Num(value)
+
+
+@main def main(): Set[(Int, String)] = {
+    val s: Set[(Num, String)] = Set(
+        (new Integer(1), "A"),
+        (new Integer(2), "B"),
+        (new Integer(3), "C")
+    )
+
+    return for (v <- s) yield (v._1.value, v._2)
+}

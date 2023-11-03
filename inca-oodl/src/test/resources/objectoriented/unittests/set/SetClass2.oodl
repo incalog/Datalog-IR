@@ -1,0 +1,16 @@
+module SetTest
+
+class Num(var value: Int)
+
+class Integer(value: Int) extends Num(value)
+
+class A {
+  def bounded(as: Set[Num]): Set[Integer] = {
+    return for (a <- as if a.value < 11) yield a.asInstanceOf[Integer]
+  }
+}
+
+@main def main(): Set[Any] = {
+    val a: A = new A()
+    return for (v <- a.bounded(Set(new Integer(10), new Integer(5), new Integer(11)))) yield v.value
+}

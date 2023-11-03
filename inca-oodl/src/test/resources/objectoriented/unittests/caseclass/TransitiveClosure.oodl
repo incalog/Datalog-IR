@@ -1,0 +1,41 @@
+module GraphTest
+
+case class Edge(val from: String, val to: String)
+
+case class Path(val from: String, val to: String)
+
+class Graph {
+    val edges: Set[Edge] = Set(
+      new Edge("X", "Y"),
+      new Edge("Y", "Z"),
+      // introduce a cycle
+      new Edge("Z", "X"),
+      new Edge("Z", "W"),
+      new Edge("A", "W"),
+      new Edge("B", "A"),
+      new Edge("B", "C")
+    )
+
+    def vertices(): Set[String] = {
+        (for (e1 <- this.edges) yield e1.from)
+        ++
+        (for (e2 <- this.edges) yield e2.to)
+    }
+
+    def path(x: String): Set[Path] = {
+        //this.x = this.x + 1
+        //`println`(this.x)
+        // this function does not terminate if an alloc count or a changing timestamp is introduced
+        // a case class should introduce neither of them
+        (for (d <- this.edges if d.from == x) yield new Path(d.from, d.to))
+        ++
+        (for (i <- this.edges if i.from == x; y <- this.path(i.to)) yield new Path(x, y.to))
+    }
+}
+
+@main
+def main(): Set[(String, String)] = {
+  val g: Graph = new Graph()
+  for (v <- g.vertices(); r <- g.path(v)) yield (r.from, r.to)
+  //for (p <- g.path("X")) yield (p.from, p.to)
+}

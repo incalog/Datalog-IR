@@ -34,6 +34,23 @@ lazy val inca_fun = (project in file("inca-fun"))
     )
   )
 
+lazy val inca_oodl = (project in file("inca-oodl"))
+  .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_viatra % "test->test")
+  //.dependsOn(inca_foreign_scala % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    libraryDependencies ++= Seq(
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+    )
+  )
+
 lazy val inca_datalog = (project in file("inca-datalog"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_viatra % "test->test")

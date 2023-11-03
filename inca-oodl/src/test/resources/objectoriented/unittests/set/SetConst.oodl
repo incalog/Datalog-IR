@@ -1,0 +1,5 @@
+module SetTest
+
+@main def main(): Set[Int] = {
+    return Set(1, 2, 3)
+}

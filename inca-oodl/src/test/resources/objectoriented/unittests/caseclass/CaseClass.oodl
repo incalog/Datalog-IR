@@ -1,0 +1,23 @@
+module CaseClassTest
+
+class C
+
+case class A(val a: Int, val b: String) {
+    val c: (Int, Int) = (4, 5)
+    val d: Int = 6
+    //val e: C = new C()
+}
+
+@main
+def main(): Boolean = {
+    val a1: A = new A(1, "Some String")
+    val a2: A = new A(1, "Some String")
+    val a3: A = new A(2, "Some Strings")
+
+    val comp1: Boolean = (a1.a == 1)
+    val comp2: Boolean = (a3.b == "Some Strings")
+    val comp3: Boolean = (a3.c._2 == 5) && (a3.c._1 == 4)
+    val comp4: Boolean = (a2.d == 6)
+
+    comp1 && comp2 && comp3 && comp4 && (a1 == a2) && !(a2 == a3)
+}

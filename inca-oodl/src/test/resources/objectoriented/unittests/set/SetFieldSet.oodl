@@ -1,0 +1,11 @@
+module SetTest
+
+class A {
+  var set: Set[Int] = Set(4, 6, 8)
+}
+
+@main def main(): Set[Int] = {
+    val a: A = new A()
+    a.set = Set(1, 2, 3)
+    return a.set
+}

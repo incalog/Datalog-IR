@@ -1,0 +1,14 @@
+module FieldAccess
+
+
+class Fraction(numerator: Int, denominator: Int)  {
+    def result(): Int = {
+        return this.numerator / this.denominator
+    }
+}
+
+@main
+def main(num: Int, denom: Int): Int = {
+    val frac = new Fraction(num, denom)
+    return frac.result()
+}

@@ -1,0 +1,16 @@
+module Mutability
+
+class A(var value: Int)
+
+@main
+def main(): Boolean = {
+    val a: A = new A(10)
+    val v1: Int = a.value
+
+    a.value = v1 * 10
+    val v2: Int = a.value
+
+    a.value = v2 * 5
+
+    return (v1 == 10) && (v2 == 100) && (a.value == 500)
+}

@@ -1,0 +1,30 @@
+module DynamicDispatch
+
+class C {
+    def get(): String = {
+        return "C"
+    }
+}
+
+class A {
+    def get(): String = {
+        return "A"
+    }
+}
+
+class B extends A {
+    override def get(): String = {
+        return "B"
+    }
+}
+
+@main
+def main(): String = {
+    val b: B = new B()
+    val a: A = b.asInstanceOf[A]
+
+    // unrelated type c with same method signature
+    val c: C = new C()
+
+    return a.get() + b.get() + c.get()
+}

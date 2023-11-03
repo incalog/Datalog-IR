@@ -1,0 +1,17 @@
+module NullTest
+
+class A
+class B
+
+@main
+def main(): Boolean = {
+    // Create a null object
+    val a: A = null
+    val b: B = new B()
+
+    val isNullInstance: Boolean = a.isInstanceOf[B]
+    val isInstanceOfNull: Boolean = a == null
+    val isNotInstanceOfNull: Boolean = !(b == null)
+
+    return isNullInstance && isNotInstanceOfNull && isInstanceOfNull
+}

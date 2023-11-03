@@ -1,0 +1,16 @@
+module SetRecursive
+
+class Graph {
+    // We need a cyclic data dependency here in order for scala to fail
+    val edges: Set[(String, String)] = Set(("X", "Y"), ("Y", "Z"), ("Z", "W"), ("A", "X"), ("Y", "X"))
+
+    def path(x: String): Set[String] = {
+        (for (d <- this.edges if d._1 == x) yield d._2)
+        ++
+        (for (i <- this.edges if i._1 == x; y <- this.path(i._2)) yield y)
+    }
+}
+
+@main def main(): Set[String] = {
+    new Graph().path("X")
+}

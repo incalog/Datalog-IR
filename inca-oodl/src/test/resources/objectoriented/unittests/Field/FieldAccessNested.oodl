@@ -1,0 +1,11 @@
+module FieldAccess
+
+class B(num: Int)
+
+class A(b: B)
+
+@main
+def main(): Int = {
+    val a: A = new A(new B(3))
+    return a.b.num
+}

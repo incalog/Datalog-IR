@@ -1,0 +1,12 @@
+module SetTest
+
+class Num(value: Int)
+
+@main def main(cond: Boolean): Set[Int] = {
+    val nums: Set[Int] = for (i <- Set(1,2)) yield i*i
+    if (cond) {
+        return Set(new Num(1).value, new Num(2).value)
+    } else {
+        return nums ++ Set(new Num(3).value, new Num(4).value)
+    }
+}
