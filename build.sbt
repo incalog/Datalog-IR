@@ -67,6 +67,19 @@ lazy val inca_viatra = (project in file("inca-viatra"))
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    )
+  )
+
+lazy val inca_souffle = (project in file("inca-souffle"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
       ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
@@ -81,7 +94,6 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
     )
   )
-
 
 lazy val inca = (project in file(".")).settings(
   scalaVersion := "2.13.1",
