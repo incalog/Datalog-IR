@@ -2,11 +2,12 @@ package inca.frontend.oodl.typechecker
 
 import inca.frontend.oodl.syntax.*
 import inca.ir.Name
+import inca.ir.util.SourceLocation
 
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO:
-  private var vars: Map[Name, (Var.Target, Type)] = Map()
+  private var vars: Map[Name, (Var.Target, Type, Boolean)] = Map()
   //private var tyVars: Map[Name, TName.Target] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
 
@@ -29,14 +30,14 @@ trait TypeContext extends TypeIO:
     t
   }
 
-  def bindVar(name: Name, decl: Var.Target, ty: Type): Unit = {
-    vars.get(name) foreach { case (previousDecl, _) =>
+  def bindVar(name: Name, decl: Var.Target, ty: Type, immutable: Boolean): Unit = {
+    vars.get(name) foreach { case (previousDecl, _, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (decl, ty))
+    vars += (name -> (decl, ty, immutable))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target,Type,Boolean)] =
     vars.get(name) match
       case Some(entry) => Some(entry)
       case None => None
@@ -82,6 +83,8 @@ trait TypeContext extends TypeIO:
         None
     }
 
+  /** Module content */
+
   def bindClass(clazz: ClassDef, module: Module): Unit =
     classDefs += clazz.name -> (module, clazz)
 
@@ -97,3 +100,64 @@ trait TypeContext extends TypeIO:
       error(s"Undefined class $name", name)
       None
   }
+
+  /** Class content */
+
+  private def collect[C <: ClassContent](classDef: ClassDef)(f: ClassContent => Boolean): Seq[(ClassDef, C)] = {
+    val content = classDef.content.flatMap {
+      case c if f(c) => Some((classDef, c.asInstanceOf[C]))
+      case _ => None
+    }
+    val parentContent = classDef.parentCls.flatMap {
+      case t: TName => t.target match
+        case Some(cls: ClassDef) => collect[C](cls)(f)
+        case _ => Seq()
+      case _ => Seq()
+    }
+    parentContent ++ content
+  }
+
+  def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
+    val fieldCandidates = collect[FieldDef](classDef) {
+      case f: FieldDef => f.name == fieldName
+      case _ => false
+    }
+    if (fieldCandidates.isEmpty) {
+      error(s"Undefined field '$fieldName' for class '${classDef.name}'", location: _*)
+      None
+    } else if (fieldCandidates.size > 1) {
+      val (parentClass, _) = fieldCandidates.head
+      error(s"Field '$fieldName' shadows previously defined field in class '${parentClass.name}'", location: _*)
+      None
+    } else {
+      fieldCandidates.headOption
+    }
+  }
+
+  def lookupMethodCandidates(classDef: ClassDef, numArgs: Int, name: Name): Seq[(ClassDef, MethodDef)] = {
+    collect[MethodDef](classDef) {
+      case m: MethodDef => m.name == name && m.params.size == numArgs
+      case _ => false
+    }
+  }
+
+  def lookupMethod(classDef: ClassDef, args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
+    val allMethods = lookupMethodCandidates(classDef, args.size, name)
+
+    if (allMethods.isEmpty) {
+      error(s"Undefined method '$name' for class '$classDef')", name)
+      None
+    } else {
+      // always choose the method lowest in the class hierarchy
+      allMethods.lastOption
+    }
+  }
+
+  def lookupConstructorCandidates(classDef: ClassDef, params: Seq[Param]): Seq[(ClassDef, ConstructorDef)] = {
+    collect[ConstructorDef](classDef) {
+      case c: ConstructorDef => c.params.size == params.size // TODO: Might check parameter names here
+      case _ => false
+    }
+  }
+
+

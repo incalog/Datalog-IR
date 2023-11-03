@@ -6,6 +6,6 @@ class B(value: Int) extends A(value)
 
 @main
 def main(): Int = {
-    val b: B = new B()
+    val b: B = new B(5)
     return b.value
 }

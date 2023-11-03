@@ -12,7 +12,7 @@ import scala.io.Source
 
 class TypecheckerTest extends AnyFunSuite {
 
-  val uri = classOf[TypecheckerTest].getResource("/functional").toURI;
+  val uri = classOf[TypecheckerTest].getResource("/objectoriented").toURI;
 
   def testTypecheck(code: String): Unit =
     val checker = new Typechecker
@@ -27,8 +27,8 @@ class TypecheckerTest extends AnyFunSuite {
       println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
-      if (p.toString.endsWith(".finca")) {
-        test(s"Type check functional IncA file ${p.getFileName}") {
+      if (p.toString.endsWith(".oodl")) {
+        test(s"Type check oodl file ${p.getFileName}") {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")
           file.close()

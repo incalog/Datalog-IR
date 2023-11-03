@@ -18,7 +18,7 @@ class ParserTest extends AnyFunSuite:
 
   val uri = classOf[ParserTest].getResource("/objectoriented").toURI;
 
-  test("Parse all functional IncA files") {
+  test("Parse all oodl IncA files") {
     Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {
       override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
         println(s"Entering ${dir.getFileName}")

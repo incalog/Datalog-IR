@@ -146,7 +146,9 @@ object Parser:
     simpleType("Any", TAny) |
     simpleType("Null", TNull) |
     simpleType("Unit", TTuple(Seq())) |
-    tupleType | genericName //  setType
+    setType |
+    tupleType |
+    genericName
 
   lazy val typ: P[Type] = atomicType
 

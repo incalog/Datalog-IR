@@ -25,6 +25,11 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
     case c: ClassDef => Some(c)
     case _ => None
   }
+  
+  def functions: Seq[FunctionDef] = content.flatMap {
+    case f: FunctionDef => Some(f)
+    case _ => None
+  }
 
   def prettyprint(implicit indent: String): String = {
     val importsS = if (imports.isEmpty) "" else
@@ -61,6 +66,18 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
   }
 
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], parentCls: Seq[Type], content: Seq[ClassContent]) extends ModuleContent with TName.Target:
+  def isCaseClass: Boolean = annos.exists(_.isInstanceOf[CaseClassAnno])
+
+  val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
+    case field: FieldDef => field.name
+    case method: MethodDef => method.name
+    case _: ConstructorDef => name
+  }
+
+  def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
+  def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
+  def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val contentS = if (content.isEmpty) "" else
