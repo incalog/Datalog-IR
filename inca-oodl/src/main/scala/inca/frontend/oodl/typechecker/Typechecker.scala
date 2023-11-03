@@ -1,7 +1,7 @@
 package inca.frontend.oodl.typechecker
 
 // TODO: Support generics
-// TODO: Support scopes for ifs and for ... yield
+// TODO: Support Set fold
 
 import inca.frontend.oodl.syntax.*
 import inca.ir.Name
@@ -9,7 +9,7 @@ import inca.ir.typing.{Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 
 class Typechecker extends TypeContext with TypeIO:
-  val builtinModule = Module(
+  val builtinModule: Module = Module(
     Name("builtin"), Seq(), Seq(
       ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq())
     )
@@ -189,7 +189,7 @@ class Typechecker extends TypeContext with TypeIO:
       error(s"Expected '$ty2', but got '$ty1'", loc)
   }
 
-  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
+  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
@@ -200,7 +200,6 @@ class Typechecker extends TypeContext with TypeIO:
         term.typed(inferred)
         inferred
     }
-  }
 
   /** Class content */
 
@@ -247,7 +246,7 @@ class Typechecker extends TypeContext with TypeIO:
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
-    val clsTy = TName(classDef.name, Seq()) // TODO: Support generics
+    val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq()))) // TODO: Support generics
     resolveNamedType(clsTy)
 
     val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
@@ -302,7 +301,7 @@ class Typechecker extends TypeContext with TypeIO:
     val beforeSuperBody = constructorDef.body.slice(0, superCallIndex + 1)
     val afterSuperBody = constructorDef.body.slice(superCallIndex + 1, constructorDef.body.size)
 
-    val clsTy = TName(classDef.name, Seq()) // TODO: Support generics
+    val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq())))
     resolveNamedType(clsTy)
 
     typecheck(beforeSuperBody, clsTy)(Some(classDef))
@@ -327,8 +326,8 @@ class Typechecker extends TypeContext with TypeIO:
       assertSubtype(outTyp, rt, statement)
     case If(cnd, thn, els) =>
       val cndTyp = typecheck(cnd)
-      typecheck(thn, rt)
-      typecheck(els, rt)
+      scopedTypeContext { typecheck(thn, rt) }
+      scopedTypeContext { typecheck(els, rt) }
       assertSubtype(cndTyp, TBoolean, cnd)
     case varDecl@VarDeclare(name, annotatedType, maybeExpression, immutable) =>
       val inferredType = maybeExpression.map(typecheck)
@@ -377,6 +376,16 @@ class Typechecker extends TypeContext with TypeIO:
           error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
       }
     case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
+      scopedTypeContext {
+        typecheck(ifStmt.thn, TAny)
+        if (lookupVar(thnName).isEmpty)
+          error(s"Name $thnName is not defined for VarPhiAssign", phiStmt)
+      }
+      scopedTypeContext {
+        typecheck(ifStmt.els, TAny)
+        if (lookupVar(elsName).isEmpty)
+          error(s"Name $elsName is not defined for VarPhiAssign", phiStmt)
+      }
       bindVar(name, phiStmt, typ, immutable = true)
   }
 
@@ -550,9 +559,11 @@ class Typechecker extends TypeContext with TypeIO:
       }
 
     case SetComprehension(member, body) =>
-      member.foreach(typecheck)
-      val bodyTy = typecheck(body)
-      TSet(bodyTy)
+      scopedTypeContext {
+        member.foreach(typecheck)
+        val bodyTy = typecheck(body)
+        TSet(bodyTy)
+      }
 
     case methodCallExpr@MethodCall(recv, fun, tyArgs, args, isFix) =>
       typecheck(recv) match
@@ -570,27 +581,26 @@ class Typechecker extends TypeContext with TypeIO:
           TAny
 
     case superExpr@Super(args) =>
-      // TODO: We only allow inheritance of a single class here
       val parentRef = classDef.getOrElse(
-        throw IllegalStateException("Missing ClassDef in current typecheck context!")
-      ).parentCls.headOption
-      parentRef match
-        case None =>
-          error(s"Missing parent class for class '${classDef.get.name}'", expression)
-          TAny
-        case Some(t : TName) if !t.isBuiltIn =>
+        throw IllegalStateException("Missing ClassDef in current context!")
+      )
+      val foundMatchingConstructor = parentRef.parentCls.exists {
+        case t: TName if !t.isBuiltIn =>
           lookupClass(t.name) match
             case Some(parentCls: ClassDef) =>
               lookupConstructor(parentCls, args.map(typecheck), expression) match
                 case Some((classDef, constructorDef)) =>
                   resolveTarget(superExpr)((classDef, constructorDef))
-                  TUnit
-                case None =>
-                  TAny
-            case _ => TAny
-        case _ =>
-          error(s"Unexpected parent class for class '${classDef.get.name}'", expression)
-          TAny
+                  true
+                case _ => false
+            case _ => false
+        case _ => false
+      }
+      if (foundMatchingConstructor)
+        TUnit
+      else
+        error("No matching constructor found for super call", superExpr)
+        TAny
 
     case ConstructorCall(name, tyArgs, args) =>
       lookupClass(name) match
@@ -633,13 +643,13 @@ class Typechecker extends TypeContext with TypeIO:
 
   /** Resolve targets */
 
-  def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
+  private def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
     val newTarget = computeTarget
     term.resolved(newTarget, force = true)
     newTarget
   }
 
-  def resolveNamedType(ty: Type): Option[ClassDef] = {
+  private def resolveNamedType(ty: Type): Option[ClassDef] = {
     ty match
       case t: TName if t.isBuiltIn =>
         None

@@ -11,21 +11,17 @@ trait TypeContext extends TypeIO:
   //private var tyVars: Map[Name, TName.Target] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
 
-  //private var funs: MultiDict[Name, (Module, (Var.Target, TFun))] = MultiDict()
-  //private var dataDefs: Map[Name, DataDef] = Map()
   private var modules: Map[Name, Module] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val varsSaved = vars
     //val tyVarsSaved = tyVars
     val c = classDefs
-    //val funsSaved = funs
     val modulesSaved = modules
     val t = f
     vars = varsSaved
     //tyVars = tyVarsSaved
     classDefs = c
-    //funs = funsSaved
     modules = modulesSaved
     t
   }
