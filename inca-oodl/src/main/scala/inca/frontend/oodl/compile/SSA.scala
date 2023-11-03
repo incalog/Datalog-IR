@@ -54,8 +54,10 @@ class SSA:
   def visitStatement(s: Statement)(implicit gensym: Gensym): Seq[Statement] = s match
     case Expr(expression) =>
       Seq(Expr(visitExpression(expression)))
+
     case Return(expression) =>
       Seq(Return(visitExpression(expression)))
+
     case varAssign@Assign(Var(targetName), rhs) =>
       varAssign.target match
         case Some(Right(varDecl: VarDeclare)) =>
@@ -70,15 +72,18 @@ class SSA:
           )
         case trg =>
           throw new IllegalStateException(s"Unexpected variable target $trg")
+
     case Assign(lhs, rhs) =>
       Seq(Assign(visitExpression(lhs), visitExpression(rhs)))
+
     case VarDeclare(name, typ, maybeExpression, immutable) =>
       gensym.register(name.name)
       val ty = typ.getOrElse(maybeExpression.flatMap(_.typ).getOrElse(
         throw new IllegalStateException(s"Untyped variable declaration $s")
       ))
+      val newExpr = maybeExpression.map(visitExpression)
       env = env + (name -> (name, ty))
-      Seq(VarDeclare(name, typ, maybeExpression.map(visitExpression), true))
+      Seq(VarDeclare(name, typ, newExpr, true))
     case If(cnd, thn, els) =>
       val oldEnv = env
       val thnStmts = visitStatements(thn)
@@ -124,73 +129,21 @@ class SSA:
     case SetExp(exps, tty) =>
       SetExp(exps.map(visitExpression), tty)
     case SetMember(name, recv, predicate) =>
-      SetMember(name, visitExpression(recv), predicate.map(visitExpression))
+      gensym.register(name.name)
+      val recvExpr = visitExpression(recv)
+      val ty = e.typ.getOrElse(
+        throw new IllegalStateException(s"Untyped variable declaration $name in $e")
+      )
+      env = env + (name -> (name, ty))
+      SetMember(name, recvExpr, predicate.map(visitExpression))
     case SetComprehension(member, body) =>
-      SetComprehension(member.map(visitExpression), visitExpression(body))
+      val oldEnv = env
+      val setCompr = SetComprehension(member.map(visitExpression), visitExpression(body))
+      env = oldEnv
+      setCompr
     case BinOp(e1, op, e2) =>
       BinOp(visitExpression(e1), op, visitExpression(e2))
     case UnOp(op, e) =>
       UnOp(op, visitExpression(e))
     case _ => e
-
-/*
-/**
- * Transform a single statement to a sequence of new statements.
- */
-override def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
-  case VarDeclareStmt(name, typ, maybeExpression, _) =>
-    gensym.register(name.raw)
-    val expr = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get).head) else None
-    env = env + (name.raw -> (name.raw, typ))
-    Seq(
-      VarDeclareStmt(name, transType(typ), expr, immutable = true)
-    )
-  case varAssign@VarAssignStmt(targetName, expression) =>
-    val targetVar = varAssign.target
-      .getOrElse(throw new RuntimeException(s"Unresolved variable $targetName in assignment $varAssign"))
-    targetVar match {
-      case VarDeclareStmt(_, typ, _, _) =>
-        val transExp = transExpression(expression).head
-        val newName = gensym.fresh(targetName.raw)
-        env = env + (targetName.raw -> (newName, typ))
-        Seq(
-          VarDeclareStmt(Name(newName), transType(typ), Some(transExp), immutable = true)
-        )
-      case _ =>
-        throw new RuntimeException(s"Illegal assignment to variable target $targetVar")
-    }
-  case IfStmt(cnd, thn, els) =>
-    val oldEnv = env
-    val thnStmts = transStatements(thn)
-    val thnEnv = env.filter(kv => oldEnv.contains(kv._1) && !oldEnv.get(kv._1).contains(kv._2))
-    env = oldEnv
-    val elsStmts = transStatements(els)
-    val elsEnv = env.filter(kv => oldEnv.contains(kv._1) && !oldEnv.get(kv._1).contains(kv._2))
-    env = oldEnv
-
-    // base name of all new symbols either used in the then or the else block
-    val usedSymbols = thnEnv.keySet.union(elsEnv.keySet)
-    val ifStmt = IfStmt(transExpression(cnd).head, thnStmts, elsStmts)
-
-    ifStmt +: usedSymbols.zipWithIndex.map { case (name, idx) =>
-      val newName = Name(gensym.fresh(name))
-      val (thnName, thnType) = thnEnv.getOrElse(name, oldEnv(name))
-      val (elsName, elsType) = elsEnv.getOrElse(name, oldEnv(name))
-      if (thnType != elsType)
-        throw new RuntimeException(s"Type mismatch for variable $newName: ${thnType} != ${elsType}")
-      env = env + (name -> ((newName.raw, thnType)))
-      VarPhiAssignStmt(newName, thnType, ifStmt, Name(thnName), Name(elsName))
-    }.toSeq
-  case stmt =>
-    gensym.register(stmt.vars.map(_._1.raw))
-    super.transStatementInternal(stmt)
-}
-
-override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-  case VarReadExpr(targetName) =>
-    // Rewrite all VarReadExpr to use the latest generated name for the variable
-    val (newName, _) = env.getOrElse(targetName.raw, (targetName.raw, TAny))
-    Seq(VarReadExpr(Name(newName)))
-  case _ => super.transExpressionInternal(expression)
-}*/
 

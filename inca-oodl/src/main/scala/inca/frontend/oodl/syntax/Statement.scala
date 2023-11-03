@@ -9,6 +9,7 @@ sealed trait Statement extends SourceLocation:
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
+  def last: Seq[Statement] = Seq(this)
 
 case class Expr(expression: Expression) extends Statement:
   override def vars: Map[Name, Option[Type]] = expression.vars
@@ -46,6 +47,8 @@ case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends
         s"${indent}$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
       }
     }
+  override def last: Seq[Statement] =
+    (thn.lastOption.map(_.last) ++ els.lastOption.map(_.last)).flatten.toSeq
 
 
 case class VarPhiAssign(name: Name, typ: Type, ifStmt: If, thnName: Name, elsName: Name) extends Statement with Var.Target:

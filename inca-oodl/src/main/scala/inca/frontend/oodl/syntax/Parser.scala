@@ -343,7 +343,31 @@ object Parser:
 
   /** Statements */
 
-  lazy val statements: P0[Seq[Statement]] = spaced(inBraces(statement.rep0(0)))
+  // TODO: We can remove this if we make the typechecker smarter
+  private def insertMissingReturn(stmts: Seq[Statement]): Seq[Statement] =
+    // Automatically insert return statements
+    val unitStmt = Return(Tuple(Seq()))
+    val lastStmt = stmts.lastOption.getOrElse(unitStmt)
+    val newTail = lastStmt match
+      case Return(_) =>
+        Seq(lastStmt)
+      case Expr(expression) =>
+        Seq(Return(expression))
+      case If(_, thn, els) =>
+        val allReturn = lastStmt.last.forall(_.isInstanceOf[Return])
+        if (allReturn)
+          Seq(lastStmt)
+        else
+          Seq(lastStmt, unitStmt)
+      case _ =>
+        Seq(lastStmt, unitStmt)
+    stmts.dropRight(1) ++ newTail
+
+  lazy val statements: P0[Seq[Statement]] =
+    (
+      expression.repSep0(1, 1, P.char(',')).map(_.map(Expr.apply)) |
+      spaced(inBraces(statement.rep0(0)))
+    ).map(insertMissingReturn)
 
   lazy val statement: P[Statement] = valDeclStmt | varDeclStmt | returnStmt | ifElseStmt | assignStmt.backtrack | exprStmt
 

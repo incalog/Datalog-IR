@@ -1,6 +1,4 @@
 module Base
 
 @main
-def main(): Int = {
-    return 7 + (12 * 3)
-}
+def main(): Int = 7 + (12 * 3)

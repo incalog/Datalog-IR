@@ -2,6 +2,7 @@ package inca.frontend.oodl.typechecker
 
 // TODO: Support generics
 // TODO: Support Set fold
+// TODO: assign variables to method calls that return unit is not allowed
 
 import inca.frontend.oodl.syntax.*
 import inca.ir.Name
@@ -247,7 +248,7 @@ class Typechecker extends TypeContext with TypeIO:
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
     val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq()))) // TODO: Support generics
-    resolveNamedType(clsTy)
+    typecheck(clsTy)
 
     val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
     bindVar(thisVar.name, thisVar, clsTy, true)
@@ -302,7 +303,7 @@ class Typechecker extends TypeContext with TypeIO:
     val afterSuperBody = constructorDef.body.slice(superCallIndex + 1, constructorDef.body.size)
 
     val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq())))
-    resolveNamedType(clsTy)
+    typecheck(clsTy)
 
     typecheck(beforeSuperBody, clsTy)(Some(classDef))
 
@@ -352,7 +353,7 @@ class Typechecker extends TypeContext with TypeIO:
           resolveTarget(varAssig)(Right(target))
           assertSubtype(expTyp, typ, statement)
         case None =>
-          error("Can not assign to unbound variable '$name'", statement)
+          error(s"Can not assign to unbound variable '$name'", statement)
     case fieldAssign@Assign(fieldRead@Select(recv, targetName), rhs) =>
       val typ = typecheck(rhs)
       typecheck(recv) match {
@@ -496,7 +497,9 @@ class Typechecker extends TypeContext with TypeIO:
       case Some((target, typ, _)) =>
         resolveTarget(varRead)(target)
         typ
-      case None => TAny
+      case None =>
+        error(s"Unbound variable '$name'", varRead)
+        TAny
 
     case read@Select(recv, targetName) =>
       val recvTy = typecheck(recv)
@@ -626,7 +629,7 @@ class Typechecker extends TypeContext with TypeIO:
             assertSubtype(argTy, ty, expression)
           }
           val clsTy = TName(cls.name, tyArgs)
-          resolveNamedType(clsTy)
+          typecheck(clsTy)
           clsTy
         case None => TAny
   }
