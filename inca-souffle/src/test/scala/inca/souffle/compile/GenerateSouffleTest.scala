@@ -2,6 +2,7 @@ package inca.souffle.compile
 
 import inca.ir.*
 import inca.ir.extension.arithmetic as arith
+import inca.ir.extension.data
 import org.scalatest.funsuite.AnyFunSuite
 
 class GenerateSouffleTest extends AnyFunSuite {
@@ -38,6 +39,16 @@ class GenerateSouffleTest extends AnyFunSuite {
       Eq(Var("Y"), arith.IntNum(5)),
       Eq(Var("X"), arith.Abs(Var("Y")))))
   ))
+  val natDecl = data.DataDefinition("Nat", Seq(
+    data.CaseDefinition("Zero", Seq()),
+    data.CaseDefinition("Succ", Seq(data.TData("Nat")))
+  ))
+  val natRel = Relation("test", Seq(Param(Name("X"), data.TData("Nat"))), Seq(
+    Body(Seq(
+      Eq(Var("Y"), data.Construct("Succ", Seq(data.Construct("Zero", Seq())))),
+      data.Deconstruct(Var("Y"), "Succ", Seq(Var("X"))),
+      data.Deconstruct(Var("X"), "Zero", Seq())))
+  ))
 
   test("path example") {
     val module = Module(Name("PathExample"), Language.Datalog, Seq(edgeRel, pathRel))
@@ -59,9 +70,14 @@ class GenerateSouffleTest extends AnyFunSuite {
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }
-
-  test("abs exampl") {
+  test("abs example") {
     val module = Module(Name("PathExample"), Language.Datalog, Seq(absRel))
+    val prog = GenerateSouffle.compileModule(module)
+    println(prog)
+  }
+
+  test("data example") {
+    val module = Module(Name("PathExample"), Language.Datalog, Seq(natDecl, natRel))
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }

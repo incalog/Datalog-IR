@@ -31,7 +31,7 @@ enum ProgramContent:
         else s" $choiceDomain"
       s".decl ${names.mkString(", ")}(${attrs.mkString(", ")})$qualifiersStr$choiceDomainStr"
 
-    case TypeDecl(name, rhs) => s"$name $rhs"
+    case TypeDecl(name, rhs) => s".type $name $rhs"
     case Directive => ".input"
 
 enum TypeDeclConstraint:
@@ -42,9 +42,9 @@ enum TypeDeclConstraint:
 
   override def toString: String = this match
     case SubType(ty) => s"<: $ty"
-    case EqTypeAlternativeTypes(alts) => s"= ${alts.mkString("|")}"
+    case EqTypeAlternativeTypes(alts) => s"= ${alts.mkString(" | ")}"
     case EqTypeRecord(rec) => s"= $rec"
-    case EqTypeAlternativeADTBranches(alts) => s"= ${alts.mkString("|")}"
+    case EqTypeAlternativeADTBranches(alts) => s"= ${alts.mkString(" | ")}"
 
 enum Type:
   case Number
@@ -158,7 +158,6 @@ enum Term:
   case Constr(name: String, args: Seq[Term])
   case Parens(t: Term)
   case TypeCast(t: Term, ty: Type)
-  // TODO???
   case AggregatorTerm(agg: Aggregator)
   case IntrinsicFunctorApp(f: IntrinsicFunctor, args: Seq[Term])
   case UserDefFunctorApp(f: UserDefFunctor, args: Seq[Term])
@@ -174,7 +173,10 @@ enum Term:
     case Nil => "nil"
     case List(s) => s"[${s.mkString(", ")}]"
     case Constr(name, args) =>
-      s"$$$name(${args.mkString(", ")})"
+      val argList =
+        if (args.isEmpty) ""
+        else s"(${args.mkString(", ")})"
+      s"$$$name$argList"
     case Parens(t) => s"(t)"
     case TypeCast(t, ty) => s"as($t, $ty)"
     case AggregatorTerm(agg) => agg.toString

@@ -37,8 +37,9 @@ object GenerateSouffle:
       case data.DataDefinition(name, cases) =>
         val adtBranches = cases.map {
           case data.CaseDefinition(name, args) =>
-            val cotrArgs = args.map { ty =>
-              Attribute("", compileType(ty))
+
+            val cotrArgs = args.zipWithIndex.map { case(ty, idx) =>
+              Attribute(s"param_$idx", compileType(ty))
             }
             ADTConstructor(name.name, cotrArgs)
         }
@@ -62,6 +63,7 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
+    case data.Deconstruct(t, name, args) => Atom.Equal(compileTerm(t), Term.Constr(name.name, args.map(compileTerm)))
 
   def qualifyName(n: ir.Name): QualifiedName = QualifiedName(Seq(n.name))
 
@@ -81,8 +83,7 @@ object GenerateSouffle:
       Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
-    // case data.Construct(name, args) => Term.Constr(name.name, args.map(compileTerm))
-//    case data.Deconstruct(t, name, args) =>
+    case data.Construct(name, args) => Term.Constr(name.name, args.map(compileTerm))
 
   def compileType(ty: ir.Type): Type = ty match
     case arith.TInt => Type.Number
