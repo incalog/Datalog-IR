@@ -1,5 +1,8 @@
 package inca.frontend.oodl.typechecker
 
+// TODO: Support generics
+// TODO: Support scopes for ifs and for ... yield
+
 import inca.frontend.oodl.syntax.*
 import inca.ir.Name
 import inca.ir.typing.{Resolvable, Typeable}
@@ -98,8 +101,7 @@ class Typechecker extends TypeContext with TypeIO:
     uninitializedFields = Map()
 
     classDef.fields.foreach(f => typecheck(f, classDef))
-
-    /*classDef.methods.foreach(m => typecheck(m, classDef))
+    classDef.methods.foreach(m => typecheck(m, classDef))
     classDef.constructors.foreach { constructor =>
       // every path trough a constructor must initialize all fields
       val storeUninitializedFields = uninitializedFields
@@ -108,7 +110,7 @@ class Typechecker extends TypeContext with TypeIO:
         error(s"Field '$fieldName' is not initialized", fieldDef)
       }
       uninitializedFields = storeUninitializedFields
-    }*/
+    }
   }
 
   /** Typing */
@@ -245,12 +247,18 @@ class Typechecker extends TypeContext with TypeIO:
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
+    val clsTy = TName(classDef.name, Seq()) // TODO: Support generics
+    resolveNamedType(clsTy)
+
+    val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
+    bindVar(thisVar.name, thisVar, clsTy, true)
+
     typecheck(methodDef.outType)
     typecheck(methodDef.body, methodDef.outType)(Some(classDef))
   }
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
-    val overriddenConstructors = lookupConstructorCandidates(classDef, constructorDef.params)
+    val overriddenConstructors = lookupConstructorCandidates(classDef, constructorDef.params.map(_.typ))
 
     overriddenConstructors.foreach { case (_, m) =>
       if (m.vis != constructorDef.vis)
@@ -271,6 +279,39 @@ class Typechecker extends TypeContext with TypeIO:
       if (cs.size > 1)
         error(s"Ambiguous parameter names in constructor '${classDef.name}'", cs: _*)
     }
+
+    constructorDef.body.foreach {
+      case Return(expression) =>
+        error(s"Constructor '${classDef.name}' must not contain a return statement", expression)
+      case _ => // nothing
+    }
+
+    // Super call handling
+    val (superCalls, indices) = constructorDef.body.zipWithIndex.flatMap {
+      case (Expr(e: Super), idx) => Some((e, idx))
+      case _ => None
+    }.unzip
+
+    val superCallIndex = indices.headOption.getOrElse(-1)
+    if (superCalls.size > 1) {
+      error(s"Constructor '${classDef.name}' must not contain more than one supercall", superCalls: _*)
+    } else if (superCallIndex > 0) {
+      error(s"Super must be called first in constructor '${classDef.name}'", superCalls: _*)
+    }
+
+    val beforeSuperBody = constructorDef.body.slice(0, superCallIndex + 1)
+    val afterSuperBody = constructorDef.body.slice(superCallIndex + 1, constructorDef.body.size)
+
+    val clsTy = TName(classDef.name, Seq()) // TODO: Support generics
+    resolveNamedType(clsTy)
+
+    typecheck(beforeSuperBody, clsTy)(Some(classDef))
+
+    // bind this after the super call !
+    val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
+    bindVar(thisVar.name, thisVar, clsTy, true)
+
+    typecheck(afterSuperBody, clsTy, allowImmutableFieldAssignment = true)(Some(classDef))
   }
 
   /** Statements */
@@ -335,8 +376,8 @@ class Typechecker extends TypeContext with TypeIO:
         case ty =>
           error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
       }
-    /*case phiStmt@VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
-      bindVar(name, phiStmt, typ, immutable = true)*/
+    case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
+      bindVar(name, phiStmt, typ, immutable = true)
   }
 
   /** Expressions */
@@ -456,9 +497,8 @@ class Typechecker extends TypeContext with TypeIO:
           if (index <= 0 || index > ts.size) {
             error(s"Index out of bounds: $index for Tuple size: ${ts.size}", recv)
             TAny
-          } else {
+          } else
             ts(index-1)
-          }
         case t: TName => // field read
           t.target match
             case Some(cls: ClassDef) =>
@@ -529,6 +569,29 @@ class Typechecker extends TypeContext with TypeIO:
           error(s"Can not lookup method '$fun' for expression of type '$typ'", expression)
           TAny
 
+    case superExpr@Super(args) =>
+      // TODO: We only allow inheritance of a single class here
+      val parentRef = classDef.getOrElse(
+        throw IllegalStateException("Missing ClassDef in current typecheck context!")
+      ).parentCls.headOption
+      parentRef match
+        case None =>
+          error(s"Missing parent class for class '${classDef.get.name}'", expression)
+          TAny
+        case Some(t : TName) if !t.isBuiltIn =>
+          lookupClass(t.name) match
+            case Some(parentCls: ClassDef) =>
+              lookupConstructor(parentCls, args.map(typecheck), expression) match
+                case Some((classDef, constructorDef)) =>
+                  resolveTarget(superExpr)((classDef, constructorDef))
+                  TUnit
+                case None =>
+                  TAny
+            case _ => TAny
+        case _ =>
+          error(s"Unexpected parent class for class '${classDef.get.name}'", expression)
+          TAny
+
     case ConstructorCall(name, tyArgs, args) =>
       lookupClass(name) match
         case Some(cls: ClassDef) =>
@@ -548,8 +611,9 @@ class Typechecker extends TypeContext with TypeIO:
             error(s"Expected $expectedNumArgs arguments, but got ${args.size}", expression)
           val argTys = args.map(typecheck)
           // Ensure the argument types match
-          primaryConstructor.params.zip(argTys).foreach {
-            case (p@Param(_, ty), argTy) => assertSubtype(argTy, ty, expression)
+          primaryConstructor.params.zip(argTys).foreach { case (p@Param(_, ty), argTy) =>
+            typecheck(ty)
+            assertSubtype(argTy, ty, expression)
           }
           val clsTy = TName(cls.name, tyArgs)
           resolveNamedType(clsTy)

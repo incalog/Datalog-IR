@@ -46,3 +46,9 @@ case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends
         s"${indent}$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
       }
     }
+
+
+case class VarPhiAssign(name: Name, typ: Type, ifStmt: If, thnName: Name, elsName: Name) extends Statement with Var.Target:
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"${indent}val $name: $typ := phi(${ifStmt.cnd})($thnName, $elsName)"

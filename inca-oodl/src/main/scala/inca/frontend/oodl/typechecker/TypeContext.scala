@@ -117,6 +117,7 @@ trait TypeContext extends TypeIO:
     parentContent ++ content
   }
 
+  // TODO: Adapt this for generics
   def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
     val fieldCandidates = collect[FieldDef](classDef) {
       case f: FieldDef => f.name == fieldName
@@ -134,6 +135,7 @@ trait TypeContext extends TypeIO:
     }
   }
 
+  // TODO: Adapt this for generics
   def lookupMethodCandidates(classDef: ClassDef, numArgs: Int, name: Name): Seq[(ClassDef, MethodDef)] = {
     collect[MethodDef](classDef) {
       case m: MethodDef => m.name == name && m.params.size == numArgs
@@ -153,10 +155,29 @@ trait TypeContext extends TypeIO:
     }
   }
 
-  def lookupConstructorCandidates(classDef: ClassDef, params: Seq[Param]): Seq[(ClassDef, ConstructorDef)] = {
+  // TODO: Adapt this for generics
+  def lookupConstructorCandidates(classDef: ClassDef, params: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
     collect[ConstructorDef](classDef) {
-      case c: ConstructorDef => c.params.size == params.size // TODO: Might check parameter names here
+      case c: ConstructorDef => c.params.size == params.size // TODO: Might check types here
       case _ => false
+    }
+  }
+
+  def lookupConstructor(classDef: ClassDef, args: Seq[Type], location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {
+    val allConstructor = lookupConstructorCandidates(classDef, args)
+    val ambiguousConstructors = allConstructor.groupBy(_._1).filter(_._2.size > 1)
+
+    if (allConstructor.isEmpty) {
+      error(s"No matching constructor found for class ${classDef.name}: this(${args.mkString(",")})", location)
+      None
+    } else if (ambiguousConstructors.nonEmpty) {
+      ambiguousConstructors.foreach {
+        case (cls, _) => error(s"Ambiguous constructor for class ${cls.name}: this(${args.mkString(",")})", location)
+      }
+      None
+    } else {
+      // always choose the constructor lowest in the class hierarchy
+      Some(allConstructor.last)
     }
   }
 

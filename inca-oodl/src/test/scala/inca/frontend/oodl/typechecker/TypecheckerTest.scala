@@ -1,5 +1,6 @@
 package inca.frontend.oodl.typechecker
 
+import inca.frontend.oodl.compile.SSA
 import inca.frontend.oodl.syntax.*
 import inca.ir.extension.block
 import inca.ir.typing.IRTypechecker
@@ -17,9 +18,16 @@ class TypecheckerTest extends AnyFunSuite {
   def testTypecheck(code: String): Unit =
     val checker = new Typechecker
     val module = Parser.parseModule(code)
-    println(module)
+    //println(module)
     checker.typecheck(module)
     checker.printTypeIO()
+
+    val ssa = new SSA
+    val ssaModule = ssa.compileModule(module)
+    println(ssaModule)
+    checker.typecheck(ssaModule)
+    checker.printTypeIO()
+
     assertResult(Nil)(checker.getErrors)
 
   Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {

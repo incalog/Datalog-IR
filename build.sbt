@@ -84,7 +84,18 @@ lazy val inca_viatra = (project in file("inca-viatra"))
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
+      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+      ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+      // Datalog query engine
+      "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
+      "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
+      "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
+      // Required for runtime reflection and code execution
+      "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
     )
   )
 

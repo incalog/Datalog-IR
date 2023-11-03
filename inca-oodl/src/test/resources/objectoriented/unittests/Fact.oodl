@@ -11,6 +11,6 @@ class Factorial {
 
 @main
 def main(n: Int): Int = {
-    val f: Factorial = new Factorial()
+    val f = new Factorial()
     return f.calc(n)
 }
