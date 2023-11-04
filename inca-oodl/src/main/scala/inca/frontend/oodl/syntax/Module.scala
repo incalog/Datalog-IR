@@ -48,10 +48,12 @@ trait ModuleContent extends SourceLocation with Annotations:
 
 case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target:
   def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
-  def prettyprint: String = s"$name: ${typ.prettyprint}"
+  def prettyprint(implicit indent: String): String = s"$name: ${typ.prettyprint}"
+  override def toString: String = prettyprint("")
 
 case class ParametricType(name: Name) extends SourceLocation with TName.Target:
   def prettyprint(implicit indent: String): String = name.name
+  override def toString: String = prettyprint("")
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent:
   override def prettyprint(implicit indent: String): String = {
@@ -94,6 +96,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 trait ClassContent extends SourceLocation with Annotations:
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
+  override def toString: String = prettyprint("")
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression], immutable: Boolean) extends ClassContent with Resolvable[MethodDef]:
   def prettyprint(implicit indent: String): String = {

@@ -220,6 +220,12 @@ class Typechecker extends TypeContext with TypeIO:
     // get all overridden methods and assign them the same signature
     val overriddenMethods = lookupMethodCandidates(classDef, methodDef.params.size, methodDef.name)
 
+    // All methods in the hierarchy except for the highest need an override annotation
+    overriddenMethods.tail.foreach { case (c, m) =>
+      if (!m.annos.exists(_.isInstanceOf[OverrideFunctionAnno]))
+        error(s"Method ${m.name} in class ${c.name} is missing an override annotation", m)
+    }
+
     // make sure all overridden methods share the same parameter names
     overriddenMethods.foreach { case (_, m) =>
       m.params.zip(methodDef.params).foreach { case (p1, p2) =>

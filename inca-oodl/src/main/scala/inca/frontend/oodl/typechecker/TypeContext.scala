@@ -138,7 +138,7 @@ trait TypeContext extends TypeIO:
       case _ => false
     }
   }
-
+  
   def lookupMethod(classDef: ClassDef, args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
     val allMethods = lookupMethodCandidates(classDef, args.size, name)
 
@@ -173,7 +173,7 @@ trait TypeContext extends TypeIO:
       None
     } else {
       // always choose the constructor lowest in the class hierarchy
-      Some(allConstructor.last)
+      allConstructor.lastOption
     }
   }
 
