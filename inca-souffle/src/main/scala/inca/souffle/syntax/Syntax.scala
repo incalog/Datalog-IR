@@ -8,12 +8,14 @@ enum ProgramContent:
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
   case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
   case Fact(name: String, args: Seq[Term])
-  // TODO
-  case Pragma
-  case FunctorDecl
-  case ComponentDecl
-  case ComponentInit
-  case Directive
+  case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue])
+  case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
+  case ComponentInit(n: String, compType: ComponentType)
+  // can only be within component decl
+  case Override(n: String)
+  // cannot be within component decl
+  case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
+  case Pragma(option: String, arg: Option[String])
 
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
@@ -26,25 +28,48 @@ enum ProgramContent:
       val qualifiersStr =
         if (qualifiers.isEmpty) ""
         else s" ${qualifiers.mkString(" ")}"
-      val choiceDomainStr =
-        if (choiceDomain.isEmpty) ""
-        else s" $choiceDomain"
+      val choiceDomainStr = choiceDomain match
+        case Some(choiceDomain) => s" $choiceDomain"
+        case None => ""
       s".decl ${names.mkString(", ")}(${attrs.mkString(", ")})$qualifiersStr$choiceDomainStr"
-
     case TypeDecl(name, rhs) => s".type $name $rhs"
-    case Directive => ".input"
+    case Directive(dirQual, name, attrs) =>
+      val attrsStr =
+        if(attrs.isEmpty) ""
+        else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
+      s"$dirQual $name$attrsStr"
+    case ComponentDecl(ty, superTys, contents) =>
+      val superTysStr =
+        if (superTys.isEmpty) ""
+        else s": ${superTys.mkString(", ")}"
+      s""".comp $ty$superTys {
+         |${contents.mkString("\n")}
+         |}
+         |""".stripMargin
+    case ComponentInit(n, componentType) =>
+      s".init $n = $componentType"
+    case Override(n) => ".override $n"
+    case FunctorDecl(name, attrs, retty, stateful) =>
+      val statefulStr = if (stateful) " stateful" else ""
+      s".functor $name(${attrs.mkString(", ")}): $retty$statefulStr"
+    case Pragma(option, arg) =>
+      val argStr = arg match
+        case Some(arg) => s" $arg"
+        case None => ""
+      s".pragma $option$argStr"
+
 
 enum TypeDeclConstraint:
   case SubType(ty: Type)
-  case EqTypeAlternativeTypes(alts: Seq[Type])
-  case EqTypeRecord(alts: Record)
-  case EqTypeAlternativeADTBranches(alts: Seq[ADTConstructor])
+  case UnionType(alts: Seq[Type])
+  case RecordType(alts: Record)
+  case ADTType(alts: Seq[ADTConstructor])
 
   override def toString: String = this match
     case SubType(ty) => s"<: $ty"
-    case EqTypeAlternativeTypes(alts) => s"= ${alts.mkString(" | ")}"
-    case EqTypeRecord(rec) => s"= $rec"
-    case EqTypeAlternativeADTBranches(alts) => s"= ${alts.mkString(" | ")}"
+    case UnionType(alts) => s"= ${alts.mkString(" | ")}"
+    case RecordType(rec) => s"= $rec"
+    case ADTType(alts) => s"= ${alts.mkString(" | ")}"
 
 enum Type:
   case Number
@@ -59,6 +84,7 @@ enum Type:
     case Unsigned => "unsigned"
     case Float => "float"
     case Name(qualName) => qualName.toString
+
 case class QualifiedName(ns: Seq[String]):
   override def toString: String = ns.mkString(".")
 case class Record(attrs: Seq[Attribute]):
@@ -256,5 +282,38 @@ case class ChoiceDomain():
 
 // TODO query plan
 case class QueryPlan():
-  override def toString: String = ""
+  override def toString: String = s".plan "
 
+enum DirectiveQualifier:
+  case Input
+  case Output
+  case Printsize
+  case Limitsize
+
+  override def toString: String = this match
+    case Input => ".input"
+    case Output => ".output"
+    case Printsize => ".printsize"
+    case Limitsize => ".limitsize"
+
+enum DirectiveValue:
+  case StringLit(s: String)
+  case Id(n: String)
+  case Number(i: Int)
+  case True
+  case False
+
+  override def toString: String = this match
+    case StringLit(s) => "\"" + s + "\""
+    case Id(n) => n
+    case Number(i) => i.toString
+    case True => "true"
+    case False => "false"
+
+
+case class ComponentType(n: String, argTypes: Seq[String]):
+  override def toString: String =
+    val argTypesStr =
+      if (argTypes.isEmpty) ""
+      else s"<${argTypes.mkString(", ")}>"
+    s"$n$argTypesStr"

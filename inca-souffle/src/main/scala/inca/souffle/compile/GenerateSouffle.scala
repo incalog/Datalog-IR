@@ -9,7 +9,8 @@ import inca.souffle.syntax.*
 // Core + Arithmetic + String + Data?
 object GenerateSouffle:
   def compileModule(module: ir.Module): Program =
-    val illegalFeatures = module.lang.features -- Set(inca.ir.BaseIR, inca.ir.extension.arithmetic.IR, inca.ir.extension.string.IR, inca.ir.extension.data.IR)
+    val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR)
+    val illegalFeatures = module.lang.features -- compilableFeatures
     if (illegalFeatures.nonEmpty)
       throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
 
@@ -32,7 +33,7 @@ object GenerateSouffle:
         }
         val relDecl = ProgramContent.RelationDecl(Seq(name.name), attrs, Seq(), None)
         // TODO
-        val inputDirective = ProgramContent.Directive
+        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, qualifyName(name), Map())
         Seq(relDecl, inputDirective)
       case data.DataDefinition(name, cases) =>
         val adtBranches = cases.map {
@@ -43,7 +44,7 @@ object GenerateSouffle:
             }
             ADTConstructor(name.name, cotrArgs)
         }
-        val adtDef = TypeDeclConstraint.EqTypeAlternativeADTBranches(adtBranches)
+        val adtDef = TypeDeclConstraint.ADTType(adtBranches)
         val typeDecl = ProgramContent.TypeDecl(name.name, adtDef)
         Seq(typeDecl)
     }
@@ -79,8 +80,7 @@ object GenerateSouffle:
     case arith.BinOp(lhs, rhs, "%") => Term.Binary(compileTerm(lhs), BinOp.Rem, compileTerm(rhs))
     case arith.BinOp(lhs, rhs, "min") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Min, Seq(compileTerm(lhs), compileTerm(rhs)))
     case arith.BinOp(lhs, rhs, "max") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(lhs), compileTerm(rhs)))
-    case arith.UnOp(t, "abs") =>
-      Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
+    case arith.UnOp(t, "abs") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
     case data.Construct(name, args) => Term.Constr(name.name, args.map(compileTerm))
