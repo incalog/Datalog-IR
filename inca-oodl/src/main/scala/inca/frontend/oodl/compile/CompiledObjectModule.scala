@@ -3,7 +3,6 @@ package inca.frontend.oodl.compile
 import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
-import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 
 case class CompiledObjectModule(fun: Module) extends CompiledModule:

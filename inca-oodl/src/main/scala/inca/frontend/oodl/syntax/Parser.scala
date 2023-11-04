@@ -450,6 +450,7 @@ object Parser:
       (keyword("class") *> identifier) ~ typeParams.? ~ primaryConstructor ~
       (keyword("extends") *> typ ~ inParens(identifier.rep0).?).? ~ classContent).mapWithLoc {
       case ((((((vis, annos), name), tys), primaryConstrFields), maybeParentCls), clsContent)  =>
+        // Inherit from Object if no superclass is specified
         val (parentCls, superArgs) = maybeParentCls match
           case Some((cls, Some(args))) =>
             (cls, args.toSet)
@@ -458,6 +459,7 @@ object Parser:
           case _ =>
             (TName(Name("Object"), Seq()), Set[Name]())
 
+        // Generate a constructor + fields based on the header
         val constrParams = primaryConstrFields.map(f => Param(f.name, f.typ))
         val (superFields, fields) = primaryConstrFields.partition(f => superArgs.contains(f.name) )
         val fieldAssigns = fields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))

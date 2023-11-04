@@ -31,7 +31,8 @@ case class VarDeclare(name: Name, typ: Option[Type], maybeExpression: Option[Exp
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "
-    s"${indent}${prefix}${name}: $typ$expr"
+    val typS = if (typ.isDefined) s": ${typ.get}" else ""
+    s"${indent}${prefix}${name}$typS$expr"
   }
 
 case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement:
