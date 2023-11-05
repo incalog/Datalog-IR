@@ -35,7 +35,7 @@ class GenerateIR:
   /** Module content */
   def compileMainFunction(f: FunctionDef): ir.Relation = ???
 
-  def compileClassHierachy(classes: Seq[ClassDef]): ir.Relation = ???
+  def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation = ???
 
   def compileClassDef(f: FunctionDef): Seq[ir.Relation] = ???
 
@@ -44,6 +44,7 @@ class GenerateIR:
   def compileDispatchTable(classes: Seq[ClassDef]): ir.Relation = ???
 
   def compileMethodDef(m: MethodDef): ir.Relation = ???
+    // TODO: Gensym register all vars
 
   def compileConstructorDef(c: ConstructorDef): ir.Relation = ???
 
@@ -55,12 +56,12 @@ class GenerateIR:
     case Nil => Seq()
     case (stm@Return(_)) :: _ => Seq(compileStatement(stm, resultVar))
     case (stm@If(cnd, thn, els)) :: rest =>
-      // get all VarPhiAssigns and merge them in the thn and els branch
       // Note: This assumes, that all VarPhiAssigns directly follow an if stmt
       val (varPhiAssigns, remainingStmts) = rest.span {
         case VarPhiAssign(name, typ, ifStmt, _, _) => stm == ifStmt
         case _ => false
       }
+      // Merge all VarPhiAssigns into the thn and els branch
       val (thnDeclarations, elsDeclarations) = varPhiAssigns.map {
         case VarPhiAssign(name, typ, _, thnName, elsName) =>
           val thnDecl = VarDeclare(name, Some(typ), Some(Var(thnName)), true)
@@ -77,6 +78,10 @@ class GenerateIR:
       ir.Eq(ir.Var(wildcard), compileExpression(expression))
     case Return(expression) =>
       ir.Eq(ir.Var(resultVar), compileExpression(expression))
+    case Assign(Select(recv, targetName), rhs) =>
+      val recvObject = compileExpression(recv)
+      // TODO: Handle field read
+      ???
     case Assign(lhs, rhs) =>
       ir.Eq(compileExpression(lhs), compileExpression(rhs))
     case VarDeclare(name, typ, None, immutable) =>
