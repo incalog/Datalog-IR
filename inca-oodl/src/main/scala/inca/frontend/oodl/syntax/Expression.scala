@@ -107,7 +107,7 @@ case class DoubleLit(d: Double) extends Expression:
 
 case class StringLit(s: String) extends Expression:
   override def vars: Map[Name, Option[Type]] = Map()
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s""""$s""""
 
 case class BinOp(e1: Expression, op: String, e2: Expression) extends Expression:
   override def vars: Map[Name, Option[Type]] = Map()

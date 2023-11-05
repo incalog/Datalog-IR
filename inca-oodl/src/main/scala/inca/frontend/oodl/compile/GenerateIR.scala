@@ -1,5 +1,6 @@
 package inca.frontend.oodl.compile
 
+import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
 import inca.ir
 import inca.ir.{ExtensionalRelation, Language, Name, string2name, name2string}
@@ -21,6 +22,11 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
 import inca.util.Gensym
 
+object GenerateIR:
+  def subtypeRelationName = "subtype$"
+  def extensionalRelationPrefix = "ext_"
+  def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
+
 class GenerateIR:
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
@@ -30,14 +36,59 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
-  def compileModule(m: Module): ir.Module = ???
+  def compileModule(m: Module): ir.Module =
+    val mainFunctions = m.content.flatMap {
+      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
+      case _ => None
+    }
+    val extMainInputRelations = mainFunctions.map { f =>
+      val name = extensionalRelationName(f.name)
+      val params = f.params.map(p => ir.Param(p.name, compileType(p.typ)))
+      ExtensionalRelation(name, params)
+    }
+
+    val clsHierarchyRelation = compileClassHierarchy(m.classes)
+    //compileDispatchTable(m.classes)
+
+    val moduleEntries = m.content.flatMap {
+      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
+      case f: FunctionDef => throw IllegalStateException(s"Can not compile none main function ${f.name}")
+      case c: ClassDef => compileClassDef(c)
+    } ++ extMainInputRelations
+    ir.Module(m.name, irLang, moduleEntries :+ clsHierarchyRelation)
 
   /** Module content */
-  def compileMainFunction(f: FunctionDef): ir.Relation = ???
+  def compileMainFunction(f: FunctionDef): ir.Relation =
+    val result = gensym.fresh(f.name.name + "_result")
+    val setMember = f.outType match
+      case TSet(ty) => Some(irset.SetMember(ir.Var(Name(gensym.fresh("_"))), ir.Var(Name(result))))
+      case _ => None
+    val resultParam = ir.Param(Name(result), compileType(f.outType))
+    val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
+    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name)))
+    ir.Relation(f.name, params, Seq(ir.Body(
+      (edbInputCall +: compileStatements(f.body, Name(result))) ++ setMember
+    )))
 
-  def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation = ???
+  def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation =
+    val subtypeTuples = classes.flatMap { c =>
+      c.parentCls.map {
+        case p: TName => (c.name.name, p.name.name)
+        case t => throw IllegalStateException(s"Unexpected parent class type $t")
+      } :+ ("Null", c.name.name)
+    }.distinct
+    ir.Relation(
+      subtypeRelationName,
+      Seq(ir.Param("ty1", irstring.TString), ir.Param("ty2", irstring.TString)),
+      subtypeTuples.map { case (ty1, ty2) =>
+        ir.Body(Seq(
+          ir.Eq(ir.Var("ty1"), irstring.StringLit(ty1)),
+          ir.Eq(ir.Var("ty2"), irstring.StringLit(ty2))
+        ))
+      }
+    )
 
-  def compileClassDef(f: FunctionDef): Seq[ir.Relation] = ???
+  def compileClassDef(f: ClassDef): Seq[ir.Relation] = Seq()
 
   /** Class content */
 
@@ -150,5 +201,17 @@ class GenerateIR:
     case SetMember(name, recv, predicate) => ???
     case SetComprehension(member, body) => ???
 
+  /** Type */
+
+  def compileType(ty: Type): ir.Type = ty match
+    case TAny => ir.TAny
+    case TNull => ??? // TODO: This is just an object
+    case TTuple(ts) => irtuple.TTuple(ts.map(compileType))
+    case TSet(ty) => irset.TSet(compileType(ty))
+    case TInt => irarith.TInt
+    case TDouble => irarith.TDouble
+    case TBoolean => bool.TBoolean
+    case TString => irstring.TString
+    case TName(name, tyArgs) => ??? // TODO: This is just an object as well, probably check target first
 
 

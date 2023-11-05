@@ -219,36 +219,32 @@ class Typechecker extends TypeContext with TypeIO:
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
     // get all overridden methods and assign them the same signature
-    val overriddenMethods = lookupMethodCandidates(classDef, methodDef.params.size, methodDef.name)
+    val overriddenMethods = lookupMethodCandidates(classDef, methodDef.name, methodDef.params.map(_.typ))
 
     // All methods in the hierarchy except for the highest need an override annotation
-    overriddenMethods.tail.foreach { case (c, m) =>
-      if (!m.annos.exists(_.isInstanceOf[OverrideFunctionAnno]))
-        error(s"Method ${m.name} in class ${c.name} is missing an override annotation", m)
+    if (overriddenMethods.size > 1) {
+      if (!methodDef.annos.exists(_.isInstanceOf[OverrideFunctionAnno]))
+        error(s"Method '${methodDef.name}' in class ${classDef.name} is missing an override annotation", methodDef)
+
+      // make sure all overridden methods share the same parameter names
+      val (_, parentMethod) = overriddenMethods(overriddenMethods.size - 2)
+      parentMethod.params.zip(methodDef.params).foreach { case (p1, p2) =>
+        if (p1.name != p2.name)
+          error(s"Overridden methods must use the same parameter names: Expected ${p2.name}, but got ${p1.name}.", parentMethod)
+      }
     }
 
-    // make sure all overridden methods share the same parameter names
-    overriddenMethods.foreach { case (_, m) =>
-      m.params.zip(methodDef.params).foreach { case (p1, p2) =>
-        if (p1.name != p2.name) {
-          error(s"Overridden methods must use the same parameter names: Expected ${p2.name}, but got ${p1.name}.", m)
-        }
-      }
-      if (m.vis != methodDef.vis) {
-        error(s"Overridden methods must have the same visibility: Expected ${methodDef.vis} but got ${m.vis}")
-      }
-      // TODO: We could check the subtypes here (but take care of generics when doing this)
-    }
+    val (baseClassDef, baseMethodDef) = overriddenMethods.head
+    resolveTarget(methodDef)((baseClassDef, baseMethodDef))
 
-    //resolveSignatures(overriddenMethods)
+    methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
+      if (cs.size > 1)
+        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
+    }
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
-    }
-    methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
-      if (cs.size > 1)
-        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
     }
 
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
@@ -267,19 +263,12 @@ class Typechecker extends TypeContext with TypeIO:
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     val overriddenConstructors = lookupConstructorCandidates(classDef, constructorDef.params.map(_.typ))
 
-    overriddenConstructors.foreach { case (_, m) =>
-      if (m.vis != constructorDef.vis)
-        error(s"Overridden methods must have the same visibility: Exprected ${constructorDef.vis} but got ${m.vis}")
-    }
-
-    //resolveSignatures(overriddenConstructors)
+    val (baseClassDef, baseConstructorDef) = overriddenConstructors.head
+    resolveTarget(constructorDef)((baseClassDef, baseConstructorDef))
 
     constructorDef.params.foreach { p =>
-      p.typ match {
-        case ty =>
-          typecheck(p.typ)
-          bindVar(p.name, p, ty, immutable = true)
-      }
+      typecheck(p.typ)
+      bindVar(p.name, p, p.typ, immutable = true)
     }
 
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
@@ -580,7 +569,7 @@ class Typechecker extends TypeContext with TypeIO:
       typecheck(recv) match
         case t: TName =>
           t.target match
-            case Some(cls: ClassDef) => lookupMethod(cls, args.map(typecheck), fun) match
+            case Some(cls: ClassDef) => lookupMethod(cls, fun, args.map(typecheck)) match
               case None => TAny
               case Some((clsDef, methodDef)) =>
                 resolveTarget(methodCallExpr)((clsDef, methodDef))

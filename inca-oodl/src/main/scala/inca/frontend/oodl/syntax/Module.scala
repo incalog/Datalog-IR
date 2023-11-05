@@ -106,7 +106,8 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ClassContent: //with Resolvable[Signature]
+// Resolve to base class that first defines this method
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ClassContent with Resolvable[(ClassDef, MethodDef)]:
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""
@@ -118,7 +119,8 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
        |$indent}""".stripMargin
   }
 
-case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement]) extends ClassContent: //with Resolvable[Signature]:
+// Resolve to base class that first defines this constructor
+case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement]) extends ClassContent with Resolvable[(ClassDef, ConstructorDef)]:
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")

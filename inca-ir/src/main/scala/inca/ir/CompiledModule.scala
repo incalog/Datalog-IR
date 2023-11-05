@@ -46,7 +46,7 @@ trait CompiledModule:
     () => new not.Lowering {},
     () => new impure.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {},
+    () => new tuple.Lowering {}
   ) // arith + string + data
 
   def lowered: Module =

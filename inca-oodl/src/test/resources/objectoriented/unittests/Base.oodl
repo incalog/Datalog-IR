@@ -1,4 +1,6 @@
 module Base
 
+class A()
+
 @main
 def main(): Int = 7 + (12 * 3)
