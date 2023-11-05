@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, string2name}
+import inca.ir.{ExtensionalRelation, Language, Name, string2name, name2string}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -21,7 +21,6 @@ import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
 import inca.util.Gensym
-import inca.ir.name2string
 
 object GenerateIR:
   def extensionalRelationPrefix = "ext_"

@@ -3,6 +3,7 @@ package inca.frontend.oodl.typechecker
 // TODO: Support generics
 // TODO: Support Set fold
 // TODO: assign variables to method calls that return unit is not allowed
+// TODO: Check that each path returns
 
 import inca.frontend.oodl.syntax.*
 import inca.ir.Name
@@ -336,20 +337,17 @@ class Typechecker extends TypeContext with TypeIO:
       scopedTypeContext { typecheck(thn, rt) }
       scopedTypeContext { typecheck(els, rt) }
       assertSubtype(cndTyp, TBoolean, cnd)
-    case varDecl@VarDeclare(name, annotatedType, maybeExpression, immutable) =>
-      val inferredType = maybeExpression.map(typecheck)
+    case varDecl@VarDeclare(name, annotatedType, None, immutable) =>
+      error(s"Declaration of variable '$name' without a value is not allowed")
+    case varDecl@VarDeclare(name, annotatedType, Some(expr), immutable) =>
+      val inferredType = typecheck(expr)
       (annotatedType, inferredType) match
-        case (Some(ty1), Some(ty2)) =>
+        case (Some(ty1), ty2) =>
           typecheck(ty1)
           bindVar(name, varDecl, ty1, immutable)
           assertSubtype(ty2, ty1, varDecl)
-        case (Some(ty), _) =>
-          typecheck(ty)
+        case (None, ty) =>
           bindVar(name, varDecl, ty, immutable)
-        case (_, Some(ty)) =>
-          bindVar(name, varDecl, ty, immutable)
-        case (_, _) =>
-          error(s"Can not infer type for variable '$name'", statement)
     case varAssig@Assign(lhs@Var(name), rhs) =>
       val expTyp = typecheck(rhs)
       lookupVar(name) match
@@ -360,9 +358,11 @@ class Typechecker extends TypeContext with TypeIO:
           assertSubtype(expTyp, typ, statement)
         case None =>
           error(s"Can not assign to unbound variable '$name'", statement)
-    case fieldAssign@Assign(fieldRead@Select(recv, targetName), rhs) =>
+    case fieldAssign@Assign(Select(recv, targetName), rhs) =>
       val typ = typecheck(rhs)
       typecheck(recv) match {
+        case TTuple(ts) =>
+          error(s"Can not assign tuple elements", statement)
         case recvTy: TName if !recvTy.isBuiltIn =>
           recvTy.target match
             case Some(cls: ClassDef) => lookupField(cls, targetName, fieldAssign) match
@@ -382,6 +382,8 @@ class Typechecker extends TypeContext with TypeIO:
         case ty =>
           error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
       }
+    case Assign(lhs, rhs) =>
+      error(s"Can not assign term $lhs", statement)
     case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
       scopedTypeContext {
         typecheck(ifStmt.thn, TAny)

@@ -45,10 +45,10 @@ case class TName(name: Name, tyArgs: Seq[Type]) extends Type with Resolvable[TNa
   def isBuiltIn: Boolean = builtInTypes.contains(name.name)
 
 val builtInTypes = Set("Int", "Boolean", "String", "Double")
-def TInt: Type = TName(Name("Int"), Seq())
-def TDouble: Type = TName(Name("Double"), Seq())
-def TBoolean: Type = TName(Name("Boolean"), Seq())
-def TString: Type = TName(Name("String"), Seq())
+lazy val TInt: Type = TName(Name("Int"), Seq())
+lazy val TDouble: Type = TName(Name("Double"), Seq())
+lazy val TBoolean: Type = TName(Name("Boolean"), Seq())
+lazy val TString: Type = TName(Name("String"), Seq())
 
 object TName {
   trait Target
