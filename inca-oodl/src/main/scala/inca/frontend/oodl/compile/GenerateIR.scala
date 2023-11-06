@@ -356,7 +356,7 @@ class GenerateIR:
         case _ => throw IllegalStateException(s"Unresolved target for super call '$superCall'")
       block.Block(
         ir.Call(superClassName, ir.Var("this") +: args.map(compileExpression)),
-        ir.Var(gensym.freshName("_"))
+        ir.Var("this")
       )
     case constrCall@ConstructorCall(name, _, args) =>
       val (classDef, constrDef) = constrCall.target match

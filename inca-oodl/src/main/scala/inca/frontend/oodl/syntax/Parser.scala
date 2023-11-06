@@ -463,11 +463,8 @@ object Parser:
         val constrParams = primaryConstrFields.map(f => Param(f.name, f.typ))
         val (superFields, fields) = primaryConstrFields.partition(f => superArgs.contains(f.name) )
         val fieldAssigns = fields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))
-        val superCall = if (superFields.nonEmpty)
-          Seq(Expr(Super(superArgs.toSeq.map(Var.apply))))
-        else
-          Seq()
-        val constrDef = ConstructorDef(Seq(), None, constrParams, superCall ++ fieldAssigns)
+        val superCall = Expr(Super(superArgs.toSeq.map(Var.apply)))
+        val constrDef = ConstructorDef(Seq(), None, constrParams, superCall +: fieldAssigns)
 
         val allContent = (fields :+ constrDef) ++ clsContent
         val annotations = annos match

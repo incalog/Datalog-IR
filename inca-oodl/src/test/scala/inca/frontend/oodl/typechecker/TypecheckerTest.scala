@@ -18,7 +18,7 @@ class TypecheckerTest extends AnyFunSuite {
   def testTypecheck(code: String): Unit =
     val checker = new Typechecker
     val module = Parser.parseModule(code)
-    //println(module)
+    println(module)
     checker.typecheck(module)
     checker.printTypeIO()
 

@@ -14,7 +14,9 @@ import inca.ir.util.SourceLocation
 class Typechecker extends TypeContext with TypeIO:
   val builtinModule: Module = Module(
     Name("builtin"), Seq(), Seq(
-      ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq())
+      ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq())
+      ))
     )
   )
 
@@ -502,7 +504,7 @@ class Typechecker extends TypeContext with TypeIO:
             case _ =>
               error(s"Illegal tuple index $targetName", read)
               -1
-          if (index <= 0 || index > ts.size) {
+          if (index < 0 || index > ts.size) {
             error(s"Index out of bounds: $index for Tuple size: ${ts.size}", recv)
             TAny
           } else
