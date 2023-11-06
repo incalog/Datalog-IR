@@ -35,24 +35,24 @@ trait Lowering extends BaseLowering:
     }.toSet
     super.visitProgram(modules)
 
-  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
-    gensym.scoped {
-      val impInParams = impurities.map(k => Param(Name(gensym.fresh(k.name)), demand.TDemand(k.ty)))
-      val impInVars = impurities.map(freshImpurityCounter)
-      val impInEqs = impInParams.zip(impInVars).map((p,v) => Eq(Var(p.name), v))
+  override def visitRelation(relation: Relation): Seq[Relation] = gensym.scoped {
+    val impInParams = impurities.map(k => Param(Name(gensym.fresh(k.name)), demand.TDemand(k.ty)))
+    val impInVars = impurities.map(freshImpurityCounter)
+    val impInEqs = impInParams.zip(impInVars).map((p,v) => Eq(Var(p.name), v))
 
-      val rels = super.visitRelation(relation)
-      if (pureRelations.contains(relation.name))
-        rels
-      else
-        val impOutParams = impurities.map(k => Param(getImpurityCounter(k).name, k.ty))
+    val rels = super.visitRelation(relation)
+    if (pureRelations.contains(relation.name))
+      rels
+    else
+      val impOutParams = impurities.map(k => Param(getImpurityCounter(k).name, k.ty))
 
+      preserveHints(relation) {
         rels.map(r =>
           r.copy(
             params = r.params ++ impInParams ++ impOutParams,
             bodies = r.bodies.map(b => Body(impInEqs ++ b.atoms)))
         )
-    }
+      }
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

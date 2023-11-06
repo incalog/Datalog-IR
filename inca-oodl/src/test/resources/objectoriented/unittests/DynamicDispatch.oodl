@@ -21,14 +21,14 @@ class B extends A {
 @main
 def main(): String = {
     val b: B = new B()
-    //val a: A = b.asInstanceOf[A]
+    val a: A = b.asInstanceOf[A]
 
     // unrelated type c with same method signature
     val c: C = new C()
 
-    //return a.get() + b.get() + c.get()
-    return b.get() + c.get()
+    return a.get() + b.get() + c.get()
 }
+
 
 /*class A(cls: String, j: Int) {
     def getCls(): String = this.cls

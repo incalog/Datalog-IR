@@ -21,6 +21,5 @@ class OODLExecutorTest extends AnyFunSuite:
     val compiled = exec.compileOODL(code)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
-    println(res.asTable)
-    //assertResult("ABC")(res.entries.head)
+    assertResult("BBC")(res.entries.head)
   }

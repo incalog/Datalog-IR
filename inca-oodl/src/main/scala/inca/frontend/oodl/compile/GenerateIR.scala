@@ -24,6 +24,9 @@ import inca.ir.extension.impure as irimpure
 import inca.ir.extension.impure.Hints
 import inca.util.Gensym
 
+// TODO: Classes with same method name, but different params names that do not inherit from
+//  each other do not work, because dynamic dispatch only includes signature
+
 case object Alloc extends irimpure.ImpurityKind:
   val name: String = "Alloc"
   val ty: ir.Type = irarith.TInt
@@ -89,8 +92,8 @@ class GenerateIR:
       case _ => None
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    val allocInVar = ir.Var(s"${Alloc.name}$$0")
-    val mutInVar = ir.Var(s"${Mutation.name}$$0")
+    val allocInVar = ir.Var(s"current${Alloc.name}$$0")
+    val mutInVar = ir.Var(s"current${Mutation.name}$$0")
     val inArgs = f.params.map(p => ir.Var(p.name))
     val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar :+ mutInVar)
     ir.Relation(f.name, params, Seq(ir.Body(
@@ -382,7 +385,7 @@ class GenerateIR:
         block.Block(ir.Eq(sidVar, irdata.Construct(caseName, caseArgs)), sidVar)
       } else {
         val oidVar = ir.Var(gensym.fresh("oid"))
-        val allocVar = ir.Var(gensym.freshName(Alloc.name))
+        val allocVar = ir.Var(gensym.freshName("current" + Alloc.name))
         val caseArgs = Seq(irstring.StringLit(classDef.name), allocVar)
         val dataConstr = irdata.Construct("OID", caseArgs)
         block.Block(Seq(

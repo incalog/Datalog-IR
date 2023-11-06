@@ -34,8 +34,8 @@ object GeneratePSystem:
   private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
     // Do not change this order
     val lowerings: List[() => BaseLowering] = List(
-      () => new arithmetic.ScalaLowering {}, // lower arithmetic
       () => new string.ScalaLowering {}, // lower strings
+      () => new arithmetic.ScalaLowering {}, // lower arithmetic
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
     )
@@ -100,11 +100,11 @@ object GeneratePSystem:
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 
-    println()
-    println(mod)
-    println()
-
     val relations = getProductiveRelations(mod)
+
+    //println()
+    //println(mod)
+    //println()
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
