@@ -15,7 +15,7 @@ trait Lowering extends BaseLowering:
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, demand.IR)
 
   var impurities: Seq[ImpurityKind] = Seq()
-  var pureRelations: Set[Name] = Set()
+  private var pureRelations: Set[Name] = Set()
 
   private var impurityCounters: Map[ImpurityKind, Name] = Map()
   private def getImpurityCounter(k: ImpurityKind): Var =
@@ -24,6 +24,16 @@ trait Lowering extends BaseLowering:
     val freshCounter = Name(gensym.fresh(kind.name))
     impurityCounters += kind -> freshCounter
     Var(freshCounter)
+
+  def impurityScoped[A](f: => A): A = {
+    val oldImpurityCounters = impurityCounters
+    try {
+      val a = f
+      a
+    } finally {
+      impurityCounters = oldImpurityCounters
+    }
+  }
 
   override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
     val collector = new CollectImpurityKinds()
@@ -35,23 +45,40 @@ trait Lowering extends BaseLowering:
     }.toSet
     super.visitProgram(modules)
 
-  override def visitRelation(relation: Relation): Seq[Relation] = gensym.scoped {
-    val impInParams = impurities.map(k => Param(Name(gensym.fresh(k.name)), demand.TDemand(k.ty)))
-    val impInVars = impurities.map(freshImpurityCounter)
-    val impInEqs = impInParams.zip(impInVars).map((p,v) => Eq(Var(p.name), v))
+  var impOutParams: Seq[Param] = Seq()
+  var isPureRelation: Boolean = false
+
+  override def visitRelation(relation: Relation): Seq[Relation] = impurityScoped {
+    impOutParams = impurities.map(k => Param(freshImpurityCounter(k).name, k.ty))
+    val impInParams = impurities.map(k => Param(freshImpurityCounter(k).name, demand.TDemand(k.ty)))
+
+    isPureRelation = pureRelations.contains(relation.name)
 
     val rels = super.visitRelation(relation)
-    if (pureRelations.contains(relation.name))
+    if (isPureRelation)
       rels
     else
-      val impOutParams = impurities.map(k => Param(getImpurityCounter(k).name, k.ty))
-
       preserveHints(relation) {
         rels.map(r =>
           r.copy(
             params = r.params ++ impInParams ++ impOutParams,
-            bodies = r.bodies.map(b => Body(impInEqs ++ b.atoms)))
+            bodies = r.bodies.map(b => Body(b.atoms)))
         )
+      }
+  }
+
+  // We need special handling in case that one body has more impurities than another body
+  // of the same relation
+  override def visitBody(body: Body): Seq[Body] = impurityScoped {
+    val bodies = super.visitBody(body)
+
+    if (isPureRelation)
+      bodies
+    else
+      val impMaxVars = impurities.map(getImpurityCounter)
+      val impOutEqs = impMaxVars.zip(impOutParams).map((v, p) => Eq(Var(p.name), v))
+      bodies.map { b =>
+        preserveHints(b)(Body(b.atoms ++ impOutEqs))
       }
   }
 

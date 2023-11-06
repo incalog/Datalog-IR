@@ -26,6 +26,7 @@ import inca.util.Gensym
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature
+// TODO: Use gensym everywhere to prevent name collision
 
 case object Alloc extends irimpure.ImpurityKind:
   val name: String = "Alloc"
@@ -104,7 +105,7 @@ class GenerateIR:
     val caseClassConstructors = classDefs.filter(_.isCaseClass).map(c => c.name -> c.constructors)
     val sidCases = caseClassConstructors.map {
       case (name, Seq(c)) => irdata.CaseDefinition(
-        s"SID$$${signatureString(c.signature)}",
+        s"SID$$${name}$$${signatureString(c.signature)}",
         irstring.TString +: c.signature.map(compileType)
       )
       case (name, _) => throw IllegalStateException(s"Found more than one Constructor for CaseClass '$name'")
@@ -323,6 +324,7 @@ class GenerateIR:
   def compileExpression(expr: Expression): ir.Term = expr match
     case NullLit() => irdata.Construct("NID", Seq(irstring.StringLit("Null")))
 
+    case BinOp(e1, "&&", e2) => bool.BoolAnd(compileExpression(e1), compileExpression(e2))
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExpression(e1), compileExpression(e2)))
     case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Neq(compileExpression(e1), compileExpression(e2)))
 
@@ -380,7 +382,7 @@ class GenerateIR:
         case _ => throw IllegalStateException(s"Unresolved target for constructor call '$constrCall'")
       if (classDef.isCaseClass) {
         val sidVar = ir.Var(gensym.fresh("sid"))
-        val caseName = s"SID$$${signatureString(constrDef.signature)}"
+        val caseName = s"SID$$${classDef.name}$$${signatureString(constrDef.signature)}"
         val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)
         block.Block(ir.Eq(sidVar, irdata.Construct(caseName, caseArgs)), sidVar)
       } else {
@@ -442,6 +444,9 @@ class GenerateIR:
       ???
     case SetComprehension(member, body) =>
       // TODO: Set Comprehension
+      ???
+    case _ =>
+      println(expr.getClass)
       ???
 
   /** Type */
