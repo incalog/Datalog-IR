@@ -2,6 +2,7 @@ package inca.frontend.oodl.compile
 
 import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
+import inca.frontend.oodl.util.ParseUtil
 import inca.ir
 import inca.ir.{ExtensionalRelation, Language, Name, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
@@ -22,7 +23,13 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
 import inca.util.Gensym
 
-import scala.collection.mutable
+case object Alloc extends irimpure.ImpurityKind:
+  val name: String = "Alloc"
+  val ty: ir.Type = irarith.TInt
+
+case object Mutation extends irimpure.ImpurityKind:
+  val name: String = "Mutation"
+  val ty: ir.Type = irarith.TInt
 
 object GenerateIR:
   def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
@@ -39,6 +46,8 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
+  var builtInIdDatastructures: irdata.DataDefinition = null
+
   def compileModule(m: Module): ir.Module =
     val mainFunctions = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
@@ -50,18 +59,26 @@ class GenerateIR:
       ExtensionalRelation(name, params)
     }
 
-    val clsHierarchyRelation = compileClassHierarchy(m.classes)
-    val dispatchRelations = compileMethodsAndDispatchTable(m.classes)
-    println(dispatchRelations)
+    val classes = m.classes
+    builtInIdDatastructures = compileDatastructures(classes)
+    val clsHierarchyRelation = compileClassHierarchy(classes)
+    val dispatchRelations = compileMethodsAndDispatchTable(classes)
+    val objClass = compileBuiltinObjectClass()
 
     val moduleEntries = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
       case f: FunctionDef => throw IllegalStateException(s"Can not compile none main function ${f.name}")
       case c: ClassDef => compileClassDef(c)
     } ++ extMainInputRelations
-    ir.Module(m.name, irLang, (moduleEntries ++ dispatchRelations) :+ clsHierarchyRelation)
+
+    ir.Module(
+      m.name,
+      irLang,
+      (builtInIdDatastructures +: (moduleEntries ++ dispatchRelations)) :+ objClass :+ clsHierarchyRelation
+    )
 
   /** Module content */
+
   def compileMainFunction(f: FunctionDef): ir.Relation =
     val result = gensym.fresh(f.name.name + "_result")
     val setMember = f.outType match
@@ -73,6 +90,23 @@ class GenerateIR:
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: compileStatements(f.body, Name(result))) ++ setMember
     )))
+
+  def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
+    val caseClassConstructors = classDefs.filter(_.isCaseClass).map(c => c.name -> c.constructors)
+    val sidCases = caseClassConstructors.map {
+      case (name, Seq(c)) => irdata.CaseDefinition(
+        s"SID$$${signatureString(c.signature)}",
+        irstring.TString +: c.signature.map(compileType)
+      )
+      case (name, _) => throw IllegalStateException(s"Found more than one Constructor for CaseClass '$name'")
+    }
+    val oidCase = irdata.CaseDefinition("OID", Seq(irstring.TString, Alloc.ty))
+    val nullCase = irdata.CaseDefinition("NID", Seq(irstring.TString))
+
+    irdata.DataDefinition("ID", (oidCase +: sidCases) :+ nullCase)
+
+  def compileBuiltinObjectClass(): ir.Relation =
+    ir.Relation("Object", Seq(ir.Param("this", demand.TDemand(irdata.TData("ID")))), Seq())
 
   def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation =
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
@@ -103,6 +137,7 @@ class GenerateIR:
 
   /** Class content */
 
+  /** Transitively collect all methods for a given qualified name */
   private def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[String, (ClassDef, MethodDef)] = {
     val methods = implClass.methods.map { m =>
       val qualifiedMethodName = s"${m.name}$$${signatureString(m.signature)}"
@@ -151,34 +186,51 @@ class GenerateIR:
 
   def compileMethodDefs(qualifiedName: Name, methods: Seq[MethodDef]): ir.Relation = gensym.scoped {
     val reprMethod = methods.head
+    val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
     val classGuardParam = ir.Param(gensym.freshName("param"), irstring.TString)
-    val params = reprMethod.params.map(p => ir.Param(p.name, compileType(p.typ)))
+    val params = reprMethod.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
     val resultParam = ir.Param(gensym.freshName("return"), compileType(reprMethod.outType))
 
     // Find all distinct classes that implement the method
     val methodsWithImplClass = methods.map(m =>
       m.target match
         case Some(cls: ClassDef) => cls -> m
-        case None => throw IllegalStateException(s"Unresolved ClassRef for method ${m.name}")
+        case _ => throw IllegalStateException(s"Unresolved ClassRef for method ${m.name}")
     ).toMap
 
     ir.Relation(
       qualifiedName,
-      classGuardParam +: (params :+ resultParam),
+      classGuardParam +: (thisParam +: (params :+ resultParam)),
       methodsWithImplClass.map { case (implClass, m) =>
         val body = compileStatements(m.body, resultParam.name)
         val classGuard = ir.Eq(ir.Var(classGuardParam.name), irstring.StringLit(implClass.name))
-        ir.Body(
-          classGuard +: body
-        )
+        ir.Body(classGuard +: body)
       }.toSeq
     )
   }
 
-  def compileConstructorDef(c: ConstructorDef): ir.Relation = ???
-    // TODO: Gensym register all vars
+  def compileConstructorDef(c: ConstructorDef): ir.Relation =
+    val className = c.target match
+      case Some(c: ClassDef) => c.name
+      case _ => throw IllegalStateException(s"Unresolved ClassRef for constructor.")
+    val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
+    val params = c.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
+    val unusedResultVar = gensym.freshName("_")
+    ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(c.body, unusedResultVar))))
 
-  def compileFieldDef(f: FieldDef): ir.Relation = ???
+  def compileFieldDef(f: FieldDef): ir.Relation =
+    val classDef = f.target match
+      case Some(cls) => cls
+      case _ => throw IllegalStateException(s"Unresolved ClassDef target for field ${f.name}")
+    val qualifiedName = s"${classDef.name}$$$$${f.name}"
+    val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
+    val valueParam = ir.Param("value", demand.TDemand(compileType(f.typ)))
+    if (f.immutable)
+      ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq())
+    else {
+      val tsParam = ir.Param("ts", demand.TDemand(Mutation.ty))
+      ir.Relation(qualifiedName, Seq(thisParam, valueParam, tsParam), Seq())
+    }
 
   /** Statement */
 
@@ -235,8 +287,18 @@ class GenerateIR:
 
   /** Expression */
 
+  private def matchRuntimeType(t: ir.Term, tyTerm: ir.Term): ir.Atom =
+    disjunction.Disjunction(
+      builtInIdDatastructures.cases.map {
+        case irdata.CaseDefinition(name, args) =>
+          val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")))
+          val deconstr = irdata.Deconstruct(t, name, tyTerm +: wildcardArgs)
+          DisjunctionAlternative(deconstr)
+      }
+    )
+
   def compileExpression(expr: Expression): ir.Term = expr match
-    case NullLit() => ???
+    case NullLit() => irdata.Construct("NID", Seq(irstring.StringLit("Null")))
 
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExpression(e1), compileExpression(e2)))
     case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Neq(compileExpression(e1), compileExpression(e2)))
@@ -265,32 +327,115 @@ class GenerateIR:
     case BinOp(e1, "<=", e2) => bool.AtomAsBool(irarith.LE(compileExpression(e1), compileExpression(e2)))
 
     case Var(name) => ir.Var(name)
-    case Select(recv, targetName) =>
+    case select@Select(recv, targetName) =>
       recv.typ match
-        case Some(t: TTuple) => ??? // Project by parsing targetName
-        case Some(t: TName) => ??? // FieldRead
+        case Some(t: TTuple) => // Project by parsing targetName
+          val index = ParseUtil.parseTupleIndex(targetName) match
+            case Some(idx) => idx - 1
+            case _ => throw IllegalStateException(s"Unexpected tuple index $targetName")
+          irtuple.Project(compileExpression(recv), index)
+        case Some(t: TName) => // FieldRead
+          val (classDef, fieldDef) = select.target match
+            case Some((c, f)) => c -> f
+            case _ => throw IllegalStateException(s"Unresolved target for select $recv.$targetName")
+          val qualifiedName = s"${classDef.name}$$$$${fieldDef.name}"
+          val resultVar = ir.Var(gensym.fresh(fieldDef.name))
+          if (fieldDef.immutable) {
+            block.Block(
+              ir.Call(qualifiedName, Seq(compileExpression(recv), resultVar)),
+              resultVar
+            )
+          } else {
+            // TODO: Mutable field read
+            ???
+          }
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
-    case Super(args) => ???
-    case ConstructorCall(name, tyArgs, args) => ???
-    case MethodCall(recv, fun, tyArgs, args, isFix) => ???
-    case TypeCast(recv, toTyp) => ???
-    case InstanceOf(recv, ofTyp) => ???
-    case Tuple(exps) => ???
-    case SetExp(exps, tty) => ???
-    case SetMember(name, recv, predicate) => ???
-    case SetComprehension(member, body) => ???
+    case superCall@Super(args) =>
+      val superClassName = superCall.target match
+        case Some((c: ClassDef, _)) => c.name
+        case _ => throw IllegalStateException(s"Unresolved target for super call '$superCall'")
+      block.Block(
+        ir.Call(superClassName, ir.Var("this") +: args.map(compileExpression)),
+        ir.Var(gensym.freshName("_"))
+      )
+    case constrCall@ConstructorCall(name, _, args) =>
+      val (classDef, constrDef) = constrCall.target match
+        case Some((c, constr)) => (c, constr)
+        case _ => throw IllegalStateException(s"Unresolved target for constructor call '$constrCall'")
+      if (classDef.isCaseClass) {
+        val sidVar = ir.Var(gensym.fresh("sid"))
+        val caseName = s"SID$$${signatureString(constrDef.signature)}"
+        val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)
+        block.Block(ir.Eq(sidVar, irdata.Construct(caseName, caseArgs)), sidVar)
+      } else {
+        val oidVar = ir.Var(gensym.fresh("oid"))
+        val caseArgs = Seq(irstring.StringLit(classDef.name))
+        val dataConstr = irdata.Construct("OID", caseArgs)
+        val allocVar = ir.Var(gensym.freshName(Alloc.name))
+        block.Block(Seq(
+          irimpure.Impure(allocVar, ir.Eq(oidVar, dataConstr), irarith.Add(allocVar, irarith.IntNum(1)), Alloc),
+          ir.Call(name, ir.Var("this") +: args.map(compileExpression)),
+        ), oidVar)
+      }
+
+    case methodCall@MethodCall(recv, fun, _, args, isFix) =>
+      val (classDef, methodDef) = methodCall.target match
+        case Some((c, m)) => (c, m)
+        case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
+      val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"
+      val dispatchName = s"dispatch$$$qualifiedMethodName"
+      val srcClsVar = ir.Var(gensym.fresh("C"))
+      val trgClsVar = ir.Var(gensym.fresh("D"))
+      val recvTerm = compileExpression(recv)
+      val resultVar = ir.Var(gensym.fresh("return$"))
+      block.Block(Seq(
+        // Read the runtime type
+        matchRuntimeType(recvTerm, srcClsVar),
+        ir.Call(dispatchName, Seq(srcClsVar, trgClsVar)),
+        ir.Call(qualifiedMethodName, trgClsVar +: (compileExpression(recv) +: args.map(compileExpression)) :+ resultVar)
+      ), resultVar)
+    case TypeCast(recv, toTyp) =>
+      // TODO: Collect values in Cast relation for cast error
+      compileExpression(recv)
+    case InstanceOf(recv, t: TName) if t.isBuiltIn =>
+      throw IllegalStateException(s"Can not typecast to builtin type $t")
+    case InstanceOf(recv, t: TName) =>
+      val srcClsVar = ir.Var(gensym.fresh("C"))
+      val recvTerm = compileExpression(recv)
+      val resultVar = ir.Var(gensym.fresh("isInstanceOf$"))
+      block.Block(Seq(
+        // Read the runtime type
+        matchRuntimeType(recvTerm, srcClsVar),
+        disjunction.Disjunction(
+          Seq(
+            ir.Call(subtypeRelationName, Seq(srcClsVar, irstring.StringLit(t.name))),
+            ir.Eq(resultVar, bool.BoolTrue)
+          ),
+          Seq(
+            ir.NegCall(subtypeRelationName, Seq(srcClsVar, irstring.StringLit(t.name))),
+            ir.Eq(resultVar, bool.BoolFalse)
+          ),
+        )
+      ), resultVar)
+    case InstanceOf(recv, t) =>
+      throw IllegalStateException(s"Can not typecast to type $t")
+    case Tuple(exps) => irtuple.TupleLit(exps.map(compileExpression))
+    case SetExp(exps, tty) => irset.SetLit(exps.map(compileExpression))
+    case SetMember(name, recv, predicate) =>
+      // TODO: Set member
+      ???
+    case SetComprehension(member, body) =>
+      // TODO: Set Comprehension
+      ???
 
   /** Type */
 
   def compileType(ty: Type): ir.Type = ty match
     case TAny => ir.TAny
-    case TNull => ??? // TODO: This is just an object
     case TTuple(ts) => irtuple.TTuple(ts.map(compileType))
     case TSet(ty) => irset.TSet(compileType(ty))
     case TInt => irarith.TInt
     case TDouble => irarith.TDouble
     case TBoolean => bool.TBoolean
     case TString => irstring.TString
-    case TName(name, tyArgs) => ??? // TODO: This is just an object as well, probably check target first
-
-
+    case TNull | _: TName => irdata.TData("ID")

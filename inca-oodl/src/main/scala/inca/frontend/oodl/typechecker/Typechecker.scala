@@ -6,6 +6,7 @@ package inca.frontend.oodl.typechecker
 // TODO: Check that each path returns
 
 import inca.frontend.oodl.syntax.*
+import inca.frontend.oodl.util.ParseUtil
 import inca.ir.Name
 import inca.ir.typing.{Resolvable, Typeable}
 import inca.ir.util.SourceLocation
@@ -393,16 +394,6 @@ class Typechecker extends TypeContext with TypeIO:
 
   /** Expressions */
 
-  private def parseTupleIndex(name: Name, location: SourceLocation*): Int =
-    val startsWithUnderscore = name.name.startsWith("_")
-    try {
-      name.name.substring(1).toInt
-    } catch {
-      case e: Exception =>
-        error(s"Illegal tuple index $name", location:_*)
-        -1
-    }
-
   def typecheck(expression: Expression)(implicit classDef: Option[ClassDef]): Type = assignType(expression)(typecheckInternal(expression))
 
   def typecheckInternal(expression: Expression)(implicit classDef: Option[ClassDef]): Type = expression match {
@@ -506,12 +497,16 @@ class Typechecker extends TypeContext with TypeIO:
       val recvTy = typecheck(recv)
       recvTy match
         case TTuple(ts) => // project
-          val index = parseTupleIndex(targetName, read)
+          val index = ParseUtil.parseTupleIndex(targetName) match
+            case Some(idx) => idx - 1
+            case _ =>
+              error(s"Illegal tuple index $targetName", read)
+              -1
           if (index <= 0 || index > ts.size) {
             error(s"Index out of bounds: $index for Tuple size: ${ts.size}", recv)
             TAny
           } else
-            ts(index-1)
+            ts(index)
         case t: TName => // field read
           t.target match
             case Some(cls: ClassDef) =>
@@ -606,7 +601,7 @@ class Typechecker extends TypeContext with TypeIO:
         error("No matching constructor found for super call", superExpr)
         TAny
 
-    case ConstructorCall(name, tyArgs, args) =>
+    case constrCall@ConstructorCall(name, tyArgs, args) =>
       lookupClass(name) match
         case Some(cls: ClassDef) =>
           // Ensure there is only one constructor
@@ -629,6 +624,9 @@ class Typechecker extends TypeContext with TypeIO:
             typecheck(ty)
             assertSubtype(argTy, ty, expression)
           }
+
+          resolveTarget(constrCall)((cls, primaryConstructor))
+
           val clsTy = TName(cls.name, tyArgs)
           typecheck(clsTy)
           clsTy

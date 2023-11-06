@@ -121,6 +121,8 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement]) extends ClassContent with Resolvable[ClassDef]:
+  def signature: Seq[Type] = params.map(_.typ)
+
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
