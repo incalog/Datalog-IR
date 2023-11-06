@@ -2,6 +2,7 @@ package inca.ir.extension.aggregateset
 
 import inca.ir
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
 import inca.ir.extension.demand.TDemand
@@ -32,16 +33,18 @@ trait Lowering extends BaseLowering:
       var rel = Relation(newrelName, setRel.params, Seq(Body(
         Seq(Call(setRel.name, setRel.params.map(p => Var(p.name))))
       )))
-      for ((a,ix) <- args.zipWithIndex) a match
+      for ((a, ix) <- args.zipWithIndex) a match
         case AggregateArg.Arg(t) => // skip
         case AggregateArg.AggregateColumn(t) =>
           val param = rel.params(ix)
-          val TSet(ty) = param.ty : @unchecked
+          val TSet(ty) = param.ty: @unchecked
           val newparamName = gensym.freshName(param.name)
           val newparams = rel.params.updated(ix, Param(newparamName, ty))
           val memberAtom = SetMember(ir.Var(newparamName), ir.Var(param.name))
           rel = rel.copy(params = newparams, bodies = rel.bodies.map(b => Body(b.atoms :+ memberAtom)))
       newrels += rel
-      Seq(Aggregate(newrelName, args, op))
+      preserveHints(atom) {
+        Seq(Aggregate(newrelName, args, op))
+      }
 
     case _ => super.visitAtom(atom)

@@ -160,7 +160,9 @@ trait BaseAbstractInterpreter[V, B]:
         assignee.storeAnalysisResult(TermResult(v, trueBool))
         AtomResult(trueBool, trueBool)
       } else {
-        val boundV = env(x.name)
+        // FIXME: Is this correct ? This can happen e.g. when a destruct fails, since then
+        //  a variable might be unbound and not in the environment.
+        val boundV = env.getOrElse(x.name, top)
         assignee.storeAnalysisResult(TermResult(boundV, trueBool))
         AtomResult(eqOps.equ(boundV, v), trueBool)
       }
@@ -176,8 +178,7 @@ trait BaseAbstractInterpreter[V, B]:
 
   protected def evalTermExtend(t: Term): TermResult = t match
     case Var(x) =>
-      // FIXME: Is this correct ? This can happen e.g. when a destruct fails, since then
-      //  a variable might be unbound and not in the environment.
+      // FIXME: Is this correct ? See above
       TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
 

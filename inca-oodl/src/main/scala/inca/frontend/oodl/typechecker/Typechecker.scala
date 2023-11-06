@@ -209,7 +209,12 @@ class Typechecker extends TypeContext with TypeIO:
   /** Class content */
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
-    resolveTarget(fieldDef)(classDef)
+    if (fieldDef.isGeneratedConstructorField)
+      lookupField(classDef, fieldDef.name) match
+        case Some((cls, f)) => resolveTarget(fieldDef)(cls)
+        case _ => throw IllegalStateException(s"No field found with name '${fieldDef.name}'")
+    else
+      resolveTarget(fieldDef)(classDef)
     typecheck(fieldDef.typ)
 
     fieldDef.body match {
@@ -328,6 +333,25 @@ class Typechecker extends TypeContext with TypeIO:
     case Return(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
+    case superStmt@Super(args) =>
+      val parentRef = classDef.getOrElse(
+        throw IllegalStateException("Missing ClassDef in current context!")
+      )
+      val foundMatchingConstructor = parentRef.parentCls.exists {
+        case t: TName if !t.isBuiltIn =>
+          lookupClass(t.name) match
+            case Some(parentCls: ClassDef) =>
+              lookupConstructor(parentCls, args.map(typecheck), statement) match
+                case Some((classDef, constructorDef)) =>
+                  resolveTarget(superStmt)((classDef, constructorDef))
+                  true
+                case _ => false
+            case _ => false
+        case _ => false
+      }
+      if (!foundMatchingConstructor)
+        error("No matching constructor found for super call", superStmt)
+
     case If(cnd, thn, els) =>
       val cndTyp = typecheck(cnd)
       scopedTypeContext { typecheck(thn, rt) }
@@ -350,11 +374,11 @@ class Typechecker extends TypeContext with TypeIO:
         case Some((target, typ, true)) =>
           error(s"Cannot assign immutable variable '$name'", statement)
         case Some((target, typ, false)) =>
-          resolveTarget(varAssig)(Right(target))
+          resolveTarget(lhs)(target)
           assertSubtype(expTyp, typ, statement)
         case None =>
           error(s"Can not assign to unbound variable '$name'", statement)
-    case fieldAssign@Assign(Select(recv, targetName), rhs) =>
+    case fieldAssign@Assign(select@Select(recv, targetName), rhs) =>
       val typ = typecheck(rhs)
       typecheck(recv) match {
         case TTuple(ts) =>
@@ -367,7 +391,7 @@ class Typechecker extends TypeContext with TypeIO:
                   error(s"Cannot assign to immutable field '$targetName'", statement)
                 if (field.immutable && !uninitializedFields.contains(targetName))
                   error(s"Field '$targetName' is already initialized", statement)
-                resolveTarget(fieldAssign)(Left((clazz, field)))
+                resolveTarget(select)((clazz, field))
                 assertSubtype(typ, field.typ, fieldAssign)
                 uninitializedFields -= targetName
               case _ => // Nothing
@@ -580,28 +604,6 @@ class Typechecker extends TypeContext with TypeIO:
         case typ =>
           error(s"Can not lookup method '$fun' for expression of type '$typ'", expression)
           TAny
-
-    case superExpr@Super(args) =>
-      val parentRef = classDef.getOrElse(
-        throw IllegalStateException("Missing ClassDef in current context!")
-      )
-      val foundMatchingConstructor = parentRef.parentCls.exists {
-        case t: TName if !t.isBuiltIn =>
-          lookupClass(t.name) match
-            case Some(parentCls: ClassDef) =>
-              lookupConstructor(parentCls, args.map(typecheck), expression) match
-                case Some((classDef, constructorDef)) =>
-                  resolveTarget(superExpr)((classDef, constructorDef))
-                  true
-                case _ => false
-            case _ => false
-        case _ => false
-      }
-      if (foundMatchingConstructor)
-        TUnit
-      else
-        error("No matching constructor found for super call", superExpr)
-        TAny
 
     case constrCall@ConstructorCall(name, tyArgs, args) =>
       lookupClass(name) match

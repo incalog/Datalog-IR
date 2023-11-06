@@ -19,9 +19,9 @@ class SSA:
     ClassDef(c.annos, c.vis, c.name, c.tyVars, c.parentCls, c.content.map(visitClassContent))
 
   def visitClassContent(c: ClassContent)(implicit gensym: Gensym): ClassContent = c match
-    case cd@ConstructorDef(annos, vis, params, body) => visitConstructorDef(cd)
-    case fd@FieldDef(annos, vis, name, typ, body, immutable) => visitFieldDef(fd)
-    case md@MethodDef(annos, vis, name, tyVars, params, outType, body) => visitMethodDef(md)
+    case cd: ConstructorDef => visitConstructorDef(cd)
+    case fd: FieldDef => visitFieldDef(fd)
+    case md: MethodDef => visitMethodDef(md)
 
   // OldName -> (NewName, Type)
   type Env = Map[Name, (Name, Type)]
@@ -58,9 +58,12 @@ class SSA:
     case Return(expression) =>
       Seq(Return(visitExpression(expression)))
 
-    case varAssign@Assign(Var(targetName), rhs) =>
-      varAssign.target match
-        case Some(Right(varDecl: VarDeclare)) =>
+    case Super(args) =>
+      Seq(Super(args.map(visitExpression)))
+
+    case Assign(v@Var(targetName), rhs) =>
+      v.target match
+        case Some(varDecl: VarDeclare) =>
           val rhsExp = visitExpression(rhs)
           val typ = varDecl.typ.getOrElse(rhsExp.typ.getOrElse(
             throw new IllegalStateException(s"Untyped variable declaration $s")
@@ -114,8 +117,6 @@ class SSA:
       Var(newName)
     case Select(recv, targetName) =>
       Select(visitExpression(recv), targetName)
-    case Super(args) =>
-      Super(args.map(visitExpression))
     case ConstructorCall(name, tyArgs, args) =>
       ConstructorCall(name, tyArgs, args.map(visitExpression))
     case MethodCall(recv, fun, tyArgs, args, isFix) =>

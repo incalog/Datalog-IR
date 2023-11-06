@@ -72,7 +72,7 @@ class GenerateIR:
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
       case f: FunctionDef => throw IllegalStateException(s"Can not compile none main function ${f.name}")
       case c: ClassDef => compileClassDef(c)
-    } ++ extMainInputRelations
+    }.distinct ++ extMainInputRelations
 
     ir.Module(
       m.name,
@@ -191,7 +191,7 @@ class GenerateIR:
 
     dispatchTables ++ qualifiedMethods.map((q, ms) => compileMethodDefs(q, ms)).toSeq
 
-  def compileMethodDefs(qualifiedName: Name, methods: Seq[MethodDef]): ir.Relation = gensym.scoped {
+  def compileMethodDefs(qualifiedName: Name, methods: Seq[MethodDef]): ir.Relation = //gensym.scoped {
     val reprMethod = methods.head
     val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
     val classGuardParam = ir.Param(gensym.freshName("param"), demand.TDemand(irstring.TString))
@@ -214,7 +214,7 @@ class GenerateIR:
         ir.Body(classGuard +: body)
       }.toSeq
     )
-  }
+  //}
 
   def compileConstructorDef(c: ConstructorDef): ir.Relation =
     val className = c.target match
@@ -224,7 +224,7 @@ class GenerateIR:
     val params = c.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
     val unusedResultVar = gensym.freshName("_")
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(c.body, unusedResultVar))))
-      .addHint(Hints.Pure)
+      //.addHint(Hints.Pure)
 
   def compileFieldDef(f: FieldDef): ir.Relation =
     val classDef = f.target match
@@ -234,10 +234,10 @@ class GenerateIR:
     val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
     val valueParam = ir.Param("value", demand.TDemand(compileType(f.typ)))
     if (f.immutable)
-      ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq())
+      ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq(ir.Body(Seq())))
     else {
       val tsParam = ir.Param("ts", demand.TDemand(Mutation.ty))
-      ir.Relation(qualifiedName, Seq(thisParam, valueParam, tsParam), Seq())
+      ir.Relation(qualifiedName, Seq(thisParam, valueParam, tsParam), Seq(ir.Body(Seq())))
     }
 
   /** Statement */
@@ -268,10 +268,22 @@ class GenerateIR:
       ir.Eq(ir.Var(wildcard), compileExpression(expression))
     case Return(expression) =>
       ir.Eq(ir.Var(resultVar), compileExpression(expression))
-    case Assign(Select(recv, targetName), rhs) =>
-      val recvObject = compileExpression(recv)
-      // TODO: Handle field read
-      ???
+    case superCall@Super(args) =>
+      val superClassName = superCall.target match
+        case Some((c: ClassDef, _)) => c.name
+        case _ => throw IllegalStateException(s"Unresolved target for super call '$superCall'")
+      ir.Call(superClassName, ir.Var("this") +: args.map(compileExpression))
+    case Assign(select@Select(recv, targetName), rhs) =>
+      val (classDef, fieldDef) = select.target match
+        case Some((c, f)) => c -> f
+        case _ => throw IllegalStateException(s"Unresolved target for select $recv.$targetName")
+      val qualifiedName = s"${classDef.name}$$$$${fieldDef.name}"
+      if (fieldDef.immutable)
+          ir.Call(qualifiedName, Seq(compileExpression(recv), ir.Var(targetName)))
+      else {
+        // TODO: Mutable field read
+        ???
+      }
     case Assign(lhs, rhs) =>
       ir.Eq(compileExpression(lhs), compileExpression(rhs))
     case VarDeclare(name, typ, None, immutable) =>
@@ -350,7 +362,7 @@ class GenerateIR:
           val resultVar = ir.Var(gensym.fresh(fieldDef.name))
           if (fieldDef.immutable) {
             block.Block(
-              ir.Call(qualifiedName, Seq(compileExpression(recv), resultVar)),
+              ir.Call(qualifiedName, Seq(compileExpression(recv), resultVar)).addHint(demand.Hints.IgnoreCall),
               resultVar
             )
           } else {
@@ -358,14 +370,7 @@ class GenerateIR:
             ???
           }
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
-    case superCall@Super(args) =>
-      val superClassName = superCall.target match
-        case Some((c: ClassDef, _)) => c.name
-        case _ => throw IllegalStateException(s"Unresolved target for super call '$superCall'")
-      block.Block(
-        ir.Call(superClassName, ir.Var("this") +: args.map(compileExpression)),
-        ir.Var("this")
-      )
+
     case constrCall@ConstructorCall(name, _, args) =>
       val (classDef, constrDef) = constrCall.target match
         case Some((c, constr)) => (c, constr)
@@ -387,7 +392,7 @@ class GenerateIR:
       }
 
     case methodCall@MethodCall(recv, fun, _, args, isFix) =>
-      val (classDef, methodDef) = methodCall.target match
+      val (_, methodDef) = methodCall.target match
         case Some((c, m)) => (c, m)
         case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
       val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"

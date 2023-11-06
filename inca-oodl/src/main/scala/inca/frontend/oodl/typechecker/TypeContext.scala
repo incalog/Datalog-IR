@@ -114,10 +114,14 @@ trait TypeContext extends TypeIO:
   }
 
   def lookupFieldCandidates(classDef: ClassDef, fieldName: Name): Seq[(ClassDef, FieldDef)] = {
-    collect[FieldDef](classDef) {
+    val fieldCandidates = collect[FieldDef](classDef) {
       case f: FieldDef => f.name == fieldName
       case _ => false
     }
+    val (generatedFields, userDefinedFields) = fieldCandidates.partition { (c, f) =>
+      f.isGeneratedConstructorField
+    }
+    Seq() ++ generatedFields.headOption ++ userDefinedFields
   }
 
   def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {

@@ -24,6 +24,9 @@ case class CompiledOODLModule(fun: Module) extends CompiledModule:
     val compiler = new SSA
     val module = compiler.compileModule(typed)
 
+    println("SSA: ")
+    println(module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
     messages ++= typer.getErrors

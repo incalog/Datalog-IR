@@ -1,6 +1,6 @@
 module DynamicDispatch
 
-/*class C {
+class C {
     def get(): String = {
         return "C"
     }
@@ -16,20 +16,36 @@ class B extends A {
     override def get(): String = {
         return "B"
     }
-}*/
-
-class B {
-    def get(): String = "B"
 }
 
 @main
 def main(): String = {
     val b: B = new B()
-    b.get()
+    //val a: A = b.asInstanceOf[A]
+
+    // unrelated type c with same method signature
+    val c: C = new C()
+
+    //return a.get() + b.get() + c.get()
+    return b.get() + c.get()
+}
+
+/*class A(cls: String, j: Int) {
+    def getCls(): String = this.cls
+}
+
+class B(i: Int, j: Int) extends A("B", j) {
+    def get(): Int = this.i + this.j
+}
+
+@main
+def main(): (Int, String) = {
+    val b: B = new B(5, 4)
+    (b.get(), b.getCls())
     //val a: A = b.asInstanceOf[A]
 
     // unrelated type c with same method signature
     //val c: C = new C()
 
     //return a.get() + b.get() + c.get()
-}
+}*/

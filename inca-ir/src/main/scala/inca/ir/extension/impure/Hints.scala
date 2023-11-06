@@ -6,6 +6,5 @@ import inca.ir.Hint.Key
 object Hints:
   val PureKey = "PURE"
 
-  object Pure extends Hint {
+  object Pure extends Hint:
     override def key: Key = PureKey
-  }

@@ -33,5 +33,6 @@ class OODLExecutor(val exec: IRExecutor):
 
   def compileOODL(code: String): CompiledOODLModule = {
     val module = Parser.parseModule(code)
+    println(module)
     CompiledOODLModule(module)
   }
