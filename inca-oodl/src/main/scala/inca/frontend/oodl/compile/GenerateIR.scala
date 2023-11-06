@@ -187,7 +187,7 @@ class GenerateIR:
   def compileMethodDefs(qualifiedName: Name, methods: Seq[MethodDef]): ir.Relation = gensym.scoped {
     val reprMethod = methods.head
     val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
-    val classGuardParam = ir.Param(gensym.freshName("param"), irstring.TString)
+    val classGuardParam = ir.Param(gensym.freshName("param"), demand.TDemand(irstring.TString))
     val params = reprMethod.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
     val resultParam = ir.Param(gensym.freshName("return"), compileType(reprMethod.outType))
 
@@ -369,12 +369,12 @@ class GenerateIR:
         block.Block(ir.Eq(sidVar, irdata.Construct(caseName, caseArgs)), sidVar)
       } else {
         val oidVar = ir.Var(gensym.fresh("oid"))
-        val caseArgs = Seq(irstring.StringLit(classDef.name))
-        val dataConstr = irdata.Construct("OID", caseArgs)
         val allocVar = ir.Var(gensym.freshName(Alloc.name))
+        val caseArgs = Seq(irstring.StringLit(classDef.name), allocVar)
+        val dataConstr = irdata.Construct("OID", caseArgs)
         block.Block(Seq(
           irimpure.Impure(allocVar, ir.Eq(oidVar, dataConstr), irarith.Add(allocVar, irarith.IntNum(1)), Alloc),
-          ir.Call(name, ir.Var("this") +: args.map(compileExpression)),
+          ir.Call(name, oidVar +: args.map(compileExpression)),
         ), oidVar)
       }
 
