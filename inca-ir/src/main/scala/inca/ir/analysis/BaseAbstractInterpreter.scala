@@ -175,7 +175,10 @@ trait BaseAbstractInterpreter[V, B]:
     r
 
   protected def evalTermExtend(t: Term): TermResult = t match
-    case Var(x) => TermResult(env(x), trueBool)
+    case Var(x) =>
+      // FIXME: Is this correct ? This can happen e.g. when a destruct fails, since then
+      //  a variable might be unbound and not in the environment.
+      TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
 
 //trait BoolOps[V]:

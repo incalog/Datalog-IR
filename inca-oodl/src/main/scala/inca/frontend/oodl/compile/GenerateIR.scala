@@ -21,6 +21,7 @@ import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
+import inca.ir.extension.impure.Hints
 import inca.util.Gensym
 
 case object Alloc extends irimpure.ImpurityKind:
@@ -55,8 +56,10 @@ class GenerateIR:
     }
     val extMainInputRelations = mainFunctions.map { f =>
       val name = extensionalRelationName(f.name)
+      val allocInParam = ir.Param(Alloc.name, irarith.TInt)
+      val mutInParam = ir.Param(Mutation.name, irarith.TInt)
       val params = f.params.map(p => ir.Param(p.name, compileType(p.typ)))
-      ExtensionalRelation(name, params)
+      ExtensionalRelation(name, (params :+ allocInParam :+ mutInParam))
     }
 
     val classes = m.classes
@@ -86,10 +89,13 @@ class GenerateIR:
       case _ => None
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name)))
+    val allocInVar = ir.Var(s"${Alloc.name}$$0")
+    val mutInVar = ir.Var(s"${Mutation.name}$$0")
+    val inArgs = f.params.map(p => ir.Var(p.name))
+    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar :+ mutInVar)
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: compileStatements(f.body, Name(result))) ++ setMember
-    )))
+    ))).addHint(Hints.Pure)
 
   def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
     val caseClassConstructors = classDefs.filter(_.isCaseClass).map(c => c.name -> c.constructors)
@@ -106,7 +112,8 @@ class GenerateIR:
     irdata.DataDefinition("ID", (oidCase +: sidCases) :+ nullCase)
 
   def compileBuiltinObjectClass(): ir.Relation =
-    ir.Relation("Object", Seq(ir.Param("this", demand.TDemand(irdata.TData("ID")))), Seq())
+    ir.Relation("Object", Seq(ir.Param("this", demand.TDemand(irdata.TData("ID")))), Seq(ir.Body(Seq())))
+      .addHint(Hints.Pure)
 
   def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation =
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
@@ -127,7 +134,7 @@ class GenerateIR:
         ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("ty"))),
         ir.Call(subtypeRelationName, Seq(ir.Var("ty"), ir.Var("ty2")))
       ))
-    )
+    ).addHint(Hints.Pure)
 
   def compileClassDef(c: ClassDef): Seq[ir.Relation] =
     val fieldRelations = c.fields.map(compileFieldDef)
@@ -179,7 +186,7 @@ class GenerateIR:
             ir.Eq(ir.Var("trg"), irstring.StringLit(trg)),
           ))
         }
-      )
+      ).addHint(Hints.Pure)
     }.toSeq
 
     dispatchTables ++ qualifiedMethods.map((q, ms) => compileMethodDefs(q, ms)).toSeq
@@ -217,6 +224,7 @@ class GenerateIR:
     val params = c.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
     val unusedResultVar = gensym.freshName("_")
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(c.body, unusedResultVar))))
+      .addHint(Hints.Pure)
 
   def compileFieldDef(f: FieldDef): ir.Relation =
     val classDef = f.target match

@@ -18,7 +18,9 @@ class OODLExecutor(val exec: IRExecutor):
     }
 
     def execute(main: String, args: Seq[Any]): Relation = {
-      val edbEntry = Relation.from(extensionalRelationName(main), args)
+      val allocIn = 0
+      val mutIn = 0
+      val edbEntry = Relation.from(extensionalRelationName(main), args :+ allocIn :+ mutIn)
       engine.insert(edbEntry)
       output(main, args)
     }

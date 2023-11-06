@@ -15,6 +15,7 @@ trait Lowering extends BaseLowering:
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, demand.IR)
 
   var impurities: Seq[ImpurityKind] = Seq()
+  var pureRelations: Set[Name] = Set()
 
   private var impurityCounters: Map[ImpurityKind, Name] = Map()
   private def getImpurityCounter(k: ImpurityKind): Var =
@@ -28,6 +29,10 @@ trait Lowering extends BaseLowering:
     val collector = new CollectImpurityKinds()
     collector.visitProgram(modules)
     impurities = collector.impurities.toSeq.sortBy(_.name)
+    pureRelations = modules.flatMap(_.relations).flatMap {
+      case (_, r) if r.hasHint(Hints.PureKey) => Some(r.name)
+      case _ => None
+    }.toSet
     super.visitProgram(modules)
 
   override def visitRelation(relation: Relation): Seq[Relation] = gensym.scoped {
@@ -36,13 +41,16 @@ trait Lowering extends BaseLowering:
     val impInEqs = impInParams.zip(impInVars).map((p,v) => Eq(Var(p.name), v))
 
     val rels = super.visitRelation(relation)
-    val impOutParams = impurities.map(k => Param(getImpurityCounter(k).name, k.ty))
+    if (pureRelations.contains(relation.name))
+      rels
+    else
+      val impOutParams = impurities.map(k => Param(getImpurityCounter(k).name, k.ty))
 
-    rels.map(r =>
-      r.copy(
-        params = r.params ++ impInParams ++ impOutParams,
-        bodies = r.bodies.map(b => Body(impInEqs ++ b.atoms)))
-    )
+      rels.map(r =>
+        r.copy(
+          params = r.params ++ impInParams ++ impOutParams,
+          bodies = r.bodies.map(b => Body(impInEqs ++ b.atoms)))
+      )
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
@@ -51,12 +59,13 @@ trait Lowering extends BaseLowering:
       val as = atoms.flatMap(visitAtom)
       val freshCounter = freshImpurityCounter(kind)
       Eq(v, counter) +: as :+ Eq(freshCounter, up)
-    case Call(name, args) =>
+    case Call(name, args) if !pureRelations.contains(name) =>
       val impVars = impurities.map(getImpurityCounter)
       val freshImpVars = impurities.map(freshImpurityCounter)
       Seq(Call(name, args.flatMap(visitTerm) ++ impVars ++ freshImpVars))
-    case NegCall(name, args) =>
+    case NegCall(name, args) if !pureRelations.contains(name) =>
       Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+    // TODO: What about aggregations ?
     case _ => super.visitAtom(atom)
 
 class CollectImpurityKinds extends IRVisitor:
