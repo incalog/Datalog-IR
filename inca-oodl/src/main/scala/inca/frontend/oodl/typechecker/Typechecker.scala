@@ -206,6 +206,7 @@ class Typechecker extends TypeContext with TypeIO:
   /** Class content */
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
+    resolveTarget(fieldDef)(classDef)
     typecheck(fieldDef.typ)
 
     fieldDef.body match {
@@ -218,6 +219,8 @@ class Typechecker extends TypeContext with TypeIO:
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
+    resolveTarget(methodDef)(classDef)
+
     // get all overridden methods and assign them the same signature
     val overriddenMethods = lookupMethodCandidates(classDef, methodDef.name, methodDef.params.map(_.typ))
 
@@ -232,10 +235,10 @@ class Typechecker extends TypeContext with TypeIO:
         if (p1.name != p2.name)
           error(s"Overridden methods must use the same parameter names: Expected ${p2.name}, but got ${p1.name}.", parentMethod)
       }
-    }
 
-    val (baseClassDef, baseMethodDef) = overriddenMethods.head
-    resolveTarget(methodDef)((baseClassDef, baseMethodDef))
+      //val (baseClassDef, baseMethodDef) = overriddenMethods(1)
+      //resolveTarget(methodDef)((baseClassDef, baseMethodDef))
+    }
 
     methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
@@ -263,8 +266,9 @@ class Typechecker extends TypeContext with TypeIO:
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     val overriddenConstructors = lookupConstructorCandidates(classDef, constructorDef.params.map(_.typ))
 
-    val (baseClassDef, baseConstructorDef) = overriddenConstructors.head
-    resolveTarget(constructorDef)((baseClassDef, baseConstructorDef))
+    resolveTarget(constructorDef)(classDef)
+    //val (baseClassDef, baseConstructorDef) = overriddenConstructors.head
+    //resolveTarget(constructorDef)((baseClassDef, baseConstructorDef))
 
     constructorDef.params.foreach { p =>
       typecheck(p.typ)

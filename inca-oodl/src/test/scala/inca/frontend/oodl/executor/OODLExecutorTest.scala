@@ -15,3 +15,11 @@ class OODLExecutorTest extends AnyFunSuite:
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
   }
+
+  test("Dynamic Dispatch") {
+    val code = FileUtil.readFile("objectoriented/unittests/DynamicDispatch.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(43)(res.entries.head)
+  }

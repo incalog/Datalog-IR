@@ -3,7 +3,7 @@ package inca.frontend.oodl.compile
 import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, string2name, name2string}
+import inca.ir.{ExtensionalRelation, Language, Name, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -22,7 +22,10 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
 import inca.util.Gensym
 
+import scala.collection.mutable
+
 object GenerateIR:
+  def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
   def subtypeRelationName = "subtype$"
   def extensionalRelationPrefix = "ext_"
   def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
@@ -48,14 +51,15 @@ class GenerateIR:
     }
 
     val clsHierarchyRelation = compileClassHierarchy(m.classes)
-    //compileDispatchTable(m.classes)
+    val dispatchRelations = compileMethodsAndDispatchTable(m.classes)
+    println(dispatchRelations)
 
     val moduleEntries = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
       case f: FunctionDef => throw IllegalStateException(s"Can not compile none main function ${f.name}")
       case c: ClassDef => compileClassDef(c)
     } ++ extMainInputRelations
-    ir.Module(m.name, irLang, moduleEntries :+ clsHierarchyRelation)
+    ir.Module(m.name, irLang, (moduleEntries ++ dispatchRelations) :+ clsHierarchyRelation)
 
   /** Module content */
   def compileMainFunction(f: FunctionDef): ir.Relation =
@@ -71,7 +75,7 @@ class GenerateIR:
     )))
 
   def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation =
-    val subtypeTuples = classes.flatMap { c =>
+    val noneTransitiveSubtypeTuples = classes.flatMap { c =>
       c.parentCls.map {
         case p: TName => (c.name.name, p.name.name)
         case t => throw IllegalStateException(s"Unexpected parent class type $t")
@@ -80,24 +84,99 @@ class GenerateIR:
     ir.Relation(
       subtypeRelationName,
       Seq(ir.Param("ty1", irstring.TString), ir.Param("ty2", irstring.TString)),
-      subtypeTuples.map { case (ty1, ty2) =>
+      noneTransitiveSubtypeTuples.map { case (ty1, ty2) =>
         ir.Body(Seq(
           ir.Eq(ir.Var("ty1"), irstring.StringLit(ty1)),
           ir.Eq(ir.Var("ty2"), irstring.StringLit(ty2))
         ))
-      }
+      } :+ ir.Body(Seq(
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("ty"))),
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty"), ir.Var("ty2")))
+      ))
     )
 
-  def compileClassDef(f: ClassDef): Seq[ir.Relation] = Seq()
+  def compileClassDef(c: ClassDef): Seq[ir.Relation] =
+    val fieldRelations = c.fields.map(compileFieldDef)
+    val constructorRelations = c.constructors.map(compileConstructorDef)
+    // Methods are handled globally by `compileMethodsAndDispatchTable`
+    fieldRelations ++ constructorRelations
 
   /** Class content */
 
-  def compileDispatchTable(classes: Seq[ClassDef]): ir.Relation = ???
+  private def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[String, (ClassDef, MethodDef)] = {
+    val methods = implClass.methods.map { m =>
+      val qualifiedMethodName = s"${m.name}$$${signatureString(m.signature)}"
+      qualifiedMethodName -> (implClass, m)
+    }.toMap
 
-  def compileMethodDef(m: MethodDef): ir.Relation = ???
-    // TODO: Gensym register all vars
+    val parentMethods = implClass.parentCls.flatMap {
+      case t: TName if !t.isBuiltIn => t.target match
+        case Some(parentClassDef: ClassDef) => collectMethods(classDef)(parentClassDef)
+        case _ => throw IllegalStateException(s"Unresolved ClassDef ${t.name}")
+      case t => throw IllegalStateException(s"Unexpected type $t")
+    }.toMap
+    // We rely on the default map collision behaviour to find the concrete implementation class
+    parentMethods ++ methods
+  }
+
+  def compileMethodsAndDispatchTable(classes: Seq[ClassDef]): Seq[ir.Relation] =
+    val collectedMethods = classes.map(c => c -> collectMethods(c)()).toMap
+    // qualifiedMethodName -> (src1, trg1), ...,(srcN, trgN)
+    var dispatchClasses: Map[String, Seq[(String, String)]] = Map()
+    // qualifiedMethodName -> MethodDef1, ..., MethodDefN
+    var qualifiedMethods: Map[String, Seq[MethodDef]] = Map()
+    classes.foreach { c =>
+      collectedMethods(c).foreach { case (qualifiedMethodName, (implClass, implMethod)) =>
+        val previousTuples = dispatchClasses.getOrElse(qualifiedMethodName, Seq())
+        dispatchClasses += qualifiedMethodName -> (previousTuples :+ (c.name.name, implClass.name.name))
+        val previousMethods = qualifiedMethods.getOrElse(qualifiedMethodName, Seq())
+        qualifiedMethods += qualifiedMethodName -> (previousMethods :+ implMethod)
+      }
+    }
+
+    val dispatchTables = dispatchClasses.map { case (qualifiedMethodName, srcAndTrg) =>
+      ir.Relation(
+        s"dispatch$$$qualifiedMethodName",
+        Seq(ir.Param("src", irstring.TString), ir.Param("trg", irstring.TString)),
+        srcAndTrg.map { case (src, trg) =>
+          ir.Body(Seq(
+            ir.Eq(ir.Var("src"), irstring.StringLit(src)),
+            ir.Eq(ir.Var("trg"), irstring.StringLit(trg)),
+          ))
+        }
+      )
+    }.toSeq
+
+    dispatchTables ++ qualifiedMethods.map((q, ms) => compileMethodDefs(q, ms)).toSeq
+
+  def compileMethodDefs(qualifiedName: Name, methods: Seq[MethodDef]): ir.Relation = gensym.scoped {
+    val reprMethod = methods.head
+    val classGuardParam = ir.Param(gensym.freshName("param"), irstring.TString)
+    val params = reprMethod.params.map(p => ir.Param(p.name, compileType(p.typ)))
+    val resultParam = ir.Param(gensym.freshName("return"), compileType(reprMethod.outType))
+
+    // Find all distinct classes that implement the method
+    val methodsWithImplClass = methods.map(m =>
+      m.target match
+        case Some(cls: ClassDef) => cls -> m
+        case None => throw IllegalStateException(s"Unresolved ClassRef for method ${m.name}")
+    ).toMap
+
+    ir.Relation(
+      qualifiedName,
+      classGuardParam +: (params :+ resultParam),
+      methodsWithImplClass.map { case (implClass, m) =>
+        val body = compileStatements(m.body, resultParam.name)
+        val classGuard = ir.Eq(ir.Var(classGuardParam.name), irstring.StringLit(implClass.name))
+        ir.Body(
+          classGuard +: body
+        )
+      }.toSeq
+    )
+  }
 
   def compileConstructorDef(c: ConstructorDef): ir.Relation = ???
+    // TODO: Gensym register all vars
 
   def compileFieldDef(f: FieldDef): ir.Relation = ???
 

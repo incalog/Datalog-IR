@@ -98,7 +98,7 @@ trait ClassContent extends SourceLocation with Annotations:
   def prettyprint(implicit indent: String): String
   override def toString: String = prettyprint("")
 
-case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression], immutable: Boolean) extends ClassContent with Resolvable[MethodDef]:
+case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression], immutable: Boolean) extends ClassContent with Resolvable[ClassDef]:
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
@@ -106,8 +106,9 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 
-// Resolve to base class that first defines this method
-case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ClassContent with Resolvable[(ClassDef, MethodDef)]:
+case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ClassContent with Resolvable[ClassDef]:
+  def signature: Seq[Type] = params.map(_.typ) :+ outType
+
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""
@@ -119,8 +120,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
        |$indent}""".stripMargin
   }
 
-// Resolve to base class that first defines this constructor
-case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement]) extends ClassContent with Resolvable[(ClassDef, ConstructorDef)]:
+case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement]) extends ClassContent with Resolvable[ClassDef]:
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
