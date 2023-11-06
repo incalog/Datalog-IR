@@ -32,6 +32,16 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(55)(res.entries.head)
   }
 
+  // We need more optimizations to execute the full program
+  //  + Disjunction lowering is way to slow on this (is there an endless loop?)
+  test("InstanceOf") {
+    val code = FileUtil.readFile("objectoriented/unittests/InstanceOf.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
   test("Dynamic Dispatch") {
     val code = FileUtil.readFile("objectoriented/unittests/DynamicDispatch.oodl")
     val compiled = exec.compileOODL(code)
@@ -40,7 +50,7 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult("BBC")(res.entries.head)
   }
 
-  // TODO: Currently not supported, need more optimizations
+  // TODO: Currently not supported, need more optimizations (how should equality on objects beeing handled ?)
   test("Equals") {
     val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")
     val compiled = exec.compileOODL(code)

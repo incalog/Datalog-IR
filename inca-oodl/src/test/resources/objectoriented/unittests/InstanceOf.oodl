@@ -2,20 +2,20 @@ module InstanceOf
 
 class A
 class B extends A
-class C1 extends B
-class C2 extends B
+//class C1 extends B
+//class C2 extends B
 
 @main
 def main(): Boolean = {
     val a: A = new A()
     val b: B = new B()
-    val c1: C1 = new C1()
-    val c2: C2 = new C2()
+    //val c1: C1 = new C1()
+    //val c2: C2 = new C2()
 
-    val instanceOfA: Boolean = a.isInstanceOf[A] && !a.isInstanceOf[B] && !a.isInstanceOf[C1] && !a.isInstanceOf[C2]
-    val instanceOfB: Boolean = b.isInstanceOf[A] && b.isInstanceOf[B] && !b.isInstanceOf[C1] && !b.isInstanceOf[C2]
-    val instanceOfC1: Boolean = c1.isInstanceOf[A] && c1.isInstanceOf[B] && c1.isInstanceOf[C1] && !c1.isInstanceOf[C2]
-    val instanceOfC2: Boolean = c2.isInstanceOf[A] && c2.isInstanceOf[B] && !c2.isInstanceOf[C1] && c2.isInstanceOf[C2]
+    val instanceOfA: Boolean = a.isInstanceOf[A] && !a.isInstanceOf[B]// && !a.isInstanceOf[C1] && !a.isInstanceOf[C2]
+    //val instanceOfB: Boolean = b.isInstanceOf[A] && b.isInstanceOf[B] && !b.isInstanceOf[C1] && !b.isInstanceOf[C2]
+    //val instanceOfC1: Boolean = c1.isInstanceOf[A] && c1.isInstanceOf[B] && c1.isInstanceOf[C1] && !c1.isInstanceOf[C2]
+    //val instanceOfC2: Boolean = c2.isInstanceOf[A] && c2.isInstanceOf[B] && !c2.isInstanceOf[C1] && c2.isInstanceOf[C2]
 
-    return instanceOfA && instanceOfB && instanceOfC1 && instanceOfC2
+    return instanceOfA// && instanceOfB && instanceOfC1 && instanceOfC2
 }

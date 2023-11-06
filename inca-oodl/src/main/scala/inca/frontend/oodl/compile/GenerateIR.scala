@@ -137,6 +137,9 @@ class GenerateIR:
       } :+ ir.Body(Seq(
         ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("ty"))),
         ir.Call(subtypeRelationName, Seq(ir.Var("ty"), ir.Var("ty2")))
+      )) :+ ir.Body(Seq(
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("_$0"))),
+        ir.Eq(ir.Var("ty2"), ir.Var("ty1"))
       ))
     ).addHint(Hints.Pure)
 
