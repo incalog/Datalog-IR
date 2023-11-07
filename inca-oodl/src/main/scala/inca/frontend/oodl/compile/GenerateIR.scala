@@ -247,19 +247,33 @@ class GenerateIR:
     val valueParam = ir.Param("value", demand.TDemand(compileType(f.typ)))
     if (f.immutable)
       Seq(ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq(ir.Body(Seq()))))
-    else {
+    else
       val tsParam = ir.Param("ts", demand.TDemand(Mutation.ty))
       val fieldRel = ir.Relation(qualifiedName, Seq(thisParam, valueParam, tsParam), Seq(ir.Body(Seq())))
       // Create filter relation
+      val filterRelName = s"$qualifiedName$$Filter"
       val tsMaxParam = ir.Param("aggTs", Mutation.ty)
-      val filterRel = ir.Relation(qualifiedName + "$Filter", Seq(thisParam, tsParam, tsMaxParam), Seq(
+      val filterRel = ir.Relation(filterRelName, Seq(thisParam, tsParam, tsMaxParam), Seq(
         ir.Body(Seq(
         ir.Call(qualifiedName, Seq(ir.Var("this"), ir.Var(gensym.freshName("_")), ir.Var("aggTs")))
           .addHint(demand.Hints.IgnoreCall),
-        irarith.LE(ir.Var("aggTs"), ir.Var("ts"))
+        irarith.LT(ir.Var("aggTs"), ir.Var("ts"))
       )))).addHint(impure.Hints.Pure)
-      Seq(fieldRel, filterRel)
-    }
+
+      val maxTs = ir.Var(gensym.fresh("maxTs"))
+      val mutVar = ir.Var(gensym.fresh("current" + Mutation.name))
+      val fieldRead = ir.Relation(s"$qualifiedName$$Read", Seq(thisParam, ir.Param("value", compileType(f.typ))), Seq(ir.Body(Seq(
+        irimpure.Impure(mutVar, Seq(
+          iragg.Aggregate(
+            filterRelName,
+            Seq(iragg.AggregateArg.Arg(ir.Var("this")), iragg.AggregateArg.Arg(mutVar), iragg.AggregateArg.AggregateColumn(maxTs)),
+            irarith.ArithmeticAggregationOperator.Max
+          ),
+          ir.Call(qualifiedName, Seq(ir.Var("this"), ir.Var("value"), maxTs)).addHint(demand.Hints.IgnoreCall)
+        ), mutVar, Mutation)
+      ))))
+
+      Seq(fieldRel, filterRel, fieldRead)
 
   /** Statement */
 
@@ -394,19 +408,10 @@ class GenerateIR:
               resultVar
             )
           } else {
-            val filterRelName = s"$qualifiedName$$Filter"
-            val maxTs = ir.Var(gensym.fresh("maxTs"))
-            val mutVar = ir.Var(gensym.fresh("current" + Mutation.name))
             block.Block(
-              irimpure.Impure(mutVar, Seq(
-                iragg.Aggregate(
-                  filterRelName,
-                  Seq(iragg.AggregateArg.Arg(recvTerm), iragg.AggregateArg.Arg(mutVar), iragg.AggregateArg.AggregateColumn(maxTs)),
-                  irarith.ArithmeticAggregationOperator.Max
-                ),
-                ir.Call(qualifiedName, Seq(recvTerm, resultVar, maxTs)).addHint(demand.Hints.IgnoreCall)
-              ), mutVar, Mutation),
-            resultVar)
+              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm, resultVar)),
+              resultVar
+            )
           }
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
 
