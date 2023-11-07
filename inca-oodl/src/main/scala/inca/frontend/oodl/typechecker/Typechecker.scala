@@ -103,6 +103,11 @@ class Typechecker extends TypeContext with TypeIO:
       classDef.fields.filter(!_.isGeneratedConstructorField).foreach { f =>
         error(s"Case Class ${classDef.name} must not contain explicit field ${f.name} outside the constructor", f)
       }
+
+      val allFields = collect[FieldDef](classDef)(_.isInstanceOf[FieldDef])
+      val parentFields = allFields.filter((c, _) => c != classDef)
+      if (parentFields.nonEmpty)
+        error(s"Case class ${classDef.name} must no inherit fields", classDef)
     }
 
     // make sure all fields are initialized after a constructor is executed

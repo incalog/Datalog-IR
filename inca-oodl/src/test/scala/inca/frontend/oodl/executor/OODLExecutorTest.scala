@@ -128,7 +128,7 @@ class OODLExecutorTest extends AnyFunSuite:
     val compiled = exec.compileOODL(code)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
-    assertResult(1)(res.entries.head)
+    assertResult(15)(res.entries.head)
   }
 
   // TODO: Currently not supported, need more optimizations (how should equality on objects being handled ?)

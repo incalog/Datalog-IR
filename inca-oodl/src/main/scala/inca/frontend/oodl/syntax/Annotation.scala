@@ -49,5 +49,5 @@ object CaseClassAnno:
   val KEY: Annotation.Key = "CASE_CLASS"
 case class CaseClassAnno() extends Annotation {
   override def key: Annotation.Key = CaseClassAnno.KEY
-  override def toString: String = "@main"
+  override def toString: String = "case"
 }

@@ -29,6 +29,8 @@ import inca.util.Gensym
 // TODO: Use gensym everywhere to prevent name collision
 // TODO: Support Class cast error
 // TODO: Support NullPointer error (If method call recv is null write it to a special relation)
+// TODO: Support SetComprehension
+// TODO: Support SetFold
 
 case object Alloc extends irimpure.ImpurityKind:
   val name: String = "Alloc"
@@ -107,17 +109,15 @@ class GenerateIR:
     ))).addHint(impure.Hints.Pure)
 
   def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
-    val caseClassConstructors = classDefs.filter(_.isCaseClass).map(c => c.name -> c.constructors)
-    val sidCases = caseClassConstructors.map {
-      case (name, Seq(c)) => irdata.CaseDefinition(
-        s"SID$$${name}$$${signatureString(c.signature)}",
-        irstring.TString +: c.signature.map(compileType)
-      )
-      case (name, _) => throw IllegalStateException(s"Found more than one Constructor for CaseClass '$name'")
+    val caseClassFields = classDefs.filter(_.isCaseClass).map(c => c.name -> c.fields)
+    val sidCases = caseClassFields.map {
+      case (name, fields) =>
+        val signature = fields.map(_.typ)
+        val qualifiedName = s"SID$$${signatureString(signature)}"
+        irdata.CaseDefinition(qualifiedName, irstring.TString +: signature.map(compileType))
     }
     val oidCase = irdata.CaseDefinition("OID", Seq(irstring.TString, Alloc.ty))
     val nullCase = irdata.CaseDefinition("NID", Seq(irstring.TString))
-
     irdata.DataDefinition("ID", (oidCase +: sidCases) :+ nullCase)
 
   def compileBuiltinObjectClass(): ir.Relation =
@@ -293,8 +293,12 @@ class GenerateIR:
           val elsDecl = VarDeclare(name, Some(typ), Some(Var(elsName)), true)
           (thnDecl, elsDecl)
       }.unzip
-      val ifAtom = compileStatement(If(cnd, thn ++ thnDeclarations, els ++ elsDeclarations), resultVar)
-      ifAtom +: compileStatements(remainingStmts, resultVar)
+      // Merge remaining stmts to correctly handle return
+      // Note: This generates a lot of duplicated atoms
+      val thnStmts = thn ++ thnDeclarations ++ remainingStmts
+      val elsStmts = els ++ elsDeclarations ++ remainingStmts
+      val ifAtom = compileStatement(If(cnd, thnStmts, elsStmts), resultVar)
+      Seq(ifAtom)
     case stm :: rest => compileStatement(stm, resultVar) +: compileStatements(rest, resultVar)
 
   def compileStatement(stm: Statement, resultVar: Name): ir.Atom = stm match
@@ -388,31 +392,45 @@ class GenerateIR:
     case BinOp(e1, "<=", e2) => bool.AtomAsBool(irarith.LE(compileExpression(e1), compileExpression(e2)))
 
     case Var(name) => ir.Var(name)
+
     case select@Select(recv, targetName) =>
       recv.typ match
-        case Some(t: TTuple) => // Project by parsing targetName
+        // Project by parsing targetName
+        case Some(t: TTuple) =>
           val index = ParseUtil.parseTupleIndex(targetName) match
             case Some(idx) => idx - 1
             case _ => throw IllegalStateException(s"Unexpected tuple index $targetName")
           irtuple.Project(compileExpression(recv), index)
-        case Some(t: TName) => // FieldRead
+
+        // FieldRead
+        case Some(t: TName) =>
           val (classDef, fieldDef) = select.target match
             case Some((c, f)) => c -> f
             case _ => throw IllegalStateException(s"Unresolved target for select $recv.$targetName")
           val qualifiedName = s"${classDef.name}$$$$${fieldDef.name}"
           val recvTerm = compileExpression(recv)
           val resultVar = ir.Var(gensym.fresh(fieldDef.name))
-          if (fieldDef.immutable) {
+          if (classDef.isCaseClass)
+            val allFields = classDef.fields
+            val signature = allFields.map(_.typ)
+            val fieldIndex = allFields.indexWhere(_.name == targetName)
+            var args = (0 until allFields.size + 1).map(_ => ir.Var(gensym.freshName("_")))
+            args = args.updated(fieldIndex + 1, resultVar)
+            val caseName = s"SID$$${signatureString(signature)}"
+            block.Block(
+              irdata.Deconstruct(recvTerm, caseName, args),
+              resultVar
+            )
+          else if (fieldDef.immutable)
             block.Block(
               ir.Call(qualifiedName, Seq(recvTerm, resultVar)).addHint(demand.Hints.IgnoreCall),
               resultVar
             )
-          } else {
+          else
             block.Block(
               ir.Call(s"$qualifiedName$$Read", Seq(recvTerm, resultVar)),
               resultVar
             )
-          }
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
 
     case constrCall@ConstructorCall(name, _, args) =>
@@ -420,9 +438,9 @@ class GenerateIR:
         case Some((c, constr)) => (c, constr)
         case _ => throw IllegalStateException(s"Unresolved target for constructor call '$constrCall'")
       if (classDef.isCaseClass) {
-        // TODO: Collect parent fields as well
+        // Note: This assumes the constructor args and fields are ordered the same way
         val sidVar = ir.Var(gensym.fresh("sid"))
-        val caseName = s"SID$$${classDef.name}$$${signatureString(constrDef.signature)}"
+        val caseName = s"SID$$${signatureString(constrDef.signature)}"
         val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)
         block.Block(ir.Eq(sidVar, irdata.Construct(caseName, caseArgs)), sidVar)
       } else {

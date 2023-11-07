@@ -99,7 +99,7 @@ trait TypeContext extends TypeIO:
 
   /** Class content */
 
-  private def collect[C <: ClassContent](classDef: ClassDef)(f: ClassContent => Boolean): Seq[(ClassDef, C)] = {
+  def collect[C <: ClassContent](classDef: ClassDef)(f: ClassContent => Boolean): Seq[(ClassDef, C)] = {
     val content = classDef.content.flatMap {
       case c if f(c) => Some((classDef, c.asInstanceOf[C]))
       case _ => None
