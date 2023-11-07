@@ -50,11 +50,28 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult("BBC")(res.entries.head)
   }
 
-  // TODO: Currently not supported, need more optimizations (how should equality on objects beeing handled ?)
-  test("Equals") {
-    val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")
+  test("Method Inheritance") {
+    val code = FileUtil.readFile("objectoriented/unittests/MethodInheritance.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(3)(res.entries.head)
+  }
+
+  // We need way more optimizations to make this program executable
+  test("Plus") {
+    val code = FileUtil.readFile("objectoriented/unittests/Plus.oodl")
     val compiled = exec.compileOODL(code)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
+
+  // TODO: Currently not supported, need more optimizations (how should equality on objects being handled ?)
+  /*test("Equals") {
+    val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }*/

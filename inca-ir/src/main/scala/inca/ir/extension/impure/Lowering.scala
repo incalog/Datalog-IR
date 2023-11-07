@@ -19,7 +19,7 @@ trait Lowering extends BaseLowering:
 
   private var impurityCounters: Map[ImpurityKind, Name] = Map()
   private def getImpurityCounter(k: ImpurityKind): Var =
-    Var(impurityCounters(k))
+    Var(impurityCounters.getOrElse(k, freshImpurityCounter(k).name))
   private def freshImpurityCounter(kind: ImpurityKind): Var =
     val freshCounter = Name(gensym.fresh(kind.name))
     impurityCounters += kind -> freshCounter
@@ -49,15 +49,15 @@ trait Lowering extends BaseLowering:
   var isPureRelation: Boolean = false
 
   override def visitRelation(relation: Relation): Seq[Relation] = impurityScoped {
-    impOutParams = impurities.map(k => Param(freshImpurityCounter(k).name, k.ty))
-    val impInParams = impurities.map(k => Param(freshImpurityCounter(k).name, demand.TDemand(k.ty)))
-
     isPureRelation = pureRelations.contains(relation.name)
 
-    val rels = super.visitRelation(relation)
     if (isPureRelation)
-      rels
+      super.visitRelation(relation)
     else
+      impOutParams = impurities.map(k => Param(freshImpurityCounter(k).name, k.ty))
+      val impInParams = impurities.map(k => Param(freshImpurityCounter(k).name, demand.TDemand(k.ty)))
+      val rels = super.visitRelation(relation)
+
       preserveHints(relation) {
         rels.map(r =>
           r.copy(
@@ -89,6 +89,10 @@ trait Lowering extends BaseLowering:
         val as = atoms.flatMap(visitAtom)
         val freshCounter = freshImpurityCounter(kind)
         Eq(v, counter) +: as :+ Eq(freshCounter, up)
+      // TODO: This is ugly, since we now use some key here from the demand relation
+      //  How do we make this nice ?
+      case Call(name, args) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
+        Seq(Call(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
       case Call(name, args) if !pureRelations.contains(name) =>
         val impVars = impurities.map(getImpurityCounter)
         val freshImpVars = impurities.map(freshImpurityCounter)

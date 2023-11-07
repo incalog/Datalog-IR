@@ -93,12 +93,13 @@ class GenerateIR:
       case _ => None
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    val allocInVar = ir.Var(s"current${Alloc.name}$$0")
-    val mutInVar = ir.Var(s"current${Mutation.name}$$0")
+    val allocInVar = ir.Var(gensym.fresh("ext_" + Alloc.name))
+    val mutInVar = ir.Var(gensym.fresh("ext_" + Mutation.name))
     val inArgs = f.params.map(p => ir.Var(p.name))
     val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar :+ mutInVar)
+    val impureInput = irimpure.Impure(allocInVar, Seq(), allocInVar, Alloc)
     ir.Relation(f.name, params, Seq(ir.Body(
-      (edbInputCall +: compileStatements(f.body, Name(result))) ++ setMember
+      (edbInputCall +: impureInput +: compileStatements(f.body, Name(result))) ++ setMember
     ))).addHint(Hints.Pure)
 
   def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
