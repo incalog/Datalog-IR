@@ -34,8 +34,8 @@ object GeneratePSystem:
   private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
     // Do not change this order
     val lowerings: List[() => BaseLowering] = List(
-      () => new string.ScalaLowering {}, // lower strings
       () => new arithmetic.ScalaLowering {}, // lower arithmetic
+      () => new string.ScalaLowering {}, // lower strings
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
     )

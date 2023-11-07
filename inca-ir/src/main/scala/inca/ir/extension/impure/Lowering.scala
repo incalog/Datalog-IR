@@ -82,7 +82,7 @@ trait Lowering extends BaseLowering:
       }
   }
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+  override def visitAtom(atom: Atom): Seq[Atom] =
     atom match
       case Impure(v, atoms, up, kind) =>
         val counter = getImpurityCounter(kind)
@@ -92,16 +92,21 @@ trait Lowering extends BaseLowering:
       // TODO: This is ugly, since we now use some key here from the demand relation
       //  How do we make this nice ?
       case Call(name, args) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
-        Seq(Call(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+        preserveHints(atom) {
+          Seq(Call(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+        }
       case Call(name, args) if !pureRelations.contains(name) =>
         val impVars = impurities.map(getImpurityCounter)
         val freshImpVars = impurities.map(freshImpurityCounter)
-        Seq(Call(name, args.flatMap(visitTerm) ++ impVars ++ freshImpVars))
+        preserveHints(atom) {
+          Seq(Call(name, args.flatMap(visitTerm) ++ impVars ++ freshImpVars))
+        }
       case NegCall(name, args) if !pureRelations.contains(name) =>
-        Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+        preserveHints(atom) {
+          Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+        }
       // TODO: What about aggregations ?
       case _ => super.visitAtom(atom)
-  }
 
 class CollectImpurityKinds extends IRVisitor:
   var impurities: Set[ImpurityKind] = Set()
