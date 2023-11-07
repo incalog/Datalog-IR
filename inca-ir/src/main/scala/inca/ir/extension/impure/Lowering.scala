@@ -10,6 +10,17 @@ import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, Relation, Va
 
 import scala.collection.mutable.ListBuffer
 
+/**
+ * General usage note:
+ *
+ * You can generate code, such that one body of a relation introduces more impurities than the other.
+ * While the lowering supports this case, you have to make sure, that only one consistent impurity counter is derived.
+ *
+ * A typical example where this case might occur, is e.g. an object creation inside one branch of an if in OODL.
+ * That is, one branch increases the impurity counter, while the other doesn't. Since if branches are mutually exclusive
+ * only one consistent counter is produces after evaluating the relation that contains the if.
+ * Nevertheless, one body increases the counter and the other does not.
+ */
 trait Lowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, demand.IR)
@@ -67,9 +78,6 @@ trait Lowering extends BaseLowering:
       }
   }
 
-  // TODO: Actually this should never happen. Otherwise our program is invalid
-  // We need special handling in case that one body has more impurities than another body
-  // of the same relation
   override def visitBody(body: Body): Seq[Body] = impurityScoped {
     val bodies = super.visitBody(body)
 

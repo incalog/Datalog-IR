@@ -91,6 +91,38 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  test("If") {
+    val code = FileUtil.readFile("objectoriented/unittests/if/If.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq(1, 1))
+    assertResult(11)(res.entries.head)
+  }
+
+  test("If Duplicate") {
+    val code = FileUtil.readFile("objectoriented/unittests/if/IfDuplicate.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq(1, 1))
+    assertResult(10)(res.entries.head)
+  }
+
+  test("If False") {
+    val code = FileUtil.readFile("objectoriented/unittests/if/IfFalse.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
+  test("If True") {
+    val code = FileUtil.readFile("objectoriented/unittests/if/IfTrue.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
   test("Case class") {
     val code = FileUtil.readFile("objectoriented/unittests/caseclass/CaseClass.oodl")
     val compiled = exec.compileOODL(code)
