@@ -6,13 +6,14 @@ class Integer(value: Int) extends Num(value)
 
 class Float(value: Double) extends Num(value)
 
-class A {
+/*class A {
   def filter(as: Set[Num]): Set[Integer] = {
     return for (a <- as if a.isInstanceOf[Integer]) yield a.asInstanceOf[Integer]
   }
-}
+}*/
 
 @main def main(): Set[Any] = {
-    val a: A = new A()
-    return for (v <- a.filter(Set(new Float(1.0), new Integer(10), new Integer(3)))) yield v.value
+    //val a: A = new A()
+    return Set(new Float(1.0), new Integer(10), new Integer(3))
+    //return for (v <- a.filter(Set(new Float(1.0), new Integer(10), new Integer(3)))) yield v.value
 }

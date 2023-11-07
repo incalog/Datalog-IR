@@ -29,8 +29,11 @@ import inca.util.Gensym
 // TODO: Use gensym everywhere to prevent name collision
 // TODO: Support Class cast error
 // TODO: Support NullPointer error (If method call recv is null write it to a special relation)
-// TODO: Support SetComprehension
 // TODO: Support SetFold
+// TODO: Subtyping of method arguments on override
+// TODO: Subtyping of fields on override
+// TODO: Generics
+// TODO: Pattern matching
 
 case object Alloc extends irimpure.ImpurityKind:
   val name: String = "Alloc"
@@ -95,17 +98,20 @@ class GenerateIR:
     val setMember = f.outType match
       case TSet(ty) => Some(irset.SetMember(ir.Var(Name(gensym.fresh("_"))), ir.Var(Name(result))))
       case _ => None
-    val resultParam = ir.Param(Name(result), compileType(f.outType))
+    val resultParam = ir.Param(result, compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
     val allocInVar = ir.Var(gensym.fresh("ext_" + Alloc.name))
     val mutInVar = ir.Var(gensym.fresh("ext_" + Mutation.name))
     val inArgs = f.params.map(p => ir.Var(p.name))
     val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar :+ mutInVar)
     // set the first impure input to the edb input
-    val impureAllocInput = irimpure.Impure(allocInVar, Seq(), allocInVar, Alloc)
-    val impureMutInput = irimpure.Impure(mutInVar, Seq(), mutInVar, Mutation)
+    val impureAllocIn = irimpure.Impure(allocInVar, Seq(), allocInVar, Alloc)
+    val impureMutIn = irimpure.Impure(mutInVar, Seq(), mutInVar, Mutation)
+    val tmp = gensym.fresh("tmpResult")
+    val castedResult = ir.Eq(ir.Var(result), ir.Cast(ir.Var(tmp), compileType(f.outType)))
+
     ir.Relation(f.name, params, Seq(ir.Body(
-      (edbInputCall +: impureAllocInput +: impureMutInput +: compileStatements(f.body, Name(result))) ++ setMember
+      ((edbInputCall +: impureAllocIn +: impureMutIn +: compileStatements(f.body, tmp)) :+ castedResult) ++ setMember
     ))).addHint(impure.Hints.Pure)
 
   def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
@@ -217,13 +223,16 @@ class GenerateIR:
         case _ => throw IllegalStateException(s"Unresolved ClassRef for method ${m.name}")
     ).toMap
 
+    val tmpResult = gensym.freshName("return")
+
     ir.Relation(
       qualifiedName,
       classGuardParam +: (thisParam +: (params :+ resultParam)),
       methodsWithImplClass.map { case (implClass, m) =>
-        val body = compileStatements(m.body, resultParam.name)
+        val body = compileStatements(m.body, tmpResult)
         val classGuard = ir.Eq(ir.Var(classGuardParam.name), irstring.StringLit(implClass.name))
-        ir.Body(classGuard +: body)
+        val castedResult = ir.Eq(ir.Var(resultParam.name), ir.Cast(ir.Var(tmpResult), compileType(reprMethod.outType)))
+        ir.Body(classGuard +: body :+ castedResult)
       }.toSeq
     )
   //}
@@ -242,9 +251,11 @@ class GenerateIR:
     val classDef = f.target match
       case Some(cls) => cls
       case _ => throw IllegalStateException(s"Unresolved ClassDef target for field ${f.name}")
+    val fieldSuperTy = classDef.fields.find(_.name == f.name).get.typ
+
     val qualifiedName = s"${classDef.name}$$$$${f.name}"
     val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
-    val valueParam = ir.Param("value", demand.TDemand(compileType(f.typ)))
+    val valueParam = ir.Param("value", demand.TDemand(compileType(fieldSuperTy)))
     if (f.immutable)
       Seq(ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq(ir.Body(Seq()))))
     else
@@ -332,7 +343,11 @@ class GenerateIR:
     case VarDeclare(name, typ, _, false) =>
       throw IllegalStateException(s"Can not compile mutable variable '$name'")
     case VarDeclare(name, typ, Some(expr), true) =>
-      ir.Eq(ir.Var(name), compileExpression(expr))
+      val rhs = compileExpression(expr)
+      if (typ.isDefined)
+        ir.Eq(ir.Var(name), ir.Cast(rhs, compileType(typ.get)))
+      else
+        ir.Eq(ir.Var(name), rhs)
     case If(cnd, thn, els) =>
       val cndTerm = compileExpression(cnd)
       disjunction.Disjunction(Seq(
@@ -471,7 +486,7 @@ class GenerateIR:
       ), resultVar)
     case TypeCast(recv, toTyp) =>
       // TODO: Collect values in Cast relation for cast error
-      compileExpression(recv)
+      ir.Cast(compileExpression(recv), compileType(toTyp))
     case InstanceOf(recv, t: TName) if t.isBuiltIn =>
       throw IllegalStateException(s"Can not typecast to builtin type $t")
     case InstanceOf(recv, t: TName) =>
@@ -494,13 +509,19 @@ class GenerateIR:
     case InstanceOf(recv, t) =>
       throw IllegalStateException(s"Can not typecast to type $t")
     case Tuple(exps) => irtuple.TupleLit(exps.map(compileExpression))
+
+    case BinOp(e1, "++", e2) => // set union
+      irset.SetUnion(compileExpression(e1), compileExpression(e2))
+    case BinOp(e1, "&", e2) => // set intersection
+      irset.SetIntersection(compileExpression(e1), compileExpression(e2))
     case SetExp(exps, tty) => irset.SetLit(exps.map(compileExpression))
     case SetMember(name, recv, predicate) =>
-      // TODO: Set member
-      ???
+      val cond = predicate.map(compileExpression).getOrElse(bool.BoolTrue)
+      block.Block(irset.SetMember(ir.Var(name), compileExpression(recv)), cond)
     case SetComprehension(member, body) =>
-      // TODO: Set Comprehension
-      ???
+      val memberTerms = member.map(compileExpression)
+      val bodyTerm = compileExpression(body)
+      irset.SetComprehension(bodyTerm, memberTerms.map(bool.BoolAtom.apply))
     case _ =>
       throw IllegalStateException(s"Unhandled expression $expr of class ${expr.getClass}")
 

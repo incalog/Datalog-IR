@@ -1,6 +1,8 @@
 package inca.frontend.oodl.executor
 
+import inca.ir.execution.Relation
 import inca.util.FileUtil
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLExecutorTest extends AnyFunSuite:
@@ -91,6 +93,8 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  /** If */
+
   test("If") {
     val code = FileUtil.readFile("objectoriented/unittests/if/If.oodl")
     val compiled = exec.compileOODL(code)
@@ -123,6 +127,8 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  /** Case class */
+
   test("Case class") {
     val code = FileUtil.readFile("objectoriented/unittests/caseclass/CaseClass.oodl")
     val compiled = exec.compileOODL(code)
@@ -131,7 +137,77 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(15)(res.entries.head)
   }
 
+  // TODO: We need a negated destruct here... Why ?
+  /*test("Transitive closure") {
+    val code = FileUtil.readFile("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from(setAdt.getClass.getSimpleName, Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    res = loaded.engine.read(query).project(1)
+    println(res)
+  }*/
+
+  /** Set */
+
+  test("Set with Objects") {
+    val code = FileUtil.readFile("objectoriented/unittests/set/SetClass.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 3)
+    assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
+  }
+
+  test("Set comprehension") {
+    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 3)
+    assertResult(Set((1,1), (2,1)))(res.toSet)
+  }
+
+  test("Set comprehension 2") {
+    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension2.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TInt_TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 4)
+    assertResult(Set((1, 3, 5), (1, 4, 5)))(res.toSet)
+  }
+
+  test("Set comprehension 3") {
+    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension3.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 3)
+    assertResult(Set((1, 3), (1, 4), (2, 3), (2, 4)))(res.toSet)
+  }
+
+  test("Set comprehension Tuple") {
+    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehensionTuple.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 3)
+    assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
+  }
+
   // TODO: Currently not supported, need more optimizations (how should equality on objects being handled ?)
+  //  Maybe negated destruct as well ?
   /*test("Equals") {
     val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")
     val compiled = exec.compileOODL(code)

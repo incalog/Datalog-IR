@@ -121,6 +121,9 @@ trait TypeContext extends TypeIO:
     val (generatedFields, userDefinedFields) = fieldCandidates.partition { (c, f) =>
       f.isGeneratedConstructorField
     }
+    /*val generatedFieldOption = (generatedFields.headOption, generatedFields.lastOption) match
+      case (Some((parentCls, _)), Some((_, concreteFieldDef))) => Some((parentCls, concreteFieldDef))
+      case _ => None*/
     Seq() ++ generatedFields.headOption ++ userDefinedFields
   }
 
