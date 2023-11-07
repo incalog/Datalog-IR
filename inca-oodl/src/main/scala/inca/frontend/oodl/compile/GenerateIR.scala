@@ -420,6 +420,7 @@ class GenerateIR:
         case Some((c, constr)) => (c, constr)
         case _ => throw IllegalStateException(s"Unresolved target for constructor call '$constrCall'")
       if (classDef.isCaseClass) {
+        // TODO: Collect parent fields as well
         val sidVar = ir.Var(gensym.fresh("sid"))
         val caseName = s"SID$$${classDef.name}$$${signatureString(constrDef.signature)}"
         val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)

@@ -67,6 +67,7 @@ trait Lowering extends BaseLowering:
       }
   }
 
+  // TODO: Actually this should never happen. Otherwise our program is invalid
   // We need special handling in case that one body has more impurities than another body
   // of the same relation
   override def visitBody(body: Body): Seq[Body] = impurityScoped {

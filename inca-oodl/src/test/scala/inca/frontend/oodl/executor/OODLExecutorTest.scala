@@ -91,6 +91,14 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  test("Case class") {
+    val code = FileUtil.readFile("objectoriented/unittests/caseclass/CaseClass.oodl")
+    val compiled = exec.compileOODL(code)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
   // TODO: Currently not supported, need more optimizations (how should equality on objects being handled ?)
   /*test("Equals") {
     val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")

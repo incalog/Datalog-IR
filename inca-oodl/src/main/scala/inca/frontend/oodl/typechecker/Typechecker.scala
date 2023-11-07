@@ -100,6 +100,9 @@ class Typechecker extends TypeContext with TypeIO:
       classDef.fields.filter(!_.immutable).foreach { f =>
         error(s"Case Class ${classDef.name} must not contain mutable field ${f.name}", f)
       }
+      classDef.fields.filter(!_.isGeneratedConstructorField).foreach { f =>
+        error(s"Case Class ${classDef.name} must not contain explicit field ${f.name} outside the constructor", f)
+      }
     }
 
     // make sure all fields are initialized after a constructor is executed
