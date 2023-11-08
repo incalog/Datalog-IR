@@ -7,6 +7,7 @@ import inca.ir.util.SourceLocation
 sealed trait Type extends SourceLocation {
   def prettyprint: String
   def flatten: Seq[Type]
+  def signatureString: String = prettyprint
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
@@ -30,6 +31,9 @@ case class TTuple(ts: Seq[Type]) extends Type {
     case _ => ts.map(_.prettyprint).mkString("(", ", ", ")")
   }
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
+  override def signatureString: String =
+    val tyString = ts.map(_.signatureString).mkString("_")
+    s"Tuple_${tyString}"
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -45,10 +49,10 @@ case class TName(name: Name, tyArgs: Seq[Type]) extends Type with Resolvable[TNa
   def isBuiltIn: Boolean = builtInTypes.contains(name.name)
 
 val builtInTypes = Set("Int", "Boolean", "String", "Double")
-def TInt: Type = TName(Name("Int"), Seq())
-def TDouble: Type = TName(Name("Double"), Seq())
-def TBoolean: Type = TName(Name("Boolean"), Seq())
-def TString: Type = TName(Name("String"), Seq())
+lazy val TInt: Type = TName(Name("Int"), Seq())
+lazy val TDouble: Type = TName(Name("Double"), Seq())
+lazy val TBoolean: Type = TName(Name("Boolean"), Seq())
+lazy val TString: Type = TName(Name("String"), Seq())
 
 object TName {
   trait Target
@@ -57,4 +61,5 @@ object TName {
 case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
   override def flatten: Seq[Type] = ty.flatten
+  override def signatureString: String = s"Set_${ty.signatureString}"
 }

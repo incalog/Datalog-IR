@@ -13,7 +13,7 @@ trait Annotations {
   def getAnnotation(key: Annotation.Key): Option[Annotation] =
     this.annoMap.get(key)
 
-  def annoPrefix(implicit indent: String): String = if (annos.isEmpty) "" else indent + annoString + "\n"
+  def annoPrefix(implicit indent: String): String = if (annos.isEmpty) "" else annoString + " "
   def annoString: String = annos.mkString(" ")
 }
 
@@ -38,10 +38,16 @@ case class OverrideFunctionAnno() extends Annotation {
   override def toString: String = "override"
 }
 
+object GeneratedConstructorFieldAnno:
+  val KEY: Annotation.Key = "GENERATED_CONSTRUCTOR_FIELD"
+case class GeneratedConstructorFieldAnno() extends Annotation {
+  override def key: Annotation.Key = GeneratedConstructorFieldAnno.KEY
+  override def toString: String = "@generated"
+}
 
 object CaseClassAnno:
   val KEY: Annotation.Key = "CASE_CLASS"
 case class CaseClassAnno() extends Annotation {
   override def key: Annotation.Key = CaseClassAnno.KEY
-  override def toString: String = "@main"
+  override def toString: String = "case"
 }

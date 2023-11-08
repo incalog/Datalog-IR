@@ -21,7 +21,7 @@ case class Return(expression: Expression) extends Statement:
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"${indent}return $expression"
 
-case class Assign(lhs: Expression, rhs: Expression) extends Statement with Resolvable[Either[(ClassDef, FieldDef), Var.Target]]:
+case class Assign(lhs: Expression, rhs: Expression) extends Statement:
   override def vars: Map[Name, Option[Type]] = lhs.vars ++ rhs.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$indent$lhs = $rhs"
@@ -33,6 +33,13 @@ case class VarDeclare(name: Name, typ: Option[Type], maybeExpression: Option[Exp
     val prefix = if (immutable) "val " else "var "
     val typS = if (typ.isDefined) s": ${typ.get}" else ""
     s"${indent}${prefix}${name}$typS$expr"
+  }
+
+case class Super(args: Seq[Expression]) extends Statement with Resolvable[(ClassDef, ConstructorDef)]:
+  def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = args.map(_.prettyprint).mkString(", ")
+    s"${indent}super($argsS)"
   }
 
 case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement:

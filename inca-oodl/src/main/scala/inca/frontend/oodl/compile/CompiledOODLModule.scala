@@ -5,7 +5,7 @@ import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 
-case class CompiledObjectModule(fun: Module) extends CompiledModule:
+case class CompiledOODLModule(fun: Module) extends CompiledModule:
 
   override def name: Name = fun.name
 
@@ -23,6 +23,9 @@ case class CompiledObjectModule(fun: Module) extends CompiledModule:
   lazy val ssa: Module = {
     val compiler = new SSA
     val module = compiler.compileModule(typed)
+
+    println("SSA: ")
+    println(module)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)

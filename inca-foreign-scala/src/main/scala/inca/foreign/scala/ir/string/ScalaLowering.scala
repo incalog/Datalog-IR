@@ -23,7 +23,7 @@ trait ScalaLowering extends BaseScalaLowering:
       case StringConcat(lhs, rhs) =>
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, TString), (r, TString)) =>
-            createScalaBinOp("+", ScalaType.string, lhs -> ScalaType.string, rhs -> ScalaType.string)
+            createScalaBinOp("+", ScalaType.string, l -> ScalaType.string, r -> ScalaType.string)
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not concat types $lty and $rty")
         }

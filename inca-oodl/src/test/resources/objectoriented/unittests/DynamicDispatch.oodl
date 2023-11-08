@@ -28,3 +28,24 @@ def main(): String = {
 
     return a.get() + b.get() + c.get()
 }
+
+
+/*class A(cls: String, j: Int) {
+    def getCls(): String = this.cls
+}
+
+class B(i: Int, j: Int) extends A("B", j) {
+    def get(): Int = this.i + this.j
+}
+
+@main
+def main(): (Int, String) = {
+    val b: B = new B(5, 4)
+    (b.get(), b.getCls())
+    //val a: A = b.asInstanceOf[A]
+
+    // unrelated type c with same method signature
+    //val c: C = new C()
+
+    //return a.get() + b.get() + c.get()
+}*/

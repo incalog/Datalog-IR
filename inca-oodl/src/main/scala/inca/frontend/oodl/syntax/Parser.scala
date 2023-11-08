@@ -137,7 +137,7 @@ object Parser:
   val setType: P[TSet] = op("Set") *> inBrackets(recType).mapWithLoc(TSet.apply)
 
   def genericName: P[TName] =
-    (identifier ~ inBrackets(recType.repSep0(op(","))).?).mapWithLoc {
+    (identifier ~ inBrackets(recType.repSep0(op(','))).?).mapWithLoc {
       case (name, tys) => TName(name, tys.getOrElse(Seq()))
     }
 
@@ -405,13 +405,13 @@ object Parser:
 
   val primaryConstructor: P0[Seq[FieldDef]] =
     val varDeclArg = (keyword("var") *> param).mapWithLoc {
-      case Param(name, typ) => FieldDef(Seq(), None, name, typ, None, false)
+      case Param(name, typ) => FieldDef(Seq(GeneratedConstructorFieldAnno()), None, name, typ, None, false)
     }
     val valDeclArg = (keyword("val") *> param).mapWithLoc {
-      case Param(name, typ) => FieldDef(Seq(), None, name, typ, None, true)
+      case Param(name, typ) => FieldDef(Seq(GeneratedConstructorFieldAnno()), None, name, typ, None, true)
     }
     val privateVarDeclArg = param.mapWithLoc {
-      case Param(name, typ) => FieldDef(Seq(), Some(Private()), name, typ, None, true)
+      case Param(name, typ) => FieldDef(Seq(GeneratedConstructorFieldAnno()), Some(Private()), name, typ, None, true)
     }
     val decls = (varDeclArg | valDeclArg | privateVarDeclArg)
     inParens(decls.repSep0(op(","))) | P.pure(Seq())
@@ -448,28 +448,24 @@ object Parser:
   val classDef: P[ClassDef] =
     ((visibility.? ~ caseClassAnno.?).with1 ~
       (keyword("class") *> identifier) ~ typeParams.? ~ primaryConstructor ~
-      (keyword("extends") *> typ ~ inParens(identifier.rep0).?).? ~ classContent).mapWithLoc {
+      (keyword("extends") *> typ ~ inParens(expression.repSep0(op(','))).?).? ~ classContent).mapWithLoc {
       case ((((((vis, annos), name), tys), primaryConstrFields), maybeParentCls), clsContent)  =>
         // Inherit from Object if no superclass is specified
         val (parentCls, superArgs) = maybeParentCls match
           case Some((cls, Some(args))) =>
-            (cls, args.toSet)
+            (cls, args)
           case Some((cls, None)) =>
-            (cls, Set[Name]())
+            (cls, List())
           case _ =>
-            (TName(Name("Object"), Seq()), Set[Name]())
+            (TName(Name("Object"), Seq()), List())
 
         // Generate a constructor + fields based on the header
         val constrParams = primaryConstrFields.map(f => Param(f.name, f.typ))
-        val (superFields, fields) = primaryConstrFields.partition(f => superArgs.contains(f.name) )
-        val fieldAssigns = fields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))
-        val superCall = if (superFields.nonEmpty)
-          Seq(Expr(Super(superArgs.toSeq.map(Var.apply))))
-        else
-          Seq()
-        val constrDef = ConstructorDef(Seq(), None, constrParams, superCall ++ fieldAssigns)
+        val superCall = Super(superArgs)
+        val fieldAssigns = primaryConstrFields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))
+        val constrDef = ConstructorDef(Seq(), None, constrParams, superCall +: fieldAssigns)
 
-        val allContent = (fields :+ constrDef) ++ clsContent
+        val allContent = (primaryConstrFields :+ constrDef) ++ clsContent
         val annotations = annos match
           case Some(value) => Seq(value)
           case None => Seq()

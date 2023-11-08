@@ -126,9 +126,11 @@ trait Lowering extends BaseLowering:
     case TSet(memTy) => memTy
     case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
 
-  override def visitType(ty: Type): Type = ty match
-    case TSet(memTy) => TData(dataNameOf(memTy))
-    case _ => super.visitType(ty)
+  override def visitType(ty: Type): Type = preserveHints(ty) {
+    ty match
+      case TSet(memTy) => TData(dataNameOf(memTy))
+      case _ => super.visitType(ty)
+  }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case SetLit(ts) =>

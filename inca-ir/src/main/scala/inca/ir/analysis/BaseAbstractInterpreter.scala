@@ -6,6 +6,7 @@ import inca.ir.*
 
 trait EqOps[V, B]:
   def equ(v1: V, v2: V): B
+  def nequ(v1: V, v2: V): B
 
 trait BooleanOps[V]:
   def boolLit(b: Boolean): V
@@ -118,7 +119,7 @@ trait BaseAbstractInterpreter[V, B]:
 
   def evalAtomExtend(at: Atom): AtomResult = at match
     case Eq(lhs, rhs) => evalEquals(lhs, rhs)
-    case Neq(lhs, rhs) => evalEquals(lhs, rhs)
+    case Neq(lhs, rhs) => evalNotEquals(lhs, rhs)
     case Call(name, args) => evalCall(name, args)
     case NegCall(name, args) => evalCall(name, args)
     case ExtensionalCall(name, args) => evalCall(name, args)
@@ -138,6 +139,11 @@ trait BaseAbstractInterpreter[V, B]:
       }
     }
     AtomResult(topBool, vs.foldLeft(trueBool)((p, v) => boolOps.and(p, v.pure)))
+
+  final def evalNotEquals(lhs: Term, rhs: Term): AtomResult =
+    val TermResult(vl, pl) = evalTerm(lhs)
+    val TermResult(vr, pr) = evalTerm(rhs)
+    AtomResult(eqOps.nequ(vl, vr), boolOps.and(pl, pr))
 
   final def evalEquals(lhs: Term, rhs: Term): AtomResult =
     if (rhs.mode.isBinding) {
@@ -160,7 +166,9 @@ trait BaseAbstractInterpreter[V, B]:
         assignee.storeAnalysisResult(TermResult(v, trueBool))
         AtomResult(trueBool, trueBool)
       } else {
-        val boundV = env(x.name)
+        // FIXME: Is this correct ? This can happen e.g. when a destruct fails, since then
+        //  a variable might be unbound and not in the environment.
+        val boundV = env.getOrElse(x.name, top)
         assignee.storeAnalysisResult(TermResult(boundV, trueBool))
         AtomResult(eqOps.equ(boundV, v), trueBool)
       }
@@ -175,7 +183,9 @@ trait BaseAbstractInterpreter[V, B]:
     r
 
   protected def evalTermExtend(t: Term): TermResult = t match
-    case Var(x) => TermResult(env(x), trueBool)
+    case Var(x) =>
+      // FIXME: Is this correct ? See above
+      TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
 
 //trait BoolOps[V]:

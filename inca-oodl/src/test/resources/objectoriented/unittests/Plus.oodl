@@ -33,13 +33,12 @@ class Succ(pred: Nat) extends Nat {
 @main
 def main(): Int = {
     val zero: Zero = new Zero()
-    val first: Nat = zero.succ().succ()
-    val second: Nat = zero.succ().succ().succ()
-    val result: Nat = first.add(second)
+    val one = new Succ(zero)
+    //val first: Nat = zero.succ().succ()
+    //val second: Nat = zero.succ().succ().succ()
+    //val result: Nat = first.add(second)
 
-    /*val succ1: Nat = cast(result, Succ).pred
-    val succ2: Nat = cast(succ1, Succ).pred
-    return cast(succ2, Succ).pred*/
-
-    return result.intValue()
+    // Does not work, most likely because when we want to query we still pass the
+    // counter, which is wrong
+    return one.add(zero).intValue() // result.intValue()
 }

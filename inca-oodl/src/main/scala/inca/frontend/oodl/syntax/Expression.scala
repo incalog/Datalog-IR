@@ -32,13 +32,6 @@ case class Select(recv: Expression, targetName: Name) extends Expression with Re
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"$recv.$targetName"
   override def vars: Map[Name, Option[Type]] = recv.vars
 
-case class Super(args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)]:
-  def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    val argsS = args.map(_.prettyprint).mkString(", ")
-    s"super($argsS)"
-  }
-
 case class ConstructorCall(name: Name, tyArgs: Seq[Type], args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)]:
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     val tyS = if (tyArgs.nonEmpty) tyArgs.mkString("[", ", ", "]") else ""
@@ -107,7 +100,7 @@ case class DoubleLit(d: Double) extends Expression:
 
 case class StringLit(s: String) extends Expression:
   override def vars: Map[Name, Option[Type]] = Map()
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s""""$s""""
 
 case class BinOp(e1: Expression, op: String, e2: Expression) extends Expression:
   override def vars: Map[Name, Option[Type]] = Map()

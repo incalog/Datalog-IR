@@ -20,9 +20,11 @@ trait Lowering extends not.Lowering:
         yield Eq(v, TrueNum)
     case _ => super.visitAtom(atom))
 
-  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
-    case term: BoolTerm => lowerTerm(term)
-    case _ => super.visitTerm(term))
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
+    term match
+      case term: BoolTerm => lowerTerm(term)
+      case _ => super.visitTerm(term)
+  }
 
   val TrueNum = IntNum(1)
   val FalseNum = IntNum(0)
@@ -45,10 +47,14 @@ trait Lowering extends not.Lowering:
     case BoolTrue => Seq(TrueNum)
     case BoolFalse => Seq(FalseNum)
 
-  override def negateAtom(atom: Atom): Atom = atom match
-    case BoolAtom(t) => BoolAtom(BoolNot(t))
-    case _ => super.negateAtom(atom)
+  override def negateAtom(atom: Atom): Atom = preserveHints(atom) {
+    atom match
+      case BoolAtom(t) => BoolAtom(BoolNot(t))
+      case _ => super.negateAtom(atom)
+  }
 
-  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
-    case TBoolean => TInt
-    case _ => super.visitType(ty))
+  override def visitType(ty: Type): Type = preserveHints(ty) {
+    ty match
+      case TBoolean => TInt
+      case _ => super.visitType(ty)
+  }

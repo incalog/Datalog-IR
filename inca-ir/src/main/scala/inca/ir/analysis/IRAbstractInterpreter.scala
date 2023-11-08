@@ -61,6 +61,10 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
       case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 == i2)
       case (Value.Double(d1), Value.Double(d2)) => boolOps.boolLit(d1 == d2)
       case _ => VBool.Top
+    override def nequ(v1: Value, v2: Value): VBool = (v1, v2) match
+      case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 != i2)
+      case (Value.Double(d1), Value.Double(d2)) => boolOps.boolLit(d1 != d2)
+      case _ => VBool.Top
 
   override val intOps: IntegerOps[Int, Value] = new IntegerOps[Int, Value]:
     override def integerLit(i: Int): Value = Value.Int(i)

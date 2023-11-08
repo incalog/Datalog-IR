@@ -8,7 +8,7 @@ trait Visitor extends BaseIRVisitor:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case StringLit(_) => Seq(term)
     case StringConcat(lhs, rhs) =>
-      visitTerm(lhs).zip(visitTerm(lhs)).map(StringConcat.apply)
+      visitTerm(lhs).zip(visitTerm(rhs)).map(StringConcat.apply)
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type =  preserveHints(ty)(ty match

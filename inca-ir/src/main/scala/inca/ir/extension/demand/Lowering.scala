@@ -99,7 +99,7 @@ trait Lowering extends BaseLowering:
             case (Param(_, TDemand(_)), arg) => Some(arg)
             case _ => None
           }
-          if (demandedArgs.nonEmpty)
+          if (demandedArgs.nonEmpty && !atom.hasHint(Hints.IgnoreCallKey))
             addDemandRule(rel, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case Aggregate(rel, args, op) =>
@@ -110,7 +110,7 @@ trait Lowering extends BaseLowering:
             case (Param(_, TDemand(_)), arg) => Some(arg)
             case _ => None
           }
-          if (demandedArgs.nonEmpty)
+          if (demandedArgs.nonEmpty && !atom.hasHint(Hints.IgnoreCallKey))
             addDemandRule(rel, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case _ => super.visitAtom(atom)

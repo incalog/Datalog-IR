@@ -13,14 +13,13 @@ trait Lowering extends BaseLowering:
 
   private var embeddedAtoms: List[Atom] = List()
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+  override def visitAtom(atom: Atom): Seq[Atom] =
     val before = embeddedAtoms
     embeddedAtoms = List()
     val as = super.visitAtom(atom)
     val after = embeddedAtoms
     embeddedAtoms = before
     after ++ as
-  }
 
   override def visitTerm(term: Term): Seq[Term] =  preserveHints(term)(term match
     case Block(as, t) =>

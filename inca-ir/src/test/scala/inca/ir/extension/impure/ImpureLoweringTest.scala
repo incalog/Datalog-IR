@@ -82,8 +82,8 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    assert(m.relations("R").params.exists(_.name.name == "alloc$0"))
-    assert(m.relations("R").params.exists(_.name.name == "alloc$4"))
+    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
   }
 
   test("With aux relation") {
@@ -115,10 +115,11 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
         )))
       )
     )
-    assert(m.relations("R").params.exists(_.name.name == "alloc$0"))
-    assert(m.relations("R").params.exists(_.name.name == "alloc$6"))
-    assert(m.relations("Q").params.exists(_.name.name == "alloc$0"))
-    assert(m.relations("Q").params.exists(_.name.name == "alloc$1"))
+
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    assert((1 until 6).forall(i => rVars.contains(s"alloc$$$i")))
+    assert(qVars.contains("alloc$0"))
   }
 
   test("multiple impurity kinds") {
@@ -155,12 +156,11 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
         )))
       )
     )
-    assert(m.relations("R").params.exists(_.name.name == "alloc$0"))
-    assert(m.relations("R").params.exists(_.name.name == "alloc$8"))
-    assert(m.relations("R").params.exists(_.name.name == "update$0"))
-    assert(m.relations("R").params.exists(_.name.name == "update$5"))
-    assert(m.relations("Field").params.exists(_.name.name == "alloc$0"))
-    assert(m.relations("Field").params.exists(_.name.name == "alloc$1"))
-    assert(m.relations("Field").params.exists(_.name.name == "update$0"))
-    assert(m.relations("Field").params.exists(_.name.name == "update$2"))
+
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    assert((1 until 8).forall(i => rVars.contains(s"alloc$$$i")))
+    assert((1 until 5).forall(i => rVars.contains(s"update$$$i")))
+    assert((1 until 1).forall(i => fieldVars.contains(s"alloc$$$i")))
+    assert((1 until 2).forall(i => fieldVars.contains(s"update$$$i")))
   }

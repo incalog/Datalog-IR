@@ -70,24 +70,24 @@ object GeneratePSystem:
 
     while (isDirty) {
       isDirty = false
-      result = result.filter {
+      result = result.flatMap {
         case (n, _) if emptyRelationNames.contains(n) =>
           isDirty = true
-          false
-        case (_, r) => !r.bodies.exists { b =>
-          b.atoms.exists {
-            case Call(name, args) if emptyRelationNames.contains(name.name) =>
-              isDirty = true
-              emptyRelationNames += r.name.name
-              true
-            case primitive.ScalaAggregationAtom(_, rel, _, _, _) if emptyRelationNames.contains(rel.name) =>
-              isDirty = true
-              emptyRelationNames += r.name.name
-              true
-            case _ =>
-              false
+          None
+        case (n, r) =>
+          val productiveBodies = r.bodies.filter { b =>
+            !b.atoms.exists {
+              case Call(name, args) if emptyRelationNames.contains(name.name) => true
+              case primitive.ScalaAggregationAtom(_, rel, _, _, _) if emptyRelationNames.contains(rel.name) => true
+              case _ => false
+            }
           }
-        }
+          if (productiveBodies.nonEmpty)
+            Some((n, Relation(r.name, r.params, productiveBodies)))
+          else
+            isDirty = true
+            emptyRelationNames += n
+            None
       }
     }
     result
@@ -97,14 +97,14 @@ object GeneratePSystem:
     val indent = 2
     val mod = lowerAndTypeModule(module)
 
-    println()
-    println(mod)
-    println()
-
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 
     val relations = getProductiveRelations(mod)
+
+    //println()
+    //println(mod)
+    //println()
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
@@ -316,7 +316,7 @@ object GeneratePSystem:
   }
 
   private def genLiteralVarName[T](lit: String, ty: primitive.ScalaType): String = {
-    ty.name + lit.hashCode
+    ty.name + lit.hashCode.toString.replace("-", "_")
   }
 
   private def genPParam(param: Param): Code = {

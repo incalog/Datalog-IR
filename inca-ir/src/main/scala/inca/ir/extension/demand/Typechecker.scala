@@ -1,8 +1,10 @@
 package inca.ir.extension.demand
 
-import inca.ir.{Atom, Param, TNothing, Term, Type}
+import inca.ir.Hint.preserveHints
+import inca.ir.{Atom, Name, Param, TNothing, Term, Type}
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.typing.{BaseIRTypechecker, Mode}
+import inca.ir.util.SourceLocation
 
 /*
 R(y) :- {A1(x) or A2(x)}, Q(x, y).
@@ -41,6 +43,14 @@ trait Typechecker extends BaseIRTypechecker:
       bindVar(param.name)
     case _ => super.typecheckParam(param)
 
+  private var ignoreDemand: Boolean = false
+
+  override def checkAtom(atom: Atom, mode: Mode): Unit =
+    ignoreDemand = atom.hasHint(Hints.IgnoreCallKey)
+    super.checkAtom(atom, mode)
+
   override def checkTerm(term: Term, expected: Type, mode: Mode): Mode = expected match
-    case TDemand(ty) => checkTerm(term, ty, Mode.Bound)
+    case TDemand(ty) =>
+      val newMode = if (ignoreDemand) mode else Mode.Bound
+      checkTerm(term, ty, newMode)
     case _ => super.checkTerm(term, expected, mode)

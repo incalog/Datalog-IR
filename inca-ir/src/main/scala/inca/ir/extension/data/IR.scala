@@ -14,13 +14,13 @@ case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends Module
   override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
 
 case class Construct(name: Name, args: Seq[Term]) extends Term:
-  override def toString: String = s"!$name(${args.mkString(", ")})"
+  override def toString: String = s"!$name(${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class Deconstruct(t: Term, caseName: Name, args: Seq[Term]) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
-    s"?$caseName($t$ifArgs${args.mkString(", ")})"
+    s"?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
 
 object IR extends IR { }

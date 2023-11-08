@@ -37,8 +37,8 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
       case Some(TermType(ty, _)) => ty.flatten
       case None => throw new IllegalStateException(s"Untyped term $t")
 
-    for ((t, i) <- visitTerm(t).zipWithIndex)
-      yield t -> ty(i)
+    for ((vt, i) <- visitTerm(t).zipWithIndex)
+      yield vt -> ty(i)
   }
 
   /*

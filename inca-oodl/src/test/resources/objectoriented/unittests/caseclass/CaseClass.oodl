@@ -1,23 +1,22 @@
 module CaseClassTest
 
-class C
+// Limitation of case classes:
+// 1. Case classes are immutable. They must not contain mutable fields
+// 2. Case classes can not inherit from any class that contains fields
 
-case class A(val a: Int, val b: String) {
-    val c: (Int, Int) = (4, 5)
-    val d: Int = 6
-    //val e: C = new C()
+class A {
+    def add(x: Int, y: Int): Int = x + y
 }
 
-@main
-def main(): Boolean = {
-    val a1: A = new A(1, "Some String")
-    val a2: A = new A(1, "Some String")
-    val a3: A = new A(2, "Some Strings")
+case class B(i: Int, j: Int) extends A {
+    def result(): Int = this.add(this.i, this.j)
+}
 
-    val comp1: Boolean = (a1.a == 1)
-    val comp2: Boolean = (a3.b == "Some Strings")
-    val comp3: Boolean = (a3.c._2 == 5) && (a3.c._1 == 4)
-    val comp4: Boolean = (a2.d == 6)
+@main def main(): Int = {
+    val b = new B(10, 5)
 
-    comp1 && comp2 && comp3 && comp4 && (a1 == a2) && !(a2 == a3)
+    if (b.isInstanceOf[A])
+        return b.result()
+
+    return -1
 }

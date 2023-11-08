@@ -3,8 +3,10 @@ package inca.frontend.oodl.typechecker
 // TODO: Support generics
 // TODO: Support Set fold
 // TODO: assign variables to method calls that return unit is not allowed
+// TODO: Check that each path returns
 
 import inca.frontend.oodl.syntax.*
+import inca.frontend.oodl.util.ParseUtil
 import inca.ir.Name
 import inca.ir.typing.{Resolvable, Typeable}
 import inca.ir.util.SourceLocation
@@ -12,7 +14,9 @@ import inca.ir.util.SourceLocation
 class Typechecker extends TypeContext with TypeIO:
   val builtinModule: Module = Module(
     Name("builtin"), Seq(), Seq(
-      ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq())
+      ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq())
+      ))
     )
   )
 
@@ -96,6 +100,14 @@ class Typechecker extends TypeContext with TypeIO:
       classDef.fields.filter(!_.immutable).foreach { f =>
         error(s"Case Class ${classDef.name} must not contain mutable field ${f.name}", f)
       }
+      classDef.fields.filter(!_.isGeneratedConstructorField).foreach { f =>
+        error(s"Case Class ${classDef.name} must not contain explicit field ${f.name} outside the constructor", f)
+      }
+
+      val allFields = collect[FieldDef](classDef)(_.isInstanceOf[FieldDef])
+      val parentFields = allFields.filter((c, _) => c != classDef)
+      if (parentFields.nonEmpty)
+        error(s"Case class ${classDef.name} must no inherit fields", classDef)
     }
 
     // make sure all fields are initialized after a constructor is executed
@@ -205,6 +217,12 @@ class Typechecker extends TypeContext with TypeIO:
   /** Class content */
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
+    if (fieldDef.isGeneratedConstructorField)
+      lookupField(classDef, fieldDef.name) match
+        case Some((cls, f)) => resolveTarget(fieldDef)(cls)
+        case _ => throw IllegalStateException(s"No field found with name '${fieldDef.name}'")
+    else
+      resolveTarget(fieldDef)(classDef)
     typecheck(fieldDef.typ)
 
     fieldDef.body match {
@@ -217,37 +235,35 @@ class Typechecker extends TypeContext with TypeIO:
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
+    resolveTarget(methodDef)(classDef)
+
     // get all overridden methods and assign them the same signature
-    val overriddenMethods = lookupMethodCandidates(classDef, methodDef.params.size, methodDef.name)
+    val overriddenMethods = lookupMethodCandidates(classDef, methodDef.name, methodDef.params.map(_.typ))
 
     // All methods in the hierarchy except for the highest need an override annotation
-    overriddenMethods.tail.foreach { case (c, m) =>
-      if (!m.annos.exists(_.isInstanceOf[OverrideFunctionAnno]))
-        error(s"Method ${m.name} in class ${c.name} is missing an override annotation", m)
+    if (overriddenMethods.size > 1) {
+      if (!methodDef.annos.exists(_.isInstanceOf[OverrideFunctionAnno]))
+        error(s"Method '${methodDef.name}' in class ${classDef.name} is missing an override annotation", methodDef)
+
+      // make sure all overridden methods share the same parameter names
+      val (_, parentMethod) = overriddenMethods(overriddenMethods.size - 2)
+      parentMethod.params.zip(methodDef.params).foreach { case (p1, p2) =>
+        if (p1.name != p2.name)
+          error(s"Overridden methods must use the same parameter names: Expected ${p2.name}, but got ${p1.name}.", parentMethod)
+      }
+
+      //val (baseClassDef, baseMethodDef) = overriddenMethods(1)
+      //resolveTarget(methodDef)((baseClassDef, baseMethodDef))
     }
 
-    // make sure all overridden methods share the same parameter names
-    overriddenMethods.foreach { case (_, m) =>
-      m.params.zip(methodDef.params).foreach { case (p1, p2) =>
-        if (p1.name != p2.name) {
-          error(s"Overridden methods must use the same parameter names: Expected ${p2.name}, but got ${p1.name}.", m)
-        }
-      }
-      if (m.vis != methodDef.vis) {
-        error(s"Overridden methods must have the same visibility: Expected ${methodDef.vis} but got ${m.vis}")
-      }
-      // TODO: We could check the subtypes here (but take care of generics when doing this)
+    methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
+      if (cs.size > 1)
+        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
     }
-
-    //resolveSignatures(overriddenMethods)
 
     methodDef.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
-    }
-    methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
-      if (cs.size > 1)
-        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
     }
 
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
@@ -266,19 +282,13 @@ class Typechecker extends TypeContext with TypeIO:
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     val overriddenConstructors = lookupConstructorCandidates(classDef, constructorDef.params.map(_.typ))
 
-    overriddenConstructors.foreach { case (_, m) =>
-      if (m.vis != constructorDef.vis)
-        error(s"Overridden methods must have the same visibility: Exprected ${constructorDef.vis} but got ${m.vis}")
-    }
-
-    //resolveSignatures(overriddenConstructors)
+    resolveTarget(constructorDef)(classDef)
+    //val (baseClassDef, baseConstructorDef) = overriddenConstructors.head
+    //resolveTarget(constructorDef)((baseClassDef, baseConstructorDef))
 
     constructorDef.params.foreach { p =>
-      p.typ match {
-        case ty =>
-          typecheck(p.typ)
-          bindVar(p.name, p, ty, immutable = true)
-      }
+      typecheck(p.typ)
+      bindVar(p.name, p, p.typ, immutable = true)
     }
 
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
@@ -331,38 +341,56 @@ class Typechecker extends TypeContext with TypeIO:
     case Return(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
+    case superStmt@Super(args) =>
+      val parentRef = classDef.getOrElse(
+        throw IllegalStateException("Missing ClassDef in current context!")
+      )
+      val foundMatchingConstructor = parentRef.parentCls.exists {
+        case t: TName if !t.isBuiltIn =>
+          lookupClass(t.name) match
+            case Some(parentCls: ClassDef) =>
+              lookupConstructor(parentCls, args.map(typecheck), statement) match
+                case Some((classDef, constructorDef)) =>
+                  resolveTarget(superStmt)((classDef, constructorDef))
+                  true
+                case _ => false
+            case _ => false
+        case _ => false
+      }
+      if (!foundMatchingConstructor)
+        error("No matching constructor found for super call", superStmt)
+
     case If(cnd, thn, els) =>
       val cndTyp = typecheck(cnd)
       scopedTypeContext { typecheck(thn, rt) }
       scopedTypeContext { typecheck(els, rt) }
       assertSubtype(cndTyp, TBoolean, cnd)
-    case varDecl@VarDeclare(name, annotatedType, maybeExpression, immutable) =>
-      val inferredType = maybeExpression.map(typecheck)
+    case varDecl@VarDeclare(name, annotatedType, None, immutable) =>
+      error(s"Declaration of variable '$name' without a value is not allowed")
+    case varDecl@VarDeclare(name, annotatedType, Some(expr), immutable) =>
+      val inferredType = typecheck(expr)
       (annotatedType, inferredType) match
-        case (Some(ty1), Some(ty2)) =>
+        case (Some(ty1), ty2) =>
           typecheck(ty1)
           bindVar(name, varDecl, ty1, immutable)
           assertSubtype(ty2, ty1, varDecl)
-        case (Some(ty), _) =>
-          typecheck(ty)
+        case (None, ty) =>
           bindVar(name, varDecl, ty, immutable)
-        case (_, Some(ty)) =>
-          bindVar(name, varDecl, ty, immutable)
-        case (_, _) =>
-          error(s"Can not infer type for variable '$name'", statement)
     case varAssig@Assign(lhs@Var(name), rhs) =>
       val expTyp = typecheck(rhs)
       lookupVar(name) match
         case Some((target, typ, true)) =>
           error(s"Cannot assign immutable variable '$name'", statement)
         case Some((target, typ, false)) =>
-          resolveTarget(varAssig)(Right(target))
+          resolveTarget(lhs)(target)
           assertSubtype(expTyp, typ, statement)
         case None =>
           error(s"Can not assign to unbound variable '$name'", statement)
-    case fieldAssign@Assign(fieldRead@Select(recv, targetName), rhs) =>
+    case fieldAssign@Assign(select@Select(recv, targetName), rhs) =>
       val typ = typecheck(rhs)
       typecheck(recv) match {
+        case TTuple(ts) =>
+          error(s"Can not assign tuple elements", statement)
         case recvTy: TName if !recvTy.isBuiltIn =>
           recvTy.target match
             case Some(cls: ClassDef) => lookupField(cls, targetName, fieldAssign) match
@@ -371,7 +399,7 @@ class Typechecker extends TypeContext with TypeIO:
                   error(s"Cannot assign to immutable field '$targetName'", statement)
                 if (field.immutable && !uninitializedFields.contains(targetName))
                   error(s"Field '$targetName' is already initialized", statement)
-                resolveTarget(fieldAssign)(Left((clazz, field)))
+                resolveTarget(select)((clazz, field))
                 assertSubtype(typ, field.typ, fieldAssign)
                 uninitializedFields -= targetName
               case _ => // Nothing
@@ -382,6 +410,8 @@ class Typechecker extends TypeContext with TypeIO:
         case ty =>
           error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
       }
+    case Assign(lhs, rhs) =>
+      error(s"Can not assign term $lhs", statement)
     case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
       scopedTypeContext {
         typecheck(ifStmt.thn, TAny)
@@ -397,16 +427,6 @@ class Typechecker extends TypeContext with TypeIO:
   }
 
   /** Expressions */
-
-  private def parseTupleIndex(name: Name, location: SourceLocation*): Int =
-    val startsWithUnderscore = name.name.startsWith("_")
-    try {
-      name.name.substring(1).toInt
-    } catch {
-      case e: Exception =>
-        error(s"Illegal tuple index $name", location:_*)
-        -1
-    }
 
   def typecheck(expression: Expression)(implicit classDef: Option[ClassDef]): Type = assignType(expression)(typecheckInternal(expression))
 
@@ -511,12 +531,16 @@ class Typechecker extends TypeContext with TypeIO:
       val recvTy = typecheck(recv)
       recvTy match
         case TTuple(ts) => // project
-          val index = parseTupleIndex(targetName, read)
-          if (index <= 0 || index > ts.size) {
+          val index = ParseUtil.parseTupleIndex(targetName) match
+            case Some(idx) => idx - 1
+            case _ =>
+              error(s"Illegal tuple index $targetName", read)
+              -1
+          if (index < 0 || index > ts.size) {
             error(s"Index out of bounds: $index for Tuple size: ${ts.size}", recv)
             TAny
           } else
-            ts(index-1)
+            ts(index)
         case t: TName => // field read
           t.target match
             case Some(cls: ClassDef) =>
@@ -578,7 +602,7 @@ class Typechecker extends TypeContext with TypeIO:
       typecheck(recv) match
         case t: TName =>
           t.target match
-            case Some(cls: ClassDef) => lookupMethod(cls, args.map(typecheck), fun) match
+            case Some(cls: ClassDef) => lookupMethod(cls, fun, args.map(typecheck)) match
               case None => TAny
               case Some((clsDef, methodDef)) =>
                 resolveTarget(methodCallExpr)((clsDef, methodDef))
@@ -589,29 +613,7 @@ class Typechecker extends TypeContext with TypeIO:
           error(s"Can not lookup method '$fun' for expression of type '$typ'", expression)
           TAny
 
-    case superExpr@Super(args) =>
-      val parentRef = classDef.getOrElse(
-        throw IllegalStateException("Missing ClassDef in current context!")
-      )
-      val foundMatchingConstructor = parentRef.parentCls.exists {
-        case t: TName if !t.isBuiltIn =>
-          lookupClass(t.name) match
-            case Some(parentCls: ClassDef) =>
-              lookupConstructor(parentCls, args.map(typecheck), expression) match
-                case Some((classDef, constructorDef)) =>
-                  resolveTarget(superExpr)((classDef, constructorDef))
-                  true
-                case _ => false
-            case _ => false
-        case _ => false
-      }
-      if (foundMatchingConstructor)
-        TUnit
-      else
-        error("No matching constructor found for super call", superExpr)
-        TAny
-
-    case ConstructorCall(name, tyArgs, args) =>
+    case constrCall@ConstructorCall(name, tyArgs, args) =>
       lookupClass(name) match
         case Some(cls: ClassDef) =>
           // Ensure there is only one constructor
@@ -634,6 +636,9 @@ class Typechecker extends TypeContext with TypeIO:
             typecheck(ty)
             assertSubtype(argTy, ty, expression)
           }
+
+          resolveTarget(constrCall)((cls, primaryConstructor))
+
           val clsTy = TName(cls.name, tyArgs)
           typecheck(clsTy)
           clsTy

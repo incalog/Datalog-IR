@@ -99,7 +99,7 @@ trait TypeContext extends TypeIO:
 
   /** Class content */
 
-  private def collect[C <: ClassContent](classDef: ClassDef)(f: ClassContent => Boolean): Seq[(ClassDef, C)] = {
+  def collect[C <: ClassContent](classDef: ClassDef)(f: ClassContent => Boolean): Seq[(ClassDef, C)] = {
     val content = classDef.content.flatMap {
       case c if f(c) => Some((classDef, c.asInstanceOf[C]))
       case _ => None
@@ -113,12 +113,22 @@ trait TypeContext extends TypeIO:
     parentContent ++ content
   }
 
-  // TODO: Adapt this for generics
-  def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
+  def lookupFieldCandidates(classDef: ClassDef, fieldName: Name): Seq[(ClassDef, FieldDef)] = {
     val fieldCandidates = collect[FieldDef](classDef) {
       case f: FieldDef => f.name == fieldName
       case _ => false
     }
+    val (generatedFields, userDefinedFields) = fieldCandidates.partition { (c, f) =>
+      f.isGeneratedConstructorField
+    }
+    /*val generatedFieldOption = (generatedFields.headOption, generatedFields.lastOption) match
+      case (Some((parentCls, _)), Some((_, concreteFieldDef))) => Some((parentCls, concreteFieldDef))
+      case _ => None*/
+    Seq() ++ generatedFields.headOption ++ userDefinedFields
+  }
+
+  def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
+    val fieldCandidates = lookupFieldCandidates(classDef, fieldName)
     if (fieldCandidates.isEmpty) {
       error(s"Undefined field '$fieldName' for class '${classDef.name}'", location: _*)
       None
@@ -131,30 +141,27 @@ trait TypeContext extends TypeIO:
     }
   }
 
-  // TODO: Adapt this for generics
-  def lookupMethodCandidates(classDef: ClassDef, numArgs: Int, name: Name): Seq[(ClassDef, MethodDef)] = {
+  def lookupMethodCandidates(classDef: ClassDef, name: Name, args: Seq[Type]): Seq[(ClassDef, MethodDef)] = {
     collect[MethodDef](classDef) {
-      case m: MethodDef => m.name == name && m.params.size == numArgs
+      case m: MethodDef => m.name == name && m.params.size == args.size
       case _ => false
     }
   }
   
-  def lookupMethod(classDef: ClassDef, args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
-    val allMethods = lookupMethodCandidates(classDef, args.size, name)
-
-    if (allMethods.isEmpty) {
+  def lookupMethod(classDef: ClassDef, name: Name, args: Seq[Type]): Option[(ClassDef, MethodDef)] = {
+    val methodCandidates = lookupMethodCandidates(classDef, name, args)
+    if (methodCandidates.isEmpty) {
       error(s"Undefined method '$name' for class '$classDef')", name)
       None
     } else {
       // always choose the method lowest in the class hierarchy
-      allMethods.lastOption
+      methodCandidates.lastOption
     }
   }
 
-  // TODO: Adapt this for generics
   def lookupConstructorCandidates(classDef: ClassDef, params: Seq[Type]): Seq[(ClassDef, ConstructorDef)] = {
     collect[ConstructorDef](classDef) {
-      case c: ConstructorDef => c.params.size == params.size // TODO: Might check types here
+      case c: ConstructorDef => c.params.size == params.size
       case _ => false
     }
   }

@@ -7,14 +7,13 @@ def main(p: Int): Boolean = {
     val a: A = new A(3)
     var b: A = a
     a.v = 4
-    val c: A = b
 
-    var x: Int = 10
-    val y: Int = x
-    val z: Int = p
+    var x = 10
     val xIs10: Boolean = (x == 10)
 
     x = 5
-
-    return xIs10 && (x == 5) && (y == 10) && (z == p) && (a.v == b.v) && (b.v == c.v) && (a.v == 4)
+    // For some reason inlining af is not possible in a boolean expression
+    val av = a.v
+    val bv = b.v
+    return xIs10 && (x == 5) && (av == bv) && (av == 4)
 }
