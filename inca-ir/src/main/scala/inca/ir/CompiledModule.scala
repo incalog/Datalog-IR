@@ -3,7 +3,7 @@ package inca.ir
 import inca.ir.extension.*
 import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing.IRTypechecker
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
 import inca.util.CompilationMessage
@@ -39,24 +39,28 @@ trait CompiledModule:
   // TODO should be configurable
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.pipeline = pipeline
-  private var pipeline: List[() => BaseIRVisitor] = _
+  private var pipeline: List[() => BaseIRVisitor] = List()
+
+  // TODO: Make this nice
+  def setPostProcessingPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+    this.postProcessingPipeline = pipeline
+  private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
   def lowered: Module =
     StatisticsCollector.printStatistics(checked, "before lowering")
     //println()
     //println(checked)
     //println()
-    var i = 0
+    //var i = 0
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
-      println(s"Lowering $i")
+      //println(s"Lowering $i")
       val Seq(l) = lowFun.visitProgram(Seq(m))
-      println(l)
-      println()
-
-      val checker = new IRTypechecker
+      //println(l)
+      //println()
+      val checker = new IRTypechecker()
       checker.typecheck(l)
-      i += 1
+      //i += 1
       l
     }
 
@@ -67,7 +71,12 @@ trait CompiledModule:
     StatisticsCollector.printStatistics(p2.head, s"after optimization 2")
     println(p2)
 
-    p2.head
+    postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
+      val lowFun = lowering()
+      val Seq(l) = lowFun.visitProgram(Seq(m))
+      // Don't typecheck after postprocessing
+      l
+    }
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter

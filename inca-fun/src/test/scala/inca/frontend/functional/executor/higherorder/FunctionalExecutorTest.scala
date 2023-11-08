@@ -1,5 +1,6 @@
 package inca.frontend.functional.executor.higherorder
 
+import inca.frontend.functional.compile.CompiledFunctionalModule
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.FileUtil
 import inca.ir.execution.Relation

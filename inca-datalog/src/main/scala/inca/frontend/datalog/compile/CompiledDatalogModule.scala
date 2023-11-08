@@ -5,7 +5,8 @@ import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
-import inca.ir.extension.{aggregateset, set, bool, datamatch, block, disjunction, not, impure, demand, tuple}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
+import inca.ir.visitors.BaseIRVisitor
 
 case class CompiledDatalogModule(mod: Module) extends CompiledModule {
 

@@ -1,6 +1,8 @@
 package inca.frontend.functional.executor.unittests
 
+import inca.frontend.functional.compile.CompiledFunctionalModule
 import inca.frontend.functional.executor.FunctionalExecutor
+import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
@@ -13,7 +15,7 @@ class FunctionalExecutorTest extends AnyFunSuite:
   test("Base 1") {
     val code = FileUtil.readFileFromResource("functional/unittests/Base1.finca")
     val compiled = exec.compileFunction(code)
-    compiled.setPipeline(CompiledFunctionalModule.CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -247,6 +249,7 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
     val compiled = exec.compileFunction(code)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult(15)(res.entries.head)
@@ -256,6 +259,7 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
     val compiled = exec.compileFunction(code)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult("V(15)")(res.entries.head.toString)
@@ -265,6 +269,7 @@ class FunctionalExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
     val compiled = exec.compileFunction(code)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult("BusStation(B,5)")(res.entries.head.toString)

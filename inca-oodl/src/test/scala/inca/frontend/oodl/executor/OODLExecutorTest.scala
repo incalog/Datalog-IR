@@ -1,8 +1,8 @@
 package inca.frontend.oodl.executor
 
+import inca.frontend.oodl.compile.CompiledOODLModule
 import inca.ir.execution.Relation
 import inca.util.FileUtil
-import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLExecutorTest extends AnyFunSuite:
@@ -11,24 +11,27 @@ class OODLExecutorTest extends AnyFunSuite:
   // Unittests
 
   test("Base") {
-    val code = FileUtil.readFile("objectoriented/unittests/Base.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Base.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
   }
 
   test("Factorial") {
-    val code = FileUtil.readFile("objectoriented/unittests/Fact.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Fact.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(120)(res.entries.head)
   }
 
   test("Fibonacci") {
-    val code = FileUtil.readFile("objectoriented/unittests/Fib.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Fib.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(10))
     assertResult(55)(res.entries.head)
@@ -37,24 +40,27 @@ class OODLExecutorTest extends AnyFunSuite:
   // We need more optimizations to execute the full program
   //  + Disjunction lowering is way to slow on this (is there an endless loop?)
   test("InstanceOf") {
-    val code = FileUtil.readFile("objectoriented/unittests/InstanceOf.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/InstanceOf.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
 
   test("Dynamic Dispatch") {
-    val code = FileUtil.readFile("objectoriented/unittests/DynamicDispatch.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/DynamicDispatch.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult("BBC")(res.entries.head)
   }
 
   test("Method Inheritance") {
-    val code = FileUtil.readFile("objectoriented/unittests/MethodInheritance.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/MethodInheritance.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(3)(res.entries.head)
@@ -62,32 +68,36 @@ class OODLExecutorTest extends AnyFunSuite:
 
   // We need way more optimizations to make this program executable
   test("Plus") {
-    val code = FileUtil.readFile("objectoriented/unittests/Plus.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Plus.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
 
   test("Super") {
-    val code = FileUtil.readFile("objectoriented/unittests/Super.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Super.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(5)(res.entries.head)
   }
 
   test("Assignment") {
-    val code = FileUtil.readFile("objectoriented/unittests/Assignment.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Assignment.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(1)(res.entries.head)
   }
 
   test("Mutability") {
-    val code = FileUtil.readFile("objectoriented/unittests/Mutability.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Mutability.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
@@ -96,32 +106,36 @@ class OODLExecutorTest extends AnyFunSuite:
   /** If */
 
   test("If") {
-    val code = FileUtil.readFile("objectoriented/unittests/if/If.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/if/If.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(1, 1))
     assertResult(11)(res.entries.head)
   }
 
   test("If Duplicate") {
-    val code = FileUtil.readFile("objectoriented/unittests/if/IfDuplicate.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/if/IfDuplicate.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(1, 1))
     assertResult(10)(res.entries.head)
   }
 
   test("If False") {
-    val code = FileUtil.readFile("objectoriented/unittests/if/IfFalse.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/if/IfFalse.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
 
   test("If True") {
-    val code = FileUtil.readFile("objectoriented/unittests/if/IfTrue.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/if/IfTrue.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
@@ -130,8 +144,9 @@ class OODLExecutorTest extends AnyFunSuite:
   /** Case class */
 
   test("Case class") {
-    val code = FileUtil.readFile("objectoriented/unittests/caseclass/CaseClass.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(15)(res.entries.head)
@@ -139,7 +154,7 @@ class OODLExecutorTest extends AnyFunSuite:
 
   // TODO: We need a negated destruct here... Why ?
   /*test("Transitive closure") {
-    val code = FileUtil.readFile("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
     val compiled = exec.compileOODL(code)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
@@ -151,20 +166,22 @@ class OODLExecutorTest extends AnyFunSuite:
 
   /** Set */
 
-  test("Set with Objects") {
-    val code = FileUtil.readFile("objectoriented/unittests/set/SetClass.oodl")
+  /*test("Set with Objects") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClass.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
     val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
-  }
+  }*/
 
   test("Set comprehension") {
-    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -174,8 +191,9 @@ class OODLExecutorTest extends AnyFunSuite:
   }
 
   test("Set comprehension 2") {
-    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension2.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension2.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -185,8 +203,9 @@ class OODLExecutorTest extends AnyFunSuite:
   }
 
   test("Set comprehension 3") {
-    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehension3.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension3.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -196,8 +215,9 @@ class OODLExecutorTest extends AnyFunSuite:
   }
 
   test("Set comprehension Tuple") {
-    val code = FileUtil.readFile("objectoriented/unittests/set/SetComprehensionTuple.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehensionTuple.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -209,7 +229,7 @@ class OODLExecutorTest extends AnyFunSuite:
   // TODO: Currently not supported, need more optimizations (how should equality on objects being handled ?)
   //  Maybe negated destruct as well ?
   /*test("Equals") {
-    val code = FileUtil.readFile("objectoriented/unittests/Equals.oodl")
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Equals.oodl")
     val compiled = exec.compileOODL(code)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())

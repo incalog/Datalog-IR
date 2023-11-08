@@ -6,10 +6,11 @@ import inca.frontend.functional.syntax.{DataDef, FunctionDef}
 import inca.ir.{Atom, BaseIR, ModuleEntry, name2string, string2name}
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.aggregate.{Aggregate, IR as iragg}
+import inca.foreign.scala.ir.primitive.{IR as irprimitive}
 
 trait Lowering extends BaseLowering:
   override def loweredIRs: Set[BaseIR] = Set(iragg)
-  override def requiredIRs: Set[BaseIR] = Set(iragg)
+  override def requiredIRs: Set[BaseIR] = Set(iragg, irprimitive)
 
   val generateScala = new GenerateScala
 

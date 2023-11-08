@@ -4,6 +4,8 @@ import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
+import inca.ir.visitors.BaseIRVisitor
 
 case class CompiledOODLModule(fun: Module) extends CompiledModule:
 
@@ -40,3 +42,17 @@ case class CompiledOODLModule(fun: Module) extends CompiledModule:
     val module = compiler.compileModule(ssa)
     module
   }
+
+object CompiledOODLModule:
+  val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregateset.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new datamatch.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new impure.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
+  ) // arith + string + data
