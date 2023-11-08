@@ -1,6 +1,7 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.*
+import inca.ir.extension.aggregate.{Aggregate, AggregationOperator, AggregateArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.arithmetic.TDouble
 
@@ -13,29 +14,49 @@ trait IR extends BaseIR:
 
 object IR extends IR { }
 
-case class TMono(input: Type, output: Type, key: Type) extends Type:
-  override def toString: String = s"Mono[$input, $output]@$key"
+case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
+  override def toString: String = s"Mono[$input, $output]@$keys"
 
-case class MkMono(mono: MonoDef, args: Seq[Term], keys: Type) extends Term:
+case class MkMono(mono: MonoDef, args: Seq[Term], keys: Seq[Type]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
   override def toString: String = s"new $mono(${args.mkString(", ")})@$keys"
 
-case class AddMono(m: Term, input: Term, key: Term) extends Atom:
-  override def vars: Seq[Var] = m.vars ++ input.vars ++ key.vars
-  override def toString: String = s"$m += $input@$key"
+case class AddMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
+  override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap{_.vars}
+  override def toString: String = s"$m += $input@$keys"
 
 case class ResultMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
   override def toString: String = s"$m.result()"
 
-trait MonoDef:
-  def typecheck(constructorArgs: Seq[Term]): Either[String, (Type, Type)]
 
-enum ArithmeticMono extends MonoDef:
+case class MonoAggregate(rel: Name, args: Seq[AggregateArg], op: MonoDef) extends Term:
+  override def vars: Seq[Var] = args.flatMap {
+    case AggregateArg.Arg(t) => t.vars
+    case AggregateArg.AggregateColumn(t) => t.vars
+  }
+  override def toString: String = s"monoAgg($rel(${args.mkString(", ")}), $op)"
+
+trait MonoDef extends AggregationOperator:
+  def monotypecheck(constructorArgs: Seq[Term]): Either[String, (Type, Type)]
+
+// RMT: relational mono-type
+// NRMT: non-relational mono-type
+
+trait UserDefinedNRMT extends MonoDef
+
+trait UserDefinedRMT extends MonoDef
+
+trait BuiltInNRMT extends MonoDef
+
+trait BuiltInRMT extends MonoDef
+
+
+enum ArithmeticMono extends BuiltInNRMT:
   case CountMono
   case MaxMono
 
-  override def typecheck(constructorArgs: Seq[Term]): Either[String, (Type, Type)] = this match
+  override def monotypecheck(constructorArgs: Seq[Term]): Either[String, (Type, Type)] = this match
     case CountMono =>
       if (constructorArgs.nonEmpty)
         Left(s"$CountMono does not take arguments")
@@ -46,3 +67,11 @@ enum ArithmeticMono extends MonoDef:
         Left(s"$CountMono does not take arguments")
       else
         Right((TInt, TInt))
+
+  override def typecheck(in: Seq[Type]): Either[String, Type] = this match
+    case CountMono | MaxMono =>
+      if (in == Seq(TInt))
+        Right(TInt)
+      else
+        Left(s"The input type of $this is not $in")
+    
