@@ -5,11 +5,13 @@ import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogExecutorTest extends AnyFunSuite:
+  val pipeline = List()
   val exec: DatalogExecutor = new DatalogExecutor(inca.viatra.Executor)
 
   test("Path") {
-    val code = FileUtil.readFile("datalog/unittests/Path.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("Path", (?, ?))
@@ -26,8 +28,9 @@ class DatalogExecutorTest extends AnyFunSuite:
   }
 
   test("ShortestPath") {
-    val code = FileUtil.readFile("datalog/unittests/ShortestPath.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/ShortestPath.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     // TODO: Double aggregation bug
@@ -42,8 +45,9 @@ class DatalogExecutorTest extends AnyFunSuite:
   }
 
   test("Sum Aggregation") {
-    val code = FileUtil.readFile("datalog/unittests/Aggregate.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeSum", ("A", ?))
@@ -54,8 +58,9 @@ class DatalogExecutorTest extends AnyFunSuite:
   }
 
   test("Max Aggregation") {
-    val code = FileUtil.readFile("datalog/unittests/Aggregate.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMax", ("A", ?))
@@ -66,8 +71,9 @@ class DatalogExecutorTest extends AnyFunSuite:
   }
 
   test("Min Aggregation") {
-    val code = FileUtil.readFile("datalog/unittests/Aggregate.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMin", ("A", ?))
@@ -78,8 +84,9 @@ class DatalogExecutorTest extends AnyFunSuite:
   }
 
   test("Count Aggregation") {
-    val code = FileUtil.readFile("datalog/unittests/Aggregate.dl")
+    val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeCount", ("A", ?))

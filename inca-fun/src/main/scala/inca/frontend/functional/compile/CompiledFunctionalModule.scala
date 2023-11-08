@@ -1,11 +1,12 @@
 package inca.frontend.functional.compile
 
-import inca.frontend.functional.foreign.Lowering
+import inca.frontend.functional.foreign
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
+import inca.ir.extension.{aggregateset, set, bool, datamatch, block, disjunction, not, impure, demand, tuple}
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
@@ -62,7 +63,16 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
     module
   }
 
-  // lower all our functional code for folding without typechecking
-  override lazy val lowered: IRModule =
-    val scalaLowering = () => new Lowering {}
-    scalaLowering().lower(super.lowered)
+object CompiledFunctionalModule:
+  val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregateset.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new datamatch.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
+    () => new foreign.Lowering {}
+  ) // arith + string + data

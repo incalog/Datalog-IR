@@ -5,6 +5,7 @@ import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
+import inca.ir.extension.{aggregateset, set, bool, datamatch, block, disjunction, not, impure, demand, tuple}
 
 case class CompiledDatalogModule(mod: Module) extends CompiledModule {
 
@@ -27,3 +28,16 @@ case class CompiledDatalogModule(mod: Module) extends CompiledModule {
     module
   }
 }
+
+object CompiledDatalogModule:
+  val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregateset.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new datamatch.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {}
+  ) // arith + string + data

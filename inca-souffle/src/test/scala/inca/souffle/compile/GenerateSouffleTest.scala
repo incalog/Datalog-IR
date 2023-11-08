@@ -3,9 +3,27 @@ package inca.souffle.compile
 import inca.ir.*
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.data
+import inca.ir.execution.Relation as Rel
+import inca.ir.util.SourceLocation
+import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
+import inca.ir.visitors.BaseIRVisitor
 
 class GenerateSouffleTest extends AnyFunSuite {
+
+    val pipeline: List[() => BaseIRVisitor] = List(
+      () => new aggregateset.Lowering {},
+      () => new set.Lowering {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new block.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      () => new demand.Lowering {},
+      () => new tuple.Lowering {}
+    ) // arith + string + data
+
   val edgeRel = ExtensionalRelation("edge", Seq(Param(Name("X"), arith.TInt), Param(Name("Y"), arith.TInt)))
   val pathRel = Relation("path", Seq(Param(Name("X"), arith.TInt), Param(Name("Y"), arith.TInt)),
       Seq(
@@ -81,4 +99,30 @@ class GenerateSouffleTest extends AnyFunSuite {
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }
+
+  test("process test") {
+    val irModule = Module(Name("MaxExample"), Language.Datalog, Seq(maxRel))
+    val compiledModule = new CompiledModule:
+      override def name: Name = "MaxExample"
+      override def sourceLocation: SourceLocation = ???
+      override def ir: Module = irModule
+    compiledModule.setPipeline(pipeline)
+    val engine = Executor.instantiate(compiledModule)
+    val rels = engine.readAll()
+    println(rels)
+  }
+  test("process test 2") {
+    val irModule = Module(Name("PathExample"), Language.Datalog, Seq(pathRel, edgeRel))
+    val compiledModule = new CompiledModule:
+      override def name: Name = "PathExample"
+      override def sourceLocation: SourceLocation = ???
+      override def ir: Module = irModule
+    compiledModule.setPipeline(pipeline)
+    val engine = Executor.instantiate(compiledModule)
+    engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
+    val rels = engine.readAll()
+    println(rels)
+  }
+  //    val funCompiled = ???
+  //    funCompiled.setPipeline(pipeline)
 }

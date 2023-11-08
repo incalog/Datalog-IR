@@ -11,64 +11,72 @@ class FunctionalExecutorTest extends AnyFunSuite:
   // Unittests
 
   test("Base 1") {
-    val code = FileUtil.readFile("functional/unittests/Base1.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Base1.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
   }
 
   test("Fac") {
-    val code = FileUtil.readFile("functional/unittests/Fact.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Fact.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(120)(res.entries.head)
   }
 
   test("Fib") {
-    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Fib.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(7))
     assertResult(13)(res.entries.head)
   }
 
   test("Inc") {
-    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Inc.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
 
   test("Unary") {
-    val code = FileUtil.readFile("functional/unittests/Unary.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Unary.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(-5)(res.entries.head)
   }
 
   test("Var") {
-    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Var.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
   }
 
   test("If") {
-    val code = FileUtil.readFile("functional/unittests/If.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/If.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(7)(res.entries.head)
   }
 
   test("If2") {
-    val code = FileUtil.readFile("functional/unittests/If2.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/If2.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(10)(res.entries.head)
@@ -77,8 +85,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   // TODO: Currently we are not getting back booleans, but ints because of the lowering
   //  Either we want an unlower or we want to support booleans ?
   test("Parametric Eq") {
-    val code = FileUtil.readFile("functional/unittests/ParametricEq.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/ParametricEq.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, 1))
     assertResult(1)(res.entries.head)
@@ -90,16 +99,18 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Parametric function") {
-    val code = FileUtil.readFile("functional/unittests/ParametricFunction.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/ParametricFunction.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult((12, 1))(res.entries.head)
   }
 
   test("Tuple as input") {
-    val code = FileUtil.readFile("functional/unittests/TupleAsInput.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/TupleAsInput.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, "A"))
     assertResult("A")(res.entries.head)
@@ -121,8 +132,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   // ADT-tests
 
   test("Plus") {
-    val code = FileUtil.readFile("functional/unittests/Plus.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/Plus.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
@@ -130,8 +142,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Set const") {
-    val code = FileUtil.readFile("functional/unittests/SetConst.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/SetConst.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var setAdt = res.entries.head
@@ -147,8 +160,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Set intersection") {
-    val code = FileUtil.readFile("functional/unittests/SetIntersection.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/SetIntersection.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     // Query main to get the set ADT, afterwards query the set relation
     var res = loaded.execute("main", Seq())
@@ -159,8 +173,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Complex set intersection") {
-    val code = FileUtil.readFile("functional/unittests/ComplexSetIntersection.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head
@@ -207,8 +222,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Set Ops") {
-    val code = FileUtil.readFile("functional/unittests/SetOps.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/SetOps.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("union", Seq())
     val setAdt = res.entries.head
@@ -218,8 +234,9 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Parametric Datatypes") {
-    val code = FileUtil.readFile("functional/unittests/ParametricDatatypes.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/ParametricDatatypes.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
@@ -227,24 +244,27 @@ class FunctionalExecutorTest extends AnyFunSuite:
   }
 
   test("Fold Int") {
-    val code = FileUtil.readFile("functional/unittests/FoldInt.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult(15)(res.entries.head)
   }
 
   test("Fold ADT") {
-    val code = FileUtil.readFile("functional/unittests/FoldADT.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult("V(15)")(res.entries.head.toString)
   }
 
   test("Bus Station") {
-    val code = FileUtil.readFile("functional/unittests/BusStation.finca")
+    val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
     val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult("BusStation(B,5)")(res.entries.head.toString)

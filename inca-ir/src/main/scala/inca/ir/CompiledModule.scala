@@ -36,18 +36,10 @@ trait CompiledModule:
     checker.typecheck(ir)
     ir
 
-  val pipeline: List[() => BaseIRVisitor] = List(
-    () => new aggregateset.Lowering {},
-    () => new set.Lowering {},
-    () => new bool.Lowering {},
-    () => new datamatch.Lowering {},
-    () => new block.Lowering {},
-    () => new disjunction.Lowering {},
-    () => new not.Lowering {},
-    () => new impure.Lowering {},
-    () => new demand.Lowering {},
-    () => new tuple.Lowering {},
-  ) // arith + string + data
+  // TODO should be configurable
+  def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+    this.pipeline = pipeline
+  private var pipeline: List[() => BaseIRVisitor] = _
 
   def lowered: Module =
     StatisticsCollector.printStatistics(checked, "before lowering")
