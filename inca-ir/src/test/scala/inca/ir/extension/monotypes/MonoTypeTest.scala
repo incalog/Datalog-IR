@@ -46,7 +46,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   //               t += 1@(t)
   private lazy val relation2 : Relation = Relation(
     "size",
-    Seq(Param("t", TString), Param("m", TMono(TInt, TInt, Seq(TString)))),
+    Seq(Param("t", TDemand(TString)), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
@@ -177,31 +177,80 @@ class MonoTypeTest extends AnyFunSuiteLike {
     )))
   )
 
-  test("Lower Mono Types") {
-    implicit val typechecker = new IRTypechecker {}
-    val mod = module(relation6, relation7, relation3)
-    println("original\n" + mod)
+  private lazy val relation8: Relation = Relation(
+    "main",
+    Seq(
+      Param("t", TString),
+      Param("b", TInt)
+    ),
+    Seq(Body(Seq(
+      Eq(Var("m"), MkMono(CountMono, Seq(), Seq(TString))),
+      Eq(Var("t"), StringLit("A")),
+//      Call(Name("size"), Seq(Var("t"), Var("m"))),
+      Eq(Var("b"), ResultMono(Var("m")))
+    )))
+  )
+
+
+  test("Lower Mono Types 1") {
+    implicit val typechecker1 = new IRTypechecker {}
+    val mod = module(relation8)
     val lowering1 = new monotypes.Lowering {}
     val lowered1 = lowering1.visitProgram(Seq(mod)).head
-    println("lowered1\n" + lowered1)
     val typeckecker2 = new IRTypechecker {}
     typeckecker2.typecheck(lowered1)
-//    val lowering2 = new Lowering {}
-//    val lowered2 = lowering2.visitProgram(Seq(lowered1)).head
-//    val typeckecker3 = new IRTypechecker {}
-//    println("lowered2\n" + lowered2)
-//    typeckecker3.typecheck(lowered2)
-
   }
 
-//  private lazy val relation8: Relation = Relation(
-//    "Agg",
-//    Seq(Param("m", TMono(TInt, TInt, Seq(TString))), Param("st", TAny)),
-//    Seq(
-//      Body(Seq(
-//        Aggregate(Name("Coll"), Seq(Arg(Var("m"))), Arg(Var("t")), Arg(""))
-//      ))
-//    )
-//  )
+  test("Lower Mono Types 2"){
+    implicit val typechecker1 = new IRTypechecker {}
+    val mod = module(relation1, relation3, relation6)
+    val lowering1 = new monotypes.Lowering {}
+    val lowered1 = lowering1.visitProgram(Seq(mod)).head
+    val typeckecker2 = new IRTypechecker {}
+    typeckecker2.typecheck(lowered1)
+  }
+
+  test("Lower Mono Types 3") {
+    implicit val typechecker1 = new IRTypechecker {}
+    val mod = module(relation1, relation2, relation3, relation4)
+    val lowering1 = new monotypes.Lowering {}
+    val lowered1 = lowering1.visitProgram(Seq(mod)).head
+    val typeckecker2 = new IRTypechecker {}
+    typeckecker2.typecheck(lowered1)
+  }
+
+
+  private lazy val relation9: Relation = Relation(
+    Name("Coll"),
+    Seq(Param(Name("m"), TString), Param(Name("k"), TString), Param(Name("t"), TInt)),
+    Seq(Body(Seq(
+      Eq(Var("m"), StringLit("m")),
+      Eq(Var("k"), StringLit("t")),
+      Eq(Var("t"), IntNum(1))
+    )))
+  )
+
+  private lazy val relation10: Relation = Relation(
+    Name("Agg"),
+    Seq(Param(Name("m"), TString), Param(Name("t"), TInt)),
+    Seq(Body(Seq(
+      Call(Name("Coll"), Seq(Var("m"), Var("k"), Var("t")))
+    )))
+  )
+
+  private lazy val relation11: Relation = Relation(
+    Name("Result"),
+    Seq(Param(Name("m"), TDemand(TString)), Param(Name("t"), TInt)),
+    Seq(Body(Seq(
+      Aggregate(Name("Agg"), Seq(Arg(Var("m")),
+        AggregateColumn(Var("t"))), CountMono)
+    )))
+  )
+
+  test("aggregate type checking"){
+    implicit val typechecker = new IRTypechecker {}
+    val mod = module(relation9, relation10, relation11)
+    print(mod)
+  }
 
 }
