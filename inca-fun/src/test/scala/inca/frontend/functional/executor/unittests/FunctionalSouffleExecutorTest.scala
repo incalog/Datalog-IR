@@ -143,8 +143,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     assertResult("$Succ($Succ($Succ($Succ($Succ($Zero)))))")(res.entries.head.toString)
   }
 
-  // TODO: Some error in the generate souffle code
-  /*test("Set const") {
+  test("Set const") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetConst.finca")
     val compiled = exec.compileFunction(code)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
@@ -243,8 +242,8 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
-    assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
-  }*/
+    assertResult("$ConsBoolean_0(1, $NilBoolean_0)")(res.entries.head.toString)
+  }
 
   // No recursive aggregation support in Souffle
   /*test("Fold Int") {
