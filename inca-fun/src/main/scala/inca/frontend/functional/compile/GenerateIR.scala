@@ -41,10 +41,13 @@ class GenerateIR {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
       case _ => None
     }
-    val extMainInputRelations = mainFunctions.map { f =>
+    val extMainInputRelations = mainFunctions.flatMap { f =>
       val name = extensionalRelationName(f.name)
       val params = f.params.map(p => ir.Param(p.name, compileType(p.typ)))
-      ExtensionalRelation(name, params)
+      if (params.nonEmpty)
+        Some(ExtensionalRelation(name, params))
+      else
+        None
     }
     val moduleEntries = m.content.map {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => compileMainFun(f)
@@ -65,9 +68,13 @@ class GenerateIR {
       None
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
+    val edbCall =
+      if (f.params.nonEmpty)
+        Seq(ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))))
+      else
+        Seq()
     ir.Relation(f.name, params, Seq(ir.Body(
-      Seq(
-        ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))),
+      edbCall ++ Seq(
         ir.Eq(ir.Var(Name(result)), compileExp(f.body))
       ) ++ setMember
     )))

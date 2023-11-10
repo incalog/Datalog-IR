@@ -5,7 +5,9 @@ import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation}
 import inca.souffle.compile.GenerateSouffle
 import inca.souffle.syntax.{DirectiveQualifier, ProgramContent}
 import inca.util.FileUtil
+import inca.ir.string2name
 
+import scala.util.{Failure, Success, Try}
 import java.io.File
 import scala.sys.process.*
 
@@ -23,8 +25,15 @@ object Executor extends IRExecutor:
       // if (inputDirty)
         executable.!
 
+    // Create empty input files for all input relations
+    // This is necessary if a module has more than one main function
+    inputFiles.foreach((_, d: ProgramContent.Directive) => FileUtil.writeFile(getPath(d), ""))
+
     // TODO relations do not support joins currently
-    def read(rel: Relation): Relation = ???
+    def read(rel: Relation): Relation =
+      readAll().find(_.name == rel.name) match
+        case Some(r) => r
+        case _ => throw IllegalStateException(s"No relation named ${rel.name} found")
 
     def readAll(): Seq[Relation] =
       execute()
@@ -38,7 +47,7 @@ object Executor extends IRExecutor:
 
     def insert(edb: Relation): Unit =
       inputDirty = true
-      val directive = inputFiles(edb.name)
+      val directive = inputFiles(GenerateSouffle.cleanName(edb.name))
       val file = getPath(directive)
       val content = relToString(edb, directive)
       FileUtil.writeFile(file, content)
@@ -58,14 +67,17 @@ object Executor extends IRExecutor:
       case s: String => s.toString
       case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
 
-
     private def stringToRel(content: String, directive: ProgramContent.Directive): Relation =
       val delimiter = getSeperator(directive)
       val lines = content.split("\n")
       val size = lines.head.split(delimiter).length
       val tuples = lines.map { t =>
         val elements = t.split(delimiter)
-        elements.toSeq
+        elements.toSeq.map { el =>
+          Try(el.toDouble) match
+            case Success(d) => d
+            case Failure(_) => el
+        }
       }.toList
       val params = (0 until size).map(idx => s"param_${idx}")
       Relation.from(directive.name.toString, params, tuples)
@@ -92,6 +104,7 @@ object Executor extends IRExecutor:
     val inputFiles = souffleProg.content.collect {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, name, _) => name.toString -> d
     }.toMap
+
     val outputFiles = souffleProg.content.collect {
       case d@ProgramContent.Directive(DirectiveQualifier.Output, name, _) => name.toString -> d
     }.toMap

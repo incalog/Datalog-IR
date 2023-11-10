@@ -12,7 +12,8 @@ object GenerateSouffle:
     val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR)
     val illegalFeatures = module.lang.features -- compilableFeatures
     if (illegalFeatures.nonEmpty)
-      throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
+      println(s"[WARNING]: Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
+      //throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
 
     val contents = module.contents.flatMap {
       case ir.Relation(name, params, bodies) =>
@@ -67,7 +68,7 @@ object GenerateSouffle:
 
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
-  private def cleanName(name: ir.Name): String = name.name.replace("$", "_")
+  def cleanName(name: ir.Name): String = name.name.replace("$", "_")
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(name) => Term.Var(cleanName(name))
