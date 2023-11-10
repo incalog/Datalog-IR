@@ -46,7 +46,7 @@ class sumAgg extends JoinAggregation[Int] {
   override val isAssociative: Boolean = true
   override val isCommutative: Boolean = true
 }
-class TreeSize1Test extends AnyFunSuiteLike {
+class CollTest extends AnyFunSuiteLike {
   test("Compute tree size") {
 
     val treeSize1: Module = {
