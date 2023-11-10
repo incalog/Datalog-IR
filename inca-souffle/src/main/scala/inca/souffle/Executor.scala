@@ -30,7 +30,7 @@ object Executor extends IRExecutor:
     // This is necessary if a module has more than one main function
     inputFiles.foreach((_, d: ProgramContent.Directive) => FileUtil.writeFile(getPath(d), ""))
 
-    // TODO relations do not support joins currently
+    // TODO: Support joins in relations
     def read(rel: Relation): Relation =
       readAll().find(_.name == GenerateSouffle.cleanName(rel.name)) match
         case Some(r) if rel.isEmpty => r

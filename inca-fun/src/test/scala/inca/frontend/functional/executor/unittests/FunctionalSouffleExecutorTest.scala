@@ -245,7 +245,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     assertResult("$ConsBoolean_0(1, $NilBoolean_0)")(res.entries.head.toString)
   }
 
-  // No recursive aggregation support in Souffle
+  // No recursive aggregation support in Souffle + Missing C++ lowering
   /*test("Fold Int") {
     val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
     val compiled = exec.compileFunction(code)
