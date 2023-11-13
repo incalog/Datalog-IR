@@ -10,7 +10,8 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.demand
-import inca.ir.extension.aggregate.AggregateArg.{Arg, AggregateColumn}
+import inca.ir.extension.aggregate
+import inca.ir.extension.aggregate.AggregateArg.{Arg, AggregateColumn, WildCard}
 import inca.ir.typing.{IRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -232,23 +233,25 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   private lazy val relation10: Relation = Relation(
     Name("Agg"),
-    Seq(Param(Name("m"), TString), Param(Name("t"), TInt)),
+    Seq(Param(Name("m"), TString), Param(Name("k"), TString), Param(Name("t"), TInt)),
     Seq(Body(Seq(
       Call(Name("Coll"), Seq(Var("m"), Var("k"), Var("t")))
     )))
   )
 
   private lazy val relation11: Relation = Relation(
-    Name("Result"),
-    Seq(Param(Name("m"), TDemand(TString)), Param(Name("t"), TInt)),
+    Name("main"),
+    Seq(Param(Name("t"), TInt)),
     Seq(Body(Seq(
-      Aggregate(Name("Agg"), Seq(Arg(Var("m")),
+      Aggregate(Name("Agg"), Seq(WildCard, WildCard,
         AggregateColumn(Var("t"))), CountMono)
     )))
   )
 
   test("aggregate type checking"){
     implicit val typechecker = new IRTypechecker {}
+    val m1 = Module("M", BaseIR.language + aggregate.IR, Seq(relation9, relation10, relation11))
+    println(m1)
     val mod = module(relation9, relation10, relation11)
     print(mod)
   }
