@@ -237,20 +237,21 @@ enum IntrinsicFunctor:
     case Min => "min"
 
 enum Aggregator:
-  case Max(t: Term, atom: Atom)
-  case Mean(t: Term, atom: Atom)
-  case Min(t: Term, atom: Atom)
-  case Sum(t: Term, atom: Atom)
-  case Count(atom: Atom)
+  case Max(t: Term, atoms: Seq[Atom])
+  case Mean(t: Term, atoms: Seq[Atom])
+  case Min(t: Term, atoms: Seq[Atom])
+  case Sum(t: Term, atoms: Seq[Atom])
+  case Count(atoms: Seq[Atom])
   case Range(begin: Term, end: Term, step: Option[Term])
 
   override def toString: String = this match
-    case Max(t, a) => s"max $t : ${atomToString(a)}"
-    case Mean(t, a) => s"mean $t : ${atomToString(a)}"
-    case Min(t, a) => s"min $t : ${atomToString(a)}"
-    case Sum(t, a) => s"sum $t : ${atomToString(a)}"
-    case Count(a) => s"count : ${atomToString(a)}"
+    case Max(t, as) => s"max $t : ${as.map(atomToString).mkString(", ")}"
+    case Mean(t, as) => s"mean $t : ${as.map(atomToString).mkString(", ")}"
+    case Min(t, as) => s"min $t : ${as.map(atomToString).mkString(", ")}"
+    case Sum(t, as) => s"sum $t : ${as.map(atomToString).mkString(", ")}"
+    case Count(as) => s"count : ${as.map(atomToString).mkString(", ")}"
     case Range(begin, end, step) => s"range(${(Seq(begin, end) :+ step).mkString(", ")}"
+
   private def atomToString(a: Atom): String = a match
     case Atom.Disjunction(bodys) => s"{ ${bodys.mkString("; ")}"
     case Atom.Call(name, args) => a.toString

@@ -2,12 +2,15 @@ package inca.souffle.compile
 import inca.ir
 import inca.ir.extension.string
 import inca.ir.extension.arithmetic as arith
+import inca.ir.extension.aggregate as agg
+import inca.ir.extension.aggregate.{AggregateArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data
 import inca.souffle.syntax.*
 
 // TODO what is output? Need main hint
 // Core + Arithmetic + String + Data
 object GenerateSouffle:
+
   def compileModule(module: ir.Module): Program =
     val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR)
     val illegalFeatures = module.lang.features -- compilableFeatures
@@ -64,6 +67,24 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
     case data.Deconstruct(t, name, args) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileTerm)))
+    case agg.Aggregate(name, args, op) =>
+      val result = args.zipWithIndex.collect {
+        case (col:agg.AggregateArg.AggregateColumn, idx) => col -> idx
+      }
+      val (agg.AggregateArg.AggregateColumn(ir.Var(resultVar)), resultIdx) = result.head
+      // TODO need to generate safely
+      val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
+      val replacedArgs = args.patch(resultIdx, Seq(agg.AggregateArg.Arg(aggregatorVar)), 1)
+      val callArgs = replacedArgs.map {
+        case AggregateArg.Arg(t) => compileTerm(t)
+      }
+      val souffleAgg = op match
+        case arith.ArithmeticAggregationOperator.Min => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.Max => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.Sum => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
+        case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
+      Atom.Equal(Term.Var(resultVar.name), Term.AggregatorTerm(souffleAgg))
 
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
