@@ -7,7 +7,7 @@ import inca.ir.execution.Relation
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
-class FunctionalExecutorTest extends AnyFunSuite:
+class FunctionalViatraExecutorTest extends AnyFunSuite:
   val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
 
   // Unittests
