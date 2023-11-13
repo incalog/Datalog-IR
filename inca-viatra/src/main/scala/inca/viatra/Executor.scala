@@ -37,7 +37,7 @@ object Executor extends IRExecutor:
           val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), spec)
           matcher.getAllMatches(queryMatch).asScala
         }
-      Relation.fromMatches(rel.name, parameterNames, output.map(_.toArray.toSeq))
+      Relation.fromMatches(rel.name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
 
     override def readAll(): Seq[Relation] =
       val pattern = module.patterns.keys.toSeq.sorted

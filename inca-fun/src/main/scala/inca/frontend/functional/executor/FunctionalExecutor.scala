@@ -18,8 +18,9 @@ class FunctionalExecutor(val exec: IRExecutor):
     }
 
     def execute(main: String, args: Seq[Any]): Relation = {
-      val edbEntry = Relation.from(extensionalRelationName(main), args)
-      engine.insert(edbEntry)
+      if (args.nonEmpty)
+        val edbEntry = Relation.from(extensionalRelationName(main), args)
+        engine.insert(edbEntry)
       output(main, args)
     }
 

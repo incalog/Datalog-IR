@@ -199,9 +199,7 @@ enum Term:
     case Nil => "nil"
     case List(s) => s"[${s.mkString(", ")}]"
     case Constr(name, args) =>
-      val argList =
-        if (args.isEmpty) ""
-        else s"(${args.mkString(", ")})"
+      val argList = s"(${args.mkString(", ")})"
       s"$$$name$argList"
     case Parens(t) => s"(t)"
     case TypeCast(t, ty) => s"as($t, $ty)"

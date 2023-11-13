@@ -14,7 +14,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
 
-    val mod = Module("M", BaseIR.language, relations)
+    val mod = Module("M", BaseIR.language+demand.IR, relations)
     var printedMod = false
     var lowered: Module = null
     try {

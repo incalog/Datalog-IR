@@ -4,7 +4,7 @@ import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
-class DatalogExecutorTest extends AnyFunSuite:
+class DatalogViatraExecutorTest extends AnyFunSuite:
   val pipeline = List()
   val exec: DatalogExecutor = new DatalogExecutor(inca.viatra.Executor)
 
@@ -18,7 +18,7 @@ class DatalogExecutorTest extends AnyFunSuite:
     assertResult(11)(res.size)
 
     res = loaded.query("Path", (?, 5), (3, ?))
-    assertResult(5)(res.size)
+    assertResult(4)(res.size)
 
     res = loaded.query("Path", (1, ?))
     assertResult(4)(res.size)

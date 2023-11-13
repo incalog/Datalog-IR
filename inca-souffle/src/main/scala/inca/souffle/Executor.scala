@@ -3,9 +3,11 @@ package inca.souffle
 import inca.ir.CompiledModule
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation}
 import inca.souffle.compile.GenerateSouffle
-import inca.souffle.syntax.{DirectiveQualifier, ProgramContent}
+import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, Type}
 import inca.util.FileUtil
+import inca.ir.string2name
 
+import scala.util.{Failure, Success, Try}
 import java.io.File
 import scala.sys.process.*
 
@@ -16,29 +18,54 @@ import scala.sys.process.*
 // tab is default delimiter
 object Executor extends IRExecutor:
 
-  class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive]) extends ExecutorEngine:
+  class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
     private var inputDirty = false
+    private var cachedResult: Option[Seq[Relation]] = None
 
     private def execute(): Unit =
       // if (inputDirty)
         executable.!
 
-    // TODO relations do not support joins currently
-    def read(rel: Relation): Relation = ???
+    // Create empty input files for all input relations
+    // This is necessary if a module has more than one main function
+    inputFiles.foreach((_, d: ProgramContent.Directive) => FileUtil.writeFile(getPath(d), ""))
 
-    def readAll(): Seq[Relation] =
-      execute()
-      outputFiles.map { case (relName, file) =>
-        val directive = outputFiles(relName)
-        val file = outputFiles(relName)
-        val content = FileUtil.readFile(getPath(file))
-        stringToRel(content, directive)
-      }.toSeq
+    // TODO: Support joins in relations
+    def read(rel: Relation): Relation =
+      readAll().find(_.name == GenerateSouffle.cleanName(rel.name)) match
+        case Some(r) if rel.isEmpty => r
+        case Some(r) =>
+          // filter the result based on the input query
+          val matches = r.entries.flatMap { el =>
+            val flatEl = r.flattenEntry(el)
+            val matches = rel.entries.exists { query =>
+               val flatQuery = rel.flattenEntry(query)
+               flatEl.zipAll(flatQuery, null, null).forall {
+                 case (e, null) => true
+                 case (e, q) => e == q
+               }
+            }
+            if (matches) Some(flatEl) else None
+          }
+          Relation.from(r.name, r.parameterNames, matches)
+        case _ => throw IllegalStateException(s"No relation named ${rel.name} found")
 
+    def readAll(): Seq[Relation] = cachedResult match
+      case Some(result) if !inputDirty => result
+      case _ =>
+        execute()
+        val result = outputFiles.map { case (relName, file) =>
+          val directive = outputFiles(relName)
+          val file = outputFiles(relName)
+          val content = FileUtil.readFile(getPath(file))
+          stringToRel(content, directive)
+        }.toSeq
+        cachedResult = Some(result)
+        result
 
     def insert(edb: Relation): Unit =
       inputDirty = true
-      val directive = inputFiles(edb.name)
+      val directive = inputFiles(GenerateSouffle.cleanName(edb.name))
       val file = getPath(directive)
       val content = relToString(edb, directive)
       FileUtil.writeFile(file, content)
@@ -58,14 +85,32 @@ object Executor extends IRExecutor:
       case s: String => s.toString
       case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
 
+    private def cast(el: String, attr: Attribute): Any = attr match
+      case _ if el.isEmpty => null
+      case Attribute(_, Type.Symbol) => el
+      case Attribute(_, Type.Number | Type.Unsigned) => Try(el.toInt) match
+        case Success(d) => d
+        case Failure(_) => throw IllegalArgumentException(s"Argument $el can not be interpreted as int")
+      case Attribute(_, Type.Float) => Try (el.toFloat) match
+        case Success(d) => d
+        case Failure(_) => throw IllegalArgumentException(s"Argument $el can not be interpreted as float")
+      // TODO: handle DataTypes
+      case Attribute(_, Type.Name(qualName)) => el
 
     private def stringToRel(content: String, directive: ProgramContent.Directive): Relation =
       val delimiter = getSeperator(directive)
       val lines = content.split("\n")
-      val size = lines.head.split(delimiter).length
+      val attrs = lines.head.split(delimiter).toSeq
+      val size = attrs.size
+
+      val relName = directive.name.toString
+      val relation = relationDecl(relName)
+
       val tuples = lines.map { t =>
         val elements = t.split(delimiter)
-        elements.toSeq
+        elements.toSeq.zip(relation.attrs).map { (el, attr) =>
+          cast(el, attr)
+        }
       }.toList
       val params = (0 until size).map(idx => s"param_${idx}")
       Relation.from(directive.name.toString, params, tuples)
@@ -92,9 +137,15 @@ object Executor extends IRExecutor:
     val inputFiles = souffleProg.content.collect {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, name, _) => name.toString -> d
     }.toMap
+
     val outputFiles = souffleProg.content.collect {
       case d@ProgramContent.Directive(DirectiveQualifier.Output, name, _) => name.toString -> d
     }.toMap
-    new Engine(dirFile, process, inputFiles, outputFiles)
+
+    val relationDecl = souffleProg.content.flatMap {
+      case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)
+      case _ => None
+    }.toMap
+    new Engine(dirFile, process, inputFiles, outputFiles, relationDecl)
 
 
