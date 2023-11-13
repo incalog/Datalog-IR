@@ -13,6 +13,7 @@ case class Aggregate(rel: Name, args: Seq[AggregateArg], op: AggregationOperator
   override def vars: Seq[Var] = args.flatMap {
     case AggregateArg.Arg(t) => t.vars
     case AggregateArg.AggregateColumn(t) => t.vars
+    case AggregateArg.WildCard => Seq()
   }
 
 
@@ -20,6 +21,7 @@ case class Aggregate(rel: Name, args: Seq[AggregateArg], op: AggregationOperator
 enum AggregateArg:
   case Arg(t: Term)
   case AggregateColumn(t: Term)
+  case WildCard
 
   def term: Term = this match
     case Arg(t) => t
@@ -28,6 +30,7 @@ enum AggregateArg:
   override def toString: String = this match
     case Arg(t) => t.toString
     case AggregateColumn(t) => s"#$t"
+    case WildCard => "_"
 
 trait AggregationOperator:
   def typecheck(in: Seq[Type]): Either[String, Type]
