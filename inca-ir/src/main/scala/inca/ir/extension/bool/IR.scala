@@ -11,9 +11,6 @@ object IR extends IR { }
 
 case object TBoolean extends Type
 
-case class BoolAtom(t: Term) extends Atom:
-  override def vars: Seq[Var] = t.vars
-
 sealed trait BoolTerm extends Term
 
 case class AtomAsBool(a: Atom) extends BoolTerm:

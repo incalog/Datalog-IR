@@ -6,10 +6,6 @@ import inca.ir.{Atom, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case BoolAtom(t) => checkTerm(t, TBoolean, mode.inverted)
-    case _ => super.checkAtom(atom, mode)
-
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case AtomAsBool(at: Atom) =>
       checkAtom(at, Mode.Bound)

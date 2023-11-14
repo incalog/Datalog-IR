@@ -181,7 +181,7 @@ class GenerateIR {
       irset.SetComprehension(compileExp(build),
         predicates.map(p => compileExp(p) match
           case bool.AtomAsBool(at) => at
-          case t => bool.BoolAtom(t)
+          case t => ir.Eq(t, bool.BoolTrue)
         )
       )
     case BinOp(e1, "++", e2) => // set union
