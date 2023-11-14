@@ -10,7 +10,6 @@ import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
 import inca.ir.extension.block
 import inca.ir.extension.demand.Hints.IgnoreCall
-import inca.ir.extension.data.Construct
 
 import scala.collection.mutable
 
@@ -18,7 +17,7 @@ import scala.collection.mutable
 trait Lowering extends BaseLowering:
 
   // only generate Coll and Agg relation when met ResultMono
-  private val debug: Boolean = false
+  private val debug: Boolean = true
 
   override def loweredIRs: Set[BaseIR] = Set(IR)
 
@@ -28,9 +27,7 @@ trait Lowering extends BaseLowering:
 
   private val cachedResultMonoCtx: mutable.Map[ResultMono, TMono] = mutable.Map()
 
-  private val cachedCollRelation: mutable.Map[Name, Relation] = mutable.Map()
-
-  private val cachedAggRelation: mutable.Map[Name, Relation] = mutable.Map()
+  private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
 
 
   override def visitModule(module: Module): Module =
@@ -39,13 +36,8 @@ trait Lowering extends BaseLowering:
     cachedAddMonoCtx ++= typechecker.getAddMonoInfo
     cachedResultMonoCtx ++= typechecker.getResultMonoInfo
     val m1: Module = super.visitModule(module)
-    val m2: Module = Module(m1.name, m1.lang, m1.contents ++ cachedCollRelation.map((k, v) => v) ++ cachedAggRelation.map((k, v) => v))
-    if debug then
-      println("After the first phase before type checking\n" + m2)
-      println()
-    typechecker.typecheck(m2)
-    if debug then
-      println("Type checking successful\n\n")
+    val m2: Module = Module(m1.name, m1.lang, m1.contents ++ cachedRelation.map((k, v) => v))
+    println("Before demand lowering\n" + m2)
     val dmLowering = new demand.Lowering {}
     val m3: Module = dmLowering.visitProgram(Seq(m2)).head
     if debug then
@@ -72,27 +64,17 @@ trait Lowering extends BaseLowering:
     val info: AddMonoInfo = cachedAddMonoCtx(atom)
     val mt = TMono(info.monoTy.asInstanceOf[TMono].input, info.monoTy.asInstanceOf[TMono].output, info.keysTy)
     val collName: Name = genCollName(mt)
-    if (cachedCollRelation.contains(collName)) {
-      val auxCollRel = cachedCollRelation(collName)
-      var availableBodies: Set[Body] = auxCollRel.bodies.toSet
-      availableBodies += Body(Seq(Eq(Var(Name("a")), input)))
-      cachedCollRelation(collName) = Relation(
-        auxCollRel.name,
-        auxCollRel.params,
-//        auxCollRel.bodies :+ Body(Seq(Eq(Var(Name("a")), input)))
-        availableBodies.toSeq
-      )
-    } else {
+    if (!cachedRelation.contains(collName)) {
       val keysParam: Seq[Param] =
         for ((ty, i) <- mt.keys.zipWithIndex)
           yield Param(Name("k_" + i), demand.TDemand(ty))
       val collRel = Relation(
         collName,
         Param(Name("m"), demand.TDemand(mt)) +:
-          keysParam :+ Param(Name("a"), mt.input),
-        Seq(Body(Seq(Eq(Var(Name("a")), input))))
+          keysParam :+ Param(Name("a"), demand.TDemand(mt.input)),
+          Seq(Body(Seq()))
       )
-      cachedCollRelation += collName -> collRel
+      cachedRelation += collName -> collRel
     }
     val collAtom: Atom = Call(collName, mono +: keys :+ input)
     Seq(collAtom)
@@ -107,17 +89,17 @@ trait Lowering extends BaseLowering:
       case Right(tm) => tm
     val mt: TMono = TMono(in, out, term.keys)
     val collName: Name = genCollName(mt)
-    if (!cachedCollRelation.contains(collName)) {
+    if (!cachedRelation.contains(collName)) {
       val keys: Seq[Param] =
         for ((ty, i) <- term.keys.zipWithIndex)
           yield Param(Name("k_" + i), demand.TDemand(ty))
       val collRel = Relation(
         collName,
         Param(Name("m"), demand.TDemand(mt)) +:
-          keys :+ Param(Name("a"), in),
-        Seq()
+          keys :+ Param(Name("a"), demand.TDemand(in)),
+        Seq(Body(Seq()))
       )
-      cachedCollRelation += collName -> collRel
+      cachedRelation += collName -> collRel
       val aggName = genAggName(mt)
       val wildCardArgs = mt.keys.map(_ => WildCard)
       val aggArgs: Seq[AggregateArg] = Arg(Var(Name("m"))) +: wildCardArgs :+
@@ -132,7 +114,7 @@ trait Lowering extends BaseLowering:
           aggAtom
         )))
       )
-      cachedAggRelation += aggName -> aggRel
+      cachedRelation += aggName -> aggRel
     }
 
     Seq(term)

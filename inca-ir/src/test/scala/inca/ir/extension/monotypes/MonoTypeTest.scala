@@ -47,7 +47,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   //               t += 1@(t)
   private lazy val relation2 : Relation = Relation(
     "size",
-    Seq(Param("t", TDemand(TString)), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
+    Seq(Param("t", TString), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
@@ -57,7 +57,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        AddMono(Var("m"), IntNum(2), Seq(Var("t")))
       ))
     )
   )
