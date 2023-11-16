@@ -2,7 +2,7 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, TermType, Type, Var}
+import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, TermType, Type, Var}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:
@@ -35,4 +35,9 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
         args.zip(params).foreach { case (v, ty) =>
           checkTerm(v, ty, mode)
         }
+    case NegDeconstruct(t, name) => lookupConstruct(name, atom) match
+      case None =>
+        error(s"Unknown constructor $name", atom)
+      case Some((DataDefinition(dataName, _), CaseDefinition(_, params))) =>
+        checkTerm(t, TData(dataName), Mode.Bound)
     case _ => super.checkAtom(atom, mode)

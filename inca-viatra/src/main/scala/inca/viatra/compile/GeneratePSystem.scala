@@ -95,6 +95,7 @@ object GeneratePSystem:
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
     val indent = 2
+
     val mod = lowerAndTypeModule(module)
 
     if (mod.contents.exists(c => c.name == mod.name))
@@ -119,48 +120,48 @@ object GeneratePSystem:
     }
 
     s"""
-      |import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
-      |import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
-      |import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
-      |
-      |import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
-      |
-      |import java.util
-      |
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
-      |
-      |import inca.viatra.compile.PSystem
-      |import inca.viatra.runtime.Query.Specification
-      |import inca.viatra.runtime.index.NamedRelationKey
-      |
-      |import inca.viatra.runtime.aggregate.builtin
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
-      |import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
-      |
-      |object ${mod.name} extends PSystem.Module {
-      |${defns.mkString("")}
-      |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
-      |${funs.mkString("\n")}
-      |}
+       |import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+       |import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+       |import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+       |
+       |import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
+       |
+       |import java.util
+       |
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+       |
+       |import inca.viatra.compile.PSystem
+       |import inca.viatra.runtime.Query.Specification
+       |import inca.viatra.runtime.index.NamedRelationKey
+       |
+       |import inca.viatra.runtime.aggregate.builtin
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
+       |
+       |object ${mod.name} extends PSystem.Module {
+       |${defns.mkString("")}
+       |  override val patterns: Map[String, () => Specification] = Map(${nonEmptyRels.mkString(",")})
+       |${funs.mkString("\n")}
+       |}
     """.stripMargin
   }
 
   private def compileBody(moduleName: String, relation: Relation, content: Code)(indent: Int = 0)(implicit env: RuleEnvironment): Code =
     s"""
-      |val body: PBody = new PBody(this)
-      |${relation.params.map(genBodyParam).mkString("\n")}
-      |val exportedParams = new util.ArrayList[ExportedParameter]()
+       |val body: PBody = new PBody(this)
+       |${relation.params.map(genBodyParam).mkString("\n")}
+       |val exportedParams = new util.ArrayList[ExportedParameter]()
       ${relation.params.map { p =>
-          s"|exportedParams.add(new ExportedParameter(body, $VARPREFIX${p.name}, $PARAMPREFIX${p.name}))"
-        }.mkString("\n")}
-      |
-      |body.setSymbolicParameters(exportedParams)
-      |$content
-      |body""".stripMargin.indent(indent)
+      s"|exportedParams.add(new ExportedParameter(body, $VARPREFIX${p.name}, $PARAMPREFIX${p.name}))"
+    }.mkString("\n")}
+       |
+       |body.setSymbolicParameters(exportedParams)
+       |$content
+       |body""".stripMargin.indent(indent)
 
   /** Map expressions to their output variable */
   var evalExp: Seq[(Code, String)] = Seq()
@@ -175,9 +176,9 @@ object GeneratePSystem:
 
     if (relation.isEmpty) {
       return s"""
-         |object ${relation.name} {
-         |  val error = "This pattern was empty"
-         |}""".stripMargin.indent(indent)
+                |object ${relation.name} {
+                |  val error = "This pattern was empty"
+                |}""".stripMargin.indent(indent)
     }
 
     val bodies = if (relation.bodies.nonEmpty)
@@ -206,19 +207,19 @@ object GeneratePSystem:
     val bodiesS = bodies.mkString("{", "}, {", "}")
 
     s"""
-     |object ${relation.name} {
-     |  lazy val instance: Specification = new Specification(generatedPQuery)
-     |
-     |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-     |    ${relation.params.map(genPParam).mkString(s"\n    ")}
-     |
-     |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
-     |
-     |    override def getFullyQualifiedName: String = "$qname"
-     |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
-     |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
-     |  }
-     |}""".stripMargin.indent(indent)
+       |object ${relation.name} {
+       |  lazy val instance: Specification = new Specification(generatedPQuery)
+       |
+       |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+       |    ${relation.params.map(genPParam).mkString(s"\n    ")}
+       |
+       |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
+       |
+       |    override def getFullyQualifiedName: String = "$qname"
+       |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
+       |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
+       |  }
+       |}""".stripMargin.indent(indent)
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
@@ -270,7 +271,12 @@ object GeneratePSystem:
       val pvarName = s"$VARPREFIX$name"
       pVar2Code += pvarName -> (Some(name), s"""env.getValue("$name").asInstanceOf[$ty]""")
       pvarName
-    case Cast(t, ty) => compileTerm(t)
+    case Cast(t, ty) =>
+      // Cast the term
+      t.typ = t.typ match
+        case Some(TermType(_, mode)) => Some(TermType(ty, mode))
+        case _ => throw IllegalStateException(s"Untyped term $t")
+      compileTerm(t)
     case primitive.ScalaConstantTerm(code, ty) =>
       val pvarName = s"$LITPREFIX${genLiteralVarName(code, ty)}"
       pVar2Code += (pvarName -> (None, code))

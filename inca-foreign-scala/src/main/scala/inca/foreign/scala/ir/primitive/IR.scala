@@ -13,6 +13,7 @@ object ScalaInca extends ForeignLanguage:
 
   def compileType(ty: Type): ScalaType = ty match
     case sty@ScalaType(_) => sty
+    case TAny => ScalaType.any
     case TString => ScalaType.string
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
@@ -25,6 +26,7 @@ case class ScalaType(name: String) extends ForeignType:
   override val code: String = name
 
 object ScalaType:
+  def any: ScalaType = ScalaType("Any")
   def string: ScalaType = ScalaType("String")
   def int: ScalaType = ScalaType("Int")
   def double: ScalaType = ScalaType("Double")

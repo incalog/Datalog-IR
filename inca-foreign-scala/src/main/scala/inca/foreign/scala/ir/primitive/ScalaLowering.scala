@@ -10,7 +10,9 @@ import inca.ir.*
 trait ScalaLowering extends primitive.Visitor with BaseLowering:
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
 
-  def isTypeSupported(ty: Type): Boolean
+  def isTypeSupported(ty: Type): Boolean = ty match
+    case TAny => true
+    case _ => false
 
   private var freshCount = 0
 

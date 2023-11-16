@@ -1,0 +1,9 @@
+Explanation: 
+
+# Speed:
+- Overhead of keeping Map around with objects decreases performance for structural approach
+- Viartra needs to compare counter to derive new tuples. Since the counter increases in size, the time for the comparison increases as well
+
+# Memory:
+- Additional relation that filters timestamps is required => filter relation increases with each object and each mutation => more memory
+- Map used to represent structural counter consumes more memory with each object as well

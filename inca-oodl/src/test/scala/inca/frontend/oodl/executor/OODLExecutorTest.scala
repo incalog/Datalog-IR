@@ -66,6 +66,15 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(3)(res.entries.head)
   }
 
+  test("Subtyping") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Subtyping.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(6)(res.entries.head)
+  }
+
   // We need way more optimizations to make this program executable
   test("Plus") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Plus.oodl")
@@ -152,31 +161,37 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(15)(res.entries.head)
   }
 
-  // TODO: We need a negated destruct here... Why ?
-  /*test("Transitive closure") {
+  test("Transitive closure") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from(setAdt.getClass.getSimpleName, Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
-    println(res)
-  }*/
+    val query = Relation.from("Set$$TString_TString$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    res = loaded.engine.read(query).project(1, 3)
+    val expectedResult = Set(
+      ("A", "W"), ("Z", "Y"), ("Y", "W"), ("B", "C"),
+      ("Y", "Z"), ("X", "Z"), ("Y", "Y"), ("Z", "Z"),
+      ("X", "Y"), ("B", "W"), ("X", "X"), ("Z", "W"),
+      ("Y", "X"), ("X", "W"), ("B", "A"), ("Z", "X")
+    )
+    assertResult(expectedResult)(res.toSet)
+  }
 
   /** Set */
 
-  /*test("Set with Objects") {
+  test("Set with Objects") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClass.oodl")
     val compiled = exec.compileOODL(code)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
-    assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
-  }*/
+    assertResult(Set((3, 4), (10, 4)))(res.toSet)
+  }
 
   test("Set comprehension") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension.oodl")

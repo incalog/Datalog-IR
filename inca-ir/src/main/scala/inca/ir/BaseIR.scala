@@ -94,9 +94,10 @@ object Var {
 case class Cast(t: Term, ty: Type) extends Term:
   override def toString: String =
     if (t.typ.exists(_.ty == ty))
-      t.toString
+      //t.toString
+      s"Cast($t, $ty)"
     else
-      s"$t:$ty"
+      s"Cast($t, $ty)"
   override def vars: Seq[Var] = t.vars
 
 case class Call(name: Name, args: Seq[Term]) extends Atom:

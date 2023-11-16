@@ -14,6 +14,9 @@ trait DataAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
   val dataOps: DataOps[V]
 
   override def evalAtomExtend(at: Atom): AtomResult = at match
+    case NegDeconstruct(t, caseName) =>
+      val TermResult(v, p) = evalTerm(t)
+      dataOps.deconstruct(v, caseName.name, () => AtomResult(trueBool, trueBool))(_ => AtomResult(falseBool, trueBool))
     case Deconstruct(t, caseName, pats) =>
       val TermResult(v, p) = evalTerm(t)
       dataOps.deconstruct(v, caseName.name, () => AtomResult(falseBool, trueBool)) { vs =>

@@ -27,9 +27,7 @@ trait ScalaLowering extends BaseScalaLowering:
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
-    case TString => true
-    case TInt => true
-    case _ => false
+    case _ => super.isTypeSupported(ty)
 
   var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
 

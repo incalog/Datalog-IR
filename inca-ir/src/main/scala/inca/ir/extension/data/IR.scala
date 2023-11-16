@@ -23,6 +23,11 @@ case class Deconstruct(t: Term, caseName: Name, args: Seq[Term]) extends Atom:
     s"?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
 
+case class NegDeconstruct(t: Term, caseName: Name) extends Atom:
+  override def toString: String =
+    s"~?$caseName($t)" + analysisString
+  override def vars: Seq[Var] = t.vars
+
 object IR extends IR { }
 trait IR extends BaseIR:
   override val name: String = "Data"
