@@ -5,12 +5,6 @@ import inca.ir.{Atom, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 
 trait Visitor extends BaseIRVisitor:
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case BoolAtom(t) =>
-      val ts = visitTerm(t)
-      ts.map(BoolAtom.apply)
-    case _ => super.visitAtom(atom))
-
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case term: BoolTerm => visitBoolTerm(term)
     case _ => super.visitTerm(term))

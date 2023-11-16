@@ -14,12 +14,6 @@ trait Lowering extends not.Lowering:
 
   private def freshName(): Name = gensym.freshName(Name(IR.name))
 
-  override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
-    case BoolAtom(t) =>
-      for (v <- visitTerm(t))
-        yield Eq(v, TrueNum)
-    case _ => super.visitAtom(atom))
-
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case term: BoolTerm => lowerTerm(term)
@@ -46,12 +40,6 @@ trait Lowering extends not.Lowering:
         yield Sub(IntNum(1), v)
     case BoolTrue => Seq(TrueNum)
     case BoolFalse => Seq(FalseNum)
-
-  override def negateAtom(atom: Atom): Atom = preserveHints(atom) {
-    atom match
-      case BoolAtom(t) => BoolAtom(BoolNot(t))
-      case _ => super.negateAtom(atom)
-  }
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match

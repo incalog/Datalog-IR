@@ -521,7 +521,7 @@ class GenerateIR:
     case SetComprehension(member, body) =>
       val memberTerms = member.map(compileExpression)
       val bodyTerm = compileExpression(body)
-      irset.SetComprehension(bodyTerm, memberTerms.map(bool.BoolAtom.apply))
+      irset.SetComprehension(bodyTerm, memberTerms.map(t => ir.Eq(t, bool.BoolTrue)))
     case _ =>
       throw IllegalStateException(s"Unhandled expression $expr of class ${expr.getClass}")
 

@@ -20,6 +20,7 @@ class CompilerTest extends AnyFunSuite {
     val compiled = CompiledFunctionalModule(module)
     println(compiled.ir)
     compiled.checked
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.lowered
 
   Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {
