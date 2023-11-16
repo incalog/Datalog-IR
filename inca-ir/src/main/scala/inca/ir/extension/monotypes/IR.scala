@@ -1,10 +1,9 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.*
-import inca.ir.extension.aggregate.{Aggregate, AggregationOperator, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateArg, AggregationOperator}
 import inca.ir.extension.arithmetic.TInt
-import inca.ir.extension.arithmetic.TDouble
-
+import inca.ir.extension.impure.ImpurityKind
 trait IR extends BaseIR:
   override val name: String = "Mono-Types"
 
@@ -14,12 +13,17 @@ trait IR extends BaseIR:
 
 object IR extends IR { }
 
+object MonoImpurityKind extends ImpurityKind:
+  override val name: String = "MonoImpurity"
+  override val ty: Type = TInt
+
+
 case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
-  override def toString: String = s"Mono[$input, $output]@$keys"
+  override def toString: String = s"Mono[$input, $output]@{${keys.mkString(",")}}"
 
 case class MkMono(mono: MonoDef, args: Seq[Term], keys: Seq[Type]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
-  override def toString: String = s"new $mono(${args.mkString(", ")})@$keys"
+  override def toString: String = s"new $mono(${args.mkString(", ")})@{${keys.mkString(",")}}"
 
 case class AddMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap{_.vars}
@@ -34,6 +38,7 @@ case class MonoAggregate(rel: Name, args: Seq[AggregateArg], op: MonoDef) extend
   override def vars: Seq[Var] = args.flatMap {
     case AggregateArg.Arg(t) => t.vars
     case AggregateArg.AggregateColumn(t) => t.vars
+    case AggregateArg.WildCard => Seq()
   }
   override def toString: String = s"monoAgg($rel(${args.mkString(", ")}), $op)"
 
@@ -55,23 +60,18 @@ trait BuiltInRMT extends MonoDef
 enum ArithmeticMono extends BuiltInNRMT:
   case CountMono
   case MaxMono
+  case SumMono
 
   override def monotypecheck(constructorArgs: Seq[Term]): Either[String, (Type, Type)] = this match
-    case CountMono =>
+    case CountMono | MaxMono | SumMono =>
       if (constructorArgs.nonEmpty)
         Left(s"$CountMono does not take arguments")
       else
         Right((TInt, TInt)) // should be parametric in input type
-    case MaxMono =>
-      if (constructorArgs.nonEmpty)
-        Left(s"$CountMono does not take arguments")
-      else
-        Right((TInt, TInt))
 
   override def typecheck(in: Seq[Type]): Either[String, Type] = this match
-    case CountMono | MaxMono =>
+    case CountMono | MaxMono | SumMono =>
       if (in == Seq(TInt))
         Right(TInt)
       else
         Left(s"The input type of $this is not $in")
-    

@@ -3,7 +3,7 @@ package inca.ir.extension.monotypes
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Var, *}
 import inca.ir.extension.monotypes
-import inca.ir.extension.monotypes.ArithmeticMono.CountMono
+import inca.ir.extension.monotypes.ArithmeticMono.{CountMono, MaxMono}
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
@@ -11,7 +11,8 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.demand
 import inca.ir.extension.aggregate
-import inca.ir.extension.aggregate.AggregateArg.{Arg, AggregateColumn, WildCard}
+import inca.ir.extension.impure
+import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.typing.{IRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -21,15 +22,15 @@ class MonoTypeTest extends AnyFunSuiteLike {
   val baseIR: BaseIR = new BaseIR {}
 
   def module(relations: Relation*)(using typechecker: Typechecker): Module =
-    val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR, relations)
+    val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR+impure.IR, relations)
     try typechecker.typecheck(mod)
     finally {
-//      println(mod)
+      println(mod)
       typechecker.getErrors.foreach(println)
     }
     mod
 
-  // main(t, b) :- MkMono(m, MaxMono, Seq(), MT[Int, Int, Seq(String)),
+  // main(t, b) :- MkMono(m, CountMono, Seq(), MT[Int, Int, Seq(String)),
   //               t = "A", size(t, m), b = m.result()
   private lazy val relation1 : Relation = Relation(
     "main",
@@ -151,7 +152,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     Seq(Param("t", TDemand(TString)), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
     Seq(
       Body(Seq(
-        ExtensionalCall(Name("leaf"), Seq(Var("t"))),
+        Call(Name("leaf"), Seq(Var("t"))),
         AddMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
@@ -177,7 +178,6 @@ class MonoTypeTest extends AnyFunSuiteLike {
 //      Eq(Var("b"), ResultMono(Var("m")))
     )))
   )
-
   private lazy val relation8: Relation = Relation(
     "main",
     Seq(
@@ -213,47 +213,29 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   test("Lower Mono Types 3") {
     implicit val typechecker1 = new IRTypechecker {}
-    val mod = module(relation1, relation2, relation3, relation4)
+    val mod = module(relation9, relation2, relation3, relation4)
     val lowering1 = new monotypes.Lowering {}
     val lowered1 = lowering1.visitProgram(Seq(mod)).head
     val typeckecker2 = new IRTypechecker {}
     typeckecker2.typecheck(lowered1)
   }
 
-
+  // main(t, b1, b2) :- MkMono(m1, CountMono, Seq(), MT[Int, Int, Seq(String)),
+  //               MkMono(m2, MaxMono, Seq(), MT[Int, Int, Seq(String))
+  //               t = "A", size(t, m1), b1 = m1.result(), b2 = m2.result()
   private lazy val relation9: Relation = Relation(
-    Name("Coll"),
-    Seq(Param(Name("m"), TString), Param(Name("k"), TString), Param(Name("t"), TInt)),
+    "main",
+    Seq(Param("t", TString), Param("b1", TInt), Param("b2", TInt)),
     Seq(Body(Seq(
-      Eq(Var("m"), StringLit("m")),
-      Eq(Var("k"), StringLit("t")),
-      Eq(Var("t"), IntNum(1))
+      Eq(Var("m1"), MkMono(CountMono, Seq(), Seq(TString))),
+      Eq(Var("m2"), MkMono(MaxMono, Seq(), Seq(TString))),
+      Eq(Var("t"), StringLit("A")),
+      Call(Name("size"), Seq(Var("t"), Var("m1"))),
+      Call(Name("size"), Seq(Var("t"), Var("m2"))),
+      Eq(Var("b1"), ResultMono(Var("m1"))),
+      Eq(Var("b2"), ResultMono(Var("m2")))
     )))
   )
 
-  private lazy val relation10: Relation = Relation(
-    Name("Agg"),
-    Seq(Param(Name("m"), TString), Param(Name("k"), TString), Param(Name("t"), TInt)),
-    Seq(Body(Seq(
-      Call(Name("Coll"), Seq(Var("m"), Var("k"), Var("t")))
-    )))
-  )
-
-  private lazy val relation11: Relation = Relation(
-    Name("main"),
-    Seq(Param(Name("t"), TInt)),
-    Seq(Body(Seq(
-      Aggregate(Name("Agg"), Seq(WildCard, WildCard,
-        AggregateColumn(Var("t"))), CountMono)
-    )))
-  )
-
-  test("aggregate type checking"){
-    implicit val typechecker = new IRTypechecker {}
-    val m1 = Module("M", BaseIR.language + aggregate.IR, Seq(relation9, relation10, relation11))
-    println(m1)
-    val mod = module(relation9, relation10, relation11)
-    print(mod)
-  }
 
 }

@@ -12,6 +12,8 @@ trait Typechecker extends BaseIRTypechecker{
 
   private var cachedResultMonoCtx: Map[ResultMono, TMono] = Map()
 
+  private var cachedMkMonoCtx: Map[MkMono, Seq[Type]] = Map()
+
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case MkMono(mono, args, keyTypes) =>
       val (in, out) = mono.monotypecheck(args) match
@@ -19,6 +21,8 @@ trait Typechecker extends BaseIRTypechecker{
           error(msg, term)
           (TAny, TAny)
         case Right(tm) => tm
+      val argsType: Seq[Type] = args.map(a => inferTerm(a, mode).ty)
+      cachedMkMonoCtx += MkMono(mono, args, keyTypes) -> argsType
       TMono(in, out, keyTypes).bound
     case ResultMono(m) =>
       inferTerm(m, mode).ty match
@@ -54,4 +58,7 @@ trait Typechecker extends BaseIRTypechecker{
   def getAddMonoInfo: Map[AddMono, AddMonoInfo] = cachedAddMonoCtx
 
   def getResultMonoInfo: Map[ResultMono, TMono] = cachedResultMonoCtx
+
+  def getMkMonoInfo: Map[MkMono, Seq[Type]] = cachedMkMonoCtx
+
 }
