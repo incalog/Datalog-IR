@@ -34,7 +34,7 @@ trait Lowering extends BaseLowering:
 
   private val cachedMkMonoCtx: mutable.Map[MkMono, Seq[Type]] = mutable.Map()
 
-  private val cachedRelation: mutable.Map[Name, ModuleEntry] = mutable.Map()
+  private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
 
   private val monoData: DataDefinition = DataDefinition(
     Name("Mono"), Seq(CaseDefinition(Name("Mono"), Seq(TInt, TString)))
@@ -159,9 +159,18 @@ trait Lowering extends BaseLowering:
           )),
         Eq(Var(Name("name")), StringLit(term.mono.toString)),
         aggAtom
-      )))
-    )
-    cachedRelation += aggName -> aggRel
+    ))))
+    if (!cachedRelation.contains(aggName)){
+      cachedRelation += aggName -> aggRel
+    } else {
+      val cachedAgg = cachedRelation(aggName)
+      cachedRelation(aggName) = Relation(
+        cachedAgg.name,
+        cachedAgg.params,
+        cachedAgg.bodies ++ aggRel.bodies
+      )
+    }
+
     val state = Var(Name(gensym.fresh("st")))
     val monoDefId = term.mono.toString
     val mono: Construct = Construct(Name("Mono"), Seq(state, StringLit(monoDefId)))
