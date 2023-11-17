@@ -1,9 +1,11 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.*
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg, AggregationOperator}
+import inca.ir.extension.aggregate.{AggregateArg, AggregationOperator}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.impure.ImpurityKind
+import inca.ir.extension.demand.TDemand
+
 trait IR extends BaseIR:
   override val name: String = "Mono-Types"
 
@@ -38,7 +40,7 @@ case class MonoAggregate(rel: Name, args: Seq[AggregateArg], op: MonoDef) extend
   override def vars: Seq[Var] = args.flatMap {
     case AggregateArg.Arg(t) => t.vars
     case AggregateArg.AggregateColumn(t) => t.vars
-    case AggregateArg.WildCard => Seq()
+    case AggregateArg.WildCard(t) => t.vars
   }
   override def toString: String = s"monoAgg($rel(${args.mkString(", ")}), $op)"
 
@@ -71,7 +73,7 @@ enum ArithmeticMono extends BuiltInNRMT:
 
   override def typecheck(in: Seq[Type]): Either[String, Type] = this match
     case CountMono | MaxMono | SumMono =>
-      if (in == Seq(TInt))
+      if (in == Seq(TDemand(TInt)) || in == Seq(TInt))
         Right(TInt)
       else
         Left(s"The input type of $this is not $in")

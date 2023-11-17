@@ -13,6 +13,9 @@ trait AggregateAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
         case AggregateArg.AggregateColumn(t) =>
           assign(t, top)
           top
+        case AggregateArg.WildCard(t) =>
+          assign(t, top)
+          top
       }
       AtomResult(topBool, falseBool)
     case _ => super.evalAtomExtend(at)

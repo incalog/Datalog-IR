@@ -11,6 +11,7 @@ import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
 import inca.ir.extension.block
 import inca.ir.extension.demand.Hints.IgnoreCall
+import inca.ir.extension.impure
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{Construct, DataDefinition, CaseDefinition, TData, Deconstruct}
@@ -37,8 +38,10 @@ trait Lowering extends BaseLowering:
   private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
 
   private val monoData: DataDefinition = DataDefinition(
-    Name("Mono"), Seq(CaseDefinition(Name("Mono"), Seq(TInt, TString)))
+    Name("Mono"), Seq(CaseDefinition(Name("mkMono"), Seq(TInt, TString)))
   )
+
+  private var hasMono: Boolean = false
 
 
 
@@ -51,15 +54,22 @@ trait Lowering extends BaseLowering:
     val m2: Module = Module(
       m1.name,
       m1.lang,
-      monoData +: (m1.contents ++ cachedRelation.map((k, v) => v))
+      (if hasMono then Seq(monoData) else Seq()) ++
+        m1.contents ++ cachedRelation.map((k, v) => v)
     )
     if debug then println("Before demand lowering\n" + m2)
     val dmLowering = new demand.Lowering {}
     val m3: Module = dmLowering.visitProgram(Seq(m2)).head
     if debug then println("After demand lowering, program becomes\n" + m3)
-    typechecker.typecheck(m3)
-    if debug then println("Type checking successful\n\n")
-    m3
+  //    m3
+    m2
+
+//    val impLowering = new impure.Lowering {}
+//    val m4: Module = impLowering.visitProgram(Seq(m3)).head
+//    if debug then println("After impure lowering, program becomes\n" + m4)
+//    typechecker.typecheck(m4)
+//    if debug then println("Type checking successful\n\n")
+//    m4
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     def lowerTMono(ty: Type): Type =
@@ -78,16 +88,19 @@ trait Lowering extends BaseLowering:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
-      case AddMono(m, input, keys) => lowerAddMono(AddMono(m, input, keys))
+      case AddMono(m, input, keys) =>
+        hasMono = true; lowerAddMono(AddMono(m, input, keys))
       case Eq(lhs, rhs) => (lhs, rhs) match
-        case (Var(v), MkMono(mono, args, keys)) => lowerMkMono(Var(v), MkMono(mono, args, keys))
+        case (Var(v), MkMono(mono, args, keys)) =>
+          hasMono = true; lowerMkMono(Var(v), MkMono(mono, args, keys))
         case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
-      case ResultMono(m) => lowerResultMono(ResultMono(m))
+      case ResultMono(m) =>
+        hasMono = true; lowerResultMono(ResultMono(m))
       case _ => super.visitTerm(term)
   }
 
@@ -140,7 +153,7 @@ trait Lowering extends BaseLowering:
       cachedRelation += collName -> collRel
     }
     val aggName = genAggName(mt)
-    val wildCardArgs = mt.keys.map(_ => WildCard)
+    val wildCardArgs = mt.keys.map(_ => WildCard(Var(Name(gensym.fresh("_")))))
     val aggArgs: Seq[AggregateArg] = Arg(Var(Name("m"))) +: wildCardArgs :+
       AggregateColumn(Var(Name("b")))
     // TODO: an aggregate operator should be able to receive initializing arguments
@@ -152,7 +165,7 @@ trait Lowering extends BaseLowering:
       Seq(Body(Seq(
         Deconstruct(
           Var(Name("m")),
-          Name("Mono"),
+          Name("mkMono"),
           Seq(
             Var(Name("id")),
             Var(Name("name"))
@@ -173,7 +186,7 @@ trait Lowering extends BaseLowering:
 
     val state = Var(Name(gensym.fresh("st")))
     val monoDefId = term.mono.toString
-    val mono: Construct = Construct(Name("Mono"), Seq(state, StringLit(monoDefId)))
+    val mono: Construct = Construct(Name("mkMono"), Seq(state, StringLit(monoDefId)))
     val imp: Impure = Impure(
       state,
       Seq(Eq(v, mono)),

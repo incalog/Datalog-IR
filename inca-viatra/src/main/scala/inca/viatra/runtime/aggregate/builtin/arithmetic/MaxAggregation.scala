@@ -1,8 +1,8 @@
 package inca.viatra.runtime.aggregate.builtin.arithmetic
 
-import inca.viatra.runtime.aggregate.Aggregation
+import inca.viatra.runtime.aggregate.JoinAggregation
 
-object MaxIntAggregation extends Aggregation[Int]:
+object MaxIntAggregation extends JoinAggregation[Int]:
   override val name: String = "max"
   override def init: Int = Int.MinValue
   override def join(v1: Int, v2: Int): Int = v1.max(v2)
@@ -10,7 +10,7 @@ object MaxIntAggregation extends Aggregation[Int]:
   override val isCommutative: Boolean = true
   override val hasUnjoin: Boolean = false
 
-object MaxDoubleAggregation extends Aggregation[Double]:
+object MaxDoubleAggregation extends JoinAggregation[Double]:
   override val name: String = "max"
   override def init: Double = Double.MinValue
   override def join(v1: Double, v2: Double): Double = v1.max(v2)

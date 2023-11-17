@@ -19,7 +19,8 @@ trait Typechecker extends BaseIRTypechecker:
         case (AggregateArg.Arg(t), p) =>
           checkTerm(t, p.ty, Mode.Bound)
           None
-        case (AggregateArg.WildCard, p) =>
+        case (AggregateArg.WildCard(t), p) =>
+          checkTerm(t, p.ty, Mode.Binding)
           None
       }
       op.typecheck(aggregands) match

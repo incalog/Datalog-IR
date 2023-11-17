@@ -7,6 +7,8 @@ import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, Relation, Var}
+import inca.ir.extension.aggregate.Aggregate
+import inca.ir.extension.aggregate.AggregateArg.WildCard
 
 import scala.collection.mutable.ListBuffer
 
@@ -114,7 +116,11 @@ trait Lowering extends BaseLowering:
         preserveHints(atom) {
           Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
         }
-      // TODO: What about aggregations ?
+      case Aggregate(rel, args, op) if !pureRelations.contains(rel) =>
+        preserveHints(atom) {
+          Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildCard(Var(Name(gensym.fresh("_"))))), op))
+        }
+//       TODO: What about aggregations ?
       case _ => super.visitAtom(atom)
 
 class CollectImpurityKinds extends IRVisitor:

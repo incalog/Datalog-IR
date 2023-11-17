@@ -6,7 +6,7 @@ import java.util.stream
 import scala.jdk.CollectionConverters.*
 
 /** An aggregator for operations that are associative, commutative, and invertible */
-class AggregatorAssocCommInv[V](val agg: Aggregation[V]) extends AbstractMemorylessAggregationOperator[V, V]:
+class AggregatorAssocCommInv[V](val agg: JoinAggregation[V]) extends AbstractMemorylessAggregationOperator[V, V]:
   override def getShortDescription: String = agg.name
   override def getName: String = agg.name
 

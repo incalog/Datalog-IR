@@ -12,6 +12,7 @@ import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.demand
 import inca.ir.extension.aggregate
 import inca.ir.extension.impure
+import inca.ir.extension.data
 import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.typing.{IRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -22,7 +23,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   val baseIR: BaseIR = new BaseIR {}
 
   def module(relations: Relation*)(using typechecker: Typechecker): Module =
-    val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR+impure.IR, relations)
+    val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR+impure.IR+data.IR, relations)
     try typechecker.typecheck(mod)
     finally {
       println(mod)

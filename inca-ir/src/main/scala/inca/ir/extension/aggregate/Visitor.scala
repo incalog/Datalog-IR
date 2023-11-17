@@ -14,7 +14,9 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
         case AggregateArg.AggregateColumn(t) =>
           val Seq(t0) = visitTerm(t)
           Seq(AggregateArg.AggregateColumn(t0))
-        case AggregateArg.WildCard => Seq(WildCard)
+        case AggregateArg.WildCard(t) =>
+          val Seq(t0) = visitTerm(t)
+          Seq(WildCard(t0))
       }
       Seq(Aggregate(rel, newargs, op))
     case _ => super.visitAtom(atom)

@@ -4,9 +4,11 @@ import inca.ir.{Atom, BaseIR, Eq, ExtensionalRelation, ModuleEntry, Name, Relati
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.block
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{ScalaLowering => BaseScalaLowering, IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.string.TString
 
 /**
  * Proposal: Representing ADT as scala enum
@@ -25,6 +27,8 @@ trait ScalaLowering extends BaseScalaLowering:
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
+    case TString => true
+    case TInt => true
     case _ => false
 
   var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
