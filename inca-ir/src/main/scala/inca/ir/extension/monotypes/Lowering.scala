@@ -1,7 +1,7 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, typing}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
@@ -14,7 +14,7 @@ import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.impure
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
-import inca.ir.extension.data.{Construct, DataDefinition, CaseDefinition, TData, Deconstruct}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
 import inca.ir.extension.string.{StringLit, TString}
 
@@ -23,7 +23,7 @@ import scala.collection.mutable
 
 trait Lowering extends BaseLowering:
 
-  private val debug: Boolean = true
+  private val debug: Boolean = false
 
   override def loweredIRs: Set[BaseIR] = Set(IR)
 
@@ -57,20 +57,8 @@ trait Lowering extends BaseLowering:
       (if hasMono then Seq(monoData) else Seq()) ++
         m1.contents ++ cachedRelation.map((k, v) => v)
     )
-    if debug then println("Before demand lowering\n" + m2)
-    val dmLowering = new demand.Lowering {}
-    val m3: Module = dmLowering.visitProgram(Seq(m2)).head
-    if debug then println("After demand lowering, program becomes\n" + m3)
-  //    m3
     m2
-
-//    val impLowering = new impure.Lowering {}
-//    val m4: Module = impLowering.visitProgram(Seq(m3)).head
-//    if debug then println("After impure lowering, program becomes\n" + m4)
-//    typechecker.typecheck(m4)
-//    if debug then println("Type checking successful\n\n")
-//    m4
-
+  
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     def lowerTMono(ty: Type): Type =
       ty match
@@ -193,7 +181,8 @@ trait Lowering extends BaseLowering:
       Add(state, IntNum(1)),
       MonoImpurityKind
     )
-    Seq(imp)
+    val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+    Seq(extcall, imp)
 
 
   private def lowerResultMono(term: ResultMono): Seq[Term] =
