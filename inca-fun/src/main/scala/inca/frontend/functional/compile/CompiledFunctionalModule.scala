@@ -72,6 +72,7 @@ object CompiledFunctionalModule:
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
+    () => new bool.Optimizer {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
     () => new block.Lowering {},

@@ -1,0 +1,7 @@
+module If
+@main def main(): Int =
+  let x = 7 in
+    if (true || x > 0)
+      x
+    else
+      x * -1
