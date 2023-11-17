@@ -84,6 +84,15 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     assertResult(10)(res.entries.head)
   }
 
+  test("If3") {
+    val code = FileUtil.readFileFromResource("functional/unittests/If3.finca")
+    val compiled = exec.compileFunction(code)
+    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(7)(res.entries.head)
+  }
+
   // TODO: Currently we are not getting back booleans, but ints because of the lowering
   //  Either we want an unlower or we want to support booleans ?
   test("Parametric Eq") {
