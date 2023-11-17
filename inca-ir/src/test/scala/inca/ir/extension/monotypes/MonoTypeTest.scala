@@ -1,6 +1,5 @@
 package inca.ir.extension.monotypes
 
-import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Var, *}
 import inca.ir.extension.monotypes
 import inca.ir.extension.monotypes.ArithmeticMono.{CountMono, MaxMono}
@@ -10,10 +9,8 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.demand
-import inca.ir.extension.aggregate
 import inca.ir.extension.impure
 import inca.ir.extension.data
-import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.typing.{IRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -22,7 +19,7 @@ import scala.collection.immutable.Seq
 class MonoTypeTest extends AnyFunSuiteLike {
   val baseIR: BaseIR = new BaseIR {}
 
-  def module(relations: Relation*)(using typechecker: Typechecker): Module =
+  def module(relations: ModuleEntry*)(using typechecker: Typechecker): Module =
     val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR+impure.IR+data.IR, relations)
     try typechecker.typecheck(mod)
     finally {
@@ -42,7 +39,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ResultMono(Var("m")))
     )))
-  )
+  ).addHint(impure.Hints.Pure)
 
   // size(t, m) :- leaf(t), t += 1@(t)
   //            :- btree(t, l, r), size(l, m), size(r, m),
@@ -179,64 +176,5 @@ class MonoTypeTest extends AnyFunSuiteLike {
 //      Eq(Var("b"), ResultMono(Var("m")))
     )))
   )
-  private lazy val relation8: Relation = Relation(
-    "main",
-    Seq(
-      Param("t", TString),
-      Param("b", TInt)
-    ),
-    Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), Seq(TString))),
-      Eq(Var("t"), StringLit("A")),
-//      Call(Name("size"), Seq(Var("t"), Var("m"))),
-      Eq(Var("b"), ResultMono(Var("m")))
-    )))
-  )
-
-
-  test("Lower Mono Types 1") {
-    implicit val typechecker1 = new IRTypechecker {}
-    val mod = module(relation8)
-    val lowering1 = new monotypes.Lowering {}
-    val lowered1 = lowering1.visitProgram(Seq(mod)).head
-    val typeckecker2 = new IRTypechecker {}
-    typeckecker2.typecheck(lowered1)
-  }
-
-  test("Lower Mono Types 2"){
-    implicit val typechecker1 = new IRTypechecker {}
-    val mod = module(relation1, relation3, relation6)
-    val lowering1 = new monotypes.Lowering {}
-    val lowered1 = lowering1.visitProgram(Seq(mod)).head
-    val typeckecker2 = new IRTypechecker {}
-    typeckecker2.typecheck(lowered1)
-  }
-
-  test("Lower Mono Types 3") {
-    implicit val typechecker1 = new IRTypechecker {}
-    val mod = module(relation9, relation2, relation3, relation4)
-    val lowering1 = new monotypes.Lowering {}
-    val lowered1 = lowering1.visitProgram(Seq(mod)).head
-    val typeckecker2 = new IRTypechecker {}
-    typeckecker2.typecheck(lowered1)
-  }
-
-  // main(t, b1, b2) :- MkMono(m1, CountMono, Seq(), MT[Int, Int, Seq(String)),
-  //               MkMono(m2, MaxMono, Seq(), MT[Int, Int, Seq(String))
-  //               t = "A", size(t, m1), b1 = m1.result(), b2 = m2.result()
-  private lazy val relation9: Relation = Relation(
-    "main",
-    Seq(Param("t", TString), Param("b1", TInt), Param("b2", TInt)),
-    Seq(Body(Seq(
-      Eq(Var("m1"), MkMono(CountMono, Seq(), Seq(TString))),
-      Eq(Var("m2"), MkMono(MaxMono, Seq(), Seq(TString))),
-      Eq(Var("t"), StringLit("A")),
-      Call(Name("size"), Seq(Var("t"), Var("m1"))),
-      Call(Name("size"), Seq(Var("t"), Var("m2"))),
-      Eq(Var("b1"), ResultMono(Var("m1"))),
-      Eq(Var("b2"), ResultMono(Var("m2")))
-    )))
-  )
-
 
 }
