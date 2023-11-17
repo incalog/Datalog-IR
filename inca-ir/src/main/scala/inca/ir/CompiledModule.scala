@@ -56,17 +56,17 @@ trait CompiledModule:
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
-      /*println(s"Lowering $i")
+      println(s"Lowering $i")
       println(l)
-      println()*/
+      println()
 
       val checker = new IRTypechecker()
       checker.typecheck(l)
 
       /*println(s"Checked $i")
       println(l)
-      println()
-      i += 1*/
+      println()*/
+      i += 1
       l
     }
 
