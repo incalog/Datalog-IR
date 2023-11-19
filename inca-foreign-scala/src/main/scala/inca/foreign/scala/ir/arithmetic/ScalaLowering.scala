@@ -29,6 +29,7 @@ trait ScalaLowering extends BaseScalaLowering:
       case ArithmeticAggregationOperator.Min => ScalaAggregationOperator.Min(compileType(ty))
       case ArithmeticAggregationOperator.Max => ScalaAggregationOperator.Max(compileType(ty))
       case ArithmeticMono.SumMono => ScalaAggregationOperator.SumMono
+      case ArithmeticMono.MaxMono => ScalaAggregationOperator.MaxMono
       case _ => op
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

@@ -70,6 +70,7 @@ object ScalaAggregationOperator:
   def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation.aggregator")
   def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation.aggregator")
   def SumMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"builtin.arithmetic.SumMono.aggregator")
+  def MaxMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"builtin.arithmetic.MaxMono.aggregator")
   val Count: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, "")
   def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
 
