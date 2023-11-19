@@ -21,7 +21,8 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
 
   private lazy val pipeline: Seq[() => (String, BaseIRVisitor)] = Seq(
     () => ("monotype", new monotypes.Lowering {}),
-    () => ("impure", new impure.Lowering {})
+    () => ("impure", new impure.Lowering {}),
+    () => ("demand", new Lowering {})
   )
 
   private val debug: Boolean = false

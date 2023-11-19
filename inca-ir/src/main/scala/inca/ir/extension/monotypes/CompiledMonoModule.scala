@@ -13,6 +13,8 @@ case class CompiledMonoModule(mod: Module) extends CompiledModule:
 
   override def ir: Module = mod
 
+  override def optimize(p: Seq[Module]): Seq[Module] = p
+
 object CompiledMonoModule:
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new Lowering {},

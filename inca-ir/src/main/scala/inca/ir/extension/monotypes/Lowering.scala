@@ -1,7 +1,7 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, typing}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, Type, Var, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
@@ -15,7 +15,8 @@ import inca.ir.extension.impure
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
-import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
+import inca.ir.extension.arithmetic.{Add, DoubleNum, IntNum, TDouble, TInt}
+import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.string.{StringLit, TString}
 
 import scala.collection.mutable
@@ -42,8 +43,6 @@ trait Lowering extends BaseLowering:
   )
 
   private var hasMono: Boolean = false
-
-
 
   override def visitModule(module: Module): Module =
     val typechecker = new IRTypechecker {}
@@ -92,11 +91,92 @@ trait Lowering extends BaseLowering:
       case _ => super.visitTerm(term)
   }
 
-  private def genCollName(mt: TMono): Name =
-    Name(s"Coll$$${mt.input}$$${mt.output}$$" + mt.keys.mkString("$"))
+  private def genCollName(mt: TMono, neg:Boolean = false): Name =
+    val prefix: String = s"Coll$$${mt.input}$$${mt.output}$$" + mt.keys.mkString("$")
+    if neg then Name(prefix + "$false") else Name(prefix)
+
+  private def genCollParams(mt: TMono): Seq[Param] =
+    val keysParam: Seq[Param] =
+      for ((ty, i) <- mt.keys.zipWithIndex)
+        yield Param(Name("k_" + i), TDemand(ty))
+    Param(Name("m"), TDemand(TData(Name("Mono")))) +:
+      keysParam :+
+      Param(Name("p"), TBoolean) :+
+      Param(Name("a"), TDemand(mt.input))
+
+
+  private def genCollRel(mt: TMono): Relation =
+    Relation(
+      genCollName(mt),
+      genCollParams(mt),
+      Seq(Body(Seq(Eq(Var(Name("p")), BoolTrue))))
+    )
+
+  private def genDefaultValue(ty: Type): Term = ty match
+    case TInt => IntNum(0)
+    case TString => StringLit("")
+    case TDouble => DoubleNum(0)
+    case _ => ???
+
+  private def genAuxCollRel(mt: TMono): Relation =
+    Relation(
+      genCollName(mt, neg = true),
+      Seq(
+        Param(Name("p"), TBoolean),
+        Param(Name("a"), mt.input)
+      ),
+      Seq(
+        Body(Seq(
+          Eq(IntNum(1), IntNum(0)),
+          Eq(Var(Name("p")), BoolFalse),
+          Eq(Var(Name("a")), genDefaultValue(mt.input))
+        ))
+      )
+    ).addHint(impure.Hints.Pure)
 
   private def genAggName(mt: TMono): Name =
     Name(s"Agg$$${mt.input}$$${mt.output}")
+
+  private def vars(s: String): Seq[Var] =
+    s.split(" ").map(v => Var(Name(v)))
+
+
+  private def genAggRel(mt: TMono, op: MonoDef): Relation =
+    val destMono: Atom = Deconstruct(
+      Var(Name("m")), Name("mkMono"),
+      Seq(Var(Name("id")), Var(Name("name")))
+    )
+    val opCons: Atom = Eq(Var(Name("name")), StringLit(op.toString))
+    val commonAggBody: Seq[Atom] = Seq(destMono, opCons)
+    val Seq(p, b): Seq[Term] = vars("p b")
+    val agg1Args: Seq[AggregateArg] = Arg(Var(Name("m"))) +:
+        mt.keys.map(_ => WildCard(Var(Name(gensym.fresh("k")))))
+        :+ Arg(p) :+ AggregateColumn(b)
+    val agg1: Aggregate = Aggregate(genCollName(mt), agg1Args, op).addHint(IgnoreCall)
+    val body1: Body = Body(commonAggBody :+ Eq(p, BoolTrue) :+ agg1)
+    val agg2Args: Seq[AggregateArg] = Seq(Arg(p), AggregateColumn(b))
+    val agg2: Aggregate = Aggregate(genCollName(mt, neg = true), agg2Args, op).addHint(IgnoreCall)
+    val body2: Body = Body(commonAggBody :+ Eq(p, BoolFalse) :+ agg2)
+    val name: Name = genAggName(mt)
+    val params: Seq[Param] = Seq(
+      Param(Name("m"), TDemand(TData(Name("Mono")))),
+      Param(Name("b"), mt.output)
+    )
+    Relation(name, params, Seq(body1, body2))
+
+  private def genImp(mt: TMono, lhs: Var, op: MonoDef): Seq[Atom] =
+    val state = Var(Name(gensym.fresh("st")))
+    val monoDefId = op.toString
+    val monoADT: Construct = Construct(Name("mkMono"), Seq(state, StringLit(monoDefId)))
+    val imp: Impure = Impure(
+      state,
+      Seq(Eq(lhs, monoADT)),
+      Add(state, IntNum(1)),
+      MonoImpurityKind
+    )
+    val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+    Seq(extcall, imp)
+
 
   protected def lowerAddMono(atom: AddMono) : Seq[Atom] =
     val mono: Term = atom.m
@@ -107,18 +187,10 @@ trait Lowering extends BaseLowering:
     val mt = TMono(info.monoTy.asInstanceOf[TMono].input, info.monoTy.asInstanceOf[TMono].output, info.keysTy)
     val collName: Name = genCollName(mt)
     if (!cachedRelation.contains(collName)) {
-      val keysParam: Seq[Param] =
-        for ((ty, i) <- mt.keys.zipWithIndex)
-          yield Param(Name("k_" + i), TDemand(ty))
-      val collRel = Relation(
-        collName,
-        Param(Name("m"), TDemand(TData(Name("Mono")))) +:
-          keysParam :+ Param(Name("a"), TDemand(mt.input)),
-          Seq(Body(Seq()))
-      )
+      val collRel = genCollRel(mt)
       cachedRelation += collName -> collRel
     }
-    val collAtom: Atom = Call(collName, mono +: keys :+ input)
+    val collAtom: Atom = Call(collName, mono +: keys :+ BoolTrue :+ input)
     Seq(collAtom)
 
   private def lowerMkMono(v: Var, term:MkMono) : Seq[Atom] =
@@ -128,61 +200,24 @@ trait Lowering extends BaseLowering:
       case Right(tm) => tm
     val mt: TMono = TMono(in, out, term.keys)
     val collName: Name = genCollName(mt)
+    val collNameAux: Name = genCollName(mt, neg=true)
     if (!cachedRelation.contains(collName)) {
-      val keys: Seq[Param] =
-        for ((ty, i) <- term.keys.zipWithIndex)
-          yield Param(Name("k_" + i), TDemand(ty))
-      val collRel = Relation(
-        collName,
-        Param(Name("m"), TDemand(TData(Name("Mono")))) +:
-          keys :+ Param(Name("a"), TDemand(in)),
-        Seq(Body(Seq()))
-      )
-      cachedRelation += collName -> collRel
+      cachedRelation += collName -> genCollRel(mt)
+      require(!cachedRelation.contains(collNameAux))
+      cachedRelation += collNameAux -> genAuxCollRel(mt)
     }
-    val aggName = genAggName(mt)
-    val wildCardArgs = mt.keys.map(_ => WildCard(Var(Name(gensym.fresh("_")))))
-    val aggArgs: Seq[AggregateArg] = Arg(Var(Name("m"))) +: wildCardArgs :+
-      AggregateColumn(Var(Name("b")))
-    // TODO: an aggregate operator should be able to receive initializing arguments
-    val aggAtom: Aggregate = Aggregate(collName, aggArgs, term.mono)
-    aggAtom.addHint(IgnoreCall)
-    val aggRel: Relation = Relation(
-      aggName,
-      Seq(Param(Name("m"), TDemand(TData(Name("Mono")))), Param(Name("b"), out)),
-      Seq(Body(Seq(
-        Deconstruct(
-          Var(Name("m")),
-          Name("mkMono"),
-          Seq(
-            Var(Name("id")),
-            Var(Name("name"))
-          )),
-        Eq(Var(Name("name")), StringLit(term.mono.toString)),
-        aggAtom
-    ))))
-    if (!cachedRelation.contains(aggName)){
-      cachedRelation += aggName -> aggRel
+    val aggRel = genAggRel(mt, term.mono)
+    if (!cachedRelation.contains(aggRel.name)){
+      cachedRelation += aggRel.name -> aggRel
     } else {
-      val cachedAgg = cachedRelation(aggName)
-      cachedRelation(aggName) = Relation(
+      val cachedAgg = cachedRelation(aggRel.name)
+      cachedRelation(aggRel.name) = Relation(
         cachedAgg.name,
         cachedAgg.params,
         cachedAgg.bodies ++ aggRel.bodies
       )
     }
-
-    val state = Var(Name(gensym.fresh("st")))
-    val monoDefId = term.mono.toString
-    val mono: Construct = Construct(Name("mkMono"), Seq(state, StringLit(monoDefId)))
-    val imp: Impure = Impure(
-      state,
-      Seq(Eq(v, mono)),
-      Add(state, IntNum(1)),
-      MonoImpurityKind
-    )
-    val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
-    Seq(extcall, imp)
+    genImp(mt, v, term.mono)
 
 
   private def lowerResultMono(term: ResultMono): Seq[Term] =
