@@ -16,6 +16,7 @@ import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.arithmetic.{Add, DoubleNum, IntNum, TDouble, TInt}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{Max => MaxAgg}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.string.{StringLit, TString}
 
@@ -38,11 +39,15 @@ trait Lowering extends BaseLowering:
 
   private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
 
+  private val cachedAggRelation: mutable.Map[Name, mutable.Map[Name, Relation]] = mutable.Map()
+
   private val monoData: DataDefinition = DataDefinition(
     Name("Mono"), Seq(CaseDefinition(Name("mkMono"), Seq(TInt, TString)))
   )
 
   private var hasMono: Boolean = false
+
+  private var hasMkMono: Boolean = false
 
   override def visitModule(module: Module): Module =
     val typechecker = new IRTypechecker {}
@@ -54,7 +59,7 @@ trait Lowering extends BaseLowering:
       m1.name,
       m1.lang,
       (if hasMono then Seq(monoData) else Seq()) ++
-        m1.contents ++ cachedRelation.map((k, v) => v)
+        m1.contents ++ cachedRelation.map((k, v) => v) ++ mergeCachedAgg()
     )
     m2
   
@@ -164,6 +169,25 @@ trait Lowering extends BaseLowering:
     )
     Relation(name, params, Seq(body1, body2)).addHint(impure.Hints.Pure)
 
+  private def genAggMaxName(mt: TMono): Name =
+    Name(s"Agg$$${mt.input}$$${mt.output}$$Max")
+
+  private def genAggRelMax(mt: TMono): Relation =
+    val name: Name = genAggMaxName(mt)
+    val params: Seq[Param] = Seq(
+      Param(Name("m"), TDemand(TData(Name("Mono")))),
+      Param(Name("b"), mt.output)
+    )
+    val body: Body = Body(Seq(
+      Aggregate(
+        genAggName(mt),
+        Seq(Arg(Var(Name("m"))), AggregateColumn(Var(Name("b")))),
+        MaxAgg
+      )
+    ))
+
+    Relation(name, params, Seq(body)).addHint(impure.Hints.Pure)
+
   private def genImp(mt: TMono, lhs: Var, op: MonoDef): Seq[Atom] =
     val state = Var(Name(gensym.fresh("st")))
     val monoDefId = op.toString
@@ -174,9 +198,46 @@ trait Lowering extends BaseLowering:
       Add(state, IntNum(1)),
       MonoImpurityKind
     )
-    val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
-    Seq(extcall, imp)
+    if (!hasMkMono) {
+      hasMkMono = true
+      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+      Seq(extcall, imp)
+    } else {
+      Seq(imp)
+    }
 
+
+  private def updateCachedAgg(aggRel: Relation, opName: Name) : Unit =
+    val aggName: Name = aggRel.name
+    if (!cachedAggRelation.contains(aggName)) {
+      val map: mutable.Map[Name, Relation] = mutable.Map()
+      map += opName -> aggRel
+      cachedAggRelation += aggName -> map
+    } else {
+      val map: mutable.Map[Name, Relation] = cachedAggRelation(aggName)
+      if (!map.contains(opName)) {
+        map += opName -> aggRel
+      }
+    }
+
+  private def mergeCachedAgg(): Seq[Relation] =
+    def mergeRelation(rel1: Relation, rel2: Relation) : Relation =
+      require(rel1.name == rel2.name)
+      require(rel1.params == rel2.params)
+      Relation(rel1.name, rel1.params, rel1.bodies ++ rel2.bodies)
+    val relations = cachedAggRelation map {
+      case (k1, m1) =>
+        require(m1.nonEmpty)
+        val (nm, rel) = m1.head
+        val rels = m1 map { case (k2, v) => v }
+        val bodies = rels.foldLeft[Relation](rel)(mergeRelation).bodies
+        Relation(
+          rel.name,
+          rel.params,
+          bodies
+        ).addHint(impure.Hints.Pure)
+    }
+    relations.toSeq
 
   protected def lowerAddMono(atom: AddMono) : Seq[Atom] =
     val mono: Term = atom.m
@@ -207,15 +268,10 @@ trait Lowering extends BaseLowering:
       cachedRelation += collNameAux -> genAuxCollRel(mt)
     }
     val aggRel = genAggRel(mt, term.mono)
-    if (!cachedRelation.contains(aggRel.name)){
-      cachedRelation += aggRel.name -> aggRel
-    } else {
-      val cachedAgg = cachedRelation(aggRel.name)
-      cachedRelation(aggRel.name) = Relation(
-        cachedAgg.name,
-        cachedAgg.params,
-        cachedAgg.bodies ++ aggRel.bodies
-      )
+    updateCachedAgg(aggRel, Name(term.mono.toString))
+    val aggMaxName = genAggMaxName(mt)
+    if (!cachedRelation.contains(aggMaxName)) {
+      cachedRelation += aggMaxName -> genAggRelMax(mt)
     }
     genImp(mt, v, term.mono)
 
@@ -223,7 +279,7 @@ trait Lowering extends BaseLowering:
   private def lowerResultMono(term: ResultMono): Seq[Term] =
     require(cachedResultMonoCtx.contains(term))
     val ty: TMono = cachedResultMonoCtx(term)
-    val aggName: Name = genAggName(ty)
+    val aggName: Name = genAggMaxName(ty)
     val mvar: Var = Var(term.m.asInstanceOf[Var].name)
     val b: Term = Var(Name(mvar.toString + "r"))
     val call: Call = Call(aggName, Seq(mvar, b))
