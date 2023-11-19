@@ -110,7 +110,7 @@ trait Lowering extends BaseLowering:
       genCollName(mt),
       genCollParams(mt),
       Seq(Body(Seq(Eq(Var(Name("p")), BoolTrue))))
-    )
+    ).addHint(impure.Hints.Pure)
 
   private def genDefaultValue(ty: Type): Term = ty match
     case TInt => IntNum(0)
@@ -162,7 +162,7 @@ trait Lowering extends BaseLowering:
       Param(Name("m"), TDemand(TData(Name("Mono")))),
       Param(Name("b"), mt.output)
     )
-    Relation(name, params, Seq(body1, body2))
+    Relation(name, params, Seq(body1, body2)).addHint(impure.Hints.Pure)
 
   private def genImp(mt: TMono, lhs: Var, op: MonoDef): Seq[Atom] =
     val state = Var(Name(gensym.fresh("st")))
