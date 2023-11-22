@@ -54,13 +54,13 @@ trait CompiledModule:
     var i = 0
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
-//      println(s"Lowering $i")
+      println(s"Lowering $i")
       val Seq(l) = lowFun.visitProgram(Seq(m))
-//      println(l)
-//      println()
+      println(l)
+      println()
       val checker = new IRTypechecker()
       checker.typecheck(l)
-//      i += 1
+      i += 1
       l
     }
 
@@ -77,6 +77,9 @@ trait CompiledModule:
       // Don't typecheck after postprocessing
       l
     }
+
+  // TODO implement
+  def valueNumbering(p: Module): Module = p
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter

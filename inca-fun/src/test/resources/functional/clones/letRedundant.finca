@@ -1,0 +1,5 @@
+module Let
+@main def main(): Int =
+  let x = 7 in
+    let y = 7 in
+        y

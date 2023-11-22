@@ -1,0 +1,5 @@
+module Let2
+@main def main(z: Int): Int =
+  let x = z in
+    let y = z in
+        x * y

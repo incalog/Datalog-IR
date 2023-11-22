@@ -1,0 +1,14 @@
+module IfCondition2
+@main def main(z: Int): Int =
+    let x = 2 * z in
+        let y = z * 2 in
+            if (x > 0)
+                if (y < 0)
+                    x
+                else
+                    y
+            else
+                if (y < 0)
+                  x
+                else
+                  y
