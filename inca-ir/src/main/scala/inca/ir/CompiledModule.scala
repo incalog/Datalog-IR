@@ -86,6 +86,8 @@ trait CompiledModule:
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
     aeval.evalModule(p.head)
+    //println("Eval module: ")
+    //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = new IRTypechecker

@@ -9,7 +9,7 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case NegDeconstruct(t, caseName) =>
       val ts = visitTerm(t)
-        ts.map(NegDeconstruct(_, caseName))
+      ts.map(NegDeconstruct(_, caseName))
     case Deconstruct(t, caseName, args) =>
       val ts = visitTerm(t)
       val aargs = args.flatMap(visitTerm)

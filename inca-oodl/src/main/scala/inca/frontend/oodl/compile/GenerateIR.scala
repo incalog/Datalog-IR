@@ -256,7 +256,7 @@ class GenerateIR:
         ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this"), compileExpression(f.body.get)))
     }
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(body, unusedResultVar) ++ assignUserFields)))
-  //.addHint(Hints.Pure)
+      //.addHint(Hints.Pure)
 
   // Prevent compiling inherited fields multiple times
   var visitedFields: Set[(ClassDef, Name)] = Set.empty

@@ -1,26 +1,12 @@
 package inca.foreign.scala.ir.data
 
-import inca.ir.{Atom, BaseIR, Eq, ExtensionalRelation, ModuleEntry, Name, Relation, Term, TermType, Type, name2string}
-import inca.ir.lowering.BaseLowering
+import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, Term, TermType, Type, name2string}
 import inca.ir.extension.block
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.arithmetic.TInt
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
-import inca.ir.extension.string.TString
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, NegDeconstruct, TData}
 
-/**
- * Proposal: Representing ADT as scala enum
- *
- * Step 1: For each ADT definition generate a corresponding scala enum.
- * Step 2: Transfer each ADT type to scala type of the corresponding enum
- * Step 3: Constructing an ADT instance should generate a scala object of this type
- * Step 4: Deconstructing an ADT instance
- *         - extract values via pattern match to optional tuple
- *         - check that tuple is not None
- *         - generate datalog variable for each tuple entry
- */
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
@@ -56,6 +42,16 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case NegDeconstruct(term, caseName) =>
+      val ty = term.typ match
+        case Some(TermType(t, _)) => t
+        case _ => throw IllegalArgumentException(s"Untyped expression $term")
+      val defTy = compileType(ty)
+      val caseTy = ScalaType(caseName)
+      val isInstanceOfCode = s"(obj: ${defTy.name}) => obj.isInstanceOf[${caseTy.name}]"
+      val isInstanceOfCall = ScalaTerm(isInstanceOfCode, ScalaType.bool, visitTerm(term))
+      val guard = Eq(ScalaConstantTerm.FALSE, isInstanceOfCall)
+      Seq(guard)
     case Deconstruct(term, caseName, args) =>
       val ty = term.typ match
         case Some(TermType(t, _)) => t

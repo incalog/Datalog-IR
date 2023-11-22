@@ -105,7 +105,7 @@ case class Call(name: Name, args: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"!$name${args.mkString("(", ", ", ")")}" + analysisString
+  override def toString: String = s"~$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
@@ -113,7 +113,7 @@ case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}" + analysisString
+  override def toString: String = s"ext ~$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:

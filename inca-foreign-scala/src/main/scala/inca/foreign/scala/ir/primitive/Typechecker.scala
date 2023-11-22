@@ -27,16 +27,12 @@ trait Typechecker extends BaseIRTypechecker:
       if (aggregatedColumn >= args.size)
         error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
       val params = lookupRelationParams(rel, args.size, atom)
-      val argMode = mode match
-        case Mode.Binding => Mode.Collapse // TODO: Verify this
-        case Mode.Bound => Mode.Collapse
-        case Mode.Collapse => Mode.Collapse
       args.zip(params).zipWithIndex.foreach {
         case ((t, p), i) if i == aggregatedColumn =>
           assertComparable(p.ty, ty, atom)
-          checkTerm(t, p.ty, argMode)
+          checkTerm(t, p.ty, Mode.Collapse)
         case ((t, p), i) =>
-          checkTerm(t, p.ty, argMode)
+          checkTerm(t, p.ty, Mode.Collapse)
       }
       checkTerm(out, ty, mode)
     case _ => super.checkAtom(atom, mode)

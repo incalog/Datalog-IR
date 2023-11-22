@@ -29,7 +29,7 @@ enum Mode:
   def inverted: Mode = this match
     // TODO: Bound is wrong, since we can do something like NegCall("A", _, _)
     //  wildcards should not be bound. Is collapse correct ?
-    case Binding => Collapse // Bound
+    case Binding => Collapse
     case Bound | Collapse => Binding
   
   def ||(that: Mode): Mode = this match
