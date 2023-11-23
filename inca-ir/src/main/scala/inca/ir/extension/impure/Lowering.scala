@@ -6,9 +6,8 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, Relation, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
-import inca.ir.extension.aggregate.AggregateArg.WildCard
 
 import scala.collection.mutable.ListBuffer
 
@@ -104,21 +103,21 @@ trait Lowering extends BaseLowering:
       //  How do we make this nice ?
       case Call(name, args) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
         preserveHints(atom) {
-          Seq(Call(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+          Seq(Call(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))).arg)))
         }
       case Call(name, args) if !pureRelations.contains(name) =>
-        val impVars = impurities.map(getImpurityCounter)
-        val freshImpVars = impurities.map(freshImpurityCounter)
+        val impVars = impurities.map(getImpurityCounter).map(_.arg)
+        val freshImpVars = impurities.map(freshImpurityCounter).map(_.arg)
         preserveHints(atom) {
-          Seq(Call(name, args.flatMap(visitTerm) ++ impVars ++ freshImpVars))
+          Seq(Call(name, args.flatMap(visitArg) ++ impVars ++ freshImpVars))
         }
       case NegCall(name, args) if !pureRelations.contains(name) =>
         preserveHints(atom) {
-          Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
+          Seq(NegCall(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => WildcardArg)))
         }
       case Aggregate(rel, args, op) if !pureRelations.contains(rel) =>
         preserveHints(atom) {
-          Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildCard(Var(Name(gensym.fresh("_"))))), op))
+          Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildcardArg), op))
         }
 //       TODO: What about aggregations ?
       case _ => super.visitAtom(atom)

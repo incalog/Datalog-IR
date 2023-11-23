@@ -1,19 +1,19 @@
 package inca.ir.extension.aggregateset
 
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.AggregateArg
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.not
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{Atom, Term, Type}
+import inca.ir.{Atom, Term, TermArg, Type}
 
 trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case AggregateSet(rel, args, op) =>
       val newargs = args.flatMap {
-        case AggregateArg.Arg(t) => visitTerm(t).map(AggregateArg.Arg.apply)
-        case AggregateArg.AggregateColumn(t) =>
+        case TermArg(t) => visitTerm(t).map(TermArg.apply)
+        case AggregateColumnArg(t) =>
           val Seq(t0) = visitTerm(t)
-          Seq(AggregateArg.AggregateColumn(t0))
+          Seq(AggregateColumnArg(t0))
       }
       Seq(AggregateSet(rel, newargs, op))
     case _ => super.visitAtom(atom)

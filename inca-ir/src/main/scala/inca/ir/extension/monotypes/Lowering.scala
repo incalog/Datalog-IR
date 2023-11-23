@@ -1,14 +1,13 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, Type, Var, typing}
+import inca.ir.{Arg, Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, TermArg, Type, Var, WildcardArg, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
 import inca.ir.typing.IRTypechecker
 import inca.ir.extension.aggregate
-import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.block
 import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.impure
@@ -16,7 +15,7 @@ import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.arithmetic.{Add, DoubleNum, IntNum, TDouble, TInt}
-import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{Max => MaxAgg}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.Max as MaxAgg
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.string.{StringLit, TString}
 
@@ -154,12 +153,10 @@ trait Lowering extends BaseLowering:
     val opCons: Atom = Eq(Var(Name("name")), StringLit(op.toString))
     val commonAggBody: Seq[Atom] = Seq(destMono, opCons)
     val Seq(p, b): Seq[Term] = vars("p b")
-    val agg1Args: Seq[AggregateArg] = Arg(Var(Name("m"))) +:
-        mt.keys.map(_ => WildCard(Var(Name(gensym.fresh("k")))))
-        :+ Arg(p) :+ AggregateColumn(b)
+    val agg1Args: Seq[Arg] = TermArg(Var(Name("m"))) +: mt.keys.map(_ => WildcardArg) :+ TermArg(p) :+ AggregateColumnArg(b)
     val agg1: Aggregate = Aggregate(genCollName(mt), agg1Args, op).addHint(IgnoreCall)
     val body1: Body = Body(commonAggBody :+ Eq(p, BoolTrue) :+ agg1)
-    val agg2Args: Seq[AggregateArg] = Seq(Arg(p), AggregateColumn(b))
+    val agg2Args: Seq[Arg] = Seq(TermArg(p), AggregateColumnArg(b))
     val agg2: Aggregate = Aggregate(genCollName(mt, neg = true), agg2Args, op).addHint(IgnoreCall)
     val body2: Body = Body(commonAggBody :+ Eq(p, BoolFalse) :+ agg2)
     val name: Name = genAggName(mt)
@@ -181,7 +178,7 @@ trait Lowering extends BaseLowering:
     val body: Body = Body(Seq(
       Aggregate(
         genAggName(mt),
-        Seq(Arg(Var(Name("m"))), AggregateColumn(Var(Name("b")))),
+        Seq(TermArg(Var(Name("m"))), AggregateColumnArg(Var(Name("b")))),
         MaxAgg
       )
     ))
@@ -200,7 +197,7 @@ trait Lowering extends BaseLowering:
     )
     if (!hasMkMono) {
       hasMkMono = true
-      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state.arg))
       Seq(extcall, imp)
     } else {
       Seq(imp)
@@ -251,7 +248,7 @@ trait Lowering extends BaseLowering:
       val collRel = genCollRel(mt)
       cachedRelation += collName -> collRel
     }
-    val collAtom: Atom = Call(collName, mono +: keys :+ BoolTrue :+ input)
+    val collAtom: Atom = Call(collName, mono.arg +: keys.map(_.arg) :+ BoolTrue.arg :+ input.arg)
     Seq(collAtom)
 
   private def lowerMkMono(v: Var, term:MkMono) : Seq[Atom] =
@@ -282,5 +279,5 @@ trait Lowering extends BaseLowering:
     val aggName: Name = genAggMaxName(ty)
     val mvar: Var = Var(term.m.asInstanceOf[Var].name)
     val b: Term = Var(Name(mvar.toString + "r"))
-    val call: Call = Call(aggName, Seq(mvar, b))
+    val call: Call = Call(aggName, Seq(mvar.arg, b.arg))
     Seq(block.Block(Seq(call), b))

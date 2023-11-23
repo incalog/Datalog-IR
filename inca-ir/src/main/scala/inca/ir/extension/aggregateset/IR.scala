@@ -11,9 +11,6 @@ trait IR extends BaseIR:
   override def requires: Language = Language(IR) + aggregate.IR
 
 /** Aggregates over a set (rather than a relation) */
-case class AggregateSet(rel: Name, args: Seq[AggregateArg], op: AggregationOperator) extends Atom:
+case class AggregateSet(rel: Name, args: Seq[Arg], op: AggregationOperator) extends Atom:
   override def toString: String = s"aggregateSet($rel(${args.mkString(", ")}), $op)"
-  override def vars: Seq[Var] = args.flatMap {
-    case AggregateArg.Arg(t) => t.vars
-    case AggregateArg.AggregateColumn(t) => t.vars
-  }
+  override def vars: Seq[Var] = args.flatMap(_.vars)

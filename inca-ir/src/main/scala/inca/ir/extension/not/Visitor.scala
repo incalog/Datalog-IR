@@ -26,6 +26,22 @@ trait Visitor extends BaseIRVisitor:
           val disjunction = Disjunction(alts.toList.map(DisjunctionAlternative.apply))
           Seq(disjunction)
         }
+      case WeakNot(at) =>
+        val atoms = visitAtom(at)
+        if (atoms.isEmpty)
+          throw FailedBody
+        else if (atoms.size == 1)
+          Seq(WeakNot(atoms.head))
+        else {
+          val alts = new ListBuffer[Seq[Atom]]
+          val prefix = new ListBuffer[Atom]
+          for (atom <- atoms) {
+            alts += prefix.toList :+ WeakNot(atom)
+            prefix += atom
+          }
+          val disjunction = Disjunction(alts.toList.map(DisjunctionAlternative.apply))
+          Seq(disjunction)
+        }
       case _ => super.visitAtom(atom)
   }
 
@@ -37,5 +53,6 @@ trait Visitor extends BaseIRVisitor:
     case Eq(lhs, rhs) => Neq(lhs, rhs)
     case Neq(lhs, rhs) => Eq(lhs, rhs)
     case Not(at) => at
+    case WeakNot(at) => at
 
 

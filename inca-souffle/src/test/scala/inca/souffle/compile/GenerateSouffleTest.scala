@@ -4,10 +4,11 @@ import inca.ir.*
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.data
 import inca.ir.execution.Relation as Rel
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.util.SourceLocation
 import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.extension.{aggregateset, aggregate, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
+import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 
 class GenerateSouffleTest extends AnyFunSuite {
@@ -79,7 +80,7 @@ class GenerateSouffleTest extends AnyFunSuite {
     Seq(
       Body(Seq(
         Call("pathCol", Seq(Var("X"), Var("Y"), Var("DUMMY"))),
-        aggregate.Aggregate("pathCol", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.Arg(Var("Y")),  aggregate.AggregateArg.AggregateColumn(Var("D"))), arith.ArithmeticAggregationOperator.Min))),
+        aggregate.Aggregate("pathCol", Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.Min))),
     )
   )
 
@@ -87,7 +88,7 @@ class GenerateSouffleTest extends AnyFunSuite {
     Seq(
       Body(Seq(
         Call("edge", Seq(Var("X"), Var("DUMMY"))),
-        aggregate.Aggregate("edge", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.AggregateColumn(Var("M"))), arith.ArithmeticAggregationOperator.Max))),
+        aggregate.Aggregate("edge", Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.Max))),
     )
   )
 

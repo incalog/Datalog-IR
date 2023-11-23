@@ -1,7 +1,7 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.*
-import inca.ir.extension.aggregate.{AggregateArg, AggregationOperator}
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.impure.ImpurityKind
 import inca.ir.extension.demand.TDemand
@@ -36,12 +36,8 @@ case class ResultMono(m: Term) extends Term:
   override def toString: String = s"$m.result()"
 
 
-case class MonoAggregate(rel: Name, args: Seq[AggregateArg], op: MonoDef) extends Term:
-  override def vars: Seq[Var] = args.flatMap {
-    case AggregateArg.Arg(t) => t.vars
-    case AggregateArg.AggregateColumn(t) => t.vars
-    case AggregateArg.WildCard(t) => t.vars
-  }
+case class MonoAggregate(rel: Name, args: Seq[Arg], op: MonoDef) extends Term:
+  override def vars: Seq[Var] = args.flatMap(_.vars)
   override def toString: String = s"monoAgg($rel(${args.mkString(", ")}), $op)"
 
 trait MonoDef extends AggregationOperator:

@@ -4,7 +4,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, Max, Min, Sub, TInt}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
-import inca.ir.extension.not.Not
+import inca.ir.extension.not.{Not, WeakNot}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 
@@ -29,7 +29,7 @@ trait Lowering extends not.Lowering:
       Seq(
         block.Block(Seq(Disjunction(Seq(
           DisjunctionAlternative(a, Eq(Var(x), TrueNum)),
-          DisjunctionAlternative(Not(a), Eq(Var(x), FalseNum))
+          DisjunctionAlternative(WeakNot(a), Eq(Var(x), FalseNum))
         ))), Var(x)))
     case BoolAnd(t1, t2) =>
       visitTerm(t1).zip(visitTerm(t2)).map(Min.apply)

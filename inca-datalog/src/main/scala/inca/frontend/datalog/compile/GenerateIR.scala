@@ -5,7 +5,7 @@ import inca.ir.extension.aggregate
 import inca.ir.extension.arithmetic
 import inca.ir.extension.string
 import inca.frontend.datalog.syntax.*
-import inca.ir.{Language, Name}
+import inca.ir.{Arg, Language, Name, WildcardArg}
 import inca.util.Gensym
 
 class GenerateIR {
@@ -35,14 +35,15 @@ class GenerateIR {
       val aggregateParam = r.rules.head.head(aggregateIndex).asInstanceOf[Param.Aggregated]
 
       val aggOp = compileAggregationOperator(aggregateParam.agg.name)
-      val args = vars.map(v => aggregate.AggregateArg.Arg(ir.Var(v._1)))
+      val args = vars.map(v => ir.Var(v._1).arg)
       val aggArgs = args.updated(aggregateIndex,
-        aggregate.AggregateArg.AggregateColumn(ir.Var(vars(aggregateIndex)._1)))
+        aggregate.AggregateColumnArg(ir.Var(vars(aggregateIndex)._1)))
       val aggAtom = aggregate.Aggregate(collectName, aggArgs, aggOp)
 
       val collectArgs = vars.map(_._1)
-        .updated(aggregateIndex, Name(gensym.fresh("dummy")))
         .map(ir.Var.apply)
+        .map(_.arg)
+        .updated(aggregateIndex, WildcardArg)
       val collectAtom = ir.Call(collectName, collectArgs)
 
       val aggRel = ir.Relation(r.name, params, Seq(ir.Body(Seq(
@@ -68,12 +69,16 @@ class GenerateIR {
     ir.Body(r.body.map(compileAtom) ++ headAtoms)
 
   def compileAtom(a: Atom): ir.Atom = a match
-    case Atom.Call(name, args, false) => ir.Call(name, args.map(compileTerm))
-    case Atom.Call(name, args, true) => ir.NegCall(name, args.map(compileTerm))
+    case Atom.Call(name, args, false) => ir.Call(name, args.map(compileArg))
+    case Atom.Call(name, args, true) => ir.NegCall(name, args.map(compileArg))
     case Atom.Compare(lhs, op, rhs) => op match
       case "==" => ir.Eq(compileTerm(lhs), compileTerm(rhs))
       case "!=" => ir.Neq(compileTerm(lhs), compileTerm(rhs))
       case _ => arithmetic.BinCompare(compileTerm(lhs), compileTerm(rhs), op)
+
+  def compileArg(t: Term): ir.Arg = t match
+    case Term.Var(Name("_")) => ir.WildcardArg
+    case _ => compileTerm(t).arg
 
   def compileTerm(t: Term): ir.Term = t match
     case Term.Var(name) => ir.Var(name)

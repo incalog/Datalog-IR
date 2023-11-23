@@ -4,8 +4,9 @@ import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, name2string, string2name}
+import inca.ir.{ExtensionalRelation, Language, Name, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.block
@@ -25,13 +26,12 @@ import inca.ir.extension.impure
 import inca.util.Gensym
 
 // TODO: Classes with same method name, but different params names that do not inherit from
-//  each other do not work, because dynamic dispatch only includes signature
+//  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
 // TODO: Use gensym everywhere to prevent name collision
 // TODO: Support Class cast error
 // TODO: Support NullPointer error (If method call recv is null write it to a special relation)
 // TODO: Support SetFold
 // TODO: Subtyping of method arguments on override
-// TODO: Subtyping of fields on override
 // TODO: Generics
 // TODO: Pattern matching
 
@@ -102,8 +102,8 @@ class GenerateIR:
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
     val allocInVar = ir.Var(gensym.fresh("ext_" + Alloc.name))
     val mutInVar = ir.Var(gensym.fresh("ext_" + Mutation.name))
-    val inArgs = f.params.map(p => ir.Var(p.name))
-    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar :+ mutInVar)
+    val inArgs = f.params.map(p => ir.Var(p.name).arg)
+    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar.arg :+ mutInVar.arg)
     // set the first impure input to the edb input
     val impureAllocIn = irimpure.Impure(allocInVar, Seq(), allocInVar, Alloc)
     val impureMutIn = irimpure.Impure(mutInVar, Seq(), mutInVar, Mutation)
@@ -143,10 +143,10 @@ class GenerateIR:
           ir.Eq(ir.Var("ty2"), irstring.StringLit(ty2))
         ))
       } :+ ir.Body(Seq(
-        ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("ty"))),
-        ir.Call(subtypeRelationName, Seq(ir.Var("ty"), ir.Var("ty2")))
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("ty").arg)),
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty").arg, ir.Var("ty2").arg))
       )) :+ ir.Body(Seq(
-        ir.Call(subtypeRelationName, Seq(ir.Var("ty1"), ir.Var("_$0"))),
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("_$0").arg)),
         ir.Eq(ir.Var("ty2"), ir.Var("ty1"))
       ))
     ).addHint(impure.Hints.Pure)
@@ -253,7 +253,7 @@ class GenerateIR:
     val assignUserFields = classDef.fields.filter(!_.isGeneratedConstructorField).map {
       case f: FieldDef if f.body.isEmpty => throw IllegalStateException(s"Encountered unassigned field ${f.name}")
       case f: FieldDef =>
-        ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this"), compileExpression(f.body.get)))
+        ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg))
     }
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(body, unusedResultVar) ++ assignUserFields)))
       //.addHint(Hints.Pure)
@@ -289,7 +289,7 @@ class GenerateIR:
       val tsMaxParam = ir.Param("aggTs", Mutation.ty)
       val filterRel = ir.Relation(filterRelName, Seq(thisParam, tsParam, tsMaxParam), Seq(
         ir.Body(Seq(
-          ir.Call(qualifiedName, Seq(ir.Var("this"), ir.Var(gensym.freshName("_")), ir.Var("aggTs")))
+          ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.WildcardArg, ir.Var("aggTs").arg))
             .addHint(demand.Hints.IgnoreCall),
           irarith.LT(ir.Var("aggTs"), ir.Var("ts"))
         )))).addHint(impure.Hints.Pure)
@@ -300,10 +300,11 @@ class GenerateIR:
         irimpure.Impure(mutVar, Seq(
           iragg.Aggregate(
             filterRelName,
-            Seq(iragg.AggregateArg.Arg(ir.Var("this")), iragg.AggregateArg.Arg(mutVar), iragg.AggregateArg.AggregateColumn(maxTs)),
+            Seq(ir.Var("this").arg, mutVar.arg, iragg.AggregateColumnArg(maxTs)),
             irarith.ArithmeticAggregationOperator.Max
           ),
-          ir.Call(qualifiedName, Seq(ir.Var("this"), ir.Var("value"), maxTs)).addHint(demand.Hints.IgnoreCall)
+          ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.Var("value").arg, maxTs.arg))
+            .addHint(demand.Hints.IgnoreCall)
         ), mutVar, Mutation)
       ))))
 
@@ -345,7 +346,7 @@ class GenerateIR:
       val superClassName = superCall.target match
         case Some((c: ClassDef, _)) => c.name
         case _ => throw IllegalStateException(s"Unresolved target for super call '$superCall'")
-      ir.Call(superClassName, ir.Var("this") +: args.map(compileExpression))
+      ir.Call(superClassName, ir.Var("this").arg +: args.map(compileExpression).map(_.arg))
     case Assign(select@Select(recv, targetName), rhs) =>
       val (classDef, fieldDef) = select.target match
         case Some((c, f)) => c -> f
@@ -354,10 +355,10 @@ class GenerateIR:
       val recvTerm = compileExpression(recv)
       val rhsTerm = compileExpression(rhs)
       if (fieldDef.immutable)
-        ir.Call(qualifiedName, Seq(recvTerm, rhsTerm))
+        ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg))
       else
         val mutVar = ir.Var(gensym.freshName("current" + Mutation.name))
-        val fieldSetter = ir.Call(qualifiedName, Seq(recvTerm, rhsTerm, mutVar))
+        val fieldSetter = ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg, mutVar.arg))
         irimpure.Impure(mutVar, fieldSetter, irarith.Add(mutVar, irarith.IntNum(1)), Mutation)
     case Assign(lhs, rhs) =>
       ir.Eq(compileExpression(lhs), compileExpression(rhs))
@@ -461,12 +462,12 @@ class GenerateIR:
             )
           else if (fieldDef.immutable)
             block.Block(
-              ir.Call(qualifiedName, Seq(recvTerm, resultVar)).addHint(demand.Hints.IgnoreCall),
+              ir.Call(qualifiedName, Seq(recvTerm.arg, resultVar.arg)).addHint(demand.Hints.IgnoreCall),
               resultVar
             )
           else
             block.Block(
-              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm, resultVar)),
+              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm.arg, resultVar.arg)),
               resultVar
             )
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
@@ -488,7 +489,7 @@ class GenerateIR:
         val dataConstr = irdata.Construct("OID", caseArgs)
         block.Block(Seq(
           irimpure.Impure(allocVar, ir.Eq(oidVar, dataConstr), irarith.Add(allocVar, irarith.IntNum(1)), Alloc),
-          ir.Call(name, oidVar +: args.map(compileExpression)),
+          ir.Call(name, oidVar.arg +: args.map(compileExpression).map(_.arg)),
         ), oidVar)
       }
 
@@ -504,8 +505,8 @@ class GenerateIR:
       val resultVar = ir.Var(gensym.fresh("return$"))
       block.Block(Seq(
         matchRuntimeType(recvTerm, srcClsVar),
-        ir.Call(dispatchName, Seq(srcClsVar, trgClsVar)),
-        ir.Call(qualifiedMethodName, trgClsVar +: (compileExpression(recv) +: args.map(compileExpression)) :+ resultVar)
+        ir.Call(dispatchName, Seq(srcClsVar.arg, trgClsVar.arg)),
+        ir.Call(qualifiedMethodName, trgClsVar.arg +: (compileExpression(recv).arg +: args.map(compileExpression).map(_.arg)) :+ resultVar.arg)
       ), resultVar)
     case TypeCast(recv, toTyp) =>
       // TODO: Collect values in Cast relation for cast error
@@ -520,11 +521,11 @@ class GenerateIR:
         matchRuntimeType(recvTerm, srcClsVar),
         disjunction.Disjunction(
           Seq(
-            ir.Call(subtypeRelationName, Seq(srcClsVar, irstring.StringLit(t.name))),
+            ir.Call(subtypeRelationName, Seq(srcClsVar.arg, irstring.StringLit(t.name).arg)),
             ir.Eq(resultVar, bool.BoolTrue)
           ),
           Seq(
-            ir.NegCall(subtypeRelationName, Seq(srcClsVar, irstring.StringLit(t.name))),
+            ir.NegCall(subtypeRelationName, Seq(srcClsVar.arg, irstring.StringLit(t.name).arg)),
             ir.Eq(resultVar, bool.BoolFalse)
           ),
         )

@@ -142,18 +142,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
+  def checkCall(name: Name, args: Seq[Arg], atom: Atom, mode: Mode): Unit =
     val params = lookupRelationParams(name, args.size, atom)
     val argMode = mode match
       case Mode.Binding => Mode.Binding
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(params, null, null).foreach {
-      case (t, null) => // missing param
+      case (WildcardArg, _) => // nothing
+      case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument
         // nothing
-      case (t, Param(_, ty)) =>
+      case (TermArg(t), Param(_, ty)) =>
         checkTerm(t, ty, argMode)
     }
 

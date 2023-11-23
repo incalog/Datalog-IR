@@ -12,6 +12,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
+import inca.ir.term2Arg
 
 
 class BaseTest extends AnyFunSuiteLike:

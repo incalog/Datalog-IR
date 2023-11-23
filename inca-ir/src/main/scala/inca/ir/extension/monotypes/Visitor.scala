@@ -1,9 +1,9 @@
 package inca.ir.extension.monotypes
 
-import inca.ir.{Atom, Term, Type}
+import inca.ir.{Atom, Term, TermArg, Type}
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 
 import scala.collection.immutable.Seq
 
@@ -17,10 +17,10 @@ trait Visitor extends BaseIRVisitor {
       Seq(MkMono(mono, visitedArgs, visitedKeys))
     case MonoAggregate(rel, args, op) =>
       val newargs = args.flatMap {
-        case AggregateArg.Arg(t) => visitTerm(t).map(AggregateArg.Arg.apply)
-        case AggregateArg.AggregateColumn(t) =>
+        case TermArg(t) => visitTerm(t).map(TermArg.apply)
+        case AggregateColumnArg(t) =>
           val Seq(t0) = visitTerm(t)
-          Seq(AggregateArg.AggregateColumn(t0))
+          Seq(AggregateColumnArg(t0))
       }
       Seq (MonoAggregate(rel, newargs, op))
     case _ => super.visitTerm(term)

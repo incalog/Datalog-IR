@@ -2,13 +2,14 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
+import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
 
@@ -172,8 +173,11 @@ object GeneratePSystem:
   /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
   var pVar2Code: Map[String, (Option[String], Code)] = Map()
 
-  private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = {
+  private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = gensym.scoped {
     val qname = s"${moduleName}_${relation.name}"
+
+    val allVars = relation.bodies.flatMap(_.atoms.flatMap(_.vars))
+    gensym.register(allVars.map(_.name.name))
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
@@ -229,17 +233,17 @@ object GeneratePSystem:
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
     case Call(name, args) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
-      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new PositivePatternCall(body, $argTuple, $callQuery)"
     case NegCall(name, args) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
-      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new NegativePatternCall(body, $argTuple, $callQuery)"
     case ExtensionalCall(name, args) =>
       val key = s"""NamedRelationKey("$name", ${args.size})"""
-      val tuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       s"new TypeConstraint(body, $tuple, $key)"
     case NegExtensionalCall(name, args) =>
       // use a type filter ?
@@ -264,6 +268,9 @@ object GeneratePSystem:
     case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
       throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
 
+  private def compileArg(a: Arg): Code = a match
+    case TermArg(t) => compileTerm(t)
+    case WildcardArg => throw IllegalStateException("Encountered unexpected wildcard argument!")
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {

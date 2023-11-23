@@ -6,6 +6,8 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
+import inca.ir.extension.aggregate.AggregateColumnArg
+import inca.util.Gensym
 
 trait ScalaLowering extends primitive.Visitor with BaseLowering:
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
@@ -62,6 +64,12 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
       super.visitType(ty)  
   }
 
+  // Wildcards
+
+  override def visitArg(arg: Arg): Seq[Arg] = arg match
+    case WildcardArg => Seq(TermArg(Var(Name(gensym.freshName("_")))))
+    case _ => super.visitArg(arg)
+
   // Aggregation
 
   def visitAggregationOperator(op: aggregate.AggregationOperator, ty: Type): aggregate.AggregationOperator = op
@@ -70,7 +78,7 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
     case aggregate.Aggregate(rel, args, op) =>
       // We only support a single aggregation column
       val Seq((aggTerm, aggColumnIndex)) = args.zipWithIndex.flatMap {
-        case (aggregate.AggregateArg.AggregateColumn(t), i) => Some((t, i))
+        case (AggregateColumnArg(t), i) => Some((t, i))
         case _ => None
       }
 
@@ -79,9 +87,12 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
         case _ => throw IllegalAccessException(s"Illegal aggregate term: $aggTerm of unknown type")
       val Seq(outTerm) = visitTerm(aggTerm)
 
-      val wildcard = Var(gensym.freshName("_"))
-      val relTerms = args.map(_.term).updated(aggColumnIndex, wildcard).flatMap(visitTerm)
+      val argTerms = args.updated(aggColumnIndex, WildcardArg).map {
+        case AggregateColumnArg(t) => t
+        case TermArg(t) => t
+        case WildcardArg => Var(gensym.freshName("_"))
+      }.flatMap(visitTerm)
 
-      Seq(ScalaAggregationAtom(visitAggregationOperator(op, aggOutType), rel.name, outTerm, relTerms, aggColumnIndex))
+      Seq(ScalaAggregationAtom(visitAggregationOperator(op, aggOutType), rel.name, outTerm, argTerms, aggColumnIndex))
     case _ =>
       super.visitAtom(atom)

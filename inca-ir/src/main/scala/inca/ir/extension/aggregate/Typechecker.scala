@@ -1,6 +1,6 @@
 package inca.ir.extension.aggregate
 
-import inca.ir.{Atom, Name, Param, Relation, TAny, Term, TermType, Type, Var}
+import inca.ir.{Atom, Name, Param, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 
 trait Typechecker extends BaseIRTypechecker:
@@ -8,19 +8,19 @@ trait Typechecker extends BaseIRTypechecker:
     case Aggregate(rel, args, op) =>
       val params = lookupRelationParams(rel, args.size, atom)
       val aggregands: Seq[Type] = args.zipAll(params, null, null).flatMap {
-        case (AggregateArg.AggregateColumn(t), p) => // skip
+        case (AggregateColumnArg(t), p) => // skip
           checkTerm(t, p.ty, mode)
           Some(p.ty)
-        case (AggregateArg.Arg(t), null) => // missing param
+        case (TermArg(t), null) => // missing param
           inferTerm(t, Mode.Bound)
           None
         case (null, p) => // missing argument
           None
-        case (AggregateArg.Arg(t), p) =>
+        case (TermArg(t), p) =>
           checkTerm(t, p.ty, Mode.Bound)
           None
-        case (AggregateArg.WildCard(t), p) =>
-          checkTerm(t, p.ty, Mode.Binding)
+        case (WildcardArg, p) =>
+          //checkTerm(t, p.ty, Mode.Binding)
           None
       }
       op.typecheck(aggregands) match

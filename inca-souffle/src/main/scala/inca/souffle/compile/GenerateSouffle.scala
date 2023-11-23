@@ -1,9 +1,10 @@
 package inca.souffle.compile
 import inca.ir
+import inca.ir.TermArg
 import inca.ir.extension.string
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.aggregate as agg
-import inca.ir.extension.aggregate.{AggregateArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
+import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data
 import inca.souffle.syntax.*
 
@@ -57,10 +58,10 @@ object GenerateSouffle:
     Conjunction(body.atoms.map(compileAtom))
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
-    case ir.Call(name, args) => Atom.Call(qualifyName(name), args.map(compileTerm))
-    case ir.NegCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
-    case ir.ExtensionalCall(name, args) => Atom.Call(qualifyName(name), args.map(compileTerm))
-    case ir.NegExtensionalCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
+    case ir.Call(name, args) => Atom.Call(qualifyName(name), args.map(compileArg))
+    case ir.NegCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
+    case ir.ExtensionalCall(name, args) => Atom.Call(qualifyName(name), args.map(compileArg))
+    case ir.NegExtensionalCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
     case ir.Eq(lhs, rhs) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
     case ir.Neq(lhs, rhs) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<") => Atom.LessThan(compileTerm(lhs), compileTerm(rhs))
@@ -70,14 +71,14 @@ object GenerateSouffle:
     case data.Deconstruct(t, name, args) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileTerm)))
     case agg.Aggregate(name, args, op) =>
       val result = args.zipWithIndex.collect {
-        case (col:agg.AggregateArg.AggregateColumn, idx) => col -> idx
+        case (col: AggregateColumnArg, idx) => col -> idx
       }
-      val (agg.AggregateArg.AggregateColumn(ir.Var(resultVar)), resultIdx) = result.head
+      val (AggregateColumnArg(ir.Var(resultVar)), resultIdx) = result.head
       // TODO need to generate safely
       val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
-      val replacedArgs = args.patch(resultIdx, Seq(agg.AggregateArg.Arg(aggregatorVar)), 1)
+      val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)
       val callArgs = replacedArgs.map {
-        case AggregateArg.Arg(t) => compileTerm(t)
+        case TermArg(t) => compileTerm(t)
       }
       val souffleAgg = op match
         case arith.ArithmeticAggregationOperator.Min => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
@@ -90,6 +91,10 @@ object GenerateSouffle:
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
   def cleanName(name: ir.Name): String = name.name.replace("$", "_")
+
+  private def compileArg(a: ir.Arg): Term = a match
+    case ir.TermArg(t) => compileTerm(t)
+    case ir.WildcardArg => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(name) => Term.Var(cleanName(name))

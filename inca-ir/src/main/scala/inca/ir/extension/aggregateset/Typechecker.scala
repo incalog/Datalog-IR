@@ -2,7 +2,7 @@ package inca.ir.extension.aggregateset
 
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.*
-import inca.ir.extension.aggregate.AggregateArg
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.set.TSet
 
 trait Typechecker extends BaseIRTypechecker:
@@ -14,18 +14,18 @@ trait Typechecker extends BaseIRTypechecker:
         case Mode.Bound => Mode.Collapse
         case Mode.Collapse => Mode.Collapse
       val aggregands = args.zipAll(params, null, null).flatMap {
-        case (AggregateArg.AggregateColumn(t), p) => // skip
+        case (AggregateColumnArg(t), p) => // skip
           val ty = p.ty match
             case TSet(ty) => ty
             case ty => error(s"aggregation column should have set type, but was $ty", atom); ty
           checkTerm(t, ty, mode)
           Some(ty)
-        case (AggregateArg.Arg(t), null) => // missing param
+        case (TermArg(t), null) => // missing param
           inferTerm(t, argMode)
           None
         case (null, p) => // missing argument
           None
-        case (AggregateArg.Arg(t), p) =>
+        case (TermArg(t), p) =>
           checkTerm(t, p.ty, argMode)
           None
       }

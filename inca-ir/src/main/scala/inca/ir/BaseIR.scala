@@ -10,6 +10,8 @@ import scala.language.implicitConversions
 implicit def string2name(string: String): Name = Name(string)
 implicit def name2string(name: Name): String = name.toString
 
+implicit def term2Arg(term: Term): Arg = term.arg
+
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
 
@@ -29,9 +31,11 @@ trait ModuleEntry extends SourceLocation with Hints:
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
+
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
+  def arg: Arg = TermArg(this)
 
 trait Type extends SourceLocation with Hints:
   def size: Int = 1
@@ -40,6 +44,15 @@ trait Type extends SourceLocation with Hints:
   def bound: TermType = TermType(this, Mode.Bound)
   def binding: TermType = TermType(this, Mode.Binding)
   def collapsed: TermType = TermType(this, Mode.Collapse)
+
+trait Arg extends SourceLocation:
+  def vars: Seq[Var]
+case class TermArg(t: Term) extends Arg:
+  def vars: Seq[Var] = t.vars
+  override def toString: String = t.toString
+case object WildcardArg extends Arg:
+  def vars: Seq[Var] = Seq()
+  override def toString: String = "_"
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String =
@@ -86,33 +99,30 @@ case class Var(name: Name) extends Term with Var.Target:
       s"$name: ${typ.get}" + analysisString
   override def vars: Seq[Var] = Seq(this)
 
-object Var {
-  //def apply(name: String): Var = new Var(Name(name))
+object Var:
   trait Target extends SourceLocation
-}
 
 case class Cast(t: Term, ty: Type) extends Term:
   override def toString: String =
     if (t.typ.exists(_.ty == ty))
-      //t.toString
-      s"Cast($t, $ty)"
+      t.toString
     else
-      s"Cast($t, $ty)"
+      s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-case class Call(name: Name, args: Seq[Term]) extends Atom:
+case class Call(name: Name, args: Seq[Arg]) extends Atom:
   override def toString: String = s"$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class NegCall(name: Name, args: Seq[Term]) extends Atom:
+case class NegCall(name: Name, args: Seq[Arg]) extends Atom:
   override def toString: String = s"~$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
+case class ExtensionalCall(name: Name, args: Seq[Arg]) extends Atom:
   override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
+case class NegExtensionalCall(name: Name, args: Seq[Arg]) extends Atom:
   override def toString: String = s"ext ~$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -127,7 +137,6 @@ case class Neq(lhs: Term, rhs: Term) extends Atom:
 case object TAny extends Type
 case object TNothing extends Type
 
-//case object TInt extends Type
 
 trait BaseIR:
   val name: String = "Datalog"

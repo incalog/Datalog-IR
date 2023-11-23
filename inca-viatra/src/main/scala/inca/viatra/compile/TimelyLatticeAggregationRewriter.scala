@@ -100,7 +100,7 @@ class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
 
       val orgRelation = Relation(rel.name, rel.params, Seq(
         Body(Seq(
-          Call(Name(qualifiedName), callParams.map(p => Var(p.name))),
+          Call(Name(qualifiedName), callParams.map(p => Var(p.name).arg)),
           ScalaAggregationAtom(agg.op, Name(qualifiedName), agg.out, agg.args, agg.aggregatedColumn)
         ))
       ))

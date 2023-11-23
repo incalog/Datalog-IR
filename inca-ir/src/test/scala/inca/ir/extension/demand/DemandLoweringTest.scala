@@ -6,6 +6,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException, Typechecker}
+import inca.ir.term2Arg
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class DemandLoweringTest extends AnyFunSuiteLike:
