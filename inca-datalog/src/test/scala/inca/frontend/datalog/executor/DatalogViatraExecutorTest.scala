@@ -33,14 +33,11 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
-    // TODO: Double aggregation bug
     var res = loaded.query("SPath", (1, 4, ?))
-    println(res)
-
-    res = loaded.query("SPathExternal", (1, 4, ?))
+    assertResult(1)(res.entries.size)
     assertResult((1, 4, 7))(res.entries.head)
 
-    res = loaded.query("SPathExternal", (1, ?, ?))
+    res = loaded.query("SPath", (1, ?, ?))
     assertResult(Set((1, 4, 7), (1,2,4), (1,3,9)))(res.entries.toSet)
   }
 

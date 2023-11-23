@@ -1,0 +1,58 @@
+package inca.util
+
+import inca.ir.extension.aggregate.Aggregate
+import inca.ir.{Call, Module, Name, NegCall, Relation}
+import inca.foreign.scala.ir.primitive.ScalaAggregationAtom
+import inca.util.DependencyGraph.{AggregationCall, DependencyEdge, NegativeCall, PositiveCall}
+
+
+object DependencyGraph:
+  sealed trait DependencyEdge
+  case object PositiveCall extends DependencyEdge
+  case object NegativeCall extends DependencyEdge
+  case object AggregationCall extends DependencyEdge
+
+
+class DependencyGraph(module: Module) extends Graph[String, DependencyEdge]:
+  val rels: Map[String, Relation] = module.relations
+  module.relations.foreach { (relName, r) =>
+    this.addNode(relName)
+    r.bodies.foreach { body =>
+      body.atoms.foreach {
+        case Call(name, args) =>
+          this.addEdge(relName, name.name, PositiveCall)
+        case NegCall(name, args) =>
+          this.addEdge(relName, name.name, NegativeCall)
+        case agg@ScalaAggregationAtom(_, rel: Name, _, _, _) =>
+          this.addEdge(relName, s"$rel$$${agg.hashCode()}", AggregationCall)
+        case _ => // do nothing
+      }
+    }
+  }
+
+  override protected def nodeToGraphViz(n: String): String =
+    n.replace("$", "_")
+
+  override protected def nodeGraphVizAttributes(n: String): String =
+    "fillcolor=black, style=filled, fontcolor=white"
+
+  def cycleColor(i: Int): String = i match {
+    case 0 => "aquamarine3"
+    case 1 => "darkorchid"
+    case 2 => "dodgerblue3"
+    case 3 => "gold4"
+    case 4 => "maroon4"
+    case 5 => "palegreen4"
+    case 6 => "sienna3"
+    case 7 => "tomato3"
+    case _ => "black"
+  }
+
+  override protected def edgeGraphVizAttributes(from: String, to: String, kind: DependencyEdge): String =
+    val ix = outermostCycles.indexWhere(l => l.contains(from) && l.contains(to))
+    if (ix >= 0)
+      s"color=${cycleColor(ix)}"
+    else kind match {
+      case NegativeCall => "color=red"
+      case _ => "color=black"
+    }

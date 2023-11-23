@@ -9,6 +9,7 @@ import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
+import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
 
 object GeneratePSystem:
@@ -26,19 +27,22 @@ object GeneratePSystem:
   type RuleEnvironment = Map[String, String]
   type Code = String
 
-  def compileModules(modules: Seq[Module]): Code = {
+  def compileModules(modules: Seq[Module], needsDoubleAggregationRewrite: Boolean): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
-    modules.map(m => compileModule(m)(env)).mkString("\n")
+    modules.map(m => compileModule(m, needsDoubleAggregationRewrite)(env)).mkString("\n")
   }
 
-  private def lowerAndTypeModule(module: Module)(implicit env: RuleEnvironment): Module = {
+  private def lowerAndTypeModule(module: Module, withDoubleAggregationRewrite: Boolean)(implicit env: RuleEnvironment): Module = {
     // Do not change this order
-    val lowerings: List[() => BaseLowering] = List(
+    var lowerings: List[() => BaseIRVisitor] = List(
       () => new arithmetic.ScalaLowering {}, // lower arithmetic
       () => new string.ScalaLowering {}, // lower strings
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
     )
+
+    if (withDoubleAggregationRewrite)
+      lowerings :+= (() => new TimelyLatticeAggregationRewriter())
 
     // we need type information to translate the datalog code to scala code
     val typechecker = new Typechecker {}
@@ -93,19 +97,19 @@ object GeneratePSystem:
     result
   }
 
-  def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
+  def compileModule(module: Module, needsDoubleAggregationRewrite: Boolean)(implicit env: RuleEnvironment): Code = {
     val indent = 2
 
-    val mod = lowerAndTypeModule(module)
+    val mod = lowerAndTypeModule(module, needsDoubleAggregationRewrite)
 
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 
     val relations = getProductiveRelations(mod)
 
-    //println()
-    //println(mod)
-    //println()
+    println()
+    println(mod)
+    println()
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList

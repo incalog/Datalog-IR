@@ -84,7 +84,7 @@ class BaseTest extends AnyFunSuiteLike:
       ))
     ))
 
-    var code = GeneratePSystem.compileModules(Seq(mod))
+    var code = GeneratePSystem.compileModules(Seq(mod), false)
     code = s"$code; Path"
 
     val compiler = new ScalaCompiler()

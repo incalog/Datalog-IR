@@ -77,9 +77,9 @@ object ScalaAggregationOperator:
   def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
 
 
-case class ScalaAggregationAtom(agg: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override val lang: ScalaInca.type = ScalaInca
-  override val code: String = agg match
+  override val code: String = op match
     case ScalaAggregationOperator(_, code) => code
     case _ => "???"
 
@@ -90,7 +90,7 @@ case class ScalaAggregationAtom(agg: AggregationOperator, rel: Name, out: Term, 
       case (_, i) if i == aggregatedColumn => "#"
       case (a, _) => s"$a"
     }
-    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $agg"""
+    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
   override val lang: ScalaInca.type = ScalaInca
