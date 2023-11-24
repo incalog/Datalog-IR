@@ -1,7 +1,8 @@
-module IfCondition2
+module IfBranches
 @main def main(z: Int): Int =
     let x = z in
         if (x > 0)
           x
         else
           x  
+    
