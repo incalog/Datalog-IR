@@ -1,4 +1,4 @@
-module IfCondition
+module IfSimple
 @main def main(): Int =
   let x = 2 + 5 in
     let y = 5 + 2 in

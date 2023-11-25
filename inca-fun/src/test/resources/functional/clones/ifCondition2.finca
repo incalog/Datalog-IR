@@ -1,7 +1,8 @@
 module IfCondition2
 @main def main(z: Int): Int =
-    let x = z in
-        if (x > 0)
+  let x = z in
+    let y = z in
+        if (y > 0 && x > 0)
           x
         else
-          x  
+          x * -1
