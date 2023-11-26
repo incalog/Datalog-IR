@@ -8,8 +8,8 @@ import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.{BaseIR, Language, Name, Module as IRModule}
 import inca.ir.extension.*
-import inca.ir.extension.arithmetic.{IntNum, TInt, Mul,Add,GT,LE}
-import ir.{Relation,Param,Eq,Var,Body,Call}
+import inca.ir.extension.arithmetic.{IntNum, TInt, Mul,Add,Sub,GT,LE}
+import ir.{Relation,Param,Eq,Neq,Var,Body,Call}
 
 
 class ClonesFunctionalTest extends AnyFunSuite{
@@ -30,7 +30,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
     val loadedOriginal = exec.loadFunction(compiled)
     val resOriginal = loadedOriginal.execute(functionName, argsExec)
     assertResult(expectedExecResult)(resOriginal.entries.head)
-    // assertResult(expectedExecResult)(exec.loadFunction(vnResult).execute("main", Seq()).entries.head)
+    //assertResult(expectedExecResult)(exec.loadFunction(vnResult).execute(functionName, argsExec).entries.head)
   }
 
 
@@ -248,7 +248,52 @@ class ClonesFunctionalTest extends AnyFunSuite{
   }
 
   test("fib") { // like existing fib program
+    // TODO could a repeated recursive call be saved somehow?  
     performTest("functional/clones/Fib.finca", ???, 2, Seq(1))
+  }
+
+  test("fact") { // like existing fact program
+    val expected = IRModule(Name("Fact"),
+      Language(Set(new BaseIR {}, new data.IR {}, new string.IR {}, new aggregate.IR {}, new arithmetic.IR {})),
+      Seq(
+        Relation(Name("fact"),Seq(Param(Name("n"), TInt),Param(Name("fact_result$0"), TInt)),
+          Seq(
+            Body(Seq(
+              Call(Name("fact$input"),Seq(Var(Name("n")))),
+              Eq(Var(Name("n")),IntNum(1)),
+              Eq(Var(Name("fact_result$0")),IntNum(1))
+            )),
+            Body(Seq(
+              Call(Name("fact$input"),Seq(Var(Name("n")))),
+              Neq(Var(Name("n")),IntNum(1)),  // TODO code clones from if condition like in tests above
+              Call(Name("fact"), Seq(Sub(Var(Name("n")),IntNum(1)),Var(Name("fact_call$0")))),
+              Eq(Var(Name("if_result$0")), Mul(Var(Name("n")),Var(Name("fact_call$0")))),
+              Eq(Var(Name("fact_result$0")), Var(Name("if_result$0")))
+            ))
+          )),
+        Relation(Name("main"), Seq(Param(Name("n"), TInt),Param(Name("main_result$0"), TInt)),
+          Seq(
+            Body(Seq(
+              ExtensionalCall(Name("ext_main$input"), Seq(Var(Name("n")))),
+              Call(Name("fact"),Seq(Var(Name("n")),Var(Name("fact_call$1")))),
+              Eq(Var(Name("main_result$0")),Var(Name("fact_call$1")))
+            ))
+          )),
+        ExtensionalRelation(Name("ext_main$input"),Seq(Param(Name("n"), TInt))),
+        Relation(Name("fact$input"),Seq(Param(Name("n$0"), TInt)),  // TODO how to treat copied code from input _$relations ?
+          Seq(
+            Body(Seq(
+            Call(Name("fact$input"),Seq(Var(Name("n")))),
+            Neq(Var(Name("n")),IntNum(1)),
+            Eq(Var(Name("n$0")),Sub(Var(Name("n")),IntNum(1)))
+            )),
+            Body(Seq(
+              ExtensionalCall(Name("ext_main$input"), Seq(Var(Name("n")))),
+              Eq(Var(Name("n$0")), Var(Name("n")))
+            ))
+          ))
+      ))
+    performTest("functional/clones/Fact.finca", expected, 24, Seq(4))
   }
 
 
