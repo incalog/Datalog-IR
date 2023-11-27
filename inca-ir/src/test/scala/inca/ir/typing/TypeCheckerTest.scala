@@ -100,7 +100,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(), Seq(Body(Seq(
-          NegCall("T", Seq(Var("x"), Var("y")))
+          Call("T", Seq(Var("x"), Var("y")), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -110,7 +110,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(), Seq(Body(Seq(
-          NegCall("T", Seq(Var("x"), Var("y"))),
+          Call("T", Seq(Var("x"), Var("y")), true),
           Neq(Var("x"), Var("y"))
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
@@ -121,7 +121,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-          NegCall("T", Seq(Var("p1"), Var("p2")))
+          Call("T", Seq(Var("p1"), Var("p2")), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -131,7 +131,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-          NegCall("T", Seq(Var("p1"), IntNum(2)))
+          Call("T", Seq(Var("p1"), IntNum(2)), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -160,7 +160,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
     module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+        Not(Call("T", Seq(Var("p1"), Var("p2")), true))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )

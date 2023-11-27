@@ -110,20 +110,16 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-case class Call(name: Name, args: Seq[Arg]) extends Atom:
-  override def toString: String = s"$name${args.mkString("(", ", ", ")")}" + analysisString
+case class Call(name: Name, args: Seq[Arg], neg: Boolean = false) extends Atom:
+  override def toString: String =
+    val negPrefix = if (neg) "~" else ""
+    s"$negPrefix$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class NegCall(name: Name, args: Seq[Arg]) extends Atom:
-  override def toString: String = s"~$name${args.mkString("(", ", ", ")")}" + analysisString
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-case class ExtensionalCall(name: Name, args: Seq[Arg]) extends Atom:
-  override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}" + analysisString
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-case class NegExtensionalCall(name: Name, args: Seq[Arg]) extends Atom:
-  override def toString: String = s"ext ~$name${args.mkString("(", ", ", ")")}" + analysisString
+case class ExtensionalCall(name: Name, args: Seq[Arg], neg: Boolean = false) extends Atom:
+  override def toString: String =
+    val negPrefix = if (neg) "~" else ""
+    s"ext $negPrefix$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:

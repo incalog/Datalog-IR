@@ -91,7 +91,7 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
       case Phase.DeriveDemandRules => atom match
-        case Call(rel, args) =>
+        case Call(rel, args, false) =>
           val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params

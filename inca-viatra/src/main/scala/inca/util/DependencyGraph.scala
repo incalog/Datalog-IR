@@ -1,7 +1,7 @@
 package inca.util
 
 import inca.ir.extension.aggregate.Aggregate
-import inca.ir.{Call, Module, Name, NegCall, Relation}
+import inca.ir.{Call, Module, Name, Relation}
 import inca.foreign.scala.ir.primitive.ScalaAggregationAtom
 import inca.util.DependencyGraph.{AggregationCall, DependencyEdge, NegativeCall, PositiveCall}
 
@@ -19,9 +19,9 @@ class DependencyGraph(module: Module) extends Graph[String, DependencyEdge]:
     this.addNode(relName)
     r.bodies.foreach { body =>
       body.atoms.foreach {
-        case Call(name, args) =>
+        case Call(name, args, false) =>
           this.addEdge(relName, name.name, PositiveCall)
-        case NegCall(name, args) =>
+        case Call(name, args, true) =>
           this.addEdge(relName, name.name, NegativeCall)
         case agg@ScalaAggregationAtom(_, rel: Name, _, _, _) =>
           this.addEdge(relName, s"$rel$$${agg.hashCode()}", AggregationCall)

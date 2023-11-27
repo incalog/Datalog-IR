@@ -95,7 +95,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
 
     val m2 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+        Not(Call("T", Seq(Var("p1"), Var("p2")), true))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )

@@ -39,10 +39,8 @@ trait BaseIRVisitor:
   }
 
   def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
-    case Call(name, args) => Seq(Call(name, args.flatMap(visitArg)))
-    case NegCall(name, args) => Seq(NegCall(name, args.flatMap(visitArg)))
-    case ExtensionalCall(name, args) => Seq(ExtensionalCall(name, args.flatMap(visitArg)))
-    case NegExtensionalCall(name, args) => Seq(NegExtensionalCall(name, args.flatMap(visitArg)))
+    case Call(name, args, neg) => Seq(Call(name, args.flatMap(visitArg), neg))
+    case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args.flatMap(visitArg), neg))
     case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
     case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
     case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")

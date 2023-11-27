@@ -58,17 +58,18 @@ object GenerateSouffle:
     Conjunction(body.atoms.map(compileAtom))
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
-    case ir.Call(name, args) => Atom.Call(qualifyName(name), args.map(compileArg))
-    case ir.NegCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
-    case ir.ExtensionalCall(name, args) => Atom.Call(qualifyName(name), args.map(compileArg))
-    case ir.NegExtensionalCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
+    case ir.Call(name, args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
+    case ir.Call(name, args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
+    case ir.ExtensionalCall(name, args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
+    case ir.ExtensionalCall(name, args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
     case ir.Eq(lhs, rhs) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
     case ir.Neq(lhs, rhs) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<") => Atom.LessThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
-    case data.Deconstruct(t, name, args) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
+    case data.Deconstruct(t, name, args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
+    case data.Deconstruct(t, name, args, true) => ???
     case agg.Aggregate(name, args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx

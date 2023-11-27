@@ -3,16 +3,14 @@ package inca.viatra.compile
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ScalaAggregationAtom
 import inca.ir
-import inca.ir.{Atom, Body, Call, Name, NegCall, Param, Relation, Var}
+import inca.ir.{Atom, Body, Call, Name, Param, Relation, Var}
 import inca.ir.visitors.IRVisitor
 import inca.util.{DependencyGraph, Gensym}
 
 class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with primitive.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Call(name, args) if name == find =>
-      Seq(Call(replace, args))
-    case NegCall(name, args) if name == find =>
-      Seq(NegCall(replace, args))
+    case Call(name, args, neg) if name == find =>
+      Seq(Call(replace, args, neg))
     case ScalaAggregationAtom(agg, name, out, args, aggregatedColumn) if name == find =>
       Seq(ScalaAggregationAtom(agg, replace, out, args, aggregatedColumn))
     case _ => super.visitAtom(atom)

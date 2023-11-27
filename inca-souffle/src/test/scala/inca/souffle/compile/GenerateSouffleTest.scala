@@ -40,7 +40,7 @@ class GenerateSouffleTest extends AnyFunSuite {
   )
   val notConnectedRel= Relation("notconnected", Seq(Param("X", arith.TInt), Param("Y", arith.TInt)),
     Seq(
-      Body(Seq(Call("node", Seq(Var("X"))), Call("node", Seq(Var("Y"))), NegCall("path", Seq(Var("X"), Var("Y")))))
+      Body(Seq(Call("node", Seq(Var("X"))), Call("node", Seq(Var("Y"))), Call("path", Seq(Var("X"), Var("Y")), true)))
     )
   )
   val maxRel = Relation("test", Seq(Param("X", arith.TInt)), Seq(

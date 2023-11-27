@@ -46,10 +46,8 @@ trait Visitor extends BaseIRVisitor:
   }
 
   def negateAtom(atom: Atom): Atom = atom match
-    case Call(name, args) => NegCall(name, args)
-    case NegCall(name, args) => Call(name, args)
-    case ExtensionalCall(name, args) => NegExtensionalCall(name, args)
-    case NegExtensionalCall(name, args) => ExtensionalCall(name, args)
+    case Call(name, args, neg) => Call(name, args, !neg)
+    case ExtensionalCall(name, args, neg) => ExtensionalCall(name, args, !neg)
     case Eq(lhs, rhs) => Neq(lhs, rhs)
     case Neq(lhs, rhs) => Eq(lhs, rhs)
     case Not(at) => at

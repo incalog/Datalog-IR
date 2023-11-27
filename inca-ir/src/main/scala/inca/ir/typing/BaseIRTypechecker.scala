@@ -173,10 +173,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         Seq()
   
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Call(name, args) => checkCall(name, args, atom, mode)
-    case NegCall(name, args) => checkCall(name, args, atom, mode.inverted)
-    case ExtensionalCall(name, args) => checkCall(name, args, atom, mode)
-    case NegExtensionalCall(name, args) => checkCall(name, args, atom, mode.inverted)
+    case Call(name, args, false) => checkCall(name, args, atom, mode)
+    case Call(name, args, true) => checkCall(name, args, atom, mode.inverted)
+    case ExtensionalCall(name, args, false) => checkCall(name, args, atom, mode)
+    case ExtensionalCall(name, args, true) => checkCall(name, args, atom, mode.inverted)
 
     case Eq(lhs, rhs) =>
       val action = startContextTransaction()

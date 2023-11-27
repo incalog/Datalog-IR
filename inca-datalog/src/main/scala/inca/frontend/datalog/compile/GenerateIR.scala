@@ -69,8 +69,7 @@ class GenerateIR {
     ir.Body(r.body.map(compileAtom) ++ headAtoms)
 
   def compileAtom(a: Atom): ir.Atom = a match
-    case Atom.Call(name, args, false) => ir.Call(name, args.map(compileArg))
-    case Atom.Call(name, args, true) => ir.NegCall(name, args.map(compileArg))
+    case Atom.Call(name, args, neg) => ir.Call(name, args.map(compileArg), neg)
     case Atom.Compare(lhs, op, rhs) => op match
       case "==" => ir.Eq(compileTerm(lhs), compileTerm(rhs))
       case "!=" => ir.Neq(compileTerm(lhs), compileTerm(rhs))

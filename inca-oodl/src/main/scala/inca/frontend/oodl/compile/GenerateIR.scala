@@ -526,7 +526,7 @@ class GenerateIR:
             ir.Eq(resultVar, bool.BoolTrue)
           ),
           Seq(
-            ir.NegCall(subtypeRelationName, Seq(srcClsVar.arg, irstring.StringLit(t.name).arg)),
+            ir.Call(subtypeRelationName, Seq(srcClsVar.arg, irstring.StringLit(t.name).arg), true),
             ir.Eq(resultVar, bool.BoolFalse)
           ),
         )

@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Neq, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -82,7 +82,7 @@ object GeneratePSystem:
         case (n, r) =>
           val productiveBodies = r.bodies.filter { b =>
             !b.atoms.exists {
-              case Call(name, args) if emptyRelationNames.contains(name.name) => true
+              case Call(name, args, _) if emptyRelationNames.contains(name.name) => true
               case primitive.ScalaAggregationAtom(_, rel, _, _, _) if emptyRelationNames.contains(rel.name) => true
               case _ => false
             }
@@ -231,21 +231,21 @@ object GeneratePSystem:
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
-    case Call(name, args) =>
+    case Call(name, args, false) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new PositivePatternCall(body, $argTuple, $callQuery)"
-    case NegCall(name, args) =>
+    case Call(name, args, true) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new NegativePatternCall(body, $argTuple, $callQuery)"
-    case ExtensionalCall(name, args) =>
+    case ExtensionalCall(name, args, false) =>
       val key = s"""NamedRelationKey("$name", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       s"new TypeConstraint(body, $tuple, $key)"
-    case NegExtensionalCall(name, args) =>
+    case ExtensionalCall(name, args, true) =>
       // use a type filter ?
       ???
     case Eq(lhs, rhs) =>

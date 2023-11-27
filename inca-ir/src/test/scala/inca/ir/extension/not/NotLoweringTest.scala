@@ -27,9 +27,9 @@ class NotLoweringTest extends AnyFunSuiteLike:
       Not(Eq(term(1), term(2))),
       Not(Neq(term(3), term(4))),
       Not(Call("A1", Seq())),
-      Not(NegCall("A2", Seq())),
+      Not(Call("A2", Seq(), true)),
       Not(ExtensionalCall("A3", Seq())),
-      Not(NegExtensionalCall("A4", Seq())),
+      Not(ExtensionalCall("A4", Seq(), true)),
       Not(Not(Call("A5", Seq()))),
       Not(Not(Not(Not(Call("A6", Seq())))))
     ))
@@ -37,9 +37,9 @@ class NotLoweringTest extends AnyFunSuiteLike:
     val bBlock = module(baseIR.language, Seq(
       Neq(term(1), term(2)),
       Eq(term(3), term(4)),
-      NegCall("A1", Seq()),
+      Call("A1", Seq(), true),
       Call("A2", Seq()),
-      NegExtensionalCall("A3", Seq()),
+      ExtensionalCall("A3", Seq(), true),
       ExtensionalCall("A4", Seq()),
       Call("A5", Seq()),
       Call("A6", Seq())

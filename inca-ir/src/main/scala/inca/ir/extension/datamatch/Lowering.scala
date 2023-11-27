@@ -6,7 +6,7 @@ import inca.ir.extension.*
 import inca.ir.extension.data.Deconstruct
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
+import inca.ir.{Atom, BaseIR, Body, Term}
 
 import scala.collection.mutable.ListBuffer
 

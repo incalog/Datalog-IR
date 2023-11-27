@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
+import inca.ir.{Atom, BaseIR, Body, Term}
 import inca.ir.typing.Mode
 
 import scala.collection.mutable.ListBuffer
