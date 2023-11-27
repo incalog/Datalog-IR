@@ -1,0 +1,49 @@
+// Task 1
+zero(Int).
+zero(X) :- X == 0.
+
+nat(Int).
+nat(X) :- zero(X).
+nat(X) :- nat(Y), X == Y + 1, X < 10. // make it range restricted
+
+square(Int).
+square(X) :- nat(Y), X == Y * Y.
+
+even(Int).
+even(X) :- nat(Y), X == Y * 2.
+
+
+// Task 3
+event(Int, Int, Int).
+event(0, 215, 22).
+event(1, 15, 12).
+event(2, 137, 0).
+event(3, 365, 17).
+event(4, 215, 22).
+
+attend(Int, String).
+attend(0, "David").
+attend(1, "David").
+attend(1, "Andi").
+attend(3, "Sebastian").
+attend(4, "Sebastian").
+attend(4, "Andi").
+
+location(Int, String).
+location(0, "N1").
+location(1, "C1").
+location(2, "N2").
+location(3, "03-324").
+location(4, "N3").
+
+eventsOn17(Int).
+eventsOn17(X) :- event(X, _, 17).
+
+same(Int, Int).
+same(E1, E2) :- event(E1, D, T), event(E2, D, T), E1 != E2.
+
+busy(Int).
+busy(D) :- event(E1, D, T1), event(E2, D, T2), event(E3, D, T3), E1 != E2, E2 != E3, E3 != E1, sebattend(E1), sebattend(E2), sebattend(E3).
+
+sebattend(Int).
+sebattend(E) :- attend(E, "Sebastian").

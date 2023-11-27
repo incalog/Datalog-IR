@@ -92,3 +92,31 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     res = loaded.query("NodeCount", (?, ?))
     assertResult(Set(("A", 2), ("B", 2), ("C", 1)))(res.entries.toSet)
   }
+
+  test("Lecture - Week 5") {
+    val code = FileUtil.readFileFromResource("datalog/lecture/week5.dl")
+    val compiled = exec.compileDatalog(code)
+    compiled.setPipeline(pipeline)
+    val loaded = exec.loadDatalog(compiled)
+
+    var res = loaded.query("zero", Tuple1(?))
+    assertResult(0)(res.entries.head)
+
+    res = loaded.query("nat", Tuple1(?))
+    assertResult(0.until(10).toSet)(res.entries.toSet)
+
+    res = loaded.query("square", Tuple1(?))
+    assertResult(0.until(10).map(i => i * i).toSet)(res.entries.toSet)
+
+    res = loaded.query("even", Tuple1(?))
+    assertResult(0.until(10).map(i => i * 2).toSet)(res.entries.toSet)
+
+    res = loaded.query("eventsOn17", Tuple1(?))
+    assertResult(3)(res.entries.head)
+
+    res = loaded.query("same", (?, ?))
+    assertResult(Set((0,4), (4, 0)))(res.entries.toSet)
+
+    res = loaded.query("busy", Tuple1(?))
+    assertResult(Set())(res.entries.toSet)
+  }
