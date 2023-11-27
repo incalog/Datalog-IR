@@ -2,7 +2,7 @@ package inca.base
 
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
-import inca.ir.{Body, Call, Eq, Language, Module, Neq, Param, Relation, Var, execution, string2name}
+import inca.ir.{Body, Call, Eq, Language, Module, Param, Relation, Var, execution, string2name}
 import inca.util.{FileUtil, ScalaCompiler}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime

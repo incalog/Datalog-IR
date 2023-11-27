@@ -138,7 +138,7 @@ class GenerateIR {
       )
 
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2)))
-    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Neq(compileExp(e1), compileExp(e2)))
+    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2), true))
 
     case StringLit(s) => irstring.StringLit(s)
     case BinOp(e1, "+", e2) if e.typ.contains(TName(Name("String"))) =>

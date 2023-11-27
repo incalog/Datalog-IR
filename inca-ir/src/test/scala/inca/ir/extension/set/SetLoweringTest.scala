@@ -1,7 +1,7 @@
 package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Neq, Param, Relation, TAny, TNothing, Type, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Param, Relation, TAny, TNothing, Type, Var, string2name}
 import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*

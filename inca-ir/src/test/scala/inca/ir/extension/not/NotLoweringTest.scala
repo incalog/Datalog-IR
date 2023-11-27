@@ -25,7 +25,7 @@ class NotLoweringTest extends AnyFunSuiteLike:
   test("simple 1") {
     val mBlock = module(notIR.language, Seq(
       Not(Eq(term(1), term(2))),
-      Not(Neq(term(3), term(4))),
+      Not(Eq(term(3), term(4), true)),
       Not(Call("A1", Seq())),
       Not(Call("A2", Seq(), true)),
       Not(ExtensionalCall("A3", Seq())),
@@ -35,7 +35,7 @@ class NotLoweringTest extends AnyFunSuiteLike:
     ))
     val lowered = lowering.lower(mBlock)
     val bBlock = module(baseIR.language, Seq(
-      Neq(term(1), term(2)),
+      Eq(term(1), term(2), true),
       Eq(term(3), term(4)),
       Call("A1", Seq(), true),
       Call("A2", Seq()),

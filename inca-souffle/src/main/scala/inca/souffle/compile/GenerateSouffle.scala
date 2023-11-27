@@ -6,6 +6,7 @@ import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.aggregate as agg
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data
+import inca.ir.extension.aggregate
 import inca.souffle.syntax.*
 
 // TODO what is output? Need main hint
@@ -13,11 +14,10 @@ import inca.souffle.syntax.*
 object GenerateSouffle:
 
   def compileModule(module: ir.Module): Program =
-    val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR)
+    val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR, aggregate.IR)
     val illegalFeatures = module.lang.features -- compilableFeatures
     if (illegalFeatures.nonEmpty)
-      println(s"[WARNING]: Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
-      //throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
+      throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
 
     val contents = module.contents.flatMap {
       case ir.Relation(name, params, bodies) =>
@@ -62,8 +62,8 @@ object GenerateSouffle:
     case ir.Call(name, args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
     case ir.ExtensionalCall(name, args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
     case ir.ExtensionalCall(name, args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
-    case ir.Eq(lhs, rhs) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
-    case ir.Neq(lhs, rhs) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
+    case ir.Eq(lhs, rhs, false) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
+    case ir.Eq(lhs, rhs, true) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<") => Atom.LessThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))

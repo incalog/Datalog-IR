@@ -118,8 +118,8 @@ trait BaseAbstractInterpreter[V, B]:
     b
 
   def evalAtomExtend(at: Atom): AtomResult = at match
-    case Eq(lhs, rhs) => evalEquals(lhs, rhs)
-    case Neq(lhs, rhs) => evalNotEquals(lhs, rhs)
+    case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
+    case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
     case Call(name, args, _) => evalCall(name, args)
     case ExtensionalCall(name, args, _) => evalCall(name, args)
 

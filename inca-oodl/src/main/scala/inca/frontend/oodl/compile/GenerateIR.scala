@@ -406,7 +406,7 @@ class GenerateIR:
     case BinOp(e1, "||", e2) => bool.BoolOr(compileExpression(e1), compileExpression(e2))
 
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExpression(e1), compileExpression(e2)))
-    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Neq(compileExpression(e1), compileExpression(e2)))
+    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Eq(compileExpression(e1), compileExpression(e2), true))
 
     case StringLit(s) => irstring.StringLit(s)
     case BinOp(e1, "+", e2) if expr.typ.contains(TString) =>

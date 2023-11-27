@@ -178,7 +178,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case ExtensionalCall(name, args, false) => checkCall(name, args, atom, mode)
     case ExtensionalCall(name, args, true) => checkCall(name, args, atom, mode.inverted)
 
-    case Eq(lhs, rhs) =>
+    case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>
@@ -193,7 +193,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
               lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
               rerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
 
-    case Neq(lhs, rhs) =>
+    case Eq(lhs, rhs, true) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>

@@ -28,7 +28,6 @@ trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
 
 
-
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
 
@@ -74,14 +73,11 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
       s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
   }
   def signature: Seq[Type] = params.map(_.ty)
-
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
-
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
-
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
@@ -122,12 +118,10 @@ case class ExtensionalCall(name: Name, args: Seq[Arg], neg: Boolean = false) ext
     s"ext $negPrefix$name${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class Eq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs == $rhs" + analysisString
-  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
-
-case class Neq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs != $rhs" + analysisString
+case class Eq(lhs: Term, rhs: Term, neg: Boolean = false) extends Atom:
+  override def toString: String =
+    val op = if (neg) "!=" else "=="
+    s"$lhs $op $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case object TAny extends Type

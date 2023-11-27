@@ -1,7 +1,7 @@
 package inca.ir.extension.monotypes
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, TermArg, Type, Var, WildcardArg, typing}
+import inca.ir.{Arg, Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Param, Relation, TAny, Term, TermArg, Type, Var, WildcardArg, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
@@ -81,7 +81,7 @@ trait Lowering extends BaseLowering:
     atom match
       case AddMono(m, input, keys) =>
         hasMono = true; lowerAddMono(AddMono(m, input, keys))
-      case Eq(lhs, rhs) => (lhs, rhs) match
+      case Eq(lhs, rhs, false) => (lhs, rhs) match
         case (Var(v), MkMono(mono, args, keys)) =>
           hasMono = true; lowerMkMono(Var(v), MkMono(mono, args, keys))
         case _ => super.visitAtom(atom)

@@ -72,7 +72,7 @@ class GenerateIR {
     case Atom.Call(name, args, neg) => ir.Call(name, args.map(compileArg), neg)
     case Atom.Compare(lhs, op, rhs) => op match
       case "==" => ir.Eq(compileTerm(lhs), compileTerm(rhs))
-      case "!=" => ir.Neq(compileTerm(lhs), compileTerm(rhs))
+      case "!=" => ir.Eq(compileTerm(lhs), compileTerm(rhs), true)
       case _ => arithmetic.BinCompare(compileTerm(lhs), compileTerm(rhs), op)
 
   def compileArg(t: Term): ir.Arg = t match

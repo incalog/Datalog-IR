@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Neq, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -248,9 +248,9 @@ object GeneratePSystem:
     case ExtensionalCall(name, args, true) =>
       // use a type filter ?
       ???
-    case Eq(lhs, rhs) =>
+    case Eq(lhs, rhs, false) =>
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case Neq(lhs, rhs) =>
+    case Eq(lhs, rhs, true) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case primitive.ScalaAggregationAtom(agg@ScalaAggregationOperator(sty, aggOpCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)

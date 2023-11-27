@@ -68,7 +68,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
 
   test("unbound variable in neq test") {
     val m = module(Relation("R", Seq(), Seq(Body(Seq(
-      Neq(IntNum(0), IntNum(0))
+      Eq(IntNum(0), IntNum(0), true)
     )))))
     assert(m.relations.size == 1)
   }
