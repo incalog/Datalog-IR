@@ -148,7 +148,7 @@ trait Lowering extends BaseLowering:
   private def genAggRel(mt: TMono, op: MonoDef): Relation =
     val destMono: Atom = Deconstruct(
       Var(Name("m")), Name("mkMono"),
-      Seq(Var(Name("id")), Var(Name("name")))
+      Seq(Var(Name("id")).arg, Var(Name("name")).arg)
     )
     val opCons: Atom = Eq(Var(Name("name")), StringLit(op.toString))
     val commonAggBody: Seq[Atom] = Seq(destMono, opCons)

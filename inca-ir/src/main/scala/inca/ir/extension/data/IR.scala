@@ -17,7 +17,7 @@ case class Construct(name: Name, args: Seq[Term]) extends Term:
   override def toString: String = s"!$name(${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class Deconstruct(t: Term, caseName: Name, args: Seq[Term]) extends Atom:
+case class Deconstruct(t: Term, caseName: Name, args: Seq[Arg]) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
     s"?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString

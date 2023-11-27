@@ -1,6 +1,6 @@
 package inca.foreign.scala.ir.data
 
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, Term, TermType, Type, name2string}
+import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, Term, TermArg, TermType, Type, name2string}
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
@@ -60,7 +60,7 @@ trait ScalaLowering extends BaseScalaLowering:
       val caseTy = ScalaType(caseName)
 
       val paramTys = caseDef2params(caseName)
-      val argTerms = args.flatMap(visitTerm)
+      val argTerms = args.flatMap(visitArg)
       if (argTerms.size != paramTys.size)
         throw IllegalArgumentException(s"Expected ${paramTys.size} args, but got ${argTerms.size}")
 
@@ -69,10 +69,12 @@ trait ScalaLowering extends BaseScalaLowering:
       val guard = Eq(ScalaConstantTerm.TRUE, isInstanceOfCall)
 
       val asInstanceOfCall = s"(obj: ${defTy.name}) => obj.asInstanceOf[${caseTy.name}]"
-      val paramReads = paramTys.zip(argTerms).map { case ((paramName, pTy), t) =>
-        val paramReadCode = s"$asInstanceOfCall.$paramName"
-        val paramRead = ScalaTerm(paramReadCode, pTy, visitTerm(term))
-        Eq(t, paramRead)
+      val paramReads = paramTys.zip(argTerms).map {
+        case ((paramName, pTy), TermArg(t)) =>
+          val paramReadCode = s"$asInstanceOfCall.$paramName"
+          val paramRead = ScalaTerm(paramReadCode, pTy, visitTerm(term))
+          Eq(t, paramRead)
+        case _ => throw IllegalStateException("Found unexpected wildcard! Make sure you called visitTerm")
       }
       guard +: paramReads
     case _ => super.visitAtom(atom)

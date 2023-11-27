@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir.extension.data.*
-import inca.ir.{Atom, Term}
+import inca.ir.{Atom, Term, TermArg}
 
 
 
@@ -20,7 +20,10 @@ trait DataAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
     case Deconstruct(t, caseName, pats) =>
       val TermResult(v, p) = evalTerm(t)
       dataOps.deconstruct(v, caseName.name, () => AtomResult(falseBool, trueBool)) { vs =>
-        val as = pats.zip(vs).map(assign)
+        val as = pats.zip(vs).map {
+          case (TermArg(t), v) => assign(t, v)
+          case _ => AtomResult(trueBool, trueBool)
+        }
         as.foldLeft(AtomResult(trueBool, trueBool))(_&&_)
       }
     case _ => super.evalAtomExtend(at)

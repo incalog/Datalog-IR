@@ -2,7 +2,7 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, TermType, Type, Var}
+import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:
@@ -32,8 +32,9 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
         checkTerm(t, TData(dataName), Mode.Bound)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
-        args.zip(params).foreach { case (v, ty) =>
-          checkTerm(v, ty, mode)
+        args.zip(params).foreach {
+          case (TermArg(v), ty) => checkTerm(v, ty, mode)
+          case (WildcardArg, ty) => // nothing
         }
     case NegDeconstruct(t, name) => lookupConstruct(name, atom) match
       case None =>

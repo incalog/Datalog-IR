@@ -34,6 +34,7 @@ import inca.util.Gensym
 // TODO: Subtyping of method arguments on override
 // TODO: Generics
 // TODO: Pattern matching
+// TODO: Support mono-types
 
 case object Alloc extends irimpure.ImpurityKind:
   val name: String = "Alloc"
@@ -387,8 +388,8 @@ class GenerateIR:
     disjunction.Disjunction(
       builtInIdDatastructures.cases.map {
         case irdata.CaseDefinition(name, args) =>
-          val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")))
-          val deconstr = irdata.Deconstruct(t, name, tyTerm +: wildcardArgs)
+          val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")).arg)
+          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
           DisjunctionAlternative(deconstr)
       }
     )
@@ -453,8 +454,8 @@ class GenerateIR:
             val allFields = classDef.fields
             val signature = allFields.map(_.typ)
             val fieldIndex = allFields.indexWhere(_.name == targetName)
-            var args = (0 until allFields.size + 1).map(_ => ir.Var(gensym.freshName("_")))
-            args = args.updated(fieldIndex + 1, resultVar)
+            var args = (0 until allFields.size + 1).map(_ => ir.Var(gensym.freshName("_")).arg)
+            args = args.updated(fieldIndex + 1, resultVar.arg)
             val caseName = s"SID$$${signatureString(signature)}"
             block.Block(
               irdata.Deconstruct(recvTerm, caseName, args),

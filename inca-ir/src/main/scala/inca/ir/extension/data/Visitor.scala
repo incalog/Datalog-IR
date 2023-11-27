@@ -12,8 +12,8 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
       ts.map(NegDeconstruct(_, caseName))
     case Deconstruct(t, caseName, args) =>
       val ts = visitTerm(t)
-      val aargs = args.flatMap(visitTerm)
-        ts.map(Deconstruct(_, caseName, aargs))
+      val aargs = args.flatMap(visitArg) 
+      ts.map(Deconstruct(_, caseName, aargs))
     case _ => super.visitAtom(atom))
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
