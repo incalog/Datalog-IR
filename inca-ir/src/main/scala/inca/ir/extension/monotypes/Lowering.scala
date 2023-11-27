@@ -9,7 +9,7 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.extension.aggregate
 import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
-import inca.ir.extension.block
+import inca.ir.extension.block.Block
 import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.impure
 import inca.ir.extension.impure.Impure
@@ -22,7 +22,11 @@ import inca.ir.extension.string.{StringLit, TString}
 
 import scala.collection.mutable
 
+/** Lowering of Mono-type extension.
 
+    Current limitations:
+    1. All MkMonos are assumed to be in the main rule, as they share the same impure state.
+ */
 trait Lowering extends BaseLowering:
 
   private val debug: Boolean = false
@@ -31,20 +35,34 @@ trait Lowering extends BaseLowering:
 
   override def requiredIRs: Set[BaseIR] = Set()
 
+  // Mapping from an AddMono atom to the type information of mono-type variable, input term and keys
+  // (used to find the corresponding Coll relation of an AddMono)
   private val cachedAddMonoCtx: mutable.Map[AddMono, AddMonoInfo] = mutable.Map()
 
+  // Mapping from a ResultMono Term to the type of its inside mono-type variables
+  // (used to find the corresponding aggregation relation of a ResultMono)
   private val cachedResultMonoCtx: mutable.Map[ResultMono, TMono] = mutable.Map()
 
-  private val cachedMkMonoCtx: mutable.Map[MkMono, Seq[Type]] = mutable.Map()
-
+  // Record the newly generated relations (except relations used to do mono aggregation) during lowering
   private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
 
+  // Since two Mono definitions having the same input and output type signature share the same aggregation
+  // relation name (they will be distinguished by their names), it is cumbersome to update the generated aggregation relation
+  // directly. We use cachedAggRelation to specify the body of an mono aggregation relation by the name of aggregation relation
+  // and the name of mono definition.
   private val cachedAggRelation: mutable.Map[Name, mutable.Map[Name, Relation]] = mutable.Map()
 
+  // The ADT definition of mono-type instances, the meaning of type signature:
+  // - TInt: record the OID
+  // - TString: record the name of mono definition
+  // - (TODO) Seq[Type]: the type of arguments to instantiating a mono-type instance
   private val monoData: DataDefinition = DataDefinition(
     Name("Mono"), Seq(CaseDefinition(Name("mkMono"), Seq(TInt, TString)))
   )
 
+  // Used to track if there exists Mono-type IR atom in the program (if
+  // there is no Mono-type IR atom or term in the program,
+  // there is no need to introduce the monoData ADT.
   private var hasMono: Boolean = false
 
   private var hasMkMono: Boolean = false
@@ -62,7 +80,7 @@ trait Lowering extends BaseLowering:
         m1.contents ++ cachedRelation.map((k, v) => v) ++ mergeCachedAgg()
     )
     m2
-  
+
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     def lowerTMono(ty: Type): Type =
       ty match
@@ -80,26 +98,35 @@ trait Lowering extends BaseLowering:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
-      case AddMono(m, input, keys) =>
-        hasMono = true; lowerAddMono(AddMono(m, input, keys))
-      case Eq(lhs, rhs) => (lhs, rhs) match
-        case (Var(v), MkMono(mono, args, keys)) =>
-          hasMono = true; lowerMkMono(Var(v), MkMono(mono, args, keys))
-        case _ => super.visitAtom(atom)
+      case AddMono(m, input, keys) => hasMono = true; lowerAddMono(AddMono(m, input, keys))
       case _ => super.visitAtom(atom)
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
-      case ResultMono(m) =>
-        hasMono = true; lowerResultMono(ResultMono(m))
+      case MkMono(mono, args, keys) => hasMono = true; lowerMkMono(MkMono(mono, args, keys))
+      case ResultMono(m) => hasMono = true; lowerResultMono(ResultMono(m))
       case _ => super.visitTerm(term)
   }
 
+  /** Generate a collection relation name via the type of mono and a boolean variable.
+   *  Since sometimes the Coll relation for a mono is empty
+   *  (if there does not exist a corresponding AddMono), in which case the Coll rule will be
+   *  eliminated when generating VIATRA code (GeneratePsystem.scala). To resolve it, we generate
+   *  two collection relation for each TMono and use `neg` as a sign.
+   */
   private def genCollName(mt: TMono, neg:Boolean = false): Name =
     val prefix: String = s"Coll$$${mt.input}$$${mt.output}$$" + mt.keys.mkString("$")
     if neg then Name(prefix + "$false") else Name(prefix)
 
+
+  /** Generate the parameters of a collection relation. The parameters can be divided into four parts:
+   * 1. Mono-type parameter: it should be a demand parameter.
+   * 2. Keys: used to uniquely identify the input to mono at different locations in the program, which also should be
+   *    demand parameters because we want to do the bindings of each key in the body via demand transformation.
+   * 3. A boolean parameter to denote whether it is used for doing aggregation on empty body or not.
+   * 4. Input to the mono.
+   */
   private def genCollParams(mt: TMono): Seq[Param] =
     val keysParam: Seq[Param] =
       for ((ty, i) <- mt.keys.zipWithIndex)
@@ -110,6 +137,11 @@ trait Lowering extends BaseLowering:
       Param(Name("a"), TDemand(mt.input))
 
 
+  /**
+   * Generate the collection relation, as there will not be MkMono in the rules except main,
+   * we add a pure key to it to reduce complexity of programs after lowering (might be changed
+   * in the future if we want to allocate impure objects in other rules).
+   */
   private def genCollRel(mt: TMono): Relation =
     Relation(
       genCollName(mt),
@@ -117,12 +149,20 @@ trait Lowering extends BaseLowering:
       Seq(Body(Seq(Eq(Var(Name("p")), BoolTrue))))
     ).addHint(impure.Hints.Pure)
 
+  /**
+   * Mapping from each type to its initial value. This method will also be removed in the future
+   * if we can do aggregation on empty relation.
+   */
   private def genDefaultValue(ty: Type): Term = ty match
     case TInt => IntNum(0)
     case TString => StringLit("")
     case TDouble => DoubleNum(0)
     case _ => ???
 
+  /**
+   * Generate the auxiliary collection relation which serve as the alternative for doing aggregation
+   * if the original collection relation's body is empty.
+   */
   private def genAuxCollRel(mt: TMono): Relation =
     Relation(
       genCollName(mt, neg = true),
@@ -145,7 +185,11 @@ trait Lowering extends BaseLowering:
   private def vars(s: String): Seq[Var] =
     s.split(" ").map(v => Var(Name(v)))
 
-
+  /**
+   * Generate an aggregation relation. We use the name of Mono definition to distinguish monos having
+   * the same input and output type. For each mono definition, we generate two bodies to deal with
+   * aggregation on empty and non-empty multisets respectively.
+   */
   private def genAggRel(mt: TMono, op: MonoDef): Relation =
     val destMono: Atom = Deconstruct(
       Var(Name("m")), Name("mkMono"),
@@ -172,6 +216,11 @@ trait Lowering extends BaseLowering:
   private def genAggMaxName(mt: TMono): Name =
     Name(s"Agg$$${mt.input}$$${mt.output}$$Max")
 
+  /**
+   * As there are two bodies for each mono definition, if the multiset for aggregation is non-empty,
+   * we can get two results from the aggregation relation. But as the set of aggregation result has a partial order,
+   * we can define a relation to find the larger aggregation result.
+   */
   private def genAggRelMax(mt: TMono): Relation =
     val name: Name = genAggMaxName(mt)
     val params: Seq[Param] = Seq(
@@ -188,22 +237,23 @@ trait Lowering extends BaseLowering:
 
     Relation(name, params, Seq(body)).addHint(impure.Hints.Pure)
 
-  private def genImp(mt: TMono, lhs: Var, op: MonoDef): Seq[Atom] =
+  private def genImp(mt: TMono, op: MonoDef): Seq[Term] =
     val state = Var(Name(gensym.fresh("st")))
     val monoDefId = op.toString
     val monoADT: Construct = Construct(Name("mkMono"), Seq(state, StringLit(monoDefId)))
+    val freshMono: Var = Var(Name(gensym.fresh("m")))
     val imp: Impure = Impure(
       state,
-      Seq(Eq(lhs, monoADT)),
+      Seq(Eq(freshMono, monoADT)),
       Add(state, IntNum(1)),
       MonoImpurityKind
     )
     if (!hasMkMono) {
       hasMkMono = true
       val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
-      Seq(extcall, imp)
+      Seq(Block(Seq(extcall, imp), freshMono))
     } else {
-      Seq(imp)
+      Seq(Block(Seq(imp), freshMono))
     }
 
 
@@ -239,6 +289,10 @@ trait Lowering extends BaseLowering:
     }
     relations.toSeq
 
+  /**
+   * An AddMono will be lowered into a collection relation. If the collection relation does not exist,
+   * we can create it according to the type information retrieved during type checking.
+   */
   protected def lowerAddMono(atom: AddMono) : Seq[Atom] =
     val mono: Term = atom.m
     val input: Term = atom.input
@@ -254,7 +308,10 @@ trait Lowering extends BaseLowering:
     val collAtom: Atom = Call(collName, mono +: keys :+ BoolTrue :+ input)
     Seq(collAtom)
 
-  private def lowerMkMono(v: Var, term:MkMono) : Seq[Atom] =
+  /**
+   * Lower MkMono into an ADT instance and generate corresponding collection and aggregation relations.
+   */
+  private def lowerMkMono(term:MkMono) : Seq[Term] =
     val (in, out): (Type, Type) = term.mono.monotypecheck(term.args) match
       case Left(msg) =>
         (TAny, TAny)
@@ -273,9 +330,13 @@ trait Lowering extends BaseLowering:
     if (!cachedRelation.contains(aggMaxName)) {
       cachedRelation += aggMaxName -> genAggRelMax(mt)
     }
-    genImp(mt, v, term.mono)
+    genImp(mt, term.mono)
 
 
+  /**
+   * Lower ResultMono into finding the maximum result of aggregation on the corresponding mono-type variables
+   * (as there are two bodies for each mono definition).
+   */
   private def lowerResultMono(term: ResultMono): Seq[Term] =
     require(cachedResultMonoCtx.contains(term))
     val ty: TMono = cachedResultMonoCtx(term)
@@ -283,4 +344,4 @@ trait Lowering extends BaseLowering:
     val mvar: Var = Var(term.m.asInstanceOf[Var].name)
     val b: Term = Var(Name(mvar.toString + "r"))
     val call: Call = Call(aggName, Seq(mvar, b))
-    Seq(block.Block(Seq(call), b))
+    Seq(Block(Seq(call), b))
