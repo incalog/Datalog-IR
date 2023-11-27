@@ -1,0 +1,50 @@
+package inca.ir.extension.map
+
+import inca.ir.{Atom, BaseIR, Language, Term, Type, Var}
+
+trait IR extends BaseIR:
+  override val name: String = "Map"
+
+  override def language: Language = super.language + IR
+
+  override def requires: Language = Language()
+
+object IR extends IR {}
+
+case class TMap(k: Type, v: Type) extends Type:
+  override def toString: String = s"Map[$k, $v]"
+
+case class MapLit(ts: Seq[(Term, Term)]) extends Term:
+  override def toString: String = s"Map(${ts.map[String]{(t1, t2) => s"$t1 -> $t2"}.mkString(", ")})"
+
+  override def vars: Seq[Var] = ts.flatMap[Var]((t1, t2) => t1.vars ++ t2.vars)
+
+object MapLit:
+  def from(ts: (Term, Term)*): MapLit = new MapLit(ts)
+
+  def empty: MapLit = new MapLit(Seq())
+
+case class MapUnion(t1: Term, t2: Term) extends Term:
+  override def toString: String = s"$t1 ∪ $t2"
+
+  override def vars: Seq[Var] = t1.vars ++ t2.vars
+
+case class MapComprehension(key: Term, value: Term, atoms: Seq[Atom]) extends Term:
+  override def toString: String = s"{ $key -> $value | ${atoms.mkString(",")} }"
+
+  override def vars: Seq[Var] = key.vars ++ value.vars ++ atoms.flatMap(atom => atom.vars)
+
+case class MapLookUp(map: Term, key: Term) extends Term:
+  override def toString: String = s"$map($key)"
+
+  override def vars: Seq[Var] = map.vars ++ key.vars
+
+case class MapAddEntry(map: Term, key: Term, value: Term) extends Atom:
+  override def toString: String = s"$map += $key -> $value"
+  
+  override def vars: Seq[Var] = map.vars ++ key.vars ++ value.vars
+  
+case class MapContain(map: Term, key: Term) extends Atom:
+  override def toString: String = s"?($key in $map)"
+  
+  override def vars: Seq[Var] = map.vars ++ key.vars

@@ -113,7 +113,7 @@ class GenerateScala:
   def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
     val scalaTy = transType(typ)
     s"""
-     new inca.viatra.runtime.aggregate.Aggregation[$scalaTy] {
+     new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
        override val name = "$name"
        override def init: $scalaTy = ${transExp(init)}
        override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExp(op)}(v1, v2)
