@@ -17,16 +17,12 @@ case class Construct(name: Name, args: Seq[Term]) extends Term:
   override def toString: String = s"!$name(${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
-case class Deconstruct(t: Term, caseName: Name, args: Seq[Arg]) extends Atom:
+case class Deconstruct(t: Term, caseName: Name, args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
-    s"?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString
+    val negPrefix = if (neg) "~" else ""
+    s"$negPrefix?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
-
-case class NegDeconstruct(t: Term, caseName: Name) extends Atom:
-  override def toString: String =
-    s"~?$caseName($t)" + analysisString
-  override def vars: Seq[Var] = t.vars
 
 object IR extends IR { }
 trait IR extends BaseIR:

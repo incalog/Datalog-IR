@@ -5,7 +5,7 @@ import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, NegDeconstruct, TData}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
@@ -42,7 +42,7 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case NegDeconstruct(term, caseName) =>
+    case Deconstruct(term, caseName, args, true) =>
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -52,7 +52,7 @@ trait ScalaLowering extends BaseScalaLowering:
       val isInstanceOfCall = ScalaTerm(isInstanceOfCode, ScalaType.bool, visitTerm(term))
       val guard = Eq(ScalaConstantTerm.FALSE, isInstanceOfCall)
       Seq(guard)
-    case Deconstruct(term, caseName, args) =>
+    case Deconstruct(term, caseName, args, false) =>
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")

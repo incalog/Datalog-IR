@@ -389,7 +389,7 @@ class GenerateIR:
       builtInIdDatastructures.cases.map {
         case irdata.CaseDefinition(name, args) =>
           val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")).arg)
-          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
+          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs, false)
           DisjunctionAlternative(deconstr)
       }
     )
@@ -458,7 +458,7 @@ class GenerateIR:
             args = args.updated(fieldIndex + 1, resultVar.arg)
             val caseName = s"SID$$${signatureString(signature)}"
             block.Block(
-              irdata.Deconstruct(recvTerm, caseName, args),
+              irdata.Deconstruct(recvTerm, caseName, args, false),
               resultVar
             )
           else if (fieldDef.immutable)

@@ -25,20 +25,16 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
     case _ => super.inferTermExtend(term, mode)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Deconstruct(t, name, args) => lookupConstruct(name, atom) match
+    case Deconstruct(t, name, args, neg) => lookupConstruct(name, atom) match
       case None =>
         error(s"Unknown constructor $name", atom)
       case Some((DataDefinition(dataName, _), CaseDefinition(_, params))) =>
         checkTerm(t, TData(dataName), Mode.Bound)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
+        val argMode = if (neg) Mode.Collapse else mode
         args.zip(params).foreach {
           case (TermArg(v), ty) => checkTerm(v, ty, mode)
           case (WildcardArg, ty) => // nothing
         }
-    case NegDeconstruct(t, name) => lookupConstruct(name, atom) match
-      case None =>
-        error(s"Unknown constructor $name", atom)
-      case Some((DataDefinition(dataName, _), CaseDefinition(_, params))) =>
-        checkTerm(t, TData(dataName), Mode.Bound)
     case _ => super.checkAtom(atom, mode)
