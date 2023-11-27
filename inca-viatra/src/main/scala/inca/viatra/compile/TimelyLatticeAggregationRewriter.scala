@@ -28,7 +28,7 @@ class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with 
  *  2.3 Introduce a new relation `R` that queries and aggregates over `R$Wrapped`
  */
 class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
-  val gensym = Gensym()
+  val gensym: Gensym = Gensym()
 
   var scc: Seq[Seq[String]] = Seq()
   var relations: Map[String, Relation] = Map()

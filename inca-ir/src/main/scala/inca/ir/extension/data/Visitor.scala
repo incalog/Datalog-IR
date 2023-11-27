@@ -5,6 +5,8 @@ import inca.ir.extension.not
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{Atom, ModuleEntry, Relation, Term, Type, Var}
 
+import scala.language.postfixOps
+
 trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case Deconstruct(t, caseName, args, neg) =>

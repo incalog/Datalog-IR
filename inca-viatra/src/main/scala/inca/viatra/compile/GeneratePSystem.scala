@@ -180,54 +180,55 @@ object GeneratePSystem:
     gensym.register(allVars.map(_.name.name))
 
     val paramNames = relation.params.map(_.name.name)
-    val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
+    val paramTermNames = paramNames.map { n => s"$PARAMPREFIX$n" }
 
     if (relation.isEmpty) {
-      return s"""
-                |object ${relation.name} {
-                |  val error = "This pattern was empty"
-                |}""".stripMargin.indent(indent)
+      s"""
+      |object ${relation.name} {
+      |  val error = "This pattern was empty"
+      |}""".stripMargin.indent(indent)
+    } else {
+      val bodies =
+        if (relation.bodies.nonEmpty) {
+          relation.bodies.map { body =>
+            val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
+            val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
+
+            evalExp = Seq()
+            pVar2Code = Map()
+
+            val atomContent = body.atoms.map(compileAtom).mkString("\n")
+            val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
+            val exprsContent = evalExp.map(_._1).mkString("\n")
+
+            val bodyContent = s"$varContent\n$litContent\n$exprsDef\n$exprsContent\n$atomContent"
+            compileBody(moduleName, relation, bodyContent)(indent + 4)
+          }
+        } else {
+          evalExp = Seq()
+          pVar2Code = Map()
+
+          val content = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
+          Seq(compileBody(moduleName, relation, content)(indent + 4))
+        }
+
+      val bodiesS = bodies.mkString("{", "}, {", "}")
+
+      s"""
+         |object ${relation.name} {
+         |  lazy val instance: Specification = new Specification(generatedPQuery)
+         |
+         |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+         |    ${relation.params.map(genPParam).mkString(s"\n    ")}
+         |
+         |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
+         |
+         |    override def getFullyQualifiedName: String = "$qname"
+         |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
+         |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
+         |  }
+         |}""".stripMargin.indent(indent)
     }
-
-    val bodies = if (relation.bodies.nonEmpty)
-      relation.bodies.map { body =>
-        val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
-        val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
-
-        evalExp = Seq()
-        pVar2Code = Map()
-
-        val atomContent = body.atoms.map(compileAtom).mkString("\n")
-        val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
-        val exprsContent = evalExp.map(_._1).mkString("\n")
-
-        val bodyContent = s"$varContent\n$litContent\n$exprsDef\n$exprsContent\n$atomContent"
-        compileBody(moduleName, relation, bodyContent)(indent + 4)
-      }
-    else {
-      evalExp = Seq()
-      pVar2Code = Map()
-
-      val content = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
-      Seq(compileBody(moduleName, relation, content)(indent + 4))
-    }
-
-    val bodiesS = bodies.mkString("{", "}, {", "}")
-
-    s"""
-       |object ${relation.name} {
-       |  lazy val instance: Specification = new Specification(generatedPQuery)
-       |
-       |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-       |    ${relation.params.map(genPParam).mkString(s"\n    ")}
-       |
-       |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
-       |
-       |    override def getFullyQualifiedName: String = "$qname"
-       |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
-       |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
-       |  }
-       |}""".stripMargin.indent(indent)
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
@@ -329,7 +330,7 @@ object GeneratePSystem:
 
   private def genLiteralVar[T](lit: String, ty: primitive.ScalaType): Code = {
     val varName = genLiteralVarName(lit, ty)
-    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable(${lit})"
+    s"val $LITPREFIX$varName: PVariable = body.newConstantVariable($lit)"
   }
 
   private def genLiteralVarName[T](lit: String, ty: primitive.ScalaType): String = {

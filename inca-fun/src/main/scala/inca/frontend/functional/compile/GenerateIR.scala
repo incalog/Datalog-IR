@@ -24,7 +24,7 @@ import inca.util.Gensym
 
 object GenerateIR:
   def extensionalRelationPrefix = "ext_"
-  def extensionalRelationName(name: String) = extensionalRelationPrefix + demandRelationName(name)
+  def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
 class GenerateIR {
 

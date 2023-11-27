@@ -105,7 +105,7 @@ trait Lowering extends BaseLowering:
       if (atoms.isEmpty) {
         (caseDef, None)
       } else {
-        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1).arg), false) +: atoms)
+        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1).arg)) +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip

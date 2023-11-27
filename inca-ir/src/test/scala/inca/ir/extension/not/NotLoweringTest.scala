@@ -10,9 +10,9 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 class NotLoweringTest extends AnyFunSuiteLike:
   case class Failed(messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 
-  val baseIR = new BaseIR {}
+  val baseIR: BaseIR = new BaseIR {}
   val notIR: not.IR = IR
-  val lowering = new Lowering {}
+  val lowering: Lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
   def term(i: Int): Term = Var(s"x_$i")

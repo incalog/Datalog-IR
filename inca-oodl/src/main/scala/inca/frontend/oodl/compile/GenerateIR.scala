@@ -71,7 +71,7 @@ class GenerateIR:
       val allocInParam = ir.Param(Alloc.name, irarith.TInt)
       val mutInParam = ir.Param(Mutation.name, irarith.TInt)
       val params = f.params.map(p => ir.Param(p.name, compileType(p.typ)))
-      ExtensionalRelation(name, (params :+ allocInParam :+ mutInParam))
+      ExtensionalRelation(name, params :+ allocInParam :+ mutInParam)
     }
 
     val classes = m.classes
@@ -389,7 +389,7 @@ class GenerateIR:
       builtInIdDatastructures.cases.map {
         case irdata.CaseDefinition(name, args) =>
           val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")).arg)
-          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs, false)
+          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
           DisjunctionAlternative(deconstr)
       }
     )
@@ -458,7 +458,7 @@ class GenerateIR:
             args = args.updated(fieldIndex + 1, resultVar.arg)
             val caseName = s"SID$$${signatureString(signature)}"
             block.Block(
-              irdata.Deconstruct(recvTerm, caseName, args, false),
+              irdata.Deconstruct(recvTerm, caseName, args),
               resultVar
             )
           else if (fieldDef.immutable)
