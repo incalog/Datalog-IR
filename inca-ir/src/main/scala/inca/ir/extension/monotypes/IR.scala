@@ -29,7 +29,7 @@ case class MkMono(mono: MonoDef, args: Seq[Term], keys: Seq[Type]) extends Term:
 
 case class AddMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap{_.vars}
-  override def toString: String = s"$m += $input@$keys"
+  override def toString: String = s"$m += $input@{${keys.mkString(",")}}"
 
 case class ResultMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
