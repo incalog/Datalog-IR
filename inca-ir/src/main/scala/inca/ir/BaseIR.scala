@@ -46,10 +46,13 @@ trait Type extends SourceLocation with Hints:
 
 trait Arg extends SourceLocation:
   def vars: Seq[Var]
+
 case class TermArg(t: Term) extends Arg:
   def vars: Seq[Var] = t.vars
   override def toString: String = t.toString
-case object WildcardArg extends Arg:
+
+// We still need type information on wildcards for lowerings (e.g. Tuple)
+case class WildcardArg() extends Arg with Typeable[TermType]:
   def vars: Seq[Var] = Seq()
   override def toString: String = "_"
 

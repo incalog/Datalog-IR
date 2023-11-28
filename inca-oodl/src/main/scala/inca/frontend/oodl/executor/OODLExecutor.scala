@@ -12,14 +12,14 @@ class OODLExecutor(val exec: IRExecutor):
   case class Loaded(engine: exec.Engine, compiled: CompiledOODLModule):
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
-      val rel = engine.read(UnitRelation(pat))
       engine.readAll().foreach { r => println(r.asTable) }
+      val rel = engine.read(UnitRelation(pat))
       rel.project(tuple.size, Int.MaxValue)
     }
 
     def execute(main: String, args: Seq[Any]): Relation = {
-      val allocIn = 0
-      val mutIn = 0
+      val allocIn = 1
+      val mutIn = 1
       val edbEntry = Relation.from(extensionalRelationName(main), args :+ allocIn :+ mutIn)
       engine.insert(edbEntry)
       output(main, args)

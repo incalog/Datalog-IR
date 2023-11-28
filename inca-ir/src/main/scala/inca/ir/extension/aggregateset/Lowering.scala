@@ -34,7 +34,7 @@ trait Lowering extends BaseLowering:
         Seq(Call(setRel.name, setRel.params.map(p => Var(p.name).arg)))
       )))
       for ((a, ix) <- args.zipWithIndex) a match
-        case TermArg(t) => // skip
+        case TermArg(_) | WildcardArg() => // skip
         case AggregateColumnArg(t) =>
           val param = rel.params(ix)
           val TSet(ty) = param.ty: @unchecked

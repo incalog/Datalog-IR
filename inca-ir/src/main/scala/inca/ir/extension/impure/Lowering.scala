@@ -113,11 +113,11 @@ trait Lowering extends BaseLowering:
         }
       case Call(name, args, true) if !pureRelations.contains(name) =>
         preserveHints(atom) {
-          Seq(Call(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => WildcardArg), true))
+          Seq(Call(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => WildcardArg()), true))
         }
       case Aggregate(rel, args, op) if !pureRelations.contains(rel) =>
         preserveHints(atom) {
-          Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildcardArg), op))
+          Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildcardArg()), op))
         }
 //       TODO: What about aggregations ?
       case _ => super.visitAtom(atom)

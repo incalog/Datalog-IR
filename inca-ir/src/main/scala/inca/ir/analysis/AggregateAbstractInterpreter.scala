@@ -13,7 +13,7 @@ trait AggregateAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
         case AggregateColumnArg(t) =>
           assign(t, top)
           top
-        case WildcardArg =>
+        case WildcardArg() =>
           top
       }
       AtomResult(topBool, falseBool)

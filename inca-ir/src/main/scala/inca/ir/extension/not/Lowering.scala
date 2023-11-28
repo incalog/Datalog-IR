@@ -30,7 +30,7 @@ trait Lowering extends BaseLowering:
 
   override def visitArg(arg: Arg): Seq[Arg] = arg match
     case TermArg(t) => t.typ match
-      case Some(TermType(ty, Mode.Binding | Mode.Collapse)) if collapseTerms => Seq(WildcardArg)
+      case Some(TermType(ty, Mode.Collapse)) if collapseTerms => Seq(WildcardArg())
       case _ => super.visitArg(arg)
     case _ => super.visitArg(arg)
 

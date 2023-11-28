@@ -271,7 +271,7 @@ object GeneratePSystem:
 
   private def compileArg(a: Arg): Code = a match
     case TermArg(t) => compileTerm(t)
-    case WildcardArg => throw IllegalStateException("Encountered unexpected wildcard argument!")
+    case WildcardArg() => throw IllegalStateException("Encountered unexpected wildcard argument!")
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {

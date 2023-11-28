@@ -136,7 +136,7 @@ trait BaseAbstractInterpreter[V, B]:
         } else {
           evalTerm(a)
         }
-      case WildcardArg =>
+      case WildcardArg() =>
         TermResult(top, trueBool)
     }
     AtomResult(topBool, vs.foldLeft(trueBool)((p, v) => boolOps.and(p, v.pure)))

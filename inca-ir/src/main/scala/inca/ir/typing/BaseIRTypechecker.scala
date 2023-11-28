@@ -149,7 +149,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(params, null, null).foreach {
-      case (WildcardArg, _) => // nothing
+      case (wildcard@WildcardArg(), Param(_, ty)) =>
+        wildcard.typed(ty.collapsed, force = true)
+      case (WildcardArg(), _) =>
+        // nothing
       case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument

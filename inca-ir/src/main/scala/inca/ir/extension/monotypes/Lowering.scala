@@ -153,7 +153,7 @@ trait Lowering extends BaseLowering:
     val opCons: Atom = Eq(Var(Name("name")), StringLit(op.toString))
     val commonAggBody: Seq[Atom] = Seq(destMono, opCons)
     val Seq(p, b): Seq[Term] = vars("p b")
-    val agg1Args: Seq[Arg] = TermArg(Var(Name("m"))) +: mt.keys.map(_ => WildcardArg) :+ TermArg(p) :+ AggregateColumnArg(b)
+    val agg1Args: Seq[Arg] = TermArg(Var(Name("m"))) +: mt.keys.map(_ => WildcardArg()) :+ TermArg(p) :+ AggregateColumnArg(b)
     val agg1: Aggregate = Aggregate(genCollName(mt), agg1Args, op).addHint(IgnoreCall)
     val body1: Body = Body(commonAggBody :+ Eq(p, BoolTrue) :+ agg1)
     val agg2Args: Seq[Arg] = Seq(TermArg(p), AggregateColumnArg(b))

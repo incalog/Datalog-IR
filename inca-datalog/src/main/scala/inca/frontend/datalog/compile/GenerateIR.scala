@@ -43,7 +43,7 @@ class GenerateIR {
       val collectArgs = vars.map(_._1)
         .map(ir.Var.apply)
         .map(_.arg)
-        .updated(aggregateIndex, WildcardArg)
+        .updated(aggregateIndex, WildcardArg())
       val collectAtom = ir.Call(collectName, collectArgs)
 
       val aggRel = ir.Relation(r.name, params, Seq(ir.Body(Seq(
@@ -76,7 +76,7 @@ class GenerateIR {
       case _ => arithmetic.BinCompare(compileTerm(lhs), compileTerm(rhs), op)
 
   def compileArg(t: Term): ir.Arg = t match
-    case Term.Var(Name("_")) => ir.WildcardArg
+    case Term.Var(Name("_")) => ir.WildcardArg()
     case _ => compileTerm(t).arg
 
   def compileTerm(t: Term): ir.Term = t match

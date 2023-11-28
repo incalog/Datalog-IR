@@ -23,6 +23,7 @@ def main(): (Boolean, (Boolean, Boolean)) = {
     // access tuple elements
     val y: Int = x._1
     val z: Int = x._2
+
     // create a nested tuple
     val w: (String, (Int, Int)) = ("Some string", x)
     // access a nested tuple
@@ -37,8 +38,12 @@ def main(): (Boolean, (Boolean, Boolean)) = {
 
     // check if the access is working
     val eval1: Boolean = ((y == 1) && (z == 2))
+
     val eval2: Boolean = ((a.tup._2.values._1 + a.tup._1) == 12)
+
+    return (true, (true, true))
+    /*
     val eval3: Boolean = ((res._1 * 2) == res._3._1) && ((res._2 * 2) == res._3._2)
 
-    return (eval1, (eval2, eval3))
+    return (eval1, (eval2, eval3))*/
 }

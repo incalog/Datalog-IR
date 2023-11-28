@@ -95,7 +95,7 @@ object GenerateSouffle:
 
   private def compileArg(a: ir.Arg): Term = a match
     case ir.TermArg(t) => compileTerm(t)
-    case ir.WildcardArg => Term.Var("_")
+    case ir.WildcardArg() => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(name) => Term.Var(cleanName(name))

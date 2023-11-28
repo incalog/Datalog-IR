@@ -35,6 +35,6 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
         val argMode = if (neg) Mode.Collapse else mode
         args.zip(params).foreach {
           case (TermArg(v), ty) => checkTerm(v, ty, mode)
-          case (WildcardArg, ty) => // nothing
+          case (wildcard@WildcardArg(), ty) => wildcard.typed(ty.collapsed, force = true)
         }
     case _ => super.checkAtom(atom, mode)

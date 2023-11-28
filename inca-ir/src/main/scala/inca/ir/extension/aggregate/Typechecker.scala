@@ -16,11 +16,13 @@ trait Typechecker extends BaseIRTypechecker:
           None
         case (null, p) => // missing argument
           None
-        case (TermArg(t), p) =>
-          checkTerm(t, p.ty, Mode.Bound)
+        case (TermArg(t), Param(_, ty)) =>
+          checkTerm(t, ty, Mode.Bound)
           None
-        case (WildcardArg, p) =>
-          //checkTerm(t, p.ty, Mode.Binding)
+        case (wildcard@WildcardArg(), Param(_, ty)) =>
+          wildcard.typed(ty.collapsed, force = true)
+          None
+        case (WildcardArg(), _) =>
           None
       }
       op.typecheck(aggregands) match

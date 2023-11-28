@@ -9,12 +9,10 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case Aggregate(rel, args, op) =>
       val newargs = args.flatMap {
-        case TermArg(t) => visitTerm(t).map(TermArg.apply)
         case AggregateColumnArg(t) =>
           val Seq(t0) = visitTerm(t)
           Seq(AggregateColumnArg(t0))
-        case WildcardArg =>
-          Seq(WildcardArg)
+        case arg => visitArg(arg)
       }
       Seq(Aggregate(rel, newargs, op))
     case _ => super.visitAtom(atom)

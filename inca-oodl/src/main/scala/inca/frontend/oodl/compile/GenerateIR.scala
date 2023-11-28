@@ -4,7 +4,7 @@ import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, TermArg, name2string, string2name}
+import inca.ir.{Arg, ExtensionalRelation, Language, Name, TermArg, WildcardArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.aggregateset as iraggset
@@ -250,11 +250,13 @@ class GenerateIR:
           case _ => Some(s)
       case s => Some(s)
     }
-    // collect all none-generated fields an assign their inital value
+    // collect all none-generated fields an assign their initial value
     val assignUserFields = classDef.fields.filter(!_.isGeneratedConstructorField).map {
       case f: FieldDef if f.body.isEmpty => throw IllegalStateException(s"Encountered unassigned field ${f.name}")
-      case f: FieldDef =>
+      case f: FieldDef if f.immutable =>
         ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg))
+      case f: FieldDef if !f.immutable =>
+        ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg, irarith.IntNum(0).arg))
     }
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(body, unusedResultVar) ++ assignUserFields)))
       //.addHint(Hints.Pure)
@@ -283,14 +285,14 @@ class GenerateIR:
     if (f.immutable)
       Seq(ir.Relation(qualifiedName, Seq(thisParam, valueParam), Seq(ir.Body(Seq()))))
     else
-      val tsParam = ir.Param("ts", demand.TDemand(Mutation.ty))
+      val tsParam = ir.Param("ts", demand.TDemand(Mutation.ty)) //ir.Param("ts", demand.TDemand(Mutation.ty))
       val fieldRel = ir.Relation(qualifiedName, Seq(thisParam, valueParam, tsParam), Seq(ir.Body(Seq())))
       // Create filter relation
       val filterRelName = s"$qualifiedName$$Filter"
       val tsMaxParam = ir.Param("aggTs", Mutation.ty)
       val filterRel = ir.Relation(filterRelName, Seq(thisParam, tsParam, tsMaxParam), Seq(
         ir.Body(Seq(
-          ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.WildcardArg, ir.Var("aggTs").arg))
+          ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.WildcardArg(), ir.Var("aggTs").arg))
             .addHint(demand.Hints.IgnoreCall),
           irarith.LT(ir.Var("aggTs"), ir.Var("ts"))
         )))).addHint(impure.Hints.Pure)
@@ -303,7 +305,7 @@ class GenerateIR:
             filterRelName,
             Seq(ir.Var("this").arg, mutVar.arg, iragg.AggregateColumnArg(maxTs)),
             irarith.ArithmeticAggregationOperator.Max
-          ),
+          ),//.addHint(demand.Hints.IgnoreCall),
           ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.Var("value").arg, maxTs.arg))
             .addHint(demand.Hints.IgnoreCall)
         ), mutVar, Mutation)
@@ -388,7 +390,7 @@ class GenerateIR:
     disjunction.Disjunction(
       builtInIdDatastructures.cases.map {
         case irdata.CaseDefinition(name, args) =>
-          val wildcardArgs = (0 until args.size-1).map(_ => ir.Var(gensym.freshName("_")).arg)
+          val wildcardArgs = (0 until args.size-1).map(_ => WildcardArg())
           val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
           DisjunctionAlternative(deconstr)
       }
@@ -454,7 +456,7 @@ class GenerateIR:
             val allFields = classDef.fields
             val signature = allFields.map(_.typ)
             val fieldIndex = allFields.indexWhere(_.name == targetName)
-            var args = (0 until allFields.size + 1).map(_ => ir.Var(gensym.freshName("_")).arg)
+            var args: Seq[Arg] = (0 until allFields.size + 1).map(_ => WildcardArg())
             args = args.updated(fieldIndex + 1, resultVar.arg)
             val caseName = s"SID$$${signatureString(signature)}"
             block.Block(
@@ -468,7 +470,7 @@ class GenerateIR:
             )
           else
             block.Block(
-              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm.arg, resultVar.arg)),
+              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm.arg, resultVar.arg)),//.addHint(demand.Hints.IgnoreCall),
               resultVar
             )
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")

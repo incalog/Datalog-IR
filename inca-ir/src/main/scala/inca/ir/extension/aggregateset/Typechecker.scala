@@ -28,6 +28,11 @@ trait Typechecker extends BaseIRTypechecker:
         case (TermArg(t), p) =>
           checkTerm(t, p.ty, argMode)
           None
+        case (wildcard@WildcardArg(), Param(_, ty)) =>
+          wildcard.typed(ty.collapsed, force = true)
+          None
+        case (WildcardArg(), _) =>
+          None
       }
       op.typecheck(aggregands) match
         case Left(err) =>
