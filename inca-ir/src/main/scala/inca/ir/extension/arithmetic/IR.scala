@@ -53,7 +53,11 @@ enum ArithmeticAggregationOperator extends AggregationOperatorBuiltIn:
   case Max
 
   override def typecheck(in: Seq[Type]): Either[String, Type] = this match
-    case ArithmeticAggregationOperator.Count => Right(TInt)
+    case ArithmeticAggregationOperator.Count =>
+      if (in.size == 1)
+        Right(TInt)
+      else
+        Left(s"Cannot compute $this for values of type $in")
     case ArithmeticAggregationOperator.Sum | ArithmeticAggregationOperator.Min | ArithmeticAggregationOperator.Max =>
       if (in == Seq(TInt) || in == Seq(TDouble))
         Right(in.head)

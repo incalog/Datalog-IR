@@ -4,6 +4,8 @@ name := "inca"
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
 ThisBuild / version := "0.1"
 
+ThisBuild / scalacOptions += "-deprecation"
+
 Test / parallelExecution := false
 
 val truediffVersion = "0.1.5-SNAPSHOT"

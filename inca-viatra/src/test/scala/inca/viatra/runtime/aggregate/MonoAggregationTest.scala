@@ -3,11 +3,11 @@ package inca.viatra.runtime.aggregate
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation, Relation as Table}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.monotypes.ArithmeticMono.{SumMono, MaxMono}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.{Sum, Max}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
-import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, monotypes, string}
-import inca.ir.extension.monotypes.{AddMono, CompiledMonoModule, MkMono, ResultMono, TMono}
+import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
+import inca.ir.extension.mono.{WriteMono, NewMono, ReadMono, TMono}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
@@ -17,7 +17,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     demand.IR + 
     data.IR + 
     aggregate.IR +
-    monotypes.IR +
+    mono.IR +
     impure.IR +
     block.IR +
     string.IR +
@@ -41,8 +41,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(SumMono, Seq(), Seq(TString))),
-      Eq(Var("b"), ResultMono(Var("m")))
+      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(impure.Hints.Pure)
 
 
@@ -64,9 +64,9 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(SumMono, Seq(), Seq(TString))),
-      AddMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
-      Eq(Var("b"), ResultMono(Var("m")))
+      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
+      Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(impure.Hints.Pure)
 
   test("Test case 2") {
@@ -82,9 +82,9 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(SumMono, Seq(), Seq(TString))),
+      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
-      Eq(Var("b"), ResultMono(Var("m")))
+      Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(impure.Hints.Pure)
 
   private lazy val relation5: Relation = Relation(
@@ -93,7 +93,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         ExtensionalCall(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
   ).addHint(impure.Hints.Pure)
@@ -128,11 +128,11 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Param("b2", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m1"), MkMono(SumMono, Seq(), Seq(TString))),
-      Eq(Var("m2"), MkMono(SumMono, Seq(), Seq(TString))),
+      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(Sum, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
-      Eq(Var("b1"), ResultMono(Var("m1"))),
-      Eq(Var("b2"), ResultMono(Var("m2")))
+      Eq(Var("b1"), ReadMono(Var("m1"))),
+      Eq(Var("b2"), ReadMono(Var("m2")))
     )))).addHint(impure.Hints.Pure)
 
   test("Test case 4") {
@@ -153,13 +153,13 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         ExtensionalCall(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       )),
       Body(Seq(
         ExtensionalCall(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
   ).addHint(impure.Hints.Pure)
@@ -182,12 +182,12 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Param("b2", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m1"), MkMono(SumMono, Seq(), Seq(TString))),
-      Eq(Var("m2"), MkMono(MaxMono, Seq(), Seq(TString))),
+      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(Max, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
       Call("size", Seq(Var("t"), Var("m2"))),
-      Eq(Var("b1"), ResultMono(Var("m1"))),
-      Eq(Var("b2"), ResultMono(Var("m2")))
+      Eq(Var("b1"), ReadMono(Var("m1"))),
+      Eq(Var("b2"), ReadMono(Var("m2")))
     )))).addHint(impure.Hints.Pure)
 
   test("Test case 6") {

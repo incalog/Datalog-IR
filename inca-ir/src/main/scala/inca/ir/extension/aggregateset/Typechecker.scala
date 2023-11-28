@@ -28,6 +28,7 @@ trait Typechecker extends BaseIRTypechecker:
         case (AggregateArg.Arg(t), p) =>
           checkTerm(t, p.ty, argMode)
           None
+        // TODO case AggregateArg.WildCard
       }
       op.typecheck(aggregands) match
         case Left(err) =>

@@ -8,7 +8,7 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
-import inca.ir.extension.monotypes.ArithmeticMono
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
 import inca.ir.{name2string, string2name}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
@@ -28,8 +28,8 @@ trait ScalaLowering extends BaseScalaLowering:
       case ArithmeticAggregationOperator.Sum => ScalaAggregationOperator.Sum(compileType(ty))
       case ArithmeticAggregationOperator.Min => ScalaAggregationOperator.Min(compileType(ty))
       case ArithmeticAggregationOperator.Max => ScalaAggregationOperator.Max(compileType(ty))
-      case ArithmeticMono.SumMono => ScalaAggregationOperator.SumMono
-      case ArithmeticMono.MaxMono => ScalaAggregationOperator.MaxMono
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Sum) => ScalaAggregationOperator.SumMono
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Max) => ScalaAggregationOperator.MaxMono
       case _ => op
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

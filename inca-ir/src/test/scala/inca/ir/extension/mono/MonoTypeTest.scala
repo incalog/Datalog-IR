@@ -1,8 +1,8 @@
-package inca.ir.extension.monotypes
+package inca.ir.extension.mono
 
 import inca.ir.{Var, *}
-import inca.ir.extension.monotypes
-import inca.ir.extension.monotypes.ArithmeticMono.{CountMono, MaxMono}
+import inca.ir.extension.mono
+import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, Max}
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
@@ -20,7 +20,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   val baseIR: BaseIR = new BaseIR {}
 
   def module(relations: ModuleEntry*)(using typechecker: Typechecker): Module =
-    val mod = Module("M", BaseIR.language+demand.IR+monotypes.IR+impure.IR+data.IR, relations)
+    val mod = Module("M", BaseIR.language+demand.IR+mono.IR+impure.IR+data.IR, relations)
     try typechecker.typecheck(mod)
     finally {
       println(mod)
@@ -28,16 +28,16 @@ class MonoTypeTest extends AnyFunSuiteLike {
     }
     mod
 
-  // main(t, b) :- MkMono(m, CountMono, Seq(), MT[Int, Int, Seq(String)),
+  // main(t, b) :- MkMono(m, Count, Seq(), MT[Int, Int, Seq(String)),
   //               t = "A", size(t, m), b = m.result()
   private lazy val relation1 : Relation = Relation(
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), Seq(TString))),
+      Eq(Var("m"), NewMono(Count, Seq(TString), Seq())),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
-      Eq(Var("b"), ResultMono(Var("m")))
+      Eq(Var("b"), ReadMono(Var("m")))
     )))
   ).addHint(impure.Hints.Pure)
 
@@ -50,13 +50,13 @@ class MonoTypeTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       )),
       Body(Seq(
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), IntNum(2), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(2), Seq(Var("t")))
       ))
     )
   )
@@ -88,10 +88,10 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString), Param("b", TString)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), Seq(TString))),
+      Eq(Var("m"), NewMono(Count, Seq(TString), Seq())),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
-      Eq(Var("b"), ResultMono(Var("m")))
+      Eq(Var("b"), ReadMono(Var("m")))
     )))
   )
 
@@ -103,13 +103,13 @@ class MonoTypeTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), StringLit("1"), Seq(Var("t")))
+        WriteMono(Var("m"), StringLit("1"), Seq(Var("t")))
       )),
       Body(Seq(
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        AddMono(Var("m"), StringLit("1"), Seq(Var("t")))
+        WriteMono(Var("m"), StringLit("1"), Seq(Var("t")))
       ))
     )
   )
@@ -117,7 +117,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   test("Tree size (type-safe)"){
     implicit val typechecker = new IRTypechecker
-      with monotypes.Typechecker
+      with mono.Typechecker
       with string.Typechecker
       with arithmetic.Typechecker
       {}
@@ -126,7 +126,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   test("Tree size (type-unsafe 1)") {
     implicit val typechecker = new IRTypechecker
-      with monotypes.Typechecker
+      with mono.Typechecker
       with string.Typechecker
       with arithmetic.Typechecker {}
     assertThrows[TypeErrorException](
@@ -137,7 +137,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   test("Tree size (type-unsafe 2)") {
     implicit val typechecker = new IRTypechecker
-      with monotypes.Typechecker
+      with mono.Typechecker
       with string.Typechecker
       with arithmetic.Typechecker {}
     assertThrows[TypeErrorException](
@@ -151,7 +151,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        AddMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
   )
@@ -170,7 +170,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     "main",
     Seq(Param("t", TString)),
     Seq(Body(Seq(
-      Eq(Var("m"), MkMono(CountMono, Seq(), Seq(TString))),
+      Eq(Var("m"), NewMono(Count, Seq(TString), Seq())),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
 //      Eq(Var("b"), ResultMono(Var("m")))

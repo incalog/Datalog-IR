@@ -18,5 +18,5 @@ trait IRVisitor extends BaseIRVisitor
   with set.Visitor
   with string.Visitor
   with tuple.Visitor
-  with monotypes.Visitor
+  with mono.Visitor
 

@@ -16,4 +16,5 @@ case class AggregateSet(rel: Name, args: Seq[AggregateArg], op: AggregationOpera
   override def vars: Seq[Var] = args.flatMap {
     case AggregateArg.Arg(t) => t.vars
     case AggregateArg.AggregateColumn(t) => t.vars
+    // TODO case AggregateArg.WildCard
   }
