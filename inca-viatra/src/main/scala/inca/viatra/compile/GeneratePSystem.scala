@@ -59,7 +59,7 @@ object GeneratePSystem:
   /**
    * Filter out all relations without a body and all relations that transitively depend on such a relation.
    */
-  private def getProductiveRelations(module: Module): Map[String, Relation] = {
+  /*private def getProductiveRelations(module: Module): Map[String, Relation] = {
     val (nonEmptyRelations, emptyRelations) = module.relations.partition {
       case (_, r) => r.nonEmpty
     }
@@ -91,7 +91,7 @@ object GeneratePSystem:
       }
     }
     result
-  }
+  }*/
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Code = {
     val indent = 2
@@ -100,7 +100,8 @@ object GeneratePSystem:
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 
-    val relations = getProductiveRelations(mod)
+    //val relations = getProductiveRelations(mod)
+    val relations = mod.relations
 
     //println()
     //println(mod)
@@ -172,14 +173,7 @@ object GeneratePSystem:
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
-
-    if (relation.isEmpty) {
-      return s"""
-         |object ${relation.name} {
-         |  val error = "This pattern was empty"
-         |}""".stripMargin.indent(indent)
-    }
-
+    
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
         val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
@@ -199,8 +193,12 @@ object GeneratePSystem:
       evalExp = Seq()
       pVar2Code = Map()
 
-      val content = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
-      Seq(compileBody(moduleName, relation, content)(indent + 4))
+      val paramConstraints = relation.params.map { p =>
+          s"new Equality(body, $VARPREFIX${p.name} ,body.newConstantVariable(null))"
+      }
+      val failingConstraint = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
+      val content = paramConstraints :+ failingConstraint
+      Seq(compileBody(moduleName, relation, content.mkString("\n"))(indent + 4))
     }
 
     val bodiesS = bodies.mkString("{", "}, {", "}")
