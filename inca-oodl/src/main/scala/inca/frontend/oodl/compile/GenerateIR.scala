@@ -278,7 +278,7 @@ class GenerateIR:
           iragg.Aggregate(
             filterRelName,
             Seq(iragg.AggregateArg.Arg(ir.Var("this")), iragg.AggregateArg.Arg(mutVar), iragg.AggregateArg.AggregateColumn(maxTs)),
-            irarith.ArithmeticAggregationOperator.Max
+            irarith.ArithmeticAggregationOperator.MaxInt
           ),
           ir.Call(qualifiedName, Seq(ir.Var("this"), ir.Var("value"), maxTs)).addHint(demand.Hints.IgnoreCall)
         ), mutVar, Mutation)

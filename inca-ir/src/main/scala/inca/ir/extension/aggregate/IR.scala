@@ -34,7 +34,8 @@ enum AggregateArg:
     case WildCard(t) => s"_$t"
 
 trait AggregationOperator:
-  def typecheck(in: Seq[Type]): Either[String, Type]
+  def resultType: Type
+  def typecheck(in: Seq[Type]): Option[String]
 
 trait AggregationOperatorBuiltIn extends AggregationOperator
 trait AggregationOperatorUserDefined extends AggregationOperator

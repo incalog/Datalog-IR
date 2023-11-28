@@ -9,6 +9,7 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.extension.aggregate
 import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg, AggregationOperatorUserDefined}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.MaxInt
 import inca.ir.extension.block.Block
 import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.impure
@@ -16,7 +17,6 @@ import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.arithmetic.{Add, DoubleNum, IntNum, TDouble, TInt}
-import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.Max as MaxAgg
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.string.{StringLit, TString}
 
@@ -231,7 +231,7 @@ trait Lowering extends BaseLowering:
       Aggregate(
         genAggName(mt),
         Seq(Arg(Var(Name("m"))), AggregateColumn(Var(Name("b")))),
-        MaxAgg
+        MaxInt
       )
     ))
 
@@ -312,10 +312,8 @@ trait Lowering extends BaseLowering:
    * Lower MkMono into an ADT instance and generate corresponding collection and aggregation relations.
    */
   private def lowerMkMono(term:NewMono) : Seq[Term] =
-    val (in, out) = term.mono.typecheckConstructor(term.args.map(_.typ.get.ty)) match
-      case Left(msg) =>
-        (TAny, TAny)
-      case Right(tm) => tm
+    val tm = term.typ.get.ty.asInstanceOf[TMono]
+    val (in, out) = (tm.input, tm.output)
     val mt: TMono = TMono(in, out, term.keys)
     val collName: Name = genCollName(mt)
     val collNameAux: Name = genCollName(mt, neg=true)
@@ -345,7 +343,3 @@ trait Lowering extends BaseLowering:
     val b: Term = Var(Name(mvar.toString + "r"))
     val call: Call = Call(aggName, Seq(mvar, b))
     Seq(Block(Seq(call), b))
-
-case class MonoAggregationOperator(mono: MonoDefinition) extends AggregationOperatorUserDefined:
-  override def typecheck(in: Seq[Type]): Either[String, Type] = ???
-

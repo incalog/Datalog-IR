@@ -63,7 +63,8 @@ object ScalaConstantTerm:
 
 case class ScalaAggregationOperator(ty: ScalaType, code: String) extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
-  def typecheck(in: Seq[Type]): Either[String, Type] = Right(ty)
+  override def resultType: Type = ty
+  def typecheck(in: Seq[Type]): Option[String] = None
 
 object ScalaAggregationOperator:
   def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation.aggregator")

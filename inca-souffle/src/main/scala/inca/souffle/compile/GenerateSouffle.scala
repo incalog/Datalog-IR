@@ -80,9 +80,9 @@ object GenerateSouffle:
         case AggregateArg.Arg(t) => compileTerm(t)
       }
       val souffleAgg = op match
-        case arith.ArithmeticAggregationOperator.Min => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
-        case arith.ArithmeticAggregationOperator.Max => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
-        case arith.ArithmeticAggregationOperator.Sum => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.MinInt => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.MaxInt => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
         case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
         case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
       Atom.Equal(Term.Var(resultVar.name), Term.AggregatorTerm(souffleAgg))

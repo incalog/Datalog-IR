@@ -22,10 +22,12 @@ case class FunctionalIncaAggregationOperator(code: FunctionDef, init: Expression
     throw new IllegalArgumentException(s"Aggregation operator must be of type (A,A)=>A but got $tfun")
   val aggType = from.head
 
-  override def typecheck(in: Seq[ir.Type]): Either[String, ir.Type] =
+  override def resultType: ir.Type = FunctionalInca.compileType(aggType)
+
+  override def typecheck(in: Seq[ir.Type]): Option[String] =
     if (in.size != 1)
-      Left(s"Function $code expects 1 argument, but found ${in.size} arguments in call")
+      Some(s"Function $code expects 1 argument, but found ${in.size} arguments in call")
     else if (FunctionalInca.compileType(aggType) != in.head)
-      Left(s"Invalid argument of type ${in.head} for parameter of type $aggType")
+      Some(s"Invalid argument of type ${in.head} for parameter of type $aggType")
     else
-      Right(FunctionalInca.compileType(aggType))
+      None

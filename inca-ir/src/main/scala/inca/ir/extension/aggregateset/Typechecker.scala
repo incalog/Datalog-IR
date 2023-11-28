@@ -18,7 +18,7 @@ trait Typechecker extends BaseIRTypechecker:
           val ty = p.ty match
             case TSet(ty) => ty
             case ty => error(s"aggregation column should have set type, but was $ty", atom); ty
-          checkTerm(t, ty, mode)
+          checkTerm(t, op.resultType, mode)
           Some(ty)
         case (AggregateArg.Arg(t), null) => // missing param
           inferTerm(t, argMode)
@@ -30,10 +30,6 @@ trait Typechecker extends BaseIRTypechecker:
           None
         // TODO case AggregateArg.WildCard
       }
-      op.typecheck(aggregands) match
-        case Left(err) =>
-          error(err, atom)
-          TAny.bound
-        case Right(ty) =>
-          ty.bound
+      op.typecheck(aggregands).foreach(error(_, atom))
+      op.resultType
     case _ => super.checkAtom(atom, mode)

@@ -16,12 +16,10 @@ trait Typechecker extends BaseIRTypechecker{
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case NewMono(mono, keys, args) =>
       val tys = args.map(inferTerm(_, Mode.Bound).ty)
-      mono.typecheckConstructor(tys) match
-        case Left(msg) =>
-          error(msg, term)
-          TMono(TAny, TAny, keys).bound
-        case Right((in,out)) =>
-          TMono(in, out, keys).bound
+      if (mono.args.size != args.size)
+        error(s"Expected ${mono.args.size} arguments, but got $args", term)
+      args.zip(mono.args).foreach((a,ty) => checkTerm(a, ty, Mode.Bound))
+      mono.monoType(keys).bound
     case ReadMono(m) =>
       inferTerm(m, mode).ty match
         case TMono(input, output, keys) =>

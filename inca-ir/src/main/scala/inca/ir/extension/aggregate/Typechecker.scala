@@ -9,7 +9,7 @@ trait Typechecker extends BaseIRTypechecker:
       val params = lookupRelationParams(rel, args.size, atom)
       val aggregands: Seq[Type] = args.zipAll(params, null, null).flatMap {
         case (AggregateArg.AggregateColumn(t), p) => // skip
-          checkTerm(t, p.ty, mode)
+          checkTerm(t, op.resultType, mode)
           Some(p.ty)
         case (AggregateArg.Arg(t), null) => // missing param
           inferTerm(t, Mode.Bound)
@@ -20,13 +20,9 @@ trait Typechecker extends BaseIRTypechecker:
           checkTerm(t, p.ty, Mode.Bound)
           None
         case (AggregateArg.WildCard(t), p) =>
-          checkTerm(t, p.ty, Mode.Binding)
+//          checkTerm(t, p.ty, Mode.Binding)
           None
       }
-      op.typecheck(aggregands) match
-        case Left(err) =>
-          error(err, atom)
-          TAny.bound
-        case Right(ty) =>
-          ty.bound
+      op.typecheck(aggregands).foreach(error(_, atom))
+      op.resultType.bound
     case _ => super.checkAtom(atom, mode)

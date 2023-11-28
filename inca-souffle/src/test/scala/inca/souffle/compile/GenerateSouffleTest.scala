@@ -79,7 +79,7 @@ class GenerateSouffleTest extends AnyFunSuite {
     Seq(
       Body(Seq(
         Call("pathCol", Seq(Var("X"), Var("Y"), Var("DUMMY"))),
-        aggregate.Aggregate("pathCol", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.Arg(Var("Y")),  aggregate.AggregateArg.AggregateColumn(Var("D"))), arith.ArithmeticAggregationOperator.Min))),
+        aggregate.Aggregate("pathCol", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.Arg(Var("Y")),  aggregate.AggregateArg.AggregateColumn(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
     )
   )
 
@@ -87,7 +87,7 @@ class GenerateSouffleTest extends AnyFunSuite {
     Seq(
       Body(Seq(
         Call("edge", Seq(Var("X"), Var("DUMMY"))),
-        aggregate.Aggregate("edge", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.AggregateColumn(Var("M"))), arith.ArithmeticAggregationOperator.Max))),
+        aggregate.Aggregate("edge", Seq(aggregate.AggregateArg.Arg(Var("X")), aggregate.AggregateArg.AggregateColumn(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
     )
   )
 

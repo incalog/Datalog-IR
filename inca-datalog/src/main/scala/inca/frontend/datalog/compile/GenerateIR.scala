@@ -55,9 +55,9 @@ class GenerateIR {
 
   def compileAggregationOperator(name: String): aggregate.AggregationOperator = name match
     case "count" => arithmetic.ArithmeticAggregationOperator.Count
-    case "sum" => arithmetic.ArithmeticAggregationOperator.Sum
-    case "min" => arithmetic.ArithmeticAggregationOperator.Min
-    case "max" => arithmetic.ArithmeticAggregationOperator.Max
+    case "sum" => arithmetic.ArithmeticAggregationOperator.SumInt
+    case "min" => arithmetic.ArithmeticAggregationOperator.MinInt
+    case "max" => arithmetic.ArithmeticAggregationOperator.MaxInt
 
   def compileRule(r: Rule, vars: Seq[Name]): ir.Body =
     val headAtoms = r.head.zip(vars) map {
