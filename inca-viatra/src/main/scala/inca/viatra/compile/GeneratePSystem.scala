@@ -190,6 +190,8 @@ object GeneratePSystem:
         compileBody(moduleName, relation, bodyContent)(indent + 4)
       }
     else {
+      // Bind all variables to null and insert an invalid equality constraint
+      // That way, we produce the correct result when aggregating
       evalExp = Seq()
       pVar2Code = Map()
 
