@@ -29,7 +29,11 @@ enum Mode:
   def inverted: Mode = this match
     case Binding => Bound
     case Bound | Collapse => Binding
-  
+
+  def weakInverted: Mode = this match
+    case Binding => Collapse
+    case Bound | Collapse => Binding
+
   def ||(that: Mode): Mode = this match
     case Binding => Binding
     case Bound => that match

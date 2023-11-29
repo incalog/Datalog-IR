@@ -52,8 +52,20 @@ trait Lowering extends BaseLowering:
 
   override def visitParam(param: Param): Seq[Param] = preserveHints(param)(flatten(param))
 
+  override def visitArg(arg: Arg): Seq[Arg] = arg match
+    case wildcard@WildcardArg() => wildcard.typ match
+      case Some(TermType(ty, _)) => 0.until(ty.size).map(_ => WildcardArg())
+      case _ => throw IllegalStateException(s"Untyped argument $arg")
+    case _ => super.visitArg(arg)
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
+      case Cast(t, ty) =>
+        val terms = visitTerm(t)
+        val ttys = visitType(ty).flatten
+        //if (terms.size != ttys.size)
+        //  throw IllegalStateException(s"Can not lower cast $term")
+        terms.zip(ttys).map((t, ty) => Cast(t, ty))
       case Project(t, idx) =>
         val tupleTy: TTuple = t.typ match {
           case Some(TermType(ty@TTuple(tys), _)) if idx <= tys.size =>

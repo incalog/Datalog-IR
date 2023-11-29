@@ -14,7 +14,7 @@ trait ScalaLowering extends BaseScalaLowering:
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TString => true
-    case _ => false
+    case _ => super.isTypeSupported(ty)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match

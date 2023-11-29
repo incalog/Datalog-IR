@@ -143,8 +143,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     case Cast(t, ty) =>
       checkType(ty)
-      val TermType(_, m) = inferTerm(t, mode)
-      assignType(t)(TermType(ty, m))
+      val TermType(tty, m) = inferTerm(t, mode)
+      assignType(t)(TermType(tty, m))
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
@@ -156,7 +156,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         error(s"Expected a relation $name but found $entry", s)
         Seq()
 
-  def checkCall(ref: Ref[Relation], args: Seq[Term], atom: Atom, mode: Mode): Unit =
+  def checkCall(ref: Ref[Relation], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
     val paramTys = inferRelationRef(ref, atom)
     if (paramTys.size != args.size)
       error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
@@ -165,11 +165,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(paramTys, null, null).foreach {
-      case (t, null) => // missing param
+      case (wildcard@WildcardArg(), ty) =>
+        wildcard.typed(ty.collapsed, force = true)
+      case (WildcardArg(), _) =>
+        // nothing
+      case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument
         // nothing
-      case (t, ty) =>
+      case (TermArg(t), ty) =>
         checkTerm(t, ty, argMode)
     }
 
@@ -188,12 +192,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         Seq()
   
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Call(name, args) => checkCall(name, args, atom, mode)
-    case NegCall(name, args) => checkCall(name, args, atom, mode.inverted)
-    case ExtensionalCall(name, args) => checkCall(name, args, atom, mode)
-    case NegExtensionalCall(name, args) => checkCall(name, args, atom, mode.inverted)
+    case Call(ref, args, false) => checkCall(ref, args, atom, mode)
+    case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
+    case ExtensionalCall(name, args, false) => checkCall(name, args, atom, mode)
+    case ExtensionalCall(name, args, true) => checkCall(name, args, atom, mode.inverted)
 
-    case Eq(lhs, rhs) =>
+    case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>
@@ -208,7 +212,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
               lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
               rerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
 
-    case Neq(lhs, rhs) =>
+    case Eq(lhs, rhs, true) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>

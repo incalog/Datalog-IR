@@ -113,7 +113,7 @@ trait TypeContext extends TypeIO:
     parentContent ++ content
   }
 
-  def lookupFieldCandidates(classDef: ClassDef, fieldName: Name): Seq[(ClassDef, FieldDef)] = {
+  def lookupFieldCandidates(classDef: ClassDef, fieldName: Name, getParentDefinition: Boolean): Seq[(ClassDef, FieldDef)] = {
     val fieldCandidates = collect[FieldDef](classDef) {
       case f: FieldDef => f.name == fieldName
       case _ => false
@@ -124,11 +124,15 @@ trait TypeContext extends TypeIO:
     /*val generatedFieldOption = (generatedFields.headOption, generatedFields.lastOption) match
       case (Some((parentCls, _)), Some((_, concreteFieldDef))) => Some((parentCls, concreteFieldDef))
       case _ => None*/
-    Seq() ++ generatedFields.headOption ++ userDefinedFields
+    val targetField = if (getParentDefinition)
+      generatedFields.headOption
+    else
+      generatedFields.lastOption
+    Seq() ++ targetField ++ userDefinedFields
   }
 
-  def lookupField(classDef: ClassDef, fieldName: Name, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
-    val fieldCandidates = lookupFieldCandidates(classDef, fieldName)
+  def lookupField(classDef: ClassDef, fieldName: Name, getParentDefinition: Boolean, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
+    val fieldCandidates = lookupFieldCandidates(classDef, fieldName, getParentDefinition)
     if (fieldCandidates.isEmpty) {
       error(s"Undefined field '$fieldName' for class '${classDef.name}'", location: _*)
       None

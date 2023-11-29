@@ -1,6 +1,7 @@
-package inca.frontend.oodl.executor
+package inca.frontend.oodl.executor.unittests
 
 import inca.frontend.oodl.compile.CompiledOODLModule
+import inca.frontend.oodl.executor.OODLExecutor
 import inca.ir.execution.Relation
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
@@ -9,6 +10,23 @@ class OODLExecutorTest extends AnyFunSuite:
   val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
 
   // Unittests
+  test("Add") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Add.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult("OID(Succ,7)")(res.entries.head.toString)
+  }
+
+  test("Assignment") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Assignment.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq(5))
+    assertResult(1)(res.entries.head)
+  }
 
   test("Base") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Base.oodl")
@@ -18,6 +36,26 @@ class OODLExecutorTest extends AnyFunSuite:
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
   }
+
+  test("Dynamic Dispatch") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/DynamicDispatch.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult("BBC")(res.entries.head)
+  }
+
+  /*
+  // TODO: Eliminate aliases to make this work
+  test("Equals") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Equals.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }*/
 
   test("Factorial") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Fact.oodl")
@@ -48,15 +86,6 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
-  test("Dynamic Dispatch") {
-    val code = FileUtil.readFileFromResource("objectoriented/unittests/DynamicDispatch.oodl")
-    val compiled = exec.compileOODL(code)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
-    val loaded = exec.loadOODL(compiled)
-    val res = loaded.execute("main", Seq())
-    assertResult("BBC")(res.entries.head)
-  }
-
   test("Method Inheritance") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/MethodInheritance.oodl")
     val compiled = exec.compileOODL(code)
@@ -64,6 +93,33 @@ class OODLExecutorTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(3)(res.entries.head)
+  }
+
+  test("Mutability") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Mutability.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
+  test("Null") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Null.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
+  test("Param Object") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/ParamObject.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
   }
 
   // We need way more optimizations to make this program executable
@@ -76,6 +132,15 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  test("Subtyping") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Subtyping.oodl")
+    val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(6)(res.entries.head)
+  }
+
   test("Super") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Super.oodl")
     val compiled = exec.compileOODL(code)
@@ -85,22 +150,13 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(5)(res.entries.head)
   }
 
-  test("Assignment") {
-    val code = FileUtil.readFileFromResource("objectoriented/unittests/Assignment.oodl")
-    val compiled = exec.compileOODL(code)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
-    val loaded = exec.loadOODL(compiled)
-    val res = loaded.execute("main", Seq(5))
-    assertResult(1)(res.entries.head)
-  }
-
-  test("Mutability") {
-    val code = FileUtil.readFileFromResource("objectoriented/unittests/Mutability.oodl")
+  test("Tuple") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Tuple.oodl")
     val compiled = exec.compileOODL(code)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
-    assertResult(1)(res.entries.head)
+    assertResult(Set((1, 1, 1)))(res.entries.toSet)
   }
 
   /** If */
@@ -152,31 +208,37 @@ class OODLExecutorTest extends AnyFunSuite:
     assertResult(15)(res.entries.head)
   }
 
-  // TODO: We need a negated destruct here... Why ?
-  /*test("Transitive closure") {
+  test("Transitive closure") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
     val compiled = exec.compileOODL(code)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from(setAdt.getClass.getSimpleName, Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
-    println(res)
-  }*/
+    val query = Relation.from("Set$$TString_TString$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    res = loaded.engine.read(query).project(1, 3)
+    val expectedResult = Set(
+      ("A", "W"), ("Z", "Y"), ("Y", "W"), ("B", "C"),
+      ("Y", "Z"), ("X", "Z"), ("Y", "Y"), ("Z", "Z"),
+      ("X", "Y"), ("B", "W"), ("X", "X"), ("Z", "W"),
+      ("Y", "X"), ("X", "W"), ("B", "A"), ("Z", "X")
+    )
+    assertResult(expectedResult)(res.toSet)
+  }
 
   /** Set */
 
-  /*test("Set with Objects") {
+  test("Set with Objects") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClass.oodl")
     val compiled = exec.compileOODL(code)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
-    res = loaded.engine.read(query).project(1, 3)
-    assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
-  }*/
+    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 2)
+    assertResult(Set(3, 10))(res.toSet)
+  }
 
   test("Set comprehension") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension.oodl")

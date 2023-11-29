@@ -43,6 +43,14 @@ class Typechecker extends TypeIO {
         case None => error(s"Cannot infer type for either side of equality constraint", a)
     case Atom.Compare(lhs, "!=", rhs) =>
       assertComparable(inferTerm(lhs), inferTerm(rhs), a)
+    case Atom.Compare(lhs, "<", rhs) =>
+      assertComparable(inferTerm(lhs), inferTerm(rhs), a)
+    case Atom.Compare(lhs, "<=", rhs) =>
+      assertComparable(inferTerm(lhs), inferTerm(rhs), a)
+    case Atom.Compare(lhs, ">", rhs) =>
+      assertComparable(inferTerm(lhs), inferTerm(rhs), a)
+    case Atom.Compare(lhs, ">=", rhs) =>
+      assertComparable(inferTerm(lhs), inferTerm(rhs), a)
     case _ => error(s"Unknown atom",a )
 
   def checkTerm(t: Term, ty: Type): Unit = t match

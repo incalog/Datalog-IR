@@ -1,39 +1,22 @@
 module SimpleAdd
 
+class Nat {
+    def add(that: Nat): Nat = that
+}
 
-class Num(var value: Int) {
-    def add(i: Int): Int = {
-        return this.value + i
+class Zero extends Nat
+
+class Succ(val pred: Nat) extends Nat {
+    override def add(that: Nat): Nat = {
+        val nPred: Nat = this.pred.add(that)
+        new Succ(nPred)
     }
 }
 
 @main
-def main(): Int = {
-    new Num(1).add(1)
+def main(): Nat = {
+    val a: Nat = new Succ(new Succ(new Zero()))
+    val b: Nat = new Succ(new Zero())
+    a.add(b)
 }
-
-/*class Nat {
-    def add(that: Nat): Nat = {
-        that
-    }
-
-    @main
-    def main(): Nat = {
-        val a: Nat = new Succ(new Succ(new Zero()))
-        val b: Nat = new Succ(new Zero())
-        a.add(b)
-    }
-}
-
-class Zero extends Nat { }
-
-class Succ(val pred: Nat) extends Nat {
-
-    @override def add(that: Nat): Nat = {
-        val nPred: Nat = this.pred.add(that)
-        new Succ(nPred)
-    }
-}*/
-
-
 

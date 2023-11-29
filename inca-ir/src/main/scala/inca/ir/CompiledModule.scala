@@ -54,13 +54,19 @@ trait CompiledModule:
     var i = 0
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
-//      println(s"Lowering $i")
       val Seq(l) = lowFun.visitProgram(Seq(m))
-//      println(l)
-//      println()
+
+      println(s"Lowering $i")
+      println(l)
+      println()
+
       val checker = new IRTypechecker()
       checker.checkModule(l)
-//      i += 1
+
+      /*println(s"Checked $i")
+      println(l)
+      println()*/
+      i += 1
       l
     }
 
@@ -69,7 +75,6 @@ trait CompiledModule:
     StatisticsCollector.printStatistics(p1.head, s"after optimization 1")
     val p2 = optimize(p1)
     StatisticsCollector.printStatistics(p2.head, s"after optimization 2")
-    println(p2)
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
@@ -81,7 +86,8 @@ trait CompiledModule:
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
     aeval.evalModule(p.head)
-    //println(p.head)
+    //println("Eval module: ")
+    //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = new IRTypechecker

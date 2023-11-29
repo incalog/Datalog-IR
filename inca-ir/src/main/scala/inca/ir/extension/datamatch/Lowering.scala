@@ -6,7 +6,7 @@ import inca.ir.extension.*
 import inca.ir.extension.data.Deconstruct
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, NegExtensionalCall, Term}
+import inca.ir.{Atom, BaseIR, Body, Term}
 
 import scala.collection.mutable.ListBuffer
 
@@ -19,15 +19,15 @@ trait Lowering extends BaseLowering:
     case Match(matchee, cases) =>
       val previous: ListBuffer[Deconstruct] = ListBuffer.empty
       val alternatives = cases.map { case Case(name, patVars, body) =>
-        previous += Deconstruct(matchee, name, patVars)
+        previous += Deconstruct(matchee, name, patVars.map(_.arg))
         // TODO non-overlapping patterns?
         val notPrevious = Seq() // previous.map(not.Not.apply).toList
         DisjunctionAlternative(
-          Deconstruct(matchee, name, patVars) +:
+          Deconstruct(matchee, name, patVars.map(_.arg)) +:
             (notPrevious ++ body.flatMap(visitAtom))
         )
       }
-      Seq(Disjunction((alternatives)))
+      Seq(Disjunction(alternatives))
     case _ => super.visitAtom(atom)
   }
 

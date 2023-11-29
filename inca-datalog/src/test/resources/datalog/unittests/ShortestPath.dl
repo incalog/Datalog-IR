@@ -8,6 +8,3 @@ Edge(2,4,3).
 SPath(Int, Int, Int).
 SPath(X,Y,min(n)) :- Edge(X,Y,n)
                   :- Edge(X,Z,n1), SPath(Z,Y,n2), n == n1 + n2.
-
-SPathExternal(Int, Int, Int).
-SPathExternal(X, Y, min(n)) :- SPath(X, Y, n).

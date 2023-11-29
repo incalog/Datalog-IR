@@ -6,6 +6,8 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.not.Not
 import inca.ir.extension.{arithmetic, demand, not}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException, Typechecker}
+import inca.ir.term2Arg
+import inca.ir.string2name
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class DemandLoweringTest extends AnyFunSuiteLike:
@@ -67,7 +69,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
 
   test("unbound variable in neq test") {
     val m = module(Relation("R", Seq(), Seq(Body(Seq(
-      Neq(IntNum(0), IntNum(0))
+      Eq(IntNum(0), IntNum(0), true)
     )))))
     assert(m.relations.size == 1)
   }
@@ -94,7 +96,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
 
     val m2 = module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+        Not(Call(Name("T"), Seq(Var("p1").arg, Var("p2").arg), true))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )

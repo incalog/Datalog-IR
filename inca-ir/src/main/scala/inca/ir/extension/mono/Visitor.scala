@@ -3,7 +3,7 @@ package inca.ir.extension.mono
 import inca.ir.{Atom, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.Aggregate
 
 import scala.collection.immutable.Seq
 

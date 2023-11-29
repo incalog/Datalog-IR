@@ -39,20 +39,22 @@ trait BaseIRVisitor:
     catch { case FailedBody => Seq() }
   }
 
-  def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
-    case Call(ref, args) => Seq(Call(visitRef(ref), args.flatMap(visitTerm)))
-    case NegCall(ref, args) => Seq(NegCall(visitRef(ref), args.flatMap(visitTerm)))
-    case ExtensionalCall(ref, args) => Seq(ExtensionalCall(visitRef(ref), args.flatMap(visitTerm)))
-    case NegExtensionalCall(ref, args) => Seq(NegExtensionalCall(visitRef(ref), args.flatMap(visitTerm)))
-    case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
-    case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
-    case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
-  })
-
   def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
     case RefByName(name) => RefByName(name)
     case _ => throw IllegalStateException(s"Can not visit unknown reference: $ref")
   )
+
+  def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
+    case Call(ref, args, neg) => Seq(Call(visitRef(ref), args.flatMap(visitArg), neg))
+    case ExtensionalCall(ref, args, neg) => Seq(ExtensionalCall(visitRef(ref), args.flatMap(visitArg), neg))
+    case Eq(lhs, rhs, neg) => visitTerm(lhs).zip(visitTerm(rhs)).map((l, r) => Eq(l, r, neg))
+    case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
+  })
+
+  def visitArg(arg: Arg): Seq[Arg] = arg match
+    case TermArg(t) => visitTerm(t).map(TermArg.apply)
+    case a => Seq(a)
+
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case Var(name) => Seq(Var(name))

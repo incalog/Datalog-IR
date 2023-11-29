@@ -2,10 +2,10 @@ package inca.ir.extension.mono
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var, WildcardArg}
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.demand.TDemand
@@ -47,10 +47,10 @@ trait NewLowering extends BaseLowering:
     val bodies = monos.map { mono =>
       val constr = monoDataConstructor(mono, tm.keys)
       val args = Var(Name("id")) +: Var(Name("name")) +: mono.args.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
-      val destruct = Deconstruct(Var(Name("m")), constr, args)
+      val destruct = Deconstruct(Var(Name("m")), constr, args.map(_.arg))
 
-      val keyArgs = tm.keys.map(_ => AggregateArg.WildCard(Var(Name("_"))))
-      val aggArgs = AggregateArg.Arg(Var(Name("m"))) +: keyArgs :+ AggregateArg.AggregateColumn(Var(Name("state")))
+      val keyArgs = tm.keys.map(_ => WildcardArg())
+      val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
 
       val op = MonoAggregationOperator(mono)
       val aggregate = Aggregate(monoCollectName(tm), aggArgs, op).addHint(IgnoreCall)
@@ -97,7 +97,7 @@ trait NewLowering extends BaseLowering:
       val tm = m.typ.get.ty.asInstanceOf[TMono]
       val output = Name(gensym.fresh("output"))
       val name = monoAggregateName(tm)
-      val call = Call(name, Seq(m, Var(output)))
+      val call = Call(name, Seq(m.arg, Var(output).arg))
       Seq(Block(call, Var(output)))
     case _ => super.visitTerm(term)
   }
@@ -106,6 +106,6 @@ trait NewLowering extends BaseLowering:
     case WriteMono(m, input, keys) =>
       val tm = m.typ.get.ty.asInstanceOf[TMono]
       val args = m +: keys :+ input
-      Seq(Call(monoCollectName(tm), args))
+      Seq(Call(monoCollectName(tm), args.map(_.arg)))
     case _ => super.visitAtom(atom)
   }

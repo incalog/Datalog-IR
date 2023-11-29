@@ -1,7 +1,7 @@
 package inca.ir.extension.set
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Neq, Param, Relation, TAny, TNothing, Type, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Param, Relation, TAny, TNothing, Type, Var, string2name}
 import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*
@@ -11,7 +11,7 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.typing.TypeErrorException
 
 class SetLoweringTest extends AnyFunSuite {
-  val lowering = new Lowering {}
+  val lowering: Lowering = new Lowering {}
 
   def module(relations: Relation*): Module =
     val typecheckerBefore = new IRTypechecker
@@ -188,7 +188,7 @@ class SetLoweringTest extends AnyFunSuite {
   }*/
 
   test("Set with arithmetic") {
-    implicit val typechecker = new Typechecker { }
+    implicit val typechecker: Typechecker = new Typechecker { }
     val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(
       Body(Seq(
         Eq(Var("y"), IntNum(1)),
@@ -206,7 +206,7 @@ class SetLoweringTest extends AnyFunSuite {
   }
 
   test("Set with arithmetic 2") {
-    implicit val typechecker = new Typechecker {}
+    implicit val typechecker: Typechecker = new Typechecker {}
     val mainRelation = Relation("main", Seq(Param("x", TDemand(TSet(TInt))), Param("s", TSet(TInt))), Seq(
       Body(Seq(
         Eq(Var("y"), IntNum(1)),

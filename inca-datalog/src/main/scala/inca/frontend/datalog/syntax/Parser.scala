@@ -130,9 +130,12 @@ object Parser:
 
   val literal: P[Literal] = doubleLit.backtrack | intLit | stringLit
 
+  val wildcard: P[Term] = op("_").mapWithLoc(_ => Term.Var(Name("_")))
+
   val atomicTerm: P[Term] =
     literal.mapWithLoc(Term.Constant.apply) |
     identifier.mapWithLoc(Term.Var.apply) |
+    wildcard |
     inParens(P.defer(term))
 
   val binop: P[String] =

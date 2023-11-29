@@ -13,7 +13,7 @@ class C extends B
 
 @main
 def main(): Int = {
-    val c = new C()
+    val c: A = new C()
 
     // should call: + A.add(B.get() +1) => 3
     c.add(1)

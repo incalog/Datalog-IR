@@ -2,7 +2,7 @@ package inca.base
 
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
-import inca.ir.{Body, Call, Eq, Language, Module, Neq, Param, Relation, Var, execution, string2name}
+import inca.ir.{Body, Call, Eq, Language, Module, Param, Relation, Var, execution, string2name}
 import inca.util.{FileUtil, ScalaCompiler}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime
@@ -12,6 +12,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
+import inca.ir.term2Arg
 
 
 class BaseTest extends AnyFunSuiteLike:
@@ -84,7 +85,7 @@ class BaseTest extends AnyFunSuiteLike:
       ))
     ))
 
-    var code = GeneratePSystem.compileModules(Seq(mod))
+    var code = GeneratePSystem.compileModules(Seq(mod), false)
     code = s"$code; Path"
 
     val compiler = new ScalaCompiler()
