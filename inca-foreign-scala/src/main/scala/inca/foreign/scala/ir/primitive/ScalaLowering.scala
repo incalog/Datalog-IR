@@ -82,9 +82,6 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
         case _ => None
       }
 
-      val aggOutType = aggTerm.typ match
-        case Some(TermType(ty, _)) => ty
-        case _ => throw IllegalAccessException(s"Illegal aggregate term: $aggTerm of unknown type")
       val Seq(outTerm) = visitTerm(aggTerm)
 
       val argTerms = args.updated(aggColumnIndex, WildcardArg()).map {
@@ -93,6 +90,6 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
         case WildcardArg() => Var(gensym.freshName("_"))
       }.flatMap(visitTerm)
 
-      Seq(ScalaAggregationAtom(visitAggregationOperator(op, aggOutType), rel.name, outTerm, argTerms, aggColumnIndex))
+      Seq(ScalaAggregationAtom(visitAggregationOperator(op, op.resultType), rel.name, outTerm, argTerms, aggColumnIndex))
     case _ =>
       super.visitAtom(atom)
