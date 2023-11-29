@@ -65,7 +65,7 @@ case class TermType(ty: Type, mode: Mode):
     else if (mode.isCollapse)
       s"<_>"
     else
-      ???
+      throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   override def toString: String = {
