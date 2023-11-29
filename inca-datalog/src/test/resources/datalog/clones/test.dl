@@ -1,17 +1,5 @@
-a(Int).
-a(1).
-a(2).
-a(3).
-a(4).
+//a(Int, Int, Int).
+//a(1,2).
 
-b(Int).
-b(2).
-b(3).
-b(4).
-b(5).
-
-intersect(Int).
-intersect(X) :- a(X), b(X), a(X).
-
-
-// intersect(X,X) :- a(X,X), b(X,X), a(X,X).
+b(Int, Int).
+b(1,2,3).

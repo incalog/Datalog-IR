@@ -179,13 +179,21 @@ class ClonesDatalogTest extends AnyFunSuite {
           Seq(Body(Seq(
             Call(Name("a"),Seq(Var(Name("X")))),
             Call(Name("b"),Seq(Var(Name("X")))),
-            Call(Name("a"),Seq(Var(Name("X")))),
             Eq(Var(Name("param$0")),Var(Name("X")))
           )))
         )
       ))
 
-    performTest("datalog/clones/test.dl", expected, 1, "intersect", (2,2))
+    performTest("datalog/clones/Intersection.dl", expected, 1, "intersect", ???)
+  }
+
+  test("test") {
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        // TODO
+      ))
+
+    performTest("datalog/clones/test.dl", expected, 1, "b", (1,2))
   }
 
 }
