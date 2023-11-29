@@ -37,11 +37,11 @@ Q(x, y) :- demandHere(x), B(x, y), C(x, y).
  */
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheckParam(param: Param): Unit = param.ty match
+  override def checkParam(param: Param): Unit = param.ty match
     case TDemand(ty) =>
       registerVar(param.name, param, ty)
       bindVar(param.name)
-    case _ => super.typecheckParam(param)
+    case _ => super.checkParam(param)
 
   private var ignoreDemand: Boolean = false
 

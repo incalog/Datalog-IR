@@ -202,11 +202,11 @@ object TypeCheckerDefinitional:
       (TSet(join(ty1, ty2)), cl1 join cl2, ctx2)
 
   def checkAtomBinding(a: Atom, ctx: Context)(using relations: Relations): Context = a match
-    case Call(name, args) => relations.get(name) match
+    case Call(RefByName(name), args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkBinding(tt, c, tty)._2 }
-    case NegCall(name, args) => relations.get(name) match
+    case NegCall(RefByName(name), args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foreach { case (tt, tty) => checkBound(tt, ctx, tty) }; ctx
@@ -229,11 +229,11 @@ object TypeCheckerDefinitional:
       checkBinding(mem, ctx, tty)._2
 
   def checkAtomBound(a: Atom, ctx: Context)(using relations: Relations): Context = a match
-    case Call(name, args) => relations.get(name) match
+    case Call(RefByName(name), args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foreach { case (tt, tty) => checkBound(tt, ctx, tty) }; ctx
-    case NegCall(name, args) => relations.get(name) match
+    case NegCall(RefByName(name), args) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkBinding(tt, c, tty)._2 }

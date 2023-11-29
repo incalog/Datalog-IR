@@ -3,6 +3,7 @@ package inca.ir.visitors
 import inca.ir
 import inca.ir.*
 import inca.ir.Hint.preserveHints
+import inca.ir.Var.Target
 
 import scala.collection.immutable.Seq
 
@@ -39,14 +40,19 @@ trait BaseIRVisitor:
   }
 
   def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
-    case Call(name, args) => Seq(Call(name, args.flatMap(visitTerm)))
-    case NegCall(name, args) => Seq(NegCall(name, args.flatMap(visitTerm)))
-    case ExtensionalCall(name, args) => Seq(ExtensionalCall(name, args.flatMap(visitTerm)))
-    case NegExtensionalCall(name, args) => Seq(NegExtensionalCall(name, args.flatMap(visitTerm)))
+    case Call(ref, args) => Seq(Call(visitRef(ref), args.flatMap(visitTerm)))
+    case NegCall(ref, args) => Seq(NegCall(visitRef(ref), args.flatMap(visitTerm)))
+    case ExtensionalCall(ref, args) => Seq(ExtensionalCall(visitRef(ref), args.flatMap(visitTerm)))
+    case NegExtensionalCall(ref, args) => Seq(NegExtensionalCall(visitRef(ref), args.flatMap(visitTerm)))
     case Eq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Eq.apply)
     case Neq(lhs, rhs) => visitTerm(lhs).zip(visitTerm(rhs)).map(Neq.apply)
     case _ => throw IllegalStateException(s"Can not visit unknown atom: $atom")
   })
+
+  def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
+    case RefByName(name) => RefByName(name)
+    case _ => throw IllegalStateException(s"Can not visit unknown reference: $ref")
+  )
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case Var(name) => Seq(Var(name))

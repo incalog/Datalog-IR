@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -91,7 +91,7 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
       case Phase.DeriveDemandRules => atom match
-        case Call(rel, args) =>
+        case Call(RefByName(rel), args) =>
           val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params

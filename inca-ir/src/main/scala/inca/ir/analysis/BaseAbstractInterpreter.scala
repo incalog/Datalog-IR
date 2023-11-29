@@ -125,7 +125,7 @@ trait BaseAbstractInterpreter[V, B]:
     case ExtensionalCall(name, args) => evalCall(name, args)
     case NegExtensionalCall(name, args) => evalCall(name, args)
 
-  final def evalCall(name: Name, args: Seq[Term]): AtomResult =
+  final def evalCall(ref: Ref[Relation], args: Seq[Term]): AtomResult =
     val vs = args.map { a =>
       if (a.mode.isBinding) {
         val t = top

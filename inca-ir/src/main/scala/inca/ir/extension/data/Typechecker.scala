@@ -6,9 +6,9 @@ import inca.ir.{Atom, ModuleEntry, Relation, TAny, Term, TermType, Type, Var}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:
-  override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match
+  override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case d: DataDefinition => bindData(d)
-    case _ => super.typecheck(moduleEntry)
+    case _ => super.checkModuleEntry(moduleEntry)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case Construct(name, args) => lookupConstruct(name, term) match
@@ -36,3 +36,7 @@ trait Typechecker extends BaseIRTypechecker with TypeContext:
           checkTerm(v, ty, mode)
         }
     case _ => super.checkAtom(atom, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TData(_) => // good
+    case _ => super.checkType(ty)

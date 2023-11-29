@@ -1,7 +1,7 @@
 package inca.ir.extension.mono
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, Type, Var, typing}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, RefByName, Relation, TAny, Term, Type, Var, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
@@ -69,7 +69,7 @@ trait Lowering extends BaseLowering:
 
   override def visitModule(module: Module): Module =
     val typechecker = new IRTypechecker {}
-    typechecker.typecheck(module)
+    typechecker.checkModule(module)
     cachedAddMonoCtx ++= typechecker.getAddMonoInfo
     cachedResultMonoCtx ++= typechecker.getResultMonoInfo
     val m1: Module = super.visitModule(module)
@@ -250,7 +250,7 @@ trait Lowering extends BaseLowering:
     )
     if (!hasMkMono) {
       hasMkMono = true
-      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+      val extcall: ExtensionalCall = ExtensionalCall(RefByName(Name("main$input")), Seq(state))
       Seq(Block(Seq(extcall, imp), freshMono))
     } else {
       Seq(Block(Seq(imp), freshMono))

@@ -2,7 +2,7 @@ package inca.ir
 
 import inca.ir.*
 import inca.ir.analysis.Analyzable
-import inca.ir.typing.{Mode, Typeable}
+import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
@@ -25,7 +25,9 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
 
-
+trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation
+case class RefByName[Target](name: Name) extends Ref[Target]:
+  override def toString: String = name.name
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
@@ -99,21 +101,29 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t:$ty"
   override def vars: Seq[Var] = t.vars
 
-case class Call(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"$name${args.mkString("(", ", ", ")")}" + analysisString
+case class Call(ref: Ref[Relation], args: Seq[Term]) extends Atom:
+  override def toString: String = s"$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object Call:
+  def apply(name: Name, args: Seq[Term]): Call = Call(RefByName(name), args)
 
-case class NegCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"!$name${args.mkString("(", ", ", ")")}" + analysisString
+case class NegCall(ref: Ref[Relation], args: Seq[Term]) extends Atom:
+  override def toString: String = s"!$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object NegCall:
+  def apply(name: Name, args: Seq[Term]): NegCall = NegCall(RefByName(name), args)
 
-case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}" + analysisString
+case class ExtensionalCall(ref: Ref[Relation], args: Seq[Term]) extends Atom:
+  override def toString: String = s"ext $ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object ExtensionalCall:
+  def apply(name: Name, args: Seq[Term]): ExtensionalCall = ExtensionalCall(RefByName(name), args)
 
-case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}" + analysisString
+case class NegExtensionalCall(ref: Ref[Relation], args: Seq[Term]) extends Atom:
+  override def toString: String = s"ext !$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object NegExtensionalCall:
+  def apply(name: Name, args: Seq[Term]): NegExtensionalCall = NegExtensionalCall(RefByName(name), args)
 
 case class Eq(lhs: Term, rhs: Term) extends Atom:
   override def toString: String = s"$lhs == $rhs" + analysisString
@@ -125,8 +135,6 @@ case class Neq(lhs: Term, rhs: Term) extends Atom:
 
 case object TAny extends Type
 case object TNothing extends Type
-
-//case object TInt extends Type
 
 trait BaseIR:
   val name: String = "Datalog"

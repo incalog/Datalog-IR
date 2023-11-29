@@ -12,7 +12,7 @@ class BlockBoundednessTest extends AnyFunSuiteLike:
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
     println(mod)
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
     mod
 
   test("eq block binds contained terms") {

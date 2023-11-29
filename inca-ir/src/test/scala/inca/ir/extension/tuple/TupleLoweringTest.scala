@@ -76,7 +76,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -147,7 +147,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -187,7 +187,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
     typechecker.failOnError()
     println(mod)
     assertResult(expectedMod)(lowering.lower(mod))
@@ -272,7 +272,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
     typechecker.failOnError()
 
     assertResult(expectedMod)(lowering.lower(mod))

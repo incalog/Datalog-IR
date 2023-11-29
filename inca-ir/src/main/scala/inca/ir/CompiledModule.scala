@@ -33,7 +33,7 @@ trait CompiledModule:
   lazy val checked: Module =
     val checker = new IRTypechecker
     println(ir)
-    checker.typecheck(ir)
+    checker.checkModule(ir)
     ir
 
   // TODO should be configurable
@@ -59,7 +59,7 @@ trait CompiledModule:
 //      println(l)
 //      println()
       val checker = new IRTypechecker()
-      checker.typecheck(l)
+      checker.checkModule(l)
 //      i += 1
       l
     }
@@ -85,7 +85,7 @@ trait CompiledModule:
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = new IRTypechecker
-    checker.typecheck(po)
+    checker.checkProgram(po)
     po
 
 

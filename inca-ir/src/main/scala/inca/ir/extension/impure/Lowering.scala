@@ -6,7 +6,7 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, Relation, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, NegCall, Param, RefByName, Relation, Var}
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.extension.aggregate.AggregateArg.WildCard
 
@@ -102,17 +102,17 @@ trait Lowering extends BaseLowering:
         Eq(v, counter) +: as :+ Eq(freshCounter, up)
       // TODO: This is ugly, since we now use some key here from the demand relation
       //  How do we make this nice ?
-      case Call(name, args) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
+      case Call(RefByName(name), args) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
         preserveHints(atom) {
           Seq(Call(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
         }
-      case Call(name, args) if !pureRelations.contains(name) =>
+      case Call(RefByName(name), args) if !pureRelations.contains(name) =>
         val impVars = impurities.map(getImpurityCounter)
         val freshImpVars = impurities.map(freshImpurityCounter)
         preserveHints(atom) {
           Seq(Call(name, args.flatMap(visitTerm) ++ impVars ++ freshImpVars))
         }
-      case NegCall(name, args) if !pureRelations.contains(name) =>
+      case NegCall(RefByName(name), args) if !pureRelations.contains(name) =>
         preserveHints(atom) {
           Seq(NegCall(name, args.flatMap(visitTerm) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))))))
         }

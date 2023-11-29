@@ -18,7 +18,7 @@ class CompileTest extends AnyFunSuite {
     val compiler = new GenerateIR
     val c = compiler.compileModule(m)
     val irtypechecker = new IRTypechecker
-    try irtypechecker.typecheck(c)
+    try irtypechecker.checkModule(c)
     finally println(c)
 
 

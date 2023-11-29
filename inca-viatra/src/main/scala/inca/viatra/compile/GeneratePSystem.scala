@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, Relation, Term, TermType, Var, name2string, typing}
+import inca.ir.{Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, NegCall, NegExtensionalCall, Neq, Param, RefByName, Relation, Term, TermType, Var, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -42,7 +42,7 @@ object GeneratePSystem:
 
     // we need type information to translate the datalog code to scala code
     val typechecker = new Typechecker {}
-    typechecker.typecheck(module)
+    typechecker.checkModule(module)
     typechecker.failOnError()
 
     // apply and typecheck each lowering
@@ -50,7 +50,7 @@ object GeneratePSystem:
       case (mod, lowering) =>
         val low = lowering()
         val Seq(lowered) = low.visitProgram(Seq(mod))
-        typechecker.typecheck(lowered)
+        typechecker.checkModule(lowered)
         typechecker.failOnError()
         lowered
     }
@@ -220,21 +220,21 @@ object GeneratePSystem:
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
-    case Call(name, args) =>
+    case Call(RefByName(name), args) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new PositivePatternCall(body, $argTuple, $callQuery)"
-    case NegCall(name, args) =>
+    case NegCall(RefByName(name), args) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
       s"new NegativePatternCall(body, $argTuple, $callQuery)"
-    case ExtensionalCall(name, args) =>
+    case ExtensionalCall(RefByName(name), args) =>
       val key = s"""NamedRelationKey("$name", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       s"new TypeConstraint(body, $tuple, $key)"
-    case NegExtensionalCall(name, args) =>
+    case NegExtensionalCall(RefByName(name), args) =>
       // use a type filter ?
       ???
     case Eq(lhs, rhs) =>

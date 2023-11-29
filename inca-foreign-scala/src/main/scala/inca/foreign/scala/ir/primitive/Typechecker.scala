@@ -8,9 +8,9 @@ import inca.ir.util.SourceLocation
 import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, TermType, Type, string2name}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match
+  override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case ScalaDefnModuleEntry(_, _) => // nothing
-    case _ => super.typecheck(moduleEntry)
+    case _ => super.checkModuleEntry(moduleEntry)
 
   override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
     // ScalaTypes and their corresponding type are the same

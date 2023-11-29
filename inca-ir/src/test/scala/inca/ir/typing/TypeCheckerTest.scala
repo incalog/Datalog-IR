@@ -14,7 +14,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
-    try typechecker.typecheck(mod)
+    try typechecker.checkModule(mod)
     finally {
       println(mod)
       typechecker.getErrors.foreach(println)

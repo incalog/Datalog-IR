@@ -12,7 +12,7 @@ class NotBoundednessTest extends AnyFunSuiteLike:
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker with not.Typechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
     println(mod)
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
     mod
 
   test("not call requires bound arguments") {

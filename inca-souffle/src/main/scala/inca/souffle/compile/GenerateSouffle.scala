@@ -1,5 +1,6 @@
 package inca.souffle.compile
 import inca.ir
+import inca.ir.RefByName
 import inca.ir.extension.string
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.aggregate as agg
@@ -57,10 +58,10 @@ object GenerateSouffle:
     Conjunction(body.atoms.map(compileAtom))
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
-    case ir.Call(name, args) => Atom.Call(qualifyName(name), args.map(compileTerm))
-    case ir.NegCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
-    case ir.ExtensionalCall(name, args) => Atom.Call(qualifyName(name), args.map(compileTerm))
-    case ir.NegExtensionalCall(name, args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
+    case ir.Call(RefByName(name), args) => Atom.Call(qualifyName(name), args.map(compileTerm))
+    case ir.NegCall(RefByName(name), args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
+    case ir.ExtensionalCall(RefByName(name), args) => Atom.Call(qualifyName(name), args.map(compileTerm))
+    case ir.NegExtensionalCall(RefByName(name), args) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileTerm)))
     case ir.Eq(lhs, rhs) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
     case ir.Neq(lhs, rhs) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, "<") => Atom.LessThan(compileTerm(lhs), compileTerm(rhs))
