@@ -5,6 +5,8 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{CountFrom, Max, Sum, SumToPair}
 import inca.ir.extension.*
+import inca.ir.extension.impure.Hints.Pure
+import inca.ir.extension.impure.Impure
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.IRTypechecker
@@ -52,6 +54,8 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     ))))
@@ -223,6 +227,24 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
   test("Lower mono: create two monos that have different MonoOperators") {
     module(relation8, relation7, extLeaf, extBTree)
   }
+
+
+  private lazy val relation9: Relation = Relation(
+    "size",
+    Seq(Param("t", TString), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
+    Seq(
+      Body(Seq(
+        ExtensionalCall(Name("leaf"), Seq(Var("t"))),
+        Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
+        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
+      ))
+    )
+  )
+
+  test("Lower mono: create mono in multiple relations") {
+    module(relation4, relation9, extLeaf)
+  }
+
 
 
 }
