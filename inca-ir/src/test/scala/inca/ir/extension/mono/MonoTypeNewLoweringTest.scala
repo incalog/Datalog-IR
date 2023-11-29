@@ -19,8 +19,8 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
 
   private lazy val pipeline: Seq[() => (String, BaseIRVisitor)] = Seq(
     () => ("monotype", new mono.NewLowering {}),
-//    () => ("impure", new impure.Lowering {}),
-//    () => ("demand", new Lowering {})
+    () => ("impure", new impure.Lowering {}),
+    () => ("demand", new Lowering {})
   )
 
   private val debug: Boolean = false
@@ -54,14 +54,14 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
   private lazy val mainInput: ExtensionalRelation = ExtensionalRelation(
     Name("main$input"), Seq(Param(Name("id"), TInt))
   )
 
-  test("Lower Mono Types 1") {
-    module(relation1, mainInput)
+  test("Lower Mono Types: nothing is added into a mono") {
+    module(relation1)
   }
 
   private lazy val relationCountFrom: Relation = Relation(
@@ -72,14 +72,14 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("m"), NewMono(CountFrom, Seq(TString), Seq(IntNum(5)))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
   private lazy val mainInputCountFrom: ExtensionalRelation = ExtensionalRelation(
     Name("main$input"), Seq(Param(Name("id"), TInt))
   )
 
-  test("Lower Mono Types CountFrom") {
-    module(relationCountFrom, mainInputCountFrom)
+  test("Lower Mono Types: a mono with arguments") {
+    module(relationCountFrom)
   }
 
   private lazy val relationSumToString: Relation = Relation(
@@ -91,14 +91,14 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(SumToPair, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
   private lazy val mainInputSumToString: ExtensionalRelation = ExtensionalRelation(
     Name("main$input"), Seq(Param(Name("id"), TInt))
   )
 
-  test("Lower Mono Types SumToString") {
-    module(relationSumToString, mainInputSumToString)
+  test("Lower Mono Types: types of state and output are different") {
+    module(relationSumToString)
   }
 
   private lazy val relation3: Relation = Relation(
@@ -110,11 +110,11 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
-  test("Lower Mono Types 2") {
+  test("Lower Mono Types: writing mono and read mono happen in the same body") {
     implicit val typechecker1 = new IRTypechecker {}
-    module(relation3, mainInput)
+    module(relation3)
   }
 
 
@@ -127,7 +127,7 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
   private lazy val relation5: Relation = Relation(
     "size",
@@ -155,8 +155,8 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
   )
 
 
-  test("Lower Mono Types 3") {
-    module(relation4, relation5, mainInput, extLeaf)
+  test("Lower Mono Types: Mono creation and writing happen in different relations") {
+    module(relation4, relation5, extLeaf)
   }
 
 
@@ -172,10 +172,10 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("t"), Var("m1"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
-  test("Lower Mono Types 4") {
-    module(relation6, relation5, mainInput, extLeaf)
+  test("Lower Mono Types: create two mono objects having the same MonoOperator") {
+    module(relation6, relation5, extLeaf)
   }
 
 
@@ -200,8 +200,8 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
     )
   ).addHint(impure.Hints.Pure)
 
-  test("Test case 5") {
-    module(relation6, relation7, mainInput, extLeaf, extBTree)
+  test("Lower Mono: compute the size of tree") {
+    module(relation6, relation7, extLeaf, extBTree)
   }
 
 
@@ -218,9 +218,11 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("t"), Var("m2"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
-    )))).addHint(impure.Hints.Pure)
+    ))))
 
-  test("Test case 6") {
-    module(relation8, relation7, mainInput, extLeaf, extBTree)
+  test("Lower mono: create two monos that have different MonoOperators") {
+    module(relation8, relation7, extLeaf, extBTree)
   }
+
+
 }
