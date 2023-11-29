@@ -24,9 +24,9 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitAggregationOperator(op: aggregate.AggregationOperator, ty: Type): aggregate.AggregationOperator =
     op match
       case ArithmeticAggregationOperator.Count => ScalaAggregationOperator.Count
-      case ArithmeticAggregationOperator.SumInt => ScalaAggregationOperator.Sum(compileType(ty))
-      case ArithmeticAggregationOperator.MinInt => ScalaAggregationOperator.Min(compileType(ty))
-      case ArithmeticAggregationOperator.MaxInt => ScalaAggregationOperator.Max(compileType(ty))
+      case ArithmeticAggregationOperator.SumInt | ArithmeticAggregationOperator.SumDouble => ScalaAggregationOperator.Sum(compileType(ty))
+      case ArithmeticAggregationOperator.MinInt | ArithmeticAggregationOperator.MinDouble => ScalaAggregationOperator.Min(compileType(ty))
+      case ArithmeticAggregationOperator.MaxInt | ArithmeticAggregationOperator.MaxDouble => ScalaAggregationOperator.Max(compileType(ty))
       case MonoAggregationOperator(ArithmeticMonoDefinition.Sum) => ScalaAggregationOperator.SumMono(compileType(ty))
       case MonoAggregationOperator(ArithmeticMonoDefinition.CountFrom) => ScalaAggregationOperator.CountFromMono
       case MonoAggregationOperator(ArithmeticMonoDefinition.Count) => ScalaAggregationOperator.CountMono
