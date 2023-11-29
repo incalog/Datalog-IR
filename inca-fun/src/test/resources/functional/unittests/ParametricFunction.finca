@@ -1,5 +1,7 @@
 module ParametricFunction
 
-@main def main(): (Int, Boolean) = (id[Int](12), id[Boolean](true))
+@main def main(): (Int, Boolean) = (id[Int](12), foo[Boolean](true))
 
 def id[A](a: A): A = a
+
+def foo[B](b: B): B = id[B](b)
