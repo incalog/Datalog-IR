@@ -54,3 +54,7 @@ trait Typechecker extends BaseIRTypechecker:
       val newMode = if (ignoreDemand) mode else Mode.Bound
       checkTerm(term, ty, newMode)
     case _ => super.checkTerm(term, expected, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TDemand(tty) => checkType(tty)
+    case _ => super.checkType(ty)

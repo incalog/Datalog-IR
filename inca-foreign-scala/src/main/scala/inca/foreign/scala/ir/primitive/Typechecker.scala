@@ -48,3 +48,7 @@ trait Typechecker extends BaseIRTypechecker:
     case ScalaConstantTerm(_, ty) =>
       ty.bound
     case _ => super.inferTermExtend(term, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case ScalaType(_) => // good
+    case _ => super.checkType(ty)

@@ -54,5 +54,10 @@ trait Typechecker extends BaseIRTypechecker{
 
   def getResultMonoInfo: Map[ReadMono, TMono] = cachedResultMonoCtx
 
-
+  override def checkType(ty: Type): Unit = ty match
+    case TMono(ity, oty, ktys) =>
+      checkType(ity)
+      checkType(oty)
+      ktys.foreach(checkType)
+    case _ => super.checkType(ty)
 }

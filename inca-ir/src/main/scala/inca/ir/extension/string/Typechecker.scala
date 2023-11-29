@@ -2,7 +2,7 @@ package inca.ir.extension.string
 
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Term, TermType}
+import inca.ir.{Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
@@ -13,4 +13,8 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Ill-typed string concatentation $term with operand types $ty1 and $ty2", term)
         TString.bound
     case _ => super.inferTermExtend(term, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TString => // good
+    case _ => super.checkType(ty)
 

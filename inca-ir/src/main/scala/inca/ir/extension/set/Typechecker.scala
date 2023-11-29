@@ -56,3 +56,7 @@ trait Typechecker extends BaseIRTypechecker:
       val (TSet(ty),_) = inferSetTerm(s, Mode.Bound)
       checkTerm(mem, ty, mode)
     case _ => super.checkAtom(atom, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TSet(tty) => checkType(tty)
+    case _ => super.checkType(ty)
