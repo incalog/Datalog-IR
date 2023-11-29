@@ -1,7 +1,7 @@
 package inca.ir.extension.demand
 
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, Name, Param, TNothing, Term, Type}
+import inca.ir.{Atom, Body, Name, Param, TNothing, Term, Type}
 import inca.ir.extension.disjunction.Disjunction
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
@@ -37,20 +37,32 @@ Q(x, y) :- demandHere(x), B(x, y), C(x, y).
  */
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheckParam(param: Param): Unit = param.ty match
+  override def checkParam(param: Param): Unit = param.ty match
     case TDemand(ty) =>
       registerVar(param.name, param, ty)
       bindVar(param.name)
-    case _ => super.typecheckParam(param)
+    case _ => super.checkParam(param)
 
   private var ignoreDemand: Boolean = false
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit =
-    ignoreDemand = atom.hasHint(Hints.IgnoreCallKey)
+  def scopedIgnoreDemand[A](f: => A): A = {
+    val before = ignoreDemand
+    val t = f
+    ignoreDemand = before
+    t
+  }
+
+  override def checkAtom(atom: Atom, mode: Mode): Unit = scopedIgnoreDemand {
+    ignoreDemand = ignoreDemand || atom.hasHint(Hints.IgnoreCallKey)
     super.checkAtom(atom, mode)
+  }
 
   override def checkTerm(term: Term, expected: Type, mode: Mode): Mode = expected match
     case TDemand(ty) =>
       val newMode = if (ignoreDemand) mode else Mode.Bound
       checkTerm(term, ty, newMode)
     case _ => super.checkTerm(term, expected, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TDemand(tty) => checkType(tty)
+    case _ => super.checkType(ty)

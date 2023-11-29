@@ -190,10 +190,12 @@ class ClonesDatalogTest extends AnyFunSuite {
   test("test") {
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        // TODO
+        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body((0 to 2).map(i => Eq(Var(Name(s"param$$$i")),IntNum(i))))
+        ))
       ))
 
-    performTest("datalog/clones/test.dl", expected, 1, "b", (1,2))
+    performTest("datalog/clones/test.dl", expected, 1, "b", Tuple1(2))
   }
 
 }

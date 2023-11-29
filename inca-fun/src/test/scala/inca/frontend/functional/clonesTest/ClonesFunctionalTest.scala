@@ -9,7 +9,9 @@ import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.{BaseIR, Language, Name, Module as IRModule}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{IntNum, TInt, Mul,Add,Sub,GT,LE}
-import ir.{Relation,Param,Eq,Neq,Var,Body,Call}
+import ir.{Relation,Param,Eq,Var,Body,Call}
+
+import inca.ir.term2Arg
 
 
 class ClonesFunctionalTest extends AnyFunSuite{
@@ -265,7 +267,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
             )),
             Body(Seq(
               Call(Name("fact$input"),Seq(Var(Name("n")))),
-              Neq(Var(Name("n")),IntNum(1)),  // TODO code clones from if condition like in tests above
+              Eq(Var(Name("n")),IntNum(1),true),  // TODO code clones from if condition like in tests above
               Call(Name("fact"), Seq(Sub(Var(Name("n")),IntNum(1)),Var(Name("fact_call$0")))),
               Eq(Var(Name("if_result$0")), Mul(Var(Name("n")),Var(Name("fact_call$0")))),
               Eq(Var(Name("fact_result$0")), Var(Name("if_result$0")))
@@ -284,7 +286,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
           Seq(
             Body(Seq(
             Call(Name("fact$input"),Seq(Var(Name("n")))),
-            Neq(Var(Name("n")),IntNum(1)),
+            Eq(Var(Name("n")),IntNum(1),true),
             Eq(Var(Name("n$0")),Sub(Var(Name("n")),IntNum(1)))
             )),
             Body(Seq(

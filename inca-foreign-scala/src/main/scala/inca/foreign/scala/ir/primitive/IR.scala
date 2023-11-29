@@ -13,6 +13,7 @@ object ScalaInca extends ForeignLanguage:
 
   def compileType(ty: Type): ScalaType = ty match
     case sty@ScalaType(_) => sty
+    case TAny => ScalaType.any
     case TString => ScalaType.string
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
@@ -25,6 +26,7 @@ case class ScalaType(name: String) extends ForeignType:
   override val code: String = name
 
 object ScalaType:
+  def any: ScalaType = ScalaType("Any")
   def string: ScalaType = ScalaType("String")
   def int: ScalaType = ScalaType("Int")
   def double: ScalaType = ScalaType("Double")
@@ -63,7 +65,8 @@ object ScalaConstantTerm:
 
 case class ScalaAggregationOperator(ty: ScalaType, code: String) extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
-  def typecheck(in: Seq[Type]): Either[String, Type] = Right(ty)
+  override def resultType: Type = ty
+  def typecheck(in: Seq[Type]): Option[String] = None
 
 object ScalaAggregationOperator:
   def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation.aggregator")
@@ -75,9 +78,9 @@ object ScalaAggregationOperator:
   def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
 
 
-case class ScalaAggregationAtom(agg: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
+case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override val lang: ScalaInca.type = ScalaInca
-  override val code: String = agg match
+  override val code: String = op match
     case ScalaAggregationOperator(_, code) => code
     case _ => "???"
 
@@ -88,7 +91,7 @@ case class ScalaAggregationAtom(agg: AggregationOperator, rel: Name, out: Term, 
       case (_, i) if i == aggregatedColumn => "#"
       case (a, _) => s"$a"
     }
-    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $agg"""
+    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
   override val lang: ScalaInca.type = ScalaInca

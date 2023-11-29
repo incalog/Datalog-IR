@@ -118,25 +118,26 @@ trait BaseAbstractInterpreter[V, B]:
     b
 
   def evalAtomExtend(at: Atom): AtomResult = at match
-    case Eq(lhs, rhs) => evalEquals(lhs, rhs)
-    case Neq(lhs, rhs) => evalNotEquals(lhs, rhs)
-    case Call(name, args) => evalCall(name, args)
-    case NegCall(name, args) => evalCall(name, args)
-    case ExtensionalCall(name, args) => evalCall(name, args)
-    case NegExtensionalCall(name, args) => evalCall(name, args)
+    case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
+    case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
+    case Call(name, args, _) => evalCall(name, args)
+    case ExtensionalCall(name, args, _) => evalCall(name, args)
 
-  final def evalCall(name: Name, args: Seq[Term]): AtomResult =
-    val vs = args.map { a =>
-      if (a.mode.isBinding) {
-        val t = top
-        val AtomResult(_, p) = assign(a, t)
-        TermResult(t, p)
-      } else if (a.mode.isCollapse) {
-        // skip collapsed argument
+  final def evalCall(ref: Ref[Relation], args: Seq[Arg]): AtomResult =
+    val vs = args.map {
+      case TermArg(a) =>
+        if (a.mode.isBinding) {
+          val t = top
+          val AtomResult(_, p) = assign(a, t)
+          TermResult(t, p)
+        } else if (a.mode.isCollapse) {
+          // skip collapsed argument
+          TermResult(top, trueBool)
+        } else {
+          evalTerm(a)
+        }
+      case WildcardArg() =>
         TermResult(top, trueBool)
-      } else {
-        evalTerm(a)
-      }
     }
     AtomResult(topBool, vs.foldLeft(trueBool)((p, v) => boolOps.and(p, v.pure)))
 

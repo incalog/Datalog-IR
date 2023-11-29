@@ -48,17 +48,33 @@ def GE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, ">=")
 
 enum ArithmeticAggregationOperator extends AggregationOperatorBuiltIn:
   case Count
-  case Sum
-  case Min
-  case Max
+  case SumInt
+  case MinInt
+  case MaxInt
+  case SumDouble
+  case MinDouble
+  case MaxDouble
 
-  override def typecheck(in: Seq[Type]): Either[String, Type] = this match
-    case ArithmeticAggregationOperator.Count => Right(TInt)
-    case ArithmeticAggregationOperator.Sum | ArithmeticAggregationOperator.Min | ArithmeticAggregationOperator.Max =>
-      if (in == Seq(TInt) || in == Seq(TDouble))
-        Right(in.head)
+  override def resultType: Type = this match
+    case Count | SumInt | MinInt | MaxInt => TInt
+    case SumDouble | MinDouble | MaxDouble => TDouble
+
+  override def typecheck(in: Seq[Type]): Option[String] = this match
+    case ArithmeticAggregationOperator.Count =>
+      if (in.size == 1)
+        None
       else
-        Left(s"Cannot compute $this for values of type $in")
+        Some(s"Cannot compute $this for values of type $in")
+    case SumInt | MinInt | MaxInt =>
+      if (in == Seq(TInt))
+        None
+      else
+        Some(s"Cannot compute $this for values of type $in")
+    case SumDouble | MinDouble | MaxDouble =>
+      if (in == Seq(TDouble))
+        None
+      else
+        Some(s"Cannot compute $this for values of type $in")
 
 object IR extends IR { }
 trait IR extends BaseIR:

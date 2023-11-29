@@ -94,15 +94,29 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
       case _ => Value.Top
 
   override val doubleOps: FloatOps[Double, Value] = new FloatOps[Double, Value]:
-    override def floatingLit(f: Double): Value = ???
+    override def floatingLit(f: Double): Value = Value.Double(f)
     override def randomFloat(): Value = ???
-    override def add(v1: Value, v2: Value): Value = ???
-    override def sub(v1: Value, v2: Value): Value = ???
-    override def mul(v1: Value, v2: Value): Value = ???
-    override def div(v1: Value, v2: Value): Value = ???
-    override def min(v1: Value, v2: Value): Value = ???
-    override def max(v1: Value, v2: Value): Value = ???
-    override def absolute(v: Value): Value = ???
+    override def add(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 + i2)
+      case _ => Value.Top
+    override def sub(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 - i2)
+      case _ => Value.Top
+    override def mul(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 * i2)
+      case _ => Value.Top
+    override def max(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 max i2)
+      case _ => Value.Top
+    override def min(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 min i2)
+      case _ => Value.Top
+    override def div(v1: Value, v2: Value): Value = (v1, v2) match
+      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 / i2)
+      case _ => Value.Top
+    override def absolute(v: Value): Value = v match
+      case Value.Double(i) => Value.Double(i.abs)
+      case _ => Value.Top
 
   override val intOrderingOps: OrderingOps[Value, VBool] = new OrderingOps[Value, VBool]:
     override def lt(v1: Value, v2: Value): VBool = (v1, v2) match

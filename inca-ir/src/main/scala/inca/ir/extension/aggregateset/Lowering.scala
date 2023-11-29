@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.lowering.BaseLowering
@@ -31,17 +31,18 @@ trait Lowering extends BaseLowering:
       gensym.register(setRel.params.map(_.name.name))
       val newrelName = gensym.freshGlobal(setRel.name)
       var rel = Relation(newrelName, setRel.params, Seq(Body(
-        Seq(Call(setRel.name, setRel.params.map(p => Var(p.name))))
+        Seq(Call(setRel.name, setRel.params.map(p => Var(p.name).arg)))
       )))
       for ((a, ix) <- args.zipWithIndex) a match
-        case AggregateArg.Arg(t) => // skip
-        case AggregateArg.AggregateColumn(t) =>
+        case TermArg(_) | WildcardArg() => // skip
+        case AggregateColumnArg(t) =>
           val param = rel.params(ix)
           val TSet(ty) = param.ty: @unchecked
           val newparamName = gensym.freshName(param.name)
           val newparams = rel.params.updated(ix, Param(newparamName, ty))
           val memberAtom = SetMember(ir.Var(newparamName), ir.Var(param.name))
           rel = rel.copy(params = newparams, bodies = rel.bodies.map(b => Body(b.atoms :+ memberAtom)))
+        // TODO case AggregateArg.WildCard
       newrels += rel
       preserveHints(atom) {
         Seq(Aggregate(newrelName, args, op))

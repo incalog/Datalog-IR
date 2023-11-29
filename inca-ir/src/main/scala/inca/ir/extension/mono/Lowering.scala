@@ -1,14 +1,14 @@
-package inca.ir.extension.monotypes
+package inca.ir.extension.mono
 
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Neq, Param, Relation, TAny, Term, Type, Var, typing}
+import inca.ir.{Arg, Atom, BaseIR, Body, Call, Eq, ExtensionalCall, Module, ModuleEntry, Name, Param, RefByName, Relation, TAny, Term, Type, Var, WildcardArg, typing}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.demand
 import inca.ir.Hint.preserveHints
 import inca.ir.typing.IRTypechecker
 import inca.ir.extension.aggregate
-import inca.ir.extension.aggregate.AggregateArg.{AggregateColumn, Arg, WildCard}
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOperatorUserDefined}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.MaxInt
 import inca.ir.extension.block.Block
 import inca.ir.extension.demand.Hints.IgnoreCall
 import inca.ir.extension.impure
@@ -16,7 +16,6 @@ import inca.ir.extension.impure.Impure
 import inca.ir.extension.data
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.arithmetic.{Add, DoubleNum, IntNum, TDouble, TInt}
-import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{Max => MaxAgg}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.string.{StringLit, TString}
 
@@ -37,11 +36,11 @@ trait Lowering extends BaseLowering:
 
   // Mapping from an AddMono atom to the type information of mono-type variable, input term and keys
   // (used to find the corresponding Coll relation of an AddMono)
-  private val cachedAddMonoCtx: mutable.Map[AddMono, AddMonoInfo] = mutable.Map()
+  private val cachedAddMonoCtx: mutable.Map[WriteMono, AddMonoInfo] = mutable.Map()
 
   // Mapping from a ResultMono Term to the type of its inside mono-type variables
   // (used to find the corresponding aggregation relation of a ResultMono)
-  private val cachedResultMonoCtx: mutable.Map[ResultMono, TMono] = mutable.Map()
+  private val cachedResultMonoCtx: mutable.Map[ReadMono, TMono] = mutable.Map()
 
   // Record the newly generated relations (except relations used to do mono aggregation) during lowering
   private val cachedRelation: mutable.Map[Name, Relation] = mutable.Map()
@@ -69,7 +68,7 @@ trait Lowering extends BaseLowering:
 
   override def visitModule(module: Module): Module =
     val typechecker = new IRTypechecker {}
-    typechecker.typecheck(module)
+    typechecker.checkModule(module)
     cachedAddMonoCtx ++= typechecker.getAddMonoInfo
     cachedResultMonoCtx ++= typechecker.getResultMonoInfo
     val m1: Module = super.visitModule(module)
@@ -98,14 +97,14 @@ trait Lowering extends BaseLowering:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
-      case AddMono(m, input, keys) => hasMono = true; lowerAddMono(AddMono(m, input, keys))
+      case WriteMono(m, input, keys) => hasMono = true; lowerAddMono(WriteMono(m, input, keys))
       case _ => super.visitAtom(atom)
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
-      case MkMono(mono, args, keys) => hasMono = true; lowerMkMono(MkMono(mono, args, keys))
-      case ResultMono(m) => hasMono = true; lowerResultMono(ResultMono(m))
+      case NewMono(mono, keys, args) => hasMono = true; lowerMkMono(NewMono(mono, keys, args))
+      case ReadMono(m) => hasMono = true; lowerResultMono(ReadMono(m))
       case _ => super.visitTerm(term)
   }
 
@@ -183,28 +182,26 @@ trait Lowering extends BaseLowering:
     Name(s"Agg$$${mt.input}$$${mt.output}")
 
   private def vars(s: String): Seq[Var] =
-    s.split(" ").map(v => Var(Name(v)))
+    s.split(" ").toSeq.map(v => Var(Name(v)))
 
   /**
    * Generate an aggregation relation. We use the name of Mono definition to distinguish monos having
    * the same input and output type. For each mono definition, we generate two bodies to deal with
    * aggregation on empty and non-empty multisets respectively.
    */
-  private def genAggRel(mt: TMono, op: MonoDef): Relation =
+  private def genAggRel(mt: TMono, op: MonoDefinition): Relation =
     val destMono: Atom = Deconstruct(
       Var(Name("m")), Name("mkMono"),
-      Seq(Var(Name("id")), Var(Name("name")))
+      Seq(Var(Name("id")).arg, Var(Name("name")).arg)
     )
     val opCons: Atom = Eq(Var(Name("name")), StringLit(op.toString))
     val commonAggBody: Seq[Atom] = Seq(destMono, opCons)
     val Seq(p, b): Seq[Term] = vars("p b")
-    val agg1Args: Seq[AggregateArg] = Arg(Var(Name("m"))) +:
-        mt.keys.map(_ => WildCard(Var(Name(gensym.fresh("k")))))
-        :+ Arg(p) :+ AggregateColumn(b)
-    val agg1: Aggregate = Aggregate(genCollName(mt), agg1Args, op).addHint(IgnoreCall)
+    val agg1Args: Seq[Arg] = Var(Name("m")).arg +: mt.keys.map(_ => WildcardArg()) :+ p.arg :+ AggregateColumnArg(b)
+    val agg1: Aggregate = Aggregate(genCollName(mt), agg1Args, new MonoAggregationOperator(op)).addHint(IgnoreCall)
     val body1: Body = Body(commonAggBody :+ Eq(p, BoolTrue) :+ agg1)
-    val agg2Args: Seq[AggregateArg] = Seq(Arg(p), AggregateColumn(b))
-    val agg2: Aggregate = Aggregate(genCollName(mt, neg = true), agg2Args, op).addHint(IgnoreCall)
+    val agg2Args: Seq[Arg] = Seq(p.arg, AggregateColumnArg(b))
+    val agg2: Aggregate = Aggregate(genCollName(mt, neg = true), agg2Args, new MonoAggregationOperator(op)).addHint(IgnoreCall)
     val body2: Body = Body(commonAggBody :+ Eq(p, BoolFalse) :+ agg2)
     val name: Name = genAggName(mt)
     val params: Seq[Param] = Seq(
@@ -230,14 +227,14 @@ trait Lowering extends BaseLowering:
     val body: Body = Body(Seq(
       Aggregate(
         genAggName(mt),
-        Seq(Arg(Var(Name("m"))), AggregateColumn(Var(Name("b")))),
-        MaxAgg
+        Seq(Var(Name("m")).arg, AggregateColumnArg(Var(Name("b")))),
+        MaxInt
       )
     ))
 
     Relation(name, params, Seq(body)).addHint(impure.Hints.Pure)
 
-  private def genImp(mt: TMono, op: MonoDef): Seq[Term] =
+  private def genImp(mt: TMono, op: MonoDefinition): Seq[Term] =
     val state = Var(Name(gensym.fresh("st")))
     val monoDefId = op.toString
     val monoADT: Construct = Construct(Name("mkMono"), Seq(state, StringLit(monoDefId)))
@@ -250,7 +247,7 @@ trait Lowering extends BaseLowering:
     )
     if (!hasMkMono) {
       hasMkMono = true
-      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state))
+      val extcall: ExtensionalCall = ExtensionalCall(Name("main$input"), Seq(state.arg))
       Seq(Block(Seq(extcall, imp), freshMono))
     } else {
       Seq(Block(Seq(imp), freshMono))
@@ -293,10 +290,10 @@ trait Lowering extends BaseLowering:
    * An AddMono will be lowered into a collection relation. If the collection relation does not exist,
    * we can create it according to the type information retrieved during type checking.
    */
-  protected def lowerAddMono(atom: AddMono) : Seq[Atom] =
-    val mono: Term = atom.m
-    val input: Term = atom.input
-    val keys: Seq[Term] = atom.keys
+  protected def lowerAddMono(atom: WriteMono) : Seq[Atom] =
+    val mono: Arg = atom.m.arg
+    val input: Arg = atom.input.arg
+    val keys: Seq[Arg] = atom.keys.map(_.arg)
     require(cachedAddMonoCtx.contains(atom))
     val info: AddMonoInfo = cachedAddMonoCtx(atom)
     val mt = TMono(info.monoTy.asInstanceOf[TMono].input, info.monoTy.asInstanceOf[TMono].output, info.keysTy)
@@ -305,17 +302,15 @@ trait Lowering extends BaseLowering:
       val collRel = genCollRel(mt)
       cachedRelation += collName -> collRel
     }
-    val collAtom: Atom = Call(collName, mono +: keys :+ BoolTrue :+ input)
+    val collAtom: Atom = Call(collName, mono +: keys :+ BoolTrue.arg :+ input)
     Seq(collAtom)
 
   /**
    * Lower MkMono into an ADT instance and generate corresponding collection and aggregation relations.
    */
-  private def lowerMkMono(term:MkMono) : Seq[Term] =
-    val (in, out): (Type, Type) = term.mono.monotypecheck(term.args) match
-      case Left(msg) =>
-        (TAny, TAny)
-      case Right(tm) => tm
+  private def lowerMkMono(term:NewMono) : Seq[Term] =
+    val tm = term.typ.get.ty.asInstanceOf[TMono]
+    val (in, out) = (tm.input, tm.output)
     val mt: TMono = TMono(in, out, term.keys)
     val collName: Name = genCollName(mt)
     val collNameAux: Name = genCollName(mt, neg=true)
@@ -337,11 +332,11 @@ trait Lowering extends BaseLowering:
    * Lower ResultMono into finding the maximum result of aggregation on the corresponding mono-type variables
    * (as there are two bodies for each mono definition).
    */
-  private def lowerResultMono(term: ResultMono): Seq[Term] =
+  private def lowerResultMono(term: ReadMono): Seq[Term] =
     require(cachedResultMonoCtx.contains(term))
     val ty: TMono = cachedResultMonoCtx(term)
     val aggName: Name = genAggMaxName(ty)
     val mvar: Var = Var(term.m.asInstanceOf[Var].name)
     val b: Term = Var(Name(mvar.toString + "r"))
-    val call: Call = Call(aggName, Seq(mvar, b))
+    val call: Call = Call(aggName, Seq(mvar.arg, b.arg))
     Seq(Block(Seq(call), b))

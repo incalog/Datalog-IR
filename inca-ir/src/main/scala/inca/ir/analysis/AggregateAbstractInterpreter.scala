@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir.extension.aggregate.*
-import inca.ir.{Atom, Term}
+import inca.ir.{Atom, Term, TermArg, WildcardArg}
 
 
 trait AggregateAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
@@ -9,12 +9,11 @@ trait AggregateAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
   override def evalAtomExtend(at: Atom): AtomResult = at match
     case Aggregate(rel, args, op) =>
       val vs = args.map {
-        case AggregateArg.Arg(t) => evalTerm(t)
-        case AggregateArg.AggregateColumn(t) =>
+        case TermArg(t) => evalTerm(t)
+        case AggregateColumnArg(t) =>
           assign(t, top)
           top
-        case AggregateArg.WildCard(t) =>
-          assign(t, top)
+        case WildcardArg() =>
           top
       }
       AtomResult(topBool, falseBool)

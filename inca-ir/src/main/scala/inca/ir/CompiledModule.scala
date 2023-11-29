@@ -33,7 +33,7 @@ trait CompiledModule:
   lazy val checked: Module =
     val checker = new IRTypechecker
     println(ir)
-    checker.typecheck(ir)
+    checker.checkModule(ir)
     ir
 
   // TODO should be configurable
@@ -54,12 +54,18 @@ trait CompiledModule:
     var i = 0
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
-      println(s"Lowering $i")
       val Seq(l) = lowFun.visitProgram(Seq(m))
+
+      println(s"Lowering $i")
       println(l)
       println()
+
       val checker = new IRTypechecker()
-      checker.typecheck(l)
+      checker.checkModule(l)
+
+      /*println(s"Checked $i")
+      println(l)
+      println()*/
       i += 1
       l
     }
@@ -84,11 +90,12 @@ trait CompiledModule:
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
     aeval.evalModule(p.head)
-    //println(p.head)
+    //println("Eval module: ")
+    //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = new IRTypechecker
-    checker.typecheck(po)
+    checker.checkProgram(po)
     po
 
 

@@ -8,9 +8,9 @@ import inca.ir.util.SourceLocation
 import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, TermType, Type, string2name}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match
+  override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case ScalaDefnModuleEntry(_, _) => // nothing
-    case _ => super.typecheck(moduleEntry)
+    case _ => super.checkModuleEntry(moduleEntry)
 
   override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
     // ScalaTypes and their corresponding type are the same
@@ -27,16 +27,12 @@ trait Typechecker extends BaseIRTypechecker:
       if (aggregatedColumn >= args.size)
         error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
       val params = lookupRelationParams(rel, args.size, atom)
-      val argMode = mode match
-        case Mode.Binding => Mode.Collapse // TODO: Verify this
-        case Mode.Bound => Mode.Collapse
-        case Mode.Collapse => Mode.Collapse
       args.zip(params).zipWithIndex.foreach {
         case ((t, p), i) if i == aggregatedColumn =>
           assertComparable(p.ty, ty, atom)
-          checkTerm(t, p.ty, argMode)
+          checkTerm(t, p.ty, Mode.Collapse)
         case ((t, p), i) =>
-          checkTerm(t, p.ty, argMode)
+          checkTerm(t, p.ty, Mode.Collapse)
       }
       checkTerm(out, ty, mode)
     case _ => super.checkAtom(atom, mode)
@@ -48,3 +44,7 @@ trait Typechecker extends BaseIRTypechecker:
     case ScalaConstantTerm(_, ty) =>
       ty.bound
     case _ => super.inferTermExtend(term, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case ScalaType(_) => // good
+    case _ => super.checkType(ty)

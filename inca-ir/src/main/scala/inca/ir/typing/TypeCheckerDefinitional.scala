@@ -64,6 +64,10 @@ object TypeCheckerDefinitional:
       TTuple(ttys1.zip(ttys2).map(join))
     case _ => if (ty1 == ty2) ty1 else TAny
 
+  def checkBound(a: Arg, ctx: Context, expected: Type): Unit = a match
+    case WildcardArg() => throw IllegalStateException("Wildcards are not supported")
+    case TermArg(t) => checkBound(t, ctx, expected)
+
   def checkBound(t: Term, ctx: Context, expected: Type): Unit = t match
     case Var(x) => ctx.get(x.name) match
       case Some((ty, VarMode.Bound)) => assertComparable(ty, expected, t)
@@ -99,6 +103,10 @@ object TypeCheckerDefinitional:
         assertComparable(TSet(TAny), expected, t)
         checkBound(t1, ctx, TSet(TAny))
         checkBound(t2, ctx, TSet(TAny))
+
+  def checkBinding(a: Arg, ctx: Context, expected: Type): (Boundness, Context) = a match
+    case WildcardArg() => throw IllegalStateException("Wildcards are not supported")
+    case TermArg(t) => checkBinding(t, ctx, expected)
 
   /**
    * @return (b, ctx) where ctx is the new context and b indicates if t
@@ -202,21 +210,21 @@ object TypeCheckerDefinitional:
       (TSet(join(ty1, ty2)), cl1 join cl2, ctx2)
 
   def checkAtomBinding(a: Atom, ctx: Context)(using relations: Relations): Context = a match
-    case Call(name, args) => relations.get(name) match
+    case Call(RefByName(name), args, false) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkBinding(tt, c, tty)._2 }
-    case NegCall(name, args) => relations.get(name) match
+    case Call(RefByName(name), args, true) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foreach { case (tt, tty) => checkBound(tt, ctx, tty) }; ctx
-    case Eq(t1, t2) =>
+    case Eq(t1, t2, false) =>
       Try(inferBound(t1, ctx)) match
         case Success(ty1) => checkBinding(t2, ctx, ty1)._2
         case Failure(err1) => Try(inferBound(t2, ctx)) match
           case Success(ty2) => checkBinding(t1, ctx, ty2)._2
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
-    case Neq(t1, t2) =>
+    case Eq(t1, t2, true) =>
       Try(inferBound(t1, ctx)) match
         case Success(ty1) => checkBound(t2, ctx, ty1); ctx
         case Failure(err1) => Try(inferBound(t2, ctx)) match
@@ -229,21 +237,21 @@ object TypeCheckerDefinitional:
       checkBinding(mem, ctx, tty)._2
 
   def checkAtomBound(a: Atom, ctx: Context)(using relations: Relations): Context = a match
-    case Call(name, args) => relations.get(name) match
+    case Call(RefByName(name), args, false) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foreach { case (tt, tty) => checkBound(tt, ctx, tty) }; ctx
-    case NegCall(name, args) => relations.get(name) match
+    case Call(RefByName(name), args, true) => relations.get(name) match
       case None => throw TypeError(s"Relation not found $name")
       case Some(columns) if args.size != columns.size => throw TypeError(s"Wrong number of arguments for $name, expected ${columns.size} but got ${args.size}")
       case Some(columns) => args.zip(columns).foldLeft(ctx) { case (c, (tt, tty)) => checkBinding(tt, c, tty)._2 }
-    case Eq(t1, t2) =>
+    case Eq(t1, t2, false) =>
       Try(inferBound(t1, ctx)) match
         case Success(ty1) => checkBound(t2, ctx, ty1); ctx
         case Failure(err1) => Try(inferBound(t2, ctx)) match
           case Success(ty2) => checkBound(t1, ctx, ty2); ctx
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
-    case Neq(t1, t2) =>
+    case Eq(t1, t2, true) =>
       Try(inferBound(t1, ctx)) match
         case Success(ty1) => checkBinding(t2, ctx, ty1)._2
         case Failure(err1) => Try(inferBound(t2, ctx)) match

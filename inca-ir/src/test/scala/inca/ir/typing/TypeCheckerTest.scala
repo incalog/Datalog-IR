@@ -9,12 +9,13 @@ import inca.ir.extension.demand
 import inca.ir.extension.demand.TDemand
 import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import org.scalatest.funsuite.AnyFunSuiteLike
+import inca.ir.term2Arg
 
 class TypeCheckerTest extends AnyFunSuiteLike:
 
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
-    try typechecker.typecheck(mod)
+    try typechecker.checkModule(mod)
     finally {
       println(mod)
       typechecker.getErrors.foreach(println)
@@ -64,24 +65,24 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     assertThrows[TypeErrorException] {
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
-        Neq(Var("x"), Var("y"))
+        Eq(Var("x"), Var("y"), true)
       )))))
     }
     assertThrows[TypeErrorException]{
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
-        Neq(IntNum(0), Var("y"))
+        Eq(IntNum(0), Var("y"), true)
       )))))
     }
     assertThrows[TypeErrorException]{
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(Relation("R", Seq(), Seq(Body(Seq(
-        Neq(Var("x"), IntNum(0))
+        Eq(Var("x"), IntNum(0), true)
       )))))
     }
     implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
     module(Relation("R", Seq(), Seq(Body(Seq(
-      Neq(IntNum(0), IntNum(0))
+      Eq(IntNum(0), IntNum(0), true)
     )))))
   }
 
@@ -100,7 +101,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(), Seq(Body(Seq(
-          NegCall("T", Seq(Var("x"), Var("y")))
+          Call("T", Seq(Var("x").arg, Var("y").arg), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -110,8 +111,8 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(), Seq(Body(Seq(
-          NegCall("T", Seq(Var("x"), Var("y"))),
-          Neq(Var("x"), Var("y"))
+          Call("T", Seq(Var("x").arg, Var("y").arg), true),
+          Eq(Var("x"), Var("y"), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -121,7 +122,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-          NegCall("T", Seq(Var("p1"), Var("p2")))
+          Call("T", Seq(Var("p1").arg, Var("p2").arg), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -131,7 +132,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
       implicit val typechecker = new BaseIRTypechecker with arithmetic.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-          NegCall("T", Seq(Var("p1"), IntNum(2)))
+          Call("T", Seq(Var("p1").arg, IntNum(2).arg), true)
         )))),
         Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
       )
@@ -160,7 +161,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
 
     module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
-        Not(NegCall("T", Seq(Var("p1"), Var("p2"))))
+        Not(Call("T", Seq(Var("p1").arg, Var("p2").arg), true))
       )))),
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )

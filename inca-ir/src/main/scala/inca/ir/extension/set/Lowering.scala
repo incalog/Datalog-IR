@@ -105,7 +105,7 @@ trait Lowering extends BaseLowering:
       if (atoms.isEmpty) {
         (caseDef, None)
       } else {
-        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1))) +: atoms)
+        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1).arg)) +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip
@@ -147,7 +147,7 @@ trait Lowering extends BaseLowering:
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] =
           val args = rel.params.map(p => Var(gensym.freshName(p.name)))
-          Seq(Call(name, args), Eq(TupleLit.make(args), Var(elemVar)))
+          Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
       Seq(callAddConstructor(term, setEnum))
     case SetUnion(t1, t2) =>
       val Seq(s1) = visitTerm(t1)
@@ -157,8 +157,8 @@ trait Lowering extends BaseLowering:
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
           Disjunction(Seq(
-            DisjunctionAlternative(Call(relNameOf(memTy1), Seq(s1, Var(elemVar)))),
-            DisjunctionAlternative(Call(relNameOf(memTy2), Seq(s2, Var(elemVar))))
+            DisjunctionAlternative(Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg))),
+            DisjunctionAlternative(Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg)))
           ))
         )
       Seq(callAddConstructor(term, setEnum))
@@ -169,8 +169,8 @@ trait Lowering extends BaseLowering:
       val memTy2 = memberType(t2)
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Call(relNameOf(memTy1), Seq(s1, Var(elemVar))),
-          Call(relNameOf(memTy2), Seq(s2, Var(elemVar)))
+          Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg)),
+          Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg))
         )
       Seq(callAddConstructor(term, setEnum))
     case SetComprehension(build, atoms) =>
@@ -188,7 +188,7 @@ trait Lowering extends BaseLowering:
       val Seq(s) = visitTerm(setTerm)
       val memTy = memberType(setTerm)
       val ts = visitTerm(elemTerm)
-      ts.map(elem => Call(relNameOf(memTy), Seq(s, elem)))
+      ts.map(elem => Call(relNameOf(memTy), Seq(s.arg, elem.arg)))
     }
     case _ => super.visitAtom(atom)
 

@@ -1,6 +1,6 @@
 package inca.ir.extension.map
 
-import inca.ir.{Atom, TAny, TNothing, Term, TermType}
+import inca.ir.{Atom, TAny, TNothing, Term, TermType, Type}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 
 trait Typechecker extends BaseIRTypechecker{
@@ -48,5 +48,11 @@ trait Typechecker extends BaseIRTypechecker{
     case TermType(ty, m) =>
       error(s"Expected map type but got $ty", t)
       (TMap(TNothing, TNothing), m)
+
+  override def checkType(ty: Type): Unit = ty match
+    case TMap(kty, vty) =>
+      checkType(kty)
+      checkType(vty)
+    case _ => super.checkType(ty)
 
 }

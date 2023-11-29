@@ -18,5 +18,11 @@ trait ImpurityKind:
 case class Impure(v: Var, atoms: Seq[Atom], update: Term, kind: ImpurityKind) extends Atom with Var.Target:
   override def vars: Seq[Var] = v +: (atoms.flatMap(_.vars) ++ update.vars)
   override def toString: String = s"Impure($v => ${atoms.mkString(", ")}, $update)"
+
 object Impure:
-  def apply(v: Var, atom: Atom, update: Term, kind: ImpurityKind) = new Impure(v, Seq(atom), update, kind)
+  def apply(v: Var, atom: Atom, update: Term, kind: ImpurityKind): Impure =
+    new Impure(v, Seq(atom), update, kind)
+
+  def counter(v: Var, atom: Atom, kind: ImpurityKind): Impure =
+    import inca.ir.extension.arithmetic.*
+    new Impure(v, Seq(atom), Add(Var(v.name), IntNum(1)), kind)
