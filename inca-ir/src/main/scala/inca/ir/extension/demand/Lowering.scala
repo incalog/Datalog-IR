@@ -2,9 +2,9 @@ package inca.ir.extension.demand
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.{Aggregate, AggregateArg}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, TermArg, Type, Var}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -69,7 +69,7 @@ trait Lowering extends BaseLowering:
         for (vrel <- super.visitRelation(rel)) yield {
           demandRules += vrel.name -> ListBuffer()
           val guardedBodies = vrel.bodies.map(b => Body(
-            Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name)))
+            Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name).arg))
               +: b.atoms))
           vrel.copy(bodies = guardedBodies)
         }
@@ -91,12 +91,13 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
       case Phase.DeriveDemandRules => atom match
-        case Call(rel, args) =>
+        case Call(RefByName(rel), args, false) =>
           val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
-            case (Param(_, TDemand(_)), arg) => Some(arg)
+            case (Param(_, TDemand(_)), TermArg(t)) => Some(t)
+            case (Param(_, TDemand(_)), _) => None
             case _ => None
           }
           if (demandedArgs.nonEmpty && !atom.hasHint(Hints.IgnoreCallKey))
@@ -109,9 +110,9 @@ trait Lowering extends BaseLowering:
           val demandedArgs = params.zip(args).flatMap {
             case (Param(_, TDemand(_)), arg) =>
               arg match
-                case AggregateArg.Arg(tm) =>
+                case TermArg(tm) =>
                   Some(tm)
-                case AggregateArg.AggregateColumn(tm) => Some(tm)
+                case AggregateColumnArg(tm) => Some(tm)
                 case _ => None
             case _ => None
           }

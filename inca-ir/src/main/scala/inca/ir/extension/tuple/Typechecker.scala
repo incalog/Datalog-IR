@@ -49,4 +49,6 @@ trait Typechecker extends BaseIRTypechecker:
     }
     case _ => super.checkTermExtend(term, expected, mode)
 
-
+  override def checkType(ty: Type): Unit = ty match
+    case TTuple(tys) => tys.foreach(checkType)
+    case _ => super.checkType(ty)

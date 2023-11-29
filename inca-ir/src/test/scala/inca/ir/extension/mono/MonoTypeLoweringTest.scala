@@ -36,7 +36,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       val (name, lower) : (String, BaseIRVisitor) = phase()
       lowered = lower.visitProgram(Seq(lowered)).head
       val typechecker = new IRTypechecker {}
-      try typechecker.typecheck(lowered)
+      try typechecker.checkModule(lowered)
       finally {
         println(s"<><><><><><><> After $name lowering, program becomes: <><><><><><><>\n" + lowered)
         typechecker.getErrors.foreach(println)

@@ -8,7 +8,7 @@ package inca.frontend.oodl.typechecker
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir.Name
-import inca.ir.typing.{Resolvable, Typeable}
+import inca.ir.typing.{Resolvable, TypeCastable, Typeable}
 import inca.ir.util.SourceLocation
 
 class Typechecker extends TypeContext with TypeIO:
@@ -78,10 +78,10 @@ class Typechecker extends TypeContext with TypeIO:
       error(s"Function ${functionDef.name} is not a main function")
 
     functionDef.params.foreach { p =>
-      typecheck(p.typ)
+      typecheckTy(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
     }
-    typecheck(functionDef.outType)
+    typecheckTy(functionDef.outType)
     typecheck(functionDef.body, functionDef.outType)(None)
   }
 
@@ -202,32 +202,40 @@ class Typechecker extends TypeContext with TypeIO:
       error(s"Expected '$ty2', but got '$ty1'", loc)
   }
 
-  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type =
+  def assignType(term: TypeCastable[Type] with SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
     val inferred = computeType
-    term.typ match {
+
+    val result = term.typ match
       case Some(annotated) =>
         if (!subtype(inferred, annotated))
-          error(s"Inferred type '$inferred', but expected annotated type '$annotated'", term)
+          error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>
         term.typed(inferred)
         inferred
-    }
+    val a = expected match
+      case Some(ty) if ty != inferred =>
+        term.casted(ty)
+        ty
+      case _ =>
+        inferred
+    a
+  }
 
   /** Class content */
 
   def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     if (fieldDef.isGeneratedConstructorField)
-      lookupField(classDef, fieldDef.name) match
+      lookupField(classDef, fieldDef.name, true) match
         case Some((cls, f)) => resolveTarget(fieldDef)(cls)
         case _ => throw IllegalStateException(s"No field found with name '${fieldDef.name}'")
     else
       resolveTarget(fieldDef)(classDef)
-    typecheck(fieldDef.typ)
+    typecheckTy(fieldDef.typ)
 
     fieldDef.body match {
       case Some(expr) =>
-        val expTyp = typecheck(expr)(Some(classDef))
+        val expTyp = typecheckExp(expr, fieldDef.typ)(Some(classDef))
         assertSubtype(expTyp, fieldDef.typ, fieldDef)
       case None =>
         uninitializedFields += (fieldDef.name -> fieldDef)
@@ -262,7 +270,7 @@ class Typechecker extends TypeContext with TypeIO:
     }
 
     methodDef.params.foreach { p =>
-      typecheck(p.typ)
+      typecheckTy(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
     }
 
@@ -270,12 +278,12 @@ class Typechecker extends TypeContext with TypeIO:
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
     val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq()))) // TODO: Support generics
-    typecheck(clsTy)
+    typecheckTy(clsTy)
 
     val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
     bindVar(thisVar.name, thisVar, clsTy, true)
 
-    typecheck(methodDef.outType)
+    typecheckTy(methodDef.outType)
     typecheck(methodDef.body, methodDef.outType)(Some(classDef))
   }
 
@@ -287,7 +295,7 @@ class Typechecker extends TypeContext with TypeIO:
     //resolveTarget(constructorDef)((baseClassDef, baseConstructorDef))
 
     constructorDef.params.foreach { p =>
-      typecheck(p.typ)
+      typecheckTy(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
     }
 
@@ -319,7 +327,7 @@ class Typechecker extends TypeContext with TypeIO:
     val afterSuperBody = constructorDef.body.slice(superCallIndex + 1, constructorDef.body.size)
 
     val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq())))
-    typecheck(clsTy)
+    typecheckTy(clsTy)
 
     typecheck(beforeSuperBody, clsTy)(Some(classDef))
 
@@ -337,9 +345,9 @@ class Typechecker extends TypeContext with TypeIO:
 
   def typecheck(statement: Statement, rt: Type, allowImmutableFieldAssignment: Boolean)(implicit classDef: Option[ClassDef]): Unit = statement match {
     case Expr(expression) =>
-      typecheck(expression)
+      typecheckExp(expression, rt)
     case Return(expression) =>
-      val outTyp = typecheck(expression)
+      val outTyp = typecheckExp(expression, rt)
       assertSubtype(outTyp, rt, statement)
     case superStmt@Super(args) =>
       val parentRef = classDef.getOrElse(
@@ -349,8 +357,12 @@ class Typechecker extends TypeContext with TypeIO:
         case t: TName if !t.isBuiltIn =>
           lookupClass(t.name) match
             case Some(parentCls: ClassDef) =>
-              lookupConstructor(parentCls, args.map(typecheck), statement) match
+              val argTys = args.map(typecheckExp(_, None))
+              lookupConstructor(parentCls, argTys, statement) match
                 case Some((classDef, constructorDef)) =>
+                  args.zip(argTys).zip(constructorDef.params).map { case ((a, aTy), Param(_, ty)) =>
+                    assignType(a, Some(ty))(aTy)
+                  }
                   resolveTarget(superStmt)((classDef, constructorDef))
                   true
                 case _ => false
@@ -361,23 +373,23 @@ class Typechecker extends TypeContext with TypeIO:
         error("No matching constructor found for super call", superStmt)
 
     case If(cnd, thn, els) =>
-      val cndTyp = typecheck(cnd)
+      val cndTyp = typecheckExp(cnd, None)
       scopedTypeContext { typecheck(thn, rt) }
       scopedTypeContext { typecheck(els, rt) }
       assertSubtype(cndTyp, TBoolean, cnd)
     case varDecl@VarDeclare(name, annotatedType, None, immutable) =>
       error(s"Declaration of variable '$name' without a value is not allowed")
     case varDecl@VarDeclare(name, annotatedType, Some(expr), immutable) =>
-      val inferredType = typecheck(expr)
+      val inferredType = typecheckExp(expr, annotatedType)
       (annotatedType, inferredType) match
         case (Some(ty1), ty2) =>
-          typecheck(ty1)
+          typecheckTy(ty1)
           bindVar(name, varDecl, ty1, immutable)
           assertSubtype(ty2, ty1, varDecl)
         case (None, ty) =>
           bindVar(name, varDecl, ty, immutable)
     case varAssig@Assign(lhs@Var(name), rhs) =>
-      val expTyp = typecheck(rhs)
+      val expTyp = typecheckExp(rhs, None)
       lookupVar(name) match
         case Some((target, typ, true)) =>
           error(s"Cannot assign immutable variable '$name'", statement)
@@ -387,22 +399,26 @@ class Typechecker extends TypeContext with TypeIO:
         case None =>
           error(s"Can not assign to unbound variable '$name'", statement)
     case fieldAssign@Assign(select@Select(recv, targetName), rhs) =>
-      val typ = typecheck(rhs)
-      typecheck(recv) match {
+      val typ = typecheckExp(rhs, None)
+      typecheckExp(recv, None) match {
         case TTuple(ts) =>
           error(s"Can not assign tuple elements", statement)
         case recvTy: TName if !recvTy.isBuiltIn =>
           recvTy.target match
-            case Some(cls: ClassDef) => lookupField(cls, targetName, fieldAssign) match
-              case Some((clazz, field)) =>
-                if (!allowImmutableFieldAssignment && field.immutable)
-                  error(s"Cannot assign to immutable field '$targetName'", statement)
-                if (field.immutable && !uninitializedFields.contains(targetName))
-                  error(s"Field '$targetName' is already initialized", statement)
-                resolveTarget(select)((clazz, field))
-                assertSubtype(typ, field.typ, fieldAssign)
-                uninitializedFields -= targetName
-              case _ => // Nothing
+            case Some(cls: ClassDef) =>
+              val implField = lookupField(cls, targetName, false, fieldAssign)
+              val trgField = lookupField(cls, targetName, true, fieldAssign)
+              (implField, trgField) match
+                case (Some(_, implField), Some((clazz, field))) =>
+                  if (!allowImmutableFieldAssignment && field.immutable)
+                    error(s"Cannot assign to immutable field '$targetName'", statement)
+                  if (field.immutable && !uninitializedFields.contains(targetName))
+                    error(s"Field '$targetName' is already initialized", statement)
+                  rhs.casted(field.typ)
+                  resolveTarget(select)((clazz, field))
+                  assertSubtype(typ, implField.typ, fieldAssign)
+                  uninitializedFields -= targetName
+                case _ => // Nothing
             case Some(trg) =>
               error(s"Unexpected receiver target $trg of type $recvTy", recv, statement)
             case _ =>
@@ -428,7 +444,10 @@ class Typechecker extends TypeContext with TypeIO:
 
   /** Expressions */
 
-  def typecheck(expression: Expression)(implicit classDef: Option[ClassDef]): Type = assignType(expression)(typecheckInternal(expression))
+  final def typecheckExp(expression: Expression, anno: Type)(implicit classDef: Option[ClassDef]): Type =
+    typecheckExp(expression, Some(anno))
+  final def typecheckExp(expression: Expression, anno: Option[Type])(implicit classDef: Option[ClassDef]): Type =
+    assignType(expression, anno)(typecheckInternal(expression))
 
   def typecheckInternal(expression: Expression)(implicit classDef: Option[ClassDef]): Type = expression match {
     case IntLit(i) => TInt
@@ -436,26 +455,26 @@ class Typechecker extends TypeContext with TypeIO:
     case BoolLit(b) => TBoolean
     case StringLit(s) => TString
     case NullLit() => TNull
-    case Tuple(exps) => TTuple(exps.map(typecheck))
+    case Tuple(exps) => TTuple(exps.map(typecheckExp(_, None)))
     case UnOp("-", e) =>
-      val eTy = typecheck(e)
+      val eTy = typecheckExp(e, None)
       if (!subtype(eTy, TInt) && !subtype(eTy, TDouble))
         error(s"Required numeric type, but got $eTy", e)
       eTy
     case UnOp("!", e) =>
-      val eTy = typecheck(e)
+      val eTy = typecheckExp(e, None)
       if (!subtype(eTy, TBoolean))
         error(s"Required boolean type, but got $eTy", e)
       eTy
     case BinOp(e1, op, e2) =>
       op match
         case "==" | "!=" =>
-          typecheck(e1)
-          typecheck(e2)
+          typecheckExp(e1, None)
+          typecheckExp(e2, None)
           TBoolean
         case "+" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TString) && subtype(t2, TString))
             TString
           else if (subtype(t1, TInt) && subtype(t2, TInt))
@@ -467,8 +486,8 @@ class Typechecker extends TypeContext with TypeIO:
             TDouble
           }
         case "-" | "*" | "/" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TInt
           else if (subtype(t2, TDouble) && subtype(t2, TDouble))
@@ -478,8 +497,8 @@ class Typechecker extends TypeContext with TypeIO:
             TDouble
           }
         case "%" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TInt
           else {
@@ -487,8 +506,8 @@ class Typechecker extends TypeContext with TypeIO:
             TInt
           }
         case ">" | ">=" | "<=" | "<" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TInt) && subtype(t2, TInt))
             TBoolean
           else if (subtype(t2, TDouble) && subtype(t2, TDouble))
@@ -498,8 +517,8 @@ class Typechecker extends TypeContext with TypeIO:
             TBoolean
           }
         case "&&" | "||" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TBoolean) && subtype(t2, TBoolean))
             TBoolean
           else {
@@ -507,8 +526,8 @@ class Typechecker extends TypeContext with TypeIO:
             TInt
           }
         case "++" | "&" =>
-          val t1 = typecheck(e1)
-          val t2 = typecheck(e2)
+          val t1 = typecheckExp(e1, None)
+          val t2 = typecheckExp(e2, None)
           if (subtype(t1, TSet(TAny)) && subtype(t2, TSet(TAny))) {
             if (op == "++") join(t1, t2) else meet(t1, t2)
           } else {
@@ -528,7 +547,7 @@ class Typechecker extends TypeContext with TypeIO:
         TAny
 
     case read@Select(recv, targetName) =>
-      val recvTy = typecheck(recv)
+      val recvTy = typecheckExp(recv, None)
       recvTy match
         case TTuple(ts) => // project
           val index = ParseUtil.parseTupleIndex(targetName) match
@@ -544,17 +563,20 @@ class Typechecker extends TypeContext with TypeIO:
         case t: TName => // field read
           t.target match
             case Some(cls: ClassDef) =>
-              lookupField(cls, targetName) match
-                case Some((c: ClassDef, f: FieldDef)) =>
+              val implDef = lookupField(cls, targetName, false)
+              val trgDef = lookupField(cls, targetName, true)
+              (implDef, trgDef) match
+                case (Some((_, implF: FieldDef)), Some((c: ClassDef, f: FieldDef))) =>
                   resolveTarget(read)((c, f))
-                  f.typ
+                  read.casted(implF.typ)
+                  implF.typ
                 case _ => TAny
             case _ => TAny
         case _ => TAny
 
     case TypeCast(recv, toTyp) =>
-      typecheck(recv)
-      typecheck(toTyp)
+      typecheckExp(recv, None)
+      typecheckTy(toTyp)
       toTyp match {
         case t: TName if t.target.exists(_.isInstanceOf[ClassDef]) => // nothing
         case _ => error("Can only type cast to class type", expression)
@@ -562,8 +584,8 @@ class Typechecker extends TypeContext with TypeIO:
       toTyp
 
     case InstanceOf(recv, ofTyp) =>
-      typecheck(recv)
-      typecheck(ofTyp)
+      typecheckExp(recv, None)
+      typecheckTy(ofTyp)
       ofTyp match {
         case t: TName if t.target.exists(_.isInstanceOf[ClassDef]) => // nothing
         case _ => error("Can only check type against class types", expression)
@@ -571,7 +593,7 @@ class Typechecker extends TypeContext with TypeIO:
       TBoolean
 
     case SetExp(exps, tty) =>
-      val typs = exps.map(typecheck)
+      val typs = exps.map(typecheckExp(_, tty))
       if (typs.isEmpty && tty.isEmpty) {
         error("Empty set requires an explicit type", expression)
         TSet(TAny)
@@ -579,11 +601,11 @@ class Typechecker extends TypeContext with TypeIO:
         TSet(tty.getOrElse(join(typs)))
 
     case setMember@SetMember(name, target, predicate) =>
-      typecheck(target) match {
+      typecheckExp(target, None) match {
         case TSet(ty) =>
           bindVar(name, setMember, ty, immutable = true)
           if (predicate.isDefined)
-            assertSubtype(typecheck(predicate.get), TBoolean, target)
+            assertSubtype(typecheckExp(predicate.get, None), TBoolean, target)
           ty
         case _ =>
           error("Expects set type for member test", expression)
@@ -593,20 +615,24 @@ class Typechecker extends TypeContext with TypeIO:
 
     case SetComprehension(member, body) =>
       scopedTypeContext {
-        member.foreach(typecheck)
-        val bodyTy = typecheck(body)
+        member.foreach(typecheckExp(_, None))
+        val bodyTy = typecheckExp(body, None)
         TSet(bodyTy)
       }
 
     case methodCallExpr@MethodCall(recv, fun, tyArgs, args, isFix) =>
-      typecheck(recv) match
+      typecheckExp(recv, None) match
         case t: TName =>
+          val argTys = args.map(typecheckExp(_, None))
           t.target match
-            case Some(cls: ClassDef) => lookupMethod(cls, fun, args.map(typecheck)) match
+            case Some(cls: ClassDef) => lookupMethod(cls, fun, argTys) match
               case None => TAny
               case Some((clsDef, methodDef)) =>
+                args.zip(argTys).zip(methodDef.params).map { case ((a, aTy), Param(_, ty)) =>
+                  assignType(a, Some(ty))(aTy)
+                }
                 resolveTarget(methodCallExpr)((clsDef, methodDef))
-                typecheck(methodDef.outType)
+                typecheckTy(methodDef.outType)
                 methodDef.outType
             case _ => TAny
         case typ =>
@@ -630,26 +656,26 @@ class Typechecker extends TypeContext with TypeIO:
           // Ensure the number of arguments matches
           if (args.size != expectedNumArgs)
             error(s"Expected $expectedNumArgs arguments, but got ${args.size}", expression)
-          val argTys = args.map(typecheck)
+          val argTys = args.map(typecheckExp(_, None))
           // Ensure the argument types match
           primaryConstructor.params.zip(argTys).foreach { case (p@Param(_, ty), argTy) =>
-            typecheck(ty)
+            typecheckTy(ty)
             assertSubtype(argTy, ty, expression)
           }
 
           resolveTarget(constrCall)((cls, primaryConstructor))
 
           val clsTy = TName(cls.name, tyArgs)
-          typecheck(clsTy)
+          typecheckTy(clsTy)
           clsTy
         case None => TAny
   }
 
   /** Types */
 
-  def typecheck(typ: Type): Unit = typ match {
-    case TTuple(tys) => tys.foreach(typecheck)
-    case TSet(ty) => typecheck(ty)
+  def typecheckTy(typ: Type): Unit = typ match {
+    case TTuple(tys) => tys.foreach(typecheckTy)
+    case TSet(ty) => typecheckTy(ty)
     case TAny | TNull => // nothing
     case t: TName if t.isBuiltIn => // nothing
     case t: TName => resolveNamedType(t)

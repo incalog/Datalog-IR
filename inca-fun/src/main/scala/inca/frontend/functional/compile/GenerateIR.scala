@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, string2name, name2string}
+import inca.ir.{ExtensionalRelation, Language, Name, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -24,7 +24,7 @@ import inca.util.Gensym
 
 object GenerateIR:
   def extensionalRelationPrefix = "ext_"
-  def extensionalRelationName(name: String) = extensionalRelationPrefix + demandRelationName(name)
+  def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
 class GenerateIR {
 
@@ -70,7 +70,7 @@ class GenerateIR {
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
     val edbCall =
       if (f.params.nonEmpty)
-        Seq(ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name))))
+        Seq(ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name).arg)))
       else
         Seq()
     ir.Relation(f.name, params, Seq(ir.Body(
@@ -118,7 +118,7 @@ class GenerateIR {
       // function call
       val result = gensym.fresh(funName.name + "_call")
       block.Block(
-        ir.Call(funName, args.map(compileExp) :+ ir.Var(Name(result))),
+        ir.Call(funName, args.map(compileExp).map(_.arg) :+ ir.Var(Name(result)).arg),
         ir.Var(Name(result))
       )
     case Call(v@Var(constrName), Seq(), args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
@@ -138,7 +138,7 @@ class GenerateIR {
       )
 
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2)))
-    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Neq(compileExp(e1), compileExp(e2)))
+    case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2), true))
 
     case StringLit(s) => irstring.StringLit(s)
     case BinOp(e1, "+", e2) if e.typ.contains(TName(Name("String"))) =>
@@ -200,8 +200,8 @@ class GenerateIR {
 
       val aggResult = Name(gensym.fresh("foldResult"))
       val argTerms = args.map(compileExp)
-      val aggArgs = argTerms.map(iragg.AggregateArg.Arg.apply) :+
-        iragg.AggregateArg.AggregateColumn(ir.Var(aggResult))
+      val aggArgs = argTerms.map(TermArg.apply) :+
+        iragg.AggregateColumnArg(ir.Var(aggResult))
       val agg = iraggset.AggregateSet(name, aggArgs, aggOp)
       block.Block(Seq(agg), ir.Var(aggResult))
 

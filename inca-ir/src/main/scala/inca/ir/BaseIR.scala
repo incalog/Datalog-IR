@@ -2,13 +2,15 @@ package inca.ir
 
 import inca.ir.*
 import inca.ir.analysis.Analyzable
-import inca.ir.typing.{Mode, Typeable}
+import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
 implicit def name2string(name: Name): String = name.toString
+
+implicit def term2Arg(term: Term): Arg = term.arg
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
@@ -25,13 +27,17 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
 
-
+trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation
+case class RefByName[Target](name: Name) extends Ref[Target]:
+  override def toString: String = name.name
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
+
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
+  def arg: Arg = TermArg(this)
 
 trait Type extends SourceLocation with Hints:
   def size: Int = 1
@@ -40,6 +46,18 @@ trait Type extends SourceLocation with Hints:
   def bound: TermType = TermType(this, Mode.Bound)
   def binding: TermType = TermType(this, Mode.Binding)
   def collapsed: TermType = TermType(this, Mode.Collapse)
+
+trait Arg extends SourceLocation:
+  def vars: Seq[Var]
+
+case class TermArg(t: Term) extends Arg:
+  def vars: Seq[Var] = t.vars
+  override def toString: String = t.toString
+
+// We still need type information on wildcards for lowerings (e.g. Tuple)
+case class WildcardArg() extends Arg with Typeable[TermType]:
+  def vars: Seq[Var] = Seq()
+  override def toString: String = "_"
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String =
@@ -50,7 +68,7 @@ case class TermType(ty: Type, mode: Mode):
     else if (mode.isCollapse)
       s"<_>"
     else
-      ???
+      throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   override def toString: String = {
@@ -61,14 +79,11 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
       s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
   }
   def signature: Seq[Type] = params.map(_.ty)
-
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
-
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
-
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
@@ -86,47 +101,43 @@ case class Var(name: Name) extends Term with Var.Target:
       s"$name: ${typ.get}" + analysisString
   override def vars: Seq[Var] = Seq(this)
 
-object Var {
-  //def apply(name: String): Var = new Var(Name(name))
+object Var:
   trait Target extends SourceLocation
-}
 
 case class Cast(t: Term, ty: Type) extends Term:
   override def toString: String =
     if (t.typ.exists(_.ty == ty))
       t.toString
     else
-      s"$t:$ty"
+      s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-case class Call(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"$name${args.mkString("(", ", ", ")")}" + analysisString
+case class Call(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
+  override def toString: String =
+    val negPrefix = if (neg) "~" else ""
+    s"$negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object Call:
+  def apply(name: Name, args: Seq[Arg], neg: Boolean = false): Call = Call(RefByName(name), args, neg)
 
-case class NegCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"!$name${args.mkString("(", ", ", ")")}" + analysisString
+
+case class ExtensionalCall(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
+  override def toString: String =
+    val negPrefix = if (neg) "~" else ""
+    s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object ExtensionalCall:
+  def apply(name: Name, args: Seq[Arg], neg: Boolean = false): ExtensionalCall =
+    ExtensionalCall(RefByName(name), args, neg)
 
-case class ExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext $name${args.mkString("(", ", ", ")")}" + analysisString
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-case class NegExtensionalCall(name: Name, args: Seq[Term]) extends Atom:
-  override def toString: String = s"ext !$name${args.mkString("(", ", ", ")")}" + analysisString
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-case class Eq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs == $rhs" + analysisString
-  override def vars: Seq[Var] = lhs.vars ++ rhs.vars
-
-case class Neq(lhs: Term, rhs: Term) extends Atom:
-  override def toString: String = s"$lhs != $rhs" + analysisString
+case class Eq(lhs: Term, rhs: Term, neg: Boolean = false) extends Atom:
+  override def toString: String =
+    val op = if (neg) "!=" else "=="
+    s"$lhs $op $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case object TAny extends Type
 case object TNothing extends Type
-
-//case object TInt extends Type
 
 trait BaseIR:
   val name: String = "Datalog"

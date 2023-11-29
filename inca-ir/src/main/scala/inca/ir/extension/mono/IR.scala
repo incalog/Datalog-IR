@@ -1,7 +1,7 @@
 package inca.ir.extension.mono
 
 import inca.ir.*
-import inca.ir.extension.aggregate.{AggregateArg, AggregationOperator}
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TupleLit, TTuple}

@@ -1,21 +1,15 @@
 module ParamObject
 
 class B {
-    def apply(): Int = {
-        return 0
-    }
+    def apply(): Int = 0
 }
 
 class C extends B {
-    override def apply(): Int = {
-        return 1
-    }
+    override def apply(): Int = 1
 }
 
 class A {
-    def get(b: B): Int = {
-        return b.apply()
-    }
+    def get(b: B): Int = b.apply()
 }
 
 

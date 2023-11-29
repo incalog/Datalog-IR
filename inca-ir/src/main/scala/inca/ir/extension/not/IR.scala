@@ -17,3 +17,7 @@ object IR extends IR { }
 case class Not(at: Atom) extends Atom:
   override def toString: String = s"not($at)"
   override def vars: Seq[Var] = at.vars
+  
+case class WeakNot(at: Atom) extends Atom:
+  override def toString: String = s"weaknot($at)"
+  override def vars: Seq[Var] = at.vars

@@ -16,28 +16,28 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case (r1: Relation, _) => 1
     case _ => 0
 
-  def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
+  def checkProgram(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
-    program.foreach(typecheck)
+    program.foreach(checkModule)
   }
 
-  def typecheck(module: Module): Unit = scopedTypeContext {
+  def checkModule(module: Module): Unit = scopedTypeContext {
     module.contents.sorted.foreach(bindModuleEntry)
-    module.contents.sorted.foreach(typecheck)
+    module.contents.sorted.foreach(checkModuleEntry)
     this.failOnError()
   }
 
-  def typecheck(moduleEntry: ModuleEntry): Unit = moduleEntry match {
-      case relation: Relation => scopedTypeContext { typecheck(relation) }
+  def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match {
+      case relation: Relation => scopedTypeContext { checkRelation(relation) }
       case relation: ExtensionalRelation => // nothing
       case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
   }
 
-  def typecheck(relation: Relation): Unit = {
+  def checkRelation(relation: Relation): Unit = {
     // bind parameters
-    relation.params.foreach(typecheckParam)
+    relation.params.foreach(checkParam)
     relation.bodies.foreach(b => scopedTypeContext {
-      typecheck(b)
+      checkBody(b)
       relation.params.foreach { p =>
         if (!isBoundVar(p.name))
           error(s"Parameter $p is not positively bound in relation \"${relation.name}\", body \n$b")
@@ -45,10 +45,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     })
   }
 
-  def typecheckParam(param: Param): Unit =
+  def checkType(ty: Type): Unit = ty match
+    case TAny | TNothing => // good
+    case _ => throw IllegalArgumentException(s"Cannot check unknown type: $ty")
+
+  def checkParam(param: Param): Unit =
+    checkType(param.ty)
     registerVar(param.name, param, param.ty)
 
-  def typecheck(body: Body): Unit =
+  def checkBody(body: Body): Unit =
     body.atoms.foreach(at => checkAtom(at, Mode.Binding))
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
@@ -137,23 +142,38 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           ty.bound
 
     case Cast(t, ty) =>
-      val TermType(_, m) = inferTerm(t, mode)
-      assignType(t)(TermType(ty, m))
+      checkType(ty)
+      val TermType(tty, m) = inferTerm(t, mode)
+      assignType(t)(TermType(tty, m))
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  def checkCall(name: Name, args: Seq[Term], atom: Atom, mode: Mode): Unit =
-    val params = lookupRelationParams(name, args.size, atom)
+  def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name) match
+      case Some(Relation(_, params, _)) => params.map(_.ty)
+      case Some(ExtensionalRelation(_, params)) => params.map(_.ty)
+      case entry =>
+        error(s"Expected a relation $name but found $entry", s)
+        Seq()
+
+  def checkCall(ref: Ref[Relation], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
+    val paramTys = inferRelationRef(ref, atom)
+    if (paramTys.size != args.size)
+      error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
     val argMode = mode match
       case Mode.Binding => Mode.Binding
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
-    args.zipAll(params, null, null).foreach {
-      case (t, null) => // missing param
+    args.zipAll(paramTys, null, null).foreach {
+      case (wildcard@WildcardArg(), ty) =>
+        wildcard.typed(ty.collapsed, force = true)
+      case (WildcardArg(), _) =>
+        // nothing
+      case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument
         // nothing
-      case (t, Param(_, ty)) =>
+      case (TermArg(t), ty) =>
         checkTerm(t, ty, argMode)
     }
 
@@ -172,12 +192,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         Seq()
   
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Call(name, args) => checkCall(name, args, atom, mode)
-    case NegCall(name, args) => checkCall(name, args, atom, mode.inverted)
-    case ExtensionalCall(name, args) => checkCall(name, args, atom, mode)
-    case NegExtensionalCall(name, args) => checkCall(name, args, atom, mode.inverted)
+    case Call(ref, args, false) => checkCall(ref, args, atom, mode)
+    case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
+    case ExtensionalCall(name, args, false) => checkCall(name, args, atom, mode)
+    case ExtensionalCall(name, args, true) => checkCall(name, args, atom, mode.inverted)
 
-    case Eq(lhs, rhs) =>
+    case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>
@@ -192,7 +212,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
               lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
               rerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
 
-    case Neq(lhs, rhs) =>
+    case Eq(lhs, rhs, true) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
         case (TermType(lty,_), Nil) =>

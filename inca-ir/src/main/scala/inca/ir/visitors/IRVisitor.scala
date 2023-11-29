@@ -6,9 +6,9 @@ trait IRVisitor extends BaseIRVisitor
   with aggregate.Visitor
   with aggregateset.Visitor
   with arithmetic.Visitor
+  with data.Visitor
   with block.Visitor
   with bool.Visitor
-  with data.Visitor
   with datamatch.Visitor
   with demand.Visitor
   with disjunction.Visitor

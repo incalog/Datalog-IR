@@ -38,3 +38,6 @@ trait Typechecker extends BaseIRTypechecker:
     case BinCompare(lhs, rhs, op) => inferInfixOpType(lhs, rhs, atom)
     case _ => super.checkAtom(atom, mode)
 
+  override def checkType(ty: Type): Unit = ty match
+    case TInt | TDouble => // good
+    case _ => super.checkType(ty)

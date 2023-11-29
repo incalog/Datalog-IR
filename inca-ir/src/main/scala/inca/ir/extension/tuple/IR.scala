@@ -26,6 +26,6 @@ object TupleLit:
       TupleLit(ts)
 
 case class Project(t: Term, idx: Int) extends Term:
-  override def toString: String = s"$t._$idx"
+  override def toString: String = s"$t._${idx+1}"
   override def vars: Seq[Var] = t.vars
 

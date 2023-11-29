@@ -55,7 +55,7 @@ object Executor extends IRExecutor:
 
 
   override def instantiate(m: CompiledModule): Engine =
-    val code = GeneratePSystem.compileModules(Seq(m.lowered))
+    val code = GeneratePSystem.compileModules(Seq(m.lowered), true)
     val loadSource = s"$code;\n${m.name}"
     val compiler = new ScalaCompiler()
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)

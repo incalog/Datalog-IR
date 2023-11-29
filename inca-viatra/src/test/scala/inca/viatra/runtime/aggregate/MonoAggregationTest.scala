@@ -9,6 +9,7 @@ import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, La
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
 import inca.ir.extension.mono.{WriteMono, NewMono, ReadMono, TMono}
 import org.scalatest.funsuite.AnyFunSuiteLike
+import inca.ir.term2Arg
 
 
 class MonoAggregationTest extends AnyFunSuiteLike {

@@ -112,7 +112,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
 
     assertResult(expectedMod)(
       disjunctionLowering.lower(
@@ -215,7 +215,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.typecheck(mod)
+    typechecker.checkModule(mod)
 
     assertResult(expectedMod)(lowering.lower(mod))
   }

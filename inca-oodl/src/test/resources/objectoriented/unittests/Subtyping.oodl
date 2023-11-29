@@ -1,0 +1,25 @@
+module Subtyping
+
+class Base(var x: Any)
+
+// 4. make sure we can use subtypes for fields
+class A(var x: Int) extends Base(x) {
+    def processInt(i: Int): Any = i + this.x // 5. Make sure we read the correct field with type Int, not Any
+    def identity(i: Any): Any = i
+    def changeState(newValue: Int): Unit = {
+        // 6. Make sure we can assign a field with the correct type
+        this.x = newValue
+    }
+}
+
+@main def main(): Any = {
+    val a = new A(5)
+    a.changeState(3)
+    // 1. make sure we can return subtypes
+    val res = a.processInt(3)
+    // 2. Make sure we can use subtypes as arguments
+    val res1 = a.identity(4)
+    // 3. Make sure we can assign subtypes
+    val j: Any = 5
+    return res
+}

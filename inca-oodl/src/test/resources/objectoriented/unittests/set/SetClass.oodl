@@ -6,14 +6,18 @@ class Integer(value: Int) extends Num(value)
 
 class Float(value: Double) extends Num(value)
 
-/*class A {
+class A {
   def filter(as: Set[Num]): Set[Integer] = {
     return for (a <- as if a.isInstanceOf[Integer]) yield a.asInstanceOf[Integer]
   }
-}*/
+}
 
-@main def main(): Set[Any] = {
-    //val a: A = new A()
-    return Set(new Float(1.0), new Integer(10), new Integer(3))
-    //return for (v <- a.filter(Set(new Float(1.0), new Integer(10), new Integer(3)))) yield v.value
+@main def main(): Set[Int] = {
+    val a: A = new A()
+    val f1 = new Float(1.0)
+    val i1 = new Integer(10)
+    val i2 = new Integer(3)
+    // TODO: Placing constructor calls inside a set is currently not possible
+    //  The allocation counter is threaded incorrectly in this case
+    return for (v <- a.filter(Set(f1, i1, i2))) yield v.value
 }
