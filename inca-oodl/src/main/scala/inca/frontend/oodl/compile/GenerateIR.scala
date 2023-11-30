@@ -28,7 +28,6 @@ import inca.util.Gensym
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
 // TODO: Use gensym everywhere to prevent name collision
-// TODO: Support Class cast error
 // TODO: Support NullPointer error (If method call recv is null write it to a special relation)
 // TODO: Support SetFold
 // TODO: Subtyping of method arguments on override
@@ -47,6 +46,7 @@ case object Mutation extends irimpure.ImpurityKind:
 object GenerateIR:
   def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
   def subtypeRelationName = "subtype$"
+  def castRelationName = "cast$"
   def extensionalRelationPrefix = "ext_"
   def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
@@ -59,7 +59,7 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
-  var builtInIdDatastructures: irdata.DataDefinition = null
+  var builtinIdDatastructures: irdata.DataDefinition = null
 
   def compileModule(m: Module): ir.Module =
     val mainFunctions = m.content.flatMap {
@@ -75,7 +75,7 @@ class GenerateIR:
     }
 
     val classes = m.classes
-    builtInIdDatastructures = compileDatastructures(classes)
+    builtinIdDatastructures = compileDatastructures(classes)
     val clsHierarchyRelation = compileClassHierarchy(classes)
     val dispatchRelations = compileMethodsAndDispatchTable(classes)
     val objClass = compileBuiltinObjectClass()
@@ -86,10 +86,25 @@ class GenerateIR:
       case c: ClassDef => compileClassDef(c)
     } ++ extMainInputRelations
 
+    val castRelation = compileCastRelation()
+    val builtinContent = Seq(builtinIdDatastructures, objClass, castRelation)
+
     ir.Module(
       m.name,
       irLang,
-      (builtInIdDatastructures +: (moduleEntries ++ dispatchRelations)) :+ objClass :+ clsHierarchyRelation
+      (builtinContent ++ moduleEntries ++ dispatchRelations) :+ clsHierarchyRelation
+    )
+
+  /** Helper */
+
+  private def matchRuntimeType(t: ir.Term, tyTerm: ir.Term): ir.Atom =
+    disjunction.Disjunction(
+      builtinIdDatastructures.cases.map {
+        case irdata.CaseDefinition(name, args) =>
+          val wildcardArgs = (0 until args.size - 1).map(_ => WildcardArg())
+          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
+          DisjunctionAlternative(deconstr)
+      }
     )
 
   /** Module content */
@@ -112,6 +127,17 @@ class GenerateIR:
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: compileStatements(f.body, result)) ++ setMember
     ))).addHint(impure.Hints.Pure)
+
+  def compileCastRelation(): ir.Relation =
+    val runtimeTyp = ir.Var("ty")
+    ir.Relation(castRelationName,
+      Seq(
+        ir.Param("this", demand.TDemand(irdata.TData("ID"))),
+        ir.Param("type", demand.TDemand(irstring.TString))
+      ), Seq(ir.Body(Seq(
+        matchRuntimeType(ir.Var("this"), runtimeTyp),
+        ir.Call(subtypeRelationName, Seq(runtimeTyp.arg, ir.Var("type").arg))
+      ))))
 
   def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
     val caseClassFields = classDefs.filter(_.isCaseClass).map(c => c.name -> c.fields)
@@ -386,16 +412,6 @@ class GenerateIR:
 
   /** Expression */
 
-  private def matchRuntimeType(t: ir.Term, tyTerm: ir.Term): ir.Atom =
-    disjunction.Disjunction(
-      builtInIdDatastructures.cases.map {
-        case irdata.CaseDefinition(name, args) =>
-          val wildcardArgs = (0 until args.size-1).map(_ => WildcardArg())
-          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
-          DisjunctionAlternative(deconstr)
-      }
-    )
-
   def compileExpression(e: Expression): ir.Term = e.cast match
     case None => compileCastedExpression(e)
     case Some(trgTy) => ir.Cast(compileCastedExpression(e), compileType(trgTy))
@@ -511,11 +527,18 @@ class GenerateIR:
         ir.Call(dispatchName, Seq(srcClsVar.arg, trgClsVar.arg)),
         ir.Call(qualifiedMethodName, trgClsVar.arg +: (compileExpression(recv).arg +: args.map(compileExpression).map(_.arg)) :+ resultVar.arg)
       ), resultVar)
+    case TypeCast(recv, toTyp: TName) if toTyp.isBuiltIn =>
+      throw IllegalStateException(s"Can not typecast to builtin type $toTyp")
+    case TypeCast(recv, toTyp: TName) =>
+      val recvTerm = compileExpression(recv)
+      block.Block(
+        ir.Call(castRelationName, Seq(recvTerm.arg, irstring.StringLit(toTyp.toString).arg)),
+        ir.Cast(recvTerm, compileType(toTyp))
+      )
     case TypeCast(recv, toTyp) =>
-      // TODO: Collect values in Cast relation for cast error
-      ir.Cast(compileExpression(recv), compileType(toTyp))
+      throw IllegalStateException(s"Can not typecast to type $toTyp")
     case InstanceOf(recv, t: TName) if t.isBuiltIn =>
-      throw IllegalStateException(s"Can not typecast to builtin type $t")
+      throw IllegalStateException(s"Can not check instance of builtin type $t")
     case InstanceOf(recv, t: TName) =>
       val srcClsVar = ir.Var(gensym.fresh("C"))
       val recvTerm = compileExpression(recv)
@@ -534,7 +557,7 @@ class GenerateIR:
         )
       ), resultVar)
     case InstanceOf(recv, t) =>
-      throw IllegalStateException(s"Can not typecast to type $t")
+      throw IllegalStateException(s"Can not check instance of type $t")
     case Tuple(exps) => irtuple.TupleLit(exps.map(compileExpression))
 
     case BinOp(e1, "++", e2) => // set union
