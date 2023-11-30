@@ -11,6 +11,7 @@ trait IR extends BaseIR:
 case class TypeVar(name: Name) extends Type
 
 case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) extends ModuleEntry:
+  def withName(newName: Name): ParametricModuleEntry = ParametricModuleEntry(typeParams, entry.withName(newName))
   override val name: Name = entry.name
 
 case class TypeApplication[Target](name: Name, args: Seq[Type]) extends Ref[Target]

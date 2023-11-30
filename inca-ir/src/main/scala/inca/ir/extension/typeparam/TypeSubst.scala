@@ -1,6 +1,6 @@
 package inca.ir.extension.typeparam
 
-import inca.ir.{Name, Type}
+import inca.ir.{Name, Ref, Type}
 import inca.ir.visitors.IRVisitor
 
 class TypeSubst(subst: Map[Name, Type]) extends IRVisitor:

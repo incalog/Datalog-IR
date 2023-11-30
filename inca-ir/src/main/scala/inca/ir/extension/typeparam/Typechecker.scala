@@ -29,6 +29,9 @@ trait Typechecker extends BaseIRTypechecker:
 
   override def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
     case TypeApplication(name, args) => lookupModuleEntry(name) match
+      case None =>
+        error(s"Unknown entry $name", s)
+        Seq()
       case Some(ParametricModuleEntry(tyParams, entry)) =>
         if (tyParams.size != args.size)
           error(s"Expected ${tyParams.size} type arguments but got ${args.size}", ref)
@@ -38,7 +41,7 @@ trait Typechecker extends BaseIRTypechecker:
         val typeMap = tyParams.zip(args).toMap
         val typeSubst = new TypeSubst(typeMap)
         colTypes.map(typeSubst.visitType)
-      case entry =>
+      case Some(entry) =>
         error(s"Illegal type application of $args to $entry", s)
         Seq()
     case _ => super.inferRelationRef(ref, s)

@@ -10,6 +10,7 @@ case class TData(name: Name) extends Type:
 case class CaseDefinition(name: Name, args: Seq[Type]) extends Hints:
   override def toString: String = s"""$name(${args.mkString(",")})"""
 case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry:
+  def withName(newName: Name): DataDefinition = this.copy(name = newName)
   override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
 
 case class Construct(name: Name, args: Seq[Term]) extends Term:

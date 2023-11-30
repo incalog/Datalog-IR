@@ -98,6 +98,7 @@ case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, a
     s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
+  def withName(newName: Name): ScalaDefnModuleEntry = this.copy(name = newName)
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
 

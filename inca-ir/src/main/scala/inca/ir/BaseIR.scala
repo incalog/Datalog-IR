@@ -21,11 +21,12 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
-
+  lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
+  def withName(newName: Name): ModuleEntry
 
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation
 case class RefByName[Target](name: Name) extends Ref[Target]:
@@ -71,6 +72,7 @@ case class TermType(ty: Type, mode: Mode):
       throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
+  def withName(newName: Name): Relation = this.copy(name = newName)
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -83,6 +85,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
+  def withName(newName: Name): ExtensionalRelation = this.copy(name = newName)
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
   def signature: Seq[Type] = params.map(_.ty)
 
