@@ -10,7 +10,10 @@ class A {
   }
 }
 
-@main def main(): Set[Any] = {
+@main def main(): Set[Int] = {
     val a: A = new A()
-    return for (v <- a.bounded(Set(new Integer(10), new Integer(5), new Integer(11)))) yield v.value
+    val i1 = new Integer(10)
+    val i2 = new Integer(5)
+    val i3 = new Integer(11)
+    return for (v <- a.bounded(Set(i1, i2, i3))) yield v.value
 }

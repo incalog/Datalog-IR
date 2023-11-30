@@ -6,11 +6,9 @@ class Integer(value: Int) extends Num(value)
 
 
 @main def main(): Set[(Int, String)] = {
-    val s: Set[(Num, String)] = Set(
-        (new Integer(1), "A"),
-        (new Integer(2), "B"),
-        (new Integer(3), "C")
-    )
-
+    val i1 = new Integer(1)
+    val i2 = new Integer(2)
+    val i3 = new Integer(3)
+    val s: Set[(Num, String)] = Set((i1, "A"), (i2, "B"), (i3, "C"))
     return for (v <- s) yield (v._1.value, v._2)
 }

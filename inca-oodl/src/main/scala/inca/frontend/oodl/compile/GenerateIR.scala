@@ -564,7 +564,11 @@ class GenerateIR:
       irset.SetUnion(compileExpression(e1), compileExpression(e2))
     case BinOp(e1, "&", e2) => // set intersection
       irset.SetIntersection(compileExpression(e1), compileExpression(e2))
-    case SetExp(exps, tty) => irset.SetLit(exps.map(compileExpression))
+    case SetExp(exps, tty) =>
+      val setLit = irset.SetLit(exps.map(compileExpression))
+      tty match
+        case Some(ty) => ir.Cast(setLit, compileType(TSet(ty)))
+        case _ => setLit
     case SetMember(name, recv, predicate) =>
       val cond = predicate.map(compileExpression).getOrElse(bool.BoolTrue)
       block.Block(irset.SetMember(ir.Var(name), compileExpression(recv)), cond)
