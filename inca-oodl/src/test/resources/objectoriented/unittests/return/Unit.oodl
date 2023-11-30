@@ -1,5 +1,0 @@
-module TestUnit
-
-@main def main(): Unit = {
-    return
-}
