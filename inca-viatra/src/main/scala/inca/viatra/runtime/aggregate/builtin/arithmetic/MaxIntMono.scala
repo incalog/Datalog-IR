@@ -2,7 +2,7 @@ package inca.viatra.runtime.aggregate.builtin.arithmetic
 
 import inca.viatra.runtime.aggregate.MonoAggregation
 
-object MaxMono extends MonoAggregation[Int, Int, Int] {
+class MaxIntMono extends MonoAggregation[Int, Int, Int] {
   override val name: String = "MaxMono"
 
   override def init: Int = 0

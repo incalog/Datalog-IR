@@ -142,7 +142,7 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
         WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
-  ).addHint(impure.Hints.Pure)
+  )
 
   private lazy val extLeaf: ExtensionalRelation = ExtensionalRelation(
     "leaf", Seq(Param("t", TString))
@@ -202,7 +202,7 @@ class MonoTypeNewLoweringTest extends AnyFunSuiteLike {
         WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
-  ).addHint(impure.Hints.Pure)
+  )
 
   test("Lower Mono: compute the size of tree") {
     module(relation6, relation7, extLeaf, extBTree)

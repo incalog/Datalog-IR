@@ -12,7 +12,7 @@ import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantT
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
-
+import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"

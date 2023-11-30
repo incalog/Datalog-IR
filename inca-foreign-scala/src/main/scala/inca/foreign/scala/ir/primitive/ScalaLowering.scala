@@ -7,6 +7,7 @@ import inca.ir.extension.aggregate
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
 import inca.ir.extension.aggregate.AggregateColumnArg
+import inca.ir.extension.mono.MonoAggregationOperator
 import inca.util.Gensym
 
 trait ScalaLowering extends primitive.Visitor with BaseLowering:
@@ -46,7 +47,7 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
   }
 
   /*
-  Lower the type if it is supported by the IR, otherwise throw an error.
+     Lower the type if it is supported by the IR, otherwise throw an error.
    */
   protected[ir] def compileType(ty: Type): ScalaType =
     if (isTypeSupported(ty))
@@ -89,7 +90,6 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
         case TermArg(t) => t
         case WildcardArg() => Var(gensym.freshName("_"))
       }.flatMap(visitTerm)
-
       Seq(ScalaAggregationAtom(visitAggregationOperator(op, op.resultType), rel.name, outTerm, argTerms, aggColumnIndex))
     case _ =>
       super.visitAtom(atom)

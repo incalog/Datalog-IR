@@ -69,8 +69,6 @@ trait Lowering extends BaseLowering:
   override def visitModule(module: Module): Module =
     val typechecker = new IRTypechecker {}
     typechecker.checkModule(module)
-    cachedAddMonoCtx ++= typechecker.getAddMonoInfo
-    cachedResultMonoCtx ++= typechecker.getResultMonoInfo
     val m1: Module = super.visitModule(module)
     val m2: Module = Module(
       m1.name,

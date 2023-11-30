@@ -2,7 +2,7 @@ package inca.viatra.runtime.aggregate.builtin.arithmetic
 
 import inca.viatra.runtime.aggregate.MonoAggregation
 
-object SumMono extends MonoAggregation[Int, Int, Int] {
+class SumIntMono extends MonoAggregation[Int, Int, Int] {
   override val name: String = "SumMono"
 
   override def init: Int = 0

@@ -11,8 +11,7 @@ import inca.ir.extension.aggregate
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
 import inca.ir.{name2string, string2name}
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
-import inca.ir.util.SourceLocation
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
@@ -28,8 +27,11 @@ trait ScalaLowering extends BaseScalaLowering:
       case ArithmeticAggregationOperator.SumInt => ScalaAggregationOperator.Sum(compileType(ty))
       case ArithmeticAggregationOperator.MinInt => ScalaAggregationOperator.Min(compileType(ty))
       case ArithmeticAggregationOperator.MaxInt => ScalaAggregationOperator.Max(compileType(ty))
-      case MonoAggregationOperator(ArithmeticMonoDefinition.Sum) => ScalaAggregationOperator.SumMono
-      case MonoAggregationOperator(ArithmeticMonoDefinition.Max) => ScalaAggregationOperator.MaxMono
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Sum) => ScalaAggregationOperator.SumMono(compileType(ty))
+      case MonoAggregationOperator(ArithmeticMonoDefinition.CountFrom) => ScalaAggregationOperator.CountFromMono
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Count) => ScalaAggregationOperator.CountMono
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Max) => ScalaAggregationOperator.MaxMono(compileType(ty))
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Min) => ScalaAggregationOperator.MinFromMono(compileType(ty))
       case _ => op
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

@@ -69,12 +69,16 @@ case class ScalaAggregationOperator(ty: ScalaType, code: String) extends Foreign
   def typecheck(in: Seq[Type]): Option[String] = None
 
 object ScalaAggregationOperator:
-  def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation.aggregator")
-  def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation.aggregator")
-  def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation.aggregator")
-  def SumMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"builtin.arithmetic.SumMono.aggregator")
-  def MaxMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"builtin.arithmetic.MaxMono.aggregator")
+  def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation().aggregator")
+  def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation().aggregator")
+  def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation().aggregator")
   val Count: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, "")
+  def CountMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int,  s"builtin.arithmetic.CountMono().aggregator")
+  def CountFromMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"(i: Int) => builtin.arithmetic.CountFromMono(i).aggregator")
+  def MaxMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Mono().aggregator")
+  def MinFromMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"(i: ${ty.name}) => builtin.arithmetic.Min${ty.name}Mono().aggregator")
+  def SumMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Mono().aggregator")
+  // TODO: MapMono (need to add more kinds of type in ScalaType)
   def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
 
 

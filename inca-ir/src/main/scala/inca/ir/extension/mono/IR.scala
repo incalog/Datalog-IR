@@ -45,10 +45,13 @@ trait UserDefinedMonoDefinition extends MonoDefinition
 
 enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
   case Max
+  case Min
   case Sum
   case Count
   case CountFrom
   case SumToPair
+  case SumInt
+  case SumDouble
 
   override def name: String = this.toString
 
