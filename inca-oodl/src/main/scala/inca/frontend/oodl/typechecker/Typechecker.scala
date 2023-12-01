@@ -437,7 +437,7 @@ class Typechecker extends TypeContext with TypeIO:
         case recvTy: TName if !recvTy.isBuiltIn =>
           recvTy.target match
             case Some(cls: ClassDef) if cls.isMonoClass =>
-              val writeMonoCall = MethodCall(recv, "+=", Seq(), Seq(valueExpr), false)
+              val writeMonoCall = MethodCall(recv, "+=", Seq(), Seq(valueExpr))
               typecheckExp(writeMonoCall, None)
             case Some(trg) => error(s"Operator '+=' not applicable to $recv", recv, statement)
             case _ => error(s"Unresolved target for receiver $recv", recv, statement)
@@ -699,7 +699,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   private def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
     val newTarget = computeTarget
-    term.resolved(newTarget, force = true)
+    term.resolved(newTarget)
     newTarget
   }
 

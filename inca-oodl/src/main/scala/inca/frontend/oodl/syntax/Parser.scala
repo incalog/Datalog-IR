@@ -33,13 +33,13 @@ object Parser:
     P.product01(P.charsWhile0(c => c != '*').void, P.string("*/") | P.char('*') ~ rec).void
   )
   val comment: P[Unit] = lineComment | blockComment
-  val whitespace: P[Unit] = (P.charIn(" \t\r\n").void | comment)
+  val whitespace: P[Unit] = P.charIn(" \t\r\n").void | comment
   def whitespaces0(min: Int = 0): P0[Unit] = whitespace.rep0.void
 
   def spaced[A](p: P[A], min: Int = 0): P[A] =
     p <* whitespaces0(min)
 
-  val keywords = Set(
+  val keywords: Set[String] = Set(
     "module",
     "import",
     "private",
@@ -229,7 +229,7 @@ object Parser:
     val tyArgs = inBrackets(typ.repSep0(op(','))).?
     val args = inParens(recExpression.repSep0(op(',')))
     val methodCall = (identifier ~ tyArgs ~ args).backtrack.mapWithLoc { case ((name, tyArgs), args) =>
-      MethodCall(e, name, tyArgs.getOrElse(Seq()), args, false)
+      MethodCall(e, name, tyArgs.getOrElse(Seq()), args)
     }
     val asIsInstanceOfOrSelect = (identifier ~ tyArgs).backtrack.mapWithLoc {
       case (Name("asInstanceOf"), Some(Seq(ty: Type))) =>
@@ -239,7 +239,7 @@ object Parser:
       case (name, None) =>
         Select(e, name)
     }
-    (methodCall | asIsInstanceOfOrSelect)
+    methodCall | asIsInstanceOfOrSelect
 
   def selectExprRec(e: Expression): P0[Expression] =
     ((P.char('.') *> selectExprStep(e)) flatMap selectExprRec) | P.pure(e)
@@ -337,9 +337,9 @@ object Parser:
   val params: P0[Seq[Param]] =
     inParens(param.repSep0(op(","))) | P.pure(Seq())
 
-  private val function = ((funcAnno.rep0 ~ visibility.?).with1 ~
+  private val function = (funcAnno.rep0 ~ visibility.?).with1 ~
     keyword("def") ~ identifier ~ typeParams ~ params ~
-    op(":") ~ typ ~ op("=") ~ statements)
+    op(":") ~ typ ~ op("=") ~ statements
 
   /** Statements */
 
@@ -422,7 +422,7 @@ object Parser:
     val privateVarDeclArg = param.mapWithLoc {
       case Param(name, typ) => FieldDef(Seq(GeneratedConstructorFieldAnno()), Some(Private()), name, typ, None, true)
     }
-    val decls = (varDeclArg | valDeclArg | privateVarDeclArg)
+    val decls = varDeclArg | valDeclArg | privateVarDeclArg
     inParens(decls.repSep0(op(","))) | P.pure(Seq())
 
   private def baseFieldDef(immutable: Boolean): P[FieldDef] = {
@@ -488,6 +488,6 @@ object Parser:
     keyword("import") *> qualifiedIdentifier.mapWithLoc(Import.apply)
 
   val module: P[Module] =
-    whitespaces0(0).with1 *>
+    whitespaces0().with1 *>
     keyword("module") *> (qualifiedIdentifier ~ impor.rep0 ~ content.rep0)
       .mapWithLoc { case ((name, imports),contents) => Module(name, imports, contents) }

@@ -105,7 +105,7 @@ class SSA:
         val (thnName, thnType) = thnEnv.getOrElse(name, oldEnv(name))
         val (elsName, elsType) = elsEnv.getOrElse(name, oldEnv(name))
         if (thnType != elsType)
-          throw new RuntimeException(s"Type mismatch for variable $newName: ${thnType} != ${elsType}")
+          throw new RuntimeException(s"Type mismatch for variable $newName: $thnType != $elsType")
         env = env + (name -> ((newName, thnType)))
         VarPhiAssign(newName, thnType, ifStmt, thnName, elsName)
       }

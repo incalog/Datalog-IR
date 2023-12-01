@@ -32,7 +32,7 @@ case class VarDeclare(name: Name, typ: Option[Type], maybeExpression: Option[Exp
     val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "
     val typS = if (typ.isDefined) s": ${typ.get}" else ""
-    s"${indent}${prefix}${name}$typS$expr"
+    s"$indent$prefix$name$typS$expr"
   }
 
 case class Super(args: Seq[Expression]) extends Statement with Resolvable[(ClassDef, ConstructorDef)]:
@@ -50,9 +50,9 @@ case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends
       val elseS = els.map(_.prettyprint(indent + "\t")).mkString("\n")
 
       if (elseS.isEmpty) {
-        s"${indent}$condS {\n$ifS\n$indent}"
+        s"$indent$condS {\n$ifS\n$indent}"
       } else {
-        s"${indent}$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
+        s"$indent$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
       }
     }
   override def last: Seq[Statement] =
