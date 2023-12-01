@@ -41,6 +41,14 @@ class OODLExecutor(val exec: IRExecutor):
     }
 
     def execute(main: String, args: Seq[Any]): Relation = {
+      // make sure the main function exists
+      val mainFun = compiled.fun.functions.find(_.name.name == main)
+      mainFun match
+        case Some(fun) =>
+          if (fun.params.size != args.size)
+            throw IllegalArgumentException(s"Expected ${fun.params.size} arguments, but got ${args.size}")
+        case _ => throw IllegalArgumentException(s"No function named $main found")
+
       val allocIn = 1
       val mutIn = 1
       val edbEntry = Relation.from(extensionalRelationName(main), args :+ allocIn :+ mutIn)

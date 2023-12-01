@@ -1,13 +1,8 @@
 module SetTest
 
 class A {
-  def someValue(): Int = {
-     return 3
-  }
-
-  def identity(as: Set[Int]): Set[Int] = {
-    return as
-  }
+  def someValue(): Int = 3
+  def identity(as: Set[Int]): Set[Int] = as
 }
 
 @main def main(): Set[Int] = {
