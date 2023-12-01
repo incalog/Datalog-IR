@@ -8,7 +8,8 @@ trait IR extends BaseIR:
   override def language: Language = super.language + IR
   override def requires: Language = Language()
 
-case class TypeVar(name: Name) extends Type
+case class TypeVar(name: Name) extends Type:
+  override def toString: String = name.name
 
 case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) extends ModuleEntry:
   def withName(newName: Name): ParametricModuleEntry = ParametricModuleEntry(typeParams, entry.withName(newName))

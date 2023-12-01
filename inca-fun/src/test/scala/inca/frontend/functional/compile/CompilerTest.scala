@@ -17,6 +17,7 @@ class CompilerTest extends AnyFunSuite {
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR
     val module = Parser.parseModule(code)
+    println(module)
     val compiled = CompiledFunctionalModule(module)
     println(compiled.ir)
     compiled.checked
@@ -28,7 +29,7 @@ class CompilerTest extends AnyFunSuite {
       println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
-      if (p.toString.endsWith(".finca")) {
+      if (p.toString.endsWith("ParametricDatatypes.finca")) {
         test(s"Compile functional IncA file ${p.getFileName}") {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")

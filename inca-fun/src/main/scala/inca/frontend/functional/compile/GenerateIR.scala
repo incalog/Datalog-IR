@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, TermArg, name2string, string2name}
+import inca.ir.{ExtensionalRelation, Language, Name, RefByName, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -20,6 +20,7 @@ import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
+import inca.ir.extension.typeparam
 import inca.util.Gensym
 
 object GenerateIR:
@@ -31,7 +32,7 @@ class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
       + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
       + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
-      + iragg.IR + iraggset.IR
+      + iragg.IR + iraggset.IR + typeparam.IR
   )
 
   val gensym: Gensym = new Gensym()
@@ -56,7 +57,7 @@ class GenerateIR {
     } ++ extMainInputRelations
     ir.Module(m.name, irLang, moduleEntries)
 
-  def compileMainFun(f: FunctionDef): ir.Relation =
+  def compileMainFun(f: FunctionDef): ir.ModuleEntry =
     val result = gensym.fresh(f.name.name + "_result")
     // TODO: How do we handle this case correctly ?
     //   If the main function returns a set there might be no demand on the set relation.
@@ -73,19 +74,27 @@ class GenerateIR {
         Seq(ir.ExtensionalCall(extensionalRelationName(f.name), f.params.map(p => ir.Var(p.name).arg)))
       else
         Seq()
-    ir.Relation(f.name, params, Seq(ir.Body(
+    val rel = ir.Relation(f.name, params, Seq(ir.Body(
       edbCall ++ Seq(
         ir.Eq(ir.Var(Name(result)), compileExp(f.body))
       ) ++ setMember
     )))
+    parametric(f.tyVars, rel)
 
-  def compileFun(f: FunctionDef): ir.Relation =
+  def compileFun(f: FunctionDef): ir.ModuleEntry =
     val result = gensym.fresh(f.name.name + "_result")
     val resultParam = ir.Param(Name(result), compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ)))) :+ resultParam
-    ir.Relation(f.name, params, Seq(ir.Body(
+    val rel = ir.Relation(f.name, params, Seq(ir.Body(
       Seq(ir.Eq(ir.Var(Name(result)), compileExp(f.body))))
     ))
+    parametric(f.tyVars, rel)
+
+  private def parametric(tyVars: Seq[ParametricType], entry: ir.ModuleEntry): ir.ModuleEntry =
+    if (tyVars.isEmpty)
+      entry
+    else
+      typeparam.ParametricModuleEntry(tyVars.map(_.name), entry)
 
   def compileData(d: DataDef): irdata.DataDefinition =
     irdata.DataDefinition(d.name, d.constrs.map(c => irdata.CaseDefinition(c.name, c.paramTypes.map(compileType))))
@@ -114,11 +123,14 @@ class GenerateIR {
         )),
         ir.Var(Name(tmp))
       )
-    case Call(v@Var(funName), Seq(), args) if v.target.exists(t => t.isInstanceOf[FunctionDef]) =>
+    case Call(v@Var(funName), tyArgs, args) if v.target.exists(t => t.isInstanceOf[FunctionDef]) =>
       // function call
       val result = gensym.fresh(funName.name + "_call")
+      val ref: ir.Ref[ir.Relation] = tyArgs match
+        case Nil => ir.RefByName(funName)
+        case _ => typeparam.TypeApplication(funName, tyArgs.map(compileType))
       block.Block(
-        ir.Call(funName, args.map(compileExp).map(_.arg) :+ ir.Var(Name(result)).arg),
+        ir.Call(ref, args.map(compileExp).map(_.arg) :+ ir.Var(Name(result)).arg, false),
         ir.Var(Name(result))
       )
     case Call(v@Var(constrName), Seq(), args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
@@ -216,7 +228,9 @@ class GenerateIR {
     case TName(Name("Double")) => irarith.TDouble
     case TName(Name("Boolean")) => bool.TBoolean
     case TName(Name("String")) => irstring.TString
-    case TName(name) => irdata.TData(name)
+    case ty@TName(name) => ty.target.get match
+      case _: DataDef => irdata.TData(name)
+      case _: ParametricType => typeparam.TypeVar(name)
     case TSet(ty) => irset.TSet(compileType(ty))
     case TFun(_, _) => throw new IllegalArgumentException(s"Must defunctionalize program before compiling")
     case TApply(_, _) => throw new IllegalArgumentException(s"Must monomorph program before compiling")

@@ -6,7 +6,7 @@ import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, not, set, tuple}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, not, set, tuple, typeparam}
 import inca.ir.typing.IRTypechecker
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
@@ -78,6 +78,7 @@ object CompiledFunctionalModule:
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
+    () => new typeparam.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {},
+    () => new tuple.Lowering {}
   ) // arith + string + data

@@ -165,10 +165,10 @@ class Defunctionalize {
       val argTrans = args.map(a => transformExp(a))
       fun match {
         case v@Var(name) if isFirstOrderCall(v) =>
-          Call(Var(name), Seq(), argTrans)
+          Call(Var(name), tyArgs, argTrans)
         case _ => fun.typ match
           case Some(tfun: TFun) =>
-            Call(Var(Name(funApply(tfun))), Seq(), Seq(
+            Call(Var(Name(funApply(tfun))), tyArgs, Seq(
               transformExp(fun),
               Tuple.from(argTrans)
             ))
