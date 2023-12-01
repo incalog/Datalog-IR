@@ -58,6 +58,10 @@ case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends
   override def last: Seq[Statement] =
     (thn.lastOption.map(_.last) ++ els.lastOption.map(_.last)).flatten.toSeq
 
+case class MonoWrite(monoExpr: Expression, valueExpr: Expression) extends Statement:
+  override def vars: Map[Name, Option[Type]] = monoExpr.vars ++ valueExpr.vars
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"$indent$monoExpr += $valueExpr"
 
 case class VarPhiAssign(name: Name, typ: Type, ifStmt: If, thnName: Name, elsName: Name) extends Statement with Var.Target:
   override def vars: Map[Name, Option[Type]] = Map()

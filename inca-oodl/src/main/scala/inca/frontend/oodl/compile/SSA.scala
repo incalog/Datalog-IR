@@ -79,6 +79,9 @@ class SSA:
     case Assign(lhs, rhs) =>
       Seq(Assign(visitExpression(lhs), visitExpression(rhs)))
 
+    case MonoWrite(monoExpr, valueExpr) =>
+      Seq(MonoWrite(visitExpression(monoExpr), visitExpression(valueExpr)))
+
     case VarDeclare(name, typ, maybeExpression, immutable) =>
       gensym.register(name.name)
       val ty = typ.getOrElse(maybeExpression.flatMap(_.typ).getOrElse(

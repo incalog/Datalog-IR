@@ -391,6 +391,8 @@ class GenerateIR:
         irimpure.Impure(mutVar, fieldSetter, irarith.Add(mutVar, irarith.IntNum(1)), Mutation)
     case Assign(lhs, rhs) =>
       ir.Eq(compileExpression(lhs), compileExpression(rhs))
+    case MonoWrite(monoExpr, valueExpr) =>
+      ???
     case VarDeclare(name, typ, None, immutable) =>
       throw IllegalStateException(s"Can not compile variable declaration '$name' without a value")
     case VarDeclare(name, typ, _, false) =>

@@ -218,7 +218,7 @@ object Parser:
   lazy val constructorExpr: P[ConstructorCall] =
     val tyArgs = inBrackets(typ.repSep0(op(','))).?
     val args = inParens(recExpression.repSep0(op(',')))
-    (keyword("new") *> identifier ~ tyArgs ~ args).mapWithLoc {
+    (keyword("new") *> qualifiedIdentifier ~ tyArgs ~ args).mapWithLoc {
       case ((name, tyArgs), args) => ConstructorCall(name, tyArgs.getOrElse(Seq()), args)
     }
 
@@ -274,7 +274,7 @@ object Parser:
     oneOperator(List("==", ">=", "<=", "!=", "<", ">"))
 
   val additiveOperator: P[String] =
-    oneOperator(List("++", "+", "-"))
+    (oneOperator(List("++", "+", "-")) <* P.not(P.string("="))).backtrack
 
   val multiplicativeOperator: P[String] =
     oneOperator(List("*", "/", "&", "%")).backtrack
@@ -369,7 +369,14 @@ object Parser:
       spaced(inBraces(statement.rep0(0)))
     ).map(insertMissingReturn)
 
-  lazy val statement: P[Statement] = valDeclStmt | varDeclStmt | returnStmt | ifElseStmt | assignStmt.backtrack | exprStmt
+  lazy val statement: P[Statement] =
+    valDeclStmt |
+    varDeclStmt |
+    returnStmt |
+    ifElseStmt |
+    monoAddStmt.backtrack |
+    assignStmt.backtrack |
+    exprStmt
 
   lazy val returnStmt: P[Return] = (keyword("return") *> expression.?).map {
     case Some(expr) => Return(expr)
@@ -377,6 +384,10 @@ object Parser:
   }
 
   lazy val exprStmt: P[Statement] = expression.mapWithLoc(Expr.apply)
+
+  lazy val monoAddStmt: P[MonoWrite] = ((expression <* op("+=")) ~ expression).mapWithLoc {
+    case (mono, value) => MonoWrite(mono, value)
+  }
 
   lazy val assignStmt: P[Assign] = ((expression <* op("=")) ~ expression).mapWithLoc { case (lhs, rhs) => Assign(lhs, rhs) }
 
