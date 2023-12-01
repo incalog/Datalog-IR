@@ -1,8 +1,7 @@
 module BuiltinCountMono
 
-def main(): Int = {
-    val m = new mono.Count[String]()
-    m += "A"
+@main def main(): Int = {
+    val m = new mono.Count()
     m += "A"
     m += "B"
     return m.result

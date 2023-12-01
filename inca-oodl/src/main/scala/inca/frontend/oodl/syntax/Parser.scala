@@ -81,7 +81,7 @@ object Parser:
     spaced(id).mapWithLoc(Name.apply)
 
   val qualifiedIdentifier: P[Name] =
-    spaced(id ~ (P.char('.') ~ id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
+    spaced(id ~ (P.char('.') *> id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
 
   def inParens[A](p: P0[A]): P[A] =
     op('(') *> p <* op(')')
@@ -385,11 +385,9 @@ object Parser:
 
   lazy val exprStmt: P[Statement] = expression.mapWithLoc(Expr.apply)
 
-  lazy val monoAddStmt: P[MonoWrite] = ((expression <* op("+=")) ~ expression).mapWithLoc {
-    case (mono, value) => MonoWrite(mono, value)
-  }
+  lazy val monoAddStmt: P[Assign] = ((expression <* op("+=")) ~ expression).mapWithLoc((mono, value) => Assign(mono, Name("+="), value))
 
-  lazy val assignStmt: P[Assign] = ((expression <* op("=")) ~ expression).mapWithLoc { case (lhs, rhs) => Assign(lhs, rhs) }
+  lazy val assignStmt: P[Assign] = ((expression <* op("=")) ~ expression).mapWithLoc((lhs, rhs) => Assign(lhs, Name("="), rhs))
 
   lazy val ifElseStmt: P[If] = {
     val ifBlock = keyword("if") *>
@@ -473,7 +471,7 @@ object Parser:
         // Generate a constructor + fields based on the header
         val constrParams = primaryConstrFields.map(f => Param(f.name, f.typ))
         val superCall = Super(superArgs)
-        val fieldAssigns = primaryConstrFields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))
+        val fieldAssigns = primaryConstrFields.map(f => Assign(Select(Var("this"), f.name), Name("="), Var(f.name)))
         val constrDef = ConstructorDef(Seq(), None, constrParams, superCall +: fieldAssigns)
 
         val allContent = (primaryConstrFields :+ constrDef) ++ clsContent

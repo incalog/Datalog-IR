@@ -10,12 +10,19 @@ import inca.frontend.oodl.util.ParseUtil
 import inca.ir.Name
 import inca.ir.typing.{Resolvable, TypeCastable, Typeable}
 import inca.ir.util.SourceLocation
+import inca.ir.string2name
 
 class Typechecker extends TypeContext with TypeIO:
   val builtinModule: Module = Module(
     Name("builtin"), Seq(), Seq(
-      ClassDef(Seq(), None, Name("Object"), Seq(), Seq(), Seq(
+      ClassDef(Seq(), None, "Object", Seq(), Seq(), Seq(
         ConstructorDef(Seq(), None, Seq(), Seq())
+      )),
+      // Monos
+      ClassDef(Seq(MonoClassAnno()), None, "mono.Count", Seq(), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq()),
+        FieldDef(Seq(), None, "result", TInt, None, true),
+        MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TAny)), TUnit, Seq())
       ))
     )
   )
@@ -388,7 +395,7 @@ class Typechecker extends TypeContext with TypeIO:
           assertSubtype(ty2, ty1, varDecl)
         case (None, ty) =>
           bindVar(name, varDecl, ty, immutable)
-    case varAssig@Assign(lhs@Var(name), rhs) =>
+    case varAssig@Assign(lhs@Var(name), Name("="), rhs) =>
       val expTyp = typecheckExp(rhs, None)
       lookupVar(name) match
         case Some((target, typ, true)) =>
@@ -398,7 +405,7 @@ class Typechecker extends TypeContext with TypeIO:
           assertSubtype(expTyp, typ, statement)
         case None =>
           error(s"Can not assign to unbound variable '$name'", statement)
-    case fieldAssign@Assign(select@Select(recv, targetName), rhs) =>
+    case fieldAssign@Assign(select@Select(recv, targetName), Name("="), rhs) =>
       val typ = typecheckExp(rhs, None)
       typecheckExp(recv, None) match {
         case TTuple(ts) =>
@@ -419,15 +426,22 @@ class Typechecker extends TypeContext with TypeIO:
                   assertSubtype(typ, implField.typ, fieldAssign)
                   uninitializedFields -= targetName
                 case _ => // Nothing
-            case Some(trg) =>
-              error(s"Unexpected receiver target $trg of type $recvTy", recv, statement)
-            case _ =>
-              error(s"Unresolved target for receiver $recv", recv, statement)
-        case ty =>
-          error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
+            case Some(trg) => error(s"Unexpected receiver target $trg of type $recvTy", recv, statement)
+            case _ => error(s"Unresolved target for receiver $recv", recv, statement)
+        case ty => error(s"Unexpected receiver target '$recv' of type '$ty'", recv, statement)
       }
-    case Assign(lhs, rhs) =>
+    case Assign(lhs, Name("="), rhs) =>
       error(s"Can not assign term $lhs", statement)
+    case Assign(recv, Name("+="), valueExpr) =>
+      typecheckExp(recv, None) match
+        case recvTy: TName if !recvTy.isBuiltIn =>
+          recvTy.target match
+            case Some(cls: ClassDef) if cls.isMonoClass =>
+              val writeMonoCall = MethodCall(recv, "+=", Seq(), Seq(valueExpr), false)
+              typecheckExp(writeMonoCall, None)
+            case Some(trg) => error(s"Operator '+=' not applicable to $recv", recv, statement)
+            case _ => error(s"Unresolved target for receiver $recv", recv, statement)
+        case ty => error(s"Unexpected receiver target '$recv' of type '$ty' for operator '+='", recv, statement)
     case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
       scopedTypeContext {
         typecheck(ifStmt.thn, TAny)
@@ -694,7 +708,7 @@ class Typechecker extends TypeContext with TypeIO:
       case t: TName if t.isBuiltIn =>
         None
       case t@TName(name, tys) =>
-        // TODO: Support generics
+        // TODO: Support generics ?
         lookupClass(name) match
           case Some(classDef) =>
             resolveTarget(t)(classDef)

@@ -61,7 +61,7 @@ class SSA:
     case Super(args) =>
       Seq(Super(args.map(visitExpression)))
 
-    case Assign(v@Var(targetName), rhs) =>
+    case Assign(v@Var(targetName), Name("="), rhs) =>
       v.target match
         case Some(varDecl: VarDeclare) =>
           val rhsExp = visitExpression(rhs)
@@ -76,11 +76,8 @@ class SSA:
         case trg =>
           throw new IllegalStateException(s"Unexpected variable target $trg")
 
-    case Assign(lhs, rhs) =>
-      Seq(Assign(visitExpression(lhs), visitExpression(rhs)))
-
-    case MonoWrite(monoExpr, valueExpr) =>
-      Seq(MonoWrite(visitExpression(monoExpr), visitExpression(valueExpr)))
+    case Assign(lhs, op, rhs) =>
+      Seq(Assign(visitExpression(lhs), op, visitExpression(rhs)))
 
     case VarDeclare(name, typ, maybeExpression, immutable) =>
       gensym.register(name.name)

@@ -21,10 +21,10 @@ case class Return(expression: Expression) extends Statement:
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"${indent}return $expression"
 
-case class Assign(lhs: Expression, rhs: Expression) extends Statement:
+case class Assign(lhs: Expression, op: Name, rhs: Expression) extends Statement:
   override def vars: Map[Name, Option[Type]] = lhs.vars ++ rhs.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$indent$lhs = $rhs"
+    s"$indent$lhs $op $rhs"
 
 case class VarDeclare(name: Name, typ: Option[Type], maybeExpression: Option[Expression], immutable: Boolean) extends Statement with Var.Target:
   override def vars: Map[Name, Option[Type]] = if (maybeExpression.isDefined) maybeExpression.get.vars else Map()
@@ -57,11 +57,6 @@ case class If(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends
     }
   override def last: Seq[Statement] =
     (thn.lastOption.map(_.last) ++ els.lastOption.map(_.last)).flatten.toSeq
-
-case class MonoWrite(monoExpr: Expression, valueExpr: Expression) extends Statement:
-  override def vars: Map[Name, Option[Type]] = monoExpr.vars ++ valueExpr.vars
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$indent$monoExpr += $valueExpr"
 
 case class VarPhiAssign(name: Name, typ: Type, ifStmt: If, thnName: Name, elsName: Name) extends Statement with Var.Target:
   override def vars: Map[Name, Option[Type]] = Map()

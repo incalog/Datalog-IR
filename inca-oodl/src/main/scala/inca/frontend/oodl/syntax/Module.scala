@@ -69,6 +69,7 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], parentCls: Seq[Type], content: Seq[ClassContent]) extends ModuleContent with TName.Target:
   def isCaseClass: Boolean = annos.exists(_.isInstanceOf[CaseClassAnno])
+  def isMonoClass: Boolean = annos.exists(_.isInstanceOf[MonoClassAnno])
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
     case field: FieldDef => field.name

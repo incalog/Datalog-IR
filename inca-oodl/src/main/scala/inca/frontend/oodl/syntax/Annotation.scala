@@ -51,3 +51,10 @@ case class CaseClassAnno() extends Annotation {
   override def key: Annotation.Key = CaseClassAnno.KEY
   override def toString: String = "case"
 }
+
+object MonoClassAnno:
+  val KEY: Annotation.Key = "MONO_CLASS"
+case class MonoClassAnno() extends Annotation {
+  override def key: Annotation.Key = MonoClassAnno.KEY
+  override def toString: String = "case"
+}
