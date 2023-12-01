@@ -60,7 +60,9 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
   lazy val ir: IRModule = {
     val compiler = new GenerateIR
+    println(normalizedFoldModule)
     val module = compiler.compileModule(normalizedFoldModule)
+    println("\n~~~~~~~~~~~~~~~~~~~~~~~\n" + module)
     module
   }
 

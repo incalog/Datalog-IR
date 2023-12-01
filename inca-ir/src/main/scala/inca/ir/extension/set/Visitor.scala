@@ -14,17 +14,17 @@ trait Visitor extends BaseIRVisitor:
       case _ => super.visitAtom(atom)
   }
 
-  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
-    term match
-      case SetLit(ts) => Seq(SetLit(ts.flatMap(visitTerm)))
-      case SetIntersection(t1, t2) =>
-        visitTerm(t1).zip(visitTerm(t2)).map(SetIntersection.apply)
-      case SetUnion(t1, t2) =>
-        visitTerm(t1).zip(visitTerm(t2)).map(SetUnion.apply)
-      case SetComprehension(elem, atoms) =>
-        for (v <- visitTerm(elem)) yield
-          SetComprehension(v, atoms.flatMap(visitAtom))
-      case _ => super.visitTerm(term)
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case SetLit(ts) => Seq(SetLit(ts.flatMap(visitTerm)))
+    case SetFrom(name) => Seq(SetFrom(name))
+    case SetIntersection(t1, t2) =>
+      visitTerm(t1).zip(visitTerm(t2)).map(SetIntersection.apply)
+    case SetUnion(t1, t2) =>
+      visitTerm(t1).zip(visitTerm(t2)).map(SetUnion.apply)
+    case SetComprehension(elem, atoms) =>
+      for (v <- visitTerm(elem)) yield
+        SetComprehension(v, atoms.flatMap(visitAtom))
+    case _ => super.visitTerm(term)
   }
 
   override def visitType(ty: Type): Type = preserveHints(ty) {

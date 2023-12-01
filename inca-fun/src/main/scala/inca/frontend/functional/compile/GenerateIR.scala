@@ -16,10 +16,12 @@ import inca.ir.extension.demand
 import inca.ir.extension.demand.demandRelationName
 import inca.ir.extension.disjunction
 import inca.ir.extension.disjunction.DisjunctionAlternative
+import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
+import inca.ir.extension.tuple.TupleLit
 import inca.ir.extension.typeparam
 import inca.util.Gensym
 
@@ -31,7 +33,7 @@ class GenerateIR {
 
   val irLang: Language = new Language(Set(ir.BaseIR)
       + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
-      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
+      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
       + iragg.IR + iraggset.IR + typeparam.IR
   )
 
@@ -104,7 +106,9 @@ class GenerateIR {
     case Some(trgTy) => ir.Cast(compileCastedExp(e), compileType(trgTy))
 
   def compileCastedExp(e: Expression): ir.Term = e match
-    case Var(name) => ir.Var(name)
+    case v@Var(name) => v.target match
+      case Some(_: FunctionDef) => irmap.MapFrom(name)
+      case _ => ir.Var(name)
     case Let(names, ty, bound, body) =>
       block.Block(
         ir.Eq(irtuple.TupleLit.make(names.map(ir.Var.apply)), compileExp(bound)),
@@ -133,9 +137,14 @@ class GenerateIR {
         ir.Call(ref, args.map(compileExp).map(_.arg) :+ ir.Var(Name(result)).arg, false),
         ir.Var(Name(result))
       )
-    case Call(v@Var(constrName), Seq(), args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
+    case Call(v@Var(constrName), tyArgs, args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
       // constructor call
+      // TODO: parametric ADTs
+//      val ref: ir.Ref[irdata.CaseDefinition] = tyArgs match
+//        case Nil => ir.RefByName(constrName)
+//        case _ => typeparam.TypeApplication(constrName, tyArgs.map(compileType))
       irdata.Construct(constrName, args.map(compileExp))
+
     case Match(matchee, cases) =>
       val tmp = gensym.fresh("match_result")
       val matcheeTerm = compileExp(matchee)
@@ -179,6 +188,10 @@ class GenerateIR {
     case BinOp(e1, "&&", e2) => bool.BoolAnd(compileExp(e1), compileExp(e2))
     case BinOp(e1, "||", e2) => bool.BoolOr(compileExp(e1), compileExp(e2))
 
+    case Call(fun, Seq(), args) =>
+      // function-value call
+      val map = compileExp(fun)
+      irmap.MapLookUp(map, TupleLit.make(args.map(compileExp)))
     case Tuple(es) => irtuple.TupleLit.make(es.map(compileExp))
 
     case SetExp(es) => irset.SetLit(es.map(compileExp))
@@ -232,6 +245,9 @@ class GenerateIR {
       case _: DataDef => irdata.TData(name)
       case _: ParametricType => typeparam.TypeVar(name)
     case TSet(ty) => irset.TSet(compileType(ty))
-    case TFun(_, _) => throw new IllegalArgumentException(s"Must defunctionalize program before compiling")
+    case TFun(from, to) =>
+      val inputs = from.map(compileType)
+      val output = compileType(to)
+      irmap.TMap(irtuple.TTuple.make(inputs), output)
     case TApply(_, _) => throw new IllegalArgumentException(s"Must monomorph program before compiling")
 }

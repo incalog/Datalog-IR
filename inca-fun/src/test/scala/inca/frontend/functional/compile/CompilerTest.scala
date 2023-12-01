@@ -17,9 +17,7 @@ class CompilerTest extends AnyFunSuite {
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR
     val module = Parser.parseModule(code)
-    println(module)
     val compiled = CompiledFunctionalModule(module)
-    println(compiled.ir)
     compiled.checked
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.lowered

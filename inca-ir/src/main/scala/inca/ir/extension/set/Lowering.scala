@@ -142,7 +142,7 @@ trait Lowering extends BaseLowering:
           else
             Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
       Seq(callAddConstructor(term, setEnum))
-    case SetRef(name) =>
+    case SetFrom(name) =>
       val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] =

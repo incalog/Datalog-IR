@@ -15,6 +15,7 @@ class IRTypechecker extends BaseIRTypechecker
   with impure.Typechecker
   with not.Typechecker
   with set.Typechecker
+  with map.Typechecker
   with string.Typechecker
   with tuple.Typechecker
   with mono.Typechecker

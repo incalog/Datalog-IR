@@ -2,7 +2,8 @@ package inca.ir.extension.data
 
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.util.SourceLocation
+import inca.ir.{Atom, ModuleEntry, Name, Ref, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 
 
 trait Typechecker extends BaseIRTypechecker with TypeContext:

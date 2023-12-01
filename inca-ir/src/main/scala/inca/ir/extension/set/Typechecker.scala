@@ -7,17 +7,13 @@ import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case SetLit(ts) =>
-      val tys = ts.map(inferTerm(_, Mode.Bound).ty)
-      if (tys.isEmpty)
-        TSet(TNothing).bound
-      else if (tys.tail.forall(_ == tys.head))
-        TSet(tys.head).bound
-      else {
-        error(s"Set alternatives must have the same type, but got $tys", term)
-        TSet(TAny).bound
-      }
-    case SetRef(name) =>
+    case SetLit(Nil) =>
+      TSet(TNothing).bound
+    case SetLit(t :: ts) =>
+      val ty = inferTerm(t, Mode.Bound).ty
+      ts.foreach(checkTerm(_, ty, Mode.Bound))
+      TSet(ty).bound
+    case SetFrom(name) =>
       lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
           val tys = params.map(_.ty)
