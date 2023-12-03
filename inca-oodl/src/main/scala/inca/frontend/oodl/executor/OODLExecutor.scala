@@ -27,7 +27,7 @@ class OODLExecutor(val exec: IRExecutor):
           val diff = flattenAndProject(castInputRel).diff(flattenAndProject(castRel))
           diff.foreach {
             case List(obj, ty) => throw TypeCastException(s"Can not cast object $obj to type $ty")
-            case d => throw IllegalStateException(s"Unexpected cast entry ${d}")
+            case d => throw IllegalStateException(s"Unexpected cast entry $d")
           }
         case _ => // nothing
       }
@@ -51,7 +51,8 @@ class OODLExecutor(val exec: IRExecutor):
 
       val allocIn = 1
       val mutIn = 1
-      val edbEntry = Relation.from(extensionalRelationName(main), args :+ allocIn :+ mutIn)
+      val monoIn = 1
+      val edbEntry = Relation.from(extensionalRelationName(main), args :+ allocIn :+ mutIn :+ monoIn)
       engine.insert(edbEntry)
       output(main, args)
     }

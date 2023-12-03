@@ -9,7 +9,6 @@ import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
 implicit def name2string(name: Name): String = name.toString
-
 implicit def term2Arg(term: Term): Arg = term.arg
 
 case class Name(name: String) extends SourceLocation:
