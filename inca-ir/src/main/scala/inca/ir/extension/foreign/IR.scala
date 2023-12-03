@@ -1,6 +1,7 @@
 package inca.ir.extension.foreign
 
 import inca.ir.extension.aggregate.AggregationOperatorUserDefined
+import inca.ir.extension.mono.UserDefinedMonoDefinition
 import inca.ir.{Atom, BaseIR, Language, ModuleEntry, Term, Type, Var}
 
 object IR extends IR { }
@@ -34,5 +35,9 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 trait ForeignAggregationOperator extends AggregationOperatorUserDefined:
+  val lang: ForeignLanguage
+  val code: lang.Code
+  
+trait ForeignMonoDefinition extends UserDefinedMonoDefinition:
   val lang: ForeignLanguage
   val code: lang.Code

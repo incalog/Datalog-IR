@@ -1,12 +1,14 @@
 package inca.foreign.scala.ir.primitive
 
 import inca.ir.*
-import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignTerm, ForeignType}
+import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignMonoDefinition, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
 import inca.ir.extension.aggregate.AggregationOperator
+import inca.ir.extension.mono.MonoTypes
+import inca.ir.extension.block.Block
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -101,6 +103,9 @@ case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleE
   def withName(newName: Name): ScalaDefnModuleEntry = this.copy(name = newName)
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
+
+case class ScalaMonoDefinition(name: String, code: String, args: Seq[Type], typ: MonoTypes, resultRelation: Relation) extends ForeignMonoDefinition:
+  override val lang: ScalaInca.type = ScalaInca
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"

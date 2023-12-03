@@ -1,17 +1,17 @@
 package inca.viatra.runtime.aggregate
 
+import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation, Relation as Table}
-import inca.ir.extension.arithmetic.{IntNum, TInt}
+import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.Hints.Pure
 import inca.ir.extension.impure.Impure
-import inca.ir.extension.mono.ArithmeticMonoDefinition.{CountFrom, Max, Sum, Count}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, Max, Sum}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
-import inca.ir.extension.mono.{MonoImpurityKind, NewMono, ReadMono, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, TMono, WriteMono}
 import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.ir.term2Arg
 
 
 class MonoAggregationTest extends AnyFunSuiteLike {
@@ -209,5 +209,50 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     engine.insert(edbBTree)
     val res = engine.read(UnitRelation("main"))
     assertResult((5, 1))(res.entries.head)
+  }
+
+  val addStringMonoCode: String =
+    """
+      |new inca.viatra.runtime.aggregate.MonoAggregation[Double, Int, String] {
+      |  override val name: String = "SumStringMono"
+      |  override def init: Double = 0.0
+      |  override def add(st: Double, a: Int): Double = st + a
+      |  override def result(st: Double): String = "This is a string."
+      |}.aggregator
+      |""".stripMargin
+
+
+
+  private val customMono = ScalaMonoDefinition(
+    "addString",
+    addStringMonoCode,
+    Seq(),
+    MonoTypes(TInt, TDouble, TString),
+    Relation(
+      "result",
+      Seq(Param("state", TDemand(TDouble)), Param("output", TString)),
+      Seq(Body(Seq(
+        Eq(Var("output"), StringLit("this is a string"))
+      )))
+    ),
+  )
+
+  private lazy val relationUserDefinedMono: Relation = Relation(
+    "main",
+    Seq(
+      Param("b", TString)
+    ),
+    Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(customMono, Seq(TString), Seq())),
+      Eq(Var("b"), ReadMono(Var("m")))
+    )))).addHint(Pure)
+
+  test("Test using user-defined mono definition") {
+    val engine = compile(relationUserDefinedMono)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult("this is a string")(res.entries.head)
   }
 }

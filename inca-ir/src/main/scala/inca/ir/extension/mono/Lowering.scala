@@ -74,7 +74,9 @@ trait Lowering extends BaseLowering:
     val collectRels = monoTypes.toSeq.map(createCollectingRelation)
     val aggregateRels = defsByType.map((tm, defs) => createAggregationRelation(tm, defs.toSeq.map(_._1))).toSeq
 
-    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels)
+    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
+    
+    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels ++ monoResultRels)
 
   override def visitType(ty: Type): Type = ty match
     case tm@TMono(in, out, keys) =>
