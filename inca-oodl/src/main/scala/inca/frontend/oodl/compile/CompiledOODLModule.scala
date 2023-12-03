@@ -2,7 +2,6 @@ package inca.frontend.oodl.compile
 
 import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
-import inca.ir.extension.mono.NewLowering
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
@@ -46,7 +45,7 @@ case class CompiledOODLModule(fun: Module) extends CompiledModule:
 
 object CompiledOODLModule:
   val pipeline: List[() => BaseIRVisitor] = List(
-    () => new NewLowering {},
+    () => new mono.Lowering {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
