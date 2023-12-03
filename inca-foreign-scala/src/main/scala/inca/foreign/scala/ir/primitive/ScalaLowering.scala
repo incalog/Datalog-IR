@@ -7,7 +7,7 @@ import inca.ir.extension.aggregate
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.extension.mono.MonoAggregationOperator
+import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoAggregationOperator, MonoDefinition, UserDefinedMonoDefinition}
 import inca.util.Gensym
 
 trait ScalaLowering extends primitive.Visitor with BaseLowering:
@@ -74,7 +74,9 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
   // Aggregation
 
   def visitAggregationOperator(op: aggregate.AggregationOperator, ty: Type): aggregate.AggregationOperator = op
-
+  
+  def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono
+  
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case aggregate.Aggregate(rel, args, op) =>
       // We only support a single aggregation column

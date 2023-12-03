@@ -6,7 +6,7 @@ import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.Hints.Pure
 import inca.ir.extension.impure.Impure
-import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, Max, Sum}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
@@ -46,7 +46,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(Pure)
 
@@ -71,7 +71,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(impure.Hints.Pure)
@@ -91,7 +91,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(impure.Hints.Pure)
@@ -138,8 +138,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
-      Eq(Var("m2"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
@@ -194,8 +194,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
-      Eq(Var("m2"), NewMono(Max, Seq(TString), Seq())),
+      Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(MaxInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
       Call("size", Seq(Var("t"), Var("m2"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),

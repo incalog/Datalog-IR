@@ -2,7 +2,7 @@ package inca.ir.extension.mono
 
 import inca.ir.{Var, *}
 import inca.ir.extension.mono
-import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, Max}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.Count
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic

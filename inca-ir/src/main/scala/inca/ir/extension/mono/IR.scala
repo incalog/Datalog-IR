@@ -48,24 +48,24 @@ trait BuiltInMonoDefinition extends MonoDefinition
 trait UserDefinedMonoDefinition extends MonoDefinition
 
 enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
-  case Max
+  case MaxInt
+  case MaxDouble
   case Min
-  case Sum
+  case SumInt
+  case SumDouble
   case Count
   case CountFrom
   case SumToPair
-  case SumInt
-  case SumDouble
-
+  
   override def name: String = this.toString
 
   override def args: Seq[Type] = this match
     case CountFrom | Min => Seq(TInt)
     case _ => Seq()
   override def typ: MonoTypes = this match
-    case Max | Sum | SumInt | Min => MonoTypes(TInt, TInt, TInt)
+    case MaxInt | SumInt | Min => MonoTypes(TInt, TInt, TInt)
     case Count | CountFrom => MonoTypes(TAny, TInt, TInt)
-    case SumDouble => MonoTypes(TDouble, TDouble, TDouble)
+    case SumDouble | MaxDouble => MonoTypes(TDouble, TDouble, TDouble)
     case SumToPair => MonoTypes(TInt, TInt, TTuple(Seq(TInt, TString)))
   private def createResultRel(body: Body): Relation =
     Relation(
@@ -74,18 +74,12 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
       Seq(body)
     )
   override def resultRelation: Relation = this match
-    case Max | Sum | Count | CountFrom | Min | SumInt | SumDouble =>
+    case MaxInt | MaxDouble | Min | SumInt | SumDouble | Count | CountFrom =>
       val body = Body(Seq(Eq(Var(Name("state")), Var(Name("output")))))
       createResultRel(body)
     case SumToPair =>
       val body = Body(Seq(
-        Eq(
-          Var(Name("output")),
-          TupleLit(
-            Seq(
-              Var(Name("state")),
-              StringLit("This is the sum of aggregands")
-            ))
-      )))
+        Eq(Var(Name("output")), TupleLit(Seq(Var(Name("state")), StringLit("This is the sum of aggregands")))))
+      )
       createResultRel(body)
 

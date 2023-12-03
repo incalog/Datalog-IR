@@ -3,7 +3,7 @@ package inca.ir.extension.mono
 import inca.ir.execution.{Relation1, Relation3}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.demand.{Lowering, TDemand}
-import inca.ir.extension.mono.ArithmeticMonoDefinition.{CountFrom, Max, Sum, SumToPair}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.{CountFrom, MaxInt, SumInt, SumToPair}
 import inca.ir.extension.*
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.string.{StringLit, TString}
@@ -55,7 +55,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     ))))
 
@@ -107,7 +107,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
     ))))
@@ -140,7 +140,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       Param("b", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
     ))))
@@ -183,8 +183,8 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       Param("b2", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
-      Eq(Var("m2"), NewMono(Sum, Seq(TString), Seq())),
+      Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
@@ -228,8 +228,8 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       Param("b2", TInt)
     ),
     Seq(Body(Seq(
-      Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
-      Eq(Var("m2"), NewMono(Max, Seq(TString), Seq())),
+      Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
+      Eq(Var("m2"), NewMono(MaxInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
       Call("size", Seq(Var("t"), Var("m2"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
@@ -247,7 +247,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
     Seq(
       Body(Seq(
         ExtensionalCall(Name("leaf"), Seq(Var("t"))),
-        Eq(Var("m1"), NewMono(Sum, Seq(TString), Seq())),
+        Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
         WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )

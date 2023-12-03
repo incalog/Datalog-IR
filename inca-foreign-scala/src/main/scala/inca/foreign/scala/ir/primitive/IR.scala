@@ -7,7 +7,7 @@ import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
 import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.mono.MonoTypes
+import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes, ArithmeticMonoDefinition as ArithMonoDef}
 import inca.ir.extension.block.Block
 
 object ScalaInca extends ForeignLanguage:
@@ -75,13 +75,9 @@ object ScalaAggregationOperator:
   def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation().aggregator")
   def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation().aggregator")
   val Count: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, "")
-  def CountMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int,  s"builtin.arithmetic.CountMono().aggregator")
-  def CountFromMono: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, s"(i: Int) => builtin.arithmetic.CountFromMono(i).aggregator")
-  def MaxMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Mono().aggregator")
-  def MinFromMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"(i: ${ty.name}) => builtin.arithmetic.Min${ty.name}Mono().aggregator")
-  def SumMono(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Mono().aggregator")
-  // TODO: MapMono (need to add more kinds of type in ScalaType)
   def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
+  def createMonoAgg(mono: MonoDefinition, code: String): ScalaAggregationOperator =
+    ScalaAggregationOperator(ScalaInca.compileType(mono.typ.state), code)
 
 
 case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
@@ -106,6 +102,21 @@ case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleE
 
 case class ScalaMonoDefinition(name: String, code: String, args: Seq[Type], typ: MonoTypes, resultRelation: Relation) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
+  def typecheck(in: Seq[Type]): Option[String] = None
+
+object ScalaMonoDefinition:
+  def builtinMono(mono: BuiltInMonoDefinition, code: String): ScalaMonoDefinition =
+    ScalaMonoDefinition(mono.name, code, mono.args, mono.typ, mono.resultRelation)
+  def SumIntMono: ScalaMonoDefinition =
+    builtinMono(ArithMonoDef.SumInt, s"builtin.arithmetic.SumIntMono().aggregator")
+  def SumDoubleMono: ScalaMonoDefinition =
+    builtinMono(ArithMonoDef.SumDouble, s"builtin.arithmetic.SumDoubleMono().aggregator")
+  def MaxIntMono: ScalaMonoDefinition =
+    builtinMono(ArithMonoDef.MaxInt, s"builtin.arithmetic.SumIntMono().aggregator")
+  def MaxDoubleMono: ScalaMonoDefinition =
+    builtinMono(ArithMonoDef.MaxDouble, s"builtin.arithmetic.SumDoubleMono().aggregator")
+  def CountMono: ScalaMonoDefinition =
+    builtinMono(ArithMonoDef.Count, s"builtin.arithmetic.CountMono().aggregator")
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"
