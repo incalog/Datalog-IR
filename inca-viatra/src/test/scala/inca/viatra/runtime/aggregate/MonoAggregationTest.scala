@@ -213,11 +213,10 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   val addStringMonoCode: String =
     """
-      |new inca.viatra.runtime.aggregate.MonoAggregation[Double, Int, String] {
+      |new inca.viatra.runtime.aggregate.MonoAggregation[Double, Int] {
       |  override val name: String = "SumStringMono"
       |  override def init: Double = 0.0
       |  override def add(st: Double, a: Int): Double = st + a
-      |  override def result(st: Double): String = "This is a string."
       |}.aggregator
       |""".stripMargin
 
