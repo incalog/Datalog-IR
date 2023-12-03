@@ -107,16 +107,6 @@ case class ScalaMonoDefinition(name: String, code: String, args: Seq[Type], typ:
 object ScalaMonoDefinition:
   def builtinMono(mono: BuiltInMonoDefinition, code: String): ScalaMonoDefinition =
     ScalaMonoDefinition(mono.name, code, mono.args, mono.typ, mono.resultRelation)
-  def SumIntMono: ScalaMonoDefinition =
-    builtinMono(ArithMonoDef.SumInt, s"builtin.arithmetic.SumIntMono().aggregator")
-  def SumDoubleMono: ScalaMonoDefinition =
-    builtinMono(ArithMonoDef.SumDouble, s"builtin.arithmetic.SumDoubleMono().aggregator")
-  def MaxIntMono: ScalaMonoDefinition =
-    builtinMono(ArithMonoDef.MaxInt, s"builtin.arithmetic.SumIntMono().aggregator")
-  def MaxDoubleMono: ScalaMonoDefinition =
-    builtinMono(ArithMonoDef.MaxDouble, s"builtin.arithmetic.SumDoubleMono().aggregator")
-  def CountMono: ScalaMonoDefinition =
-    builtinMono(ArithMonoDef.Count, s"builtin.arithmetic.CountMono().aggregator")
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"
