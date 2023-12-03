@@ -7,9 +7,9 @@ import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case SetLit(Nil) =>
+    case SetLit(Seq()) =>
       TSet(TNothing).bound
-    case SetLit(t :: ts) =>
+    case SetLit(t +: ts) =>
       val ty = inferTerm(t, Mode.Bound).ty
       ts.foreach(checkTerm(_, ty, Mode.Bound))
       TSet(ty).bound

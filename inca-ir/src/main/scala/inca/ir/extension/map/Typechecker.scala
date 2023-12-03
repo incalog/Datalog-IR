@@ -10,7 +10,7 @@ trait Typechecker extends BaseIRTypechecker{
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case MapLit(Nil) =>
       TMap(TNothing, TNothing).bound
-    case MapLit((k,v) :: kvs) =>
+    case MapLit((k,v) +: kvs) =>
       val tyK = inferTerm(k, Mode.Bound).ty
       val tyV = inferTerm(v, Mode.Bound).ty
       kvs.foreach { (nextKey, nextVal) =>
