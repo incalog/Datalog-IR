@@ -12,7 +12,7 @@ import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator
 import inca.ir.{name2string, string2name}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ScalaMonoDefinition.builtinMono
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
@@ -30,18 +30,34 @@ trait ScalaLowering extends BaseScalaLowering:
       case ArithmeticAggregationOperator.MaxInt | ArithmeticAggregationOperator.MaxDouble => ScalaAggregationOperator.Max(compileType(ty))
       case MonoAggregationOperator(mono) =>
         val scalaMono = visitMonoDef(mono).asInstanceOf[ScalaMonoDefinition]
-        ScalaAggregationOperator.createMonoAgg(scalaMono, scalaMono.code)
+        ScalaAggregationOperator(mono.name, ScalaInca.compileType(scalaMono.typ.state), scalaMono.initCode, scalaMono.addCode)
       case _ => op
 
   override def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono match
     case ArithmeticMonoDefinition.SumInt =>
-      builtinMono(ArithmeticMonoDefinition.SumInt, s"builtin.arithmetic.SumIntMono().aggregator")
+      builtinMono(ArithmeticMonoDefinition.SumInt,
+        initCode = "0",
+        addCode = "(x:Int,y:Int) => x + y",
+        resultCode = "(x: Int) => x"
+      )
     case ArithmeticMonoDefinition.SumDouble =>
-      builtinMono(ArithmeticMonoDefinition.SumDouble, s"builtin.arithmetic.SumDoubleMono().aggregator")
+      builtinMono(ArithmeticMonoDefinition.SumInt,
+        initCode = "0.0",
+        addCode = "(x:Double,y:Double) => x + y",
+        resultCode = "(x: Double) => x"
+      )
     case ArithmeticMonoDefinition.MaxInt =>
-      builtinMono(ArithmeticMonoDefinition.MaxInt, s"builtin.arithmetic.MaxIntMono().aggregator")
+      builtinMono(ArithmeticMonoDefinition.SumInt,
+        initCode = "Int.MinValue",
+        addCode = "(x:Int,y:Int) => x max y",
+        resultCode = "(x: Int) => x"
+      )
     case ArithmeticMonoDefinition.MaxDouble =>
-      builtinMono(ArithmeticMonoDefinition.MaxDouble, s"builtin.arithmetic.MaxDoubleMono().aggregator")
+      builtinMono(ArithmeticMonoDefinition.SumInt,
+        initCode = "Double.NegativeInfinity",
+        addCode = "(x:Double,y:Double) => x max y",
+        resultCode = "(x: Double) => x"
+      )
     case _ => super.visitMonoDef(mono)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

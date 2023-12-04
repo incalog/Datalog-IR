@@ -220,19 +220,13 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       |""".stripMargin
 
 
-
   private val customMono = ScalaMonoDefinition(
-    "addString",
-    addStringMonoCode,
+    Name("addString"),
+    "0.0",
+    "(st: Double, a: Int) => st + a",
+    "(st: Double) => st.toString",
     Seq(),
-    MonoTypes(TInt, TDouble, TString),
-    Relation(
-      "result",
-      Seq(Param("state", TDemand(TDouble)), Param("output", TString)),
-      Seq(Body(Seq(
-        Eq(Var("output"), StringLit("this is a string"))
-      )))
-    ),
+    MonoTypes(TInt, TDouble, TString)
   )
 
   private lazy val relationUserDefinedMono: Relation = Relation(

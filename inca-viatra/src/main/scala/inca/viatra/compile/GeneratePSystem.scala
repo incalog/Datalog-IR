@@ -252,18 +252,27 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case primitive.ScalaAggregationAtom(agg@ScalaAggregationOperator(sty, aggOpCode), rel, out, args, aggregatedColumn) =>
+    case primitive.ScalaAggregationAtom(agg@ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
 
-      val scalaTyp = sty.name
+      val scalaTyp = scalaTy.name
       agg match
         case ScalaAggregationOperator.Count =>
           s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
         case _ =>
-          val boundAggOp = s"new BoundAggregator($aggOpCode, classOf[$scalaTyp], classOf[$scalaTyp])"
+          val code =
+            s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
+               |       override val name = "$name"
+               |       override def init: $scalaTy = $initCode
+               |       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ($addCode)(v1, v2)
+               |       override val isAssociative = true
+               |       override val isCommutative = true
+               |     }
+               |""".stripMargin
+          val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
     case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
       throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
