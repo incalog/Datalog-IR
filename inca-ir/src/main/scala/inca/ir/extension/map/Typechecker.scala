@@ -33,6 +33,17 @@ trait Typechecker extends BaseIRTypechecker{
         case _ =>
           error(s"Cannot find relation $name", term)
           TMap(TNothing, TNothing).bound
+
+    case fun@MapFun(params, valTerm) => scopedVariables(fun.names) {
+      params.foreach { p =>
+        registerVar(p.name, p, p.ty)
+        bindVar(p.name)
+      }
+      val keyTy = TTuple.make(params.map(_._2))
+      val TermType(valTy, valMode) = inferTerm(valTerm, mode)
+      TermType(TMap(keyTy, valTy), valMode)
+    }
+
     case MapUnion(t1, t2) =>
       val tyMap = inferMapTerm(t1, Mode.Bound)._1
       checkTerm(t2, tyMap, Mode.Bound)

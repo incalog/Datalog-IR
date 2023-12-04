@@ -48,7 +48,7 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
   lazy val normalizedFoldModule: Module = {
     val norm = new NormalizeFold
-    val module = norm.visitModule(defunModule)
+    val module = norm.visitModule(typed)
     println(module)
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
