@@ -184,18 +184,27 @@ class ClonesDatalogTest extends AnyFunSuite {
         )
       ))
 
-    performTest("datalog/clones/Intersection.dl", expected, 1, "intersect", ???)
+    performTest("datalog/clones/Intersection.dl", expected, 1, "intersect", Tuple1(2))
   }
 
   test("test") {
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body((0 to 2).map(i => Eq(Var(Name(s"param$$$i")),IntNum(i))))
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")),IntNum(1)),
+            Eq(Var(Name("Y")),IntNum(2)),
+            Eq(Var(Name("H1")), Add(Var("X"),IntNum(2))),
+            Eq(Var(Name("H2")), Var(Name("H1"))),
+            Eq(Var(Name("Z")), Add(Var("H1"),Var("H2"))),
+            Eq(Var(Name("param$0")),Var(Name("X"))),
+            Eq(Var(Name("param$1")),Var(Name("Y"))),
+            Eq(Var(Name("param$2")),Var(Name("Z")))
+          ))
         ))
       ))
 
-    performTest("datalog/clones/test.dl", expected, 1, "b", Tuple1(2))
+    performTest("datalog/clones/ExprRedundantInEq.dl", expected, 1, "a", (1,2,?))
   }
 
 }
