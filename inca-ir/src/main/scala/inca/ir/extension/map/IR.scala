@@ -1,6 +1,6 @@
 package inca.ir.extension.map
 
-import inca.ir.{Atom, BaseIR, Language, Name, Term, Type, Var}
+import inca.ir.{Atom, BaseIR, Language, Name, Param, Term, Type, Var}
 
 trait IR extends BaseIR:
   override val name: String = "Map"
@@ -22,6 +22,12 @@ object MapLit:
 case class MapFrom(name: Name) extends Term:
   override def toString: String = s"Map.from($name)"
   override def vars: Seq[Var] = Seq()
+
+case class MapFun(params: Seq[Param], valTerm: Term) extends Term:
+  lazy val names: Set[Name] = params.map(_._1).toSet
+  override def vars: Seq[Var] = valTerm.vars.filterNot(v => names.contains(v.name))
+  override def toString: String =
+    s"MapFun(${params.mkString(", ")} => $valTerm)"
 
 case class MapUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = s"$t1 ++ $t2"

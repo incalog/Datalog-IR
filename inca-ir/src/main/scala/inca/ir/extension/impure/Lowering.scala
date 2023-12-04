@@ -52,7 +52,7 @@ trait Lowering extends BaseLowering:
     collector.visitProgram(modules)
     impurities = collector.impurities.toSeq.sortBy(_.name)
     pureRelations = modules.flatMap(_.relations).flatMap {
-      case (_, r) if r.hasHint(Hints.PureKey) => Some(r.name)
+      case (_, r) if r.hasHint(PureHint) => Some(r.name)
       case _ => None
     }.toSet
     super.visitProgram(modules)
@@ -101,7 +101,7 @@ trait Lowering extends BaseLowering:
         Eq(v, counter) +: as :+ Eq(freshCounter, up)
       // TODO: This is ugly, since we now use some key here from the demand relation
       //  How do we make this nice ?
-      case Call(RefByName(name), args, false) if !pureRelations.contains(name) && atom.hasHint(demand.Hints.IgnoreCallKey) =>
+      case Call(RefByName(name), args, false) if !pureRelations.contains(name) && atom.hasHint(demand.DemandIgnoreCallHint) =>
         preserveHints(atom) {
           Seq(Call(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => Var(Name(gensym.fresh("_"))).arg)))
         }

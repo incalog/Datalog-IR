@@ -7,8 +7,7 @@ import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var, WildcardArg}
 import inca.ir.extension.data.*
-import inca.ir.extension.demand.Hints.IgnoreCall
-import inca.ir.extension.demand.TDemand
+import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.lowering.BaseLowering
@@ -53,7 +52,7 @@ trait Lowering extends BaseLowering:
       val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
 
       val op = MonoAggregationOperator(mono)
-      val aggregate = Aggregate(monoCollectName(tm), aggArgs, op).addHint(IgnoreCall)
+      val aggregate = Aggregate(monoCollectName(tm), aggArgs, op).addHint(DemandIgnoreCallHint)
       val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state"))))
       Body(Seq(destruct, aggregate, project))
     }
