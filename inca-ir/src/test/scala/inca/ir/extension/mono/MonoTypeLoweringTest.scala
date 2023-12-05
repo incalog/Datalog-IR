@@ -54,7 +54,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure("counter", Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     ))))

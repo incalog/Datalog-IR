@@ -24,20 +24,20 @@ trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
 //      Body(atoms)
 //    }
 
-  var params: Set[Name] = _
+  var params: Set[Ref[Var.Target]] = _
 
   override def visitRelation(relation: Relation): Seq[Relation] =
-    params = relation.params.map(_.name).toSet
+    params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
 
-  var boundBodyVars: Set[Name] = _
+  var boundBodyVars: Set[Ref[Var.Target]] = _
   override def visitBody(body: Body): Seq[Body] =
-    boundBodyVars = body.vars.filter(_.mode.isBound).map(_.name).toSet
+    boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
     super.visitBody(body)
 
   private def atomBindsRelevantVar(atom: Atom): Boolean =
     val boundVars = atom.vars.filter(_.mode.isBinding)
-    boundVars.exists(bind => boundBodyVars.contains(bind.name) || params.contains(bind.name))
+    boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
 
   override def visitAtom(atom: Atom): Seq[Atom] = atomResult(atom) match
     case VBool.False => throw FailedBody

@@ -23,7 +23,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
     override val ty: Type = arithmetic.TInt
   def alloc(to: Term): Impure =
     val local = Name(gensym.fresh("currentAlloc"))
-    Impure(Var(local),
+    Impure(local,
       Seq(Eq(to, data.Construct("OID", Seq(Var(local))))),
       arithmetic.Add(Var(local), arithmetic.IntNum(1)),
       impureAlloc
@@ -82,7 +82,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name)
     assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
   }
 
@@ -116,8 +116,8 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
       )
     )
 
-    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name)
+    val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name)
     assert((1 until 6).forall(i => rVars.contains(s"alloc$$$i")))
     assert(qVars.contains("alloc$0"))
   }
@@ -148,7 +148,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
           Param(Name("v"), TDemand(arithmetic.TDouble))
         ),
         Seq(Body(Seq(
-          Impure(Var(Name("currentUpdate")),
+          Impure(Name("currentUpdate"),
             Seq(),
             arithmetic.Add(Var(Name("currentUpdate")), IntNum(1)),
             impureUpdate
@@ -157,8 +157,8 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
       )
     )
 
-    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name)
+    val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name)
     assert((1 until 8).forall(i => rVars.contains(s"alloc$$$i")))
     assert((1 until 5).forall(i => rVars.contains(s"update$$$i")))
     assert((1 until 1).forall(i => fieldVars.contains(s"alloc$$$i")))

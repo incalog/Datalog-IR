@@ -44,7 +44,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(PureHint)
@@ -69,7 +69,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
@@ -89,7 +89,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
@@ -136,7 +136,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("m2"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
@@ -192,7 +192,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m1"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("m2"), NewMono(MaxInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m1"))),
@@ -242,7 +242,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     ),
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
-      Impure(Var("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(customMono, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(PureHint)

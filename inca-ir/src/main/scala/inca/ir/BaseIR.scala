@@ -27,7 +27,8 @@ trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
   def withName(newName: Name): ModuleEntry
 
-trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation
+trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
+  def name: Name
 case class RefByName[Target](name: Name) extends Ref[Target]:
   override def toString: String = name.name
 
@@ -95,15 +96,17 @@ case class Body(atoms: Seq[Atom]) extends Hints:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 
-case class Var(name: Name) extends Term with Var.Target:
+case class Var(ref: Ref[Var.Target]) extends Term with Var.Target:
+  def name: Name = ref.name
   override def toString: String =
     if (typ.isEmpty)
-      s"$name" + analysisString
+      s"$ref" + analysisString
     else
-      s"$name: ${typ.get}" + analysisString
+      s"$ref: ${typ.get}" + analysisString
   override def vars: Seq[Var] = Seq(this)
 
 object Var:
+  def apply(name: Name): Var = new Var(RefByName(name))
   trait Target extends SourceLocation
 
 case class Cast(t: Term, ty: Type) extends Term:

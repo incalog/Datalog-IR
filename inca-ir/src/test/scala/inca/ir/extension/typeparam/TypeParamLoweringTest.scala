@@ -2,6 +2,7 @@ package inca.ir.extension.typeparam
 
 import inca.ir.*
 import inca.ir.extension.*
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.*
 import inca.ir.typing.{IRTypechecker, Typechecker}
@@ -17,7 +18,7 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
 
-    val mod = Module("M", BaseIR.language + IR + arithmetic.IR + string.IR + tuple.IR, entries)
+    val mod = Module("M", BaseIR.language + IR + arithmetic.IR + string.IR + tuple.IR + data.IR, entries)
     var printedMod = false
     var lowered: Module = null
     try {
@@ -78,6 +79,26 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
         )),
         Body(Seq(
           Call(TypeApplication(Name("Foo"), Seq(string.TString)), Seq(TermArg(Var("a"))), false),
+          Eq(Var("a"), string.StringLit("test"))
+        ))
+      )),
+    )
+  }
+
+  test("Mono morph non-recursive data type") {
+    val mod = module(
+      ParametricModuleEntry(Seq(Name("A")),
+        DataDefinition(Name("Pair"), Seq(
+          CaseDefinition(Name("MkPair"), Seq(TypeVar(Name("A")), TypeVar(Name("A"))))
+        ))
+      ),
+      Relation("R", Seq(Param(Name("p"), TData(Name("Pair")))), Seq(
+        Body(Seq(
+          Call(TypeApplication(Name("Empty"), Seq(arithmetic.TInt)), Seq(TermArg(Var("a"))), false),
+          Eq(Var("a"), arithmetic.IntNum(3))
+        )),
+        Body(Seq(
+          Call(TypeApplication(Name("Empty"), Seq(string.TString)), Seq(TermArg(Var("a"))), false),
           Eq(Var("a"), string.StringLit("test"))
         ))
       )),

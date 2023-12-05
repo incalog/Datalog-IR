@@ -163,7 +163,7 @@ trait BaseAbstractInterpreter[V, B]:
   final def assign(assignee: Term, v: V): AtomResult = assignee match
     case Var(x) =>
       if (assignee.mode.isBinding) {
-        env += x.name -> v
+        env += x.name.name -> v
         assignee.storeAnalysisResult(TermResult(v, trueBool))
         AtomResult(trueBool, trueBool)
       } else {
@@ -184,7 +184,7 @@ trait BaseAbstractInterpreter[V, B]:
     r
 
   protected def evalTermExtend(t: Term): TermResult = t match
-    case Var(x) =>
+    case Var(RefByName(x)) =>
       // FIXME: Is this correct ? See above
       TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)

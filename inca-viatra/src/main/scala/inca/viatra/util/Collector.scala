@@ -1,8 +1,8 @@
 package inca.viatra.util
 
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, Visitor}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, Visitor}
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, Body, Module, ModuleEntry, Relation, Term, Var, name2string}
+import inca.ir.{Atom, Body, Module, ModuleEntry, RefByName, Relation, Term, Var, name2string}
 
 private trait Collector[T] extends IRVisitor with Visitor {
   private var collection: Seq[T] = Seq()
@@ -13,7 +13,7 @@ private trait Collector[T] extends IRVisitor with Visitor {
 
 protected[viatra] class VarCollector extends Collector[String] {
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Var(name) =>
+    case Var(RefByName(name)) =>
       collect(name)
       super.visitTerm(term)
     case _ =>

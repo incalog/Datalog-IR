@@ -88,7 +88,7 @@ trait Lowering extends BaseLowering:
         }
       case TupleLit(ts) =>
         ts.flatMap(visitTerm)
-      case Var(name) =>
+      case Var(RefByName(name)) =>
         val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")).ty)
         vars.map { case (n, _) => Var(n) }
       case _ => super.visitTerm(term)

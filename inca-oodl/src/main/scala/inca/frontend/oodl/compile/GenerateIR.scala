@@ -118,15 +118,16 @@ class GenerateIR:
       case _ => None
     val resultParam = ir.Param(result, compileType(f.outType))
     val params = f.params.map(p => ir.Param(p.name, compileType(p.typ))) :+ resultParam
-    val allocInVar = ir.Var(gensym.fresh("ext_" + AllocImpurityKind.name))
-    val mutInVar = ir.Var(gensym.fresh("ext_" + MutationImpurityKind.name))
-    val monoInVar = ir.Var(gensym.fresh("ext_" + irmono.MonoImpurityKind.name))
+    val allocInVar = Name(gensym.fresh("ext_" + AllocImpurityKind.name))
+    val mutInVar = Name(gensym.fresh("ext_" + MutationImpurityKind.name))
+    val monoInVar = Name(gensym.fresh("ext_" + irmono.MonoImpurityKind.name))
     val inArgs = f.params.map(p => ir.Var(p.name).arg)
-    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name), inArgs :+ allocInVar.arg :+ mutInVar.arg :+ monoInVar.arg)
+    val edbInputCall = ir.ExtensionalCall(extensionalRelationName(f.name),
+      inArgs :+ ir.Var(allocInVar).arg :+ ir.Var(mutInVar).arg :+ ir.Var(monoInVar).arg)
     // set the first impure input to the edb input
-    val impureAllocIn = irimpure.Impure(allocInVar, Seq(), allocInVar, AllocImpurityKind)
-    val impureMutIn = irimpure.Impure(mutInVar, Seq(), mutInVar, MutationImpurityKind)
-    val impureMonoIn = irimpure.Impure(mutInVar, Seq(), mutInVar, irmono.MonoImpurityKind)
+    val impureAllocIn = irimpure.Impure(allocInVar, Seq(), ir.Var(allocInVar), AllocImpurityKind)
+    val impureMutIn = irimpure.Impure(mutInVar, Seq(), ir.Var(mutInVar), MutationImpurityKind)
+    val impureMonoIn = irimpure.Impure(mutInVar, Seq(), ir.Var(mutInVar), irmono.MonoImpurityKind)
 
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember
@@ -328,17 +329,17 @@ class GenerateIR:
         )))).addHint(impure.PureHint)
 
       val maxTs = ir.Var(gensym.fresh("maxTs"))
-      val mutVar = ir.Var(gensym.fresh("current" + MutationImpurityKind.name))
+      val mutVar = Name(gensym.fresh("current" + MutationImpurityKind.name))
       val fieldRead = ir.Relation(s"$qualifiedName$$Read", Seq(thisParam, ir.Param("value", compileType(f.typ))), Seq(ir.Body(Seq(
         irimpure.Impure(mutVar, Seq(
           iragg.Aggregate(
             filterRelName,
-            Seq(ir.Var("this").arg, mutVar.arg, iragg.AggregateColumnArg(maxTs)),
+            Seq(ir.Var("this").arg, ir.Var(mutVar).arg, iragg.AggregateColumnArg(maxTs)),
             irarith.ArithmeticAggregationOperator.MaxInt
           ),//.addHint(demand.Hints.IgnoreCall),
           ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.Var("value").arg, maxTs.arg))
             .addHint(demand.DemandIgnoreCallHint)
-        ), mutVar, MutationImpurityKind)
+        ), ir.Var(mutVar), MutationImpurityKind)
       ))))
 
       Seq(fieldRel, filterRel, fieldRead)
@@ -390,9 +391,9 @@ class GenerateIR:
       if (fieldDef.immutable)
         ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg))
       else
-        val mutVar = ir.Var(gensym.freshName("current" + MutationImpurityKind.name))
-        val fieldSetter = ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg, mutVar.arg))
-        irimpure.Impure(mutVar, fieldSetter, irarith.Add(mutVar, irarith.IntNum(1)), MutationImpurityKind)
+        val mutVar = Name(gensym.freshName("current" + MutationImpurityKind.name))
+        val fieldSetter = ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg, ir.Var(mutVar).arg))
+        irimpure.Impure(mutVar, fieldSetter, irarith.Add(ir.Var(mutVar), irarith.IntNum(1)), MutationImpurityKind)
     case Assign(lhs, Name("="), rhs) =>
       ir.Eq(compileExpression(lhs), compileExpression(rhs))
     case Assign(lhs, Name("+="), rhs) =>
@@ -518,11 +519,11 @@ class GenerateIR:
             case _ => ???
         case _ =>
           val oidVar = ir.Var(gensym.fresh("oid"))
-          val allocVar = ir.Var(gensym.freshName("current" + AllocImpurityKind.name))
-          val caseArgs = Seq(irstring.StringLit(classDef.name), allocVar)
+          val allocVar = Name(gensym.freshName("current" + AllocImpurityKind.name))
+          val caseArgs = Seq(irstring.StringLit(classDef.name), ir.Var(allocVar))
           val dataConstr = irdata.Construct("OID", caseArgs)
           block.Block(Seq(
-            irimpure.Impure(allocVar, ir.Eq(oidVar, dataConstr), irarith.Add(allocVar, irarith.IntNum(1)), AllocImpurityKind),
+            irimpure.Impure(allocVar, ir.Eq(oidVar, dataConstr), irarith.Add(ir.Var(allocVar), irarith.IntNum(1)), AllocImpurityKind),
             ir.Call(name, oidVar.arg +: args.map(compileExpression).map(_.arg)),
           ), oidVar)
       }

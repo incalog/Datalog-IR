@@ -75,7 +75,7 @@ object GenerateSouffle:
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }
-      val (AggregateColumnArg(ir.Var(resultVar)), resultIdx) = result.head
+      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head
       // TODO need to generate safely
       val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
       val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)
@@ -99,7 +99,7 @@ object GenerateSouffle:
     case ir.WildcardArg() => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
-    case ir.Var(name) => Term.Var(cleanName(name))
+    case ir.Var(RefByName(name)) => Term.Var(cleanName(name))
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)

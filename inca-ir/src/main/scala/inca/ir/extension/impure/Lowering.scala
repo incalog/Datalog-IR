@@ -31,7 +31,7 @@ trait Lowering extends BaseLowering:
 
   private var impurityCounters: Map[ImpurityKind, Name] = Map()
   private def getImpurityCounter(k: ImpurityKind): Var =
-    Var(impurityCounters.getOrElse(k, freshImpurityCounter(k).name))
+    Var(impurityCounters.get(k).map(RefByName.apply).getOrElse(freshImpurityCounter(k).ref))
   private def freshImpurityCounter(kind: ImpurityKind): Var =
     val freshCounter = Name(gensym.fresh(kind.name))
     impurityCounters += kind -> freshCounter
@@ -98,7 +98,7 @@ trait Lowering extends BaseLowering:
         val counter = getImpurityCounter(kind)
         val as = atoms.flatMap(visitAtom)
         val freshCounter = freshImpurityCounter(kind)
-        Eq(v, counter) +: as :+ Eq(freshCounter, up)
+        Eq(Var(v), counter) +: as :+ Eq(freshCounter, up)
       // TODO: This is ugly, since we now use some key here from the demand relation
       //  How do we make this nice ?
       case Call(RefByName(name), args, false) if !pureRelations.contains(name) && atom.hasHint(demand.DemandIgnoreCallHint) =>

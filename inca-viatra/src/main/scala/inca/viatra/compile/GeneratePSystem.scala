@@ -274,7 +274,7 @@ object GeneratePSystem:
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {
-    case Var(name) =>
+    case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
         case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty")

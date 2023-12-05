@@ -72,7 +72,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
-    case v@Var(name) => mode match
+    case v@Var(RefByName(name)) => mode match
       case Mode.Binding => lookupVar(name) match
         case None =>
           registerVar(name, v, expected)
@@ -112,7 +112,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       m
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case v@Var(name) => mode match
+    case v@Var(RefByName(name)) => mode match
       case Mode.Binding => lookupVar(name) match
         case None =>
           error(s"Cannot infer type of Undefined variable $v", v)
