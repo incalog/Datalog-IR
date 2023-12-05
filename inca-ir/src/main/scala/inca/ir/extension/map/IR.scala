@@ -30,6 +30,10 @@ case class MapFun(params: Seq[Param], valTerm: Term) extends Term:
     s"MapFun(${params.mkString(", ")} => $valTerm)"
 
 case class MapUnion(t1: Term, t2: Term) extends Term:
+  override def toString: String = s"$t1 ∪ $t2"
+  override def vars: Seq[Var] = t1.vars ++ t2.vars
+
+case class MapConcat(t1: Term, t2: Term) extends Term:
   override def toString: String = s"$t1 ++ $t2"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
 

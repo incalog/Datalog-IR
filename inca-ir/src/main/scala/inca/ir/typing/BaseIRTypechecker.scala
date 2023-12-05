@@ -152,6 +152,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case RefByName(name) => lookupModuleEntry(name) match
       case Some(Relation(_, params, _)) => params.map(_.ty)
       case Some(ExtensionalRelation(_, params)) => params.map(_.ty)
+      case None =>
+        error(s"Undefined relation $name", s)
+        Seq()
       case entry =>
         error(s"Expected a relation $name but found $entry", s)
         Seq()

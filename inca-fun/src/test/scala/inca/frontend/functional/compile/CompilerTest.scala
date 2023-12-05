@@ -10,8 +10,9 @@ import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import scala.io.Source
 
-class CompilerTest extends AnyFunSuite {
+import math.Ordered.orderingToOrdered
 
+class CompilerTest extends AnyFunSuite {
   val uri = classOf[CompilerTest].getResource("/functional").toURI;
 
   def testCompile(code: String): Unit =

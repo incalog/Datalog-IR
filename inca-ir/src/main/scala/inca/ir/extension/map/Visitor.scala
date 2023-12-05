@@ -21,6 +21,8 @@ trait Visitor extends BaseIRVisitor:
       visitTerm(valTerm).map(MapFun(params.flatMap(visitParam), _))
     case MapUnion(t1, t2) =>
       visitTerm(t1).zip(visitTerm(t2)).map(MapUnion.apply)
+    case MapConcat(t1, t2) =>
+      visitTerm(t1).zip(visitTerm(t2)).map(MapConcat.apply)
     case MapComprehension(key, value, atoms) =>
       for ((k, v) <- visitTerm(key).zip(visitTerm(value))) yield
         MapComprehension(k, v, atoms.flatMap(visitAtom))

@@ -1,19 +1,14 @@
 package inca.ir.extension.set
 
 import inca.ir.*
-import inca.util.namify
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.block.Block
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
-import inca.ir.extension.tuple.{TTuple, TupleLit}
+import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing.Mode
-import inca.util.Gensym
-
-import scala.collection.immutable.{AbstractSeq, LinearSeq}
+import inca.util.namify
 
 /*
  * Proposal: Represent set with IDs expressed as ADTs
@@ -80,7 +75,7 @@ trait Lowering extends BaseLowering:
 //    cons.typed(TSet(memTy).closed)
     cons
 
-  private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}")
+  private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
   private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}$$enum")
 

@@ -48,6 +48,10 @@ trait Typechecker extends BaseIRTypechecker{
       val tyMap = inferMapTerm(t1, Mode.Bound)._1
       checkTerm(t2, tyMap, Mode.Bound)
       TermType(tyMap, Mode.Bound)
+    case MapConcat(t1, t2) =>
+      val tyMap = inferMapTerm(t1, Mode.Bound)._1
+      checkTerm(t2, tyMap, Mode.Bound)
+      TermType(tyMap, Mode.Bound)
     case MapComprehension(key, value, atoms) =>
       atoms.foreach(checkAtom(_, mode.inverted))
       val TermType(k, m1) = inferTerm(key, mode)

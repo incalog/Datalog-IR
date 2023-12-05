@@ -1,13 +1,12 @@
 package inca.frontend.functional.compile
 
 import inca.frontend.functional.foreign
-import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
+import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, not, set, tuple, typeparam}
-import inca.ir.typing.IRTypechecker
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
@@ -74,6 +73,7 @@ object CompiledFunctionalModule:
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
+    () => new map.Lowering {},
     () => new bool.Optimizer {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},

@@ -36,9 +36,12 @@ trait BaseIRTypeContext extends TypeIO:
   }
 
   def scopedVariables[T](vs: Set[Name])(f: => T): T = {
-    val varsSaved = vars.filter(kv => vs(kv._1))
+    val varsSaved = vs.map(v => v -> vars.get(v))
     val t = f
-    vars = vars ++ varsSaved
+    varsSaved.foreach {
+      case (v, None) => vars -= v
+      case (v, Some(info)) => vars += v -> info
+    }
     t
   }
 
