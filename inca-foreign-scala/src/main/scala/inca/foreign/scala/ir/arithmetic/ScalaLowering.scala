@@ -12,7 +12,7 @@ import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator
 import inca.ir.{name2string, string2name}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ScalaMonoDefinition.builtinMono
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
@@ -22,15 +22,60 @@ trait ScalaLowering extends BaseScalaLowering:
     case TInt | TDouble  => true
     case _ => super.isTypeSupported(ty)
 
-  override def visitAggregationOperator(op: aggregate.AggregationOperator, ty: Type): aggregate.AggregationOperator =
+  override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator =
     op match
-      case ArithmeticAggregationOperator.Count => ScalaAggregationOperator.Count
-      case ArithmeticAggregationOperator.SumInt | ArithmeticAggregationOperator.SumDouble => ScalaAggregationOperator.Sum(compileType(ty))
-      case ArithmeticAggregationOperator.MinInt | ArithmeticAggregationOperator.MinDouble => ScalaAggregationOperator.Min(compileType(ty))
-      case ArithmeticAggregationOperator.MaxInt | ArithmeticAggregationOperator.MaxDouble => ScalaAggregationOperator.Max(compileType(ty))
+      case ArithmeticAggregationOperator.Count =>
+        ScalaAggregationOperator(
+          name = "Count",
+          ty = ScalaType.int,
+          initCode = "0",
+          addCode = "(x: Int, y: Any) => x + 1",
+        )
+      case ArithmeticAggregationOperator.SumInt =>
+        ScalaAggregationOperator(
+          name = "SumInt",
+          ty = ScalaType.int,
+          initCode = "0",
+          addCode = "(x: Int, y: Int) => x + y",
+        )
+      case ArithmeticAggregationOperator.SumDouble =>
+        ScalaAggregationOperator(
+          name = "SumDouble",
+          ty = ScalaType.double,
+          initCode = "0",
+          addCode = "(x: Double, y: Double) => x + y",
+        )
+      case ArithmeticAggregationOperator.MinInt =>
+        ScalaAggregationOperator(
+          name = "MinInt",
+          ty = ScalaType.int,
+          initCode = "Int.MaxValue",
+          addCode = "(x: Int, y: Int) => x min y",
+        )
+      case ArithmeticAggregationOperator.MinDouble =>
+        ScalaAggregationOperator(
+          name = "MinDouble",
+          ty = ScalaType.double,
+          initCode = "Double.MaxValue",
+          addCode = "(x: Double, y: Double) => x min y",
+        )
+      case ArithmeticAggregationOperator.MaxInt =>
+        ScalaAggregationOperator(
+          name = "MaxInt",
+          ty = ScalaType.int,
+          initCode = "Int.MinValue",
+          addCode = "(x: Int, y: Int) => x max y",
+        )
+      case ArithmeticAggregationOperator.MaxDouble =>
+        ScalaAggregationOperator(
+          name = "MaxDouble",
+          ty = ScalaType.double,
+          initCode = "Double.MinValue",
+          addCode = "(x: Double, y: Double) => x max y",
+        )
       case MonoAggregationOperator(mono) =>
         val scalaMono = visitMonoDef(mono).asInstanceOf[ScalaMonoDefinition]
-        ScalaAggregationOperator(mono.name, ScalaInca.compileType(scalaMono.typ.state), scalaMono.initCode, scalaMono.addCode)
+        ScalaMonoAggregationOperator(mono.name, ScalaInca.compileType(scalaMono.typ.in), ScalaInca.compileType(scalaMono.typ.state), scalaMono.initCode, scalaMono.addCode)
       case _ => op
 
   override def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono match

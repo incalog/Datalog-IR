@@ -18,6 +18,13 @@ trait Visitor extends BaseIRVisitor:
         case _ => throw IllegalStateException(s"Visiting scala type $ty yielded unexpected none scala type $ty")
       val op = ScalaAggregationOperator(name, sty, initCode, addCode)
       Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
+    case ScalaAggregationAtom(ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode), rel, out, args, col) =>
+      val op = ScalaMonoAggregationOperator(name,
+        visitType(inputTy).asInstanceOf[ScalaType],
+        visitType(stateTy).asInstanceOf[ScalaType],
+        initCode, addCode
+      )
+      Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {

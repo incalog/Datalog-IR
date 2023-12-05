@@ -23,7 +23,7 @@ trait Typechecker extends BaseIRTypechecker:
       error(s"$t of type $ty is not comparable to $outside")
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case ScalaAggregationAtom(op@ScalaAggregationOperator(_, _, _, _), rel, out, args, aggregatedColumn) =>
+    case ScalaAggregationAtom(op, rel, out, args, aggregatedColumn) =>
       if (aggregatedColumn >= args.size)
         error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
       val params = lookupRelationParams(rel, args.size, atom)

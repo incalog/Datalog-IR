@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
-import inca.ir.visitors.IRVisitor
+import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
 

@@ -59,6 +59,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relation1)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
+    assert(res.nonEmpty)
     assertResult(0)(res.entries.head)
   }
 
@@ -209,16 +210,6 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val res = engine.read(UnitRelation("main"))
     assertResult((5, 1))(res.entries.head)
   }
-
-  val addStringMonoCode: String =
-    """
-      |new inca.viatra.runtime.aggregate.MonoAggregation[Double, Int] {
-      |  override val name: String = "SumStringMono"
-      |  override def init: Double = 0.0
-      |  override def add(st: Double, a: Int): Double = st + a
-      |}.aggregator
-      |""".stripMargin
-
 
   private val customMono = ScalaMonoDefinition(
     Name("addString"),

@@ -65,26 +65,27 @@ object ScalaConstantTerm:
   val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
 
 
+
 case class ScalaAggregationOperator(name: Name, ty: ScalaType, initCode: String, addCode: String) extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
   override def resultType: Type = ty
   def typecheck(in: Seq[Type]): Option[String] = None
 
-object ScalaAggregationOperator:
-  def Min(ty: ScalaType): ScalaAggregationOperator = ???
-//    ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation().aggregator")
-  def Max(ty: ScalaType): ScalaAggregationOperator =  ???
-//    ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation().aggregator")
-  def Sum(ty: ScalaType): ScalaAggregationOperator =  ???
-//    ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation().aggregator")
-  val Count: ScalaAggregationOperator = ???
-//    ScalaAggregationOperator(ScalaType.int, "")
+case class ScalaMonoAggregationOperator(name: Name,
+                                        inputTy: ScalaType,
+                                        stateTy: ScalaType,
+                                        initCode: String,
+                                        addCode: String)
+  extends ForeignAggregationOperator:
+  override val lang: ScalaInca.type = ScalaInca
+  override def resultType: Type = stateTy
+  def typecheck(in: Seq[Type]): Option[String] = None
 
 
 case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override val lang: ScalaInca.type = ScalaInca
   override val code: String = op match
-    case ScalaAggregationOperator(_, _, initCode, addCode) => ??? // code
+    case ScalaAggregationOperator(_, _, initCode, addCode) => s"" // TODO: code
     case _ => "???"
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
