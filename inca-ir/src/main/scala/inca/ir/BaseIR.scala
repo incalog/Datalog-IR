@@ -25,7 +25,7 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
-  def withName(newName: Name): ModuleEntry
+  def withExtendedName(suffix: String): ModuleEntry
 
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
   def name: Name
@@ -72,7 +72,7 @@ case class TermType(ty: Type, mode: Mode):
       throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
-  def withName(newName: Name): Relation = this.copy(name = newName)
+  def withExtendedName(suffix: String): Relation = this.copy(name = Name(name.name + suffix))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -85,7 +85,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
-  def withName(newName: Name): ExtensionalRelation = this.copy(name = newName)
+  def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
   def signature: Seq[Type] = params.map(_.ty)
 

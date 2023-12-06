@@ -27,6 +27,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     this.failOnError()
   }
 
+  def bindModuleEntry(entry: ModuleEntry): Unit =
+    registerModuleEntry(entry)
+
   def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match {
       case relation: Relation => scopedTypeContext { checkRelation(relation) }
       case relation: ExtensionalRelation => // nothing

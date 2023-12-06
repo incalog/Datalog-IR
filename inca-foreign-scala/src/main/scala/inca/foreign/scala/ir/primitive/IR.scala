@@ -20,7 +20,7 @@ object ScalaInca extends ForeignLanguage:
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
-    case TData(name) => ScalaType(name)
+    case TData(RefByName(name)) => ScalaType(name)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
@@ -96,7 +96,7 @@ case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, a
     s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
-  def withName(newName: Name): ScalaDefnModuleEntry = this.copy(name = newName)
+  def withExtendedName(suffix: String): ScalaDefnModuleEntry = this.copy(name = Name(name.name + suffix))
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
 

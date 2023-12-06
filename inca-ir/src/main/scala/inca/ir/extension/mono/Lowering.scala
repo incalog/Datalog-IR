@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, Relation, Term, Type, Var, WildcardArg}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var, WildcardArg}
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.impure.Impure
@@ -21,15 +21,15 @@ trait Lowering extends BaseLowering:
   def monoDataType(tm: TMono): TData =
     TData(Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}"))
 
-  def monoCollectName(tm: TMono): Name = Name("Collect_" + monoDataType(tm).name.name)
-  def monoAggregateName(tm: TMono): Name = Name("Aggregate_" + monoDataType(tm).name.name)
+  def monoCollectName(tm: TMono): Name = Name("Collect_" + monoDataType(tm).ref.name)
+  def monoAggregateName(tm: TMono): Name = Name("Aggregate_" + monoDataType(tm).ref.name)
 
   def monoDataConstructor(mono: MonoDefinition, keys: Seq[Type]): Name =
     val tm = mono.monoType(keys)
     Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}")
 
   def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): DataDefinition =
-    DataDefinition(monoDataType(tm).name,
+    DataDefinition(monoDataType(tm).ref.name,
       monos.map { mono =>
         CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.args)
       }
@@ -46,7 +46,7 @@ trait Lowering extends BaseLowering:
     val bodies = monos.map { mono =>
       val constr = monoDataConstructor(mono, tm.keys)
       val args = Var(Name("id")) +: Var(Name("name")) +: mono.args.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
-      val destruct = Deconstruct(Var(Name("m")), constr, args.map(_.arg))
+      val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
 
       val keyArgs = tm.keys.map(_ => WildcardArg())
       val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
@@ -90,7 +90,7 @@ trait Lowering extends BaseLowering:
       val dataConstr = monoDataConstructor(mono, keys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
-      val constr = Construct(dataConstr, Var(stVar) +: StringLit(mono.name) +: args)
+      val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name) +: args)
       val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
       val block = Block(imp, mVar)
       Seq(block)

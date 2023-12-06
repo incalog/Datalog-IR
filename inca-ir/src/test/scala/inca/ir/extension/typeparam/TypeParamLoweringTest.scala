@@ -26,6 +26,7 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
       println(mod)
       printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
+      println("Lowered:\n" + lowered)
       typecheckerAfter.checkModule(lowered)
       lowered
     } finally {
@@ -92,16 +93,73 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
           CaseDefinition(Name("MkPair"), Seq(TypeVar(Name("A")), TypeVar(Name("A"))))
         ))
       ),
-      Relation("R", Seq(Param(Name("p"), TData(Name("Pair")))), Seq(
+      Relation("R", Seq(Param(Name("p"), TData(TypeApplication(Name("Pair"), Seq(arithmetic.TInt))))), Seq(
         Body(Seq(
-          Call(TypeApplication(Name("Empty"), Seq(arithmetic.TInt)), Seq(TermArg(Var("a"))), false),
-          Eq(Var("a"), arithmetic.IntNum(3))
+          Eq(Var("p"),
+            Construct(TypeApplication("MkPair", Seq(arithmetic.TInt)),
+              Seq(arithmetic.IntNum(1), arithmetic.IntNum(2))))
         )),
         Body(Seq(
-          Call(TypeApplication(Name("Empty"), Seq(string.TString)), Seq(TermArg(Var("a"))), false),
-          Eq(Var("a"), string.StringLit("test"))
+          Eq(Var("q"),
+            Construct(TypeApplication("MkPair", Seq(string.TString)),
+              Seq(string.StringLit("a"), string.StringLit("b")))),
+          Eq(Var("p"),
+            Construct(TypeApplication("MkPair", Seq(arithmetic.TInt)),
+              Seq(arithmetic.IntNum(1), arithmetic.IntNum(2))))
         ))
       )),
+    )
+  }
+
+  test("Mono morph recursive data type") {
+    val mod = module(
+      ParametricModuleEntry(Seq(Name("A")),
+        DataDefinition(Name("List"), Seq(
+          CaseDefinition(Name("Nil"), Seq()),
+          CaseDefinition(Name("Cons"), Seq(TypeVar(Name("A")), TData(TypeApplication(Name("List"), Seq(TypeVar(Name("A")))))))
+        ))
+      ),
+      Relation("R", Seq(Param(Name("p"), TData(TypeApplication(Name("List"), Seq(arithmetic.TInt))))), Seq(
+        Body(Seq(
+          Eq(Var("p"),
+            Construct(TypeApplication("Nil", Seq(arithmetic.TInt)), Seq())
+          )
+        )),
+        Body(Seq(
+          Call("R", Seq(Var("tail"))),
+          Eq(Var("p"),
+            Construct(TypeApplication("Cons", Seq(arithmetic.TInt)), Seq(arithmetic.IntNum(1), Var("tail")))
+          )
+        ))
+      )),
+    )
+  }
+
+  test("Mono morph recursive data type transitively through relation") {
+    val mod = module(
+      ParametricModuleEntry(Seq(Name("A")),
+        DataDefinition(Name("List"), Seq(
+          CaseDefinition(Name("Nil"), Seq()),
+          CaseDefinition(Name("Cons"), Seq(TypeVar(Name("A")), TData(TypeApplication(Name("List"), Seq(TypeVar(Name("A")))))))
+        ))
+      ),
+      ParametricModuleEntry(Seq(Name("A")),
+        Relation("nil", Seq(Param(Name("p"), TData(TypeApplication(Name("List"), Seq(TypeVar("A")))))), Seq(
+          Body(Seq(
+            Eq(Var("p"),
+              Construct(TypeApplication("Nil", Seq(TypeVar("A"))), Seq())
+            )
+          ))
+        ))
+      ),
+      Relation("list", Seq(Param(Name("q"), TData(TypeApplication(Name("List"), Seq(arithmetic.TInt))))), Seq(
+        Body(Seq(
+          Call(TypeApplication(Name("nil"), Seq(arithmetic.TInt)), Seq(Var("N").arg), false),
+          Eq(Var("q"),
+            Construct(TypeApplication("Cons", Seq(arithmetic.TInt)), Seq(arithmetic.IntNum(1), Var("N")))
+          )
+        ))
+      ))
     )
   }
 

@@ -4,25 +4,35 @@ import inca.ir.*
 
 import scala.language.implicitConversions
 
-case class TData(name: Name) extends Type:
-  override def toString: String = s"$name"
+case class TData(ref: Ref[DataDefinition]) extends Type:
+  override def toString: String = s"$ref"
+object TData:
+  def apply(name: Name) = new TData(RefByName(name))
 
 case class CaseDefinition(name: Name, args: Seq[Type]) extends Hints:
+  def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"""$name(${args.mkString(",")})"""
+
 case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry:
-  def withName(newName: Name): DataDefinition = this.copy(name = newName)
+  def withExtendedName(suffix: String): DataDefinition =
+    DataDefinition(Name(name.name + suffix), cases.map(_.withExtendedName(suffix)))
   override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
 
-case class Construct(name: Name, args: Seq[Term]) extends Term:
-  override def toString: String = s"!$name(${args.mkString(", ")})" + analysisString
+case class Construct(caseRef: Ref[CaseDefinition], args: Seq[Term]) extends Term:
+  override def toString: String = s"!$caseRef(${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
+object Construct:
+  def apply(caseName: Name, args: Seq[Term]): Construct = new Construct(RefByName(caseName), args)
 
-case class Deconstruct(t: Term, caseName: Name, args: Seq[Arg], neg: Boolean = false) extends Atom:
+case class Deconstruct(t: Term, caseRef: Ref[CaseDefinition], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
     val negPrefix = if (neg) "~" else ""
-    s"$negPrefix?$caseName($t$ifArgs${args.mkString(", ")})" + analysisString
+    s"$negPrefix?$caseRef($t$ifArgs${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
+object Deconstruct:
+  def apply(t: Term, caseName: Name, args: Seq[Arg], neg: Boolean = false): Deconstruct =
+    new Deconstruct(t, RefByName(caseName), args, neg)
 
 object IR extends IR { }
 trait IR extends BaseIR:

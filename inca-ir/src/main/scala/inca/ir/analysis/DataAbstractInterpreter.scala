@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir.extension.data.*
-import inca.ir.{Atom, Term, TermArg}
+import inca.ir.{Atom, RefByName, Term, TermArg}
 
 
 
@@ -14,10 +14,10 @@ trait DataAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
   val dataOps: DataOps[V]
 
   override def evalAtomExtend(at: Atom): AtomResult = at match
-    case Deconstruct(t, caseName, _, true)  =>
+    case Deconstruct(t, RefByName(caseName), _, true)  =>
       val TermResult(v, p) = evalTerm(t)
       dataOps.deconstruct(v, caseName.name, () => AtomResult(trueBool, trueBool))(_ => AtomResult(falseBool, trueBool))
-    case Deconstruct(t, caseName, pats, false) =>
+    case Deconstruct(t, RefByName(caseName), pats, false) =>
       val TermResult(v, p) = evalTerm(t)
       dataOps.deconstruct(v, caseName.name, () => AtomResult(falseBool, trueBool)) { vs =>
         val as = pats.zip(vs).map {
@@ -29,7 +29,7 @@ trait DataAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
     case _ => super.evalAtomExtend(at)
 
   override def evalTermExtend(term: Term): TermResult = term match
-    case Construct(cons, args) =>
+    case Construct(RefByName(cons), args) =>
       val vs = args.map(evalTermExtend)
       val res = dataOps.construct(cons.name, vs.map(_.value))
       val pure = vs.foldLeft(trueBool)((b, v) => boolOps.and(b, v.pure))

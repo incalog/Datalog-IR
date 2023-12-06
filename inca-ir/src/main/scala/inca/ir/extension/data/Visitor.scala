@@ -9,10 +9,10 @@ import scala.language.postfixOps
 
 trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case Deconstruct(t, caseName, args, neg) =>
+    case Deconstruct(t, caseRef, args, neg) =>
       val ts = visitTerm(t)
       val aargs = args.flatMap(visitArg)
-      ts.map(Deconstruct(_, caseName, aargs, neg))
+      ts.map(Deconstruct(_, visitRef(caseRef), aargs, neg))
     case _ => super.visitAtom(atom))
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
@@ -28,13 +28,13 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
-    case Construct(name, data) => Seq(Construct(name, data.flatMap(visitTerm)))
+    case Construct(ref, data) => Seq(Construct(visitRef(ref), data.flatMap(visitTerm)))
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type = preserveHints(ty)(ty match
-    case TData(name) => TData(name)
+    case TData(ref) => TData(visitRef(ref))
     case _ => super.visitType(ty))
 
   override def negateAtom(atom: Atom): Atom = atom match
-    case Deconstruct(t, caseName, args, neg) => Deconstruct(t, caseName, args, !neg)
+    case Deconstruct(t, caseRef, args, neg) => Deconstruct(t, caseRef, args, !neg)
     case _ => super.negateAtom(atom)

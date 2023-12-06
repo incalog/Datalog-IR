@@ -69,13 +69,13 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
-    case data.Deconstruct(t, name, args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
+    case data.Deconstruct(t, RefByName(name), args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
     case agg.Aggregate(name, args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }
-      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head
+      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head : @unchecked
       // TODO need to generate safely
       val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
       val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)
@@ -113,11 +113,11 @@ object GenerateSouffle:
     case arith.UnOp(t, "abs") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
-    case data.Construct(name, args) => Term.Constr(cleanName(name), args.map(compileTerm))
+    case data.Construct(RefByName(name), args) => Term.Constr(cleanName(name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match
     case arith.TInt => Type.Number
     case arith.TDouble => Type.Float
     case string.TString => Type.Symbol
-    case data.TData(name) => Type.Name(qualifyName(name))
+    case data.TData(RefByName(name)) => Type.Name(qualifyName(name))
 

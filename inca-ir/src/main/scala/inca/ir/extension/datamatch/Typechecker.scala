@@ -15,8 +15,9 @@ trait Typechecker extends data.Typechecker:
 
       checkAlternatives(cases) { case Case(name, patVars, body) =>
         val params = lookupConstruct(name, atom) match
-          case Some((DataDefinition(dname, _), CaseDefinition(_, params))) =>
-            if (!dataType.forall(_ == dname.name))
+          case Some((typeParams, DataDefinition(dname, _), CaseDefinition(_, params))) =>
+            ???
+            if (!dataType.forall(_ == dname))
               error(s"Constructor $name does not belong to matchee's data type $dataType", name)
             params
           case None => Seq()

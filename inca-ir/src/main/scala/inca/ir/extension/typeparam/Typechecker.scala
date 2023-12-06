@@ -3,10 +3,15 @@ package inca.ir.extension.typeparam
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{ExtensionalRelation, ModuleEntry, Name, Ref, Relation, TAny, Term, TermType, Type}
+import inca.ir.{ExtensionalRelation, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
-  var typeVars: Set[Name] = Set()
+  var typeVars: Seq[Name] = Seq()
+
+  def scopedTypeVars[T](f: => T): T =
+    val typeVarsSnap = typeVars
+    try f
+    finally typeVars = typeVarsSnap
 
   override def scopedTypeContext[T](f: => T): T = {
     val typeVarsSnap = typeVars
@@ -21,13 +26,18 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.checkType(ty)
 
   override def checkModuleEntry(entry: ModuleEntry): Unit = entry match
-    case ParametricModuleEntry(tyParams, en) => scopedTypeContext {
+    case ParametricModuleEntry(tyParams, en) => scopedTypeVars {
       typeVars ++= tyParams
-      checkModuleEntry(en)
+      this.checkModuleEntry(en)
     }
     case _ => super.checkModuleEntry(entry)
 
   override def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name) match
+      case Some(ParametricModuleEntry(tyParams, _)) =>
+        error(s"Expected type application of $name with ${tyParams.size} type arguments", s)
+        super.inferRelationRef(ref, s)
+      case _ => super.inferRelationRef(ref, s)
     case TypeApplication(name, args) => lookupModuleEntry(name) match
       case None =>
         error(s"Unknown entry $name", s)

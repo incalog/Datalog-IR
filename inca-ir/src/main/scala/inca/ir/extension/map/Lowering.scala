@@ -47,7 +47,7 @@ trait Lowering extends BaseLowering:
         (name, constructorParams)
   private def callAddConstructor(originalTerm: Term, setEnum: MapEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
-    val cons = Construct(name, vars.map(v => Var(v._1)))
+    val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
     cons
 
   private def dataNameOf(keyTy: Type, valTy: Type): Name = Name(s"Map$$${namify(keyTy.toString)}_${namify(valTy.toString)}$$")
@@ -83,7 +83,9 @@ trait Lowering extends BaseLowering:
       if (atoms.isEmpty) {
         (caseDef, None)
       } else {
-        val rule = Body(Deconstruct(Var(mapParam.name), consName, caseVars.map(v => Var(v._1).arg)) +: atoms)
+        val rule = Body(
+          Deconstruct(Var(mapParam.name), RefByName(consName), caseVars.map(v => Var(v._1).arg), false)
+            +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip

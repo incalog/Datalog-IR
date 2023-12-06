@@ -1,6 +1,6 @@
 package inca.foreign.scala.ir.data
 
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, Term, TermArg, TermType, Type, name2string}
+import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, name2string}
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
@@ -42,7 +42,7 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Deconstruct(term, caseName, args, true) =>
+    case Deconstruct(term, RefByName(caseName), args, true) =>
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -52,7 +52,7 @@ trait ScalaLowering extends BaseScalaLowering:
       val isInstanceOfCall = ScalaTerm(isInstanceOfCode, ScalaType.bool, visitTerm(term))
       val guard = Eq(ScalaConstantTerm.FALSE, isInstanceOfCall)
       Seq(guard)
-    case Deconstruct(term, caseName, args, false) =>
+    case Deconstruct(term, RefByName(caseName), args, false) =>
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -80,10 +80,10 @@ trait ScalaLowering extends BaseScalaLowering:
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Construct(name, args) =>
+    case Construct(RefByName(name), args) =>
       val newArgs = args.flatMap(visitTerm)
       val tyName = term.typ match
-        case Some(TermType(TData(n), _)) => n
+        case Some(TermType(TData(RefByName(n)), _)) => n
         case Some(TermType(ty, _)) => throw new IllegalArgumentException(s"Unsupported type $ty for constructor $term")
         case _ => throw new IllegalArgumentException(s"Untyped constructor expression $term")
       Seq(ScalaTerm(name, ScalaType(tyName), newArgs))

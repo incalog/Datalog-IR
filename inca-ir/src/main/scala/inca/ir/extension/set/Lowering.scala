@@ -71,7 +71,7 @@ trait Lowering extends BaseLowering:
         (name, constructorParams)
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
-    val cons = Construct(name, vars.map(v => Var(v._1)))
+    val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
 //    cons.typed(TSet(memTy).closed)
     cons
 
@@ -100,7 +100,9 @@ trait Lowering extends BaseLowering:
       if (atoms.isEmpty) {
         (caseDef, None)
       } else {
-        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1).arg)) +: atoms)
+        val rule = Body(
+          Deconstruct(Var(setParam.name), RefByName(consName), caseVars.map(v => Var(v._1).arg), false)
+            +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip

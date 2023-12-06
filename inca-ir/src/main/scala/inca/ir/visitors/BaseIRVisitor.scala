@@ -57,7 +57,7 @@ trait BaseIRVisitor:
 
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
-    case Var(name) => Seq(Var(name))
+    case Var(ref) => Seq(Var(visitRef(ref)))
     case Cast(t, ty) =>
       val tty = visitType(ty)
       visitTerm(t).map(Cast(_, tty))

@@ -4,7 +4,7 @@ import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
-import inca.ir.{Arg, ExtensionalRelation, Language, Name, TermArg, WildcardArg, name2string, string2name}
+import inca.ir.{Arg, ExtensionalRelation, Language, Name, RefByName, TermArg, WildcardArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.aggregateset as iraggset
@@ -104,7 +104,7 @@ class GenerateIR:
       builtinIdDatastructures.cases.map {
         case irdata.CaseDefinition(name, args) =>
           val wildcardArgs = (0 until args.size - 1).map(_ => WildcardArg())
-          val deconstr = irdata.Deconstruct(t, name, tyTerm.arg +: wildcardArgs)
+          val deconstr = irdata.Deconstruct(t, RefByName(name), tyTerm.arg +: wildcardArgs, false)
           DisjunctionAlternative(deconstr)
       }
     )
@@ -485,9 +485,9 @@ class GenerateIR:
             val fieldIndex = allFields.indexWhere(_.name == targetName)
             var args: Seq[Arg] = (0 until allFields.size + 1).map(_ => WildcardArg())
             args = args.updated(fieldIndex + 1, resultVar.arg)
-            val caseName = s"SID$$${signatureString(signature)}"
+            val caseName = Name(s"SID$$${signatureString(signature)}")
             block.Block(
-              irdata.Deconstruct(recvTerm, caseName, args),
+              irdata.Deconstruct(recvTerm, RefByName(caseName), args, false),
               resultVar
             )
           else if (fieldDef.immutable)

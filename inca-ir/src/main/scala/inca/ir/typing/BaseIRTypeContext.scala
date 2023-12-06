@@ -53,7 +53,7 @@ trait BaseIRTypeContext extends TypeIO:
     modules += (name -> module)
   }
 
-  def bindModuleEntry(entry: ModuleEntry): Unit = {
+  def registerModuleEntry(entry: ModuleEntry): Unit = {
     val name = entry.name
     entries.get(name).foreach { bound =>
       error(s"Found multiple entries with same name $name", name, bound.name)

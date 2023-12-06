@@ -13,11 +13,11 @@ trait Lowering extends BaseLowering:
 
   private var groundUsages: Map[Name, Set[Seq[Type]]] = _
 
-  def monoName(name: Name, usage: Seq[Type]): Name =
+  def monoNameSuffix(usage: Seq[Type]): String =
     if (usage.isEmpty)
-      name
+      ""
     else
-      Name(s"$name$$${usage.mkString("_")}")
+      s"$$${usage.mkString("_")}"
 
   override def visitModule(module: Module): Module =
     groundUsages = Map().withDefault(_ => Set())
@@ -41,7 +41,8 @@ trait Lowering extends BaseLowering:
               Some(instantiateEntry(entry, params, usage))
             }
           }
-          case _ => Seq()
+          case e =>
+            Seq()
       }
     }
     mod.copy(contents = nonParametricEntries ++ instantiatedEntries)
@@ -49,10 +50,10 @@ trait Lowering extends BaseLowering:
   var currentSubst: Map[Name, Type] = Map()
 
   def instantiateEntry(entry: ModuleEntry, typeParams: Seq[Name], usage: Seq[Type]): ModuleEntry =
-    val name = monoName(entry.name, usage)
+    val suffix = monoNameSuffix(usage)
     currentSubst = typeParams.zip(usage).toMap
     val e = visitModuleEntry(entry).head
-    e.withName(name)
+    e.withExtendedName(suffix)
 
   override def visitType(ty: Type): Type = ty match
     case TypeVar(name) => currentSubst.getOrElse(name, ty)
@@ -65,7 +66,8 @@ trait Lowering extends BaseLowering:
 
       if (!newArgs.exists(_.isInstanceOf[TypeVar])) {
         groundUsages += name -> (groundUsages(name) + newArgs)
-        RefByName(monoName(name, newArgs))
+        val suffix = monoNameSuffix(newArgs)
+        RefByName(Name(name.name + suffix))
       } else {
         ref
       }
