@@ -16,7 +16,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -28,7 +28,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -40,7 +40,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(3, 10))(res.toSet)
   }
@@ -52,7 +52,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(10, 5))(res.toSet)
   }
@@ -64,7 +64,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2))(res.toSet)
   }
@@ -76,7 +76,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TInt_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TInt_TString$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set((1, "A"), (2, "B"), (3, "C")))(res.toSet)
   }
@@ -88,7 +88,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TInt_TInt$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set((1,1), (2,1)))(res.toSet)
   }
@@ -100,7 +100,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TInt_TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TInt_TInt_TInt$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 4)
     assertResult(Set((1, 3, 5), (1, 4, 5)))(res.toSet)
   }
@@ -112,7 +112,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TInt_TInt$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set((1, 3), (1, 4), (2, 3), (2, 4)))(res.toSet)
   }
@@ -124,7 +124,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TString_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TString_TInt$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
   }
@@ -136,7 +136,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -148,7 +148,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -160,7 +160,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1))(res.toSet)
   }
@@ -199,7 +199,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -211,7 +211,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3))(res.toSet)
   }
@@ -223,7 +223,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq(0))
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 3, 4))(res.toSet)
   }
@@ -235,7 +235,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(3))(res.toSet)
   }
@@ -247,7 +247,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2))(res.toSet)
   }
@@ -259,7 +259,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TString$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set("X", "Y", "Z", "W"))(res.toSet)
   }
@@ -271,7 +271,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TInt_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$$TInt_TString$$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
     assertResult(Set((1, "A"), (2, "B"), (3, "C")))(res.toSet)
   }
@@ -283,7 +283,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1,2,3,4))(res.toSet)
   }
@@ -295,7 +295,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    val query = Relation.from("Set$TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
     assertResult(Set(1, 2, 3, 4))(res.toSet)
   }
