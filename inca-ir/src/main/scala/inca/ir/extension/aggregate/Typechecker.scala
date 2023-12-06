@@ -5,22 +5,25 @@ import inca.ir.typing.{BaseIRTypechecker, Mode}
 
 trait Typechecker extends BaseIRTypechecker:
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Aggregate(rel, args, op) =>
-      val params = lookupRelationParams(rel, args.size, atom)
-      val aggregands: Seq[Type] = args.zipAll(params, null, null).flatMap {
-        case (AggregateColumnArg(t), p) => // skip
+    case Aggregate(ref, args, op) =>
+      val paramTys = inferRelationRef(ref, atom)
+      if (paramTys.size != args.size)
+        error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
+
+      val aggregands: Seq[Type] = args.zipAll(paramTys, null, null).flatMap {
+        case (AggregateColumnArg(t), pty) => // skip
           checkTerm(t,op.resultType, mode)
-          Some(p.ty)
+          Some(pty)
         case (TermArg(t), null) => // missing param
           inferTerm(t, Mode.Bound)
           None
-        case (null, p) => // missing argument
+        case (null, pty) => // missing argument
           None
-        case (TermArg(t), Param(_, ty)) =>
-          checkTerm(t, ty, Mode.Bound)
+        case (TermArg(t), pty) =>
+          checkTerm(t, pty, Mode.Bound)
           None
-        case (wildcard@WildcardArg(), Param(_, ty)) =>
-          wildcard.typed(ty.collapsed, force = true)
+        case (wildcard@WildcardArg(), pty) =>
+          wildcard.typed(pty.collapsed, force = true)
           None
         case (WildcardArg(), _) =>
           None

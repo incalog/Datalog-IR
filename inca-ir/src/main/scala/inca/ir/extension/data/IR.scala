@@ -9,14 +9,15 @@ case class TData(ref: Ref[DataDefinition]) extends Type:
 object TData:
   def apply(name: Name) = new TData(RefByName(name))
 
-case class CaseDefinition(name: Name, args: Seq[Type]) extends Hints:
-  def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
-  override def toString: String = s"""$name(${args.mkString(",")})"""
+trait DataModuleEntry extends ModuleEntry
 
-case class DataDefinition(name: Name, cases: Seq[CaseDefinition]) extends ModuleEntry:
-  def withExtendedName(suffix: String): DataDefinition =
-    DataDefinition(Name(name.name + suffix), cases.map(_.withExtendedName(suffix)))
-  override def toString: String = s"""data $name = ${cases.mkString(" | ")}"""
+case class DataDefinition(name: Name) extends DataModuleEntry:
+  def withExtendedName(suffix: String): DataDefinition = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""data $name"""
+
+case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends DataModuleEntry:
+  def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""$name(${args.mkString(",")}): $data"""
 
 case class Construct(caseRef: Ref[CaseDefinition], args: Seq[Term]) extends Term:
   override def toString: String = s"!$caseRef(${args.mkString(", ")})" + analysisString

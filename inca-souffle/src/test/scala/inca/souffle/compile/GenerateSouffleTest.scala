@@ -5,7 +5,7 @@ import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.data
 import inca.ir.execution.Relation as Rel
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.extension.data.DataDefinition
+import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.util.SourceLocation
 import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
@@ -58,10 +58,11 @@ class GenerateSouffleTest extends AnyFunSuite:
       Eq(Var("Y"), arith.IntNum(5)),
       Eq(Var("X"), arith.Abs(Var("Y")))))
   ))
-  val natDecl: DataDefinition = data.DataDefinition("Nat", Seq(
-    data.CaseDefinition("Zero", Seq()),
-    data.CaseDefinition("Succ", Seq(data.TData("Nat")))
-  ))
+  val natDecl: Seq[DataModuleEntry] = Seq(
+    data.DataDefinition("Nat"),
+    data.CaseDefinition("Zero", Seq(), data.TData("Nat")),
+    data.CaseDefinition("Succ", Seq(data.TData("Nat")), data.TData("Nat"))
+  )
   val natRel: Relation = Relation("test", Seq(Param("X", data.TData("Nat"))), Seq(
     Body(Seq(
       Eq(Var("Y"), data.Construct("Succ", Seq(data.Construct("Zero", Seq())))),
@@ -80,7 +81,7 @@ class GenerateSouffleTest extends AnyFunSuite:
     Seq(
       Body(Seq(
         Call("pathCol", Seq(Var("X"), Var("Y"), Var("DUMMY"))),
-        aggregate.Aggregate("pathCol", Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
+        aggregate.Aggregate(RefByName("pathCol"), Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
     )
   )
   
@@ -88,7 +89,7 @@ class GenerateSouffleTest extends AnyFunSuite:
     Seq(
       Body(Seq(
         Call("edge", Seq(Var("X"), Var("DUMMY"))),
-        aggregate.Aggregate("edge", Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
+        aggregate.Aggregate(RefByName("edge"), Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
     )
   )
   
@@ -119,7 +120,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   }
   
   test("data example") {
-    val module = Module("PathExample", Language.Datalog, Seq(natDecl, natRel))
+    val module = Module("PathExample", Language.Datalog, natDecl :+ natRel)
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }

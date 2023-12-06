@@ -8,6 +8,7 @@ import inca.ir.extension.aggregate as agg
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data
 import inca.ir.extension.aggregate
+import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.souffle.syntax.*
 
 // TODO what is output? Need main hint
@@ -41,9 +42,12 @@ object GenerateSouffle:
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
         val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, qualifyName(name), Map())
         Seq(relDecl, inputDirective)
-      case data.DataDefinition(name, cases) =>
+      case data.DataDefinition(name) =>
+        val cases = module.contents.collect {
+          case cd@CaseDefinition(_, _, td) if td.ref.name == name => cd
+        }
         val adtBranches = cases.map {
-          case data.CaseDefinition(name, args) =>
+          case data.CaseDefinition(name, args, TData(RefByName(_))) =>
             val cotrArgs = args.zipWithIndex.map { case(ty, idx) =>
               Attribute(s"param_$idx", compileType(ty))
             }
@@ -71,7 +75,7 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
     case data.Deconstruct(t, RefByName(name), args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
-    case agg.Aggregate(name, args, op) =>
+    case agg.Aggregate(RefByName(name), args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }

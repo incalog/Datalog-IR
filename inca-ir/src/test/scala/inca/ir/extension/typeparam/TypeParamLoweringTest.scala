@@ -89,9 +89,11 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
   test("Mono morph non-recursive data type") {
     val mod = module(
       ParametricModuleEntry(Seq(Name("A")),
-        DataDefinition(Name("Pair"), Seq(
-          CaseDefinition(Name("MkPair"), Seq(TypeVar(Name("A")), TypeVar(Name("A"))))
-        ))
+        DataDefinition(Name("Pair"))),
+      ParametricModuleEntry(Seq(Name("A")),
+        CaseDefinition(Name("MkPair"), Seq(TypeVar(Name("A")), TypeVar(Name("A"))),
+          TData(TypeApplication("Pair", Seq(TypeVar("A"))))
+        )
       ),
       Relation("R", Seq(Param(Name("p"), TData(TypeApplication(Name("Pair"), Seq(arithmetic.TInt))))), Seq(
         Body(Seq(
@@ -114,10 +116,13 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
   test("Mono morph recursive data type") {
     val mod = module(
       ParametricModuleEntry(Seq(Name("A")),
-        DataDefinition(Name("List"), Seq(
-          CaseDefinition(Name("Nil"), Seq()),
-          CaseDefinition(Name("Cons"), Seq(TypeVar(Name("A")), TData(TypeApplication(Name("List"), Seq(TypeVar(Name("A")))))))
-        ))
+        DataDefinition(Name("List"))),
+      ParametricModuleEntry(Seq("A"),
+        CaseDefinition("Nil", Seq(), TData(TypeApplication("List", Seq(TypeVar("A")))))),
+      ParametricModuleEntry(Seq("B"),
+        CaseDefinition("Cons", Seq(TypeVar("B"), TData(TypeApplication("List", Seq(TypeVar("B"))))),
+          TData(TypeApplication("List", Seq(TypeVar("B"))))
+        )
       ),
       Relation("R", Seq(Param(Name("p"), TData(TypeApplication(Name("List"), Seq(arithmetic.TInt))))), Seq(
         Body(Seq(
@@ -138,10 +143,13 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
   test("Mono morph recursive data type transitively through relation") {
     val mod = module(
       ParametricModuleEntry(Seq(Name("A")),
-        DataDefinition(Name("List"), Seq(
-          CaseDefinition(Name("Nil"), Seq()),
-          CaseDefinition(Name("Cons"), Seq(TypeVar(Name("A")), TData(TypeApplication(Name("List"), Seq(TypeVar(Name("A")))))))
-        ))
+        DataDefinition(Name("List"))),
+      ParametricModuleEntry(Seq("A"),
+        CaseDefinition("Nil", Seq(), TData(TypeApplication("List", Seq(TypeVar("A")))))),
+      ParametricModuleEntry(Seq("A"),
+        CaseDefinition("Cons", Seq(TypeVar("A"), TData(TypeApplication("List", Seq(TypeVar("A"))))),
+          TData(TypeApplication("List", Seq(TypeVar("A"))))
+        )
       ),
       ParametricModuleEntry(Seq(Name("A")),
         Relation("nil", Seq(Param(Name("p"), TData(TypeApplication(Name("List"), Seq(TypeVar("A")))))), Seq(

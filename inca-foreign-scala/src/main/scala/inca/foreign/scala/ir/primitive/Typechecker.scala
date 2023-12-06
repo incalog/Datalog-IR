@@ -5,7 +5,7 @@ import inca.ir.extension.data.DataDefinition
 import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, TermType, Type, string2name}
+import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, RefByName, Relation, TAny, Term, TermType, Type, string2name}
 
 trait Typechecker extends BaseIRTypechecker:
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
@@ -26,13 +26,15 @@ trait Typechecker extends BaseIRTypechecker:
     case ScalaAggregationAtom(op@ScalaAggregationOperator(_, _), rel, out, args, aggregatedColumn) =>
       if (aggregatedColumn >= args.size)
         error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
-      val params = lookupRelationParams(rel, args.size, atom)
-      args.zip(params).zipWithIndex.foreach {
-        case ((t, p), i) if i == aggregatedColumn =>
-          op.typecheck(Seq(p.ty)).foreach(error(_, atom))
-          checkTerm(t, p.ty, Mode.Collapse)
-        case ((t, p), i) =>
-          checkTerm(t, p.ty, Mode.Collapse)
+      val paramTys = inferRelationRef(RefByName(rel), atom)
+      if (paramTys.size != args.size)
+        error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
+      args.zip(paramTys).zipWithIndex.foreach {
+        case ((t, pty), i) if i == aggregatedColumn =>
+          op.typecheck(Seq(pty)).foreach(error(_, atom))
+          checkTerm(t, pty, Mode.Collapse)
+        case ((t, pty), i) =>
+          checkTerm(t, pty, Mode.Collapse)
       }
       checkTerm(out, op.resultType, Mode.Binding)
     case _ => super.checkAtom(atom, mode)

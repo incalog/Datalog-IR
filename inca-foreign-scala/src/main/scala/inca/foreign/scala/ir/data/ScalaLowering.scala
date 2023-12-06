@@ -17,26 +17,25 @@ trait ScalaLowering extends BaseScalaLowering:
 
   var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
 
-  private def translateCaseDefinition(caseDef: CaseDefinition, dataDef: DataDefinition): ScalaDefnModuleEntry =
-    val CaseDefinition(cName, tys) = caseDef
-    val DataDefinition(dName, _) = dataDef
-    val params = tys.zipWithIndex.map { case (ty, idx) =>
+  private def translateCaseDefinition(name: Name, args: Seq[Type], data: TData): ScalaDefnModuleEntry =
+    val TData(RefByName(dName)) = data
+    val params = args.zipWithIndex.map { case (ty, idx) =>
         val sty = visitType(ty) match
           case t@ScalaType(_) => t
           case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t")
         (s"param_$idx", sty)
     }
 
-    caseDef2params += cName -> params
+    caseDef2params += name -> params
 
     val paramsCode = params.map { case (n, t) => s"$n: ${t.name}" }.mkString(", ")
-    val classCode = s"case class $cName($paramsCode) extends $dName"
-    ScalaDefnModuleEntry(cName, classCode)
+    val classCode = s"case class $name($paramsCode) extends $dName"
+    ScalaDefnModuleEntry(name, classCode)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     moduleEntry match
-      case d@DataDefinition(name, cases) =>
-          ScalaDefnModuleEntry(name, s"trait $name") +: cases.map(c => translateCaseDefinition(c, d))
+      case DataDefinition(name) => Seq(ScalaDefnModuleEntry(name, s"trait $name"))
+      case CaseDefinition(name, args, data) => Seq(translateCaseDefinition(name, args, data))
       case _ =>
         super.visitModuleEntry(moduleEntry)
   }

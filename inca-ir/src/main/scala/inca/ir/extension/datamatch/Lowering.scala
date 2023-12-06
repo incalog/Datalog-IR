@@ -18,12 +18,12 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case Match(matchee, cases) =>
       val previous: ListBuffer[Deconstruct] = ListBuffer.empty
-      val alternatives = cases.map { case Case(name, patVars, body) =>
-        previous += Deconstruct(matchee, RefByName(name), patVars.map(_.arg), false)
+      val alternatives = cases.map { case Case(ref, patVars, body) =>
+        previous += Deconstruct(matchee, ref, patVars.map(_.arg), false)
         // TODO non-overlapping patterns?
         val notPrevious = Seq() // previous.map(not.Not.apply).toList
         DisjunctionAlternative(
-          Deconstruct(matchee, RefByName(name), patVars.map(_.arg), false) +:
+          Deconstruct(matchee, ref, patVars.map(_.arg), false) +:
             (notPrevious ++ body.flatMap(visitAtom))
         )
       }

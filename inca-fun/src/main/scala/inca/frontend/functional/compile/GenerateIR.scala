@@ -23,6 +23,7 @@ import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.extension.typeparam
+import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeVar}
 import inca.util.Gensym
 
 object GenerateIR:
@@ -52,9 +53,9 @@ class GenerateIR {
       else
         None
     }
-    val moduleEntries = m.content.map {
-      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => compileMainFun(f)
-      case f: FunctionDef => compileFun(f)
+    val moduleEntries = m.content.flatMap {
+      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFun(f))
+      case f: FunctionDef => Seq(compileFun(f))
       case d: DataDef => compileData(d)
     } ++ extMainInputRelations
     ir.Module(m.name, irLang, moduleEntries)
@@ -98,8 +99,20 @@ class GenerateIR {
     else
       typeparam.ParametricModuleEntry(tyVars.map(_.name), entry)
 
-  def compileData(d: DataDef): irdata.DataDefinition =
-    irdata.DataDefinition(d.name, d.constrs.map(c => irdata.CaseDefinition(c.name, c.paramTypes.map(compileType))))
+  def compileData(d: DataDef): Seq[ir.ModuleEntry] =
+    if (d.tyVars.isEmpty) {
+      val data = irdata.DataDefinition(d.name)
+      val cases = d.constrs.map(c => irdata.CaseDefinition(c.name, c.paramTypes.map(compileType), irdata.TData(data.name)))
+      data +: cases
+    } else {
+      val tyParams = d.tyVars.map(_.name)
+      val data = ParametricModuleEntry(tyParams, irdata.DataDefinition(d.name))
+      val tdata = irdata.TData(TypeApplication(data.name, tyParams.map(TypeVar.apply)))
+      val cases = d.constrs.map(c =>
+        ParametricModuleEntry(tyParams, irdata.CaseDefinition(c.name, c.paramTypes.map(compileType), tdata))
+      )
+      data +: cases
+    }
 
   def compileExp(e: Expression): ir.Term = e.cast match
     case None => compileCastedExp(e)
@@ -139,18 +152,22 @@ class GenerateIR {
       )
     case Call(v@Var(constrName), tyArgs, args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
       // constructor call
-      // TODO: parametric ADTs
-//      val ref: ir.Ref[irdata.CaseDefinition] = tyArgs match
-//        case Nil => ir.RefByName(constrName)
-//        case _ => typeparam.TypeApplication(constrName, tyArgs.map(compileType))
-      irdata.Construct(constrName, args.map(compileExp))
+      val ref: ir.Ref[irdata.CaseDefinition] = typeparam.TypeApplication.make(constrName, tyArgs.map(compileType))
+      irdata.Construct(ref, args.map(compileExp))
 
     case Match(matchee, cases) =>
       val tmp = gensym.fresh("match_result")
       val matcheeTerm = compileExp(matchee)
+      val tyArgs = matchee.typ.get match
+        case TApply(_, tyArgs) => tyArgs
+        case _ => Seq()
+
       val caseAlternatives: Seq[irmatch.Case] = cases.map {
-        case (ConstructorPattern(constr, args), body) =>
-          irmatch.Case(constr, args.map(a => ir.Var(a.name)),
+        case (pat@ConstructorPattern(constr, args), body) =>
+          val (_, data) = pat.target.get
+          val ref: ir.Ref[irdata.CaseDefinition] = typeparam.TypeApplication.make(constr, tyArgs.map(compileType))
+
+          irmatch.Case(ref, args.map(a => ir.Var(a.name)),
             Seq(ir.Eq(ir.Var(Name(tmp)), compileExp(body))))
       }
       block.Block(
@@ -230,7 +247,7 @@ class GenerateIR {
       val argTerms = args.map(compileExp)
       val aggArgs = argTerms.map(TermArg.apply) :+
         iragg.AggregateColumnArg(ir.Var(aggResult))
-      val agg = iraggset.AggregateSet(name, aggArgs, aggOp)
+      val agg = iraggset.AggregateSet(ir.RefByName(name), aggArgs, aggOp)
       block.Block(Seq(agg), ir.Var(aggResult))
 
     case _ =>
@@ -252,5 +269,8 @@ class GenerateIR {
       val inputs = from.map(compileType)
       val output = compileType(to)
       irmap.TMap(irtuple.TTuple.make(inputs), output)
-    case TApply(_, _) => throw new IllegalArgumentException(s"Must monomorph program before compiling")
+    case TApply(named@TName(name), args) => named.target match
+      case Some(_: DataDef) => irdata.TData(TypeApplication(name, args.map(compileType)))
+      case Some(_) => throw new IllegalArgumentException(s"Cannot compile type application $ty because $name is not a data type")
+      case None => throw new IllegalArgumentException(s"Unresolved name $name in $ty")
 }

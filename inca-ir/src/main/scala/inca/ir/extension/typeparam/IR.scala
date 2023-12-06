@@ -16,11 +16,17 @@ case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) exte
   def withExtendedName(suffix: String): ParametricModuleEntry =
     ParametricModuleEntry(typeParams, entry.withExtendedName(suffix))
   override val name: Name = entry.name
+object ParametricModuleEntry:
+  def make(tyParams: Seq[Name], entry: ModuleEntry): ModuleEntry =
+    if (tyParams.isEmpty)
+      entry
+    else 
+      ParametricModuleEntry(tyParams, entry)
 
-case class TypeApplication[Target](name: Name, args: Seq[Type]) extends Ref[Target]:
+case class TypeApplication[Target <: ModuleEntry](name: Name, args: Seq[Type]) extends Ref[Target]:
   override def toString: String = s"$name[${args.mkString(", ")}]"
 object TypeApplication:
-  def make[Target](name: Name, args: Seq[Type]): Ref[Target] =
+  def make[Target <: ModuleEntry](name: Name, args: Seq[Type]): Ref[Target] =
     if (args.isEmpty)
       RefByName(name)
     else

@@ -104,7 +104,7 @@ trait Lowering extends BaseLowering:
             addDemandRule(rel, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case Aggregate(rel, args, op) =>
-          val params = currentModule.relations.get(rel.name) match
+          val params = currentModule.relations.get(rel.name.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
@@ -117,7 +117,7 @@ trait Lowering extends BaseLowering:
             case _ => None
           }
           if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
-            addDemandRule(rel, bodyPrefix.toList, demandedArgs)
+            addDemandRule(rel.name, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)

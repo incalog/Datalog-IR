@@ -1,6 +1,7 @@
 package inca.ir.extension.data
 
 import inca.ir.extension.data.*
+import inca.ir.extension.typeparam.ParametricModuleEntry
 import inca.ir.typing.{BaseIRTypeContext, BaseIRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.{Atom, ModuleEntry, Name, Relation, TAny, Term, Type}
@@ -15,19 +16,22 @@ trait TypeContext extends BaseIRTypeContext:
     t
   }
 
-  def bindData(typeParams: Seq[Name], data: DataDefinition): Unit = {
-    // Make sure the CaseDefinition is unique
-    val newCases = data.cases.map(c => c.name -> (typeParams, data, c))
-    newCases.foreach { case (k, (_, dDef, cDef)) =>
-      if (caseDefs.contains(k))
-        error(s"CaseDefinition $k in ${data.name} shadows previously defined case.", dDef)
-    }
-    caseDefs ++= newCases
-  }
+  def lookupDataDefinition(name: Name, s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
+    entries.get(name) match
+      case Some(dd: DataDefinition) =>
+        Some((Seq(), dd))
+      case Some(ParametricModuleEntry(tyParams, dd: DataDefinition)) =>
+        Some((tyParams, dd))
+      case _ =>
+        error(s"Could not find data type $name", s)
+        None
 
-  def lookupConstruct(name: Name, locations: SourceLocation*): Option[(Seq[Name], DataDefinition, CaseDefinition)] = {
-    val constr = caseDefs.get(name)
-    if (constr.isEmpty)
-      error(s"Could not find constructor $name", locations:_*)
-    constr
-  }
+  def lookupConstruct(name: Name, locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
+    entries.get(name) match
+      case Some(cd: CaseDefinition) =>
+        Some((Seq(), cd))
+      case Some(ParametricModuleEntry(tyParams, cd: CaseDefinition)) =>
+        Some((tyParams, cd))
+      case _ =>
+        error(s"Could not find constructor $name", locations:_*)
+        None

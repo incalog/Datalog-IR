@@ -9,12 +9,12 @@ trait Visitor extends data.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case Match(matchee, cases) =>
       for (t <- visitTerm(matchee)) yield
-        val newCases = cases.map { case Case(name, vars, body) =>
+        val newCases = cases.map { case Case(ref, vars, body) =>
           val newVars: Seq[Var] = vars.flatMap(visitTerm).map {
             case v@Var(_) => v
-            case newTerm => throw new IllegalStateException(s"Unexpected term $newTerm for case $name")
+            case newTerm => throw new IllegalStateException(s"Unexpected term $newTerm for case $ref")
           }
-          Case(name, newVars, body.flatMap(visitAtom))
+          Case(visitRef(ref), newVars, body.flatMap(visitAtom))
         }
         Match(t, newCases)
     case _ => super.visitAtom(atom))

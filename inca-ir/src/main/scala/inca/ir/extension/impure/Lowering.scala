@@ -115,7 +115,7 @@ trait Lowering extends BaseLowering:
         preserveHints(atom) {
           Seq(Call(name, args.flatMap(visitArg) ++ (impurities ++ impurities).map(_ => WildcardArg()), true))
         }
-      case Aggregate(rel, args, op) if !pureRelations.contains(rel) =>
+      case Aggregate(rel, args, op) if !pureRelations.contains(rel.name) =>
         preserveHints(atom) {
           Seq(Aggregate(rel, args ++ (impurities ++ impurities).map(_ => WildcardArg()), op))
         }

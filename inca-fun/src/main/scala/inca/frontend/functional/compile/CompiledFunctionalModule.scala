@@ -71,6 +71,7 @@ object CompiledFunctionalModule:
   )
 
   val pipeline: List[() => BaseIRVisitor] = List(
+    () => new typeparam.Lowering {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new map.Lowering {},
@@ -80,7 +81,6 @@ object CompiledFunctionalModule:
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
-    () => new typeparam.Lowering {},
     () => new demand.Lowering {},
     () => new tuple.Lowering {}
   ) // arith + string + data

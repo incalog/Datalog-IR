@@ -3,7 +3,7 @@ package inca.ir.extension.set
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
@@ -82,19 +82,20 @@ trait Lowering extends BaseLowering:
   private def makeSetDefinitions: Seq[ModuleEntry] =
     val types = constructors.groupBy(_._1._1).toSeq
     types.flatMap { case (memTy, terms) =>
-      val (data, rel) = defunctionalizeSet(memTy, terms.values.toSeq)
-      Seq(data, rel)
+      val (datas, rel) = defunctionalizeSet(memTy, terms.values.toSeq)
+      datas :+ rel
     }
 
   /** Generates defunctionalize set data type and enumerating relation */
-  private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (DataDefinition, Relation) =
+  private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (Seq[DataModuleEntry], Relation) =
     val dataName = dataNameOf(memTy)
     val relName = relNameOf(memTy)
     val setParam = Param("$set", TDemand(TData(dataName)))
     val elemParam = Param("$elem", memTy)
 
+    val data = DataDefinition(dataName)
     val (cases, rules) = constructors.map { case SetConstructor(consName, caseVars, setEnum) =>
-      val caseDef = CaseDefinition(consName, caseVars.map(_._2))
+      val caseDef = CaseDefinition(consName, caseVars.map(_._2), TData(data.name))
 
       val atoms = setEnum(elemParam.name)
       if (atoms.isEmpty) {
@@ -107,9 +108,8 @@ trait Lowering extends BaseLowering:
       }
     }.unzip
 
-    val data = DataDefinition(dataName, cases)
     val rel = Relation(relName, Seq(setParam, elemParam), rules.flatten)
-    (data, rel)
+    (data +: cases, rel)
 
   private var currentModule: Module = _
   protected override def visitModule(module: Module): Module =

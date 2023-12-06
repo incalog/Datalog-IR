@@ -45,7 +45,7 @@ trait Lowering extends BaseLowering:
         // TODO case AggregateArg.WildCard
       newrels += rel
       preserveHints(atom) {
-        Seq(Aggregate(newrelName, args, op))
+        Seq(Aggregate(RefByName(newrelName), args, op))
       }
 
     case _ => super.visitAtom(atom)

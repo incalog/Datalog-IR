@@ -38,7 +38,7 @@ class GenerateIR {
       val args = vars.map(v => ir.Var(v._1).arg)
       val aggArgs = args.updated(aggregateIndex,
         aggregate.AggregateColumnArg(ir.Var(vars(aggregateIndex)._1)))
-      val aggAtom = aggregate.Aggregate(collectName, aggArgs, aggOp)
+      val aggAtom = aggregate.Aggregate(ir.RefByName(collectName), aggArgs, aggOp)
 
       val collectArgs = vars.map(_._1)
         .map(ir.Var.apply)

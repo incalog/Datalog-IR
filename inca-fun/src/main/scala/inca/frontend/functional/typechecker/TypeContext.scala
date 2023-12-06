@@ -104,7 +104,10 @@ trait TypeContext extends TypeIO {
 
   def bindData(data: DataDef, module: Module): Unit = {
     dataDefs += data.name -> data
-    data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
+    data.constrs.foreach { c =>
+      funs += c.name -> (module, (c, c.constructorType(data)))
+      c.resolved(data)
+    }
   }
 
   def isData(name: Name): Boolean =

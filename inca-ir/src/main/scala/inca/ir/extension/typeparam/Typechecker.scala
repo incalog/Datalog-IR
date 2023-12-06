@@ -55,3 +55,13 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Illegal type application of $args to $entry", s)
         Seq()
     case _ => super.inferRelationRef(ref, s)
+
+  def matchRef[Target](ref: Ref[Target], typeParams: Seq[Name], s: SourceLocation): Map[Name, Type] = ref match
+      case RefByName(name) =>
+        if (typeParams.nonEmpty)
+          error(s"Missing type arguments $typeParams for constructor $name", s)
+        Map()
+      case TypeApplication(name, tyArgs) =>
+        if (typeParams.size != tyArgs.size)
+          error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", s)
+        typeParams.zip(tyArgs).toMap

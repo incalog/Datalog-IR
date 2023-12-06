@@ -60,7 +60,7 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
-  var builtinIdDatastructures: irdata.DataDefinition = null
+  var builtinIdDatastructures: Seq[irdata.DataModuleEntry] = null
 
   def compileModule(m: Module): ir.Module =
     val mainFunctions = m.content.flatMap {
@@ -89,7 +89,7 @@ class GenerateIR:
     } ++ extMainInputRelations
 
     val castRelation = compileCastRelation()
-    val builtinContent = Seq(builtinIdDatastructures, objClass, castRelation)
+    val builtinContent = builtinIdDatastructures ++ Seq(objClass, castRelation)
 
     ir.Module(
       m.name,
@@ -101,11 +101,12 @@ class GenerateIR:
 
   private def matchRuntimeType(t: ir.Term, tyTerm: ir.Term): ir.Atom =
     disjunction.Disjunction(
-      builtinIdDatastructures.cases.map {
-        case irdata.CaseDefinition(name, args) =>
+      builtinIdDatastructures.flatMap {
+        case irdata.CaseDefinition(name, args, _) =>
           val wildcardArgs = (0 until args.size - 1).map(_ => WildcardArg())
           val deconstr = irdata.Deconstruct(t, RefByName(name), tyTerm.arg +: wildcardArgs, false)
-          DisjunctionAlternative(deconstr)
+          Some(DisjunctionAlternative(deconstr))
+        case _ => None
       }
     )
 
@@ -144,16 +145,17 @@ class GenerateIR:
         ir.Call(subtypeRelationName, Seq(runtimeTyp.arg, ir.Var("type").arg))
       ))))
 
-  def compileDatastructures(classDefs: Seq[ClassDef]): irdata.DataDefinition =
+  def compileDatastructures(classDefs: Seq[ClassDef]): Seq[irdata.DataModuleEntry] =
+    val data = irdata.DataDefinition("ID")
     val caseClassFields = classDefs.filter(_.isCaseClass).map(c => c.name -> c.fields)
     val sidCases = caseClassFields.map {
       case (name, fields) =>
         val signature = fields.map(_.typ)
         val qualifiedName = s"SID$$${signatureString(signature)}"
-        irdata.CaseDefinition(qualifiedName, irstring.TString +: signature.map(compileType))
+        irdata.CaseDefinition(qualifiedName, irstring.TString +: signature.map(compileType), irdata.TData(data.name))
     }.distinct
-    val oidCase = irdata.CaseDefinition("OID", Seq(irstring.TString, AllocImpurityKind.ty))
-    irdata.DataDefinition("ID", oidCase +: sidCases)
+    val oidCase = irdata.CaseDefinition("OID", Seq(irstring.TString, AllocImpurityKind.ty), irdata.TData(data.name))
+    data +: oidCase +: sidCases
 
   def compileBuiltinObjectClass(): ir.Relation =
     ir.Relation("Object", Seq(ir.Param("this", demand.TDemand(irdata.TData("ID")))), Seq(ir.Body(Seq())))

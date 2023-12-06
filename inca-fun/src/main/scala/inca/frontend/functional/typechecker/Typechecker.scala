@@ -102,9 +102,11 @@ class Typechecker extends TypeContext with TypeIO {
       } else {
         error(s"Unresolved named type $typ", typ)
       }
-    case typ@TApply(TName(name), tys) =>
+    case typ@TApply(named@TName(name), tys) =>
       lookupData(name) match {
-        case Some(data) => resolveTarget[TName.Target](typ)(data)
+        case Some(data) =>
+          resolveTarget[TName.Target](typ)(data)
+          resolveTarget[TName.Target](named)(data)
           tys.foreach(typecheck)
         case None => // nothing
       }
@@ -420,7 +422,7 @@ class Typechecker extends TypeContext with TypeIO {
 
         data.constrs.find(_.name == constr) match {
           case Some(dcon@DataConstructor(_, paramTypes)) =>
-            resolveTarget(pat)(dcon)
+            resolveTarget(pat)((dcon, data))
             if (paramTypes.size != vars.size)
               error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
             scopedTypeContext {
@@ -470,7 +472,7 @@ class Typechecker extends TypeContext with TypeIO {
 
         substConstrs.find(_.name == constr) match {
           case Some(dcon@DataConstructor(_, paramTypes)) =>
-            resolveTarget(pat)(dcon)
+            resolveTarget(pat)((dcon, data))
             if (paramTypes.size != vars.size)
               error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
             scopedTypeContext {

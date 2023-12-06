@@ -28,12 +28,12 @@ trait Lowering extends BaseLowering:
     val tm = mono.monoType(keys)
     Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}")
 
-  def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): DataDefinition =
-    DataDefinition(monoDataType(tm).ref.name,
-      monos.map { mono =>
-        CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.args)
-      }
+  def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
+    val data = DataDefinition(monoDataType(tm).ref.name)
+    val cases = monos.map(mono =>
+      CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.args, TData(data.name))
     )
+    data +: cases
 
   def createCollectingRelation(tm: TMono): Relation =
     val data = monoDataType(tm)
@@ -52,7 +52,7 @@ trait Lowering extends BaseLowering:
       val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
 
       val op = MonoAggregationOperator(mono)
-      val aggregate = Aggregate(monoCollectName(tm), aggArgs, op).addHint(DemandIgnoreCallHint)
+      val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
       val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state"))))
       Body(Seq(destruct, aggregate, project))
     }
@@ -68,7 +68,7 @@ trait Lowering extends BaseLowering:
 
     val defaultTypes = monoTypes.map(t => t -> Set()).toMap
     val defsByType = defaultTypes ++ monoDefs.groupBy((mono, keys) => mono.monoType(keys))
-    val dataDefs = defsByType.map((tm, defs) => createDataDefinition(tm, defs.toSeq.map(_._1))).toSeq
+    val dataDefs = defsByType.flatMap((tm, defs) => createDataDefinition(tm, defs.toSeq.map(_._1))).toSeq
 
     val collectRels = monoTypes.toSeq.map(createCollectingRelation)
     val aggregateRels = defsByType.map((tm, defs) => createAggregationRelation(tm, defs.toSeq.map(_._1))).toSeq

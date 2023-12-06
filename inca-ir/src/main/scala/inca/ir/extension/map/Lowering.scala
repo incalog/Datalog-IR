@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.block.Block
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
@@ -64,20 +64,21 @@ trait Lowering extends BaseLowering:
     val constructorsByType = mapConstructors.groupBy(_._1._1)
     val types = defaulConstructorsByType ++ constructorsByType
     types.flatMap { case ((keyTy, valTy), terms) =>
-      val (data, rel) = defunctionalizeMap(keyTy, valTy, terms.values.toSeq)
-      Seq(data, rel)
+      val (datas, rel) = defunctionalizeMap(keyTy, valTy, terms.values.toSeq)
+      datas :+ rel
     }.toSeq
 
   /** Generates defunctionalize map data type and relation */
-  private def defunctionalizeMap(keyTy: Type, valTy: Type, constructors: Seq[MapConstructor]): (DataDefinition, Relation) =
+  private def defunctionalizeMap(keyTy: Type, valTy: Type, constructors: Seq[MapConstructor]): (Seq[DataModuleEntry], Relation) =
     val dataName = dataNameOf(keyTy, valTy)
     val relName = relNameOf(keyTy, valTy)
     val mapParam = Param("$map", TDemand(TData(dataName)))
     val keyParam = Param("$key", TDemand(keyTy))
     val valParam = Param("$val", valTy)
 
+    val data = DataDefinition(dataName)
     val (cases, rules) = constructors.map { case MapConstructor(consName, caseVars, mapEnum) =>
-      val caseDef = CaseDefinition(consName, caseVars.map(_._2))
+      val caseDef = CaseDefinition(consName, caseVars.map(_._2), TData(dataName))
 
       val atoms = mapEnum(keyParam.name, valParam.name)
       if (atoms.isEmpty) {
@@ -90,9 +91,8 @@ trait Lowering extends BaseLowering:
       }
     }.unzip
 
-    val data = DataDefinition(dataName, cases)
     val rel = Relation(relName, Seq(mapParam, keyParam, valParam), rules.flatten)
-    (data, rel)
+    (data +: cases, rel)
 
   private var currentModule: Module = _
   protected override def visitModule(module: Module): Module =

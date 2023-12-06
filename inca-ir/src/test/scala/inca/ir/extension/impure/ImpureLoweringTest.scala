@@ -17,14 +17,15 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
   val gensym = new Gensym()
 
-  val oidDataDef = data.DataDefinition(Name("OID"), Seq(data.CaseDefinition(Name("OID"), Seq(arithmetic.TInt))))
+  val oidDataDef = data.DataDefinition(Name("OID"))
+  val oidCaseDef = data.CaseDefinition(Name("mkOID"), Seq(arithmetic.TInt), TData(oidDataDef.name))
   val impureAlloc = new ImpurityKind:
     override val name: String = "alloc"
     override val ty: Type = arithmetic.TInt
   def alloc(to: Term): Impure =
     val local = Name(gensym.fresh("currentAlloc"))
     Impure(local,
-      Seq(Eq(to, data.Construct("OID", Seq(Var(local))))),
+      Seq(Eq(to, data.Construct("mkOID", Seq(Var(local))))),
       arithmetic.Add(Var(local), arithmetic.IntNum(1)),
       impureAlloc
     )
@@ -68,6 +69,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
   test("Simple lower to BaseIR") {
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))
@@ -93,6 +95,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))
@@ -125,6 +128,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
   test("multiple impurity kinds") {
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))

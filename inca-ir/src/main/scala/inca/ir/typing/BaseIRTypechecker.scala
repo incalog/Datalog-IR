@@ -151,17 +151,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name) match
-      case Some(Relation(_, params, _)) => params.map(_.ty)
-      case Some(ExtensionalRelation(_, params)) => params.map(_.ty)
-      case None =>
-        error(s"Undefined relation $name", s)
-        Seq()
-      case entry =>
-        error(s"Expected a relation $name but found $entry", s)
-        Seq()
-
   def checkCall(ref: Ref[Relation], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
     val paramTys = inferRelationRef(ref, atom)
     if (paramTys.size != args.size)
@@ -183,20 +172,17 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  def lookupRelationParams(name: Name, argCount: Int, s: SourceLocation): Seq[Param] =
-    lookupModuleEntry(name) match
-      case Some(Relation(_, params, _)) =>
-        if (argCount != params.size)
-          error(s"Expected ${params.size} arguments but got: $argCount", s)
-        params
-      case Some(ExtensionalRelation(_, params)) =>
-        if (argCount != params.size)
-          error(s"Expected ${params.size} arguments but got: $argCount", s)
-        params
-      case _ =>
-        error(s"Unknown relation: $name", s)
+  def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name) match
+      case Some(Relation(_, params, _)) => params.map(_.ty)
+      case Some(ExtensionalRelation(_, params)) => params.map(_.ty)
+      case None =>
+        error(s"Undefined relation $name", s)
         Seq()
-  
+      case entry =>
+        error(s"Expected a relation $name but found $entry", s)
+        Seq()
+
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Call(ref, args, false) => checkCall(ref, args, atom, mode)
     case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
