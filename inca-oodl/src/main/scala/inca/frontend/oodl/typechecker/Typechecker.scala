@@ -469,7 +469,7 @@ class Typechecker extends TypeContext with TypeIO:
     case BoolLit(b) => TBoolean
     case StringLit(s) => TString
     case NullLit() => TNull
-    case Tuple(exps) => TTuple(exps.map(typecheckExp(_, None)))
+    case TupleExp(exps) => TTuple(exps.map(typecheckExp(_, None)))
     case UnOp("-", e) =>
       val eTy = typecheckExp(e, None)
       if (!subtype(eTy, TInt) && !subtype(eTy, TDouble))

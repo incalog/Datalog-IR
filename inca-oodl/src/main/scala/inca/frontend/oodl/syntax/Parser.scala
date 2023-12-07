@@ -176,7 +176,7 @@ object Parser:
 
   lazy val tupleExp: P[Expression] = inParens(recExpression.repSep0(op(','))).mapWithLoc {
     case e::Nil => e
-    case es => Tuple(es)
+    case es => TupleExp(es)
   }
 
   val boolLit: P[BoolLit] = spaced(
@@ -346,7 +346,7 @@ object Parser:
   // TODO: We can remove this if we make the typechecker smarter
   private def insertMissingReturn(stmts: Seq[Statement]): Seq[Statement] =
     // Automatically insert return statements
-    val unitStmt = Return(Tuple(Seq()))
+    val unitStmt = Return(TupleExp(Seq()))
     val lastStmt = stmts.lastOption.getOrElse(unitStmt)
     val newTail = lastStmt match
       case Return(_) =>
@@ -380,7 +380,7 @@ object Parser:
 
   lazy val returnStmt: P[Return] = (keyword("return") *> expression.?).map {
     case Some(expr) => Return(expr)
-    case None => Return(Tuple(Seq()))
+    case None => Return(TupleExp(Seq()))
   }
 
   lazy val exprStmt: P[Statement] = expression.mapWithLoc(Expr.apply)

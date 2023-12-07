@@ -51,7 +51,7 @@ trait Collect[R]:
     case MethodCall(recv, fun, tyArgs, args, isFix) => collectExpression(recv) ++ args.flatMap(collectExpression)
     case TypeCast(recv, toTyp) => collectExpression(recv) ++ collectType(toTyp)
     case InstanceOf(recv, ofTyp) => collectExpression(recv) ++ collectType(ofTyp)
-    case Tuple(exps) => exps.flatMap(collectExpression)
+    case TupleExp(exps) => exps.flatMap(collectExpression)
     case SetExp(exps, tty) => exps.flatMap(collectExpression)
     case SetMember(name, recv, predicate) => collectExpression(recv) ++ predicate.flatMap(collectExpression)
     case SetComprehension(member, body) => member.flatMap(collectExpression) ++ collectExpression(body)

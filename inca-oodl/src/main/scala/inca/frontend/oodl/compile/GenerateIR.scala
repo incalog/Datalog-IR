@@ -573,7 +573,7 @@ class GenerateIR:
       ), resultVar)
     case InstanceOf(recv, t) =>
       throw IllegalStateException(s"Can not check instance of type $t")
-    case Tuple(exps) => irtuple.TupleLit(exps.map(compileExpression))
+    case TupleExp(exps) => irtuple.TupleLit(exps.map(compileExpression))
 
     case BinOp(e1, "++", e2) => // set union
       irset.SetUnion(compileExpression(e1), compileExpression(e2))

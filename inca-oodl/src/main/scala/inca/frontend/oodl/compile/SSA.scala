@@ -125,8 +125,8 @@ class SSA:
       TypeCast(visitExpression(recv), toTyp)
     case InstanceOf(recv, ofTyp) =>
       InstanceOf(visitExpression(recv), ofTyp)
-    case Tuple(exps) =>
-      Tuple(exps.map(visitExpression))
+    case TupleExp(exps) =>
+      TupleExp(exps.map(visitExpression))
     case SetExp(exps, tty) =>
       SetExp(exps.map(visitExpression), tty)
     case SetMember(name, recv, predicate) =>
