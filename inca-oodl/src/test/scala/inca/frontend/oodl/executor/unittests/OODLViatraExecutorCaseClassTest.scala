@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.CompiledOODLModule
+import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateScala}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -13,6 +13,10 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
 
   test("Case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
+
+    //val genScala = new GenerateScala()
+    //genScala.
+
     val compiled = exec.compileOODL(code)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)

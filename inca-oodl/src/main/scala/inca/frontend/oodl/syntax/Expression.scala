@@ -54,7 +54,7 @@ case class InstanceOf(recv: Expression, ofTyp: Type) extends Expression:
   override def vars: Map[Name, Option[Type]] = recv.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"$recv.isInstanceOf[$ofTyp]"
 
-case class Tuple(exps: Seq[Expression]) extends Expression:
+case class TupleExp(exps: Seq[Expression]) extends Expression:
   override def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
