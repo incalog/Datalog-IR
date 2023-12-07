@@ -30,8 +30,10 @@ trait CompiledModule:
       throw CompiledModule.Failed(this, es)
   }
 
+  protected def typechecker: BaseIRTypechecker = new IRTypechecker
+
   lazy val checked: Module =
-    val checker = new IRTypechecker
+    val checker = typechecker
     println(ir)
     checker.checkModule(ir)
     ir
@@ -60,7 +62,7 @@ trait CompiledModule:
       println(l)
       println()
 
-      val checker = new IRTypechecker()
+      val checker = typechecker
       checker.checkModule(l)
 
       /*println(s"Checked $i")
