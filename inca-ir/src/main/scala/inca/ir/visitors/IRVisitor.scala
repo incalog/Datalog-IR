@@ -14,7 +14,7 @@ trait IRVisitor extends BaseIRVisitor
   with disjunction.Visitor
   with impure.Visitor
   with not.Visitor
-  //with primitiveScala.Visitor
+  with foreign.Visitor
   with set.Visitor
   with map.Visitor
   with string.Visitor
