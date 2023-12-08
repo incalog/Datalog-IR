@@ -5,6 +5,8 @@ import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
+import inca.ir.extension.edbdata
+import inca.ir.extension.edbdata.*
 import inca.ir.extension.map.*
 import inca.ir.extension.not.*
 import inca.ir.extension.string.*
@@ -14,7 +16,7 @@ import scala.collection.mutable.ListBuffer
 class MarkedLambda:
   val contents: ListBuffer[ModuleEntry] = ListBuffer.empty
 
-  val Type = TData("Type")
+  private val Type = TData("Type")
   /** Type 𝜏 ::= ?|num|bool|𝜏→𝜏|𝜏×𝜏 */
   contents ++= Seq(
     DataDefinition(Type.ref.name),
@@ -25,17 +27,20 @@ class MarkedLambda:
     CaseDefinition("Prod", Seq(Type, Type), Type)
   )
 
-  // TODO: will be replaced by EDB data eventually
-  val Exp = TData("Exp")
+  private val Exp = TEdbNode("Exp")
   contents ++= Seq(
-    DataDefinition(Exp.ref.name),
-    CaseDefinition("ENum", Seq(TInt), Exp),
-    CaseDefinition("EAdd", Seq(Exp, Exp), Exp),
-    CaseDefinition("EVar", Seq(TString), Exp),
+    EdbNodeDefinition("Exp"),
+    EdbNodeDefinition("ENum", "Exp"),
+    EdbFieldDefinition("ENum", "num", TEdbValue(TInt)),
+    EdbNodeDefinition("EVar", "Exp"),
+    EdbFieldDefinition("EVar", "name", TEdbValue(TString)),
+    EdbNodeDefinition("EAdd", "Exp"),
+    EdbFieldDefinition("EAdd", "lhs", Exp),
+    EdbFieldDefinition("EAdd", "rhs", Exp),
     // TODO ...
   )
 
-  val Ctx = TMap(TString, Type)
+  private val Ctx = TMap(TEdbValue(TString), Type)
 
   // use defs instead of val here, so that each Datalog node is distinct
   private def ctx = Var("ctx")
@@ -46,7 +51,7 @@ class MarkedLambda:
   private def ty = Var("ty")
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
-  
+
   val markSyn = "markSyn"
   contents += Relation(markSyn,
     Seq(
@@ -56,13 +61,13 @@ class MarkedLambda:
       Param(ty.name, Type)
     ),
     Seq(
-      Body(Seq( // MKSNum
-        Deconstruct(e, "ENum", Seq(Var("n").arg)),
-        Eq(mark, IntNum(-1)), // TODO
+      Body( // MKSNum
+        EdbDeconstruct(e, "ENum") ++ Seq(
+        Eq(mark, IntNum(-1)),  // TODO
         Eq(ty, Construct("Num", Seq()))
       )),
-      Body(Seq( // MKSPlus
-        Deconstruct(e, "EAdd", Seq(e(1).arg, e(2).arg)),
+      Body( // MKSPlus
+        EdbDeconstruct(e, "EAdd", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
         Call(markSyn, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
         Deconstruct(ty(1), "Num", Seq()),
         Call(markSyn, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
@@ -70,13 +75,13 @@ class MarkedLambda:
         Eq(mark, IntNum(-1)), // TODO
         Eq(ty, Construct("Num", Seq()))
       )),
-      Body(Seq( // MKSVar
-        Deconstruct(e, "EVar", Seq(x.arg)),
+      Body( // MKSVar
+        EdbDeconstruct(e, "EVar", "name" ->x) ++ Seq(
         Eq(mark, IntNum(-1)), // TODO
         Eq(ty, MapLookUp(ctx, x))
       )),
-      Body(Seq( // MKSFree
-        Deconstruct(e, "EVar", Seq(x.arg)),
+      Body( // MKSFree
+        EdbDeconstruct(e, "EVar", "name" ->x) ++ Seq(
         Eq(mark, IntNum(-1)), // TODO
         Not(MapContains(ctx, x)),
         Eq(ty, Construct("Unknown", Seq()))
@@ -85,7 +90,7 @@ class MarkedLambda:
   )
 
   def module: Module = Module(
-    "Hazel", new Language(Set(BaseIR, arithmetic.IR, data.IR, demand.IR, map.IR, not.IR, string.IR)),
+    "Hazel", new Language(Set(BaseIR, arithmetic.IR, data.IR, demand.IR, edbdata.IR, map.IR, not.IR, string.IR)),
     contents.toList
   )
 
@@ -94,4 +99,5 @@ object MarkedLambda extends App:
   val compiled = new CompiledHazelModule(module)
   println(module)
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
-  println(compiled.checked)
+  try compiled.checked
+  finally println(module)
