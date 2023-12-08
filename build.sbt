@@ -135,3 +135,17 @@ lazy val inca_souffle = (project in file("inca-souffle"))
 inca_foreign_scala / libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "latest.integration" % Test
 )
+
+lazy val hazel_typing = (project in file("hazel-typing"))
+  .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_foreign_scala % "compile->compile")
+  .dependsOn(inca_viatra % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    )
+  )
+
+
