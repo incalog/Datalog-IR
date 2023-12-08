@@ -335,7 +335,7 @@ class GenerateIR:
       val fieldRead = ir.Relation(s"$qualifiedName$$Read", Seq(thisParam, ir.Param("value", compileType(f.typ))), Seq(ir.Body(Seq(
         irimpure.Impure(mutVar, Seq(
           iragg.Aggregate(
-            filterRelName,
+            RefByName(filterRelName),
             Seq(ir.Var("this").arg, ir.Var(mutVar).arg, iragg.AggregateColumnArg(maxTs)),
             irarith.ArithmeticAggregationOperator.MaxInt
           ),//.addHint(demand.Hints.IgnoreCall),
