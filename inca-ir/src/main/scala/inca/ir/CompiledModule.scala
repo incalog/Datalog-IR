@@ -32,7 +32,6 @@ trait CompiledModule:
 
   lazy val checked: Module =
     val checker = new IRTypechecker
-    println(ir)
     checker.checkModule(ir)
     ir
 
