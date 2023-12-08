@@ -14,10 +14,17 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   test("Case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
 
-    //val genScala = new GenerateScala()
-    //genScala.
-
     val compiled = exec.compileOODL(code)
+
+    // TEST
+    /*println(code)
+    println()
+    println()
+    val genScala = new GenerateScala()
+    val scalaCode = genScala.transModule(compiled.typed)
+    println(scalaCode)
+    System.exit(1)*/
+
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())

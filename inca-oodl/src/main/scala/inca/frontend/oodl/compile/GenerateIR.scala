@@ -25,6 +25,7 @@ import inca.ir.extension.impure as irimpure
 import inca.ir.extension.mono as irmono
 import inca.ir.extension.impure
 import inca.util.Gensym
+import inca.frontend.oodl.syntax.Type.signatureString
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
@@ -45,7 +46,6 @@ case object MutationImpurityKind extends irimpure.ImpurityKind:
   val ty: ir.Type = irarith.TInt
 
 object GenerateIR:
-  def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
   def subtypeRelationName = "subtype$"
   def castRelationName = "cast$"
   def extensionalRelationPrefix = "ext_"
@@ -268,7 +268,7 @@ class GenerateIR:
   def compileConstructorDef(c: ConstructorDef)(classDef: ClassDef): ir.Relation =
     val className = c.target match
       case Some(c: ClassDef) => c.name
-      case _ => throw IllegalStateException(s"Unresolved ClassRef for constructor.")
+      case _ => throw IllegalStateException(s"Unresolved class for constructor.")
     val thisParam = ir.Param("this", demand.TDemand(irdata.TData("ID")))
     val params = c.params.map(p => ir.Param(p.name, demand.TDemand(compileType(p.typ))))
     val unusedResultVar = gensym.freshName("_")

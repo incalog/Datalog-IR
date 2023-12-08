@@ -10,6 +10,9 @@ sealed trait Type extends SourceLocation {
   def signatureString: String = prettyprint
   override def toString: String = prettyprint
 }
+object Type:
+  def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
+
 case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def flatten: Seq[Type] = Seq(this)
