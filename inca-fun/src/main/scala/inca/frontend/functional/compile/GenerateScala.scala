@@ -106,7 +106,7 @@ class GenerateScala:
   }
 
   def transFoldOp(op: Var, typ: Option[Type]): Code = {
-    genCalled(op.target.getOrElse(throw new IllegalArgumentException(s"Unresoved fold $op")), typ, op)
+    genCalled(op.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold $op")), typ, op)
     op.name.name
   }
 

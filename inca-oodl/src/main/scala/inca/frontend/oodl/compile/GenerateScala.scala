@@ -178,6 +178,12 @@ class GenerateScala:
     val name = s"${method.name}$$${classDef.name}"
     s"def $name($params): $outTy = \n$body"
 
+  private def transFunctionDef(fun: FunctionDef): Code =
+    val params = fun.params.map(transParam).mkString(", ")
+    val outTy = transType(fun.outType)
+    val body = transStatements(fun.body).indent(4)
+    s"def ${fun.name}($params): $outTy = \n$body"
+
   private def transStatements(stmts: Seq[Statement]): Code = stmts.map(transStatement).mkString("\n")
 
   private def transStatement(stmt: Statement): Code = stmt match
@@ -224,7 +230,7 @@ class GenerateScala:
       val (classDef, constrDef) = constrCall.target match
         case Some(value) => value
         case _ => throw IllegalStateException(s"Unresolved constructor call $name")
-      val argsCode = args.map(transExpression).mkString(", ")
+      val argsCode = (s""""${classDef.name.name}"""" +: args.map(transExpression)).mkString(", ")
       if (classDef.isCaseClass)
         s"new SID$$${signatureString(constrDef.signature)}($argsCode)"
       else
@@ -274,3 +280,21 @@ class GenerateScala:
     case t: TName if t.isBuiltIn => t.name.name
     case TName(name, tyArgs) => "ID"
     case TSet(ty) => s"Set[${transType(ty)}]"
+
+  def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
+    val scalaTy = transType(typ)
+    val funCode = op match
+      case v: Var => v.target match
+        case Some(f: FunctionDef) => transFunctionDef(f)
+        case _ => throw IllegalStateException(s"Unresolved operator target $op")
+      case _ => throw IllegalStateException(s"Unexpected operator $op")
+    s"""
+     |new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
+     |${funCode.indent(2)}
+     |  override val name = "$name"
+     |  override def init: $scalaTy = ${transExpression(init)}
+     |  override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExpression(op)}(v1, v2)
+     |  override val isAssociative = true
+     |  override val isCommutative = true
+     }""".stripMargin
+  }

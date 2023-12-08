@@ -71,9 +71,9 @@ class Typechecker extends TypeContext with TypeIO:
       }
     }
 
-    module.classes.foreach(typecheck)
+    module.functions.foreach(bindFunction)
 
-    // TODO: typecheck main function
+    module.classes.foreach(typecheck)
     module.functions.foreach(typecheck)
   }
 
@@ -81,8 +81,8 @@ class Typechecker extends TypeContext with TypeIO:
 
   def typecheck(functionDef: FunctionDef): Unit = {
     val hasMainAnno = functionDef.annos.exists(_.isInstanceOf[MainFunctionAnno])
-    if (!hasMainAnno)
-      error(s"Function ${functionDef.name} is not a main function")
+    //if (!hasMainAnno)
+    //  error(s"Function ${functionDef.name} is not a main function")
 
     functionDef.params.foreach { p =>
       typecheckTy(p.typ)
@@ -636,6 +636,25 @@ class Typechecker extends TypeContext with TypeIO:
 
     case methodCallExpr@MethodCall(recv, fun, tyArgs, args, isFix) =>
       typecheckExp(recv, None) match
+        case TSet(ty) if fun.name == "fold" =>
+          if (args.size != 2)
+            error(s"Expected 2 arguments for 'fold', but got ${args.size}")
+          val Seq(init, joinFun) = args
+          init match
+            case BoolLit(_) | IntLit(_) | DoubleLit(_) | StringLit(_) | NullLit() => // nothing
+            case ConstructorCall(_, _, _) => // nothing
+            case _ => error("Fold init must be a literal or case class constructor call.", methodCallExpr)
+          assertSubtype(typecheckExp(init, None), ty, methodCallExpr)
+
+          joinFun match
+            case v@Var(name) =>
+              lookupFunction(name) match
+                case Some(fun) => resolveTarget(v)(fun)
+                case _ => error(s"Unknown function $name", methodCallExpr)
+            case _ => error(s"Unexpected fold function ", joinFun, methodCallExpr)
+
+          typecheckTy(ty)
+          ty
         case t: TName =>
           val argTys = args.map(typecheckExp(_, None))
           t.target match

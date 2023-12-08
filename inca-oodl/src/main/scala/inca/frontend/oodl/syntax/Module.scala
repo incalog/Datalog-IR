@@ -55,7 +55,7 @@ case class ParametricType(name: Name) extends SourceLocation with TName.Target:
   def prettyprint(implicit indent: String): String = name.name
   override def toString: String = prettyprint("")
 
-case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent:
+case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent with Var.Target:
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""

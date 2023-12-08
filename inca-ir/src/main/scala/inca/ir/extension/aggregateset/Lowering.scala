@@ -42,7 +42,6 @@ trait Lowering extends BaseLowering:
           val newparams = rel.params.updated(ix, Param(newparamName, ty))
           val memberAtom = SetMember(ir.Var(newparamName), ir.Var(param.name))
           rel = rel.copy(params = newparams, bodies = rel.bodies.map(b => Body(b.atoms :+ memberAtom)))
-        // TODO case AggregateArg.WildCard
       newrels += rel
       preserveHints(atom) {
         Seq(Aggregate(newrelName, args, op))
