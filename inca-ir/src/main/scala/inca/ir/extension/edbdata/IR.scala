@@ -45,7 +45,11 @@ case class UndefEdbField(t: Term, link: Link) extends Atom:
   override def vars: Seq[Var] = t.vars
   override def toString: String = s"undef $t.$link"
 
-
+def EdbDeconstruct(t: Term, node: Name, fields: (String,Term)*): Seq[Atom] =
+  Eq(Cast(t, TEdbNode(node)), LookupEdbType(TEdbNode(node))) +:
+    fields.map((field, a) =>
+      Eq(a, LookupEdbField(Cast(t, TEdbNode(node)), Name(field)))
+    )
 
 enum Link:
   case Field(name: Name)
@@ -56,6 +60,10 @@ enum Link:
   case Size
   case First
   case Last
+
+  override def toString: String = this match
+    case Field(name) => name.toString
+    case _ => super.toString
 
 object IR extends IR
 trait IR extends BaseIR:
