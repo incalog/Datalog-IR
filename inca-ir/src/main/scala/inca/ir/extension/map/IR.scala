@@ -51,5 +51,5 @@ case class MapAddEntry(map: Term, key: Term, value: Term) extends Atom:
   override def vars: Seq[Var] = map.vars ++ key.vars ++ value.vars
   
 case class MapContains(map: Term, key: Term) extends Atom:
-  override def toString: String = s"?($key in $map)"
+  override def toString: String = s"$key in $map"
   override def vars: Seq[Var] = map.vars ++ key.vars

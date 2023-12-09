@@ -17,7 +17,7 @@ case class DataDefinition(name: Name) extends DataModuleEntry:
 
 case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends DataModuleEntry:
   def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
-  override def toString: String = s"""$name(${args.mkString(",")}): $data"""
+  override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 
 case class Construct(caseRef: Ref[CaseDefinition], args: Seq[Term]) extends Term:
   override def toString: String = s"!$caseRef(${args.mkString(", ")})" + analysisString
