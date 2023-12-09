@@ -43,7 +43,6 @@ trait Typechecker extends BaseIRTypechecker{
       val TermType(valTy, valMode) = inferTerm(valTerm, mode)
       TermType(TMap(keyTy, valTy), valMode)
     }
-
     case MapUnion(t1, t2) =>
       val tyMap = inferMapTerm(t1, Mode.Bound)._1
       checkTerm(t2, tyMap, Mode.Bound)

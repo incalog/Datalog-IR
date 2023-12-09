@@ -2,13 +2,13 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, RefByName, Module, Name, Param, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
@@ -252,19 +252,41 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case primitive.ScalaAggregationAtom(agg@ScalaAggregationOperator(sty, aggOpCode), rel, out, args, aggregatedColumn) =>
+    case primitive.ScalaAggregationAtom(ScalaMonoAggregationOperator(name, inScalaTy, stScalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+      val inTy: String = inScalaTy.name
+      val stateTy: String = stScalaTy.name
 
-      val scalaTyp = sty.name
-      agg match
-        case ScalaAggregationOperator.Count =>
-          s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
-        case _ =>
-          val boundAggOp = s"new BoundAggregator($aggOpCode, classOf[$scalaTyp], classOf[$scalaTyp])"
-          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+      val code = s"""
+           | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
+           |   override val name: String = "$name"
+           |   override def init: $stateTy = $initCode
+           |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
+           | }.aggregator
+           |""".stripMargin
+
+      val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
+      s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
+      val result = compileTerm(out)
+      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+      val scalaTyp = scalaTy.name
+      val code =
+        s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
+           |       override val name = "$name"
+           |       override def init: $scalaTy = $initCode
+           |       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ($addCode)(v1, v2)
+           |       override val isAssociative = true
+           |       override val isCommutative = true
+           |     }
+           |""".stripMargin
+      val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
+      s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
     case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
       throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
 

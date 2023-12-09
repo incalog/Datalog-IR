@@ -65,25 +65,27 @@ object ScalaConstantTerm:
   val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
 
 
-case class ScalaAggregationOperator(ty: ScalaType, code: String) extends ForeignAggregationOperator:
+
+case class ScalaAggregationOperator(name: Name, ty: ScalaType, initCode: String, addCode: String) extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
   override def resultType: Type = ty
   def typecheck(in: Seq[Type]): Option[String] = None
 
-object ScalaAggregationOperator:
-  def Min(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Min${ty.name}Aggregation().aggregator")
-  def Max(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Max${ty.name}Aggregation().aggregator")
-  def Sum(ty: ScalaType): ScalaAggregationOperator = ScalaAggregationOperator(ty, s"builtin.arithmetic.Sum${ty.name}Aggregation().aggregator")
-  val Count: ScalaAggregationOperator = ScalaAggregationOperator(ScalaType.int, "")
-  def Custom(ty: ScalaType, code: String): ScalaAggregationOperator = ScalaAggregationOperator(ty, code)
-  def createMonoAgg(mono: MonoDefinition, code: String): ScalaAggregationOperator =
-    ScalaAggregationOperator(ScalaInca.compileType(mono.typ.state), code)
+case class ScalaMonoAggregationOperator(name: Name,
+                                        inputTy: ScalaType,
+                                        stateTy: ScalaType,
+                                        initCode: String,
+                                        addCode: String)
+  extends ForeignAggregationOperator:
+  override val lang: ScalaInca.type = ScalaInca
+  override def resultType: Type = stateTy
+  def typecheck(in: Seq[Type]): Option[String] = None
 
 
 case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
   override val lang: ScalaInca.type = ScalaInca
   override val code: String = op match
-    case ScalaAggregationOperator(_, code) => code
+    case ScalaAggregationOperator(_, _, initCode, addCode) => s"" // TODO: code
     case _ => "???"
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
@@ -100,13 +102,20 @@ case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleE
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
 
-case class ScalaMonoDefinition(name: String, code: String, args: Seq[Type], typ: MonoTypes, resultRelation: Relation) extends ForeignMonoDefinition:
+case class ScalaMonoDefinition(name: Name,
+                               initCode: String,
+                               addCode: String,
+                               resultCode: String,
+                               constructorParamTypes: Seq[Type],
+                               typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
   def typecheck(in: Seq[Type]): Option[String] = None
+  override def resultTerm(state: Term): Term =
+    ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
 
 object ScalaMonoDefinition:
-  def builtinMono(mono: BuiltInMonoDefinition, code: String): ScalaMonoDefinition =
-    ScalaMonoDefinition(mono.name, code, mono.args, mono.typ, mono.resultRelation)
+  def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String): ScalaMonoDefinition =
+    ScalaMonoDefinition(mono.name, initCode, addCode, resultCode, mono.constructorParamTypes, mono.typ)
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"

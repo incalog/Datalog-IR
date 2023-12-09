@@ -12,11 +12,18 @@ trait Visitor extends BaseIRVisitor:
     case _ => super.visitModuleEntry(moduleEntry)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case ScalaAggregationAtom(ScalaAggregationOperator(ty, code), rel, out, args, col) =>
+    case ScalaAggregationAtom(ScalaAggregationOperator(name, ty, initCode, addCode), rel, out, args, col) =>
       val sty = visitType(ty) match
         case s: ScalaType => s
         case _ => throw IllegalStateException(s"Visiting scala type $ty yielded unexpected none scala type $ty")
-      val op = ScalaAggregationOperator(sty, code)
+      val op = ScalaAggregationOperator(name, sty, initCode, addCode)
+      Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
+    case ScalaAggregationAtom(ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode), rel, out, args, col) =>
+      val op = ScalaMonoAggregationOperator(name,
+        visitType(inputTy).asInstanceOf[ScalaType],
+        visitType(stateTy).asInstanceOf[ScalaType],
+        initCode, addCode
+      )
       Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
     case _ => super.visitAtom(atom)
 

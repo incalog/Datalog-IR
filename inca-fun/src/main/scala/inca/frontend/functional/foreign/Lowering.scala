@@ -23,16 +23,18 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] =
     atom match
       case Aggregate(rel, args, aggOp@FunctionalIncaAggregationOperator(fun, init, op)) =>
-        val ty = FunctionalInca.compileType(aggOp.to)
-        // TODO: Lower the type
+        val irType = FunctionalInca.compileType(aggOp.to)
+        val scalaType = ??? // TODO
 
         generateScala.genFunDef(fun)
         val generatedCode = generateScala.generated.mkString("\n")
 
         scalaModules = scalaModules + ScalaDefnModuleEntry("Aggregation$" + fun.name, generatedCode)
 
+        val initCode = generateScala.transExp(init)
+        val addCode = generateScala.transExp(op)
         val aggCode = generateScala.genAggregation(fun.name, init, op, aggOp.to)
-        val scalaAggOp = ScalaAggregationOperator(ScalaInca.compileType(ty), aggCode + ".aggregator")
+        val scalaAggOp = ScalaAggregationOperator(fun.name, scalaType, initCode, addCode)
         Seq(Aggregate(rel, args, scalaAggOp))
       case _ =>
         super.visitAtom(atom)

@@ -9,9 +9,9 @@ trait Typechecker extends BaseIRTypechecker{
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case NewMono(mono, keys, args) =>
       val tys = args.map(inferTerm(_, Mode.Bound).ty)
-      if (mono.args.size != args.size)
-        error(s"Expected ${mono.args.size} arguments, but got $args", term)
-      args.zip(mono.args).foreach((a,ty) => checkTerm(a, ty, Mode.Bound))
+      if (mono.constructorParamTypes.size != args.size)
+        error(s"Expected ${mono.constructorParamTypes.size} arguments, but got $args", term)
+      args.zip(mono.constructorParamTypes).foreach((a, ty) => checkTerm(a, ty, Mode.Bound))
       mono.monoType(keys).bound
     case ReadMono(m) =>
       inferTerm(m, mode).ty match

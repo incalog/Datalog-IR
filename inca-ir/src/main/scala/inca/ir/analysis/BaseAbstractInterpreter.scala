@@ -3,6 +3,7 @@ package inca.ir.analysis
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.*
+import inca.ir.extension.impure.*
 
 trait EqOps[V, B]:
   def equ(v1: V, v2: V): B
@@ -83,6 +84,19 @@ trait BaseAbstractInterpreter[V, B]:
   val eqOps: EqOps[V, B]
 
   var env: Map[String, V] = Map()
+  var impureState: Map[ImpurityKind, V] = Map()
+
+  def evalImpure(imp: Impure): AtomResult =
+    val Impure(v, atoms, update, kind) = imp
+    val oldV = env.get(v.name)
+    env += v.name.name -> impureState(kind)
+    val results = atoms.foreach(evalAtom)
+    impureState += kind -> evalTerm(update).value
+    oldV match
+      case None => env -= v.name.name
+      case Some(old) => env += v.name.name -> old
+    ???
+
   def inScope[A](f: => A): A =
     val before = env
     try f

@@ -28,10 +28,11 @@ trait Lowering extends BaseLowering:
     val tm = mono.monoType(keys)
     Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}")
 
-  def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
-    val data = DataDefinition(monoDataType(tm).ref.name)
-    val cases = monos.map(mono =>
-      CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.args, TData(data.name))
+  def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): DataDefinition =
+    DataDefinition(monoDataType(tm).name,
+      monos.map { mono =>
+        CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.constructorParamTypes)
+      }
     )
     data +: cases
 
@@ -45,8 +46,8 @@ trait Lowering extends BaseLowering:
     val params = Seq(Param(Name("m"), TDemand(monoDataType(tm))), Param(Name("output"), tm.output))
     val bodies = monos.map { mono =>
       val constr = monoDataConstructor(mono, tm.keys)
-      val args = Var(Name("id")) +: Var(Name("name")) +: mono.args.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
-      val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
+      val args = Var(Name("id")) +: Var(Name("name")) +: mono.constructorParamTypes.zipWithIndex.map((_, ix) => Var(Name(s"arg_$ix")))
+      val destruct = Deconstruct(Var(Name("m")), constr, args.map(_.arg))
 
       val keyArgs = tm.keys.map(_ => WildcardArg())
       val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
@@ -73,9 +74,9 @@ trait Lowering extends BaseLowering:
     val collectRels = monoTypes.toSeq.map(createCollectingRelation)
     val aggregateRels = defsByType.map((tm, defs) => createAggregationRelation(tm, defs.toSeq.map(_._1))).toSeq
 
-    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
+//    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
     
-    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels ++ monoResultRels)
+    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels)
 
   override def visitType(ty: Type): Type = ty match
     case tm@TMono(in, out, keys) =>
@@ -90,7 +91,7 @@ trait Lowering extends BaseLowering:
       val dataConstr = monoDataConstructor(mono, keys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
-      val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name) +: args)
+      val constr = Construct(dataConstr, stVar +: StringLit(mono.name.name) +: args)
       val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
       val block = Block(imp, mVar)
       Seq(block)

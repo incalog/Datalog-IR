@@ -73,7 +73,7 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
 
   // Aggregation
 
-  def visitAggregationOperator(op: aggregate.AggregationOperator, ty: Type): aggregate.AggregationOperator = op
+  def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op
   
   def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono
   
@@ -92,6 +92,6 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
         case TermArg(t) => t
         case WildcardArg() => Var(gensym.freshName("_"))
       }.flatMap(visitTerm)
-      Seq(ScalaAggregationAtom(visitAggregationOperator(op, op.resultType), rel.name, outTerm, argTerms, aggColumnIndex))
+      Seq(ScalaAggregationAtom(visitAggregationOperator(op), rel.name, outTerm, argTerms, aggColumnIndex))
     case _ =>
       super.visitAtom(atom)

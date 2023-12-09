@@ -32,7 +32,8 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
   with ArithmeticAbstractInterpreter[Value, VBool]
   with DataAbstractInterpreter[Value, VBool]
   with StringAbstractInterpreter[Value, VBool]
-  with AggregateAbstractInterpreter[Value, VBool]:
+  with AggregateAbstractInterpreter[Value, VBool]
+  with ForeignAbstractInterpreter[Value, VBool]:
 
   override def top: Value = Value.Top
   override def topBool: VBool = VBool.Top

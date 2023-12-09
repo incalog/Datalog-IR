@@ -206,7 +206,9 @@ class GenerateIR {
     case BinOp(e1, "||", e2) => bool.BoolOr(compileExp(e1), compileExp(e2))
 
     case Lambda(vs, body) =>
-      irmap.MapFun(vs.map(p => ir.Param(p._1, compileType(p._2))), compileExp(body))
+      irmap.MapFun(
+        vs.map(p => ir.Param(p._1, compileType(p._2))),
+        compileExp(body))
 
     case Call(fun, Seq(), args) =>
       // function-value call

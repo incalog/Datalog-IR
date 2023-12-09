@@ -2,19 +2,22 @@ package inca.frontend.functional.foreign
 
 import inca.frontend.functional.compile.GenerateIR
 import inca.ir
-import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignLanguage}
+import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignLanguage, ForeignMonoDefinition}
 import inca.frontend.functional.syntax.*
 import inca.frontend.functional.typechecker.Typechecker
+import inca.ir.Name
+import inca.ir.extension.mono.MonoTypes
 
 object FunctionalInca extends ForeignLanguage:
-  type Code = FunctionDef
+  type Code = Expression
 
   def compileType(ty: Type): ir.Type =
     new GenerateIR().compileType(ty)
 
 // Idea:
 // The scala frontend must lower to the inca-foreign-scala IR, otherwise we get a dependency conflict again
-case class FunctionalIncaAggregationOperator(code: FunctionDef, init: Expression, op: Expression) extends ForeignAggregationOperator:
+case class FunctionalIncaAggregationOperator(code: FunctionDef, initCode: Expression, addCode: Expression) extends ForeignAggregationOperator:
+  override val name: Name = code.name
   override val lang: FunctionalInca.type = FunctionalInca
 
   val tfun@TFun(from, to) = code.funType
@@ -31,3 +34,8 @@ case class FunctionalIncaAggregationOperator(code: FunctionDef, init: Expression
       Some(s"Invalid argument of type ${in.head} for parameter of type $aggType")
     else
       None
+
+case class FunctionalIncaMonoDefinition(name: Name, initCode: Expression, addCode: Expression, resultCode: Expression, typ: MonoTypes) extends ForeignMonoDefinition:
+  override val lang: FunctionalInca.type = FunctionalInca
+  val constructorParamTypes: Seq[ir.Type] = Seq()
+  def resultTerm(state: ir.Term): ir.Term = throw new UnsupportedOperationException(s"Must be lowered first, e.g., to ForeignScala")
