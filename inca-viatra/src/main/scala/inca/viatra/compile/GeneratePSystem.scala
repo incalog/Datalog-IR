@@ -261,9 +261,9 @@ object GeneratePSystem:
       val stateTy: String = stScalaTy.name
 
       val code = s"""
-           | new inca.viatra.runtime.aggregate.MonoAggregation[$inTy, $stateTy] {
+           | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
            |   override val name: String = "$name"
-           |   override def init: Int = $initCode
+           |   override def init: $stateTy = $initCode
            |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
            | }.aggregator
            |""".stripMargin

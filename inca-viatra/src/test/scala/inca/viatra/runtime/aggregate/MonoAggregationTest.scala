@@ -213,7 +213,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   private val customMono = ScalaMonoDefinition(
     Name("addString"),
-    "0.0",
+    "0.0", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: Double, a: Int) => st + a",
     "(st: Double) => st.toString",
     Seq(),
@@ -232,10 +232,10 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(PureHint)
 
-  test("Test using user-defined mono definition") {
+  test("Test using user-defined mono definition 1") {
     val engine = compile(relationUserDefinedMono)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult("this is a string")(res.entries.head)
+    assertResult("0.0")(res.entries.head)
   }
 }

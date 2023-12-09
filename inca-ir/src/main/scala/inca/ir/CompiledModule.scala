@@ -58,12 +58,12 @@ trait CompiledModule:
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
+      val checker = typechecker
+      checker.checkModule(l)
+
       println(s"Lowering $i")
       println(l)
       println()
-
-      val checker = typechecker
-      checker.checkModule(l)
 
       /*println(s"Checked $i")
       println(l)
@@ -92,7 +92,7 @@ trait CompiledModule:
     //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
-    val checker = new IRTypechecker
+    val checker = typechecker
     checker.checkProgram(po)
     po
 
