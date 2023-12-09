@@ -47,8 +47,10 @@ trait Lowering extends BaseLowering:
     }
   }
 
+  def impKindsCollector: CollectImpurityKinds = new CollectImpurityKinds
+  
   override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-    val collector = new CollectImpurityKinds()
+    val collector = impKindsCollector
     collector.visitProgram(modules)
     impurities = collector.impurities.toSeq.sortBy(_.name)
     pureRelations = modules.flatMap(_.relations).flatMap {
