@@ -15,8 +15,11 @@ class ClonesTest extends AnyFunSuite {
 
   def performTest(expected: IRModule, input: IRModule): Unit = {
     val VN = new ValueNumbering
+    val typechecker = new Typechecker {}  // TODO move typechecker into ValueNumbering ?
+    typechecker.checkModule(input)
     println(s"before VN: \n$input")
     val result = VN.valueNumbering(input)
+    typechecker.checkModule(result)
     println(s"after VN: \n$result")
     assertResult(expected)(result)
   }
@@ -158,7 +161,8 @@ class ClonesTest extends AnyFunSuite {
             Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("H1")), Div(Mul(Var("Y"), Var("X")), IntNum(2))),
             Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
-            Eq(Var(Name("Z")), Sub(Var("H1"), Mul(Var("H2"), IntNum(3)))),
+            Eq(Var(Name("H3")), Sub(Var("H1"), Mul(Var("H2"), IntNum(3)))),
+            Eq(Var(Name("Z")), Sub(Var("H2"), Mul(IntNum(1), Add(IntNum(2), IntNum(3))))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))
@@ -173,7 +177,8 @@ class ClonesTest extends AnyFunSuite {
             //Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))),
             //Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
-            Eq(Var(Name("Z")), Sub(Var("H1"), Mul(Var("H1"), IntNum(3)))),
+            Eq(Var(Name("H3")), Sub(Var("H1"), Mul(Var("H1"), IntNum(3)))),
+            Eq(Var(Name("Z")), Sub(Var("H1"), Var(Name("X")))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))
@@ -279,6 +284,7 @@ class ClonesTest extends AnyFunSuite {
             Eq(Var(Name("C")), Var("B")),
             Eq(Var(Name("D")), Var("A")),
             Eq(Var(Name("C")), Var("D")),
+            Eq(Var(Name("E")), IntNum(1)),
             Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("C"))),
             Eq(Var(Name("param$1")), Var(Name("D")))
@@ -294,7 +300,8 @@ class ClonesTest extends AnyFunSuite {
 //            Eq(Var(Name("C")), Var("B")),
 //            Eq(Var(Name("D")), Var("A")),
 //            Eq(Var(Name("C")), Var("D")),
-//            Eq(Var(Name("C")), Var("E")),   // TODO remove since E is equal to C but does this fix errors if E wasnt bound before? (but probably typechecked before)
+//            Eq(Var(Name("E")), IntNum(1)),
+//            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("A")))
           ))
@@ -338,40 +345,6 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq with Gt, Lt & Neq") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), Add(Var(Name("Y")),IntNum(1))),
-            LT(Var(Name("H1")), Add(Var(Name("Y")),IntNum(1))), // TODO would var be bound before?
-            GT(Var(Name("H2")), Add(Var(Name("Y")),IntNum(1))),
-            Eq(Var(Name("Y")), Var(Name("H1")), true),
-            LT(Var(Name("Y")), Add(Var(Name("X")),IntNum(1))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), Add(Var(Name("Y")),IntNum(1))),
-            LT(Var(Name("H1")), Var(Name("Y"))),
-            GT(Var(Name("H2")), Var(Name("Y"))),
-            Eq(Var(Name("Y")), Var(Name("H1")), true),
-            LT(Var(Name("Y")), Add(Var(Name("X")),IntNum(1))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
-          ))
-        ))
-      ))
-    performTest(expected,input)
-  }
-
   test("Redundant Expr in LT") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -379,7 +352,9 @@ class ClonesTest extends AnyFunSuite {
           Body(Seq(
             Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
             Eq(Var(Name("Y")), Add(IntNum(2), IntNum(1))),
-            LT(Var(Name("Z")), Add(IntNum(2), IntNum(1))),  // TODO replace this too?
+            Eq(Var(Name("Z")), Mul(IntNum(2), IntNum(1))),
+            LT(Var(Name("Z")), Add(IntNum(2), IntNum(1))),
+            LT(Mul(IntNum(2), IntNum(1)), Add(IntNum(2), IntNum(1))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y")))
           ))
@@ -391,13 +366,147 @@ class ClonesTest extends AnyFunSuite {
           Body(Seq(
             Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
             //Eq(Var(Name("Y")), Add(IntNum(2), IntNum(1))),
+            Eq(Var(Name("Z")), Mul(IntNum(2), IntNum(1))),
+            LT(Var(Name("Z")), Var(Name("X"))),
             LT(Var(Name("Z")), Var(Name("X"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X")))
           ))
         ))
       ))
+    performTest(expected, input)
+  }
+
+  test("Redundant Expr in Eq with GE, LE, LT & Neq") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("Y")), Add(Var(Name("X")),IntNum(1))),
+            Eq(Var(Name("Z")), IntNum(1)),
+            Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
+            Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(2))),
+            LT(Var(Name("H1")), Add(Var(Name("X")),IntNum(1))), // would var be bound before? -> typechecker says yes
+            GE(Mul(Var(Name("X")),IntNum(1)), Var(Name("H1"))),
+            Eq(Var(Name("Y")), Var(Name("Z")), true),
+            Eq(Mul(Var(Name("X")), IntNum(2)), Var(Name("H1")), true),
+            Eq(Var(Name("X")), Div(Var(Name("X")), IntNum(2)), true),
+            LE(Var(Name("Y")), Add(Var(Name("X")),IntNum(1))),     // this is redundant...
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("Y")), Add(Var(Name("X")), IntNum(1))),
+//            Eq(Var(Name("Z")), IntNum(1)),
+            Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
+            Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(2))),
+            LT(Var(Name("H1")), Var(Name("Y"))),
+            GE(Mul(Var(Name("X")), IntNum(1)), Var(Name("H1"))),
+            Eq(Var(Name("Y")), Var(Name("X")), true),
+            Eq(Var(Name("H2")), Var(Name("H1")), true),
+            Eq(Var(Name("X")), Var(Name("H1")), true),
+            LE(Var(Name("Y")), Var(Name("Y"))),             // this is redundant...
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        ))
+      ))
     performTest(expected,input)
+  }
+
+  test("comparison that should not be removed") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+            Eq(Var(Name("Z")), Add(IntNum(2), IntNum(1))),
+            Eq(Var("Y"), Var("Z")),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+//            Eq(Var(Name("Z")), Var(Name("X"))),
+            Eq(Var("Y"), Var("X")),     // TODO this gets removed but should stay since it makes relation empty
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("X")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Call replace Args") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("C")), Var(Name("B"))),
+            Call(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("B"))), TermArg(Var(Name("C")))), false),
+            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("B"))), TermArg(Var(Name("B")))), false),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("C")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
+//            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+//            Eq(Var(Name("C")), Var(Name("B"))),
+            Call(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("A"))), TermArg(Var(Name("A")))), false),
+            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("A"))), TermArg(Var(Name("A")))), false),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
 
   test("Simple Redundant Expr bound in Call") {
@@ -452,7 +561,7 @@ class ClonesTest extends AnyFunSuite {
         Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$0")), IntNum(5))
+            Eq(Var(Name("param$1")), IntNum(5))
           ))
         ))
       ))
