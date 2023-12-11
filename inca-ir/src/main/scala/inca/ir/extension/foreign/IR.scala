@@ -3,6 +3,7 @@ package inca.ir.extension.foreign
 import inca.ir.extension.aggregate.AggregationOperatorUserDefined
 import inca.ir.extension.mono.UserDefinedMonoDefinition
 import inca.ir.{Atom, BaseIR, Language, ModuleEntry, Name, Term, Type, Var}
+import inca.ir.visitors.BaseIRVisitor
 
 object IR extends IR { }
 trait IR extends BaseIR:
@@ -31,6 +32,7 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   
   def inTypes: Seq[Type]
   def outTypes: Seq[Type]
+  def visitor: BaseIRVisitor
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
 

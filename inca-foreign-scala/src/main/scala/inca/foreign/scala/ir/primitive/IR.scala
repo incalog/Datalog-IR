@@ -9,6 +9,8 @@ import inca.ir.extension.string.TString
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes, ArithmeticMonoDefinition as ArithMonoDef}
 import inca.ir.extension.block.Block
+import inca.ir.visitors.BaseIRVisitor
+import inca.foreign.scala.visitors.ScalaVisitor
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -45,6 +47,7 @@ case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolea
     ScalaInca.compileType(tty)
   }
   override def outTypes: Seq[ScalaType] = Seq(ty)
+  override def visitor: BaseIRVisitor = new ScalaVisitor {}
   override def toString: String =
     if (isApp)
       s"""`($code)(${args.mkString(", ")})`"""
@@ -59,6 +62,7 @@ case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Se
   override def inTypes: Seq[ScalaType] = Seq()
   override def outTypes: Seq[ScalaType] = Seq(ty)
   override def toString: String = s"`$code`"
+  override def visitor: BaseIRVisitor = new ScalaVisitor {}
 
 object ScalaConstantTerm:
   val TRUE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)

@@ -41,15 +41,13 @@ object CompiledMonoModule:
   trait ScalaImpKindsCollector extends CollectImpurityKinds with ScalaVisitor
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new Lowering {},
-    () => new impure.Lowering with ScalaVisitor {
-      override def impKindsCollector: CollectImpurityKinds = new ScalaImpKindsCollector {}
-    },
-    () => new aggregateset.Lowering with ScalaVisitor {},
-    () => new set.Lowering with ScalaVisitor {},
-    () => new bool.Lowering with ScalaVisitor {},
-    () => new block.Lowering with ScalaVisitor {},
-    () => new disjunction.Lowering with ScalaVisitor {},
-    () => new not.Lowering with ScalaVisitor {},
-    () => new demand.Lowering with ScalaVisitor {},
-    () => new tuple.Lowering with ScalaVisitor {},
+    () => new impure.Lowering {},
+    () => new aggregateset.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
   ) // arith + string + data
