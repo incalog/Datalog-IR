@@ -101,3 +101,6 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
   try compiled.checked
   finally println(module)
+
+  println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
+  println(compiled.lowered)
