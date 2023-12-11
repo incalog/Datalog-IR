@@ -146,8 +146,14 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     case Cast(t, ty) =>
       checkType(ty)
-      val TermType(tty, m) = inferTerm(t, mode)
-      assignType(t)(TermType(tty, m))
+      val m = withErrors(inferTerm(t, mode)) match
+        case (tt, Nil) => tt.mode
+        case (tt,errsInfer) =>
+          withErrors(checkTerm(t, ty, mode)) match
+            case (m, Nil) => m
+            case (_,errsCheck) =>
+              errsInfer.foreach(e => error(e.msg, e.sourceLocations:_*))
+              tt.mode
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 

@@ -150,6 +150,8 @@ trait Lowering extends BaseLowering:
           Eq(TupleLit.make(inputs), Var(keyVar)) +:
           terms.map(Eq(_, Var(valVar)))
       Seq(callAddConstructor(term, mapEnum))
+    case MapPlus(map, key, value) =>
+      ???
     case MapUnion(t1, t2) =>
       val (keyTy1, valTy1) = keyValType(t1)
       val (keyTy2, valTy2) = keyValType(t2)
@@ -190,41 +192,17 @@ trait Lowering extends BaseLowering:
         Call(relNameOf(keyTy, valTy), Seq(m.arg, keyTerm.arg, Var(valVar).arg))
       }
       Seq(block.Block(atoms, Var(valVar)))
-
-
-    //    case SetIntersection(t1, t2) =>
-//      val Seq(s1) = visitTerm(t1)
-//      val memTy1 = keyValType(t1)
-//      val Seq(s2) = visitTerm(t2)
-//      val memTy2 = keyValType(t2)
-//      val setEnum = new MapEnum:
-//        override def apply(elemVar: Name): Seq[Atom] = Seq(
-//          Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg)),
-//          Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg))
-//        )
-//      Seq(callAddConstructor(term, setEnum))
-//    case SetComprehension(build, atoms) =>
-//      val ats = atoms.flatMap(visitAtom)
-//      val ts = visitTerm(build)
-//      val setEnum = new MapEnum:
-//        override def apply(elemVar: Name): Seq[Atom] =
-//          ats :+ Eq(TupleLit.make(ts), Var(elemVar))
-//      Seq(callAddConstructor(term, setEnum))
+    case MapComprehension(key, value, atoms) =>
+      ???
     case _ => super.visitTerm(term)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-//    case SetMember(elemTerm, setTerm) => preserveHints(atom) {
-//      val Seq(s) = visitTerm(setTerm)
-//      val memTy = keyValType(setTerm)
-//      val ts = visitTerm(elemTerm)
-//      ts.map(elem => Call(relNameOf(memTy), Seq(s.arg, elem.arg)))
-//    }
+    case MapContains(map, key) =>
+      val (keyTy, valTy) = keyValType(map)
+      val Seq(m) = visitTerm(map)
+      val atoms = visitTerm(key).map { keyTerm =>
+        Call(relNameOf(keyTy, valTy), Seq(m.arg, keyTerm.arg, WildcardArg()), neg = true)
+      }
+      atoms
     case _ => super.visitAtom(atom)
-
-/**
-
- def test(): Set[Any] =
-   {1,2,3}
-
-*/
