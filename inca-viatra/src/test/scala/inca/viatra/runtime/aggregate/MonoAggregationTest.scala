@@ -59,6 +59,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relation1)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
+    assert(res.nonEmpty)
     assertResult(0)(res.entries.head)
   }
 
@@ -210,29 +211,13 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     assertResult((5, 1))(res.entries.head)
   }
 
-  val addStringMonoCode: String =
-    """
-      |new inca.viatra.runtime.aggregate.MonoAggregation[Double, Int] {
-      |  override val name: String = "SumStringMono"
-      |  override def init: Double = 0.0
-      |  override def add(st: Double, a: Int): Double = st + a
-      |}.aggregator
-      |""".stripMargin
-
-
-
   private val customMono = ScalaMonoDefinition(
-    "addString",
-    addStringMonoCode,
+    Name("addString"),
+    "0.0", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
+    "(st: Double, a: Int) => st + a",
+    "(st: Double) => st.toString",
     Seq(),
-    MonoTypes(TInt, TDouble, TString),
-    Relation(
-      "result",
-      Seq(Param("state", TDemand(TDouble)), Param("output", TString)),
-      Seq(Body(Seq(
-        Eq(Var("output"), StringLit("this is a string"))
-      )))
-    ),
+    MonoTypes(TInt, TDouble, TString)
   )
 
   private lazy val relationUserDefinedMono: Relation = Relation(
@@ -247,10 +232,10 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(PureHint)
 
-  test("Test using user-defined mono definition") {
+  test("Test using user-defined mono definition 1") {
     val engine = compile(relationUserDefinedMono)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult("this is a string")(res.entries.head)
+    assertResult("0.0")(res.entries.head)
   }
 }

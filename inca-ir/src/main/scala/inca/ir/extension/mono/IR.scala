@@ -2,10 +2,8 @@ package inca.ir.extension.mono
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.{TDouble, TInt}
-import inca.ir.extension.block.Block
-import inca.ir.extension.demand.TDemand
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.extension.tuple.{TupleLit, TTuple}
+import inca.ir.extension.tuple.{TTuple, TupleLit}
 
 trait IR extends BaseIR:
   override val name: String = "Mono"
@@ -33,13 +31,10 @@ case class WriteMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
 case class MonoTypes(in: Type, state: Type, out: Type)
 
 trait MonoDefinition:
-  def name: String
-  def args: Seq[Type]
+  def name: Name
+  def constructorParamTypes: Seq[Type]
   def typ: MonoTypes
-  def resultRelation: Relation
-  def resultTerm(state: Term): Term =
-    val callAtom = Call(resultRelation.name, Seq(Var(Name("state")), Var(Name("output"))))
-    Block(callAtom, Var(Name("output")))
+  def resultTerm(state: Term): Term
   def monoType(keys: Seq[Type]): TMono =
     val MonoTypes(input, _, output) = typ
     TMono(input, output, keys)
@@ -56,10 +51,10 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
   case Count
   case CountFrom
   case SumToPair
-  
-  override def name: String = this.toString
 
-  override def args: Seq[Type] = this match
+  override def name: Name = Name(this.toString)
+
+  override def constructorParamTypes: Seq[Type] = this match
     case CountFrom | Min => Seq(TInt)
     case _ => Seq()
   override def typ: MonoTypes = this match
@@ -67,19 +62,7 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
     case Count | CountFrom => MonoTypes(TAny, TInt, TInt)
     case SumDouble | MaxDouble => MonoTypes(TDouble, TDouble, TDouble)
     case SumToPair => MonoTypes(TInt, TInt, TTuple(Seq(TInt, TString)))
-  private def createResultRel(body: Body): Relation =
-    Relation(
-      Name(this.name ++ "$Result"),
-      Seq(Param(Name("state"), TDemand(typ.state)), Param(Name("output"), typ.out)),
-      Seq(body)
-    )
-  override def resultRelation: Relation = this match
-    case MaxInt | MaxDouble | Min | SumInt | SumDouble | Count | CountFrom =>
-      val body = Body(Seq(Eq(Var(Name("state")), Var(Name("output")))))
-      createResultRel(body)
-    case SumToPair =>
-      val body = Body(Seq(
-        Eq(Var(Name("output")), TupleLit(Seq(Var(Name("state")), StringLit("This is the sum of aggregands")))))
-      )
-      createResultRel(body)
+  override def resultTerm(state: Term): Term = this match
+    case MaxInt | MaxDouble | Min | SumInt | SumDouble | Count | CountFrom => state
+    case SumToPair => TupleLit(Seq(state, StringLit("this should be a string")))
 

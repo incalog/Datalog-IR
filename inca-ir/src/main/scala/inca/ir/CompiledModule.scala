@@ -30,8 +30,14 @@ trait CompiledModule:
       throw CompiledModule.Failed(this, es)
   }
 
+  protected def typechecker: BaseIRTypechecker = new IRTypechecker
+
+  protected def printStatistics(module: Module, str: String): Unit =
+    StatisticsCollector.printStatistics(module, str)
+
   lazy val checked: Module =
-    val checker = new IRTypechecker
+    val checker = typechecker
+    println(ir)
     checker.checkModule(ir)
     ir
 
@@ -55,12 +61,12 @@ trait CompiledModule:
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
+      val checker = typechecker
+      checker.checkModule(l)
+
       println(s"Lowering $i")
       println(l)
       println()
-
-      val checker = new IRTypechecker()
-      checker.checkModule(l)
 
       /*println(s"Checked $i")
       println(l)
@@ -69,11 +75,11 @@ trait CompiledModule:
       l
     }
 
-    StatisticsCollector.printStatistics(l, s"before optimization")
+    printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
-    StatisticsCollector.printStatistics(p1.head, s"after optimization 1")
+    printStatistics(p1.head, s"after optimization 1")
     val p2 = optimize(p1)
-    StatisticsCollector.printStatistics(p2.head, s"after optimization 2")
+    printStatistics(p2.head, s"after optimization 2")
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
@@ -89,7 +95,7 @@ trait CompiledModule:
     //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
-    val checker = new IRTypechecker
+    val checker = typechecker
     checker.checkProgram(po)
     po
 

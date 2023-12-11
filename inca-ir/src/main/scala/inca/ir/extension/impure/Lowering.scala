@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
-import inca.ir.visitors.IRVisitor
+import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
 
@@ -47,8 +47,10 @@ trait Lowering extends BaseLowering:
     }
   }
 
+  def impKindsCollector: CollectImpurityKinds = new CollectImpurityKinds
+  
   override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-    val collector = new CollectImpurityKinds()
+    val collector = impKindsCollector
     collector.visitProgram(modules)
     impurities = collector.impurities.toSeq.sortBy(_.name)
     pureRelations = modules.flatMap(_.relations).flatMap {

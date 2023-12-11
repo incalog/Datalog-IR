@@ -188,6 +188,7 @@ trait BaseAbstractInterpreter[V, B]:
       // FIXME: Is this correct ? See above
       TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
+    case _ => TermResult(top, topBool)
 
 //trait BoolOps[V]:
 //  def and(v1: V, v2: V): V

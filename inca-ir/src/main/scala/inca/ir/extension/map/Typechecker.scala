@@ -43,7 +43,11 @@ trait Typechecker extends BaseIRTypechecker{
       val TermType(valTy, valMode) = inferTerm(valTerm, mode)
       TermType(TMap(keyTy, valTy), valMode)
     }
-
+    case MapPlus(map, key, value) =>
+      val (TMap(keyTy, valTy), m): (TMap, Mode) = inferMapTerm(map, Mode.Bound)
+      checkTerm(key, keyTy, Mode.Bound)
+      checkTerm(value, valTy, Mode.Bound)
+      TermType(TMap(keyTy, valTy), Mode.Bound)
     case MapUnion(t1, t2) =>
       val tyMap = inferMapTerm(t1, Mode.Bound)._1
       checkTerm(t2, tyMap, Mode.Bound)
@@ -67,10 +71,6 @@ trait Typechecker extends BaseIRTypechecker{
     case MapContains(map, key) =>
       val TMap(tyK, _) = inferMapTerm(map, Mode.Bound)._1
       checkTerm(key, tyK, Mode.Bound)
-    case MapAddEntry(map, key, value) =>
-      val (TMap(k, v), m): (TMap, Mode) = inferMapTerm(map, Mode.Bound)
-      checkTerm(key, k, Mode.Bound)
-      checkTerm(value, v, Mode.Bound)
     case _ => super.checkAtom(atom, mode)
 
   private def inferMapTerm(t: Term, mode: Mode): (TMap, Mode) = inferTerm(t, mode) match

@@ -19,6 +19,8 @@ trait Visitor extends BaseIRVisitor:
       Seq(term)
     case MapFun(params, valTerm) =>
       visitTerm(valTerm).map(MapFun(params.flatMap(visitParam), _))
+    case MapPlus(map, key, value) =>
+      visitTerm(map) zip visitTerm(key) zip visitTerm(value) map { case ((a, b), c) => MapPlus(a, b, c) }
     case MapUnion(t1, t2) =>
       visitTerm(t1).zip(visitTerm(t2)).map(MapUnion.apply)
     case MapConcat(t1, t2) =>
@@ -31,8 +33,6 @@ trait Visitor extends BaseIRVisitor:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
-    case MapAddEntry(map, key, value) =>
-      visitTerm(map) zip visitTerm(key) zip visitTerm(value) map { case ((a, b), c) => MapAddEntry(a, b, c) }
     case MapContains(map, key) => visitTerm(map).zip(visitTerm(key)).map(MapContains.apply)
     case _ => super.visitAtom(atom)
   }

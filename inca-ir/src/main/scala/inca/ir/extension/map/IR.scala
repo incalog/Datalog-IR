@@ -29,6 +29,10 @@ case class MapFun(params: Seq[Param], valTerm: Term) extends Term:
   override def toString: String =
     s"MapFun(${params.mkString(", ")} => $valTerm)"
 
+case class MapPlus(map: Term, key: Term, value: Term) extends Term:
+  override def toString: String = s"$map += $key -> $value"
+  override def vars: Seq[Var] = map.vars ++ key.vars ++ value.vars
+
 case class MapUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = s"$t1 ∪ $t2"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
@@ -44,11 +48,6 @@ case class MapComprehension(key: Term, value: Term, atoms: Seq[Atom]) extends Te
 case class MapLookUp(map: Term, key: Term) extends Term:
   override def toString: String = s"$map($key)"
   override def vars: Seq[Var] = map.vars ++ key.vars
-
-// TODO should be a Term
-case class MapAddEntry(map: Term, key: Term, value: Term) extends Atom:
-  override def toString: String = s"$map += $key -> $value"
-  override def vars: Seq[Var] = map.vars ++ key.vars ++ value.vars
   
 case class MapContains(map: Term, key: Term) extends Atom:
   override def toString: String = s"$key in $map"

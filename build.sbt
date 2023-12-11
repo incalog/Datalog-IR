@@ -23,6 +23,7 @@ lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_viatra % "test->test")
   .dependsOn(inca_souffle % "test->test")
+  .dependsOn(inca_foreign_scala % "compile->compile")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
     scalaVersion := "3.3.0",
@@ -56,7 +57,7 @@ lazy val inca_oodl = (project in file("inca-oodl"))
 
 lazy val inca_datalog = (project in file("inca-datalog"))
   .dependsOn(inca_ir % "compile->compile")
-  .dependsOn(inca_viatra % "test->test")
+  .dependsOn(inca_viatra % "compile->compile; test->test")
   .dependsOn(inca_souffle % "test->test")
   .settings(
     scalaVersion := "3.3.0",
