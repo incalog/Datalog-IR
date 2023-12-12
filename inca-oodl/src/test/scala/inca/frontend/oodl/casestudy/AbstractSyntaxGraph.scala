@@ -213,7 +213,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
-        Eq(v("endNode"), IntNum(100)),
+        Eq(v("endNode"), IntNum(50)),
         Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Call("edgesDefs", Seq(v("defs"), v("from"), v("to")))
@@ -255,7 +255,15 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   test("AbstractSyntaxGraph can be run") {
     val engine = inca.viatra.Executor.instantiate(compiled)
 //    engine.readAll().foreach(r => println(r.asTable))
-    val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-    println(relation.asTable)
+    for (i <- 0 until 5) {
+      val engine = inca.viatra.Executor.instantiate(compiled)
+      val start = System.currentTimeMillis()
+      val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      val end = System.currentTimeMillis()
+      println(s"Execution time ${end - start}ms")
+      println(relation.asTable)
+    }
+    ()
   }
 
+  

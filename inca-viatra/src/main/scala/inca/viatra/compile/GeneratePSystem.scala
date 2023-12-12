@@ -109,9 +109,9 @@ object GeneratePSystem:
     //val relations = getProductiveRelations(mod)
     val relations = mod.relations
 
-    println()
-    println(mod)
-    println()
+//    println()
+//    println(mod)
+//    println()
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList

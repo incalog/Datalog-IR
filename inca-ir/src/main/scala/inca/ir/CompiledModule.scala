@@ -63,9 +63,9 @@ trait CompiledModule:
       val checker = typechecker
       checker.checkModule(l)
 
-      println(s"Lowering $i")
-      println(l)
-      println()
+//      println(s"Lowering $i")
+//      println(l)
+//      println()
 
       /*println(s"Checked $i")
       println(l)
@@ -74,11 +74,11 @@ trait CompiledModule:
       l
     }
 
-    printStatistics(l, s"before optimization")
-    val p1 = optimize(Seq(l))
-    printStatistics(p1.head, s"after optimization 1")
-    val p2 = optimize(p1)
-    printStatistics(p2.head, s"after optimization 2")
+//    printStatistics(l, s"before optimization")
+//    val p1 = optimize(Seq(l))
+//    printStatistics(p1.head, s"after optimization 1")
+//    val p2 = optimize(p1)
+//    printStatistics(p2.head, s"after optimization 2")
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()

@@ -59,7 +59,7 @@ class ScalaCompiler {
          |  }
          |}""".stripMargin
 
-    println(prog)
+//    println(prog)
 
     val outputDirectory = VirtualDirectory("(memory)")
     compileCode(prog, List() /*files.map(f => AbstractFile.getFile(f.toURI.toURL.getPath)).toList*/ , outputDirectory)
