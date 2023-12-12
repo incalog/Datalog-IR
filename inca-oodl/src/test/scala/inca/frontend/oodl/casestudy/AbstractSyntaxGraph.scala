@@ -254,8 +254,8 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
 
   test("AbstractSyntaxGraph can be run") {
     val engine = inca.viatra.Executor.instantiate(compiled)
-    engine.readAll().foreach(r => println(r.asTable))
-//    val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//    println(relation.asTable)
+//    engine.readAll().foreach(r => println(r.asTable))
+    val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(relation.asTable)
   }
 
