@@ -36,5 +36,5 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
     case _ => super.visitType(ty))
 
   override def negateAtom(atom: Atom): Atom = atom match
-    case Deconstruct(t, caseName, args, neg) => Deconstruct(t, caseName, args, !neg)
+    case Deconstruct(t, caseName, args, neg) => Deconstruct(t, caseName, args.flatMap(visitArg), !neg)
     case _ => super.negateAtom(atom)

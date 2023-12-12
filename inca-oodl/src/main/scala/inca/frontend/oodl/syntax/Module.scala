@@ -118,7 +118,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val paramsS = params.map(_.prettyprint).mkString("(" , ", ", ")")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    s"""$annoPrefix$indent${visS}def $name$tyS$paramsS: $outS = {
+    s"""$indent$annoPrefix${visS}def $name$tyS$paramsS: $outS = {
        |$bodyS
        |$indent}""".stripMargin
   }
@@ -130,7 +130,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
-    s"""$annoPrefix$indent${visS}this($paramsS) = {
+    s"""$indent$annoPrefix${visS}this($paramsS) = {
        |$bodyS
        |$indent}""".stripMargin
   }

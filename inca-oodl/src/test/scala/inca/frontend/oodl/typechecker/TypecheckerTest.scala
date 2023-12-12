@@ -13,7 +13,7 @@ import scala.io.Source
 
 class TypecheckerTest extends AnyFunSuite {
 
-  val uri = classOf[TypecheckerTest].getResource("/objectoriented").toURI;
+  val uri = classOf[TypecheckerTest].getResource("/objectoriented").toURI
 
   def testTypecheck(code: String): Unit =
     val checker = new Typechecker
@@ -40,10 +40,7 @@ class TypecheckerTest extends AnyFunSuite {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")
           file.close()
-          if (sourceCode.contains("fold("))
-            println(s"Skipping file with 'fold'")
-          else
-            testTypecheck(sourceCode)
+          testTypecheck(sourceCode)
         }
       }
       FileVisitResult.CONTINUE

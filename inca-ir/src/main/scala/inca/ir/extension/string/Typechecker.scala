@@ -12,6 +12,9 @@ trait Typechecker extends BaseIRTypechecker:
       case (ty1, ty2) =>
         error(s"Ill-typed string concatentation $term with operand types $ty1 and $ty2", term)
         TString.bound
+    case ToString(t) =>
+      inferTerm(t, Mode.Bound).ty
+      TString.bound
     case _ => super.inferTermExtend(term, mode)
 
   override def checkType(ty: Type): Unit = ty match

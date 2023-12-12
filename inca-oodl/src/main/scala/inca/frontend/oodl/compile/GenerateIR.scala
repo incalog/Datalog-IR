@@ -564,20 +564,27 @@ class GenerateIR:
       block.Block(Seq(demandSet, agg), ir.Var(aggResult))
 
     case methodCall@MethodCall(recv, fun, _, args, isFix) =>
-      val (_, methodDef) = methodCall.target match
-        case Some((c, m)) => (c, m)
-        case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
-      val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"
-      val dispatchName = s"dispatch$$$qualifiedMethodName"
-      val srcClsVar = ir.Var(gensym.fresh("C"))
-      val trgClsVar = ir.Var(gensym.fresh("D"))
-      val recvTerm = compileExpression(recv)
-      val resultVar = ir.Var(gensym.fresh("return$"))
-      block.Block(Seq(
-        matchRuntimeType(recvTerm, srcClsVar),
-        ir.Call(dispatchName, Seq(srcClsVar.arg, trgClsVar.arg)),
-        ir.Call(qualifiedMethodName, trgClsVar.arg +: (compileExpression(recv).arg +: args.map(compileExpression).map(_.arg)) :+ resultVar.arg)
-      ), resultVar)
+      recv.typ match
+        case Some(t: TName) if t.isBuiltIn =>
+          fun.name match
+            case "toString" => irstring.ToString(compileExpression(recv))
+            case _ => throw IllegalStateException(s"Can not compile builtin method $fun on primitive $recv")
+        case Some(t: TName) =>
+          val (_, methodDef) = methodCall.target match
+            case Some((c, m)) => (c, m)
+            case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
+          val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"
+          val dispatchName = s"dispatch$$$qualifiedMethodName"
+          val srcClsVar = ir.Var(gensym.fresh("C"))
+          val trgClsVar = ir.Var(gensym.fresh("D"))
+          val recvTerm = compileExpression(recv)
+          val resultVar = ir.Var(gensym.fresh("return$"))
+          block.Block(Seq(
+            matchRuntimeType(recvTerm, srcClsVar),
+            ir.Call(dispatchName, Seq(srcClsVar.arg, trgClsVar.arg)),
+            ir.Call(qualifiedMethodName, trgClsVar.arg +: (compileExpression(recv).arg +: args.map(compileExpression).map(_.arg)) :+ resultVar.arg)
+          ), resultVar)
+        case _ => throw IllegalStateException(s"Can not compile method $fun on object $recv")
     case TypeCast(recv, toTyp: TName) if toTyp.isBuiltIn =>
       throw IllegalStateException(s"Can not typecast to builtin type $toTyp")
     case TypeCast(recv, toTyp: TName) =>

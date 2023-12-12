@@ -27,6 +27,10 @@ trait ScalaLowering extends BaseScalaLowering:
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not concat types $lty and $rty")
         }
+      case ToString(term) =>
+        visitTerm(term).map { t =>
+          ScalaTerm(s"(s: Any) => s.toString", ScalaType.string, Seq(t))
+        }
       case _ =>
         super.visitTerm(term)
   }
