@@ -1,7 +1,9 @@
 package inca.base
 
 import inca.ir.extension.arithmetic
+import inca.ir.extension.string
 import inca.ir.extension.arithmetic.{IntNum, TInt}
+import inca.ir.extension.string.{TString, ToString}
 import inca.ir.{Body, Call, Eq, Language, Module, Param, Relation, Var, execution, string2name}
 import inca.util.{FileUtil, ScalaCompiler}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
@@ -55,22 +57,22 @@ class BaseTest extends AnyFunSuiteLike:
   }*/
 
   test("Test path") {
-    val mod = Module("Path", Language(arithmetic.IR), Seq(
-      Relation("edge", Seq(Param("x", TInt), Param("y", TInt)), Seq(
+    val mod = Module("Path", Language(arithmetic.IR, string.IR), Seq(
+      Relation("edge", Seq(Param("x", TString), Param("y", TString)), Seq(
         Body(Seq(
-          Eq(Var("x"), IntNum(1)),
-          Eq(Var("y"), IntNum(2))
+          Eq(Var("x"), ToString(IntNum(1))),
+          Eq(Var("y"), ToString(IntNum(2)))
         )),
         Body(Seq(
-          Eq(Var("x"), IntNum(2)),
-          Eq(Var("y"), IntNum(3))
+          Eq(Var("x"), ToString(IntNum(2))),
+          Eq(Var("y"), ToString(IntNum(3)))
         )),
         Body(Seq(
-          Eq(Var("x"), IntNum(3)),
-          Eq(Var("y"), IntNum(4))
+          Eq(Var("x"), ToString(IntNum(3))),
+          Eq(Var("y"), ToString(IntNum(4)))
         ))
       )),
-      Relation("path", Seq(Param("x", TInt), Param("y", TInt)), Seq(
+      Relation("path", Seq(Param("x", TString), Param("y", TString)), Seq(
         Body(
           Seq(
             Call("edge", Seq(Var("x"), Var("y")))

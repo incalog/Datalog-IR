@@ -221,9 +221,14 @@ class Typechecker extends TypeContext with TypeIO:
         term.typed(inferred)
         inferred
     val a = expected match
-      case Some(ty) if ty != inferred =>
-        term.casted(ty)
-        ty
+      case Some(ty) =>
+        resolveNamedType(ty)
+        resolveNamedType(inferred)
+        if (subtype(ty, inferred))
+          term.casted(ty)
+          ty
+        else
+          inferred
       case _ =>
         inferred
     a
@@ -348,11 +353,11 @@ class Typechecker extends TypeContext with TypeIO:
   /** Statements */
 
   def typecheck(statements: Seq[Statement], rt: Type, allowImmutableFieldAssignment: Boolean = false)(implicit classDef: Option[ClassDef]): Unit =
-    statements.foreach(typecheck(_, rt, allowImmutableFieldAssignment))
+    statements.foreach(s => typecheck(s, rt, allowImmutableFieldAssignment))
 
   def typecheck(statement: Statement, rt: Type, allowImmutableFieldAssignment: Boolean)(implicit classDef: Option[ClassDef]): Unit = statement match {
     case Expr(expression) =>
-      typecheckExp(expression, rt)
+      typecheckExp(expression, None)
     case Return(expression) =>
       val outTyp = typecheckExp(expression, rt)
       assertSubtype(outTyp, rt, statement)
@@ -444,12 +449,12 @@ class Typechecker extends TypeContext with TypeIO:
         case ty => error(s"Unexpected receiver target '$recv' of type '$ty' for operator '+='", recv, statement)
     case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
       scopedTypeContext {
-        typecheck(ifStmt.thn, TAny)
+        typecheck(ifStmt.thn, rt)
         if (lookupVar(thnName).isEmpty)
           error(s"Name $thnName is not defined for VarPhiAssign", phiStmt)
       }
       scopedTypeContext {
-        typecheck(ifStmt.els, TAny)
+        typecheck(ifStmt.els, rt)
         if (lookupVar(elsName).isEmpty)
           error(s"Name $elsName is not defined for VarPhiAssign", phiStmt)
       }
@@ -469,6 +474,7 @@ class Typechecker extends TypeContext with TypeIO:
     case BoolLit(b) => TBoolean
     case StringLit(s) => TString
     case NullLit() => TNull
+    case TupleExp(exps) if exps.isEmpty => TUnit
     case TupleExp(exps) => TTuple(exps.map(typecheckExp(_, None)))
     case UnOp("-", e) =>
       val eTy = typecheckExp(e, None)
@@ -636,7 +642,16 @@ class Typechecker extends TypeContext with TypeIO:
 
     case methodCallExpr@MethodCall(recv, fun, tyArgs, args, isFix) =>
       typecheckExp(recv, None) match
-        case t: TName =>
+        case t: TName if t.isBuiltIn && (t.name.name == "Int" || t.name.name == "Double") =>
+          fun match
+            case Name("toString") =>
+              if (args.nonEmpty)
+                error(s"Expected 0 arguments, but got ${args.size}", expression)
+              TString
+            case _ =>
+              error(s"Unsupported function $fun on primitive type", expression)
+              TAny
+        case t: TName if !t.isBuiltIn =>
           val argTys = args.map(typecheckExp(_, None))
           t.target match
             case Some(cls: ClassDef) => lookupMethod(cls, fun, argTys) match

@@ -15,6 +15,10 @@ case class StringConcat(lhs: Term, rhs: Term) extends Term:
   override def toString: String = s"$lhs + $rhs"
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
+case class ToString(t: Term) extends Term:
+  override def toString: String = s"$t.toString"
+  override def vars: Seq[Var] = t.vars
+
 object IR extends IR { }
 trait IR extends BaseIR:
   override val name: String = "String"

@@ -53,7 +53,7 @@ trait BaseIRVisitor:
 
   def visitArg(arg: Arg): Seq[Arg] = arg match
     case TermArg(t) => visitTerm(t).map(TermArg.apply)
-    case a => Seq(a)
+    case WildcardArg() => Seq(WildcardArg())
 
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
