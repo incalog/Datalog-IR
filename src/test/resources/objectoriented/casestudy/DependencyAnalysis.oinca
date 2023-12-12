@@ -1,0 +1,203 @@
+module ASG
+
+class Visitor {
+  def visitProg(n: Prog): Unit = { }
+  def visitDef(d: Def): Unit = { }
+  def visitNum(n: Num, d: Def): Unit = { }
+  def visitVar(v: Var, d: Def): Unit = { }
+  def visitAdd(a: Add, d: Def): Unit = { }
+}
+
+case class DefList {
+  def accept(v: Visitor): Unit = {}
+  def findByName(name: String): Def = {
+    null
+  }
+  def head(): Def = { null }
+  def concat(d: DefList): DefList = { d }
+}
+case class Nil extends DefList {
+}
+case class Cons(val hd: Def, val tl: DefList) extends DefList {
+  @override def head(): Def = { this.hd }
+  @override def accept(v: Visitor): Unit = {
+    this.hd.accept(v)
+    this.tl.accept(v)
+  }
+  @override def findByName(name: String): Def = {
+      if (this.hd.name == name)
+        return this.hd
+      else
+        return this.tl.findByName(name)
+  }
+  @override def concat(d: DefList): DefList = {
+    new Cons(this.hd, this.tl.concat(d))
+  }
+}
+
+class Prog(val defs: DefList) {
+  def accept(v: Visitor): Unit = {
+    this.defs.accept(v)
+    v.visitProg(this)
+  }
+}
+
+class Def(val name: String, val exp: Exp) {
+  def accept(v: Visitor): Unit = {
+    v.visitDef(this)
+    this.exp.accept(v, this)
+  }
+}
+
+class Exp {
+  def accept(v: Visitor, d: Def): Unit = {}
+}
+case class Num(val value: Int) extends Exp {
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitNum(this, d)
+  }
+}
+class Var(val name: String) extends Exp {
+  var target: Def = null
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitVar(this, d)
+  }
+}
+case class Add(val lhs: Exp, val rhs: Exp) extends Exp {
+  @override def accept(v: Visitor, d: Def): Unit = {
+    v.visitAdd(this, d)
+    this.lhs.accept(v, d)
+    this.rhs.accept(v, d)
+  }
+}
+
+class NameAnalysis(val prog: Prog) extends Visitor {
+  @override def visitVar(v: Var, d: Def): Unit = {
+    v.target = this.prog.defs.findByName(v.name)
+  }
+}
+
+case class Edge(val from: Def, val to: Def) { }
+
+class DependencyAnalysis extends Visitor {
+  val edges: MonotoneSet = new MonotoneSet()
+
+  def edgeSet(): Set[Edge] = {
+    val set: `scala.collection.immutable.Set[Any]` = this.edges.get()
+    val list: `scala.collection.immutable.Vector[Any]` = set.`toVector`
+    this.edgeSetIter(list, 0)
+  }
+  def edgeSetIter(list: `scala.collection.immutable.Vector[Any]`, ix: Int): Set[Edge] = {
+    val e: Edge = list.`apply`(ix).asInstanceOf[Edge]
+    if (ix == list.`size` - 1) {
+      Set(e)
+    } else {
+      Set(e) ++ this.edgeSetIter(list, ix + 1)
+    }
+  }
+
+  @override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null) {
+      this.edges += new Edge(d, trg)
+      fix trg.accept(this)
+    }
+  }
+
+  def directDependencies(d: Def): Set[Def] = {
+    for (e <- this.edgeSet() if e.from == d) yield e.to
+  }
+
+  def dependencies(d1: Def): Set[Def] = {
+    this.directDependencies(d1) ++
+    for (d2 <- this.directDependencies(d1);
+         d3 <- this.dependencies(d2))
+      yield d3
+  }
+}
+
+class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
+    @static
+    def init(): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`()
+    }
+
+    @static
+    def join(m1: `scala.collection.immutable.Set[Any]`, m2: `scala.collection.immutable.Set[Any]`): `scala.collection.immutable.Set[Any]` = {
+        m1 ++ m2
+    }
+
+    def lift(element: Any): `scala.collection.immutable.Set[Any]` = {
+        `scala.collection.immutable.Set[Any]`(element)
+    }
+
+    def get(): `scala.collection.immutable.Set[Any]` = {
+        this.result
+    }
+}
+
+//class ReachVisitor extends Visitor {
+//  val reachable: MonotoneSet = new MonotoneSet()
+//
+//  @override def visitDef(d: Def): Unit = {
+//    this.reachable += d
+//  }
+//
+//  @override def visitVar(v: Var, d: Def): Unit = {
+//    val trg: Def = v.target
+//    if (trg != null)
+//        fix trg.accept(this)
+//  }
+//}
+
+class Mapper {
+    def mkDef(i: Int): Def = {
+      val n: Int = i+1
+      new Def("a" + i.`toString`, new Add(new Var("a" + n.`toString`), new Num(i)))
+    }
+
+    def line(i: Int, to: Int): DefList = {
+      if (i < to) {
+        val d: Def = this.mkDef(i)
+        val ds: DefList = this.line(i + 1, to)
+        return new Cons(d, ds)
+      } else {
+        return new Nil()
+      }
+    }
+
+    def circle(from: Int, to: Int): Def = {
+        new Def("a" + to.`toString`, new Add(new Var("a" + from.`toString`), new Num(to)))
+    }
+
+    def prog(from: Int, to: Int, step: Int): DefList = {
+        if (from < to) {
+          val ds1: DefList = this.line(from, from+step)
+          val d: Def = this.circle(from+step, from)
+          val ds2: DefList = this.prog(from+step, to, step)
+          return ds1.concat(new Cons(d, ds2))
+        } else {
+          return new Cons(this.circle(0, to), new Nil())
+        }
+    }
+}
+
+class ProgEntry {
+  @main
+  def main(endNode: Int, step: Int): Set[String] = {
+    val mapper: Mapper = new Mapper()
+
+    val defs: DefList = mapper.prog(0, endNode, step)
+    val main: Def = defs.head()
+    val prog: Prog = new Prog(defs)
+
+    val resolving: NameAnalysis = new NameAnalysis(prog)
+    prog.accept(resolving)
+
+    val depending: DependencyAnalysis = new DependencyAnalysis()
+    prog.accept(depending)
+    val depResult: Set[Def] = depending.dependencies(main)
+
+    return for (d <- depResult) yield d.name
+  }
+}

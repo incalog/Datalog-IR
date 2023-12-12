@@ -59,6 +59,11 @@ object TestDefinition {
     def apply(values: Any*): Set[Any] = values.toSet
   }
 
+  def dependencyAnalysis: TestDefinition[Any] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    TestDefinition("DependencyAnalysis", "ProgEntry", "main", Seq(q"50", q"10"), 120)
+  }
+
   def baseTests: Seq[TestDefinition[Int]] = {
     implicit val subdir: Option[String] = Some("unittests/base")
     Seq(

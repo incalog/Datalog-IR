@@ -32,6 +32,10 @@ class DatalogTest extends AnyFunSuite {
     }
   }
 
+  test("Dependency Analysis") {
+    performTests(dependencyAnalysis)
+  }
+
   test("Base Examples") {
     performTests(baseTests: _*)
   }
