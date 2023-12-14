@@ -1,16 +1,23 @@
 package inca.viatra.runtime.aggregate
 
 import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation, Relation as Table}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation, Relation as Table}
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.{Impure, PureHint}
+import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Term, Type, Var, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, TMono, WriteMono}
+import inca.ir.extension.set.TSet
+import inca.ir.extension.tuple.TTuple
+
+import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
+
+import scala.collection.mutable
 
 
 class MonoAggregationTest extends AnyFunSuiteLike {
@@ -238,4 +245,109 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val res = engine.read(UnitRelation("main"))
     assertResult("0.0")(res.entries.head)
   }
+
+  // non-standard set mono, probably we need to add a SetSize term?
+  // TODO: test polymorphic setmono
+  private lazy val SetMono = ScalaMonoDefinition(
+    "SetMono",
+    initCode = "Set[Any]()",
+    addCode = "(st: Set[Any], a: Any) => st + a",
+    resultCode = "(st: Set[Any]) => st.size",
+    constructorParamTypes = Seq(),
+    typ = MonoTypes(TAny, TSet(TAny), TInt)
+  )
+
+  // compute the size of graph
+  // main(n: TInt) :- m = SetMono, size(m), b = n.result()
+  // size(m) :- edge(e1, e2), m <- e1, m <- e2
+  private lazy val graphSizeMain = Relation(
+    "main",
+    Seq(Param("n", TInt)),
+    Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(SetMono, Seq(), Seq())),
+      Call("size", Seq(Var("m"))),
+      Eq(Var("n"), ReadMono(Var("m")))
+    )))
+  ).addHint(PureHint)
+
+  private lazy val graphSize = Relation(
+    "size",
+    Seq(Param("m", TDemand(TMono(TAny, TInt, Seq())))),
+    Seq(Body(Seq(
+      ExtensionalCall("edge", Seq(Var("e1"), Var("e2"))),
+      WriteMono(Var("m"), Cast(Var("e1"), TAny), Seq()),
+      WriteMono(Var("m"), Cast(Var("e2"), TAny), Seq()),
+    )))
+  )
+
+  private lazy val extEdge: ExtensionalRelation = ExtensionalRelation(
+    "edge", Seq(Param("e1", TString), Param("e2", TString))
+  )
+
+  private lazy val edbEdge: Relation2[Seq[String], Seq[String]] = Relation2(
+    "edge",
+    Seq("e1", "e2"),
+    Seq(
+      Seq("6", "2"), Seq("6", "3"), Seq("8", "4"),
+      Seq("6", "4"), Seq("9", "5"), Seq("7", "8"),
+      Seq("6", "6"), Seq("6", "7"), Seq("8", "9"),
+      Seq("2", "9"), Seq("0", "4"), Seq("0", "7"),
+      Seq("1", "5"), Seq("5", "9"), Seq("5", "8"),
+      Seq("3", "3"), Seq("9", "0"), Seq("1", "0"),
+      Seq("2", "5"), Seq("4", "2"), Seq("0", "0"),
+      Seq("8", "3"), Seq("9", "3"), Seq("0", "2"),
+      Seq("8", "1")
+    )
+  )
+
+
+  test("Test set mono") {
+    // Problems: should we make collection and aggregation relation pure?
+    val engine = compile(graphSizeMain, graphSize, extEdge)
+    engine.insert(edbEdge)
+    engine.readAll().foreach(res => println(res.asTable))
+//    val res = engine.read(UnitRelation("main"))
+
+  }
+
+
+  private def combination(n: Int): Seq[(Int, Int)] =
+    for {i <- 0 until n; j <- 0 until n} yield (i, j)
+
+  private def generateGraph(seed: Int): Unit =
+    val comb = combination(seed)
+    val set = mutable.Set[Int]()
+    val res = mutable.Set[String]()
+    for (i <- 0 until 30)
+      val k = Random.nextInt(comb.length)
+      println("Generate random number " + k)
+      if !set.contains(k) then
+        val p = s"""Seq("${comb(k)._1}", "${comb(k)._2}")"""
+        res += p
+        set += k
+    println(res.mkString(", "))
+
+
+  private lazy val multiMapMono = ScalaMonoDefinition(
+    name = "MapMono",
+    initCode = "Map[String, Set[String]]()",
+    addCode =
+      """(st: Map[String, Set[String]], a: (String, String)) =>
+        |    if st.contains(a._1) then
+        |      st + (a._1 -> (st(a._1) + a._2))
+        |    else
+        |      st + (a._1 -> Set(a._2))
+        |""".stripMargin,
+    resultCode = "(st : Map[String, Set[String]] => st",
+    Seq(),
+    typ = MonoTypes(TTuple(Seq(TString, TString)), TMap(TString, TSet(TString)), TMap(TString, TSet(TString)))
+  )
+
+
+  test("test map mono"){
+
+  }
+
 }

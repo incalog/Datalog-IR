@@ -5,6 +5,8 @@ import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
 
+import scala.annotation.targetName
+
 trait IR extends BaseIR:
   override val name: String = "Mono"
   override def language: Language = super.language + IR
@@ -14,11 +16,15 @@ object IR extends IR { }
 
 // TODO: also track State type?
 case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
-  override def toString: String = s"Mono[$input, $output]@{${keys.mkString(",")}}"
+  override def toString: String =
+    val prefix = s"Mono[$input, $output]"
+    if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
 
 case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
-  override def toString: String = s"new $mono(${args.mkString(", ")})@{${keys.mkString(",")}}"
+  override def toString: String =
+    val prefix = s"new $mono(${args.mkString(", ")})"
+    if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
 
 case class ReadMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
@@ -26,7 +32,10 @@ case class ReadMono(m: Term) extends Term:
 
 case class WriteMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
   override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap{_.vars}
-  override def toString: String = s"$m += $input@{${keys.mkString(",")}}"
+  override def toString: String =
+    val prefix = s"$m += $input"
+    if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
+
 
 case class MonoTypes(in: Type, state: Type, out: Type)
 

@@ -9,6 +9,7 @@ import inca.ir.extension.string.TString
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes, ArithmeticMonoDefinition as ArithMonoDef}
 import inca.ir.extension.block.Block
+import inca.ir.extension.set.TSet
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
 
@@ -23,6 +24,8 @@ object ScalaInca extends ForeignLanguage:
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
     case TData(RefByName(name)) => ScalaType(name)
+    case TSet(elemTy) => ScalaType(s"Set[${compileType(elemTy).name}]")
+    // TODO: mutable.Set and mutable.Map
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
@@ -116,6 +119,14 @@ case class ScalaMonoDefinition(name: Name,
   def typecheck(in: Seq[Type]): Option[String] = None
   override def resultTerm(state: Term): Term =
     ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
+
+  override def toString: String =
+    s"""
+       |ScalaMono[${typ.in}, ${typ.state}, ${typ.out}]{
+       |  def init = $initCode
+       |  def add = $addCode
+       |  def result = $resultCode
+       |}""".stripMargin
 
 object ScalaMonoDefinition:
   def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String): ScalaMonoDefinition =
