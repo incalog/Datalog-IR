@@ -12,6 +12,8 @@ import inca.ir.extension.block.Block
 import inca.ir.extension.set.TSet
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.set.TSet
+import inca.ir.extension.tuple.TTuple
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -24,8 +26,8 @@ object ScalaInca extends ForeignLanguage:
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
     case TData(RefByName(name)) => ScalaType(name)
-    case TSet(elemTy) => ScalaType(s"Set[${compileType(elemTy).name}]")
-    // TODO: mutable.Set and mutable.Map
+    case TSet(ty) => ScalaType(s"Set[${compileType(ty).name}]")
+    case TTuple(tys) => ScalaType(s"(${tys.map(compileType.andThen(_.name))})")
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:

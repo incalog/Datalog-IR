@@ -74,11 +74,11 @@ trait CompiledModule:
       l
     }
 
-    printStatistics(l, s"before optimization")
+//    printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
-    printStatistics(p1.head, s"after optimization 1")
+//    printStatistics(p1.head, s"after optimization 1")
     val p2 = optimize(p1)
-    printStatistics(p2.head, s"after optimization 2")
+//    printStatistics(p2.head, s"after optimization 2")
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
