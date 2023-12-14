@@ -18,7 +18,7 @@ case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
 
 case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
-  override def toString: String = s"new $mono(${args.mkString(", ")})@{${keys.mkString(",")}}"
+  override def toString: String = s"new ${mono.name}(${args.mkString(", ")})@{${keys.mkString(",")}}"
 
 case class ReadMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars

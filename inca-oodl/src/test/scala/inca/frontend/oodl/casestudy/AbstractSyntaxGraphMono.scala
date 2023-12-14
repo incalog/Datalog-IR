@@ -1,5 +1,6 @@
 package inca.frontend.oodl.casestudy
 
+import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
 import inca.frontend.oodl.executor.OODLExecutor
 import inca.ir.*
 import inca.ir.execution.Relation2
@@ -7,19 +8,32 @@ import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
+import inca.ir.extension.mono.*
+import inca.ir.extension.set.*
 import inca.ir.extension.string.*
+import inca.ir.extension.tuple.*
 import inca.ir.util.SourceLocation
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
 
-class AbstractSyntaxGraph extends AnyFunSuiteLike:
+class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 
+  implicit def embed[A](a: A): Seq[A] = Seq(a)
 
   def t(s: String) = TData(s)
   def v(s: String) = Var(s)
 
-  implicit def embed[A](a: A): Seq[A] = Seq(a)
+  def tEdgePair = TTuple(Seq(t("TDef"), t("TDef")))
+  def tEdgeSetMono = TMono(tEdgePair, TSet(tEdgePair), Seq())
+  val edgeSetMonoDef = new ScalaMonoDefinition(
+    "EdgeSetMono",
+    "Set[Def,Def]()",
+    "(st: Set[Def,Def], a: (Def,Def)) => st + a",
+    "(st: Set[Def,Def]) => st",
+    Seq(),
+    MonoTypes(tEdgePair, TSet(tEdgePair), TSet(tEdgePair))
+  )
 
   val datas = Seq(
     DataDefinition("TProg"),
@@ -41,17 +55,16 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   val edgesDefs = Relation("edgesDefs",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
-      Param("from", t("TDef")),
-      Param("to", t("TDef"))
+      Param("mono", TDemand(tEdgeSetMono))
     ),
     Seq(
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Call("edgesDef", Seq(v("defs"), v("hd"), v("from"), v("to")))
+        Call("edgesDef", Seq(v("defs"), v("hd"), v("mono")))
       )),
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Call("edgesDefs", Seq(v("tl"), v("from"), v("to")))
+        Call("edgesDefs", Seq(v("tl"), v("mono")))
       ))
     )
   )
@@ -59,8 +72,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     Seq(
       Param("defs", TDemand(t("TDefList"))),
       Param("def", TDemand(t("TDef"))),
-      Param("from", t("TDef")),
-      Param("to", t("TDef"))
+      Param("mono", TDemand(tEdgeSetMono))
     ),
     Seq(
       Body(Seq(
@@ -71,7 +83,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
       Body(Seq(
         Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("trg"))),
-        Call("edgesDef", Seq(v("defs"), v("trg"), v("from"), v("to")))
+        Call("edgesDef", Seq(v("defs"), v("trg"), v("mono")))
       ))
     )
   )
@@ -216,13 +228,15 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
         Eq(v("endNode"), IntNum(50)),
         Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
-        Call("edgesDefs", Seq(v("defs"), v("from"), v("to")))
+        Eq(v("mono"), NewMono(edgeSetMonoDef, Seq(), Seq())),
+        Call("edgesDefs", Seq(v("defs"), v("mono"))),
+        SetMember(TupleLit(Seq(v("from"), v("to"))), ReadMono(v("mono")))
       ))
     )
   )
 
 
-  val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + string.IR,
+  val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + set.IR + string.IR,
     datas ++
     Seq(
       edgesDefs,
@@ -240,10 +254,16 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
-    setPipeline(List(() => new demand.Lowering {}))
+    setPipeline(List(
+      () => new mono.Lowering {},
+      () => new set.Lowering {},
+      () => new block.Lowering {},
+      () => new impure.Lowering {},
+      () => new demand.Lowering {},
+      () => new tuple.Lowering {}
+    ))
 
   test("AbstractSyntaxGraph is well-typed") {
-    println(mod)
     try compiled.checked
     finally println(mod)
   }
