@@ -9,8 +9,6 @@ import inca.ir.*
 import inca.ir.analysis.ValueNumbering
 
 
-// TODO add tests for Remainder/mod, Min, Max and Abs
-
 class ClonesTest extends AnyFunSuite {
 
   def performTest(expected: IRModule, input: IRModule): Unit = {
@@ -24,7 +22,7 @@ class ClonesTest extends AnyFunSuite {
     assertResult(expected)(result)
   }
 
-  test("Simple Redundant Expr in Eq") {
+  test("Simple Redundant term in Eq") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -50,13 +48,13 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq with Add"){
+  test("Redundant term in Eq with Add"){
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(2)),
+            Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
             Eq(Var(Name("H2")), Add(Var("X"), IntNum(2))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
@@ -71,7 +69,7 @@ class ClonesTest extends AnyFunSuite {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(2)),
+            Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H1"))),
@@ -84,7 +82,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq with Sub") {
+  test("Redundant term in Eq with Sub") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -118,15 +116,15 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq with Mul and Div") {
+  test("Redundant term in Eq with Mul and Div") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), Mul(IntNum(1), IntNum(2))),
             Eq(Var(Name("Y")), Mul(IntNum(1), IntNum(2))),
-            Eq(Var(Name("H1")), Div(Var("Y"), IntNum(2))),
-            Eq(Var(Name("H2")), Div(Var("X"), IntNum(2))),
+            Eq(Var(Name("H1")), Div(Var("Y"), IntNum(3))),
+            Eq(Var(Name("H2")), Div(Var("X"), IntNum(3))),
             Eq(Var(Name("Z")), Add(Var("H1"), Mul(Var("H2"), IntNum(3)))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
@@ -140,8 +138,8 @@ class ClonesTest extends AnyFunSuite {
           Body(Seq(
             Eq(Var(Name("X")), Mul(IntNum(1), IntNum(2))),
             //Eq(Var(Name("Y")), Mul(IntNum(1), IntNum(2))),
-            Eq(Var(Name("H1")), Div(Var("X"), IntNum(2))),
-            //Eq(Var(Name("H2")), Div(Var("X"), IntNum(2))),
+            Eq(Var(Name("H1")), Div(Var("X"), IntNum(3))),
+            //Eq(Var(Name("H2")), Div(Var("X"), IntNum(3))),
             Eq(Var(Name("Z")), Add(Var("H1"), Mul(Var("H1"), IntNum(3)))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X"))),
@@ -152,7 +150,49 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq nested") {
+  test("Redundant term in Eq with Remainder,Min,Max,Abs") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Remainder(IntNum(1), IntNum(2))),
+            Eq(Var(Name("Y")), Remainder(IntNum(1), IntNum(2))),
+            Eq(Var(Name("H1")), Min(Var("Y"), IntNum(2))),
+            Eq(Var(Name("H2")), Min(Var("X"), IntNum(2))),
+            Eq(Var(Name("H3")), Max(Var("Y"), IntNum(2))),
+            Eq(Var(Name("H4")), Max(Var("X"), IntNum(2))),
+            Eq(Var(Name("H5")), Abs(Var("Y"))),
+            Eq(Var(Name("H6")), Abs(Var("X"))),
+            Eq(Var(Name("Z")), Add(Var("H1"), Remainder(IntNum(1), IntNum(2)))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Remainder(IntNum(1), IntNum(2))),
+//            Eq(Var(Name("Y")), Remainder(IntNum(1), IntNum(2))),
+            Eq(Var(Name("H1")), Min(Var("X"), IntNum(2))),
+//            Eq(Var(Name("H2")), Min(Var("X"), IntNum(2))),
+            Eq(Var(Name("H3")), Max(Var("X"), IntNum(2))),
+//            Eq(Var(Name("H4")), Max(Var("X"), IntNum(2))),
+            Eq(Var(Name("H5")), Abs(Var("X"))),
+//            Eq(Var(Name("H6")), Abs(Var("X"))),
+            Eq(Var(Name("Z")), Add(Var("H1"), Var("X"))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("X"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Redundant term in Eq nested") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -188,7 +228,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq: Two Bodies") {
+  test("Redundant term in Eq: Two Bodies") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -242,7 +282,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in Eq with more Eqs with same Var") {
+  test("Redundant term in Eq with more Eqs with same Var") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -345,7 +385,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr in LT") {
+  test("Redundant term in LT") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -377,14 +417,14 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected, input)
   }
 
-  test("Redundant Expr in Eq with GE, LE, LT & Neq") {
+  test("Redundant term in Eq with GE, LE, LT & Neq") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(3)),
             Eq(Var(Name("Y")), Add(Var(Name("X")),IntNum(1))),
-            Eq(Var(Name("Z")), IntNum(1)),
+            Eq(Var(Name("Z")), IntNum(3)),
             Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
             Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(2))),
             LT(Var(Name("H1")), Add(Var(Name("X")),IntNum(1))), // would var be bound before? -> typechecker says yes
@@ -402,7 +442,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(3)),
             Eq(Var(Name("Y")), Add(Var(Name("X")), IntNum(1))),
 //            Eq(Var(Name("Z")), IntNum(1)),
             Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
@@ -412,7 +452,7 @@ class ClonesTest extends AnyFunSuite {
             Eq(Var(Name("Y")), Var(Name("X")), true),
             Eq(Var(Name("H2")), Var(Name("H1")), true),
             Eq(Var(Name("X")), Var(Name("H1")), true),
-            LE(Var(Name("Y")), Var(Name("Y"))),             // this is redundant...
+            LE(Var(Name("Y")), Var(Name("Y"))),             // this is redundant... -> TODO remove LE/GE(X,X)
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y")))
           ))
@@ -509,7 +549,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected, input)
   }
 
-  test("Simple Redundant Expr bound in Call") {
+  test("Simple Redundant Var bound in Call") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -545,7 +585,7 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("Redundant Expr bound in Call & replace Args") {
+  test("Redundant Var bound in Call & replace Args") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -593,7 +633,7 @@ class ClonesTest extends AnyFunSuite {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(2)),
+            Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
             Eq(Var(Name("H2")), Add(IntNum(2), Var("X"))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
@@ -608,7 +648,7 @@ class ClonesTest extends AnyFunSuite {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(2)),
+            Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H1"))),
@@ -627,7 +667,7 @@ class ClonesTest extends AnyFunSuite {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(2)),
+            Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("H2")), Add(Add(Var("X"), IntNum(2)), IntNum(3))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
@@ -690,7 +730,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Sub(IntNum(1), Var(Name("X")))),
             Eq(Var(Name("H2")), Sub(Var(Name("X")), IntNum(1))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H2"))),
@@ -703,7 +743,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Sub(IntNum(1), Var(Name("X")))),
             Eq(Var(Name("H2")), Sub(Var(Name("X")), IntNum(1))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H2"))),
@@ -720,7 +760,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Mul(IntNum(1), Var(Name("X")))),
             Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(1))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H2"))),
@@ -733,7 +773,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Mul(IntNum(1), Var(Name("X")))),
             //Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(1))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H1"))),
@@ -750,7 +790,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(3)),
             Eq(Var(Name("H1")), Mul(IntNum(2), Mul(Var(Name("X")), IntNum(3)))),
             Eq(Var(Name("H2")), Mul(Mul(IntNum(2), Var(Name("X"))), IntNum(3))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H2"))),
@@ -763,7 +803,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(3)),
             Eq(Var(Name("H1")), Mul(IntNum(2), Mul(Var(Name("X")), IntNum(3)))),
             //Eq(Var(Name("H2")), Mul(Mul(IntNum(2), Var(Name("X"))), IntNum(3))),
             Eq(Var(Name("Y")), Add(Var("H1"), Var("H1"))),
@@ -810,7 +850,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Mul(Var(Name("X")), IntNum(0))),
             Eq(Var(Name("H2")), IntNum(0)),
             Eq(Var(Name("H3")), Mul(IntNum(0), Var(Name("X")))),
@@ -826,7 +866,7 @@ class ClonesTest extends AnyFunSuite {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("X")), IntNum(2)),
             Eq(Var(Name("H1")), Mul(Var(Name("X")), IntNum(0))),
 //            Eq(Var(Name("H2")), IntNum(0)),
 //            Eq(Var(Name("H3")), Mul(IntNum(0), Var(Name("X")))),
@@ -883,6 +923,201 @@ class ClonesTest extends AnyFunSuite {
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("H7"))),
             Eq(Var(Name("param$2")), Var(Name("H7")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Remainder/mod") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
+            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
+            Eq(Var("C"), Remainder(IntNum(-16), IntNum(2))),
+            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
+            Eq(Var("E"), Mul(Var("A"),Mul(Var("B"), Mul(Var("C"), Var("D"))))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("B"))),
+            Eq(Var(Name("param$2")), Var(Name("E")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
+//            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
+//            Eq(Var("C"), Remainder(IntNum(-16), IntNum(2))),
+//            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
+//            Eq(Var("E"), Mul(Var("A"), Mul(Var("B"), Mul(Var("C"), Var("D"))))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A"))),
+            Eq(Var(Name("param$2")), Var(Name("A")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Min") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("A"), Min(IntNum(16), Var("X"))),
+            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
+            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
+            Eq(Var("D"), Min(Var("Y"), IntNum(100))),   //
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("B"))),
+            Eq(Var(Name("param$2")), Var(Name("D")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("A"), Min(IntNum(16), Var("X"))),
+//            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
+//            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
+//            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A"))),
+            Eq(Var(Name("param$2")), Var(Name("A")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Max") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("Z"), IntNum(5)),
+            Eq(Var("A"), Max(IntNum(16), Var("X"))),
+            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
+            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
+            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
+            Eq(Var("E"), Max(Add(Var("Z"), Var("D")), Add(Var("Z"), IntNum(16)))),
+            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("B"))),
+            Eq(Var(Name("param$2")), Var(Name("F")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("Z"), IntNum(5)),
+            Eq(Var("A"), Max(IntNum(16), Var("X"))),
+//            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
+//            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
+//            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
+            Eq(Var("E"), Max(Add(Var("Z"), Var("A")), Add(Var("Z"), IntNum(16)))),
+//            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A"))),
+            Eq(Var(Name("param$2")), Var(Name("E")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Abs") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("Z"), IntNum(-2)),
+            Eq(Var("A"), Abs(Var("X"))),
+            Eq(Var("B"), Abs(Var("Y"))),
+            Eq(Var("C"), Abs(Var("Z"))),
+            Eq(Var("C"), Abs(Var("A"))),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("B"))),
+            Eq(Var(Name("param$2")), Var(Name("C")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("Y"), IntNum(2)),
+            Eq(Var("Z"), IntNum(-2)),
+//            Eq(Var("A"), Abs(Var("X"))),
+//            Eq(Var("B"), Abs(Var("Y"))),
+//            Eq(Var("C"), Abs(Var("Z"))),
+//            Eq(Var("C"), Abs(Var("A"))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("X"))),
+            Eq(Var(Name("param$2")), Var(Name("X")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Simpsons Example for Hash-Based"){
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+            Eq(Var("Y"), IntNum(2)),
+
+            // from Simpson`s papers -> all equal 0 if X == Y
+            Eq(Var("A"), Sub(Var("X"), Var("Y"))),
+            Eq(Var("B"), Sub(Var("Y"), Var("X"))),
+            Eq(Var("C"), Sub(Var("A"), Var("B"))),
+            Eq(Var("D"), Sub(Var("B"), Var("A"))),
+
+            Eq(Var(Name("param$0")), Var(Name("B"))),
+            Eq(Var(Name("param$1")), Var(Name("C"))),
+            Eq(Var(Name("param$2")), Var(Name("D")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("Y"), Var("X")),
+
+            Eq(Var("A"), Sub(Var("X"), Var("X"))),
+//            Eq(Var("B"), Var("A")),
+//            Eq(Var("C"), Var("A")),
+//            Eq(Var("D"), Var("A")),
+
+            Eq(Var(Name("param$0")), Var("A")),
+            Eq(Var(Name("param$1")), Var("A")),
+            Eq(Var(Name("param$2")), Var("A"))
           ))
         ))
       ))
