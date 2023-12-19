@@ -13,12 +13,13 @@ import scala.io.Source
 import math.Ordered.orderingToOrdered
 
 class CompilerTest extends AnyFunSuite {
+  val options = CompilerOptions.fromResource("functional/Options.ini")
   val uri = classOf[CompilerTest].getResource("/functional").toURI;
 
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR
     val module = Parser.parseModule(code)
-    val compiled = CompiledFunctionalModule(module, CompilerOptions.default)
+    val compiled = CompiledFunctionalModule(module, options)
     compiled.checked
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.lowered

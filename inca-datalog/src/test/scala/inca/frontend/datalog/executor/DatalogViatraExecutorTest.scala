@@ -36,7 +36,6 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("SPath", (1, 4, ?))
-    println(res)
     assertResult(1)(res.entries.size)
     assertResult((1, 4, 7))(res.entries.head)
 

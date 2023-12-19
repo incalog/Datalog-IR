@@ -9,6 +9,7 @@ import inca.ir.extension.string
 import inca.ir.*
 
 trait ScalaLowering extends BaseScalaLowering:
+  override val name: String = "ScalaString"
   override val loweredIRs: Set[BaseIR] = Set(string.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs
 
