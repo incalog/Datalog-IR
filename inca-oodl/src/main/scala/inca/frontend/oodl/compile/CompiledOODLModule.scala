@@ -45,14 +45,16 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: Compile
   }
 
 object CompiledOODLModule:
+  // Important:
+  // 1. Not before block
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new mono.Lowering {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
-    () => new block.Lowering {},
     () => new not.Lowering {},
+    () => new block.Lowering {},
     () => new disjunction.Lowering {},
     () => new impure.Lowering {},
     () => new demand.Lowering {},
