@@ -6,11 +6,13 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
-import inca.util.{CompilationMessage, CompilerOptions}
+import inca.util.CompilationMessage
+import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
 
-trait CompiledModule(implicit val compilerOptions: CompilerOptions):
+trait CompiledModule:
+  def compilerOptions: CompilerOptions
   def name: Name
   def sourceLocation: SourceLocation
 
@@ -50,57 +52,58 @@ trait CompiledModule(implicit val compilerOptions: CompilerOptions):
     this.postProcessingPipeline = pipeline
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
-  def lowered: Module =
-    val irOptions = compilerOptions("ir")
-    val print_lowerings = irOptions.readBoolean("print_lowerings")
-    val print_typed_lowerings = irOptions.readBoolean("print_typed_lowerings")
-    val print_stats_before_lowering = irOptions.readBoolean("print_stats_before_lowering")
-    val print_stats_before_optimization = irOptions.readBoolean("print_stats_before_optimization")
-    val print_stats_after_optimization = irOptions.readBoolean("print_stats_after_optimization")
+  protected def printStep(title: String, content: Any): Unit =
+    println(title)
+    println(content)
+    println()
+    println("~~~~~~~~~~~~~~~~~~~~~~~")
+    println()
 
-    if (print_stats_before_lowering)
+  def lowered: Module =
+    val irLogging = compilerOptions("ir_logging")
+    val logTyped = irLogging.readBoolean("typed")
+    val logModule = irLogging.readBoolean("module")
+    val logLowerings = irLogging.readBoolean("lowerings")
+    val logStatsBeforeLowering = irLogging.readBoolean("stats_before_lowering")
+    val logStatsBeforeOptimization = irLogging.readBoolean("stats_before_optimization")
+    val logStatsAfterOptimization = irLogging.readBoolean("stats_after_optimization")
+
+    if (logModule)
+      printStep("Module", if (!logTyped) ir else checked)
+
+    if (logStatsBeforeLowering)
       StatisticsCollector.printStatistics(checked, "before lowering")
-      println()
 
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
-      if (print_lowerings)
-        println(s"Lowering: ${lowFun.name}")
-        println(l)
-        println()
+      if (logLowerings && !logTyped)
+        printStep(s"Lowering: ${lowFun.name}", l)
 
       val checker = typechecker
       checker.checkModule(l)
 
-      if (print_typed_lowerings)
-        println(s"Typed Lowering: ${lowFun.name}")
-        println(l)
-        println()
+      if (logLowerings && logTyped)
+        printStep(s"Lowering: ${lowFun.name}", l)
       l
     }
 
-    if (print_stats_before_optimization)
+    if (logStatsBeforeOptimization)
       printStatistics(l, s"before optimization")
-      println()
     val p1 = optimize(Seq(l))
-    if (print_stats_after_optimization)
+    if (logStatsAfterOptimization)
       printStatistics(l, s"before optimization")
-      println()
     val p2 = optimize(p1)
-    if (print_stats_after_optimization)
+    if (logStatsAfterOptimization)
       printStatistics(l, s"before optimization")
-      println()
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
-      if (print_lowerings)
-        println(s"Post processing lowering: ${lowFun.name}")
-        println(l)
-        println()
+      if (logLowerings)
+        printStep(s"Post processing lowering: ${lowFun.name}", l)
       l
     }
 

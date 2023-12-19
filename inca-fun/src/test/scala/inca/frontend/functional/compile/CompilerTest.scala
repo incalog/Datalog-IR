@@ -3,13 +3,13 @@ package inca.frontend.functional.compile
 import inca.frontend.functional.syntax.*
 import inca.ir.extension.block
 import inca.ir.typing.IRTypechecker
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.io.IOException
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import scala.io.Source
-
 import math.Ordered.orderingToOrdered
 
 class CompilerTest extends AnyFunSuite {
@@ -18,7 +18,7 @@ class CompilerTest extends AnyFunSuite {
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR
     val module = Parser.parseModule(code)
-    val compiled = CompiledFunctionalModule(module)
+    val compiled = CompiledFunctionalModule(module, CompilerOptions.default)
     compiled.checked
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.lowered

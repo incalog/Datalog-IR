@@ -4,14 +4,16 @@ import inca.frontend.oodl.compile.CompiledOODLModule
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorReturnTest extends AnyFunSuite:
+  val options = CompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
 
   test("Return with cond true") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/return/Return.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(1))
@@ -20,7 +22,7 @@ class OODLViatraExecutorReturnTest extends AnyFunSuite:
 
   test("Return with cond false") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/return/Return.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(0))
@@ -29,7 +31,7 @@ class OODLViatraExecutorReturnTest extends AnyFunSuite:
 
   test("Return implicit") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/return/ReturnImplicit.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -38,7 +40,7 @@ class OODLViatraExecutorReturnTest extends AnyFunSuite:
 
   test("Return implicit unit") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/return/ReturnImplicitUnit.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -47,7 +49,7 @@ class OODLViatraExecutorReturnTest extends AnyFunSuite:
 
   test("Return twice") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/return/ReturnTwice.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())

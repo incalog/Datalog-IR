@@ -11,6 +11,7 @@ object StatisticsCollector:
          |\tBodies:    ${s.bodies}
          |\tAtoms:     ${s.atoms}
          |\tTerms:     ${s.terms}""".stripMargin)
+    println()
 
 class StatisticsCollector extends IRVisitor {
   var relations: Int = 0

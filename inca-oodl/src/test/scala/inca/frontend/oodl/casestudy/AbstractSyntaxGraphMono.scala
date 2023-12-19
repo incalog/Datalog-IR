@@ -13,10 +13,10 @@ import inca.ir.extension.set.*
 import inca.ir.extension.string.*
 import inca.ir.extension.tuple.*
 import inca.ir.util.SourceLocation
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
-import inca.util.Implicits._
 
 class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 
@@ -255,6 +255,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
+    override def compilerOptions: CompilerOptions = CompilerOptions.default
     setPipeline(List(
       () => new mono.Lowering {},
       () => new set.Lowering {},

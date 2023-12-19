@@ -5,16 +5,18 @@ import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalViatraExecutorTest extends AnyFunSuite:
+  val options = CompilerOptions.fromResource("functional/Options.ini")
   val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
 
   // Unittests
 
   test("Base 1") {
     val code = FileUtil.readFileFromResource("functional/unittests/Base1.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -23,7 +25,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Fac") {
     val code = FileUtil.readFileFromResource("functional/unittests/Fact.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
@@ -32,7 +34,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Fib") {
     val code = FileUtil.readFileFromResource("functional/unittests/Fib.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(7))
@@ -41,7 +43,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Inc") {
     val code = FileUtil.readFileFromResource("functional/unittests/Inc.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -50,7 +52,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Unary") {
     val code = FileUtil.readFileFromResource("functional/unittests/Unary.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
@@ -59,7 +61,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Var") {
     val code = FileUtil.readFileFromResource("functional/unittests/Var.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -68,7 +70,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("If") {
     val code = FileUtil.readFileFromResource("functional/unittests/If.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -77,7 +79,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("If2") {
     val code = FileUtil.readFileFromResource("functional/unittests/If2.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -86,7 +88,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("If3") {
     val code = FileUtil.readFileFromResource("functional/unittests/If3.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -97,7 +99,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   //  Either we want an unlower or we want to support booleans ?
   test("Parametric Eq") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricEq.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, 1))
@@ -111,7 +113,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Parametric function") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricFunction.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -120,7 +122,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Tuple as input") {
     val code = FileUtil.readFileFromResource("functional/unittests/TupleAsInput.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, "A"))
@@ -144,7 +146,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Plus") {
     val code = FileUtil.readFileFromResource("functional/unittests/Plus.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -154,7 +156,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Set const") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetConst.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
@@ -172,7 +174,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetIntersection.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     // Query main to get the set ADT, afterwards query the set relation
@@ -185,7 +187,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
@@ -234,7 +236,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Set Ops") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetOps.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("union", Seq())
@@ -246,7 +248,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Parametric Datatypes") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricDatatypes.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
@@ -256,7 +258,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Fold Int") {
     val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
@@ -266,7 +268,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Fold ADT") {
     val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
@@ -276,7 +278,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   test("Bus Station") {
     val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
-    val compiled = exec.compileFunction(code)
+    val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
     compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)

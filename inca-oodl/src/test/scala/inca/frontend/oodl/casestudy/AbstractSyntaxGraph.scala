@@ -9,11 +9,11 @@ import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
 import inca.ir.extension.string.*
 import inca.ir.util.SourceLocation
+import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
-import inca.util.Implicits._
 
 class AbstractSyntaxGraph extends AnyFunSuiteLike:
 
@@ -242,6 +242,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
+    override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
     setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {

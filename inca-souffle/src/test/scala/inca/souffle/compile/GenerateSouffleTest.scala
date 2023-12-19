@@ -11,7 +11,8 @@ import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
-import inca.util.Implicits._
+import inca.util.compileroptions.CompilerOptions.default
+import inca.util.compileroptions.CompilerOptions
 
 class GenerateSouffleTest extends AnyFunSuite:
   val pipeline: List[() => BaseIRVisitor] = List(
@@ -138,6 +139,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "MaxExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     val rels = engine.readAll()
@@ -150,6 +152,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "PathExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
@@ -164,6 +167,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "MaxExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(1, 5), Seq(2, 3), Seq(2, 1), Seq(3, 4), Seq(3, 5), Seq(4, 8))))

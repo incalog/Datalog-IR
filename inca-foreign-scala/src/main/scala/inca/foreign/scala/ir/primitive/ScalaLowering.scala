@@ -11,6 +11,7 @@ import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoAggregationOperator, M
 import inca.util.Gensym
 
 trait ScalaLowering extends primitive.Visitor with BaseLowering:
+  override def name: String = "ScalaLowering"
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
 
   def isTypeSupported(ty: Type): Boolean = ty match
