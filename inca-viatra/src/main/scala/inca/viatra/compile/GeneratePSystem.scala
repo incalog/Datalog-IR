@@ -277,13 +277,13 @@ object GeneratePSystem:
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
       val scalaTyp = scalaTy.name
       val code =
-        s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
+        s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTyp] {
            |       override val name = "$name"
-           |       override def init: $scalaTy = $initCode
-           |       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ($addCode)(v1, v2)
+           |       override def init: $scalaTyp = $initCode
+           |       override def join(v1: $scalaTyp, v2: $scalaTyp): $scalaTyp = ($addCode)(v1, v2)
            |       override val isAssociative = true
            |       override val isCommutative = true
-           |     }
+           |     }.aggregator
            |""".stripMargin
       val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
       s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"

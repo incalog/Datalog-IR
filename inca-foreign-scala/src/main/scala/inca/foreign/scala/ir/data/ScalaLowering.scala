@@ -4,6 +4,7 @@ import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, T
 import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 
@@ -19,18 +20,24 @@ trait ScalaLowering extends BaseScalaLowering:
 
   private def translateCaseDefinition(name: Name, args: Seq[Type], data: TData): ScalaDefnModuleEntry =
     val TData(RefByName(dName)) = data
-    val params = args.zipWithIndex.map { case (ty, idx) =>
-        val sty = visitType(ty) match
-          case t@ScalaType(_) => t
-          case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t")
-        (s"param_$idx", sty)
-    }
-
-    caseDef2params += name -> params
-
+    val params = caseDef2params(name)
     val paramsCode = params.map { case (n, t) => s"$n: ${t.name}" }.mkString(", ")
     val classCode = s"case class $name($paramsCode) extends $dName"
     ScalaDefnModuleEntry(name, classCode)
+
+  override def visitModule(module: ir.Module): ir.Module =
+    for (moduleEntry <- module.contents)
+      moduleEntry match
+        case CaseDefinition(name, args, _) =>
+          val params = args.zipWithIndex.map { case (ty, idx) =>
+            val sty = visitType(ty) match
+              case t@ScalaType(_) => t
+              case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t")
+            (s"param_$idx", sty)
+          }
+          caseDef2params += name -> params
+        case _ =>
+    super.visitModule(module)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     moduleEntry match
