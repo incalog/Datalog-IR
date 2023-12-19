@@ -10,6 +10,7 @@ import inca.util.Gensym
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
+  override val name: String = "Demand"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 

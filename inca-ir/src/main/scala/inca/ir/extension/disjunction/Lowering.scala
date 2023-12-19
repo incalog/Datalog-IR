@@ -8,6 +8,7 @@ import inca.ir.{Atom, BaseIR, Body}
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
+  override val name: String = "Disjunction"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 

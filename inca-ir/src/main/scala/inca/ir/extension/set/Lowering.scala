@@ -42,7 +42,7 @@ import inca.util.namify
  * we generated for the set.
  */
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Set"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(block.IR, data.IR, demand.IR, disjunction.IR, tuple.IR)
 

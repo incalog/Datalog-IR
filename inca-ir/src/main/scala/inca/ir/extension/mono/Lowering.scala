@@ -13,7 +13,7 @@ import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.lowering.BaseLowering
 
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Mono"
   override def loweredIRs: Set[BaseIR] = Set(IR)
   override def requiredIRs: Set[BaseIR] = Set()
 

@@ -7,6 +7,7 @@ import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.util.Implicits._
 
 case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 

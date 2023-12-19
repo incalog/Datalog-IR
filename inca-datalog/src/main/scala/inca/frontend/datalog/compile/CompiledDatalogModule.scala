@@ -7,6 +7,7 @@ import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.util.Implicits._
 
 case class CompiledDatalogModule(mod: Module) extends CompiledModule {
 

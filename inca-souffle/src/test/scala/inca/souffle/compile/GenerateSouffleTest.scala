@@ -11,6 +11,7 @@ import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.util.Implicits._
 
 class GenerateSouffleTest extends AnyFunSuite:
   val pipeline: List[() => BaseIRVisitor] = List(

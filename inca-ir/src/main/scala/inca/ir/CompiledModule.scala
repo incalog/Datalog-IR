@@ -6,11 +6,11 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
-import inca.util.CompilationMessage
+import inca.util.{CompilationMessage, CompilerOptions}
 
 import scala.collection.mutable.ListBuffer
 
-trait CompiledModule:
+trait CompiledModule(implicit val compilerOptions: CompilerOptions):
   def name: Name
   def sourceLocation: SourceLocation
 
@@ -51,39 +51,56 @@ trait CompiledModule:
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
   def lowered: Module =
-    //StatisticsCollector.printStatistics(checked, "before lowering")
-    //println()
-    //println(checked)
-    //println()
-    var i = 0
+    val irOptions = compilerOptions("ir")
+    val print_lowerings = irOptions.readBoolean("print_lowerings")
+    val print_typed_lowerings = irOptions.readBoolean("print_typed_lowerings")
+    val print_stats_before_lowering = irOptions.readBoolean("print_stats_before_lowering")
+    val print_stats_before_optimization = irOptions.readBoolean("print_stats_before_optimization")
+    val print_stats_after_optimization = irOptions.readBoolean("print_stats_after_optimization")
+
+    if (print_stats_before_lowering)
+      StatisticsCollector.printStatistics(checked, "before lowering")
+      println()
+
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
+      if (print_lowerings)
+        println(s"Lowering: ${lowFun.name}")
+        println(l)
+        println()
+
       val checker = typechecker
       checker.checkModule(l)
 
-      /*println(s"Lowering $i")
-      println(l)
-      println()*/
-
-      /*println(s"Checked $i")
-      println(l)
-      println()*/
-      i += 1
+      if (print_typed_lowerings)
+        println(s"Typed Lowering: ${lowFun.name}")
+        println(l)
+        println()
       l
     }
 
-    //printStatistics(l, s"before optimization")
+    if (print_stats_before_optimization)
+      printStatistics(l, s"before optimization")
+      println()
     val p1 = optimize(Seq(l))
-    //printStatistics(p1.head, s"after optimization 1")
+    if (print_stats_after_optimization)
+      printStatistics(l, s"before optimization")
+      println()
     val p2 = optimize(p1)
-    //printStatistics(p2.head, s"after optimization 2")
+    if (print_stats_after_optimization)
+      printStatistics(l, s"before optimization")
+      println()
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
+      if (print_lowerings)
+        println(s"Post processing lowering: ${lowFun.name}")
+        println(l)
+        println()
       l
     }
 

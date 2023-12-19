@@ -16,6 +16,7 @@ import inca.ir.util.SourceLocation
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
+import inca.util.Implicits._
 
 class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 

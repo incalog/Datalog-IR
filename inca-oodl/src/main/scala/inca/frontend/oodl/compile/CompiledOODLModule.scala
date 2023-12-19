@@ -7,6 +7,8 @@ import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 
+import inca.util.Implicits._
+
 case class CompiledOODLModule(fun: Module) extends CompiledModule:
 
   override def name: Name = fun.name

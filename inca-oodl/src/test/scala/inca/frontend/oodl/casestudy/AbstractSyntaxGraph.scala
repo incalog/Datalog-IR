@@ -13,6 +13,7 @@ import inca.viatra.runtime.EnginePool
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
+import inca.util.Implicits._
 
 class AbstractSyntaxGraph extends AnyFunSuiteLike:
 
