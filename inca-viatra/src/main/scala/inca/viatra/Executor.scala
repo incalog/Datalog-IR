@@ -22,7 +22,10 @@ object Executor extends IRExecutor:
 
     override def read(rel: Relation): Relation =
       val spec = module.patterns(rel.name)()
+      val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
+      val diff = System.nanoTime() - start
+      println(s"The time: ${diff/1000000000d}")
 
       import scala.jdk.CollectionConverters.*
       val parameterNames = matcher.getParameterNames.asScala.toSeq

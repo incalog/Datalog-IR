@@ -51,9 +51,9 @@ object CompiledOODLModule:
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
     () => new block.Lowering {},
-    () => new impure.Lowering {},
     () => new not.Lowering {},
     () => new disjunction.Lowering {},
+    () => new impure.Lowering {},
     () => new demand.Lowering {},
     () => new tuple.Lowering {},
   ) // arith + string + data
