@@ -19,7 +19,7 @@ object GeneratePSystem:
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
 
-  private trait BlockLowering extends primitive.Visitor with block.Lowering
+  private trait BlockLowering extends block.Lowering with primitive.Visitor
   private trait Typechecker extends typing.IRTypechecker with primitive.Typechecker
 
   val gensym = new Gensym()
