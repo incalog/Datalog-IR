@@ -14,7 +14,7 @@ import math.Ordered.orderingToOrdered
 
 class CompilerTest extends AnyFunSuite {
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val uri = classOf[CompilerTest].getResource("/functional").toURI;
+  val uri = classOf[CompilerTest].getResource("/functional").toURI
 
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR

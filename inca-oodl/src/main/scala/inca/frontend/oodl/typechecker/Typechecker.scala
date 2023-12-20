@@ -1,7 +1,6 @@
 package inca.frontend.oodl.typechecker
 
 // TODO: Support generics
-// TODO: Support Set fold
 // TODO: assign variables to method calls that return unit is not allowed
 // TODO: Check that each path returns
 
@@ -148,6 +147,8 @@ class Typechecker extends TypeContext with TypeIO:
     case (t1: TName, t2: TName) if t1.isBuiltIn => false
     case (t1: TName, t2: TName) if t2.isBuiltIn => false
     case (t1: TName, t2: TName) =>
+      resolveNamedType(t1)
+      resolveNamedType(t2)
       (t1.target, t2.target) match
         case (Some(c1: ClassDef), Some(c2: ClassDef)) if c1 == c2 =>
           true
@@ -224,7 +225,8 @@ class Typechecker extends TypeContext with TypeIO:
       case Some(ty) =>
         resolveNamedType(ty)
         resolveNamedType(inferred)
-        if (subtype(ty, inferred))
+        if (subtype(inferred, ty) && inferred != ty)
+          println(s"The term $term with type $ty and subtype: $inferred is subtype: ${subtype(inferred, ty)}")
           term.casted(ty)
           ty
         else
