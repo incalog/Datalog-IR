@@ -80,6 +80,7 @@ object CompilerOptions:
       "ir_logging" -> Seq(
         "typed" -> true,
         // Lowerings
+        "module" -> true,
         "lowerings" -> true,
         // Optimizations
         "optimizations" -> true,
