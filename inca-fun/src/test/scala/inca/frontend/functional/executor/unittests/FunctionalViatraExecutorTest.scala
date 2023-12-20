@@ -252,7 +252,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
-    assertResult("ConsBoolean$0(1,NilBoolean$0())")(res.entries.head.toString)
+    assertResult("Cons$TBoolean(1,Nil$TBoolean())")(res.entries.head.toString)
   }
 
   test("Fold Int") {

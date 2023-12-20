@@ -56,6 +56,8 @@ object GenerateSouffle:
         val adtDef = TypeDeclConstraint.ADTType(adtBranches)
         val typeDecl = ProgramContent.TypeDecl(cleanName(name), adtDef)
         Seq(typeDecl)
+      case data.CaseDefinition(name, args, data) => Seq()
+
     }
     Program(contents)
 

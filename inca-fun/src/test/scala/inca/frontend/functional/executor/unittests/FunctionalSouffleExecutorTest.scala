@@ -243,7 +243,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
-    assertResult("$ConsBoolean_0(1, $NilBoolean_0)")(res.entries.head.toString)
+    assertResult("$Cons_TBoolean(1, $Nil_TBoolean)")(res.entries.head.toString)
   }
 
   // No recursive aggregation support in Souffle + Missing C++ lowering
