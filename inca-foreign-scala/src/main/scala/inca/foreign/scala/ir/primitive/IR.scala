@@ -75,7 +75,7 @@ object ScalaConstantTerm:
 
 
 
-case class ScalaAggregationOperator(name: Name, ty: ScalaType, initCode: String, addCode: String) extends ForeignAggregationOperator:
+case class ScalaAggregationOperator(name: Name, ty: Type, initCode: String, addCode: String) extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
   override def resultType: Type = ty
   def typecheck(in: Seq[Type]): Option[String] = None

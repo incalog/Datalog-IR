@@ -109,15 +109,3 @@ class GenerateScala:
     genCalled(op.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold $op")), typ, op)
     op.name.name
   }
-
-  def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
-    val scalaTy = transType(typ)
-    s"""
-     new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
-       override val name = "$name"
-       override def init: $scalaTy = ${transExp(init)}
-       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExp(op)}(v1, v2)
-       override val isAssociative = true
-       override val isCommutative = true
-     }"""
-  }

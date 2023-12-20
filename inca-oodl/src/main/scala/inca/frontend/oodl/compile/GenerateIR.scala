@@ -61,14 +61,14 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
-  var builtinIdDatastructures: irdata.DataDefinition = _
+  var builtinIdDatastructures: Seq[irdata.DataModuleEntry] = Seq()
   var setFoldRelations: Seq[ir.Relation] = Seq()
 
   def compileModule(m: Module): ir.Module =
     setFoldRelations = Seq()
 
     val mainFunctions = m.content.flatMap {
-      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
+      case f: FunctionDef if f.isMain => Some(f)
       case _ => None
     }
     val extMainInputRelations = mainFunctions.map { f =>
@@ -87,7 +87,7 @@ class GenerateIR:
     val objClass = compileBuiltinObjectClass()
 
     val moduleEntries = m.content.flatMap {
-      case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
+      case f: FunctionDef if f.isMain => Seq(compileMainFunction(f))
       case f: FunctionDef => Seq() // Skip all none main functions. We just use them for set fold
       case c: ClassDef => compileClassDef(c)
     } ++ extMainInputRelations
@@ -563,7 +563,7 @@ class GenerateIR:
       setFoldRelations :+= setFoldRel
 
       val demandSet = ir.Call(setFoldRel.name, Seq(aggArgs.head, ir.WildcardArg()))
-      val agg = iragg.Aggregate(setFoldRel.name, aggArgs, aggOp).addHint(demand.DemandIgnoreCallHint)
+      val agg = iragg.Aggregate(RefByName(setFoldRel.name), aggArgs, aggOp).addHint(demand.DemandIgnoreCallHint)
       block.Block(Seq(demandSet, agg), ir.Var(aggResult))
 
     case methodCall@MethodCall(recv, fun, _, args, isFix) =>

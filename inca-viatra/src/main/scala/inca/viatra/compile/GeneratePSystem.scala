@@ -306,13 +306,12 @@ object GeneratePSystem:
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
       s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
-    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
+    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, ScalaType(scalaTyp), initCode, addCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
 
-      val scalaTyp = scalaTy.name
       val code =
         s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTyp] {
            |       override val name = "$name"

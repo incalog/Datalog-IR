@@ -4,10 +4,7 @@ import inca.frontend.oodl.compile.CompiledOODLModule
 import inca.frontend.oodl.typechecker.{Typechecker, TypecheckerTest}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.oodl.syntax.Parser
-<<<<<<< HEAD
 import inca.util.compileroptions.CompilerOptions
-=======
->>>>>>> layered-ir-setfold-oodl
 
 import scala.io.Source
 

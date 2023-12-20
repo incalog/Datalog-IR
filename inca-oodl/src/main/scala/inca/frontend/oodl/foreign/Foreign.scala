@@ -3,16 +3,18 @@ package inca.frontend.oodl.foreign
 import inca.frontend.oodl.compile.GenerateIR
 import inca.ir
 import inca.frontend.oodl.syntax.{Expression, FunctionDef, Type}
+import inca.ir.Name
 import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignLanguage}
 
 object OODL extends ForeignLanguage:
-  type Code = FunctionDef
+  type Code = Expression
 
   def compileType(ty: Type): ir.Type =
     new GenerateIR().compileType(ty)
 
-case class OODLAggregationOperator(code: FunctionDef, init: Expression, op: Expression) extends ForeignAggregationOperator:
+case class OODLAggregationOperator(code: FunctionDef,  initCode: Expression, addCode: Expression)extends ForeignAggregationOperator:
   override val lang: OODL.type = OODL
+  override val name: Name = code.name
 
   val (from, to) = (code.params.map(_.typ), code.outType)
   if (from.size != 2 || from.head != from(1) || from.head != to)

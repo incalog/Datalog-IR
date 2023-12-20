@@ -3,6 +3,7 @@ package inca.foreign.scala.ir.primitive
 import inca.ir.{Atom, BaseIR, ModuleEntry, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.aggregate
 
 import scala.collection.immutable.Seq
 
@@ -11,20 +12,21 @@ trait Visitor extends BaseIRVisitor:
     case ScalaDefnModuleEntry(name, defn) => Seq(ScalaDefnModuleEntry(name, defn))
     case _ => super.visitModuleEntry(moduleEntry)
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case ScalaAggregationAtom(ScalaAggregationOperator(name, ty, initCode, addCode), rel, out, args, col) =>
-      val sty = visitType(ty) match
-        case s: ScalaType => s
-        case _ => throw IllegalStateException(s"Visiting scala type $ty yielded unexpected none scala type $ty")
-      val op = ScalaAggregationOperator(name, sty, initCode, addCode)
-      Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
-    case ScalaAggregationAtom(ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode), rel, out, args, col) =>
-      val op = ScalaMonoAggregationOperator(name,
+  def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op match
+    case ScalaAggregationOperator(name, ty, initCode, addCode) =>
+      val vty = visitType(ty)
+      ScalaAggregationOperator(name, vty, initCode, addCode)
+    case ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode) =>
+      ScalaMonoAggregationOperator(name,
         visitType(inputTy).asInstanceOf[ScalaType],
         visitType(stateTy).asInstanceOf[ScalaType],
         initCode, addCode
       )
-      Seq(ScalaAggregationAtom(op, rel, visitTerm(out).head, args.flatMap(visitTerm), col))
+    case _ => op
+
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case ScalaAggregationAtom(op, rel, out, args, col) =>
+      Seq(ScalaAggregationAtom(visitAggregationOperator(op), rel, visitTerm(out).head, args.flatMap(visitTerm), col))
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {

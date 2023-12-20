@@ -111,7 +111,8 @@ class GenerateScala:
 
     val instanceOfCode = transIsInstanceOf(classes)
     val classesCode = module.classes.map(transClassDef).mkString("\n")
-    s"$instanceOfCode$methodsCode\n$classesCode"
+    val funCode = module.functions.filter(!_.isMain).map(transFunctionDef).mkString("\n")
+    s"$instanceOfCode$funCode$methodsCode\n$classesCode"
 
   private def transIsInstanceOf(classDefs: Seq[ClassDef]): Code = {
     val allClasses = classDefs.map(c => c.name -> c).toMap
@@ -165,9 +166,9 @@ class GenerateScala:
     // Constructors and fields do not exist for case classes
     cls.methods.map(transMethodDef).mkString("\n")
 
-  private def transParam(param: Param): Code = s"${param.name}: ${transType(param.typ)}"
+  def transParam(param: Param): Code = s"${param.name}: ${transType(param.typ)}"
 
-  private def transMethodDef(method: MethodDef): Code =
+  def transMethodDef(method: MethodDef): Code =
     val classDef = method.target match
       case Some(cls) => cls
       case _ => throw IllegalArgumentException(s"Unresolved method definition $method")
@@ -178,15 +179,15 @@ class GenerateScala:
     val name = s"${method.name}$$${classDef.name}"
     s"def $name($params): $outTy = \n$body"
 
-  private def transFunctionDef(fun: FunctionDef): Code =
+  def transFunctionDef(fun: FunctionDef): Code =
     val params = fun.params.map(transParam).mkString(", ")
     val outTy = transType(fun.outType)
     val body = transStatements(fun.body).indent(4)
     s"def ${fun.name}($params): $outTy = \n$body"
 
-  private def transStatements(stmts: Seq[Statement]): Code = stmts.map(transStatement).mkString("\n")
+  def transStatements(stmts: Seq[Statement]): Code = stmts.map(transStatement).mkString("\n")
 
-  private def transStatement(stmt: Statement): Code = stmt match
+  def transStatement(stmt: Statement): Code = stmt match
     case Expr(expression) => transExpression(expression)
     case Return(expression) => s"return ${transExpression(expression)}"
     case Assign(lhs, Name("="), rhs) => s"$lhs = $rhs"
@@ -208,7 +209,7 @@ class GenerateScala:
     case VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
       throw IllegalStateException("Can not translate SSA transformed OODL program to Scala.")
 
-  private def transExpression(expr: Expression): Code = expr match
+  def transExpression(expr: Expression): Code = expr match
     case Var(Name("this")) =>
       "this$0"
     case Var(name) =>
@@ -235,6 +236,10 @@ class GenerateScala:
         s"new SID$$${signatureString(constrDef.signature)}($argsCode)"
       else
         throw IllegalArgumentException(s"Can not construct none case class ${classDef.name}")
+    case methodCall@MethodCall(recv, Name("fold"), tyArgs, Seq(init, Var(fun)), isFix) if recv.typ.exists(_.isInstanceOf[TSet]) =>
+      val recvCode = transExpression(recv)
+      val initCode = transExpression(init)
+      s"$recvCode.fold($initCode)($fun)"
     case methodCall@MethodCall(recv, fun, tyArgs, args, isFix) =>
       val methodDef = methodCall.target match
         case Some((_, m)) => m
@@ -273,7 +278,7 @@ class GenerateScala:
     case BinOp(e1, op, e2) => s"${transExpression(e1)} $op ${transExpression(e2)}"
     case UnOp(op, e) => s"$op$e"
 
-  private def transType(typ: Type): Code = typ match
+  def transType(typ: Type): Code = typ match
     case TAny => "Any"
     case TNull => "ID"
     case TTuple(ts) => ts.map(transType).mkString("(", ",", ")")
@@ -281,7 +286,7 @@ class GenerateScala:
     case TName(name, tyArgs) => "ID"
     case TSet(ty) => s"Set[${transType(ty)}]"
 
-  def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
+  /*def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
     val scalaTy = transType(typ)
     val funCode = op match
       case v: Var => v.target match
@@ -297,4 +302,4 @@ class GenerateScala:
      |  override val isAssociative = true
      |  override val isCommutative = true
      }""".stripMargin
-  }
+  }*/

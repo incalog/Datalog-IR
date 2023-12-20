@@ -10,7 +10,7 @@ import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoAggregationOperator, MonoDefinition, UserDefinedMonoDefinition}
 import inca.util.Gensym
 
-trait ScalaLowering extends primitive.Visitor with BaseLowering:
+trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
   override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
 
@@ -66,18 +66,20 @@ trait ScalaLowering extends primitive.Visitor with BaseLowering:
       super.visitType(ty)  
   }
 
-  // Wildcards
+  /** Wildcards */
 
   override def visitArg(arg: Arg): Seq[Arg] = arg match
     case WildcardArg() => Seq(TermArg(Var(Name(gensym.freshName("_")))))
     case _ => super.visitArg(arg)
 
-  // Aggregation
-
-  def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op
+  /** Aggregation */
   
   def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono
-  
+
+  // Note: Leave this in, otherwise we get a compiler error...
+  override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator =
+    super.visitAggregationOperator(op)
+
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case aggregate.Aggregate(rel, args, op) =>
       // We only support a single aggregation column

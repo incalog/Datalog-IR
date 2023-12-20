@@ -16,25 +16,20 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
     case _ => super.visitAtom(atom))
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match
-    case data: DataDefinition => Seq(visitDataDefinition(data))
+    case DataDefinition(name) => Seq(DataDefinition(name))
+    case CaseDefinition(name, args, data) =>
+      Seq(CaseDefinition(name, args.map(visitType), visitType(data).asInstanceOf[TData]))
     case _ => super.visitModuleEntry(moduleEntry))
-
-  def visitDataDefinition(data: DataDefinition): DataDefinition = preserveHints(data) {
-    DataDefinition(data.name, data.cases.map(visitDataCase))
-  }
-
-  def visitDataCase(c: CaseDefinition): CaseDefinition = preserveHints(c) {
-    CaseDefinition(c.name, c.args.map(visitType))
-  }
-
+  
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
-    case Construct(name, data) => Seq(Construct(name, data.flatMap(visitTerm)))
+    case Construct(ref, data) => Seq(Construct(visitRef(ref), data.flatMap(visitTerm)))
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type = preserveHints(ty)(ty match
-    case TData(name) => TData(name)
+    case TData(ref) => TData(visitRef(ref))
     case _ => super.visitType(ty))
 
   override def negateAtom(atom: Atom): Atom = atom match
-    case Deconstruct(t, caseName, args, neg) => Deconstruct(t, caseName, args, !neg)
+    case Deconstruct(t, caseRef, args, neg) => Deconstruct(t, visitRef(caseRef), args.flatMap(visitArg), !neg)
     case _ => super.negateAtom(atom)
+

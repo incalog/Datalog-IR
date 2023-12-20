@@ -3,7 +3,7 @@ package inca.foreign.scala.ir.data
 import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, name2string}
 import inca.ir.extension.block
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{IR, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
@@ -84,6 +84,8 @@ trait ScalaLowering extends BaseScalaLowering:
         case _ => throw IllegalStateException("Found unexpected wildcard! Make sure you called visitTerm")
       }
       guard +: paramReads
+    case s: ScalaAggregationAtom =>
+      super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match

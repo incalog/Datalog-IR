@@ -1,8 +1,6 @@
 package inca.frontend.oodl.foreign
 
-import inca.ir.lowering.BaseLowering
-import inca.ir.BaseIR
-import inca.ir.{Atom, BaseIR, ModuleEntry, name2string, string2name}
+import inca.ir.{Atom, BaseIR, ModuleEntry, Name, name2string, string2name}
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.aggregate.{Aggregate, IR as iragg}
 import inca.foreign.scala.ir.primitive.IR as irprimitive
@@ -26,10 +24,11 @@ class Lowering(oodlModule: OODLModule) extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] =
     atom match
       case Aggregate(rel, args, aggOp@OODLAggregationOperator(fun, init, op)) =>
-        // TODO: Lower the type
-        val ty = OODL.compileType(aggOp.to)
-        val aggCode = generateScala.genAggregation(fun.name, init, op, aggOp.to)
-        val scalaAggOp = ScalaAggregationOperator(ScalaInca.compileType(ty), aggCode + ".aggregator")
+        // TODO: Lower type e.g. Boolean to Int before passing it into this function
+
+        val initCode = generateScala.transExpression(init)
+        val addCode = generateScala.transExpression(op)
+        val scalaAggOp = ScalaAggregationOperator(fun.name, aggOp.resultType, initCode, addCode)
         Seq(Aggregate(rel, args, scalaAggOp))
       case _ =>
         super.visitAtom(atom)

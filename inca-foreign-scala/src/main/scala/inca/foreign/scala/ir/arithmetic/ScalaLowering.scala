@@ -77,7 +77,7 @@ trait ScalaLowering extends BaseScalaLowering:
       case MonoAggregationOperator(mono) =>
         val scalaMono = visitMonoDef(mono).asInstanceOf[ScalaMonoDefinition]
         ScalaMonoAggregationOperator(mono.name, ScalaInca.compileType(scalaMono.typ.in), ScalaInca.compileType(scalaMono.typ.state), scalaMono.initCode, scalaMono.addCode)
-      case _ => op
+      case _ => super.visitAggregationOperator(op)
 
   override def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono match
     case ArithmeticMonoDefinition.SumInt =>
