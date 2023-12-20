@@ -14,14 +14,14 @@ case class DatalogLoggingSection(override val name: String, defaults: Map[String
   def verboseOutput: Boolean = readBoolean("verbose_output")
   def verboseOutput_= (newVal: Boolean): Unit = update("verbose_output", newVal)
 
-final class DatalogCompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):
+final class DatalogCompilerOptions private(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):
   override protected def createSection(name: String, entries: Map[String, Any]): Section = name match
     case "datalog_logging" => DatalogLoggingSection("datalog_logging", entries)
     case _ => super.createSection(name, entries)
 
   def datalogLogging: DatalogLoggingSection =
-    options.get("datalog_logging") match
-      case Some(sec: DatalogLoggingSection) => sec
+    apply("datalog_logging") match
+      case sec: DatalogLoggingSection => sec
       case _ => DatalogLoggingSection("datalog_logging", Map())
 
   override def setDefaults(): Unit =

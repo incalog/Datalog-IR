@@ -88,17 +88,17 @@ class BaseTest extends AnyFunSuiteLike:
       ))
     ))
 
-    val options = CompilerOptions(Seq(
-      "viatra_logging" -> Seq(
-        "typed" -> false,
-        "module" -> true,
-        "lowerings" -> false,
-        "psystem" -> true
-      ),
-      "viatra_options" -> Seq(
-        "apply_double_aggregation_rewrite" -> true
-      )
-    ))
+    val options = CompilerOptions.default
+
+    val viatraLogging = options("viatra_logging")
+    viatraLogging.update("typed", false)
+    viatraLogging.update("module", true)
+    viatraLogging.update("lowerings", false)
+    viatraLogging.update("psystem", true)
+
+    val viatraOptions = options("viatra_options")
+    viatraOptions.update("apply_double_aggregation_rewrite", true)
+
     var code = GeneratePSystem.compileModules(Seq(mod), options)
     code = s"$code; Path"
 

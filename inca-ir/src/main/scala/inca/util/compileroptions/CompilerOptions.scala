@@ -48,11 +48,13 @@ case class IRLoggingSection(override val name: String, defaults: Map[String, Any
   def logStatsAfterOptimizations_=(newVal: Boolean): Unit = update("stats_after_optimization", newVal)
 
 
-class CompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
+class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
 
   protected var options: Map[String, Section] = defaults
     .map((s, o) => s -> createSection(s, o.toMap))
     .toMap
+
+  override def toString: String = options.values.mkString("\n\n")
 
   protected def createSection(name: String, entries: Map[String, Any]): Section = name match
     case "ir_logging" => IRLoggingSection("ir_logging", entries)
@@ -60,9 +62,9 @@ class CompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
 
   // All available properties
   def irLogging: IRLoggingSection =
-     options.get("ir_logging") match
-       case Some(sec: IRLoggingSection) => sec
-       case _ => IRLoggingSection("ir_logging", Map())
+     apply("ir_logging") match
+       case sec: IRLoggingSection => sec
+       case _ => throw IllegalStateException("Expected IRLoggingSection, but got Section")
 
   protected def setDefaults(): Unit =
     irLogging.logTypeInformation = true
@@ -73,14 +75,15 @@ class CompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
     irLogging.logStatsBeforeOptimizations = false
     irLogging.logStatsAfterOptimizations = false
 
-  override def toString: String = options.values.mkString("\n")
-
   def update(section: Section): Unit = options += section.name -> section
 
   def apply(section: String): Section =
     options.get(section) match
       case Some(sec) => sec
-      case _ => Section(section, Map())
+      case _ =>
+        val sec = createSection(section, Map())
+        options += section -> sec
+        sec
 
 
 object CompilerOptions:
@@ -90,4 +93,7 @@ object CompilerOptions:
     val compilerOptions = CompilerOptions(parsedOptions)
     compilerOptions
 
-  implicit def default: CompilerOptions = CompilerOptions()
+  implicit def default: CompilerOptions =
+    val options = CompilerOptions()
+    options.setDefaults()
+    options

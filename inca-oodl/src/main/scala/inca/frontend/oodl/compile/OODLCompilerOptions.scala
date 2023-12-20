@@ -18,14 +18,14 @@ case class OODLLoggingSection(override val name: String, defaults: Map[String, A
   def verboseOutput_= (newVal: Boolean): Unit = update("verbose_output", newVal)
 
 
-final class OODLCompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):
+final class OODLCompilerOptions private(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):
   override protected def createSection(name: String, entries: Map[String, Any]): Section = name match
     case "oodl_logging" => OODLLoggingSection("oodl_logging", entries)
     case _ => super.createSection(name, entries)
 
   def oodlLogging: OODLLoggingSection =
-    options.get("oodl_logging") match
-      case Some(sec: OODLLoggingSection) => sec
+    apply("oodl_logging") match
+      case sec: OODLLoggingSection => sec
       case _ => OODLLoggingSection("oodl_logging", Map())
 
   override def setDefaults(): Unit =
