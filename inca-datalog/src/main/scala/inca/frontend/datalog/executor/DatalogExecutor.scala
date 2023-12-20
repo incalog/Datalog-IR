@@ -3,6 +3,7 @@ package inca.frontend.datalog.executor
 import inca.frontend.datalog.syntax.Parser
 import inca.frontend.datalog.compile.CompiledDatalogModule
 import inca.ir.execution.{IRExecutor, Relation}
+import inca.util.compileroptions.CompilerOptions
 
 import scala.annotation.targetName
 
@@ -36,7 +37,7 @@ class DatalogExecutor(val exec: IRExecutor):
     Loaded(engine, compiled)
   }
 
-  def compileDatalog(code: String): CompiledDatalogModule = {
+  def compileDatalog(code: String, compilerOptions: CompilerOptions): CompiledDatalogModule = {
     val module = Parser.parseModule(code)
-    CompiledDatalogModule(module)
+    CompiledDatalogModule(module, compilerOptions)
   }

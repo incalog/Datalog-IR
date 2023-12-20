@@ -5,6 +5,7 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateIR}
 import inca.frontend.oodl.syntax.*
 import inca.ir
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
+import inca.util.compileroptions.CompilerOptions
 
 import scala.jdk.CollectionConverters.*
 
@@ -63,8 +64,8 @@ class OODLExecutor(val exec: IRExecutor):
     Loaded(engine, compiled)
   }
 
-  def compileOODL(code: String): CompiledOODLModule = {
+  def compileOODL(code: String, compilerOptions: CompilerOptions): CompiledOODLModule = {
     val module = Parser.parseModule(code)
     //println(module)
-    CompiledOODLModule(module)
+    CompiledOODLModule(module, compilerOptions)
   }

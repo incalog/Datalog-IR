@@ -6,8 +6,9 @@ import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.util.compileroptions.CompilerOptions
 
-case class CompiledOODLModule(fun: Module) extends CompiledModule:
+case class CompiledOODLModule(fun: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
 
   override def name: Name = fun.name
 
@@ -44,16 +45,18 @@ case class CompiledOODLModule(fun: Module) extends CompiledModule:
   }
 
 object CompiledOODLModule:
+  // Important:
+  // 1. Not before block
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new mono.Lowering {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
-    () => new block.Lowering {},
-    () => new impure.Lowering {},
     () => new not.Lowering {},
+    () => new block.Lowering {},
     () => new disjunction.Lowering {},
+    () => new impure.Lowering {},
     () => new demand.Lowering {},
     () => new tuple.Lowering {},
   ) // arith + string + data

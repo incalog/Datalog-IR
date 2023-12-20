@@ -13,6 +13,7 @@ import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impu
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.util.compileroptions.CompilerOptions
 
 import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -39,7 +40,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledMonoModule(mod)
+    val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
     compiledMod.setPipeline(CompiledMonoModule.pipeline)
     val exec: IRExecutor = inca.viatra.Executor
     exec.instantiate(compiledMod)

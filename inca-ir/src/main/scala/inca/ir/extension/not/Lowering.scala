@@ -10,7 +10,7 @@ import inca.ir.typing.Mode
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Not"
   override def loweredIRs: Set[BaseIR] = Set(IR)
   override def requiredIRs: Set[BaseIR] = Set()
 

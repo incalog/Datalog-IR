@@ -5,6 +5,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.compile.{CompiledFunctionalModule, GenerateIR}
 import inca.frontend.functional.syntax.*
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
+import inca.util.compileroptions.CompilerOptions
 
 import scala.jdk.CollectionConverters.*
 
@@ -30,7 +31,7 @@ class FunctionalExecutor(val exec: IRExecutor):
     Loaded(engine, compiled)
   }
 
-  def compileFunction(code: String): CompiledFunctionalModule = {
+  def compileFunction(code: String, compilerOptions: CompilerOptions): CompiledFunctionalModule = {
     val module = Parser.parseModule(code)
-    CompiledFunctionalModule(module)
+    CompiledFunctionalModule(module, compilerOptions)
   }

@@ -9,7 +9,7 @@ import inca.ir.{name2string, string2name}
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Tuple"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 

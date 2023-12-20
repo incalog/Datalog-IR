@@ -10,6 +10,9 @@ import scala.collection.immutable.Seq
 trait BaseIRVisitor:
   case object FailedBody extends Throwable
 
+  // Name used for debugging
+  def name: String = ""
+
   def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
     modules.map(visitModule)
 

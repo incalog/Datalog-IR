@@ -13,6 +13,7 @@ import inca.ir.typing.Mode
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
+  override val name: String = "AggregateSet"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(aggregate.IR, set.IR)
 

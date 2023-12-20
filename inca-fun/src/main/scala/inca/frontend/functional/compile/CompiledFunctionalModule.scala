@@ -7,27 +7,49 @@ import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.util.compileroptions.CompilerOptions
 
-case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
+case class CompiledFunctionalModule(fun: Module, override val compilerOptions: CompilerOptions)
+  extends CompiledModule:
 
   override def name: Name = fun.name
 
   override def sourceLocation: SourceLocation = fun.name
 
+  val funLogging = compilerOptions("fun_logging")
+  val logTyped: Boolean = funLogging.readBoolean("typed")
+
   lazy val typed: Module = {
+    val logMod = funLogging.readBoolean("module")
+    if (logMod && !logTyped)
+      printStep("Module", fun)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
+
+    if (logMod && logTyped)
+      printStep("Module", fun)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
     fun
   }
 
-  lazy val monoModule: Module = {
+  /*lazy val monoModule: Module = {
+    val logMono = funLogging.readBoolean("mono")
     val mono = new Monomorph
     val module = mono.transModule(typed)
+
+    if (logMono && !logTyped)
+      printStep("Mono", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logMono && logTyped)
+      printStep("Mono", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
@@ -35,22 +57,41 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
   }
 
   lazy val defunModule: Module = {
+    val logDefun = funLogging.readBoolean("defun")
+
     val defun = new Defunctionalize
     val module = defun.transModule(monoModule)
+
+    if (logDefun && !logTyped)
+      printStep("Defun", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logDefun && logTyped)
+      printStep("Defun", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
     module
-  }
+  }*/
 
   lazy val normalizedFoldModule: Module = {
+    val logNormalized = funLogging.readBoolean("normalized")
+
     val norm = new NormalizeFold
     val module = norm.visitModule(typed)
-    println(module)
+
+    if (logNormalized && !logTyped)
+      printStep("Normalized", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logNormalized && logTyped)
+      printStep("Normalized", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
@@ -59,9 +100,7 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
 
   lazy val ir: IRModule = {
     val compiler = new GenerateIR
-    println(normalizedFoldModule)
     val module = compiler.compileModule(normalizedFoldModule)
-    println("\n~~~~~~~~~~~~~~~~~~~~~~~\n" + module)
     module
   }
 

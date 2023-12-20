@@ -7,7 +7,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
-
+  override val name: String = "TypeParam"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 

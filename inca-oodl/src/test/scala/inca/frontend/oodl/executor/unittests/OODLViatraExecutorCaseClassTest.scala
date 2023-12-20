@@ -4,9 +4,11 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateScala}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
+  val options = CompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
 
   /** Case class */
@@ -14,7 +16,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   test("Case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
 
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
 
     // TEST
     /*println(code)
@@ -33,7 +35,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
 
   test("Transitive closure") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())

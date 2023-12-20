@@ -9,6 +9,7 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Eq, Name, Term, Type, Var}
 
 trait Lowering extends not.Lowering:
+  override val name: String = "Bool"
   override val loweredIRs: Set[BaseIR] = Set(IR) ++ super.loweredIRs
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, block.IR, disjunction.IR, not.IR) ++ super.requiredIRs
 

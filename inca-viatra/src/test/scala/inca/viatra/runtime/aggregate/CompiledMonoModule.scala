@@ -11,8 +11,9 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.Visitor as ScalaVisitor
 import inca.foreign.scala.visitors.ScalaStatisticsCollector
 import inca.ir.extension.impure.CollectImpurityKinds
+import inca.util.compileroptions.CompilerOptions
 
-case class CompiledMonoModule(mod: Module) extends CompiledModule:
+case class CompiledMonoModule(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
   override def name: Name = mod.name
 
   override def sourceLocation: SourceLocation = mod.name

@@ -16,6 +16,8 @@ lazy val inca_ir = (project in file("inca-ir"))
 
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    "org.typelevel" %% "cats-parse" % "0.3.9",
+    "org.typelevel" %% "cats-core" % "2.9.0",
   )
 )
 

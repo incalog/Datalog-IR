@@ -4,15 +4,17 @@ import inca.frontend.oodl.compile.CompiledOODLModule
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorTest extends AnyFunSuite:
+  val options = CompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
 
   // Unittests
   test("Add") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Add.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -21,7 +23,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Assignment") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Assignment.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(5))
@@ -30,7 +32,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Base") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Base.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -39,7 +41,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Dynamic Dispatch") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/DynamicDispatch.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -50,7 +52,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
   // TODO: Eliminate aliases to make this work
   test("Equals") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Equals.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -59,7 +61,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Factorial") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Fact.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(5))
@@ -68,7 +70,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Fibonacci") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Fib.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(10))
@@ -79,7 +81,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
   //  + Disjunction lowering is way to slow on this (is there an endless loop?)
   test("InstanceOf") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/InstanceOf.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -88,7 +90,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Method Inheritance") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/MethodInheritance.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -97,7 +99,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Mutability") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Mutability.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -106,7 +108,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Null") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Null.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -115,7 +117,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Param Object") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/ParamObject.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -125,7 +127,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
   // We need way more optimizations to make this program executable
   test("Plus") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Plus.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -134,7 +136,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Subtyping") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Subtyping.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -143,7 +145,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Super") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Super.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -152,7 +154,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("Tuple") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Tuple.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -161,7 +163,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("TypeCast") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/TypeCast.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -170,7 +172,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
 
   test("TypeCast failure") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/TypeCastFail.oodl")
-    val compiled = exec.compileOODL(code)
+    val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val caught = intercept[TypeCastException] {

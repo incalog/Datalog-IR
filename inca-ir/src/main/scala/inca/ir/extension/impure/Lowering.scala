@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
  * Nevertheless, one body increases the counter and the other does not.
  */
 trait Lowering extends BaseLowering:
+  override val name: String = "Impure"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(arithmetic.IR, demand.IR)
 

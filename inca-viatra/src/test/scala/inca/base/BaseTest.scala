@@ -15,6 +15,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.ir.term2Arg
+import inca.util.compileroptions.CompilerOptions
 
 
 class BaseTest extends AnyFunSuiteLike:
@@ -87,10 +88,21 @@ class BaseTest extends AnyFunSuiteLike:
       ))
     ))
 
-    var code = GeneratePSystem.compileModules(Seq(mod), false)
+    val options = CompilerOptions(Seq(
+      "viatra_logging" -> Seq(
+        "typed" -> false,
+        "module" -> true,
+        "lowerings" -> false,
+        "psystem" -> true
+      ),
+      "viatra_options" -> Seq(
+        "apply_double_aggregation_rewrite" -> true
+      )
+    ))
+    var code = GeneratePSystem.compileModules(Seq(mod), options)
     code = s"$code; Path"
 
-    val compiler = new ScalaCompiler()
+    val compiler = new ScalaCompiler(options)
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(code)
     val pathSpec = psystemModule.patterns("path")()
 

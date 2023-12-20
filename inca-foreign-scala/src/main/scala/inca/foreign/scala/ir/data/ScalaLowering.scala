@@ -9,6 +9,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 
 trait ScalaLowering extends BaseScalaLowering:
+  override val name: String = "ScalaData"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
 

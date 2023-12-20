@@ -22,7 +22,10 @@ object Executor extends IRExecutor:
 
     override def read(rel: Relation): Relation =
       val spec = module.patterns(rel.name)()
+      //val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
+      //val diff = System.nanoTime() - start
+      //println(s"The time: ${diff/1000000000d}")
 
       import scala.jdk.CollectionConverters.*
       val parameterNames = matcher.getParameterNames.asScala.toSeq
@@ -55,9 +58,10 @@ object Executor extends IRExecutor:
 
 
   override def instantiate(m: CompiledModule): Engine =
-    val code = GeneratePSystem.compileModules(Seq(m.lowered), true)
+    val options = m.compilerOptions
+    val code = GeneratePSystem.compileModules(Seq(m.lowered), options)
     val loadSource = s"$code;\n${m.name}"
-    val compiler = new ScalaCompiler()
+    val compiler = new ScalaCompiler(options)
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)
 
     val scope = new QueryScope(new DataModel())

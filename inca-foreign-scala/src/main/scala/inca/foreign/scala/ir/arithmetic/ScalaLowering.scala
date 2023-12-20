@@ -15,6 +15,7 @@ import inca.foreign.scala.ir.primitive.ScalaMonoDefinition.builtinMono
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
+  override val name: String = "ScalaArithmetic"
   override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
   override val requiredIRs: Set[BaseIR] = super.requiredIRs ++ Set(block.IR)
 

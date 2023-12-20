@@ -6,12 +6,18 @@ import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.Driver
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.{VirtualDirectory, VirtualFile}
+
 import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import dotty.tools.repl.AbstractFileClassLoader
+import inca.util.compileroptions.CompilerOptions
+
 import scala.io.Codec
 
-class ScalaCompiler {
+class ScalaCompiler(val options: CompilerOptions) {
+  val viatraLogging = options("viatra_logging")
+  val logPsystem = viatraLogging.readBoolean("psystem")
+
   private var compilerCache: Map[String, Any] = Map()
 
   private case class DriverImpl(classpathDirectories: List[AbstractFile], outputDirectory: AbstractFile) extends Driver {
@@ -59,7 +65,10 @@ class ScalaCompiler {
          |  }
          |}""".stripMargin
 
-//    println(prog)
+    if (logPsystem)
+      println("Psystem: ")
+      println(prog)
+      println()
 
     val outputDirectory = VirtualDirectory("(memory)")
     compileCode(prog, List() /*files.map(f => AbstractFile.getFile(f.toURI.toURL.getPath)).toList*/ , outputDirectory)

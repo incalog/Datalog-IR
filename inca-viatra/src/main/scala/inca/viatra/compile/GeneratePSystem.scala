@@ -13,6 +13,7 @@ import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
+import inca.util.compileroptions.CompilerOptions
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
@@ -29,12 +30,27 @@ object GeneratePSystem:
   type RuleEnvironment = Map[String, String]
   type Code = String
 
-  def compileModules(modules: Seq[Module], needsDoubleAggregationRewrite: Boolean): Code = {
+  def compileModules(modules: Seq[Module], options: CompilerOptions): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
-    modules.map(m => compileModule(m, needsDoubleAggregationRewrite)(env)).mkString("\n")
+    modules.map(m => compileModule(m, options)(env)).mkString("\n")
   }
 
-  private def lowerAndTypeModule(module: Module, withDoubleAggregationRewrite: Boolean)(implicit env: RuleEnvironment): Module = {
+  protected def printStep(title: String, content: Any): Unit =
+    println(title)
+    println(content)
+    println()
+    println("~~~~~~~~~~~~~~~~~~~~~~~")
+    println()
+
+  private def lowerAndTypeModule(module: Module, options: CompilerOptions)(implicit env: RuleEnvironment): Module = {
+    val viatraLogging = options("viatra_logging")
+    val logTyped = viatraLogging.readBoolean("typed")
+    val logModule = viatraLogging.readBoolean("module")
+    val logLowerings = viatraLogging.readBoolean("lowerings")
+
+    val viatraOptions = options("viatra_options")
+    val withDoubleAggregationRewrite = viatraOptions.readBoolean("apply_double_aggregation_rewrite")
+
     // Do not change this order
     var lowerings: List[() => BaseIRVisitor] = List(
       () => new arithmetic.ScalaLowering {}, // lower arithmetic
@@ -46,9 +62,16 @@ object GeneratePSystem:
     if (withDoubleAggregationRewrite)
       lowerings :+= (() => new TimelyLatticeAggregationRewriter())
 
+    if (logModule && !logTyped)
+      printStep("Module", module)
+
     // we need type information to translate the datalog code to scala code
     val typechecker = new Typechecker {}
     typechecker.checkModule(module)
+
+    if (logModule && logTyped)
+      printStep("Module", module)
+
     typechecker.failOnError()
 
     // apply and typecheck each lowering
@@ -56,7 +79,15 @@ object GeneratePSystem:
       case (mod, lowering) =>
         val low = lowering()
         val Seq(lowered) = low.visitProgram(Seq(mod))
+
+        if (logLowerings && !logTyped)
+          printStep(s"Lowering: ${low.name}", lowered)
+
         typechecker.checkModule(lowered)
+
+        if (logLowerings && logTyped)
+          printStep(s"Lowering: ${low.name}", lowered)
+
         typechecker.failOnError()
         lowered
     }
@@ -99,20 +130,16 @@ object GeneratePSystem:
     result
   }*/
 
-  def compileModule(module: Module, needsDoubleAggregationRewrite: Boolean)(implicit env: RuleEnvironment): Code = {
+  def compileModule(module: Module, options: CompilerOptions)(implicit env: RuleEnvironment): Code = {
     val indent = 2
 
-    val mod = lowerAndTypeModule(module, needsDoubleAggregationRewrite)
+    val mod = lowerAndTypeModule(module, options)
 
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 
     //val relations = getProductiveRelations(mod)
     val relations = mod.relations
-
-//    println()
-//    println(mod)
-//    println()
 
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
