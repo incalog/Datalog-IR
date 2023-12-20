@@ -9,27 +9,25 @@ import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunct
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 
-case class CompiledDatalogModule(mod: Module, override val compilerOptions: CompilerOptions)
-  extends CompiledModule {
+case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
 
   override def name: Name = Name("Datalog")
 
   override def sourceLocation: SourceLocation = Name("Datalog")
 
-  val datalogLogging = compilerOptions("fun_logging")
-  val logTyped: Boolean = datalogLogging.readBoolean("typed")
+  val logTyped: Boolean = compilerOptions.datalogLogging.logTypeInformation
 
   lazy val typed: Module = {
-    val logMod = datalogLogging.readBoolean("module")
+    val logMod = compilerOptions.datalogLogging.logModule
 
     if (logMod && !logTyped)
-      printStep("Module", mod)
+      printStep("Datalog-Module", mod)
 
     val typer: Typechecker = new Typechecker
     typer.checkModule(mod)
 
-    if (logMod && !logTyped)
-      printStep("Module", mod)
+    if (logMod && logTyped)
+      printStep("Datalog-Module", mod)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings

@@ -1,15 +1,14 @@
 package inca.frontend.functional.executor.unittests
 
-import inca.frontend.functional.compile.CompiledFunctionalModule
+import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
 import inca.util.FileUtil
-import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalViatraExecutorTest extends AnyFunSuite:
-  val options = CompilerOptions.fromResource("functional/Options.ini")
+  val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
   val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
 
   // Unittests

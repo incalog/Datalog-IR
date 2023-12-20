@@ -6,32 +6,31 @@ import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
-import inca.util.compileroptions.CompilerOptions
 import inca.frontend.oodl.foreign
 
-case class CompiledOODLModule(fun: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
+case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
 
   override def name: Name = fun.name
 
   override def sourceLocation: SourceLocation = fun.name
 
-  val oodlLogging = compilerOptions("oodl_logging")
-  val logTyped: Boolean = oodlLogging.readBoolean("typed")
+  val oodlLogging = compilerOptions.oodlLogging
+  val logTyped: Boolean = oodlLogging.logTypeInformation
 
   lazy val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(
     () => new foreign.Lowering(typed)
   )
 
   lazy val typed: Module = {
-    val logMod = oodlLogging.readBoolean("module")
+    val logMod = oodlLogging.logModule
     if (logMod && !logTyped)
-      printStep("Module", fun)
+      printStep("OODL-Module", fun)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
 
     if (logMod && logTyped)
-      printStep("Module", fun)
+      printStep("OODL-Module", fun)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -43,7 +42,7 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: Compile
     val compiler = new SSA
     val module = compiler.compileModule(typed)
 
-    val logSSA = oodlLogging.readBoolean("ssa")
+    val logSSA = oodlLogging.logSSAModule
     if (logSSA && !logTyped)
       printStep("SSA", fun)
 

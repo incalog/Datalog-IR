@@ -13,7 +13,7 @@ import scala.io.Source
 import math.Ordered.orderingToOrdered
 
 class CompilerTest extends AnyFunSuite {
-  val options = CompilerOptions.fromResource("functional/Options.ini")
+  val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
   val uri = classOf[CompilerTest].getResource("/functional").toURI;
 
   def testCompile(code: String): Unit =

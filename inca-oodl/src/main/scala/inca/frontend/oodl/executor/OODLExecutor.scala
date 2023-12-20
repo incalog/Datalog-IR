@@ -1,11 +1,10 @@
 package inca.frontend.oodl.executor
 
 import inca.frontend.oodl.compile.GenerateIR.{castRelationName, extensionalRelationName}
-import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateIR}
+import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateIR, OODLCompilerOptions}
 import inca.frontend.oodl.syntax.*
 import inca.ir
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
-import inca.util.compileroptions.CompilerOptions
 
 import scala.jdk.CollectionConverters.*
 
@@ -13,6 +12,7 @@ case class TypeCastException(message: String) extends Exception(message, null)
 
 class OODLExecutor(val exec: IRExecutor):
   case class Loaded(engine: exec.Engine, compiled: CompiledOODLModule):
+    val verboseOutput: Boolean = compiled.compilerOptions.oodlLogging.verboseOutput
 
     private def throwTypeCastExceptionIfRequired(): Unit = {
       def flattenAndProject(rel: Relation): Set[Seq[AnyRef]] = {
@@ -35,7 +35,8 @@ class OODLExecutor(val exec: IRExecutor):
     }
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
-      engine.readAll().foreach { r => println(r.asTable) }
+      if (verboseOutput)
+        engine.readAll().foreach { r => println(r.asTable) }
       val rel = engine.read(UnitRelation(pat))
       throwTypeCastExceptionIfRequired()
       rel.project(tuple.size, Int.MaxValue)
@@ -64,7 +65,7 @@ class OODLExecutor(val exec: IRExecutor):
     Loaded(engine, compiled)
   }
 
-  def compileOODL(code: String, compilerOptions: CompilerOptions): CompiledOODLModule = {
+  def compileOODL(code: String, compilerOptions: OODLCompilerOptions): CompiledOODLModule = {
     val module = Parser.parseModule(code)
     CompiledOODLModule(module, compilerOptions)
   }

@@ -534,7 +534,6 @@ class GenerateIR:
           val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)
           irdata.Construct(caseName, caseArgs)
         case cls if cls.isMonoClass =>
-          // TODO: We probably need an MID here to pass monos around as an ID
           cls.name match
             case Name("mono.Count") => irmono.NewMono(irmono.ArithmeticMonoDefinition.Count, Seq(), Seq())
             case _ => ???

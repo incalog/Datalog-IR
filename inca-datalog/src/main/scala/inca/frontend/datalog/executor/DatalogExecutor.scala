@@ -1,9 +1,8 @@
 package inca.frontend.datalog.executor
 
 import inca.frontend.datalog.syntax.Parser
-import inca.frontend.datalog.compile.CompiledDatalogModule
+import inca.frontend.datalog.compile.{CompiledDatalogModule, DatalogCompilerOptions}
 import inca.ir.execution.{IRExecutor, Relation}
-import inca.util.compileroptions.CompilerOptions
 
 import scala.annotation.targetName
 
@@ -13,9 +12,11 @@ object DatalogExecutor:
 
 class DatalogExecutor(val exec: IRExecutor):
   case class Loaded(engine: exec.Engine, compiled: CompiledDatalogModule):
+    val logAllRelations: Boolean = compiled.compilerOptions.datalogLogging.verboseOutput
 
     def output(rel: Relation): Relation = {
-      //engine.readAll().foreach { r => println(r.asTable) }
+      if (logAllRelations)
+        engine.readAll().foreach { r => println(r.asTable) }
       engine.read(rel)
     }
 
@@ -37,7 +38,7 @@ class DatalogExecutor(val exec: IRExecutor):
     Loaded(engine, compiled)
   }
 
-  def compileDatalog(code: String, compilerOptions: CompilerOptions): CompiledDatalogModule = {
+  def compileDatalog(code: String, compilerOptions: DatalogCompilerOptions): CompiledDatalogModule = {
     val module = Parser.parseModule(code)
     CompiledDatalogModule(module, compilerOptions)
   }

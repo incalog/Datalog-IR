@@ -2,21 +2,7 @@ package inca.util.compileroptions
 
 import inca.util.FileUtil
 
-
-trait CompilerOptionSection:
-  def name: String
-  def readBoolean(option: String): Boolean = false
-  def readString(option: String): String = ""
-  def readInt(option: String): Int = 0
-  def readDouble(option: String): Double = 0.0
-
-  override def toString: String = s"[$name]"
-
-// Just use the default value for whatever option is read
-case class DefaultCompilerOptionSection(name: String)  extends CompilerOptionSection
-
-
-case class ConcreteCompilerOptionSection(name: String, defaults: Map[String, Any]) extends CompilerOptionSection:
+class Section(val name: String, defaults: Map[String, Any]):
   private var options: Map[String, Any] = defaults
 
   override def toString: String =
@@ -24,49 +10,77 @@ case class ConcreteCompilerOptionSection(name: String, defaults: Map[String, Any
     val entries = options.map { case (k, v) => s"$k = $v" }.mkString("\n")
     s"$sec$entries"
 
-  private def readValue(option: String): Any =
-    options.get(option) match
-      case Some(op) => op
-      case _ => throw IllegalAccessException(s"No option named: $option in section $name")
+  private def readValue[T](option: String): Option[T] = options.get(option).asInstanceOf[Option[T]]
+  def readBoolean(option: String): Boolean = readValue(option).getOrElse(false)
+  def readString(option: String): String = readValue(option).getOrElse("")
+  def readInt(option: String): Int = readValue(option).getOrElse(0)
+  def readDouble(option: String): Double = readValue(option).getOrElse(0.0)
+  def update(name: String, value: Any): Unit = options += name -> value
 
-  override def readBoolean(option: String): Boolean =
-    readValue(option) match
-      case b: Boolean => b
-      case v => throw IllegalAccessException(s"Expected boolean but found: $v")
 
-  override def readString(option: String): String =
-    readValue(option) match
-      case s: String => s
-      case v => throw IllegalAccessException(s"Expected string but found: $v")
+case class IRLoggingSection(override val name: String, defaults: Map[String, Any]) extends Section(name, defaults):
+  // Log type information when logging a module
+  def logTypeInformation: Boolean = readBoolean("typed")
+  def logTypeInformation_=(newVal: Boolean): Unit = update("typed", newVal)
 
-  override def readInt(option: String): Int =
-    readValue(option) match
-      case i: Int => i
-      case v => throw IllegalAccessException(s"Expected int but found: $v")
+  // Log the module before any lowering
+  def logModule: Boolean = readBoolean("module")
+  def logModule_=(newVal: Boolean): Unit = update("module", newVal)
 
-  override def readDouble(option: String): Double =
-    readValue(option) match
-      case d: Double => d
-      case v => throw IllegalAccessException(s"Expected int but found: $v")
+  // Log all lowering steps
+  def logLowerings: Boolean = readBoolean("lowerings")
+  def logLowerings_=(newVal: Boolean): Unit = update("lowerings", newVal)
 
-  def update(name: String, value: Any): Unit =
-    options += name -> value
+  // Log all optimization steps
+  def logOptimizations: Boolean = readBoolean("optimizations")
+  def logOptimizations_=(newVal: Boolean): Unit = update("optimizations", newVal)
 
-case class CompilerOptions(defaults: Seq[(String, Seq[(String, Any)])]):
-  private var options: Map[String, CompilerOptionSection] = defaults
-    .map((s, o) => s -> ConcreteCompilerOptionSection(s, o.toMap))
+  // Log all stats before the lowering are applied
+  def logStatsBeforeLowering: Boolean = readBoolean("stats_before_lowering")
+  def logStatsBeforeLowering_=(newVal: Boolean): Unit = update("stats_before_lowering", newVal)
+
+  // Log all stats before the optimizations are applied
+  def logStatsBeforeOptimizations: Boolean = readBoolean("stats_before_optimization")
+  def logStatsBeforeOptimizations_=(newVal: Boolean): Unit = update("stats_before_optimization", newVal)
+
+  // Log all stats after the optimizations are applied
+  def logStatsAfterOptimizations: Boolean = readBoolean("stats_after_optimization")
+  def logStatsAfterOptimizations_=(newVal: Boolean): Unit = update("stats_after_optimization", newVal)
+
+
+class CompilerOptions(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
+
+  protected var options: Map[String, Section] = defaults
+    .map((s, o) => s -> createSection(s, o.toMap))
     .toMap
 
-  override def toString: String =
-    options.values.mkString("\n")
+  protected def createSection(name: String, entries: Map[String, Any]): Section = name match
+    case "ir_logging" => IRLoggingSection("ir_logging", entries)
+    case _ => Section(name, entries)
 
-  def update(section: CompilerOptionSection): Unit =
-    options += section.name -> section
+  // All available properties
+  def irLogging: IRLoggingSection =
+     options.get("ir_logging") match
+       case Some(sec: IRLoggingSection) => sec
+       case _ => IRLoggingSection("ir_logging", Map())
 
-  def apply(section: String): CompilerOptionSection =
+  protected def setDefaults(): Unit =
+    irLogging.logTypeInformation = true
+    irLogging.logModule = true
+    irLogging.logLowerings = true
+    irLogging.logOptimizations = true
+    irLogging.logStatsBeforeLowering = false
+    irLogging.logStatsBeforeOptimizations = false
+    irLogging.logStatsAfterOptimizations = false
+
+  override def toString: String = options.values.mkString("\n")
+
+  def update(section: Section): Unit = options += section.name -> section
+
+  def apply(section: String): Section =
     options.get(section) match
       case Some(sec) => sec
-      case _ => DefaultCompilerOptionSection(section)
+      case _ => Section(section, Map())
 
 
 object CompilerOptions:
@@ -76,17 +90,4 @@ object CompilerOptions:
     val compilerOptions = CompilerOptions(parsedOptions)
     compilerOptions
 
-  implicit val default: CompilerOptions = CompilerOptions(Seq(
-      "ir_logging" -> Seq(
-        "typed" -> true,
-        // Lowerings
-        "module" -> true,
-        "lowerings" -> true,
-        // Optimizations
-        "optimizations" -> true,
-        // Stats
-        "stats_before_lowering" -> false,
-        "stats_before_optimization" -> false,
-        "stats_after_optimization" -> false
-      ),
-    ))
+  implicit def default: CompilerOptions = CompilerOptions()

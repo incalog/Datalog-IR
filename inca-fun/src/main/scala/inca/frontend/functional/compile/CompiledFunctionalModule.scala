@@ -7,28 +7,26 @@ import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
-import inca.util.compileroptions.CompilerOptions
 
-case class CompiledFunctionalModule(fun: Module, override val compilerOptions: CompilerOptions)
+case class CompiledFunctionalModule(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
   extends CompiledModule:
 
   override def name: Name = fun.name
-
   override def sourceLocation: SourceLocation = fun.name
 
-  val funLogging = compilerOptions("fun_logging")
-  val logTyped: Boolean = funLogging.readBoolean("typed")
+  val funLogging = compilerOptions.funLogging
+  val logTyped: Boolean = funLogging.logTypeInformation
 
   lazy val typed: Module = {
-    val logMod = funLogging.readBoolean("module")
+    val logMod = funLogging.logModule
     if (logMod && !logTyped)
-      printStep("Module", fun)
+      printStep("Functional-Module", fun)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
 
     if (logMod && logTyped)
-      printStep("Module", fun)
+      printStep("Functional-Module", fun)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -78,7 +76,7 @@ case class CompiledFunctionalModule(fun: Module, override val compilerOptions: C
   }*/
 
   lazy val normalizedFoldModule: Module = {
-    val logNormalized = funLogging.readBoolean("normalized")
+    val logNormalized = funLogging.logNormalizedModule
 
     val norm = new NormalizeFold
     val module = norm.visitModule(typed)

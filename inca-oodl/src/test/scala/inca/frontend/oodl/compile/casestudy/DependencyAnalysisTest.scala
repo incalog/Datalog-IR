@@ -1,10 +1,9 @@
 package inca.frontend.oodl.compile.casestudy
 
-import inca.frontend.oodl.compile.CompiledOODLModule
+import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.typechecker.{Typechecker, TypecheckerTest}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.oodl.syntax.Parser
-import inca.util.compileroptions.CompilerOptions
 
 import scala.io.Source
 
@@ -18,7 +17,7 @@ class DependencyAnalysisTest extends AnyFunSuite:
     //println(module)
     //checker.typecheck(module)
     //checker.printTypeIO()
-    val compiled = CompiledOODLModule(module, CompilerOptions.default)
+    val compiled = CompiledOODLModule(module, OODLCompilerOptions.default)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     compiled.lowered
 

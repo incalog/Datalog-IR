@@ -1,14 +1,13 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.CompiledOODLModule
+import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
-import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorIfTest extends AnyFunSuite:
-  val options = CompilerOptions.fromResource("objectoriented/Options.ini")
+  val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
 
   /** If */

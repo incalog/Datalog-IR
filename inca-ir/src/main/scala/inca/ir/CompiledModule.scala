@@ -60,16 +60,16 @@ trait CompiledModule:
     println()
 
   def lowered: Module =
-    val irLogging = compilerOptions("ir_logging")
-    val logTyped = irLogging.readBoolean("typed")
-    val logModule = irLogging.readBoolean("module")
-    val logLowerings = irLogging.readBoolean("lowerings")
-    val logStatsBeforeLowering = irLogging.readBoolean("stats_before_lowering")
-    val logStatsBeforeOptimization = irLogging.readBoolean("stats_before_optimization")
-    val logStatsAfterOptimization = irLogging.readBoolean("stats_after_optimization")
+    val irLogging = compilerOptions.irLogging
+    val logTyped = irLogging.logTypeInformation
+    val logModule = irLogging.logModule
+    val logLowerings = irLogging.logLowerings
+    val logStatsBeforeLowering = irLogging.logStatsBeforeLowering
+    val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
+    val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
 
     if (logModule)
-      printStep("Module", if (!logTyped) ir else checked)
+      printStep("IR-Module", if (!logTyped) ir else checked)
 
     if (logStatsBeforeLowering)
       StatisticsCollector.printStatistics(checked, "before lowering")

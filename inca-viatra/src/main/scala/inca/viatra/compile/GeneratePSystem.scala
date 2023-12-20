@@ -209,7 +209,7 @@ object GeneratePSystem:
     gensym.register(allVars.map(_.name.name))
 
     val paramNames = relation.params.map(_.name.name)
-    val paramTermNames = paramNames.map { n => s"$PARAMPREFIX${n}" }
+    val paramTermNames = paramNames.map { n => s"$PARAMPREFIX$n" }
     
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
