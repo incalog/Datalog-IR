@@ -9,6 +9,7 @@ import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
@@ -270,11 +271,20 @@ object GeneratePSystem:
 
       val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
       s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+    // special case: count aggregation, which is neither associative nor commutative,
+    // so we use a builtin count aggregation implemented in VIATRA system
+    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) if name.name == "Count" =>
+      val result = compileTerm(out)
+      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
+      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+      s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
     case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+
       val scalaTyp = scalaTy.name
       val code =
         s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTyp] {
@@ -287,6 +297,8 @@ object GeneratePSystem:
            |""".stripMargin
       val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
       s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+//    case ArithmeticAggregationOperator.Count =>
+//      ???
     case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
       throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
 
