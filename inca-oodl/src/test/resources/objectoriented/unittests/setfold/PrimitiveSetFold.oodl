@@ -1,0 +1,9 @@
+module PrimitiveSetFold
+
+def add(i: Int, j: Int): Int = i + j
+
+@main
+def main(): Int = {
+    val s = Set(1, 2, 3)
+    s.fold(0, add)
+}

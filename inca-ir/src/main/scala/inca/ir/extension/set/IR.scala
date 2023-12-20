@@ -30,6 +30,7 @@ case class SetComprehension(elem: Term, atoms: Seq[Atom]) extends Term:
   override def toString: String = s"Set($elem | ${atoms.mkString(", ")})"
   override def vars: Seq[Var] = elem.vars ++ atoms.flatMap(_.vars)
 
+// TODO: Use arguments instead of term to support wildcards
 case class SetMember(mem: Term, s: Term) extends Atom:
   override def toString: String = s"($mem in $s)"
   override def vars: Seq[Var] = mem.vars ++ s.vars

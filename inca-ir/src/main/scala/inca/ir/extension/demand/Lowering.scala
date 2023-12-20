@@ -111,8 +111,7 @@ trait Lowering extends BaseLowering:
           val demandedArgs = params.zip(args).flatMap {
             case (Param(_, TDemand(_)), arg) =>
               arg match
-                case TermArg(tm) =>
-                  Some(tm)
+                case TermArg(tm) => Some(tm)
                 case AggregateColumnArg(tm) => Some(tm)
                 case _ => None
             case _ => None

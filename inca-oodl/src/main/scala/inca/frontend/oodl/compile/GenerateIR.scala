@@ -1,6 +1,7 @@
 package inca.frontend.oodl.compile
 
 import inca.frontend.oodl.compile.GenerateIR.*
+import inca.frontend.oodl.foreign.OODLAggregationOperator
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
@@ -60,9 +61,12 @@ class GenerateIR:
 
   val gensym: Gensym = new Gensym()
 
-  var builtinIdDatastructures: Seq[irdata.DataModuleEntry] = null
+  var builtinIdDatastructures: irdata.DataDefinition = _
+  var setFoldRelations: Seq[ir.Relation] = Seq()
 
   def compileModule(m: Module): ir.Module =
+    setFoldRelations = Seq()
+
     val mainFunctions = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
       case _ => None
@@ -84,7 +88,7 @@ class GenerateIR:
 
     val moduleEntries = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFunction(f))
-      case f: FunctionDef => throw IllegalStateException(s"Can not compile none main function ${f.name}")
+      case f: FunctionDef => Seq() // Skip all none main functions. We just use them for set fold
       case c: ClassDef => compileClassDef(c)
     } ++ extMainInputRelations
 
@@ -94,7 +98,7 @@ class GenerateIR:
     ir.Module(
       m.name,
       irLang,
-      (builtinContent ++ moduleEntries ++ dispatchRelations) :+ clsHierarchyRelation
+      (builtinContent ++ moduleEntries ++ dispatchRelations ++ setFoldRelations) :+ clsHierarchyRelation
     )
 
   /** Helper */
@@ -421,6 +425,21 @@ class GenerateIR:
 
   /** Expression */
 
+  private def generateSetFoldRelation(sty: Type): ir.Relation = {
+    val TSet(ty) = sty
+    val name = gensym.fresh("setCollect")
+    ir.Relation(
+      name,
+      Seq(
+        ir.Param("set", demand.TDemand(compileType(sty))),
+        ir.Param("ele", compileType(ty))
+      ),
+      Seq(
+        ir.Body(Seq(irset.SetMember(ir.Var("ele"), ir.Var("set"))))
+      )
+    )
+  }
+
   def compileExpression(e: Expression): ir.Term = e.cast match
     case None => compileCastedExpression(e)
     case Some(trgTy) => ir.Cast(compileCastedExpression(e), compileType(trgTy))
@@ -529,6 +548,23 @@ class GenerateIR:
             ir.Call(name, oidVar.arg +: args.map(compileExpression).map(_.arg)),
           ), oidVar)
       }
+
+    case methodCall@MethodCall(recv, Name("fold"), _, args, _) if recv.typ.exists(_.isInstanceOf[TSet]) =>
+      val Seq(init, op: Var) = args: @unchecked
+      val f = op.target match
+        case Some(f: FunctionDef) => f
+        case trg => throw new IllegalArgumentException(s"Cannot compile fold with non-function op target $trg")
+      val aggOp = OODLAggregationOperator(f, init, op)
+
+      val aggResult = Name(gensym.fresh("foldResult"))
+      val aggArgs = Seq(compileExpression(recv).arg, iragg.AggregateColumnArg(ir.Var(aggResult)))
+
+      val setFoldRel = generateSetFoldRelation(recv.typ.get)
+      setFoldRelations :+= setFoldRel
+
+      val demandSet = ir.Call(setFoldRel.name, Seq(aggArgs.head, ir.WildcardArg()))
+      val agg = iragg.Aggregate(setFoldRel.name, aggArgs, aggOp).addHint(demand.DemandIgnoreCallHint)
+      block.Block(Seq(demandSet, agg), ir.Var(aggResult))
 
     case methodCall@MethodCall(recv, fun, _, args, isFix) =>
       recv.typ match

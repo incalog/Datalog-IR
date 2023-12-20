@@ -15,7 +15,6 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
 
   test("Case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
-
     val compiled = exec.compileOODL(code, options)
 
     // TEST
