@@ -121,8 +121,8 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
     val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
     val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
-    assert((1 until 6).forall(i => rVars.contains(s"alloc$$$i")))
-    assert(qVars.contains("alloc$0"))
+    assert((1 until 5).forall(i => rVars.contains(s"alloc$$$i")))
+    assert(!qVars.exists(_.startsWith("alloc")))
   }
 
   test("multiple impurity kinds") {
@@ -163,8 +163,8 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
     val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
     val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
-    assert((1 until 8).forall(i => rVars.contains(s"alloc$$$i")))
-    assert((1 until 5).forall(i => rVars.contains(s"update$$$i")))
-    assert((1 until 1).forall(i => fieldVars.contains(s"alloc$$$i")))
-    assert((1 until 2).forall(i => fieldVars.contains(s"update$$$i")))
+    assert((1 until 5).forall(i => rVars.contains(s"alloc$$$i")))
+    assert((1 until 6).forall(i => rVars.contains(s"update$$$i")))
+    assert(!fieldVars.exists(_.startsWith("alloc")))
+    assert((1 until 3).forall(i => fieldVars.contains(s"update$$$i")))
   }
