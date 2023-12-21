@@ -9,5 +9,7 @@ import scala.collection.immutable.Seq
 
 trait Visitor extends BaseIRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
-    case Disjunction(alts) => Seq(Disjunction(alts.map(alt => DisjunctionAlternative(alt.atoms.flatMap(visitAtom)))))
+    case Disjunction(alts) => Seq(Disjunction(
+      alts.flatMap(alt => visitBody(alt.body).map(DisjunctionAlternative.apply))
+    ))
     case _ => super.visitAtom(atom))

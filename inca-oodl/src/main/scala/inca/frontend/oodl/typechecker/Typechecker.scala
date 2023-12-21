@@ -226,7 +226,6 @@ class Typechecker extends TypeContext with TypeIO:
         resolveNamedType(ty)
         resolveNamedType(inferred)
         if (subtype(inferred, ty) && inferred != ty)
-          println(s"The term $term with type $ty and subtype: $inferred is subtype: ${subtype(inferred, ty)}")
           term.casted(ty)
           ty
         else

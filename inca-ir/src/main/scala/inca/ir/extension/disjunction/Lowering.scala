@@ -24,7 +24,7 @@ trait Lowering extends BaseLowering:
     else {
       val disj = after.head.asInstanceOf[Disjunction]
       after = after.tail
-      val bodies = disj.alternatives.map(alt => Body(before.toList ++ alt.atoms ++ after))
+      val bodies = disj.alternatives.map(alt => Body(before.toList ++ alt.body.atoms ++ after))
       bodies.flatMap(visitBody)
     }
   }

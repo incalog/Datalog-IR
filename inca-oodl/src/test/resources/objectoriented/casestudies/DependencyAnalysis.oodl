@@ -179,18 +179,16 @@ class Mapper {
     }
 }
 
-class ProgEntry {
-  @main def main(endNode: Int, step: Int): Unit = {
-    val mapper: Mapper = new Mapper()
+@main def main(endNode: Int, step: Int): Unit = {
+  val mapper: Mapper = new Mapper()
 
-    val defs: DefList = mapper.prog(0, endNode, step)
-    val main: Def = defs.head()
-    val prog: Prog = new Prog(defs)
+  val defs: DefList = mapper.prog(0, endNode, step)
+  val main: Def = defs.head()
+  val prog: Prog = new Prog(defs)
 
-    val resolving: NameAnalysis = new NameAnalysis(prog)
-    prog.accept(resolving)
+  val resolving: NameAnalysis = new NameAnalysis(prog)
+  prog.accept(resolving)
 
 //    val depending: DependencyAnalysis = new DependencyAnalysis()
 //    prog.accept(depending)
-  }
 }

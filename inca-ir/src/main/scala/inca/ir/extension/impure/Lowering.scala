@@ -8,6 +8,7 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
+import inca.ir.extension.disjunction.Disjunction
 
 import scala.collection.mutable.ListBuffer
 
@@ -82,6 +83,9 @@ trait Lowering extends BaseLowering:
       }
   }
 
+  // We must not assign the output parameters in a disjunction
+  var assignOutputParams = true
+
   override def visitBody(body: Body): Seq[Body] = impurityScoped {
     val bodies = super.visitBody(body)
 
@@ -90,9 +94,10 @@ trait Lowering extends BaseLowering:
     else
       val impMaxVars = impurities.map(getImpurityCounter)
       val impOutEqs = impMaxVars.zip(impOutParams).map((v, p) => Eq(Var(p.name), v))
-      bodies.map { b =>
-        preserveHints(b)(Body(b.atoms ++ impOutEqs))
-      }
+      bodies.map(b =>
+        val suffix = if (assignOutputParams) impOutEqs else Seq()
+        preserveHints(b)(Body(b.atoms ++ suffix))
+      )
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] =
@@ -102,6 +107,13 @@ trait Lowering extends BaseLowering:
         val as = atoms.flatMap(visitAtom)
         val freshCounter = freshImpurityCounter(kind)
         Eq(Var(v), counter) +: as :+ Eq(freshCounter, up)
+      case Disjunction(alternatives) =>
+        val oldSetOutputParams = assignOutputParams
+        assignOutputParams = false
+        val ats = super.visitAtom(atom)
+        assignOutputParams = oldSetOutputParams
+        ats
+
       // TODO: This is ugly, since we now use some key here from the demand relation
       //  How do we make this nice ?
       case Call(RefByName(name), args, false) if !pureRelations.contains(name) && atom.hasHint(demand.DemandIgnoreCallHint) =>
