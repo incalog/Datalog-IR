@@ -176,14 +176,14 @@ class CollectImpurityAffectedRelations extends IRVisitor:
     case Call(RefByName(name), args, neg) =>
       affectedRelations.foreach { (kind, rels) =>
         if (rels.contains(name))
-          addAffectedRelation(name, kind)
+          addAffectedRelation(currentRelation, kind)
       }
       super.visitAtom(atom)
 
     case Aggregate(RefByName(name), args, op) =>
       affectedRelations.foreach { (kind, rels) =>
         if (rels.contains(name))
-          addAffectedRelation(name, kind)
+          addAffectedRelation(currentRelation, kind)
       }
       super.visitAtom(atom)
 
