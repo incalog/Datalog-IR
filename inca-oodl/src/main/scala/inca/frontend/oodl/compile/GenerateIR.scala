@@ -163,7 +163,6 @@ class GenerateIR:
 
   def compileBuiltinObjectClass(): ir.Relation =
     ir.Relation("Object", Seq(ir.Param("this", demand.TDemand(irdata.TData("ID")))), Seq(ir.Body(Seq())))
-      .addHint(impure.PureHint)
 
   def compileClassHierarchy(classes: Seq[ClassDef]): ir.Relation =
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
@@ -187,7 +186,7 @@ class GenerateIR:
         ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("_$0").arg)),
         ir.Eq(ir.Var("ty2"), ir.Var("ty1"))
       ))
-    ).addHint(impure.PureHint)
+    )
 
   def compileClassDef(c: ClassDef): Seq[ir.Relation] =
     val fieldRelations = c.fields.flatMap(compileFieldDef)
@@ -239,7 +238,7 @@ class GenerateIR:
             ir.Eq(ir.Var("trg"), irstring.StringLit(trg)),
           ))
         }
-      ).addHint(impure.PureHint)
+      )
     }.toSeq
 
     dispatchTables ++ qualifiedMethods.map((q, ms) => compileMethodDefs(q, ms)).toSeq
@@ -332,7 +331,7 @@ class GenerateIR:
           ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.WildcardArg(), ir.Var("aggTs").arg))
             .addHint(demand.DemandIgnoreCallHint),
           irarith.LT(ir.Var("aggTs"), ir.Var("ts"))
-        )))).addHint(impure.PureHint)
+        ))))
 
       val maxTs = ir.Var(gensym.fresh("maxTs"))
       val mutVar = Name(gensym.fresh("current" + MutationImpurityKind.name))

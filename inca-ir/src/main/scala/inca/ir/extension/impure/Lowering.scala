@@ -8,21 +8,25 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
-import inca.ir.typing.IRTypechecker
-
-import scala.collection.mutable.ListBuffer
 
 /**
  * General notes:
  *
- * 1. Insert impurity only if required
+ * 1. Run before disjunction lowering
+ * The disjunction lowering can not handle impurities inside disjunctions. Therefore, always apply the impurity lowering
+ * before the disjunction lowering.
+ *
+ * 2. Insert impurity only if required
  * This Lowering only inserts impurity if needed. That is, it transitively computes all relations that need impurity,
  * changes their parameters and rewrite all calls to these relations.
  *
- * 2. Different counter variables in different bodies
+ * 3. Only insert the equality constraint in the relation body
+ * Although disjunctions contain bodies too, we must only insert the output / input constraint in the bodies of a
+ * relation, not in the body of disjunctions. Otherwise we might end up with multiple such constraints in a single body.
+ *
+ * 4. Different counter variables in different bodies
  * You can generate code, such that one body of a relation introduces more impurities than the other.
  * While the lowering supports this case, you have to make sure, that only one consistent impurity counter is derived.
- *
  * A typical example where this case might occur, is e.g. an object creation inside one branch of an if in OODL.
  * That is, one branch increases the impurity counter, while the other doesn't. Since if branches are mutually exclusive
  * only one consistent counter is produces after evaluating the relation that contains the if.
@@ -104,8 +108,7 @@ trait Lowering extends BaseLowering:
     Seq(newRelation)
   }
 
-  override def visitBody(body: Body): Seq[Body] =
-    impurityScoped(super.visitBody(body))
+  override def visitBody(body: Body): Seq[Body] = impurityScoped(super.visitBody(body))
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case Impure(v, atoms, up, kind)  =>
@@ -148,11 +151,7 @@ class CollectImpurityAffectedRelations extends IRVisitor:
 
   private def addAffectedRelation(rel: Name, kind: ImpurityKind): Unit =
     val previousAffectedRelations = affectedRelations.getOrElse(kind, Set())
-    affectedRelations += kind -> (previousAffectedRelations + currentRelation)
-
-  private def currentRelationIsAffected(kind: ImpurityKind): Boolean =
-    val currentAffectedRelations = affectedRelations.getOrElse(kind, Set())
-    currentAffectedRelations.contains(currentRelation)
+    affectedRelations += kind -> (previousAffectedRelations + rel)
 
   override def visitModule(module: ir.Module): ir.Module =
     var previousAffectedRelations: Map[ImpurityKind, Set[Name]] = Map()
