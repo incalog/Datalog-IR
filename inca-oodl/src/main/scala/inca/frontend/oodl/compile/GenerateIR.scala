@@ -132,7 +132,7 @@ class GenerateIR:
     // set the first impure input to the edb input
     val impureAllocIn = irimpure.Impure(allocInVar, Seq(), ir.Var(allocInVar), AllocImpurityKind)
     val impureMutIn = irimpure.Impure(mutInVar, Seq(), ir.Var(mutInVar), MutationImpurityKind)
-    val impureMonoIn = irimpure.Impure(mutInVar, Seq(), ir.Var(mutInVar), irmono.MonoImpurityKind)
+    val impureMonoIn = irimpure.Impure(monoInVar, Seq(), ir.Var(monoInVar), irmono.MonoImpurityKind)
 
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember

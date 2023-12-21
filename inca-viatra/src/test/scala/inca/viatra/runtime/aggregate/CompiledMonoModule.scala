@@ -5,12 +5,12 @@ import inca.ir.extension.*
 import inca.ir.extension.mono.Lowering
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
-import inca.ir.visitors.{BaseIRVisitor, StatisticsCollector}
+import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
 import inca.ir.{Atom, CompiledModule, Module, Name}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.Visitor as ScalaVisitor
 import inca.foreign.scala.visitors.ScalaStatisticsCollector
-import inca.ir.extension.impure.CollectImpurityKinds
+import inca.ir.extension.impure.{Impure, ImpurityKind}
 import inca.util.compileroptions.CompilerOptions
 
 case class CompiledMonoModule(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
@@ -39,6 +39,15 @@ case class CompiledMonoModule(mod: Module, override val compilerOptions: Compile
 
 
 object CompiledMonoModule:
+  class CollectImpurityKinds extends IRVisitor:
+    var impurities: Set[ImpurityKind] = Set()
+
+    override def visitAtom(atom: Atom): Seq[Atom] = atom match
+      case Impure(_, _, _, kind) =>
+        impurities += kind
+        super.visitAtom(atom)
+      case _ => super.visitAtom(atom)
+
   trait ScalaImpKindsCollector extends CollectImpurityKinds with ScalaVisitor
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new Lowering {},

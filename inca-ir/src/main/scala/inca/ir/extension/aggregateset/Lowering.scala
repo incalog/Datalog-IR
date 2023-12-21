@@ -21,7 +21,7 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  protected override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module =
     currentModule = module
     val m = super.visitModule(module)
     m.copy(contents = m.contents ++ newrels)

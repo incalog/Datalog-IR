@@ -95,7 +95,7 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
-  protected override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module =
     currentModule = module
     mapTypes = Set()
     mapConstructors = Map()

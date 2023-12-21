@@ -31,7 +31,7 @@ trait BaseLowering extends IRVisitor:
     }
   }
 
-  protected override def visitModule(module: Module): Module = {
+  override def visitModule(module: Module): Module = {
     gensym.register(module.contents.map(_.name.toString))
     super.visitModule(module)
   }
@@ -40,8 +40,8 @@ trait BaseLowering extends IRVisitor:
     case r: Relation => gensym.scoped { visitRelation(r) }
     case _ => super.visitModuleEntry(moduleEntry)
 
-  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
-    // Make sure to register all variables in all bodies before we process the relation
+  // Make sure to register all variables in all bodies before we process the relation
+  def registerAllVars(relation: Relation): Unit =
     val allVarNames = relation.bodies.flatMap { b =>
       b.atoms.flatMap { a =>
         a.vars.map(_.name.name)
@@ -49,6 +49,9 @@ trait BaseLowering extends IRVisitor:
     }
     val allParamNames = relation.params.map(p => p.name.name)
     gensym.register(allVarNames ++ allParamNames)
+
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
+    registerAllVars(relation)
 
     Seq(
       Relation(

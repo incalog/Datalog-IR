@@ -48,7 +48,7 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  protected override def visitModule(module: ir.Module): ir.Module = {
+  override def visitModule(module: ir.Module): ir.Module = {
     currentModule = module
     phase = Phase.InsertDemandGuards
     val m1 = super.visitModule(module)
