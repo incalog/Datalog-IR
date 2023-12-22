@@ -58,7 +58,8 @@ object Parser:
     "new",
     "null",
     "for",
-    "yield"
+    "yield",
+    "fix"
   )
 
   def keyword(s: String): P[Unit] =
@@ -225,11 +226,11 @@ object Parser:
   lazy val varExpr: P[Var] =
     identifier.mapWithLoc(Var.apply)
 
-  def selectExprStep(e: Expression): P[Expression] =
+  def selectExprStep(e: Expression, isFix: Boolean): P[Expression] =
     val tyArgs = inBrackets(typ.repSep0(op(','))).?
     val args = inParens(recExpression.repSep0(op(',')))
     val methodCall = (identifier ~ tyArgs ~ args).backtrack.mapWithLoc { case ((name, tyArgs), args) =>
-      MethodCall(e, name, tyArgs.getOrElse(Seq()), args)
+      MethodCall(e, name, tyArgs.getOrElse(Seq()), args, isFix)
     }
     val asIsInstanceOfOrSelect = (identifier ~ tyArgs).backtrack.mapWithLoc {
       case (Name("asInstanceOf"), Some(Seq(ty: Type))) =>
@@ -241,11 +242,13 @@ object Parser:
     }
     methodCall | asIsInstanceOfOrSelect
 
-  def selectExprRec(e: Expression): P0[Expression] =
-    ((P.char('.') *> selectExprStep(e)) flatMap selectExprRec) | P.pure(e)
+  def selectExprRec(e: Expression, isFix: Boolean): P0[Expression] =
+    ((P.char('.') *> selectExprStep(e, isFix)).flatMap(e => selectExprRec(e, isFix))) | P.pure(e)
 
   lazy val selectExpr: P[Expression] =
-    atomicExp flatMap selectExprRec
+    (keyword("fix").?.with1 ~ atomicExp).flatMap {
+      case (fix, e) => selectExprRec(e, fix.isDefined)
+    }
 
   lazy val atomicExp: P[Expression] =
       //foldExp.backtrack |

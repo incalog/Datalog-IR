@@ -2,7 +2,7 @@ package inca.frontend.oodl.executor.unittests
 
 import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
-import inca.ir.execution.Relation
+import inca.ir.execution.{Relation, UnitRelation}
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -74,6 +74,16 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(10))
     assertResult(55)(res.entries.head)
+  }
+
+  test("Fix method") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/FixMethod.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    val fixMethodRel = loaded.engine.read(UnitRelation("fixMethod$Tuple_"))
+    assertResult(true)(fixMethodRel.entries.nonEmpty)
   }
 
   // We need more optimizations to execute the full program

@@ -580,11 +580,17 @@ class GenerateIR:
           val trgClsVar = ir.Var(gensym.fresh("D"))
           val recvTerm = compileExpression(recv)
           val resultVar = ir.Var(gensym.fresh("return$"))
-          block.Block(Seq(
+          val callAtoms = Seq(
             matchRuntimeType(recvTerm, srcClsVar),
             ir.Call(dispatchName, Seq(srcClsVar.arg, trgClsVar.arg)),
             ir.Call(qualifiedMethodName, trgClsVar.arg +: (compileExpression(recv).arg +: args.map(compileExpression).map(_.arg)) :+ resultVar.arg)
-          ), resultVar)
+          )
+          if (isFix) {
+            // We only allow isFix for unit types, therefore we can just assign an empty tuple here
+            block.Block(disjunction.Disjunction(callAtoms, Seq(ir.Eq(resultVar, irtuple.TupleLit(Seq())))), resultVar)
+          } else {
+            block.Block(callAtoms, resultVar)
+          }
         case _ => throw IllegalStateException(s"Can not compile method $fun on object $recv")
     case TypeCast(recv, toTyp: TName) if toTyp.isBuiltIn =>
       throw IllegalStateException(s"Can not typecast to builtin type $toTyp")
