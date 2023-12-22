@@ -579,7 +579,6 @@ class FSSignAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: Set[
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
-        // Comment in this line to compute the correct fixpoint using the interpreter
         fix this.iterate()
         return
     }

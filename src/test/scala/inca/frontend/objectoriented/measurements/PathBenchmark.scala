@@ -360,6 +360,7 @@ case class PathBenchmark(val warmups: Int, val runs: Int) {
     }
 
     // IR with computed graph
+    println(s"Run Datalog IR - $recursive recursive")
     val irMeasurements = for (c <- configs) yield {
       val edb = EDBChange.insertions(Seq(Relation2("ext_input$main$bbff", Seq("e", "s"), Seq(Seq(c.endNode, c.cycleStep)))))
       c.endNode -> measureDatalogIR(c, PathIRModule.sec3Module(recursive), "main", edb)

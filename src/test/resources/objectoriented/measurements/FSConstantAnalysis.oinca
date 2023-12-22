@@ -570,7 +570,6 @@ class FSConstantAnalysis(val head: Stm, val cfg: Set[(Stm, Stm)], val varNames: 
     def iterate(): Unit = {
         for (e <- this.cfg)
             yield e._2.transfer(e._1, this)
-        // Comment in this line to compute the correct fixpoint using the interpreter
         fix this.iterate()
         return
     }

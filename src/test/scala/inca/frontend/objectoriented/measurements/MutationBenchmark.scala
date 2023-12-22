@@ -103,11 +103,11 @@ case class MutationBenchmark(warmups: Int, runs: Int) {
 
   def runMeasurements(configs: Seq[MutationConfig], subdir: String): Unit = {
     // Structural - EfficientMap
-    val datalogMeasurementsEfficientStructural = for (c <- configs) yield {
+    /*val datalogMeasurementsEfficientStructural = for (c <- configs) yield {
       c.numNodes -> measureDatalog(c, Seq(), Seq(meta.Lit.Int(c.numNodes), meta.Lit.Int(c.numMutations)), EclipseStructuralMutationTransformation)
     }
     FileUtil.writeFile(s"$subdir/EfficientStructuralCounter_Datalog_time.csv", csvToString(toCSVRuntime(datalogMeasurementsEfficientStructural)))
-    FileUtil.writeFile(s"$subdir/EfficientStructuralCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsEfficientStructural)))
+    FileUtil.writeFile(s"$subdir/EfficientStructuralCounter_Datalog_mem.csv", csvToString(toCSVMem(datalogMeasurementsEfficientStructural)))*/
 
     // Numeric
     val datalogMeasurementsNumeric = for (c <- configs) yield {

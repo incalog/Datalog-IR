@@ -115,7 +115,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
       val start = System.nanoTime()
       interp.run(main, args)
       val diff = System.nanoTime() - start
-      println("diff: " + diff.toDouble/1000000d)
+      println("diff: " + diff.toDouble/1000000000d)
       /*println(res.asSet.size)
       println(res.asSet)
       System.exit(1)*/
@@ -127,11 +127,11 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
   }
 
   def run() = {
-    val configs = for (i <- 100 until 101 by 50) yield {
+    val configs = for (i <- 100 until 501 by 50) yield {
       ASGConfig(warmups, runs, s"ASG", i, 10)
     }
 
-    val prog = progFolder + s"AbstractSyntaxGraph_list_adt.oinca"
+    val prog = progFolder + s"AbstractSyntaxGraph.oinca"
 
     // OODL
     val datalogMeasurements = for (c <- configs) yield {
@@ -140,9 +140,9 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     FileUtil.writeFile(s"$resultPath/asg/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
 
     // OODL - Interp
-    /*val interpreterMeasurements = for (c <- configs) yield {
+    val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
   }
 }
