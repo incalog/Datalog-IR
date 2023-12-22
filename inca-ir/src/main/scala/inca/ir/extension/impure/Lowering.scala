@@ -118,28 +118,31 @@ trait Lowering extends BaseLowering:
       Eq(Var(v), counter) +: as :+ Eq(freshCounter, up)
 
     case Call(RefByName(name), args, neg) =>
-      val newArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
-        if (affectedRels.contains(name) && !neg)
+      val impurityArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
+        if (affectedRels.contains(name))
           val previousImpurityVar = getImpurityCounter(kind)
           val freshImpurityVar = freshImpurityCounter(kind)
           Seq(previousImpurityVar.arg, freshImpurityVar.arg)
-        else if (affectedRels.contains(name) && neg)
-          Seq(WildcardArg(), WildcardArg())
+        //else if (affectedRels.contains(name) && neg)
+        //  Seq(WildcardArg(), WildcardArg())
         else
           Seq()
       }
       preserveHints(atom) {
-        Seq(Call(name, args.flatMap(visitArg) ++ newArgs, neg))
+        Seq(Call(name, args.flatMap(visitArg) ++ impurityArgs, neg))
       }
     case Aggregate(rel, args, op) =>
-      val newArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
+      val impurityArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
         if (affectedRels.contains(rel.name))
-          Seq(WildcardArg(), WildcardArg())
+          val previousImpurityVar = getImpurityCounter(kind)
+          val freshImpurityVar = freshImpurityCounter(kind)
+          Seq(previousImpurityVar.arg, freshImpurityVar.arg)
+          //Seq(WildcardArg(), WildcardArg())
         else
           Seq()
       }
       preserveHints(atom) {
-        Seq(Aggregate(rel, args.flatMap(visitArg) ++ newArgs, op))
+        Seq(Aggregate(rel, args.flatMap(visitArg) ++ impurityArgs, op))
       }
 
     case _ => super.visitAtom(atom)
