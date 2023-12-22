@@ -17,7 +17,6 @@ class MarkedLambda:
   val contents: ListBuffer[ModuleEntry] = ListBuffer.empty
 
   private val Type = TData("Type")
-  /** Type 𝜏 ::= ?|num|bool|𝜏→𝜏|𝜏×𝜏 */
   contents ++= Seq(
     DataDefinition(Type.ref.name),
     CaseDefinition("Unknown", Seq(), Type),
@@ -29,15 +28,39 @@ class MarkedLambda:
 
   private val Exp = TEdbNode("Exp")
   contents ++= Seq(
-    EdbNodeDefinition("Exp"),
-    EdbNodeDefinition("ENum", "Exp"),
-    EdbFieldDefinition("ENum", "num", TEdbValue(TInt)),
+    EdbNodeDefinition(Exp.name),
+    EdbNodeDefinition("EHole", "Exp"),
     EdbNodeDefinition("EVar", "Exp"),
     EdbFieldDefinition("EVar", "name", TEdbValue(TString)),
+    EdbNodeDefinition("ELam", "Exp"),
+    EdbFieldDefinition("ELam", "param", TEdbValue(TString)),
+    EdbFieldDefinition("ELam", "ty", TEdbValue(Type)),
+    EdbFieldDefinition("ELam", "body", Exp),
+    EdbNodeDefinition("EAp", "Exp"),
+    EdbFieldDefinition("EAp", "lhs", Exp),
+    EdbFieldDefinition("EAp", "rhs", Exp),
+    EdbNodeDefinition("ELet", "Exp"),
+    EdbFieldDefinition("ELet", "name", TEdbValue(TString)),
+    EdbFieldDefinition("ELet", "def", Exp),
+    EdbFieldDefinition("ELet", "body", Exp),
+    EdbNodeDefinition("ENum", "Exp"),
+    EdbFieldDefinition("ENum", "num", TEdbValue(TInt)),
     EdbNodeDefinition("EAdd", "Exp"),
     EdbFieldDefinition("EAdd", "lhs", Exp),
     EdbFieldDefinition("EAdd", "rhs", Exp),
-    // TODO ...
+    EdbNodeDefinition("ETrue", "Exp"),
+    EdbNodeDefinition("EFalse", "Exp"),
+    EdbNodeDefinition("EIf", "Exp"),
+    EdbFieldDefinition("EIf", "guard", Exp),
+    EdbFieldDefinition("EIf", "lhs", Exp),
+    EdbFieldDefinition("EIf", "rhs", Exp),
+    EdbNodeDefinition("EPair", "Exp"),
+    EdbFieldDefinition("EPair", "lhs", Exp),
+    EdbFieldDefinition("EPair", "rhs", Exp),
+    EdbNodeDefinition("EProjL", "Exp"),
+    EdbFieldDefinition("EProjL", "exp", Exp),
+    EdbNodeDefinition("EProjR", "Exp"),
+    EdbFieldDefinition("EProjR", "exp", Exp)
   )
 
   private val Ctx = TMap(TEdbValue(TString), Type)
