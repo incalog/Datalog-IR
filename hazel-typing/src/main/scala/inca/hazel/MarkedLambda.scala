@@ -63,6 +63,18 @@ class MarkedLambda:
     EdbFieldDefinition("EProjR", "exp", Exp)
   )
 
+  private val Mark = TData("Mark")
+  contents ++= Seq(
+    DataDefinition(Mark.ref.name),
+    CaseDefinition("Free", Seq(), Mark),
+    CaseDefinition("LamAnaNonFun", Seq(Type), Mark),
+    CaseDefinition("LamAnaInconAsc", Seq(Type), Mark),
+    CaseDefinition("ApSynNonFun", Seq(Type), Mark),
+    CaseDefinition("InconBranches", Seq(Type, Type), Mark),
+    CaseDefinition("ProjSynNonProd", Seq(Type), Mark),
+    CaseDefinition("InconTypes", Seq(Type, Type), Mark)
+  )
+
   private val Ctx = TMap(TEdbValue(TString), Type)
 
   // use defs instead of val here, so that each Datalog node is distinct
