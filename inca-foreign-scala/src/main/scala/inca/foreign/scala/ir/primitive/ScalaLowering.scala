@@ -73,12 +73,12 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     case _ => super.visitArg(arg)
 
   /** Aggregation */
-  
-  def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono
-
   // Note: Leave this in, otherwise we get a compiler error...
-  override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator =
-    super.visitAggregationOperator(op)
+  override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op match
+    // For user-defined mono definition
+    case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
+      ScalaMonoAggregationOperator(name, ScalaInca.compileType(typ.in), ScalaInca.compileType(typ.state), initCode, addCode)
+    case _ => super.visitAggregationOperator(op)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case aggregate.Aggregate(rel, args, op) =>

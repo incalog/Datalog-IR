@@ -74,37 +74,47 @@ trait ScalaLowering extends BaseScalaLowering:
           initCode = "Double.MinValue",
           addCode = "(x: Double, y: Double) => x max y",
         )
-      case MonoAggregationOperator(mono) =>
-        val scalaMono = visitMonoDef(mono).asInstanceOf[ScalaMonoDefinition]
-        ScalaMonoAggregationOperator(mono.name, ScalaInca.compileType(scalaMono.typ.in), ScalaInca.compileType(scalaMono.typ.state), scalaMono.initCode, scalaMono.addCode)
+      case MonoAggregationOperator(ArithmeticMonoDefinition.SumInt) =>
+        ScalaMonoAggregationOperator(
+          name = "SumInt Mono",
+          inputTy = ScalaType.int,
+          stateTy = ScalaType.int,
+          initCode = "0",
+          addCode = "(x:Int,y:Int) => x + y"
+        )
+      case MonoAggregationOperator(ArithmeticMonoDefinition.SumDouble) =>
+        ScalaMonoAggregationOperator(
+          name = "SumDouble Mono",
+          inputTy = ScalaType.double,
+          stateTy = ScalaType.double,
+          initCode = "0",
+          addCode = "(x:Double,y:Double) => x + y"
+        )
+      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxInt) =>
+        ScalaMonoAggregationOperator(
+          name = "Max Int Mono",
+          inputTy = ScalaType.int,
+          stateTy = ScalaType.int,
+          initCode = "Int.MinValue",
+          addCode = "(x:Int,y:Int) => x max y",
+        )
+      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxDouble) =>
+        ScalaMonoAggregationOperator(
+          name = "Max Double Mono",
+          inputTy = ScalaType.double,
+          stateTy = ScalaType.double,
+          initCode = "Double.NegativeInfinity",
+          addCode = "(x:Double,y:Double) => x max y",
+        )
+      case MonoAggregationOperator(ArithmeticMonoDefinition.Count) =>
+        ScalaMonoAggregationOperator(
+          name = "Count Mono",
+          inputTy = ScalaType.any,
+          stateTy = ScalaType.int,
+          initCode = "0", 
+          addCode = "(st: Int, a: Any) => x + 1"
+        )
       case _ => super.visitAggregationOperator(op)
-
-  override def visitMonoDef(mono: MonoDefinition): MonoDefinition = mono match
-    case ArithmeticMonoDefinition.SumInt =>
-      builtinMono(ArithmeticMonoDefinition.SumInt,
-        initCode = "0",
-        addCode = "(x:Int,y:Int) => x + y",
-        resultCode = "(x: Int) => x"
-      )
-    case ArithmeticMonoDefinition.SumDouble =>
-      builtinMono(ArithmeticMonoDefinition.SumInt,
-        initCode = "0.0",
-        addCode = "(x:Double,y:Double) => x + y",
-        resultCode = "(x: Double) => x"
-      )
-    case ArithmeticMonoDefinition.MaxInt =>
-      builtinMono(ArithmeticMonoDefinition.SumInt,
-        initCode = "Int.MinValue",
-        addCode = "(x:Int,y:Int) => x max y",
-        resultCode = "(x: Int) => x"
-      )
-    case ArithmeticMonoDefinition.MaxDouble =>
-      builtinMono(ArithmeticMonoDefinition.SumInt,
-        initCode = "Double.NegativeInfinity",
-        addCode = "(x:Double,y:Double) => x max y",
-        resultCode = "(x: Double) => x"
-      )
-    case _ => super.visitMonoDef(mono)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match

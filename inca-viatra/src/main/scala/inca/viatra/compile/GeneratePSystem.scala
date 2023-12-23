@@ -280,13 +280,11 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case primitive.ScalaAggregationAtom(ScalaMonoAggregationOperator(name, inScalaTy, stScalaTy, initCode, addCode), rel, out, args, aggregatedColumn) =>
+    case primitive.ScalaAggregationAtom(ScalaMonoAggregationOperator(name, ScalaType(inTy), ScalaType(stateTy), initCode, addCode), rel, out, args, aggregatedColumn) =>
       val result = compileTerm(out)
       val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
-      val inTy: String = inScalaTy.name
-      val stateTy: String = stScalaTy.name
 
       val code = s"""
            | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {

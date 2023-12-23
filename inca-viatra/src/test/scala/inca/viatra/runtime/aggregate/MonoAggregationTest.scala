@@ -10,7 +10,7 @@ import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
-import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
 import inca.util.compileroptions.CompilerOptions
@@ -219,7 +219,22 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     assertResult((5, 1))(res.entries.head)
   }
 
-  private val customMono = ScalaMonoDefinition(
+  test("Builtin mono definition test 7"){
+    val mainRelation = Relation("main", Seq(Param("s", TString)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(StringMonoDefinition, Seq(), Seq())),
+      WriteMono(Var("m"), StringLit("1+1"), Seq()),
+      Eq(Var("s"), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(println)
+
+
+  }
+
+  private val customMono1 = ScalaMonoDefinition(
     Name("addString"),
     "0.0", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: Double, a: Int) => st + a",
@@ -228,7 +243,18 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     MonoTypes(TInt, TDouble, TString)
   )
 
-  private lazy val relationUserDefinedMono: Relation = Relation(
+  private val customMono2 = ScalaMonoDefinition(
+    Name("addString"),
+    """"0.0"""", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
+    "(st: String, a: Int) => (st.toDouble + a).toString",
+    "(st: String) => st.toDouble",
+    Seq(),
+    MonoTypes(TInt, TString, TDouble)
+  )
+
+
+
+  private lazy val relationUserDefinedMono1: Relation = Relation(
     "main",
     Seq(
       Param("b", TString)
@@ -236,16 +262,38 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(customMono, Seq(TString), Seq())),
+      Eq(Var("m"), NewMono(customMono1, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
     )))).addHint(PureHint)
 
   test("Test using user-defined mono definition 1") {
-    val engine = compile(relationUserDefinedMono)
+    val engine = compile(relationUserDefinedMono1)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
+    println(res.entries.head)
     assertResult("0.0")(res.entries.head)
   }
+
+  private lazy val relationUserDefinedMono2: Relation = Relation(
+    "main",
+    Seq(
+      Param("b", TDouble)
+    ),
+    Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(customMono2, Seq(TString), Seq())),
+      Eq(Var("b"), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+
+  test("Test using user-defined mono definition 2") {
+    val engine = compile(relationUserDefinedMono2)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(0)(res.entries.head)
+  }
+
 
   // non-standard set mono, probably we need to add a SetSize term?
   // TODO: test polymorphic setmono

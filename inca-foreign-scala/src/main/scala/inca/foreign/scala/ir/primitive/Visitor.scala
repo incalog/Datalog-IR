@@ -4,6 +4,7 @@ import inca.ir.{Atom, BaseIR, ModuleEntry, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate
+import inca.ir.extension.mono.MonoAggregationOperator
 
 import scala.collection.immutable.Seq
 
@@ -18,8 +19,8 @@ trait Visitor extends BaseIRVisitor:
       ScalaAggregationOperator(name, vty, initCode, addCode)
     case ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode) =>
       ScalaMonoAggregationOperator(name,
-        visitType(inputTy).asInstanceOf[ScalaType],
-        visitType(stateTy).asInstanceOf[ScalaType],
+        visitType(inputTy),
+        visitType(stateTy),
         initCode, addCode
       )
     case _ => op

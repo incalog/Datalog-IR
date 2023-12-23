@@ -73,3 +73,9 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
     case MaxInt | MaxDouble | Min | SumInt | SumDouble | Count | CountFrom => state
     case SumToPair => TupleLit(Seq(state, StringLit("this should be a string")))
 
+
+object StringMonoDefinition extends BuiltInMonoDefinition:
+  override def name: Name = "StringConcatMono"
+  override def constructorParamTypes: Seq[Type] = Seq()
+  override def typ: MonoTypes = MonoTypes(TString, TString, TString)
+  override def resultTerm(state: Term): Term = state

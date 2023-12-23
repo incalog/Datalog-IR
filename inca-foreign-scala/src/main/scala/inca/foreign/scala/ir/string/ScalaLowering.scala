@@ -1,12 +1,14 @@
 package inca.foreign.scala.ir.string
 
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaLowering => BaseScalaLowering, ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaMonoDefinition, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*
 import inca.ir.extension.string
 import inca.ir.*
+import inca.ir.extension.aggregate.AggregationOperator
+import inca.ir.extension.mono.{MonoAggregationOperator, MonoDefinition, StringMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val name: String = "ScalaString"
@@ -35,3 +37,14 @@ trait ScalaLowering extends BaseScalaLowering:
       case _ =>
         super.visitTerm(term)
   }
+
+  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
+    case MonoAggregationOperator(StringMonoDefinition) =>
+      ScalaMonoAggregationOperator(
+        name = "String Mono",
+        inputTy = ScalaType.string,
+        stateTy = ScalaType.string,
+        initCode = """""""",
+        addCode = "(st: String, a: String) => st + a"
+      )
+    case _ => super.visitAggregationOperator(op)
