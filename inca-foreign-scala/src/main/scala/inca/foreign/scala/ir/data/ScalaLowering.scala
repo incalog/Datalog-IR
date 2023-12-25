@@ -1,7 +1,6 @@
 package inca.foreign.scala.ir.data
 
 import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, name2string}
-import inca.ir.extension.block
 import inca.ir.extension.data
 import inca.foreign.scala.ir.primitive.{IR, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
@@ -11,7 +10,6 @@ import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Decons
 trait ScalaLowering extends BaseScalaLowering:
   override val name: String = "ScalaData"
   override val loweredIRs: Set[BaseIR] = Set(IR)
-  override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
