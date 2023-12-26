@@ -20,22 +20,22 @@ class MarkedLambda:
   private val TUnknown = "Unknown";
   private val TNum = "Num"
   private val TBool = "Bool"
-  private val TFun = "Fun"
+  private val TArrow = "Arrow"
   private val TProd = "Prod"
   contents ++= Seq(
     DataDefinition(Type.ref.name),
     CaseDefinition(TUnknown, Seq(), Type),
     CaseDefinition(TNum, Seq(), Type),
     CaseDefinition(TBool, Seq(), Type),
-    CaseDefinition(TFun, Seq(Type, Type), Type),
+    CaseDefinition(TArrow, Seq(Type, Type), Type),
     CaseDefinition(TProd, Seq(Type, Type), Type)
   )
 
   private val ConstructTUnknown = Construct(TUnknown, Seq())
   private val ConstructTNum = Construct(TNum, Seq())
   private val ConstructTBool = Construct(TBool, Seq())
-  private val ConstructTFun = (ty1: Construct, ty2: Construct) =>
-    Construct(TFun, Seq(ty1, ty2))
+  private val ConstructTArrow = (ty1: Construct, ty2: Construct) =>
+    Construct(TArrow, Seq(ty1, ty2))
   private val ConstructTProd = (ty1: Construct, ty2: Construct) =>
     Construct(TProd, Seq(ty1, ty2))
 
@@ -110,6 +110,42 @@ class MarkedLambda:
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
 
+  private val consistent = "consistent"
+  contents += Relation(
+    consistent,
+    Seq(
+      Param(ty(1).name, Type),
+      Param(ty(2).name, Type)
+    ),
+    Seq(
+      Body( // TCUnknown1
+        Seq(Eq(ty(1), ConstructTUnknown))
+      ),
+      Body( // TCUnknown2
+        Seq(Eq(ty(2), ConstructTUnknown))
+      ),
+      Body( // TCRefl
+        Seq(Eq(ty(1), ty(2)))
+      ),
+      Body( // TCArr
+        Seq(
+          Deconstruct(ty(1), TArrow, Seq(ty(3).arg, ty(4).arg)),
+          Deconstruct(ty(2), TArrow, Seq(ty(5).arg, ty(6).arg)),
+          Call(consistent, Seq(ty(3), ty(5))),
+          Call(consistent, Seq(ty(4), ty(6)))
+        )
+      ),
+      Body( // TCProd
+        Seq(
+          Deconstruct(ty(1), TProd, Seq(ty(3).arg, ty(4).arg)),
+          Deconstruct(ty(2), TProd, Seq(ty(5).arg, ty(6).arg)),
+          Call(consistent, Seq(ty(3), ty(5))),
+          Call(consistent, Seq(ty(4), ty(6)))
+        )
+      )
+    )
+  )
+
   private val synMark = "synMark"
   private val anaMark = "anaMark"
   contents += Relation(
@@ -143,9 +179,9 @@ class MarkedLambda:
       Body( // MKSPlus
         EdbDeconstruct(e, "EPlus", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
           Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Deconstruct(ty(1), "Num", Seq()),
+          Deconstruct(ty(1), TNum, Seq()),
           Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
-          Deconstruct(ty(2), "Num", Seq()),
+          Deconstruct(ty(2), TNum, Seq()),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTNum)
         )
