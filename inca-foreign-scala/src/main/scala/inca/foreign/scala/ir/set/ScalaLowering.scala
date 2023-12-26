@@ -5,8 +5,10 @@ import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaAggregationOp
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Module, Name, Param, Relation, Term, TermArg, TermType, Type, Var, WildcardArg, string2name}
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.block.Block
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
 
 
