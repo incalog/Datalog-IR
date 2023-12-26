@@ -17,13 +17,18 @@ class MarkedLambda:
   val contents: ListBuffer[ModuleEntry] = ListBuffer.empty
 
   private val Type = TData("Type")
+  private val TUnknown = "Unknown";
+  private val TNum = "Num"
+  private val TBool = "Bool"
+  private val TFun = "Fun"
+  private val TProd = "Prod"
   contents ++= Seq(
     DataDefinition(Type.ref.name),
-    CaseDefinition("Unknown", Seq(), Type),
-    CaseDefinition("Num", Seq(), Type),
-    CaseDefinition("Bool", Seq(), Type),
-    CaseDefinition("Fun", Seq(Type, Type), Type),
-    CaseDefinition("Prod", Seq(Type, Type), Type)
+    CaseDefinition(TUnknown, Seq(), Type),
+    CaseDefinition(TNum, Seq(), Type),
+    CaseDefinition(TBool, Seq(), Type),
+    CaseDefinition(TFun, Seq(Type, Type), Type),
+    CaseDefinition(TProd, Seq(Type, Type), Type)
   )
 
   private val Exp = TEdbNode("Exp")
