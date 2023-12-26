@@ -165,7 +165,19 @@ class MarkedLambda:
   )
 
   def module: Module = Module(
-    "Hazel", new Language(Set(BaseIR, arithmetic.IR, data.IR, demand.IR, edbdata.IR, map.IR, not.IR, string.IR)),
+    "Hazel",
+    new Language(
+      Set(
+        BaseIR,
+        arithmetic.IR,
+        data.IR,
+        demand.IR,
+        edbdata.IR,
+        map.IR,
+        not.IR,
+        string.IR
+      )
+    ),
     contents.toList
   )
 
