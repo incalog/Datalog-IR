@@ -31,6 +31,14 @@ class MarkedLambda:
     CaseDefinition(TProd, Seq(Type, Type), Type)
   )
 
+  private val ConstructTUnknown = Construct(TUnknown, Seq())
+  private val ConstructTNum = Construct(TNum, Seq())
+  private val ConstructTBool = Construct(TBool, Seq())
+  private val ConstructTFun = (ty1: Construct, ty2: Construct) =>
+    Construct(TFun, Seq(ty1, ty2))
+  private val ConstructTProd = (ty1: Construct, ty2: Construct) =>
+    Construct(TProd, Seq(ty1, ty2))
+
   private val Exp = TEdbNode("Exp")
   contents ++= Seq(
     EdbNodeDefinition(Exp.name),
@@ -69,20 +77,30 @@ class MarkedLambda:
   )
 
   private val Mark = TData("Mark")
+  private val MNone = "None"
+  private val MFree = "Free"
+  private val MLamAnaNonFun = "LamAnaNonFun"
+  private val MLamAnaInconAsc = "LamAnaInconAsc"
+  private val MApSynNonFun = "ApSynNonFun"
+  private val MInconBranches = "InconBranches"
+  private val MProjSynNonProd = "ProjSynNonProd"
+  private val MInconTypes = "InconTypes"
   contents ++= Seq(
     DataDefinition(Mark.ref.name),
-    CaseDefinition("Free", Seq(), Mark),
-    CaseDefinition("LamAnaNonFun", Seq(Type), Mark),
-    CaseDefinition("LamAnaInconAsc", Seq(Type), Mark),
-    CaseDefinition("ApSynNonFun", Seq(Type), Mark),
-    CaseDefinition("InconBranches", Seq(Type, Type), Mark),
-    CaseDefinition("ProjSynNonProd", Seq(Type), Mark),
-    CaseDefinition("InconTypes", Seq(Type, Type), Mark)
+    CaseDefinition(MNone, Seq(), Mark),
+    CaseDefinition(MFree, Seq(), Mark),
+    CaseDefinition(MLamAnaNonFun, Seq(Type), Mark),
+    CaseDefinition(MLamAnaInconAsc, Seq(Type), Mark),
+    CaseDefinition(MApSynNonFun, Seq(Type), Mark),
+    CaseDefinition(MInconBranches, Seq(Type, Type), Mark),
+    CaseDefinition(MProjSynNonProd, Seq(Type), Mark),
+    CaseDefinition(MInconTypes, Seq(Type, Type), Mark)
   )
+
+  private val ConstructMNone = Construct(MNone, Seq())
 
   private val Ctx = TMap(TEdbValue(TString), Type)
 
-  // use defs instead of val here, so that each Datalog node is distinct
   private def ctx = Var("ctx")
   private def e = Var("e")
   private def e(i: Int) = Var(s"e$i")
@@ -92,41 +110,58 @@ class MarkedLambda:
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
 
-  val markSyn = "markSyn"
-  contents += Relation(markSyn,
+  private val synMark = "synMark"
+  private val anaMark = "anaMark"
+  contents += Relation(
+    synMark,
     Seq(
       Param(ctx.name, TDemand(Ctx)),
       Param(e.name, TDemand(Exp)),
-      Param(mark.name, TInt), // TODO
+      Param(mark.name, Mark),
       Param(ty.name, Type)
     ),
     Seq(
+      Body( // MKSVar
+        EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
+          Eq(mark, ConstructMNone),
+          Eq(ty, MapLookUp(ctx, x))
+        )
+      ),
+      Body( // MKSFree
+        EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
+          Eq(mark, Construct(MFree, Seq())),
+          Not(MapContains(ctx, x)),
+          Eq(ty, ConstructTUnknown)
+        )
+      ),
       Body( // MKSNum
         EdbDeconstruct(e, "ENum") ++ Seq(
-        Eq(mark, IntNum(-1)),  // TODO
-        Eq(ty, Construct("Num", Seq()))
-      )),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTNum)
+        )
+      ),
       Body( // MKSPlus
-        EdbDeconstruct(e, "EAdd", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-        Call(markSyn, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-        Deconstruct(ty(1), "Num", Seq()),
-        Call(markSyn, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
-        Deconstruct(ty(2), "Num", Seq()),
-        Eq(mark, IntNum(-1)), // TODO
-        Eq(ty, Construct("Num", Seq()))
-      )),
-      Body( // MKSVar
-        EdbDeconstruct(e, "EVar", "name" ->x) ++ Seq(
-        Eq(mark, IntNum(-1)), // TODO
-        Eq(ty, MapLookUp(ctx, x))
-      )),
-      Body( // MKSFree
-        EdbDeconstruct(e, "EVar", "name" ->x) ++ Seq(
-        Eq(mark, IntNum(-1)), // TODO
-        Not(MapContains(ctx, x)),
-        Eq(ty, Construct("Unknown", Seq()))
-      ))
+        EdbDeconstruct(e, "EPlus", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Deconstruct(ty(1), "Num", Seq()),
+          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
+          Deconstruct(ty(2), "Num", Seq()),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTNum)
+        )
+      )
     )
+  )
+
+  contents += Relation(
+    anaMark,
+    Seq(
+      Param(ctx.name, TDemand(Ctx)),
+      Param(e.name, TDemand(Exp)),
+      Param(mark.name, Mark),
+      Param(ty.name, TDemand(Type))
+    ),
+    Seq()
   )
 
   def module: Module = Module(
