@@ -34,9 +34,9 @@ class MarkedLambda:
   private val ConstructTUnknown = Construct(TUnknown, Seq())
   private val ConstructTNum = Construct(TNum, Seq())
   private val ConstructTBool = Construct(TBool, Seq())
-  private val ConstructTArrow = (ty1: Construct, ty2: Construct) =>
+  private val ConstructTArrow = (ty1: Term, ty2: Term) =>
     Construct(TArrow, Seq(ty1, ty2))
-  private val ConstructTProd = (ty1: Construct, ty2: Construct) =>
+  private val ConstructTProd = (ty1: Term, ty2: Term) =>
     Construct(TProd, Seq(ty1, ty2))
 
   private val Exp = TEdbNode("Exp")
@@ -114,33 +114,131 @@ class MarkedLambda:
   contents += Relation(
     consistent,
     Seq(
-      Param(ty(1).name, Type),
-      Param(ty(2).name, Type)
+      Param(ty(1).name, TDemand(Type)),
+      Param(ty(2).name, TDemand(Type))
     ),
     Seq(
       Body( // TCUnknown1
-        Seq(Eq(ty(1), ConstructTUnknown))
+        Seq(Deconstruct(ty(1), TUnknown, Seq()))
       ),
       Body( // TCUnknown2
-        Seq(Eq(ty(2), ConstructTUnknown))
+        Seq(Deconstruct(ty(2), TUnknown, Seq()))
       ),
       Body( // TCRefl
         Seq(Eq(ty(1), ty(2)))
       ),
       Body( // TCArr
         Seq(
-          Deconstruct(ty(1), TArrow, Seq(ty(3).arg, ty(4).arg)),
-          Deconstruct(ty(2), TArrow, Seq(ty(5).arg, ty(6).arg)),
+          Deconstruct(ty(1), TArrow, Seq(ty(3), ty(4))),
+          Deconstruct(ty(2), TArrow, Seq(ty(5), ty(6))),
           Call(consistent, Seq(ty(3), ty(5))),
           Call(consistent, Seq(ty(4), ty(6)))
         )
       ),
       Body( // TCProd
         Seq(
-          Deconstruct(ty(1), TProd, Seq(ty(3).arg, ty(4).arg)),
-          Deconstruct(ty(2), TProd, Seq(ty(5).arg, ty(6).arg)),
+          Deconstruct(ty(1), TProd, Seq(ty(3), ty(4))),
+          Deconstruct(ty(2), TProd, Seq(ty(5), ty(6))),
           Call(consistent, Seq(ty(3), ty(5))),
           Call(consistent, Seq(ty(4), ty(6)))
+        )
+      )
+    )
+  )
+
+  private val matchedArrow = "matchedArrow"
+  contents += Relation(
+    matchedArrow,
+    Seq(
+      Param(ty.name, TDemand(Type)),
+      Param(ty(1).name, Type),
+      Param(ty(2).name, Type)
+    ),
+    Seq(
+      Body( // TMAUnknown
+        Seq(
+          Deconstruct(ty, TUnknown, Seq()),
+          Eq(ty(1), ConstructTUnknown),
+          Eq(ty(2), ConstructTUnknown)
+        )
+      ),
+      Body( // TMAArr
+        Seq(
+          Deconstruct(ty, TArrow, Seq(ty(1), ty(2)))
+        )
+      )
+    )
+  )
+
+  private val matchedProd = "matchedProd"
+  contents += Relation(
+    matchedProd,
+    Seq(
+      Param(ty.name, TDemand(Type)),
+      Param(ty(1).name, Type),
+      Param(ty(2).name, Type)
+    ),
+    Seq(
+      Body( // TMPUnknown
+        Seq(
+          Deconstruct(ty, TUnknown, Seq()),
+          Eq(ty(1), ConstructTUnknown),
+          Eq(ty(2), ConstructTUnknown)
+        )
+      ),
+      Body( // TMPProd
+        Seq(
+          Deconstruct(ty, TProd, Seq(ty(1), ty(2)))
+        )
+      )
+    )
+  )
+
+  private val meet = "meet"
+  contents += Relation(
+    meet,
+    Seq(
+      Param(ty(1).name, TDemand(Type)),
+      Param(ty(2).name, TDemand(Type)),
+      Param(ty(3).name, Type)
+    ),
+    Seq(
+      Body(
+        Seq(Deconstruct(ty(1), TUnknown, Seq()), Eq(ty(3), ty(2)))
+      ),
+      Body(
+        Seq(Deconstruct(ty(2), TUnknown, Seq()), Eq(ty(3), ty(1)))
+      ),
+      Body(
+        Seq(
+          Deconstruct(ty(1), TNum, Seq()),
+          Deconstruct(ty(2), TNum, Seq()),
+          Eq(ty(3), ConstructTNum)
+        )
+      ),
+      Body(
+        Seq(
+          Deconstruct(ty(1), TBool, Seq()),
+          Deconstruct(ty(2), TBool, Seq()),
+          Eq(ty(3), ConstructTBool)
+        )
+      ),
+      Body(
+        Seq(
+          Deconstruct(ty(1), TArrow, Seq(ty(3), ty(4))),
+          Deconstruct(ty(2), TArrow, Seq(ty(5), ty(6))),
+          Call(meet, Seq(ty(3).arg, ty(5).arg, ty(7))),
+          Call(meet, Seq(ty(4).arg, ty(6).arg, ty(8))),
+          Eq(ty(3), ConstructTArrow(ty(7), ty(8)))
+        )
+      ),
+      Body(
+        Seq(
+          Deconstruct(ty(1), TProd, Seq(ty(3), ty(4))),
+          Deconstruct(ty(2), TProd, Seq(ty(5), ty(6))),
+          Call(meet, Seq(ty(3).arg, ty(5).arg, ty(7))),
+          Call(meet, Seq(ty(4).arg, ty(6).arg, ty(8))),
+          Eq(ty(3), ConstructTProd(ty(7), ty(8)))
         )
       )
     )
