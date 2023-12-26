@@ -2,10 +2,10 @@ package inca.ir.extension.mono
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.map.{MapComprehension, MapLookUp}
+import inca.ir.extension.set.{SetComprehension, SetMember}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
-
-import scala.annotation.targetName
 
 trait IR extends BaseIR:
   override val name: String = "Mono"
@@ -42,7 +42,7 @@ trait MonoDefinition:
   def constructorParamTypes: Seq[Type]
   def typ: MonoTypes
   def resultTerm(state: Term): Term
-  def monoType(keys: Seq[Type]): TMono =
+  final def monoType(keys: Seq[Type]): TMono =
     val MonoTypes(input, _, output) = typ
     TMono(input, output, keys)
 
@@ -79,3 +79,19 @@ object StringMonoDefinition extends BuiltInMonoDefinition:
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TString, TString, TString)
   override def resultTerm(state: Term): Term = state
+
+trait SetMonoDefinition(ST: Type, A: Type, B: Type) extends BuiltInMonoDefinition:
+  override def name: Name = s"SetMonoDef[$ST, $A, $B]"
+  override def constructorParamTypes: Seq[Type] = Seq()
+  override def typ: MonoTypes = MonoTypes(ST, A, B)
+  def addMap(input: Term): Term
+  def resultMap(state: Term): Term
+  override def resultTerm(state: Term): Term = SetComprehension(
+    resultMap(Var("set$member")),
+    Seq(SetMember(Var("set$member"), state))
+  )
+
+case class NaiveSetMonoDefinition(T: Type) extends SetMonoDefinition(T, T, T):
+  override def name: Name = s"NaiveSetMonoDef[$T]"
+  override def addMap(input: Term): Term = input
+  override def resultMap(state: Term): Term = state

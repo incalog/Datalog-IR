@@ -391,7 +391,7 @@ object GeneratePSystem:
   }
 
   private def genLiteralVarName[T](lit: String, ty: primitive.ScalaType): String = {
-    ty.name + lit.hashCode.toString.replace("-", "_")
+    ty.name.replace("[", "$").replace("]", "$") + lit.hashCode.toString.replace("-", "_")
   }
 
   private def genPParam(param: Param): Code = {

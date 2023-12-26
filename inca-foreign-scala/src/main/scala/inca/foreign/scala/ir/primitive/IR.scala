@@ -26,8 +26,8 @@ object ScalaInca extends ForeignLanguage:
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
     case TData(RefByName(name)) => ScalaType(name)
-    case TSet(ty) => ScalaType(s"Set[${compileType(ty).name}]")
-    case TTuple(tys) => ScalaType(s"(${tys.map(compileType.andThen(_.name))})")
+    case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
+    case TTuple(tys) => ScalaType(s"(${tys.map(compileType.andThen(_.name)).mkString(", ")})")
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
