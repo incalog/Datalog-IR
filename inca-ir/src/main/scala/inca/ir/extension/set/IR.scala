@@ -3,7 +3,7 @@ package inca.ir.extension.set
 import inca.ir.*
 
 case class TSet(ty: Type) extends Type:
-  override def toString: String = s"Set[$ty]"
+  override def toString: String = s"Set_$ty"
 
 case class SetLit(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("Set(", ", ", ")")
