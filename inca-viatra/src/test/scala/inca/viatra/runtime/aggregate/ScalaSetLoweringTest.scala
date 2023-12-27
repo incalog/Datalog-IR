@@ -11,6 +11,7 @@ import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteM
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.tuple.{TTuple, Lowering as tupleLowering}
 import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet}
+import inca.ir.extension.arithmetic.Add
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -35,12 +36,13 @@ case class CompiledSetModule(mod: Module) extends CompiledModule:
   setPipeline(List(
     () => new arithmetic.ScalaLowering {},
     () => new set.ScalaLowering {},
-    () => new block.Lowering {}
+    () => new demand.Lowering {},
+    () => new block.Lowering {},
   ))
 
 
 class SetSetLoweringMonoTest extends AnyFunSuiteLike:
-  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR
+  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -67,7 +69,7 @@ class SetSetLoweringMonoTest extends AnyFunSuiteLike:
     assert(res.nonEmpty)
     assertResult(Set(1, 2))(res.entries.head)
 
-  test("Lower set membership"):
+  test("Lower set membership 1"):
     val relation = Relation(
       "main",
       Seq(Param("s", TSet(TInt)), Param("i", TInt)),
@@ -82,6 +84,22 @@ class SetSetLoweringMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.nonEmpty)
     assertResult((Set(1, 2),2))(res.entries.head)
+
+  test("Lower set membership 2"):
+    val relation = Relation(
+      "main",
+      Seq(Param("s", TSet(TInt)), Param("i", TInt)),
+      Seq(Body(Seq(
+        Eq(Var("s"), SetLit(Seq(IntNum(1), IntNum(2)))),
+        SetMember(Var("i"), Var("s"))
+      )))
+    )
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    println(res.entries)
+    assert(res.nonEmpty)
+    assertResult(List((Set(1, 2),2), (Set(1, 2),1)))(res.entries)
 
 
   test("Lower set literal 2"):
@@ -161,6 +179,45 @@ class SetSetLoweringMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 2, 0))(res.entries.head)
+
+
+  test("Lower set comprehension 3"):
+    val relation1 = Relation(
+      "main",
+      Seq(Param("s", TSet(TInt))),
+      Seq(Body(Seq(
+        Eq(Var("s"), SetComprehension(Var("j"), Seq(SetMember(Var("j"), SetLit(Seq(IntNum(1)))))))
+      )))
+    )
+
+    val engine = compile(relation1)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+
+
+  test("Lower set comprehension 4"):
+    val relation1 = Relation(
+      "main",
+      Seq(Param("s2", TSet(TInt))),
+      Seq(Body(Seq(
+        Eq(Var("s1"), SetComprehension(Var("i"), Seq(Call("range", Seq(TermArg(Var("i")), TermArg(Var("j"))))))),
+        Eq(Var("s2"), SetComprehension(Add(Var("j"), IntNum(1)), Seq(SetMember(Var("j"), Var("s1")))))
+      )))
+    )
+
+    val relation2 = Relation(
+      "range",
+      Seq(Param("i", TInt), Param("j", TInt)),
+      Seq(
+        Body(Seq(Eq(Var("i"), IntNum(1)), Eq(Var("j"), IntNum(1)))),
+        Body(Seq(Eq(Var("i"), IntNum(2)), Eq(Var("j"), IntNum(-3)))),
+        Body(Seq(Eq(Var("i"), IntNum(0)), Eq(Var("j"), IntNum(100)))),
+      )
+    )
+
+    val engine = compile(relation1, relation2)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
 
 
   test("Lower set from 1"):
@@ -247,3 +304,4 @@ class SetSetLoweringMonoTest extends AnyFunSuiteLike:
     assertResult(Set(2))(res.entries.head)
 
 
+  
