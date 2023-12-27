@@ -8,6 +8,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.block.Block
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.{demand, block}
 import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
 
@@ -16,6 +17,7 @@ trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "ScalaSet"
 
   override def loweredIRs: Set[BaseIR] = Set(setIR)
+  override def requiredIRs: Set[BaseIR] = Set(demand.IR, block.IR)
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TSet(ty) => true
@@ -37,7 +39,6 @@ trait ScalaLowering extends BaseScalaLowering:
     currentModule = module
     val mod = super.visitModule(module)
     mod.copy(contents = mod.contents ++ setCompCollRelations ++ setMembershipRelations)
-
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case SetLit(ts) =>
@@ -70,13 +71,15 @@ trait ScalaLowering extends BaseScalaLowering:
       val (boundVars, bindingVars) = vars.partition(!_.typ.get.mode.isBinding)
       val freeVars = boundVars.toSet diff bindingVars.toSet
       val inputParams = freeVars.toSeq.map(v => v.name -> TDemand(ScalaInca.compileType(v.typ.get.ty)))
-      val collRel = Relation(s"coll$$set$$comp$$$setCompAggCounter", inputParams.map((nm, ty) => Param(nm, ty)) :+ Param(collNm, elemITy), Seq(Body(atoms.flatMap(visitAtom) :+ Eq(Var(collNm), elem))))
+      val ats = atoms.flatMap(visitAtom)
+      val Seq(visitedElem) = visitTerm(elem)
+      setCompAggCounter += 1
+      setCompCollRelations += Relation(s"coll$$set$$comp$$$setCompAggCounter", inputParams.map((nm, ty) => Param(nm, ty)) :+ Param(collNm, elemSTy), Seq(Body(ats :+ Eq(Var(collNm), visitedElem))))
       val aggOp = createSetAggOp(s"AggOp$$Set$$${elemSTy.name}", elemSTy)
       val resNm = gensym.freshName("set$comp$res")
       val aggAtom = ScalaAggregationAtom(aggOp, s"coll$$set$$comp$$$setCompAggCounter", Var(resNm), inputParams.map((nm, _) => Var(nm)) :+ Var(gensym.freshName("_")), inputParams.size)
-      setCompAggCounter += 1
-      setCompCollRelations += collRel
-      Seq(Block(Seq(aggAtom), Var(resNm)))
+      val callAtom = Call(s"coll$$set$$comp$$$setCompAggCounter", inputParams.map((nm, _) => Var(nm).arg) :+ Var(gensym.freshName("anything")).arg)
+      Seq(Block(Seq(callAtom, aggAtom), Var(resNm)))
     case SetFrom(name) if currentModule.relations.getOrElse(name.name, throw new IllegalStateException(s"Unknown relation $name")).params.size == 1 =>
       val rel = currentModule.relations(name.name)
       val elemITy = rel.params.head.ty
@@ -118,6 +121,10 @@ trait ScalaLowering extends BaseScalaLowering:
     case _ => super.visitTerm(term)
   }
 
+  private def createRelName(name: String): Name =
+    val invalidSym = Seq("[", "]")
+    invalidSym.foldLeft(name)(_.replace(_, "$"))
+
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case SetMember(mem, s) =>
@@ -126,7 +133,7 @@ trait ScalaLowering extends BaseScalaLowering:
       // `i` is an unbound variable in the semantics of atom SetMember(i, s).
       val memTy = ScalaInca.compileType(mem.typ.get.ty).name
       val setTy = ScalaInca.compileType(s.typ.get.ty).name
-      val memRelName = s"Set$$Mem$$$memTy"
+      val memRelName = createRelName(s"Set$$Mem$$$memTy")
       val memRel = Relation(memRelName, Seq(Param("elem", ScalaType(memTy)), Param("s", TDemand(ScalaType(setTy)))), Seq(
         Body(Seq(
           Eq(ScalaTerm(s"(s: $setTy) => s.nonEmpty", ScalaType.bool, Seq(Var("s"))), TRUE),

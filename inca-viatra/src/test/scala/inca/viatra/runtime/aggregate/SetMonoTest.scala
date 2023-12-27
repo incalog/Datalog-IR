@@ -31,16 +31,20 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
 
   override def typechecker: BaseIRTypechecker = new ScalaSetTypeChecker
 
-  // As we introduced foreign term during set lowering, so we cannot
   override def optimize(p: Seq[Module]): Seq[Module] = p
+
+  private trait demandLowering extends demand.Lowering with primitive.Visitor
+  private trait blockLowering extends block.Lowering with primitive.Visitor
+
 
   setPipeline(List(
     () => new mono.Lowering {},
     () => new impure.Lowering {},
-    () => new demand.Lowering {},
+    () => new demandLowering {},
     () => new arithmetic.ScalaLowering {},
     () => new set.ScalaLowering {},
-    () => new block.Lowering {}
+    () => new demandLowering {},
+    () => new blockLowering {}
   ))
 
 
@@ -83,7 +87,9 @@ class SetMonoTest extends AnyFunSuiteLike {
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
-
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set(1))(res.entries.head)
 
 
   test("Test naive set mono: performing set union with mono result"):
@@ -102,8 +108,9 @@ class SetMonoTest extends AnyFunSuiteLike {
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
-
-
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set(1, 2))(res.entries.head)
 
   test("Test naive set mono: performing set intersection with mono result"):
     val relation = Relation(
@@ -122,25 +129,31 @@ class SetMonoTest extends AnyFunSuiteLike {
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set(2))(res.entries.head)
 
-//  test("Test naive set mono: performing set comprehension"):
-//    val relation = Relation(
-//      "main",
-//      Seq(Param("s2", TSet(TInt))),
-//      Seq(Body(Seq(
-//        Eq(Var("counter"), IntNum(0)),
-//        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-//        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt), Seq(), Seq())),
-//        WriteMono(Var("m"), IntNum(1), Seq()),
-//        WriteMono(Var("m"), IntNum(2), Seq()),
-//        WriteMono(Var("m"), IntNum(3), Seq()),
-//        Eq(Var("s1"), ReadMono(Var("m"))),
-//        Eq(Var("s2"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1")))))
-//      )))
-//    ).addHint(impure.PureHint)
-//
-//    val engine = compile(relation)
-//    engine.readAll().foreach(res => println(res.asTable))
+  test("Test naive set mono: performing set comprehension"):
+    val relation = Relation(
+      "main",
+      Seq(Param("s2", TSet(TInt))),
+      Seq(Body(Seq(
+        Eq(Var("counter"), IntNum(0)),
+        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt), Seq(), Seq())),
+        WriteMono(Var("m"), IntNum(1), Seq()),
+        WriteMono(Var("m"), IntNum(2), Seq()),
+        WriteMono(Var("m"), IntNum(3), Seq()),
+        Eq(Var("s1"), ReadMono(Var("m"))),
+        Eq(Var("s2"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1")))))
+      )))
+    ).addHint(impure.PureHint)
+
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set(2, 3, 4))(res.entries.head)
 
 
 }
