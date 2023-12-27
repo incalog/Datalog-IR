@@ -10,7 +10,7 @@ import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Decons
 
 trait ScalaLowering extends BaseScalaLowering:
   override val name: String = "ScalaData"
-  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val loweredIRs: Set[BaseIR] = Set(data.IR)
   override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
 
   override def isTypeSupported(ty: Type): Boolean = ty match
