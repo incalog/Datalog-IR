@@ -14,10 +14,10 @@ import inca.ir.extension.string.*
 import scala.collection.mutable.ListBuffer
 
 class MarkedLambda:
-  val contents: ListBuffer[ModuleEntry] = ListBuffer.empty
+  private val contents: ListBuffer[ModuleEntry] = ListBuffer.empty
 
   private val Type = TData("Type")
-  private val TUnknown = "Unknown";
+  private val TUnknown = "Unknown"
   private val TNum = "Num"
   private val TBool = "Bool"
   private val TArrow = "Arrow"
@@ -109,6 +109,19 @@ class MarkedLambda:
   private def ty = Var("ty")
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
+
+  private val typeOfEdbType = "typeOfEdbType"
+  contents += Relation(
+    typeOfEdbType,
+    Seq(Param(ty(1).name, TDemand(TEdbValue(Type))), Param(ty(2).name, Type)),
+    Seq(
+      Body(
+        EdbDeconstruct(ty(1), "Unknown") ++ Seq(
+          Eq(ty(2), Construct("Unknown", Seq()))
+        )
+      )
+    )
+  )
 
   private val consistent = "consistent"
   contents += Relation(
@@ -268,6 +281,23 @@ class MarkedLambda:
           Eq(ty, ConstructTUnknown)
         )
       ),
+      Body( // MKSLam
+        EdbDeconstruct(
+          e,
+          "ELam",
+          "param" -> x,
+          "ty" -> ty(1),
+          "body" -> e(1)
+        ) ++ Seq(
+          Call(
+            synMark,
+            Seq(MapPlus(ctx, x, ty(1)).arg, e(1).arg, mark(1).arg, ty(2).arg)
+          ),
+          Call(typeOfEdbType, Seq(ty(2).arg, ty(3).arg)),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTArrow(ty(1), ty(3)))
+        )
+      ),
       Body( // MKSNum
         EdbDeconstruct(e, "ENum") ++ Seq(
           Eq(mark, ConstructMNone),
@@ -276,10 +306,8 @@ class MarkedLambda:
       ),
       Body( // MKSPlus
         EdbDeconstruct(e, "EPlus", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Deconstruct(ty(1), TNum, Seq()),
-          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
-          Deconstruct(ty(2), TNum, Seq()),
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTNum)),
+          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTNum)),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTNum)
         )
@@ -316,12 +344,12 @@ class MarkedLambda:
   )
 
 object MarkedLambda extends App:
-  val module = new MarkedLambda().module
-  val compiled = new CompiledHazelModule(module)
+  private val module = new MarkedLambda().module
+  private val compiled = new CompiledHazelModule(module)
   println(module)
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
   try compiled.checked
   finally println(module)
 
-  println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
-  println(compiled.lowered)
+//   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
+//   println(compiled.lowered)
