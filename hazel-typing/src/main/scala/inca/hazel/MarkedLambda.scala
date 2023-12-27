@@ -83,6 +83,7 @@ class MarkedLambda:
   private val MLamAnaInconAsc = "LamAnaInconAsc"
   private val MApSynNonFun = "ApSynNonFun"
   private val MInconBranches = "InconBranches"
+  private val MPairAnaNonProd = "PairAnaNonProd"
   private val MProjSynNonProd = "ProjSynNonProd"
   private val MInconTypes = "InconTypes"
   contents ++= Seq(
@@ -93,6 +94,7 @@ class MarkedLambda:
     CaseDefinition(MLamAnaInconAsc, Seq(Type), Mark),
     CaseDefinition(MApSynNonFun, Seq(Type), Mark),
     CaseDefinition(MInconBranches, Seq(Type, Type), Mark),
+    CaseDefinition(MPairAnaNonProd, Seq(Type), Mark),
     CaseDefinition(MProjSynNonProd, Seq(Type), Mark),
     CaseDefinition(MInconTypes, Seq(Type, Type), Mark)
   )
@@ -328,6 +330,7 @@ class MarkedLambda:
             synMark,
             Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
           ),
+          // Not(Call(matchedArrow, Seq(ty(1).arg, ty(2).arg, ty.arg))),
           Call(
             anaMark,
             Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)
@@ -423,7 +426,7 @@ class MarkedLambda:
         EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(matchedProd, Seq(ty(1).arg, ty.arg, ty(2).arg)),
-          Eq(mark, ConstructMNone),
+          Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjL2
@@ -437,7 +440,7 @@ class MarkedLambda:
         EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(matchedProd, Seq(ty(1).arg, ty(2).arg, ty.arg)),
-          Eq(mark, ConstructMNone),
+          Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjR2
@@ -446,7 +449,7 @@ class MarkedLambda:
           Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
-      ),
+      )
     )
   )
 
@@ -458,7 +461,125 @@ class MarkedLambda:
       Param(mark.name, Mark),
       Param(ty.name, TDemand(Type))
     ),
-    Seq()
+    Seq(
+      Body( // MKALam1
+        EdbDeconstruct(
+          e,
+          "ELam",
+          "param" -> x,
+          "ty" -> ty(1),
+          "body" -> e(1)
+        ) ++ Seq(
+          Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
+          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(consistent, Seq(ty(2).arg, ty(4).arg)),
+          Call(
+            anaMark,
+            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+          ),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKALam3
+        EdbDeconstruct(
+          e,
+          "ELam",
+          "param" -> x,
+          "ty" -> ty(1),
+          "body" -> e(1)
+        ) ++ Seq(
+          Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
+          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(
+            anaMark,
+            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+          ),
+          Eq(mark, Construct(MLamAnaInconAsc, Seq(ty(4))))
+        )
+      ),
+      Body( // MKALam2
+        EdbDeconstruct(
+          e,
+          "ELam",
+          "param" -> x,
+          "ty" -> ty(1),
+          "body" -> e(1)
+        ) ++ Seq(
+          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(
+            anaMark,
+            Seq(
+              MapPlus(ctx, x, ty(2)).arg,
+              e(1).arg,
+              mark(1).arg,
+              ConstructTUnknown
+            )
+          ),
+          Eq(mark, Construct(MLamAnaNonFun, Seq(ty)))
+        )
+      ),
+      Body( // MKALet
+        EdbDeconstruct(
+          e,
+          "ELet",
+          "name" -> x,
+          "def" -> e(1),
+          "body" -> e(2)
+        ) ++ Seq(
+          Call(
+            synMark,
+            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+          ),
+          Call(
+            anaMark,
+            Seq(MapPlus(ctx, x, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+          ),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKAIf
+        EdbDeconstruct(
+          e,
+          "EIf",
+          "guard" -> e(1),
+          "lhs" -> e(2),
+          "rhs" -> e(3)
+        ) ++ Seq(
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
+          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty.arg)),
+          Call(anaMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty.arg)),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKAPair1
+        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+          Call(matchedProd, Seq(ty.arg, ty(1).arg, ty(2).arg)),
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKAPair2
+        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTUnknown)),
+          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)),
+          Eq(mark, Construct(MPairAnaNonProd, Seq(ty)))
+        )
+      ),
+      Body( // MKASubsume
+        Seq(
+          Call(synMark, Seq(ctx.arg, e.arg, mark(1).arg, ty(1).arg)),
+          Call(consistent, Seq(ty.arg, ty(1).arg)),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKAInconsistentTypes
+        Seq(
+          Call(synMark, Seq(ctx.arg, e.arg, mark(1).arg, ty(1).arg)),
+          Eq(mark, Construct(MInconTypes, Seq(ty, ty(1))))
+        )
+      )
+    )
   )
 
   def module: Module = Module(
