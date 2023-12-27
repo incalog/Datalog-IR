@@ -298,6 +298,63 @@ class MarkedLambda:
           Eq(ty, ConstructTArrow(ty(2), ty(3)))
         )
       ),
+      Body( // MKSAp1
+        EdbDeconstruct(
+          e,
+          "EAp",
+          "lhs" -> e(1),
+          "rhs" -> e(2)
+        ) ++ Seq(
+          Call(
+            synMark,
+            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+          ),
+          Call(matchedArrow, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Call(
+            anaMark,
+            Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)
+          ),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKSAp2
+        EdbDeconstruct(
+          e,
+          "EAp",
+          "lhs" -> e(1),
+          "rhs" -> e(2)
+        ) ++ Seq(
+          Call(
+            synMark,
+            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+          ),
+          Call(
+            anaMark,
+            Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)
+          ),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTUnknown)
+        )
+      ),
+      Body( // MKSLet
+        EdbDeconstruct(
+          e,
+          "ELet",
+          "name" -> x,
+          "def" -> e(1),
+          "body" -> e(2)
+        ) ++ Seq(
+          Call(
+            synMark,
+            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+          ),
+          Call(
+            synMark,
+            Seq(MapPlus(ctx, x, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+          ),
+          Eq(mark, ConstructMNone)
+        )
+      ),
       Body( // MKSNum
         EdbDeconstruct(e, "ENum") ++ Seq(
           Eq(mark, ConstructMNone),
@@ -311,7 +368,85 @@ class MarkedLambda:
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTNum)
         )
-      )
+      ),
+      Body( // MKSTrue
+        EdbDeconstruct(e, "ETrue") ++ Seq(
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTBool)
+        )
+      ),
+      Body( // MKSFalse
+        EdbDeconstruct(e, "EFalse") ++ Seq(
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTBool)
+        )
+      ),
+      Body( // MKSIf
+        EdbDeconstruct(
+          e,
+          "EIf",
+          "guard" -> e(1),
+          "lhs" -> e(2),
+          "rhs" -> e(3)
+        ) ++ Seq(
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
+          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty(2).arg)),
+          Call(meet, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Eq(mark, ConstructMNone)
+        )
+      ),
+      Body( // MKSInconsistentBranches
+        EdbDeconstruct(
+          e,
+          "EIf",
+          "guard" -> e(1),
+          "lhs" -> e(2),
+          "rhs" -> e(3)
+        ) ++ Seq(
+          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
+          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty(2).arg)),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTUnknown)
+        )
+      ),
+      Body( // MKSPair
+        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTProd(ty(1), ty(2)))
+        )
+      ),
+      Body( // MKSProjL1
+        EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
+          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(matchedProd, Seq(ty(1).arg, ty.arg, ty(2).arg)),
+          Eq(mark, ConstructMNone),
+        )
+      ),
+      Body( // MKSProjL2
+        EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
+          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTUnknown)
+        )
+      ),
+      Body( // MKSProjR1
+        EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
+          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(matchedProd, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Eq(mark, ConstructMNone),
+        )
+      ),
+      Body( // MKSProjR2
+        EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
+          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Eq(mark, ConstructMNone),
+          Eq(ty, ConstructTUnknown)
+        )
+      ),
     )
   )
 
