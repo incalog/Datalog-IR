@@ -115,11 +115,11 @@ class MarkedLambda:
     typeOfEdbType,
     Seq(Param(ty(1).name, TDemand(TEdbValue(Type))), Param(ty(2).name, Type)),
     Seq(
-      Body(
-        EdbDeconstruct(ty(1), "Unknown") ++ Seq(
-          Eq(ty(2), Construct("Unknown", Seq()))
-        )
-      )
+//      Body(
+//        EdbDeconstruct(ty(1), "Unknown") ++ Seq(
+//          Eq(ty(2), Construct("Unknown", Seq()))
+//        )
+//      )
     )
   )
 
@@ -289,13 +289,13 @@ class MarkedLambda:
           "ty" -> ty(1),
           "body" -> e(1)
         ) ++ Seq(
+          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, x, ty(1)).arg, e(1).arg, mark(1).arg, ty(2).arg)
+            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(3).arg)
           ),
-          Call(typeOfEdbType, Seq(ty(2).arg, ty(3).arg)),
           Eq(mark, ConstructMNone),
-          Eq(ty, ConstructTArrow(ty(1), ty(3)))
+          Eq(ty, ConstructTArrow(ty(2), ty(3)))
         )
       ),
       Body( // MKSNum
