@@ -332,7 +332,7 @@ class MarkedLambda:
             anaMark,
             Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)
           ),
-          Eq(mark, ConstructMNone),
+          Eq(mark, Construct(MApSynNonFun, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
@@ -407,7 +407,7 @@ class MarkedLambda:
           Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
           Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(1).arg)),
           Call(synMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty(2).arg)),
-          Eq(mark, ConstructMNone),
+          Eq(mark, Construct(MInconBranches, Seq(ty(1), ty(2)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
@@ -429,7 +429,7 @@ class MarkedLambda:
       Body( // MKSProjL2
         EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Eq(mark, ConstructMNone),
+          Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
@@ -443,7 +443,7 @@ class MarkedLambda:
       Body( // MKSProjR2
         EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Eq(mark, ConstructMNone),
+          Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
