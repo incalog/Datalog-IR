@@ -149,3 +149,7 @@ trait ScalaLowering extends BaseScalaLowering:
     case _ => super.visitAtom(atom)
   }
 
+  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
+    case MonoAggregationOperator(NaiveSetMonoDefinition(TSet(ty))) => ???
+    case _ => super.visitAggregationOperator(op)
+

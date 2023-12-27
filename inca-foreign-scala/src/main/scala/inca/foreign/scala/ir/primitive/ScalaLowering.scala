@@ -78,14 +78,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     // For user-defined mono definition
     case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
       ScalaMonoAggregationOperator(name, ScalaInca.compileType(typ.in), ScalaInca.compileType(typ.state), initCode, addCode)
-    // Since the input, state, and output types may be different in mono definitions, 
-    // as well as lower will rewrite inca types in relation parameters into Scala type,
-    // it is possible that a mono aggregation operator's collection relation types have been
-    // lowered while the mono aggregation operator unchanged, which is type unsafe. Hence, we
-    // should lower mono aggregation operator at here rather than in specific packages.
-    case MonoAggregationOperator(NaiveSetMonoDefinition(ty)) =>
-      val sty = ScalaInca.compileType(ty).name
-      ScalaMonoAggregationOperator(name, ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
+    // TODO: How to deal with the mono definition that input and state have different type?
     case _ => super.visitAggregationOperator(op)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match

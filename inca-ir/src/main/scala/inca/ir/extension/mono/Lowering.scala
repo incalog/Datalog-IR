@@ -6,7 +6,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var, WildcardArg}
-import inca.ir.extension.data.*
+import inca.ir.extension.data.{Deconstruct, Construct, TData, DataDefinition, CaseDefinition, DataModuleEntry}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.string.{StringLit, TString}

@@ -44,7 +44,7 @@ case class CompiledSetModule(mod: Module) extends CompiledModule:
   ))
 
 
-class SetSetLoweringMonoTest extends AnyFunSuiteLike:
+class ScalaSetLoweringMonoTest extends AnyFunSuiteLike:
   private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR
 
   private def module(relations: ModuleEntry*): Module =

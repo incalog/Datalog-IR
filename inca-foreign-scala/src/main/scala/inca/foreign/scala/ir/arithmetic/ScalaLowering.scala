@@ -8,10 +8,10 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator, NaiveSetMonoDefinition}
 import inca.ir.string2name
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val name: String = "ScalaArithmetic"
@@ -111,6 +111,12 @@ trait ScalaLowering extends BaseScalaLowering:
           initCode = "0", 
           addCode = "(st: Int, a: Any) => x + 1"
         )
+      case MonoAggregationOperator(NaiveSetMonoDefinition(TInt)) =>
+        val sty = ScalaType.int.name
+        ScalaMonoAggregationOperator(s"ScalaNaiveSetMono$$$sty", ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
+      case MonoAggregationOperator(NaiveSetMonoDefinition(TDouble)) =>
+        val sty = ScalaType.double.name
+        ScalaMonoAggregationOperator(s"ScalaNaiveSetMono$$$sty", ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
       case _ => super.visitAggregationOperator(op)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

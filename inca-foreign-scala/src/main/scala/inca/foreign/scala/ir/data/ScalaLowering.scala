@@ -2,14 +2,16 @@ package inca.foreign.scala.ir.data
 
 import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, name2string}
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{IR, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
   override val name: String = "ScalaData"
-  override val loweredIRs: Set[BaseIR] = Set(IR)
+  override val loweredIRs: Set[BaseIR] = Set(data.IR)
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
@@ -96,3 +98,9 @@ trait ScalaLowering extends BaseScalaLowering:
       Seq(ScalaTerm(name, ScalaType(tyName), newArgs))
     case _ =>
       super.visitTerm(term)
+
+  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
+    case MonoAggregationOperator(NaiveSetMonoDefinition(TData(nm))) =>
+      val sty = ScalaInca.compileType(TData(nm)).name
+      ScalaMonoAggregationOperator(Name(s"ScalaNaiveSetMono$$$sty"), ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
+    case _ => super.visitAggregationOperator(op)
