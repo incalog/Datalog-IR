@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, primitive, set}
+import inca.foreign.scala.ir.{arithmetic, primitive, set, tuple, bool, data, string}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, UnitRelation}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteMono}
@@ -36,9 +36,19 @@ case class CompiledSetModule(mod: Module) extends CompiledModule:
   private trait demandLowering extends demand.Lowering with primitive.Visitor
   private trait blockLowering extends block.Lowering with primitive.Visitor
 
+  private trait scalaLowering extends primitive.ScalaLowering 
+    with set.ScalaLowering 
+    with tuple.ScalaLowering
+    with bool.ScalaLowering
+    with arithmetic.ScalaLowering
+    with data.ScalaLowering
+    with string.ScalaLowering
+ 
+  
   setPipeline(List(
-    () => new arithmetic.ScalaLowering {},
-    () => new set.ScalaLowering {},
+//    () => new arithmetic.ScalaLowering {},
+//    () => new set.ScalaLowering {},
+    () => new scalaLowering {},
     () => new demandLowering {}, // TODO: let lowering in inca-ir can lower arguments of foreign terms in an implicit way
     () => new blockLowering {}
   ))

@@ -11,9 +11,6 @@ import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition, StringMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
-  override val name: String = "ScalaString"
-  override val loweredIRs: Set[BaseIR] = Set(string.IR)
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TString => true
     case _ => super.isTypeSupported(ty)

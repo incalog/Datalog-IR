@@ -14,8 +14,6 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
-  override val name: String = "ScalaArithmetic"
-  override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TInt | TDouble  => true
     case _ => super.isTypeSupported(ty)

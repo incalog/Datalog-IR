@@ -17,16 +17,19 @@ trait Lowering extends BaseLowering:
   override def loweredIRs: Set[BaseIR] = Set(IR)
   override def requiredIRs: Set[BaseIR] = Set()
 
+  private def normName(s: String) : String =
+    Seq("(", ")", "[", "]", ", ").foldLeft(s)((s, t) => s.replace(t, "$"))
+
   /** Each mono kind gets its own data type, based on input, output, and keys */
   def monoDataType(tm: TMono): TData =
-    TData(Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}"))
+    TData(Name(normName(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}")))
 
-  def monoCollectName(tm: TMono): Name = Name("Collect_" + monoDataType(tm).ref.name)
-  def monoAggregateName(tm: TMono): Name = Name("Aggregate_" + monoDataType(tm).ref.name)
+  def monoCollectName(tm: TMono): Name = Name(normName("Collect_" + monoDataType(tm).ref.name))
+  def monoAggregateName(tm: TMono): Name = Name(normName("Aggregate_" + monoDataType(tm).ref.name))
 
   def monoDataConstructor(mono: MonoDefinition, keys: Seq[Type]): Name =
     val tm = mono.monoType(keys)
-    Name(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}")
+    Name(normName(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}"))
 
   def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
     val data = DataDefinition(monoDataType(tm).ref.name)

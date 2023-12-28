@@ -10,9 +10,6 @@ import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Decons
 import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
-  override val name: String = "ScalaData"
-  override val loweredIRs: Set[BaseIR] = Set(data.IR)
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
     case _ => super.isTypeSupported(ty)

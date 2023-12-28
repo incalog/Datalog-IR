@@ -2,18 +2,19 @@ package inca.foreign.scala.ir.primitive
 
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaInca, ScalaTerm, ScalaType}
+import inca.ir.{Arg, Atom, BaseIR, Name, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, string2name}
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate
+import inca.ir.extension.{aggregate, arithmetic, bool, set, string, tuple, data, demand, block}
 import inca.ir.lowering.BaseLowering
-import inca.ir.*
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoAggregationOperator, MonoDefinition, NaiveSetMonoDefinition, UserDefinedMonoDefinition}
 import inca.util.Gensym
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
-  override def requiredIRs: Set[BaseIR] = Set(primitive.IR)
-
+  override def loweredIRs: Set[BaseIR] = Set(primitive.IR, bool.IR, string.IR, set.IR, data.IR, arithmetic.IR, tuple.IR)
+  override def requiredIRs: Set[BaseIR] = Set(tuple.IR, demand.IR, set.IR, tuple.IR, block.IR)
+  
   def isTypeSupported(ty: Type): Boolean = ty match
     case TAny => true
     case _ => false

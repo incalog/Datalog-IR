@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, bool, primitive, set, tuple, string}
+import inca.foreign.scala.ir.{arithmetic, bool, primitive, set, tuple, string, data}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation2, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
@@ -16,7 +16,7 @@ import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.string.TString
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR => tupleIR}
-import inca.ir.extension.{block, data, demand, impure, mono, string as incaString, arithmetic as incaArithmetic, bool as incaBool, set as incaSet}
+import inca.ir.extension.{block, data as incaData, demand, impure, mono, string as incaString, arithmetic as incaArithmetic, bool as incaBool, set as incaSet}
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -38,15 +38,20 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
   private trait demandLowering extends demand.Lowering with primitive.Visitor
   private trait blockLowering extends block.Lowering with primitive.Visitor
 
+  private trait scalaLowering extends primitive.ScalaLowering
+    with set.ScalaLowering
+    with tuple.ScalaLowering
+    with bool.ScalaLowering
+    with arithmetic.ScalaLowering
+    with data.ScalaLowering
+    with string.ScalaLowering
+
 
   setPipeline(List(
     () => new mono.Lowering {},
     () => new impure.Lowering {},
     () => new demandLowering {},
-    () => new arithmetic.ScalaLowering {},
-    () => new bool.ScalaLowering {},
-    () => new tuple.ScalaLowering {},
-    () => new set.ScalaLowering {},
+    () => new scalaLowering {},
     () => new demandLowering {},
     () => new blockLowering {}
   ))
@@ -60,7 +65,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     block.IR +
     mono.IR +
     impure.IR +
-    data.IR +
+    incaData.IR +
     incaString.IR +
     incaBool.IR +
     tupleIR
@@ -224,18 +229,25 @@ class SetMonoTest extends AnyFunSuiteLike:
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(true)(res.entries.head)
 
-//  test("Set Mono with tuple element type"):
-//    val relation = Relation("main", Seq(Param("b", TTuple(Seq(TInt, TInt)))), Seq(Body(Seq(
-//      Eq(Var("counter"), IntNum(0)),
-//      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-//      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
-//      Eq(Var("a"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
-//      Eq(Var("b"), TupleLit(Seq(IntNum(1), IntNum(2)))),
-//      WriteMono(Var("m"), Var("a")),
-//      WriteMono(Var("m"), Var("b")),
-//      SetMember(Var("b"), ReadMono(Var("m")))
-//    ))))
-//
-//    val engine = compile(relation)
-//    engine.readAll().foreach(res => println(res.asTable))
+
+  test("Set Mono with tuple element type"):
+    val relation = Relation("main", Seq(Param("b", TTuple(Seq(TInt, TInt)))), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      Eq(Var("a"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
+      Eq(Var("b"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+      WriteMono(Var("m"), Var("a")),
+      WriteMono(Var("m"), Var("b")),
+      SetMember(Var("b"), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult((1, 2))(res.entries.head)

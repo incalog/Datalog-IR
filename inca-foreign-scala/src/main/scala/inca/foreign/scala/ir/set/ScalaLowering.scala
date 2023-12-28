@@ -14,13 +14,6 @@ import inca.ir.extension.tuple.{TTuple, TupleLit}
 
 
 trait ScalaLowering extends BaseScalaLowering:
-  override def name: String = "ScalaSet"
-
-  override def loweredIRs: Set[BaseIR] = Set(setIR)
-  override def requiredIRs: Set[BaseIR] =
-    // since set might contain sets
-    super.requiredIRs ++ Set(demand.IR, block.IR, setIR)
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TSet(ty) => true
     case _ => super.isTypeSupported(ty)
@@ -83,7 +76,7 @@ trait ScalaLowering extends BaseScalaLowering:
       val callAtom = Call(s"coll$$set$$comp$$$setCompAggCounter", inputParams.map((nm, _) => Var(nm).arg) :+ Var(gensym.freshName("anything")).arg)
       Seq(Block(Seq(callAtom, aggAtom), Var(resNm)))
     case SetFrom(name) if currentModule.relations.getOrElse(name.name, throw new IllegalStateException(s"Unknown relation $name")).params.size == 1 =>
-      val rel = currentModule.relations(name.name)
+      val Seq(rel) = visitRelation(currentModule.relations(name.name))
       val elemITy = rel.params.head.ty
       val elemSTy = ScalaInca.compileType(elemITy)
       val collNm = gensym.freshName("set$from$elem")
@@ -95,7 +88,7 @@ trait ScalaLowering extends BaseScalaLowering:
       setCompCollRelations += collRel
       Seq(Block(Seq(aggAtom), Var(resNm)))
     case SetFrom(name) if currentModule.relations.getOrElse(name.name, throw new IllegalStateException(s"Unknown relation $name")).params.size > 1 =>
-      val rel = currentModule.relations(name.name)
+      val Seq(rel) = visitRelation(currentModule.relations(name.name))
       val elemITy = TTuple(rel.params map (p => p.ty))
       val elemSTy = ScalaInca.compileType(elemITy)
       val collVarNm = rel.params.map(_ => gensym.freshName("set$from$elem"))
@@ -124,9 +117,7 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   private def createRelName(name: String): Name =
-    val invalidSym = Seq("[", "]")
-    invalidSym.foldLeft(name)(_.replace(_, "$"))
-
+    Seq("(", ")", "[", "]", ", ").foldLeft(name)((s, t) => s.replace(t, "$"))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case SetMember(mem, s) =>

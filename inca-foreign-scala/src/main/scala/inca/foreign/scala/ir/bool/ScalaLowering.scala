@@ -8,10 +8,6 @@ import inca.ir.extension.bool.{AtomAsBool, BoolAnd, BoolFalse, BoolNot, BoolOr, 
 import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
-  override def name: String = "ScalaBooleanLowering"
-  override def loweredIRs: Set[BaseIR] = Set(boolIR)
-  override def requiredIRs: Set[BaseIR] = super.requiredIRs + scalaIR
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TBoolean => true
     case _ => super.isTypeSupported(ty)
