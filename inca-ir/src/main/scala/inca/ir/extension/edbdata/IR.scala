@@ -38,7 +38,7 @@ case class UndefEdbType(ty: EdbType) extends Atom:
 
 case class LookupEdbField(t: Term, link: Link) extends Term:
   override def vars: Seq[Var] = t.vars
-  override def toString: String = s"$t.$link"
+  override def toString: String = s"($t).$link"
 object LookupEdbField:
   def apply(t: Term, field: Name): LookupEdbField = new LookupEdbField(t, Link.Field(field))
 case class UndefEdbField(t: Term, link: Link) extends Atom:
