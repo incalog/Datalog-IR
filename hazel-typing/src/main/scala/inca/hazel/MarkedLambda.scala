@@ -129,7 +129,7 @@ class MarkedLambda:
   private val typeOfEdbType = "typeOfEdbType"
   contents += Relation(
     typeOfEdbType,
-    Seq(Param(ty(1).name, TDemand(TypeAnno)), Param(ty(2).name, Type)),
+    Seq(Param(ty(1).name, TypeAnno), Param(ty(2).name, Type)),
     Seq(
       Body(
         EdbDeconstruct(ty(1), "TAUnknown") ++ Seq(
