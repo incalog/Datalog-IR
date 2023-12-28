@@ -39,6 +39,20 @@ class MarkedLambda:
   private val ConstructTProd = (ty1: Term, ty2: Term) =>
     Construct(TProd, Seq(ty1, ty2))
 
+  private val TypeAnno = TEdbNode("TypeAnno")
+  contents ++= Seq(
+    EdbNodeDefinition(TypeAnno.name),
+    EdbNodeDefinition("TAUnknown", TypeAnno.name),
+    EdbNodeDefinition("TANum", TypeAnno.name),
+    EdbNodeDefinition("TABool", TypeAnno.name),
+    EdbNodeDefinition("TAArrow", TypeAnno.name),
+    EdbFieldDefinition("TAArrow", "dom", TypeAnno),
+    EdbFieldDefinition("TAArrow", "codom", TypeAnno),
+    EdbNodeDefinition("TAProd", TypeAnno.name),
+    EdbFieldDefinition("TAProd", "fst", TypeAnno),
+    EdbFieldDefinition("TAProd", "snd", TypeAnno)
+  )
+
   private val Exp = TEdbNode("Exp")
   contents ++= Seq(
     EdbNodeDefinition(Exp.name),
@@ -47,7 +61,7 @@ class MarkedLambda:
     EdbFieldDefinition("EVar", "name", TEdbValue(TString)),
     EdbNodeDefinition("ELam", Exp.name),
     EdbFieldDefinition("ELam", "param", TEdbValue(TString)),
-    EdbFieldDefinition("ELam", "ty", TEdbValue(Type)),
+    EdbFieldDefinition("ELam", "ty", TypeAnno),
     EdbFieldDefinition("ELam", "body", Exp),
     EdbNodeDefinition("EAp", Exp.name),
     EdbFieldDefinition("EAp", "lhs", Exp),
@@ -115,13 +129,37 @@ class MarkedLambda:
   private val typeOfEdbType = "typeOfEdbType"
   contents += Relation(
     typeOfEdbType,
-    Seq(Param(ty(1).name, TDemand(TEdbValue(Type))), Param(ty(2).name, Type)),
+    Seq(Param(ty(1).name, TDemand(TypeAnno)), Param(ty(2).name, Type)),
     Seq(
-//      Body(
-//        EdbDeconstruct(ty(1), "Unknown") ++ Seq(
-//          Eq(ty(2), Construct("Unknown", Seq()))
-//        )
-//      )
+      Body(
+        EdbDeconstruct(ty(1), "TAUnknown") ++ Seq(
+          Eq(ty(2), Construct(TUnknown, Seq()))
+        )
+      ),
+      Body(
+        EdbDeconstruct(ty(1), "TANum") ++ Seq(
+          Eq(ty(2), Construct(TNum, Seq()))
+        )
+      ),
+      Body(
+        EdbDeconstruct(ty(1), "TABool") ++ Seq(
+          Eq(ty(2), Construct(TBool, Seq()))
+        )
+      ),
+      Body(
+        EdbDeconstruct(ty(1), "TAArrow", "dom" -> Var("tadom"), "codom" -> Var("tacodom")) ++ Seq(
+          Call(typeOfEdbType, Seq(Var("tadom"), Var("tdom"))),
+          Call(typeOfEdbType, Seq(Var("tacodom"), Var("tcodom"))),
+          Eq(ty(2), Construct(TArrow, Seq(Var("tdom"), Var("tcodom"))))
+        )
+      ),
+      Body(
+        EdbDeconstruct(ty(1), "TAProd", "fst" -> Var("tafst"), "snd" -> Var("tasnd")) ++ Seq(
+          Call(typeOfEdbType, Seq(Var("tafst"), Var("tfst"))),
+          Call(typeOfEdbType, Seq(Var("tasnd"), Var("tsnd"))),
+          Eq(ty(2), Construct(TProd, Seq(Var("tfst"), Var("tsnd"))))
+        )
+      )
     )
   )
 
