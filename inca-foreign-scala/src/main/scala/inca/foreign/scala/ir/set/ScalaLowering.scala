@@ -17,7 +17,9 @@ trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "ScalaSet"
 
   override def loweredIRs: Set[BaseIR] = Set(setIR)
-  override def requiredIRs: Set[BaseIR] = Set(demand.IR, block.IR)
+  override def requiredIRs: Set[BaseIR] =
+    // since set might contain sets
+    super.requiredIRs ++ Set(demand.IR, block.IR, setIR)
 
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TSet(ty) => true
@@ -150,6 +152,13 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TSet(ty))) => ???
+    case MonoAggregationOperator(NaiveSetMonoDefinition(TSet(ScalaType(ty)))) =>
+      val sty = compileType(TSet(ScalaType(ty))).name
+      ScalaMonoAggregationOperator(
+        Name(s"ScalaNaiveSetMono$$${sty.replace("[", "$").replace("]", "$")}"),
+        ScalaType(ty),
+        ScalaType(s"Set[$ty]"),
+        initCode = s"Set[$ty]()",
+        addCode = s"(st: Set[$ty], a: $ty) => st + a"
+      )
     case _ => super.visitAggregationOperator(op)
-

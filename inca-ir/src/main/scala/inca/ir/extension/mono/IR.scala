@@ -24,6 +24,9 @@ case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) exten
   override def vars: Seq[Var] = args.flatMap(_.vars)
   override def toString: String = s"new ${mono.name}(${args.mkString(", ")})@{${keys.mkString(",")}}"
 
+object NewMono:
+  def apply(mono: MonoDefinition) : NewMono = NewMono(mono, Seq(), Seq())
+
 case class ReadMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
   override def toString: String = s"$m.get"
@@ -34,6 +37,8 @@ case class WriteMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
     val prefix = s"$m += $input"
     if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
 
+object WriteMono:
+  def apply(m: Term, input: Term): WriteMono = WriteMono(m, input, Seq())
 
 case class MonoTypes(in: Type, state: Type, out: Type)
 
