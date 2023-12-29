@@ -99,3 +99,13 @@ class ScalaTupleLoweringTest extends AnyFunSuiteLike:
     assert(res.nonEmpty)
     assertResult((1, (true, "1")))(res.entries.head)
 
+  test("Lower tuple literal: 3"):
+    val relation = Relation("main", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
+      Eq(TupleLit(Seq(Var("a"), Var("b"))), TupleLit(Seq(IntNum(1), IntNum(2))))
+    ))))
+    // Problem: if tuple is compiled into Scala terms, arguments "c" and "d" cannot be unbound variables
+    assertThrows[TypeErrorException] {
+      val engine = compile(relation)
+    }
+
+

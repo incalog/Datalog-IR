@@ -1,10 +1,10 @@
 package inca.viatra.runtime.aggregate
 
 import inca.ir
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, bool, primitive, set, tuple, string, data}
+import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, set, string, tuple}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation2, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
@@ -15,8 +15,8 @@ import inca.ir.extension.mono
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.string.TString
-import inca.ir.extension.tuple.{TTuple, TupleLit, IR => tupleIR}
-import inca.ir.extension.{block, data as incaData, demand, impure, mono, string as incaString, arithmetic as incaArithmetic, bool as incaBool, set as incaSet}
+import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
+import inca.ir.extension.{block, demand, impure, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString}
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -83,7 +83,7 @@ class SetMonoTest extends AnyFunSuiteLike:
 
 
 
-  test("Test naive set mono: basic test"):
+  test("Test naive set mono: basic test 1"):
     val relation = Relation(
       "main",
       Seq(Param("s", TSet(TInt))),
@@ -101,6 +101,26 @@ class SetMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1))(res.entries.head)
+
+
+  test("Test naive set mono: basic test 2"):
+    val relation = Relation(
+      "main",
+      Seq(Param("s", TInt)),
+      Seq(Body(Seq(
+        Eq(Var("counter"), IntNum(0)),
+        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt))),
+        WriteMono(Var("m"), IntNum(1)),
+        SetMember(Var("s"), ReadMono(Var("m")))
+      )))
+    ).addHint(impure.PureHint)
+
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+//    assert(res.entries.nonEmpty)
+//    assertResult(Set(1))(res.entries.head)
 
 
   test("Test naive set mono: performing set union with mono result"):
@@ -234,7 +254,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     assertResult(true)(res.entries.head)
 
 
-  test("Set Mono with tuple element type"):
+  test("Set Mono with tuple element type: 1"):
     val relation = Relation("main", Seq(Param("b", TTuple(Seq(TInt, TInt)))), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
@@ -251,3 +271,17 @@ class SetMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((1, 2))(res.entries.head)
+
+  test("Set Mono with tuple element type: 2"):
+    val relation = Relation("main", Seq(Param("c", TInt), Param("d", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      WriteMono(Var("m"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
+      SetMember(TupleLit(Seq(Var("c"), Var("d"))), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+    // Problem: if tuple is compiled into Scala terms, arguments "c" and "d" cannot be unbound variables
+    assertThrows[TypeErrorException] {
+      val engine = compile(relation)
+    }
