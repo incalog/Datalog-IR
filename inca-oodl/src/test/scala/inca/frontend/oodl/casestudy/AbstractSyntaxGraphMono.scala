@@ -6,7 +6,7 @@ import inca.foreign.scala.ir.{arithmetic as scalaArith, bool as scalaBool, data 
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
-import inca.ir.extension.{arithmetic, block, bool, data, demand, impure, mono, set, string, tuple}
+import inca.ir.extension.{arithmetic, block, bool as incaBool, data, demand, impure, mono, set as incaSet, string, tuple as incaTuple, disjunction as incaDisj, aggregate as incaAgg}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -246,7 +246,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   ).addHint(PureHint)
 
 
-  val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + set.IR + string.IR + impure.IR + tuple.IR + bool.IR,
+  val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaBool.IR + incaAgg.IR,
     datas ++
     Seq(
       edgesDefs,
@@ -292,16 +292,59 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       () => new blockLowering {}
     ))
 
-  test("AbstractSyntaxGraph is well-typed") {
+
+  def compiledOpt = new CompiledModule:
+    override def name: Name = "AbstractSyntaxGraph"
+
+    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
+    override def ir: Module = mod
+
+    override def compilerOptions: CompilerOptions = CompilerOptions.default
+
+    override def optimize(p: Seq[Module]): Seq[Module] = p
+
+    private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
+
+    override def typechecker: BaseIRTypechecker = new ScalaSetTypeChecker
+
+    private trait demandLowering extends demand.Lowering with primitive.Visitor
+
+    private trait blockLowering extends block.Lowering with primitive.Visitor
+
+    private trait scalaLowering extends primitive.ScalaLowering
+      with scalaSet.ScalaLowering
+      with scalaTuple.ScalaLowering
+      with scalaBool.ScalaLowering
+      with scalaArith.ScalaLowering
+      with scalaData.ScalaLowering
+      with scalaString.ScalaLowering
+
+
+    setPipeline(List(
+      () => new mono.Lowering {},
+      () => new impure.Lowering {},
+      () => new demand.Lowering {},
+      () => new mono.Optimizer {},
+      () => new incaBool.Lowering {},
+      () => new blockLowering {},
+      () => new incaSet.Lowering {},
+      () => new incaTuple.Lowering {},
+      () => new blockLowering {},
+      () => new incaDisj.Lowering {},
+      () => new demandLowering {}
+    ))
+
+  test("AbstractSyntaxGraph is well-typed: Set Mono Aggregation") {
     try compiled.checked
     finally println(mod)
   }
 
-  test("AbstractSyntaxGraph can be lowered") {
+  test("AbstractSyntaxGraph can be lowered: Set Mono Aggregation") {
     compiled.lowered
   }
 
-  test("AbstractSyntaxGraph can be run") {
+  test("AbstractSyntaxGraph can be run: Set Mono Aggregation") {
     val engine = inca.viatra.Executor.instantiate(compiled)
 //    engine.readAll().foreach(r => println(r.asTable))
     for (i <- 0 until 5) {
@@ -313,7 +356,30 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       println(s"Execution time ${end - start}ms")
       println(relation1.asTable)
     }
-    ()
+  }
+
+
+  test("AbstractSyntaxGraph is well-typed: Set Mono Opt ") {
+    try compiledOpt.checked
+    finally println(mod)
+  }
+
+  test("AbstractSyntaxGraph can be lowered: Set Mono Opt") {
+    compiledOpt.lowered
+  }
+
+  test("AbstractSyntaxGraph can be run: Set Mono Opt") {
+    val engine = inca.viatra.Executor.instantiate(compiledOpt)
+    //    engine.readAll().foreach(r => println(r.asTable))
+    for (i <- 0 until 5) {
+      val engine = inca.viatra.Executor.instantiate(compiledOpt)
+      val start = System.currentTimeMillis()
+      val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+      val end = System.currentTimeMillis()
+      println(s"Execution time ${end - start}ms")
+      println(relation1.asTable)
+    }
   }
 
   

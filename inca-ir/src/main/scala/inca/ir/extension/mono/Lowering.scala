@@ -6,16 +6,16 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var, WildcardArg}
-import inca.ir.extension.data.{Deconstruct, Construct, TData, DataDefinition, CaseDefinition, DataModuleEntry}
-import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
-import inca.ir.extension.impure.Impure
+import inca.ir.extension.data.{Deconstruct, Construct, TData, DataDefinition, CaseDefinition, DataModuleEntry, IR as dataIR}
+import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand, IR as demandIR}
+import inca.ir.extension.impure.{Impure, IR as impureIR}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.lowering.BaseLowering
 
 trait Lowering extends BaseLowering:
   override val name: String = "Mono"
   override def loweredIRs: Set[BaseIR] = Set(IR)
-  override def requiredIRs: Set[BaseIR] = Set()
+  override def requiredIRs: Set[BaseIR] = Set(demandIR, impureIR, dataIR)
 
   private def normName(s: String) : String =
     Seq("(", ")", "[", "]", ", ").foldLeft(s)((s, t) => s.replace(t, "$"))
