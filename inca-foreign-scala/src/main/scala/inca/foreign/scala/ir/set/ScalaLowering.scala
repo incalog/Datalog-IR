@@ -143,13 +143,13 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TSet(ScalaType(ty)))) =>
-      val sty = compileType(TSet(ScalaType(ty))).name
+    case MonoAggregationOperator(NaiveSetMonoDefinition(ty)) =>
+      val sty = visitType(ty).asInstanceOf[ScalaType].name
       ScalaMonoAggregationOperator(
         Name(s"ScalaNaiveSetMono$$${sty.replace("[", "$").replace("]", "$")}"),
-        ScalaType(ty),
-        ScalaType(s"Set[$ty]"),
-        initCode = s"Set[$ty]()",
-        addCode = s"(st: Set[$ty], a: $ty) => st + a"
+        ScalaType(sty),
+        ScalaType(s"Set[$sty]"),
+        initCode = s"Set[$sty]()",
+        addCode = s"(st: Set[$sty], a: $sty) => st + a"
       )
     case _ => super.visitAggregationOperator(op)

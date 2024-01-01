@@ -1,6 +1,9 @@
 package inca.viatra.runtime.aggregate
 
-import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
+import inca.foreign.scala.analysis.{ScalaAbstractInterpreter, ScalaIROptimizer}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.primitive.{ForeignScalaLowering, ScalaMonoDefinition}
+import inca.foreign.scala.visitors.ScalaStatisticsCollector
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation, Relation as Table}
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
@@ -8,17 +11,46 @@ import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
-import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
+import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, mono, not, set, string, tuple}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 
 import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.mutable
+
+
+case class CompiledMonoModule(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
+  override def name: Name = mod.name
+  override def sourceLocation: SourceLocation = mod.name
+  override def ir: Module = mod
+  private class MonoTypeChecker extends IRTypechecker with primitive.Typechecker
+  override def typechecker: BaseIRTypechecker = new MonoTypeChecker()
+  override def printStatistics(module: Module, str: String): Unit =
+    ScalaStatisticsCollector.printStatistics(module, str)
+
+
+  override def optimize(p: Seq[Module]): Seq[Module] = p
+
+  setPipeline(List(
+    () => new mono.Lowering {},
+    () => new impure.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
+    () => new ForeignScalaLowering {}
+  ))
+
 
 
 class MonoAggregationTest extends AnyFunSuiteLike {
@@ -41,7 +73,6 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
-    compiledMod.setPipeline(CompiledMonoModule.pipeline)
     val exec: IRExecutor = inca.viatra.Executor
     exec.instantiate(compiledMod)
 

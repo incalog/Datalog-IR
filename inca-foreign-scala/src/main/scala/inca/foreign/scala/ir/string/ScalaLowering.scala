@@ -43,7 +43,4 @@ trait ScalaLowering extends BaseScalaLowering:
         initCode = """""""",
         addCode = "(st: String, a: String) => st + a"
       )
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TString)) =>
-      val sty = ScalaInca.compileType(TString).name
-      ScalaMonoAggregationOperator(Name(s"ScalaNaiveSetMono$$$sty"), ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
     case _ => super.visitAggregationOperator(op)

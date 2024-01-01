@@ -1,10 +1,11 @@
 package inca.viatra.runtime.aggregate
 
+import inca.foreign.scala.ir.primitive.ForeignScalaLowering
 import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, bool, primitive, set, tuple, string, data}
+import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, set, string, tuple}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, UnitRelation}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteMono}
@@ -13,7 +14,7 @@ import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR, Lowering as tup
 import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet}
 import inca.ir.extension.arithmetic.Add
 import inca.ir.extension.bool.{BoolTrue, TBoolean, IR as boolIR}
-import inca.ir.extension.string.{StringLit, TString, IR => stringIR}
+import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 
@@ -37,17 +38,8 @@ case class CompiledTupleModule(mod: Module) extends CompiledModule:
   private trait demandLowering extends demand.Lowering with primitive.Visitor
   private trait blockLowering extends block.Lowering with primitive.Visitor
 
-  private trait scalaLowering extends primitive.ScalaLowering
-    with set.ScalaLowering
-    with tuple.ScalaLowering
-    with bool.ScalaLowering
-    with arithmetic.ScalaLowering
-    with data.ScalaLowering
-    with string.ScalaLowering
-
-
   setPipeline(List(
-    () => new scalaLowering {},
+    () => new ForeignScalaLowering {},
     () => new demandLowering {}, // TODO: let lowering in inca-ir can lower arguments of foreign terms in an implicit way
     () => new blockLowering {}
   ))

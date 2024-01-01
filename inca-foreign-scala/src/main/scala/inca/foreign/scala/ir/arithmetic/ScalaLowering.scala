@@ -109,12 +109,6 @@ trait ScalaLowering extends BaseScalaLowering:
           initCode = "0", 
           addCode = "(st: Int, a: Any) => x + 1"
         )
-      case MonoAggregationOperator(NaiveSetMonoDefinition(TInt)) =>
-        val sty = ScalaType.int.name
-        ScalaMonoAggregationOperator(s"ScalaNaiveSetMono$$$sty", ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
-      case MonoAggregationOperator(NaiveSetMonoDefinition(TDouble)) =>
-        val sty = ScalaType.double.name
-        ScalaMonoAggregationOperator(s"ScalaNaiveSetMono$$$sty", ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
       case _ => super.visitAggregationOperator(op)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

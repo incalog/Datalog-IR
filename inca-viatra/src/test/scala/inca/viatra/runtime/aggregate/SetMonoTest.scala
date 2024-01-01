@@ -1,5 +1,6 @@
 package inca.viatra.runtime.aggregate
 
+import inca.foreign.scala.ir.primitive.ForeignScalaLowering
 import inca.ir
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
@@ -38,20 +39,11 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
   private trait demandLowering extends demand.Lowering with primitive.Visitor
   private trait blockLowering extends block.Lowering with primitive.Visitor
 
-  private trait scalaLowering extends primitive.ScalaLowering
-    with set.ScalaLowering
-    with tuple.ScalaLowering
-    with bool.ScalaLowering
-    with arithmetic.ScalaLowering
-    with data.ScalaLowering
-    with string.ScalaLowering
-
-
   setPipeline(List(
     () => new mono.Lowering {},
     () => new impure.Lowering {},
     () => new demandLowering {},
-    () => new scalaLowering {},
+    () => new ForeignScalaLowering {},
     () => new demandLowering {},
     () => new blockLowering {}
   ))

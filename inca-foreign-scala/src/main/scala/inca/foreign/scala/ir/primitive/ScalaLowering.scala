@@ -1,6 +1,6 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, set as scalaSet, string as scalaString, tuple as scalaTuple}
 import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir.{Arg, Atom, BaseIR, Name, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, string2name}
 import inca.ir.Hint.preserveHints
@@ -78,7 +78,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op match
     // For user-defined mono definition
     case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
-      ScalaMonoAggregationOperator(name, ScalaInca.compileType(typ.in), ScalaInca.compileType(typ.state), initCode, addCode)
+      ScalaMonoAggregationOperator(name, visitType(typ.in), visitType(typ.state), initCode, addCode)
     // TODO: How to deal with the mono definition that input and state have different type?
     case _ => super.visitAggregationOperator(op)
 
@@ -100,3 +100,13 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
       Seq(ScalaAggregationAtom(visitAggregationOperator(op), rel.name, outTerm, argTerms, aggColumnIndex))
     case _ =>
       super.visitAtom(atom)
+
+
+trait ForeignScalaLowering extends ScalaLowering 
+  with scalaArith.ScalaLowering 
+  with scalaBool.ScalaLowering
+  with scalaData.ScalaLowering
+  with scalaString.ScalaLowering
+  with scalaTuple.ScalaLowering
+  with scalaSet.ScalaLowering 
+  

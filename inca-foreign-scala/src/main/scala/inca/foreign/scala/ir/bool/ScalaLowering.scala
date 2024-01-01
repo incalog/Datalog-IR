@@ -21,8 +21,3 @@ trait ScalaLowering extends BaseScalaLowering:
     case AtomAsBool(atom) => ???
     case _ => super.visitTerm(term)
   }
-
-  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TBoolean)) =>
-      ScalaMonoAggregationOperator(Name("ScalaNaiveSetMono$Boolean"), ScalaType("Boolean"), ScalaType("Set[Boolean]"), initCode = "Set[Boolean]()", addCode = "(st: Set[Boolean], a: Boolean) => st + a")
-    case _ => super.visitAggregationOperator(op)

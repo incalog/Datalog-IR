@@ -95,9 +95,3 @@ trait ScalaLowering extends BaseScalaLowering:
       Seq(ScalaTerm(name, ScalaType(tyName), newArgs))
     case _ =>
       super.visitTerm(term)
-
-  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TData(nm))) =>
-      val sty = ScalaInca.compileType(TData(nm)).name
-      ScalaMonoAggregationOperator(Name(s"ScalaNaiveSetMono$$$sty"), ScalaType(s"$sty"), ScalaType(s"Set[$sty]"), initCode = s"Set[$sty]()", addCode = s"(st: Set[$sty], a: $sty) => st + a")
-    case _ => super.visitAggregationOperator(op)

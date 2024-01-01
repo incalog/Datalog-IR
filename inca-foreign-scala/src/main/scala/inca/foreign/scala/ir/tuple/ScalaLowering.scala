@@ -7,7 +7,7 @@ import inca.ir.extension.foreign.ForeignTerm
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition}
 
-trait ScalaLowering extends BaseScalaLowering {
+trait ScalaLowering extends BaseScalaLowering:
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TTuple(tys) => true
     case _ => super.isTypeSupported(ty)
@@ -35,17 +35,3 @@ trait ScalaLowering extends BaseScalaLowering {
 
   private def createValidScalaName(s: String): String =
     Seq("(", ")", "[", "]").foldLeft(s)((t, s) => s.replace(t, "$"))
-
-  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(NaiveSetMonoDefinition(TTuple(tys))) =>
-      val sty = visitType(TTuple(tys)).asInstanceOf[ScalaType].name
-      ScalaMonoAggregationOperator(
-        name = Name(s"ScalaNaiveSetMono$$${createValidScalaName(sty)}"),
-        inputTy = ScalaType(sty),
-        stateTy = ScalaType(s"Set[$sty]"),
-        initCode = s"Set[$sty]()",
-        addCode = s"(st: Set[$sty], a: $sty) => st + a"
-      )
-    case _ => super.visitAggregationOperator(op)
-
-}
