@@ -14,6 +14,7 @@ import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.util.Gensym
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -121,7 +122,7 @@ case class ScalaMonoDefinition(name: Name,
                                typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
   def typecheck(in: Seq[Type]): Option[String] = None
-  override def resultTerm(state: Term): Term =
+  override def resultTerm(state: Term, gensym: Gensym): Term =
     ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
 
   override def toString: String =

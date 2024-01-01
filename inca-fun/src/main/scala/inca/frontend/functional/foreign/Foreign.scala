@@ -7,6 +7,7 @@ import inca.frontend.functional.syntax.*
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.Name
 import inca.ir.extension.mono.MonoTypes
+import inca.util.Gensym
 
 object FunctionalInca extends ForeignLanguage:
   type Code = Expression
@@ -38,4 +39,4 @@ case class FunctionalIncaAggregationOperator(code: FunctionDef, initCode: Expres
 case class FunctionalIncaMonoDefinition(name: Name, initCode: Expression, addCode: Expression, resultCode: Expression, typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: FunctionalInca.type = FunctionalInca
   val constructorParamTypes: Seq[ir.Type] = Seq()
-  def resultTerm(state: ir.Term): ir.Term = throw new UnsupportedOperationException(s"Must be lowered first, e.g., to ForeignScala")
+  def resultTerm(state: ir.Term, gensym: Gensym): ir.Term = throw new UnsupportedOperationException(s"Must be lowered first, e.g., to ForeignScala")

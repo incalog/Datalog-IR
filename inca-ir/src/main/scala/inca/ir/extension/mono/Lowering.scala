@@ -56,7 +56,7 @@ trait Lowering extends BaseLowering:
 
       val op = MonoAggregationOperator(mono)
       val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
-      val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state"))))
+      val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state")), gensym))
       Body(Seq(destruct, aggregate, project))
     }
     Relation(monoAggregateName(tm), params, bodies)
