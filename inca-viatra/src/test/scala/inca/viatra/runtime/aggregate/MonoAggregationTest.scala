@@ -12,7 +12,7 @@ import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
-import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, mono, not, set, string, tuple}
+import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, mono, not, set, string, tuple, map}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
@@ -63,7 +63,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     impure.IR +
     block.IR +
     string.IR +
-    bool.IR
+    bool.IR +
+    map.IR
   
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)

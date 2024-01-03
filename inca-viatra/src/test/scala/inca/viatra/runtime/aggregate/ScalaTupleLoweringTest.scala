@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteMono}
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR, Lowering as tupleLowering}
-import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet}
+import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet, map}
 import inca.ir.extension.arithmetic.Add
 import inca.ir.extension.bool.{BoolTrue, TBoolean, IR as boolIR}
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
@@ -57,7 +57,7 @@ case class CompiledTupleModule(mod: Module) extends CompiledModule:
 
 
 class ScalaTupleLoweringTest extends AnyFunSuiteLike:
-  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR + tupleIR + boolIR + stringIR
+  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR + tupleIR + boolIR + stringIR + map.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)

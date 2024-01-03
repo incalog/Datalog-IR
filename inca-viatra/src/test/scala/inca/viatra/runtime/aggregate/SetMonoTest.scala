@@ -12,12 +12,11 @@ import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.mono.{MonoImpurityKind, NaiveSetMonoDefinition, NewMono, ReadMono, TMono, WriteMono}
-import inca.ir.extension.mono
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.string.TString
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
-import inca.ir.extension.{block, demand, impure, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString}
+import inca.ir.extension.{block, demand, impure, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString, map}
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -60,7 +59,8 @@ class SetMonoTest extends AnyFunSuiteLike:
     incaData.IR +
     incaString.IR +
     incaBool.IR +
-    tupleIR
+    tupleIR +
+    map.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)

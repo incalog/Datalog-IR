@@ -1,6 +1,6 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, set as scalaSet, string as scalaString, tuple as scalaTuple}
+import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, set as scalaSet, string as scalaString, tuple as scalaTuple, map as scalaMap}
 import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaInca, ScalaTerm, ScalaType}
 import inca.ir.{Arg, Atom, BaseIR, Name, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, string2name}
 import inca.ir.Hint.preserveHints
@@ -101,6 +101,10 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     case _ =>
       super.visitAtom(atom)
 
+  protected def createRelName(name: String): Name =
+    gensym.freshName(
+      Seq("(", ")", "[", "]", ", ").foldLeft(name)((s, t) => s.replace(t, "$"))
+    )
 
 trait ForeignScalaLowering extends ScalaLowering 
   with scalaArith.ScalaLowering 
@@ -109,4 +113,4 @@ trait ForeignScalaLowering extends ScalaLowering
   with scalaString.ScalaLowering
   with scalaTuple.ScalaLowering
   with scalaSet.ScalaLowering 
-  
+  with scalaMap.ScalaLowering

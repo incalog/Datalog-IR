@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteMono}
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet}
 import inca.ir.extension.tuple.{TTuple, Lowering as tupleLowering}
-import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet}
+import inca.ir.extension.{block, demand, arithmetic as incaArithmetic, set as incaSet, map}
 import inca.ir.extension.arithmetic.Add
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
@@ -47,8 +47,8 @@ case class CompiledSetModule(mod: Module) extends CompiledModule:
   ))
 
 
-class ScalaSetLoweringMonoTest extends AnyFunSuiteLike:
-  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR
+class ScalaSetLoweringTest extends AnyFunSuiteLike:
+  private val langs: Language = BaseIR.language + incaSet.IR + incaArithmetic.IR + block.IR + demand.IR + map.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -305,6 +305,33 @@ class ScalaSetLoweringMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(0, 2, 1))(res.entries.head)
+
+
+  test("Lower set from 3"):
+    val relation1 = Relation(
+      "main",
+      Seq(Param("s1", TSet(TInt)), Param("s2", TSet(TInt))),
+      Seq(Body(Seq(
+        Eq(Var("s1"), SetFrom("range")),
+        Eq(Var("s2"), SetFrom("range"))
+      )))
+    )
+
+    val relation2 = Relation(
+      "range",
+      Seq(Param("i", TInt)),
+      Seq(
+        Body(Seq(Eq(Var("i"), IntNum(1)))),
+        Body(Seq(Eq(Var("i"), IntNum(2)))),
+        Body(Seq(Eq(Var("i"), IntNum(0)))),
+      )
+    )
+
+    val engine = compile(relation1, relation2)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult((Set(0, 2, 1), Set(0, 2, 1)))(res.entries.head)
 
 
   test("Lower set union"):

@@ -12,6 +12,7 @@ import inca.ir.extension.block.Block
 import inca.ir.extension.set.TSet
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.map.TMap
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
 import inca.util.Gensym
@@ -28,7 +29,9 @@ object ScalaInca extends ForeignLanguage:
     case TBoolean => ScalaType.bool
     case TData(RefByName(name)) => ScalaType(name)
     case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
-    case TTuple(tys) => ScalaType(s"(${tys.map(compileType.andThen(_.name)).mkString(", ")})")
+    case TTuple(Seq(ty)) => compileType(ty)
+    case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
+    case TMap(k, v) => ScalaType(s"Map[${compileType(k).name}, ${compileType(v).name}]")
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
