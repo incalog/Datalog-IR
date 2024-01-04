@@ -6,8 +6,8 @@ import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
 import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, string, tuple}
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation2, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation}
+import inca.ir.extension.arithmetic.{Add, GE, IntNum, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
