@@ -2,6 +2,7 @@ package inca.ir.extension.mono
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.foreign.ConvertForeignIR
 import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap}
 import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
 import inca.ir.extension.string.{StringLit, TString}
@@ -86,6 +87,40 @@ object StringMonoDefinition extends BuiltInMonoDefinition:
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TString, TString, TString)
   override def resultTerm(state: Term, gensym: Gensym): Term = state
+
+/*
+ *  T ::= TInt | TBool | TTuple(T,T) | TSet(T)
+        | TForeign(FT)
+    FT ::= ScalaInt | ScalaBool | ScalaTuple(FT,FT) | ScalaSet(FT)
+
+    [[T]] subseteq RunTime-Values
+
+    [[TInt]] = {...,-1,0,1,...}
+    [[TBool]] = {0,1}
+    [[TSet(T)]] = relation R where ...
+    [[TForeing(ScalaInt)]] = {...,`-1`,`0`,`1`,...}
+    [[TForeing(ScalaBool)]] = {`true`, `false`}
+    [[TForeign(ScalaTuple(ft1,ft2))]] = [[ft1]] x [[ft2]]
+    [[TForeign(ScalaSet(ft))]] = ...
+ */
+
+case class SetMonoDefinition2(ty: Type, rtSet: Type) extends BuiltInMonoDefinition:
+  override def name: Name = s"SetMonoDef_$ty"
+  override def constructorParamTypes: Seq[Type] = Seq()
+  override def typ: MonoTypes = MonoTypes(ty, rtSet, TSet(ty))
+  override def resultTerm(state: Term, gensym: Gensym): Term =
+    ConvertForeignIR(state, rtSet, TSet(ty))
+
+case class MapMonoDefinition2(keyTy: Type, valMono: MonoDefinition, rtMap: (Type,Type) => Type, rtMapElem: (Term,Term,Term) => Atom) extends BuiltInMonoDefinition:
+  override def name: Name = s"SetMonoDef_$keyTy"
+  override def constructorParamTypes: Seq[Type] = Seq()
+  override def typ: MonoTypes = MonoTypes(keyTy, rtMap(keyTy, valMono.typ.state), TMap(keyTy, valMono.typ.out))
+  override def resultTerm(state: Term, gensym: Gensym): Term =
+    val k = gensym.freshName("k")
+    val v = gensym.freshName("v")
+    MapComprehension(Var(k), valMono.resultTerm(Var(v), gensym),
+      Seq(rtMapElem(Var(k), Var(v), state)))
+
 
 trait SetMonoDefinition(ST: Type, A: Type, B: Type) extends BuiltInMonoDefinition:
   override def name: Name = s"SetMonoDef_${ST}_${A}_$B"

@@ -48,7 +48,7 @@ case class IRLoggingSection(override val name: String, defaults: Map[String, Any
   def logStatsAfterOptimizations_=(newVal: Boolean): Unit = update("stats_after_optimization", newVal)
 
 
-class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])] = Seq()):
+class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])]):
 
   protected var options: Map[String, Section] = defaults
     .map((s, o) => s -> createSection(s, o.toMap))
@@ -94,6 +94,6 @@ object CompilerOptions:
     compilerOptions
 
   implicit def default: CompilerOptions =
-    val options = CompilerOptions()
+    val options = CompilerOptions(Seq())
     options.setDefaults()
     options

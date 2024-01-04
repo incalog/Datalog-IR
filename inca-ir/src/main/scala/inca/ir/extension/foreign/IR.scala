@@ -36,6 +36,13 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
+case class ConvertIRForeign(term: Term, foreignType: Type, irType: Type) extends Term:
+  override def toString: String = s"$term as $foreignType"
+  override def vars: Seq[Var] = term.vars
+case class ConvertForeignIR(term: Term, foreignType: Type, irType: Type) extends Term:
+  override def toString: String = s"$term as $irType"
+  override def vars: Seq[Var] = term.vars
+
 trait ForeignAggregationOperator extends AggregationOperatorUserDefined:
   val name: Name
   val lang: ForeignLanguage

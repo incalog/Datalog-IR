@@ -2,7 +2,7 @@ package inca.frontend.oodl.casestudy
 
 import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.{arithmetic as scalaArith, bool as scalaBool, data as scalaData, set as scalaSet, string as scalaString, tuple as scalaTuple}
+import inca.foreign.scala.ir.{arithmetic as scalaArith, bool as scalaBool, data as scalaData, string as scalaString, tuple as scalaTuple}
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
@@ -274,7 +274,6 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     private trait blockLowering extends block.Lowering with primitive.Visitor
 
     private trait scalaLowering extends primitive.ScalaLowering
-      with scalaSet.ScalaLowering
       with scalaTuple.ScalaLowering
       with scalaBool.ScalaLowering
       with scalaArith.ScalaLowering
@@ -313,7 +312,6 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     private trait blockLowering extends block.Lowering with primitive.Visitor
 
     private trait scalaLowering extends primitive.ScalaLowering
-      with scalaSet.ScalaLowering
       with scalaTuple.ScalaLowering
       with scalaBool.ScalaLowering
       with scalaArith.ScalaLowering

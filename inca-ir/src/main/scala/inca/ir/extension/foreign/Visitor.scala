@@ -16,6 +16,8 @@ trait Visitor extends BaseIRVisitor {
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case ft: ForeignTerm => ft.visitor.visitTerm(term)
+    case ConvertForeignIR(t, fty, irty) => visitTerm(t).map(ConvertForeignIR(_, visitType(fty), visitType(irty)))
+    case ConvertIRForeign(t, fty, irty) => visitTerm(t).map(ConvertIRForeign(_, visitType(fty), visitType(irty)))
     case _ => super.visitTerm(term)
   }
 

@@ -26,3 +26,6 @@ object Impure:
   def counter(v: Name, atom: Atom, kind: ImpurityKind): Impure =
     import inca.ir.extension.arithmetic.*
     new Impure(v, Seq(atom), Add(Var(v), IntNum(1)), kind)
+
+  def init(update: Term, kind: ImpurityKind): Impure =
+    new Impure(Name("$_$"), Seq(), update, kind)

@@ -11,9 +11,9 @@ trait Typechecker extends BaseIRTypechecker
   with data.Typechecker
   with datamatch.Typechecker
   with demand.Typechecker
+  with foreign.Typechecker
   with not.Typechecker
   with set.Typechecker
-  //with primitiveScala.Typechecker
 
 enum Mode:
   case Binding

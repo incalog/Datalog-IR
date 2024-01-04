@@ -61,7 +61,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
     if (ty != outside)
-      error(s"$t of type $ty is not comparable to $outside")
+      error(s"$t of type $ty is not comparable to $outside", t)
 
   def checkTerm(term: Term, expected: Type, mode: Mode): Mode =
     assignType(term) {

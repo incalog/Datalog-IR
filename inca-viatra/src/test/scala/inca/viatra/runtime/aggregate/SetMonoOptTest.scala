@@ -1,16 +1,17 @@
 package inca.viatra.runtime.aggregate
 
+import inca.foreign.scala.ir.set.scalaSetMonoDefinition
 import inca.ir
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, set, string, tuple}
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, GE, IntNum, Sub, TInt}
+import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, string, tuple}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation2, UnitRelation}
+import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.mono.{MonoImpurityKind, NaiveSetMonoDefinition, NewMono, ReadMono, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, NaiveSetMonoDefinition, NewMono, ReadMono, SetMonoDefinition2, TMono, WriteMono}
 import inca.ir.extension.{disjunction, mono}
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
@@ -89,10 +90,10 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       "main",
       Seq(Param("s", TInt)),
       Seq(Body(Seq(
-        Eq(Var("counter"), IntNum(0)),
-        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt))),
+        Impure.init(IntNum(0), MonoImpurityKind),
+        Eq(Var("m"), NewMono(scalaSetMonoDefinition(TInt))),
         WriteMono(Var("m"), IntNum(1)),
+        WriteMono(Var("m"), IntNum(17)),
         SetMember(Var("s"), ReadMono(Var("m")))
       )))
     ).addHint(impure.PureHint)
@@ -101,7 +102,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
-    assertResult(Set(1))(res.entries.toSet)
+    assertResult(Set(1, 17))(res.entries.toSet)
 
 
   test("Test naive set mono: performing set union with mono result"):

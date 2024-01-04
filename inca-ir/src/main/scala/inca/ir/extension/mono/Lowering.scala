@@ -6,14 +6,15 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
 import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var, WildcardArg}
-import inca.ir.extension.data.{Deconstruct, Construct, TData, DataDefinition, CaseDefinition, DataModuleEntry, IR as dataIR}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand, IR as demandIR}
 import inca.ir.extension.impure.{Impure, IR as impureIR}
+import inca.ir.extension.set.SetComprehension
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.lowering.BaseLowering
 
-trait Lowering extends BaseLowering:
-  override val name: String = "Mono"
+trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
+  override val name: String = s"Mono(optimizeSet = $optimizeSetMono)"
   override def loweredIRs: Set[BaseIR] = Set(IR)
   override def requiredIRs: Set[BaseIR] = Set(demandIR, impureIR, dataIR)
 
@@ -51,13 +52,25 @@ trait Lowering extends BaseLowering:
       val args = Var(Name("id")) +: Var(Name("name")) +: mono.constructorParamTypes.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
       val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
 
-      val keyArgs = tm.keys.map(_ => WildcardArg())
-      val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
+      mono match
+        case _: SetMonoDefinition2 if optimizeSetMono =>
+          val keyArgs = tm.keys.map(_ => WildcardArg())
+          val collArgs = Var(Name("m")).arg +: keyArgs :+ Var(Name("elem")).arg
+          val project = Eq(Var(Name("output")),
+            SetComprehension(
+              Var(Name("elem")),
+              Seq(Call(RefByName(monoCollectName(tm)), collArgs, false).addHint(DemandIgnoreCallHint))
+            )
+          )
+          Body(Seq(destruct, project))
+        case _ =>
+          val keyArgs = tm.keys.map(_ => WildcardArg())
+          val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
 
-      val op = MonoAggregationOperator(mono)
-      val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
-      val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state")), gensym))
-      Body(Seq(destruct, aggregate, project))
+          val op = MonoAggregationOperator(mono)
+          val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
+          val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state")), gensym))
+          Body(Seq(destruct, aggregate, project))
     }
     Relation(monoAggregateName(tm), params, bodies)
 

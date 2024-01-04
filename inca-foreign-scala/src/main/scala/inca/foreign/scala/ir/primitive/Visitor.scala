@@ -23,7 +23,8 @@ trait Visitor extends BaseIRVisitor:
         visitType(stateTy),
         initCode, addCode
       )
-    case _ => op
+    case _ =>
+      throw new UnsupportedOperationException(s"Unknown aggregation operator $op")
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case ScalaAggregationAtom(op, rel, out, args, col) =>
