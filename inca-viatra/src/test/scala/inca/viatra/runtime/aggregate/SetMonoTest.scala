@@ -6,17 +6,17 @@ import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
 import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, set, string, tuple}
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation2, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation}
+import inca.ir.extension.arithmetic.{Add, GE, IntNum, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.mono.{MonoImpurityKind, NaiveSetMonoDefinition, NewMono, ReadMono, TMono, WriteMono}
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
-import inca.ir.extension.string.TString
+import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
-import inca.ir.extension.{block, demand, impure, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString, map}
+import inca.ir.extension.{block, demand, impure, map, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString}
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -277,3 +277,97 @@ class SetMonoTest extends AnyFunSuiteLike:
     assertThrows[TypeErrorException] {
       val engine = compile(relation)
     }
+
+
+  test("Set Mono with recursive relation 1"):
+    val mainRelation = Relation("main", Seq(Param("elem", TString)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TString))),
+      Eq(Var("node1"), StringLit("A")),
+      Call("collNode", Seq(Var("m").arg, Var("node1").arg)),
+      Eq(Var("node2"), StringLit("F")),
+      Call("collNode", Seq(Var("m").arg, Var("node2").arg)),
+      SetMember(Var("elem"), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+    val collNode = Relation("collNode",
+      Seq(
+        Param("mono", TDemand(TMono(TString, TSet(TString), Seq()))),
+        Param("t", TDemand(TString))
+      ), Seq(Body(Seq(
+        ExtensionalCall("leaf", Seq(Var("t").arg)),
+        WriteMono(Var("mono"), Var("t"))
+      )),
+        Body(Seq(
+          ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
+          WriteMono(Var("mono"), Var("t"))
+        ))
+      ))
+
+    val extLeaf: ExtensionalRelation = ExtensionalRelation(
+      "leaf", Seq(Param("t", TString))
+    )
+
+    val extBTree: ExtensionalRelation = ExtensionalRelation(
+      "btree", Seq(Param("t", TString), Param("l", TString), Param("r", TString))
+    )
+
+    lazy val edbLeaf: Relation1[Seq[String]] = Relation1("leaf", Seq("t"), Seq(Seq("C"), Seq("D"), Seq("E"), Seq("I"), Seq("J"), Seq("K"), Seq("L")))
+
+    val edbBTree: Relation3[Seq[String], Seq[String], Seq[String]] = Relation3(
+      "btree",
+      Seq("t", "l", "r"),
+      Seq(
+        Seq("A", "B", "C"),
+        Seq("B", "D", "E"),
+        Seq("F", "G", "H"),
+        Seq("G", "I", "K"),
+        Seq("H", "L", "J")
+      )
+    )
+
+    val engine = compile(mainRelation, collNode, extLeaf, extBTree)
+    engine.insert(edbLeaf)
+    engine.insert(edbBTree)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set("A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "J"))(res.entries.toSet)
+
+
+  test("Set Mono with recursive relation 2"):
+    val intPair = TTuple(Seq(TInt, TInt))
+    val mainRelation = Relation("main", Seq(Param("pair", intPair)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(intPair))),
+      Call("collPair", Seq(Var("m").arg, IntNum(10).arg)),
+      SetMember(Var("pair"), ReadMono(Var("m")))
+    )))).addHint(PureHint)
+
+    val evenRelation = Relation(
+      "collPair",
+      Seq(
+        Param("m", TDemand(TMono(intPair, TSet(intPair), Seq()))),
+        Param("i", TDemand(TInt))
+      ),
+      Seq(
+        Body(Seq(
+          GE(Var("i"), IntNum(2)),
+          Call("collPair", Seq(Var("m").arg, Sub(Var("i"), IntNum(2)).arg)),
+          WriteMono(Var("m"), TupleLit(Seq(Var("i"), Sub(Var("i"), IntNum(1)))))
+        )),
+        Body(Seq(
+          WriteMono(Var("m"), TupleLit(Seq(Var("i"), Sub(Var("i"), IntNum(1)))))
+        ))
+      )
+    )
+
+    val engine = compile(mainRelation, evenRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set((0, -1), (6, 5), (10, 9), (2, 1), (4, 3), (8, 7)))(res.entries.toSet)
