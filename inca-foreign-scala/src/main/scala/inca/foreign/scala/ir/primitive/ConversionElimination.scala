@@ -10,6 +10,7 @@ import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.data.TData
 import inca.ir.extension.set.{SetComprehension, TSet}
 import inca.ir.extension.string.TString
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 
 trait ConversionElimination extends BaseLowering:
@@ -65,6 +66,14 @@ trait ConversionElimination extends BaseLowering:
     case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
       Seq(Cast(term, TData(nm2)))
     case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
+    case ConvertForeignIR(term, stup@ScalaType(s"($styStr)"), TTuple(tys)) =>
+      val stys = styStr.split(',').toSeq.map(_.trim)
+      Seq(
+        TupleLit.make(stys.zip(tys).zipWithIndex.flatMap { case ((sty,ty), ix) =>
+          val proj = ScalaTerm(s"(x:${stup.name}) => x._${ix+1}", ScalaType(sty), Seq(term))
+          visitTerm(ConvertForeignIR(proj, ScalaType(sty), ty))
+        })
+      )
     case ConvertForeignIR(term, ty1, ty2) =>
       ???
 
@@ -77,8 +86,15 @@ trait ConversionElimination extends BaseLowering:
       Seq(Cast(term, ScalaType(nm2)))
     case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
       Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))
-    case ConvertIRForeign(term, ty1, ty2) =>
-      ???
+    case ConvertIRForeign(term, TTuple(tys), stup@ScalaType(s"($styStr)")) =>
+      val stys = styStr.split(',').toSeq.map(_.trim)
+      val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
+      val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
+      val args = stys.indices.map(ix => Project(term, ix))
+      Seq(
+        ScalaTerm(s"$params => $tuple", stup, args)
+      )
+    case ConvertIRForeign(term, ty1, ty2) => ???
 
     case _ => super.visitTerm(term)
   }

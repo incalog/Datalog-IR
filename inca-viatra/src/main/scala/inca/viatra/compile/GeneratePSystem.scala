@@ -345,7 +345,7 @@ object GeneratePSystem:
     case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
-        case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty")
+        case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty of term $t")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
       pVar2Code += pvarName -> (Some(name), s"""env.getValue("$name").asInstanceOf[$ty]""")

@@ -14,7 +14,7 @@ import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
-import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString}
+import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString, tuple}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -40,6 +40,7 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
   private trait blockLowering extends block.Lowering with primitive.Visitor
   private trait disjunctionLowering extends disjunction.Lowering with primitive.Visitor
   private trait notLowering extends not.Lowering with primitive.Visitor
+  private trait tupleLowering extends tuple.Lowering with primitive.Visitor
 
   setPipeline(List(
     () => new mono.Lowering(optimizeSetMono = false) {},
@@ -51,7 +52,7 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
     () => new disjunction.Lowering {},
     () => new blockLowering {},
     () => new demandLowering {},
-//    () => new tupleLowering {},
+    () => new tupleLowering {},
     () => new ForeignScalaLowering {},
     () => new notLowering {},
     () => new blockLowering {},
@@ -292,11 +293,10 @@ class SetMonoTest extends AnyFunSuiteLike:
       WriteMono(Var("m"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       SetMember(TupleLit(Seq(Var("c"), Var("d"))), ReadMono(Var("m")))
     )))).addHint(PureHint)
-
     // Problem: if tuple is compiled into Scala terms, arguments "c" and "d" cannot be unbound variables
-    assertThrows[TypeErrorException] {
-      val engine = compile(relation)
-    }
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
 
 
   test("Set Mono with recursive relation 1"):
