@@ -7,7 +7,9 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.TInt
+import inca.ir.extension.data.TData
 import inca.ir.extension.set.{SetComprehension, TSet}
+import inca.ir.extension.string.TString
 import inca.ir.lowering.BaseLowering
 
 trait ConversionElimination extends BaseLowering:
@@ -60,6 +62,8 @@ trait ConversionElimination extends BaseLowering:
         Seq(Call(memRelName, Seq(Var(elem).arg, term.arg)))
       )
       visitTerm(set)
-
+    case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
+      Seq(Cast(term, TData.apply(nm2)))
+    case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
     case _ => super.visitTerm(term)
   }

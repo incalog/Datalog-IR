@@ -74,7 +74,7 @@ case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Se
 
 object ScalaConstantTerm:
   val TRUE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
-  val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
+  val FALSE: ScalaConstantTerm = ScalaConstantTerm("false", ScalaType.bool)
 
 
 
