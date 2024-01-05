@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.bool.{AtomAsBool, TBoolean}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.foreign.ConvertForeignIR
+import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.data.TData
@@ -63,7 +63,22 @@ trait ConversionElimination extends BaseLowering:
       )
       visitTerm(set)
     case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
-      Seq(Cast(term, TData.apply(nm2)))
+      Seq(Cast(term, TData(nm2)))
     case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
+    case ConvertForeignIR(term, ty1, ty2) =>
+      ???
+
+    case ConvertIRForeign(term, ty1, ty2) if ty1 == ty2 => Seq(term)
+    case ConvertIRForeign(term, TInt, ScalaType("Int")) =>
+      Seq(Cast(term, ScalaType("Int")))
+    case ConvertIRForeign(term, TString, ScalaType("String")) =>
+      Seq(Cast(term, ScalaType("String")))
+    case ConvertIRForeign(term, TData(RefByName(Name(nm1))), ScalaType(nm2)) if nm1 == nm2 =>
+      Seq(Cast(term, ScalaType(nm2)))
+    case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
+      Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))
+    case ConvertIRForeign(term, ty1, ty2) =>
+      ???
+
     case _ => super.visitTerm(term)
   }

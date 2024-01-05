@@ -8,7 +8,7 @@ trait Typechecker extends BaseIRTypechecker:
     case ConvertForeignIR(t, fty, irty) =>
       checkTerm(t, fty, mode)
       irty.bound
-    case ConvertIRForeign(t, fty, irty) =>
+    case ConvertIRForeign(t, irty, fty) =>
       checkTerm(t, irty, mode)
       fty.bound
     case _ => super.inferTermExtend(term, mode)

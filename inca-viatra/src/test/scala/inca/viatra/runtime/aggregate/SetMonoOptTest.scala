@@ -42,7 +42,6 @@ case class CompiledSetMonoOptModule(mod: Module) extends CompiledModule:
     () => new mono.Lowering {},
     () => new impure.Lowering {},
     () => new demand.Lowering {},
-    () => new mono.Optimizer {},
     () => new incaBool.Lowering {},
     () => new incaSet.Lowering {},
     () => new incaTuple.Lowering {},

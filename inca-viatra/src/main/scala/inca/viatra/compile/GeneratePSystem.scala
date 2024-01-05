@@ -389,6 +389,7 @@ object GeneratePSystem:
       evalExp :+= (evalExpCode, outName)
       pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${sty.name}]"""))
       pvarName
+    case _ => throw new UnsupportedOperationException(s"Unknown term $t")
   }
 
   private def genExprEvalVar(name: String): Code = {

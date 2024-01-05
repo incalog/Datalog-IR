@@ -1,6 +1,6 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.foreign.scala.ir.{mono, primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, string as scalaString, tuple as scalaTuple}
+import inca.foreign.scala.ir.{mono, primitive, arithmetic as scalaArith, data as scalaData, string as scalaString, tuple as scalaTuple}
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.mono.MonoAggregationOperator
 import inca.ir.extension.*
@@ -75,7 +75,9 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op match
     // For user-defined mono definition
     case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
-      ScalaMonoAggregationOperator(name, visitType(typ.in), visitType(typ.state), initCode, addCode)
+      val inputType = visitType(typ.in)
+      val outputType = visitType(typ.state)
+      ScalaMonoAggregationOperator(name, inputType, outputType, initCode, addCode)
     case _ => super.visitAggregationOperator(op)
 
   protected def createRelName(name: String): Name =
@@ -85,8 +87,6 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
 
 trait ForeignScalaLowering extends ScalaLowering 
   with scalaArith.ScalaLowering 
-  with scalaBool.ScalaLowering
   with scalaData.ScalaLowering
   with scalaString.ScalaLowering
-  with scalaTuple.ScalaLowering
   with mono.ScalaLowering

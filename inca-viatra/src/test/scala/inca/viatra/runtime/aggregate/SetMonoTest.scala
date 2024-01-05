@@ -1,8 +1,8 @@
 package inca.viatra.runtime.aggregate
 
-import inca.foreign.scala.ir.mono.scalaSetMonoDefinition
+import inca.foreign.scala.ir.mono.{scalaSetMonoDefinition, ScalaLowering as MonoScalaLowering}
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.ForeignScalaLowering
+import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering}
 import inca.ir
 import inca.ir.execution.*
 import inca.ir.extension.arithmetic.*
@@ -14,7 +14,7 @@ import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
-import inca.ir.extension.{block, demand, disjunction, not, foreign, impure, map, mono, arithmetic as incaArithmetic, bool, data as incaData, set as irSet, string as incaString}
+import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -43,9 +43,11 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
 
   setPipeline(List(
     () => new mono.Lowering(optimizeSetMono = false) {},
-    () => new primitive.ConversionElimination {},
+    () => new MonoScalaLowering {},
+    () => new ConversionElimination {},
     () => new impure.Lowering {},
     () => new irSet.Lowering {},
+    () => new bool.Lowering {},
     () => new disjunction.Lowering {},
     () => new blockLowering {},
     () => new demandLowering {},
@@ -243,17 +245,21 @@ class SetMonoTest extends AnyFunSuiteLike:
     engine.readAll().foreach(res => println(res.asTable))
 
   test("Set Mono with boolean element type (type that can be lowered)"):
-    val relation = Relation("main", Seq(Param("b", TBoolean)), Seq(Body(Seq(
+    val relation = Relation("main", Seq(Param("c", TBoolean)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(scalaSetMonoDefinition(TBoolean))),
       Eq(Var("b"), BoolTrue),
       WriteMono(Var("m"), Var("b")),
       WriteMono(Var("m"), BoolFalse),
-      SetMember(Var("b"), ReadMono(Var("m")))
+      SetMember(Var("c"), ReadMono(Var("m")))
     )))).addHint(PureHint)
 
-    val engine = compile(relation)
+    val relation2 = Relation("foo", Seq(Param("b", TBoolean)), Seq(Body(Seq(
+      Eq(Var("b"), BoolTrue)
+    )))).addHint(PureHint)
+
+    val engine = compile(relation, relation2)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
 //    assert(res.entries.nonEmpty)
@@ -264,7 +270,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val relation = Relation("main", Seq(Param("b", TTuple(Seq(TInt, TInt)))), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
       Eq(Var("a"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       Eq(Var("b"), TupleLit(Seq(IntNum(1), IntNum(2)))),
       WriteMono(Var("m"), Var("a")),
@@ -282,7 +288,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val relation = Relation("main", Seq(Param("c", TInt), Param("d", TInt)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
       WriteMono(Var("m"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       SetMember(TupleLit(Seq(Var("c"), Var("d"))), ReadMono(Var("m")))
     )))).addHint(PureHint)
@@ -297,7 +303,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val mainRelation = Relation("main", Seq(Param("elem", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TString))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TString))),
       Eq(Var("node1"), StringLit("A")),
       Call("collNode", Seq(Var("m").arg, Var("node1").arg)),
       Eq(Var("node2"), StringLit("F")),
@@ -357,7 +363,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val mainRelation = Relation("main", Seq(Param("pair", intPair)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(intPair))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(intPair))),
       Call("collPair", Seq(Var("m").arg, IntNum(10).arg)),
       SetMember(Var("pair"), ReadMono(Var("m")))
     )))).addHint(PureHint)

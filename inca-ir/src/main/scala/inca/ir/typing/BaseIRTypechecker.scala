@@ -157,7 +157,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  def checkCall(ref: Ref[Relation], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
+  def checkCall(ref: Ref[IRelation], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
     val paramTys = inferRelationRef(ref, atom)
     if (paramTys.size != args.size)
       error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
@@ -176,10 +176,14 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
+  def inferRelationRef(ref: Ref[IRelation], s: SourceLocation): Seq[Type] = ref match
     case RefByName(name) => lookupModuleEntry(name) match
-      case Some(Relation(_, params, _)) => params.map(_.ty)
-      case Some(ExtensionalRelation(_, params)) => params.map(_.ty)
+      case Some(rel@Relation(_, params, _)) =>
+        ref.resolved(rel)
+        params.map(_.ty)
+      case Some(rel@ExtensionalRelation(_, params)) =>
+        ref.resolved(rel)
+        params.map(_.ty)
       case None =>
         error(s"Undefined relation $name", s)
         Seq()
@@ -188,10 +192,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         Seq()
 
   def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Call(ref, args, false) => checkCall(ref, args, atom, mode)
-    case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
-    case ExtensionalCall(name, args, false) => checkCall(name, args, atom, mode)
-    case ExtensionalCall(name, args, true) => checkCall(name, args, atom, mode.inverted)
+    case Call(ref, args, false) => checkCall(ref.as[IRelation], args, atom, mode)
+    case Call(ref, args, true) => checkCall(ref.as[IRelation], args, atom, mode.inverted)
+    case ExtensionalCall(ref, args, false) => checkCall(ref.as[IRelation], args, atom, mode)
+    case ExtensionalCall(ref, args, true) => checkCall(ref.as[IRelation], args, atom, mode.inverted)
 
     case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()

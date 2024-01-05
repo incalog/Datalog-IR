@@ -39,7 +39,7 @@ trait ScalaLowering extends BaseScalaLowering:
       ScalaMonoAggregationOperator(
         name = "String Mono",
         inputTy = ScalaType.string,
-        stateTy = ScalaType.string,
+        outputTy = ScalaType.string,
         initCode = """""""",
         addCode = "(st: String, a: String) => st + a"
       )

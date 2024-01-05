@@ -120,10 +120,10 @@ trait BaseAbstractInterpreter[V, B]:
   def evalAtomExtend(at: Atom): AtomResult = at match
     case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
     case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
-    case Call(name, args, _) => evalCall(name, args)
-    case ExtensionalCall(name, args, _) => evalCall(name, args)
+    case Call(ref, args, _) => evalCall(ref.as[IRelation], args)
+    case ExtensionalCall(ref, args, _) => evalCall(ref.as[IRelation], args)
 
-  final def evalCall(ref: Ref[Relation], args: Seq[Arg]): AtomResult =
+  final def evalCall(ref: Ref[IRelation], args: Seq[Arg]): AtomResult =
     val vs = args.map {
       case TermArg(a) =>
         if (a.mode.isBinding) {

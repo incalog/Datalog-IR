@@ -73,7 +73,7 @@ trait ScalaLowering extends BaseScalaLowering:
         ScalaMonoAggregationOperator(
           name = "SumInt Mono",
           inputTy = ScalaType.int,
-          stateTy = ScalaType.int,
+          outputTy = ScalaType.int,
           initCode = "0",
           addCode = "(x:Int,y:Int) => x + y"
         )
@@ -81,7 +81,7 @@ trait ScalaLowering extends BaseScalaLowering:
         ScalaMonoAggregationOperator(
           name = "SumDouble Mono",
           inputTy = ScalaType.double,
-          stateTy = ScalaType.double,
+          outputTy = ScalaType.double,
           initCode = "0",
           addCode = "(x:Double,y:Double) => x + y"
         )
@@ -89,7 +89,7 @@ trait ScalaLowering extends BaseScalaLowering:
         ScalaMonoAggregationOperator(
           name = "Max Int Mono",
           inputTy = ScalaType.int,
-          stateTy = ScalaType.int,
+          outputTy = ScalaType.int,
           initCode = "Int.MinValue",
           addCode = "(x:Int,y:Int) => x max y",
         )
@@ -97,7 +97,7 @@ trait ScalaLowering extends BaseScalaLowering:
         ScalaMonoAggregationOperator(
           name = "Max Double Mono",
           inputTy = ScalaType.double,
-          stateTy = ScalaType.double,
+          outputTy = ScalaType.double,
           initCode = "Double.NegativeInfinity",
           addCode = "(x:Double,y:Double) => x max y",
         )
@@ -105,7 +105,7 @@ trait ScalaLowering extends BaseScalaLowering:
         ScalaMonoAggregationOperator(
           name = "Count Mono",
           inputTy = ScalaType.any,
-          stateTy = ScalaType.int,
+          outputTy = ScalaType.int,
           initCode = "0", 
           addCode = "(st: Int, a: Any) => x + 1"
         )

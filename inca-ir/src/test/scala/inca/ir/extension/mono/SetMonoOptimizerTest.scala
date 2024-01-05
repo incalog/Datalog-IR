@@ -24,7 +24,6 @@ class SetMonoOptimizerTest extends AnyFunSuiteLike {
     () => new mono.Lowering {},
     () => new impure.Lowering {}, // TODO: fix the bug that optimization cannot be performed before impure lowering
     () => new demand.Lowering {},
-    () => new Optimizer {},
     () => new set.Lowering {},
   )
 

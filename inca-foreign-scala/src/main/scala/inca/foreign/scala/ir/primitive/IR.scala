@@ -85,12 +85,13 @@ case class ScalaAggregationOperator(name: Name, ty: Type, initCode: String, addC
 
 case class ScalaMonoAggregationOperator(name: Name,
                                         inputTy: Type,
-                                        stateTy: Type,
+                                        outputTy: Type,
                                         initCode: String,
-                                        addCode: String)
+                                        addCode: String
+                                       )
   extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
-  override def resultType: Type = stateTy
+  override def resultType: Type = outputTy
   def typecheck(in: Seq[Type]): Option[String] = in match
     case Seq(t) if t == inputTy => None
     case _ => Some(s"Ill-typed mono aggregation, expected $inputTy but got $in")

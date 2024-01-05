@@ -3,7 +3,7 @@ package inca.ir.extension.typeparam
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{ExtensionalRelation, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermType, Type}
+import inca.ir.{ExtensionalRelation, IRelation, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   var typeVars: Seq[Name] = Seq()
@@ -32,7 +32,7 @@ trait Typechecker extends BaseIRTypechecker:
     }
     case _ => super.checkModuleEntry(entry)
 
-  override def inferRelationRef(ref: Ref[Relation], s: SourceLocation): Seq[Type] = ref match
+  override def inferRelationRef(ref: Ref[IRelation], s: SourceLocation): Seq[Type] = ref match
     case RefByName(name) => lookupModuleEntry(name) match
       case Some(ParametricModuleEntry(tyParams, _)) =>
         error(s"Expected type application of $name with ${tyParams.size} type arguments", s)

@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TermArg, Var, WildcardArg, string2name}
 import inca.ir.util.SourceLocation
-import inca.foreign.scala.ir.{arithmetic, bool, data, primitive, string, tuple}
+import inca.foreign.scala.ir.{arithmetic, data, primitive, string, tuple}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, UnitRelation}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.mono.{NaiveSetMonoDefinition, NewMono, ReadMono, WriteMono}
