@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic.{Add, GE, IntNum, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.mono.{MonoImpurityKind, NaiveSetMonoDefinition, NewMono, ReadMono, SetMonoDefinition2, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, NewMono, ReadMono, SetMonoDefinition2, TMono, WriteMono}
 import inca.ir.extension.{disjunction, mono}
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet}
@@ -112,7 +112,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       Seq(Body(Seq(
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt))),
+        Eq(Var("m"), NewMono(scalaSetMonoDefinition(TInt))),
         WriteMono(Var("m"), IntNum(1)),
         Eq(Var("s1"), ReadMono(Var("m"))),
         SetMember(Var("i"), SetUnion(Var("s1"), SetLit(Seq(IntNum(2)))))
@@ -132,7 +132,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       Seq(Body(Seq(
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt), Seq(), Seq())),
+        Eq(Var("m"), NewMono(scalaSetMonoDefinition(TInt), Seq(), Seq())),
         WriteMono(Var("m"), IntNum(1), Seq()),
         WriteMono(Var("m"), IntNum(2), Seq()),
         Eq(Var("s1"), ReadMono(Var("m"))),
@@ -153,7 +153,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       Seq(Body(Seq(
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TInt), Seq(), Seq())),
+        Eq(Var("m"), NewMono(scalaSetMonoDefinition(TInt), Seq(), Seq())),
         WriteMono(Var("m"), IntNum(1), Seq()),
         WriteMono(Var("m"), IntNum(2), Seq()),
         WriteMono(Var("m"), IntNum(3), Seq()),
@@ -178,7 +178,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val mainRelation = Relation("main", Seq(Param("e", TData("TEdge"))), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TData("TEdge")), Seq(), Seq())),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TData("TEdge")), Seq(), Seq())),
       Call("collEdge", Seq(Var("m").arg)),
       SetMember(Var("e"), ReadMono(Var("m")))
     )))).addHint(PureHint)
@@ -222,7 +222,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val relation = Relation("main", Seq(Param("b", TBoolean)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TBoolean))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TBoolean))),
       Eq(Var("b"), BoolTrue),
       WriteMono(Var("m"), Var("b")),
       WriteMono(Var("m"), BoolFalse),
@@ -240,7 +240,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val relation = Relation("main", Seq(Param("b", TTuple(Seq(TInt, TInt)))), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
       Eq(Var("a"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       Eq(Var("b"), TupleLit(Seq(IntNum(1), IntNum(2)))),
       WriteMono(Var("m"), Var("a")),
@@ -258,7 +258,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val relation = Relation("main", Seq(Param("c", TInt), Param("d", TInt)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
       WriteMono(Var("m"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       SetMember(TupleLit(Seq(Var("c"), Var("d"))), ReadMono(Var("m")))
     )))).addHint(PureHint)
@@ -274,7 +274,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val mainRelation = Relation("main", Seq(Param("elem", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(TString))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(TString))),
       Eq(Var("node1"), StringLit("A")),
       Call("collNode", Seq(Var("m").arg, Var("node1").arg)),
       Eq(Var("node2"), StringLit("F")),
@@ -334,7 +334,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val mainRelation = Relation("main", Seq(Param("pair", intPair)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(NaiveSetMonoDefinition(intPair))),
+      Eq(Var("m"), NewMono(scalaSetMonoDefinition(intPair))),
       Call("collPair", Seq(Var("m").arg, IntNum(10).arg)),
       SetMember(Var("pair"), ReadMono(Var("m")))
     )))).addHint(PureHint)
