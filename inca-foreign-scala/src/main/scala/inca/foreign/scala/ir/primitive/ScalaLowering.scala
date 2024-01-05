@@ -1,14 +1,11 @@
 package inca.foreign.scala.ir.primitive
 
-import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, set as scalaSet, string as scalaString, tuple as scalaTuple, map as scalaMap}
-import inca.foreign.scala.ir.primitive.{ScalaAggregationAtom, ScalaInca, ScalaTerm, ScalaType}
-import inca.ir.{Arg, Atom, BaseIR, Name, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, string2name}
+import inca.foreign.scala.ir.{mono, primitive, arithmetic as scalaArith, bool as scalaBool, data as scalaData, string as scalaString, tuple as scalaTuple}
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.{aggregate, arithmetic, bool, set, string, tuple, data, demand, block, not, disjunction}
+import inca.ir.extension.mono.MonoAggregationOperator
+import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoAggregationOperator, MonoDefinition, NaiveSetMonoDefinition, UserDefinedMonoDefinition}
-import inca.util.Gensym
+import inca.ir.*
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
@@ -79,27 +76,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     // For user-defined mono definition
     case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
       ScalaMonoAggregationOperator(name, visitType(typ.in), visitType(typ.state), initCode, addCode)
-    // TODO: How to deal with the mono definition that input and state have different type?
     case _ => super.visitAggregationOperator(op)
-
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case aggregate.Aggregate(rel, args, op) =>
-      // We only support a single aggregation column
-      val Seq((aggTerm, aggColumnIndex)) = args.zipWithIndex.flatMap {
-        case (AggregateColumnArg(t), i) => Some((t, i))
-        case _ => None
-      }
-
-      val Seq(outTerm) = visitTerm(aggTerm)
-
-      val argTerms = args.updated(aggColumnIndex, WildcardArg()).map {
-        case AggregateColumnArg(t) => t
-        case TermArg(t) => t
-        case WildcardArg() => Var(gensym.freshName("_"))
-      }.flatMap(visitTerm)
-      Seq(ScalaAggregationAtom(visitAggregationOperator(op), rel.name, outTerm, argTerms, aggColumnIndex))
-    case _ =>
-      super.visitAtom(atom)
 
   protected def createRelName(name: String): Name =
     gensym.freshName(
@@ -112,5 +89,4 @@ trait ForeignScalaLowering extends ScalaLowering
   with scalaData.ScalaLowering
   with scalaString.ScalaLowering
   with scalaTuple.ScalaLowering
-  with scalaSet.ScalaLowering 
-  with scalaMap.ScalaLowering
+  with mono.ScalaLowering

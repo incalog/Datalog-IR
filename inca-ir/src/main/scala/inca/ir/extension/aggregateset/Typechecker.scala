@@ -33,8 +33,6 @@ trait Typechecker extends BaseIRTypechecker:
         case (wildcard@WildcardArg(), pty) =>
           wildcard.typed(pty.collapsed, force = true)
           None
-        case (WildcardArg(), _) =>
-          None
       }
       op.typecheck(aggregands).foreach(error(_, atom))
       op.resultType

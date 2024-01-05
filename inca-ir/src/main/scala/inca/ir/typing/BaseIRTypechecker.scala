@@ -168,8 +168,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     args.zipAll(paramTys, null, null).foreach {
       case (wildcard@WildcardArg(), ty) =>
         wildcard.typed(ty.collapsed, force = true)
-      case (WildcardArg(), _) =>
-        // nothing
       case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument

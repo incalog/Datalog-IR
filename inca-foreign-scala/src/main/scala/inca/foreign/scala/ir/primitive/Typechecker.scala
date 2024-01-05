@@ -23,23 +23,6 @@ trait Typechecker extends BaseIRTypechecker:
 //    if (!areEqual)
 //      error(s"$t of type $ty is not comparable to $outside", t)
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case ScalaAggregationAtom(op, rel, out, args, aggregatedColumn) =>
-      if (aggregatedColumn >= args.size)
-        error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
-      val paramTys = inferRelationRef(RefByName(rel), atom)
-      if (paramTys.size != args.size)
-        error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
-      args.zip(paramTys).zipWithIndex.foreach {
-        case ((t, pty), i) if i == aggregatedColumn =>
-          op.typecheck(Seq(pty)).foreach(error(_, atom))
-          checkTerm(t, pty, Mode.Collapse)
-        case ((t, pty), i) =>
-          checkTerm(t, pty, Mode.Collapse)
-      }
-      checkTerm(out, op.resultType, Mode.Binding)
-    case _ => super.checkAtom(atom, mode)
-
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case ScalaTerm(_, ty, args, _) =>
       args.foreach(inferTerm(_, Mode.Bound))

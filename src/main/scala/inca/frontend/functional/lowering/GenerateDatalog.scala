@@ -551,7 +551,7 @@ class GenerateDatalog(module: Module) {
         val bindKid = paramTyp match {
           case TName(name) =>
             // uncoalesce kidCoalescedVar to kidVar
-            Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
+            Datalog.Call(s"$name$UNCOALESCED_SUFFIX", Seq(kidCoalescedVar, kidVar))
               .addHint(MagicSetHints.IgnoreCall)
               .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
           case TAny | TNothing | _: TScala =>
@@ -590,7 +590,7 @@ class GenerateDatalog(module: Module) {
     val queryKids = for (k <- constr.paramTypes.indices)
       yield constr.paramTypes(k) match {
         case TName(name) =>
-          Datalog.Call(name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
+          Datalog.Call(s"$name$COALESCED_SUFFIX", Seq(kidVars(k), kidCoalescedVars(k)))
         case TAny | TNothing | _: TScala =>
           Datalog.Eq(kidVars(k), kidCoalescedVars(k))
         case _ => throw new UnsupportedOperationException
@@ -642,7 +642,7 @@ class GenerateDatalog(module: Module) {
           val ty = transDataType(td)
           Seq(
             Datalog.Computed(v, consumeData(ty, t => Term.Select(t, Term.Name(v.name)))),
-            Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(v, Datalog.Var("_")))
+            Datalog.Call(s"$name$UNCOALESCED_SUFFIX", Seq(v, Datalog.Var("_")))
           )
         case TAny | TNothing | _: TScala =>
           Seq()

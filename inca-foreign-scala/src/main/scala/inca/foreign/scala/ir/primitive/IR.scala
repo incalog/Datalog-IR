@@ -96,21 +96,6 @@ case class ScalaMonoAggregationOperator(name: Name,
     case _ => Some(s"Ill-typed mono aggregation, expected $inputTy but got $in")
 
 
-case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
-  override val lang: ScalaInca.type = ScalaInca
-  override val code: String = op match
-    case ScalaAggregationOperator(_, _, initCode, addCode) => s"" // TODO: code
-    case _ => "???"
-
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-  override def toString: String =
-    val inArgs = args.zipWithIndex.map {
-      case (_, i) if i == aggregatedColumn => "#"
-      case (a, _) => s"$a"
-    }
-    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
-
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
   def withExtendedName(suffix: String): ScalaDefnModuleEntry = this.copy(name = Name(name.name + suffix))
   override val lang: ScalaInca.type = ScalaInca

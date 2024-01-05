@@ -1,11 +1,11 @@
 package inca.viatra.runtime.aggregate
 
+import inca.foreign.scala.ir.mono.scalaSetMonoDefinition
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ForeignScalaLowering
-import inca.foreign.scala.ir.set.scalaSetMonoDefinition
 import inca.ir
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, GE, IntNum, Sub, TInt}
+import inca.ir.execution.*
+import inca.ir.extension.arithmetic.*
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
@@ -13,9 +13,8 @@ import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR, Lowering as tupleLowering}
-import inca.ir.extension.{block, demand, foreign, not, disjunction, impure, map, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as irSet, string as incaString}
-import inca.ir.extension.bool
+import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
+import inca.ir.extension.{block, demand, disjunction, not, foreign, impure, map, mono, arithmetic as incaArithmetic, bool, data as incaData, set as irSet, string as incaString}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -71,7 +70,6 @@ class SetMonoTest extends AnyFunSuiteLike:
     impure.IR +
     incaData.IR +
     incaString.IR +
-    incaBool.IR +
     tupleIR +
     map.IR +
     disjunction.IR +
