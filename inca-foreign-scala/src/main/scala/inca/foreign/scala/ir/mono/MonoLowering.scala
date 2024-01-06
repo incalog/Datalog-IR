@@ -1,20 +1,24 @@
 package inca.foreign.scala.ir.mono
 
-import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaMonoAggregationOperator, ScalaType}
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOperator}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
+import inca.ir.extension.{aggregate, demand, foreign, mono, set}
 import inca.ir.extension.mono.{MapMonoDefinition, MonoAggregationOperator, NaiveSetMonoDefinition, SetMonoDefinition2}
 import inca.ir.extension.set.TSet
-import inca.ir.extension.tuple.TTuple
-import inca.ir.extension.{block, demand}
-
-import scala.collection.mutable.ListBuffer
+import inca.ir.lowering.BaseLowering
 
 
-trait ScalaLowering extends BaseScalaLowering:
+trait MonoLowering extends BaseLowering with primitive.Visitor:
+
+  override def name: String = "MonoScalaLowering"
+
+  override def loweredIRs: Set[BaseIR] = Set(mono.IR, aggregate.IR)
+  override def requiredIRs: Set[BaseIR] = Set(set.IR, demand.IR, foreign.IR, aggregate.IR)
 
   /** Return the scala type name of input inca type */
   inline private def getSTName(ty: Type): String = visitType(ty) match
@@ -37,7 +41,7 @@ trait ScalaLowering extends BaseScalaLowering:
       val Seq(aggIndex) = agg.aggregationColumns
 
       inputConversion.foreach { (from, to) =>
-        // TODO generate new collect relation using inputConversion
+        // generate new collect relation using inputConversion
         // foo(m: TDemand(A), input: TDemand(B)) { ... }
         // ~>
         // foo$$converted(m: A, converted: C) {
@@ -93,7 +97,7 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
     case MonoAggregationOperator(SetMonoDefinition2(ty)) =>
       val sty = ScalaInca.compileType(ty)
-      val styName = sty.name.replace("[", "$").replace("]", "$")
+      val styName = sty.name
       val scalaSet = ScalaType(s"Set[$styName]")
 
       inputConversion = Some((ty, sty))

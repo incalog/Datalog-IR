@@ -6,9 +6,10 @@ import inca.ir.extension.bool.{AtomAsBool, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.*
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.data.TData
-import inca.ir.extension.set.{SetComprehension, TSet}
+import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
 import inca.ir.extension.string.TString
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
@@ -24,11 +25,13 @@ trait ConversionElimination extends BaseLowering:
     )
 
   var setMembershipRelations: Map[ScalaType, Relation] = Map()
+  var scalasetMembershipRelations: Map[TSet, Relation] = Map()
 
   override def visitModule(module: Module): Module =
     setMembershipRelations = Map()
+    scalasetMembershipRelations = Map()
     val mod = super.visitModule(module)
-    mod.copy(contents = mod.contents ++ setMembershipRelations.values)
+    mod.copy(contents = mod.contents ++ setMembershipRelations.values ++ scalasetMembershipRelations.values)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case ConvertForeignIR(term, ty1, ty2) if ty1 == ty2 => Seq(term)
@@ -36,10 +39,13 @@ trait ConversionElimination extends BaseLowering:
       Seq(AtomAsBool(Eq(term, ScalaConstantTerm("true", ScalaType("Boolean")))))
     case ConvertForeignIR(term, ScalaType("Int"), TInt) =>
       Seq(Cast(term, TInt))
+    case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
+      Seq(Cast(term, TData(nm2)))
+    case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
     case ConvertForeignIR(term, ScalaType(s"Set[$fty]"), TSet(irty)) =>
       // create a relation that enumerates all items in the set
       val setTy = s"Set[$fty]"
-      val memRelName = createRelName(s"Set$$Convert$$$fty")
+      val memRelName = createRelName(s"ScalaSetToSet$$$fty")
       val memRel = Relation(memRelName,
         Seq(
           Param("elem", ScalaType(fty)),
@@ -63,9 +69,6 @@ trait ConversionElimination extends BaseLowering:
         Seq(Call(memRelName, Seq(Var(elem).arg, term.arg)))
       )
       visitTerm(set)
-    case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
-      Seq(Cast(term, TData(nm2)))
-    case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
     case ConvertForeignIR(term, stup@ScalaType(s"($styStr)"), TTuple(tys)) =>
       val stys = styStr.split(',').toSeq.map(_.trim)
       Seq(
@@ -74,8 +77,8 @@ trait ConversionElimination extends BaseLowering:
           visitTerm(ConvertForeignIR(proj, ScalaType(sty), ty))
         })
       )
-    case ConvertForeignIR(term, ty1, ty2) =>
-      ???
+    case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
+      throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
 
     case ConvertIRForeign(term, ty1, ty2) if ty1 == ty2 => Seq(term)
     case ConvertIRForeign(term, TInt, ScalaType("Int")) =>
@@ -86,15 +89,45 @@ trait ConversionElimination extends BaseLowering:
       Seq(Cast(term, ScalaType(nm2)))
     case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
       Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))
+    case ConvertIRForeign(term, TSet(irty), ScalaType(s"Set[$fty]")) =>
+      val setTy = s"Set[$fty]"
+      val memRelName = createRelName(s"SetToScalaSet$$$fty")
+      val Seq(memRel) = visitRelation(
+        Relation(memRelName,
+          Seq(
+            Param("elem", ScalaType(fty)),
+            Param("s", TDemand(TSet(irty)))
+          ),
+          Seq(Body(Seq(
+            SetMember(Var("elemIR"), Var("s")),
+            Eq(Var("elem"), ConvertIRForeign(Var("elemIR"), irty, ScalaType(fty)))
+          )))
+        )
+      )
+      val op = ScalaMonoAggregationOperator(
+        Name(s"ScalaSetMono$$$fty"),
+        ScalaType(fty),
+        ScalaType(s"Set[$fty]"),
+        initCode = s"Set[$fty]()",
+        addCode = s"(st: Set[$fty], a: $fty) => st + a"
+      )
+      scalasetMembershipRelations += TSet(irty) -> memRel
+      val elem = Name(gensym.fresh("elem"))
+      Seq(block.Block(
+        aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(elem)), term.arg), op),
+        Var(elem)
+      ))
     case ConvertIRForeign(term, TTuple(tys), stup@ScalaType(s"($styStr)")) =>
       val stys = styStr.split(',').toSeq.map(_.trim)
       val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
       val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
-      val args = stys.indices.map(ix => Project(term, ix))
+      val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
+      val args = argsWithConvert.flatMap(visitTerm)
       Seq(
         ScalaTerm(s"$params => $tuple", stup, args)
       )
-    case ConvertIRForeign(term, ty1, ty2) => ???
+    case ConvertIRForeign(term, ty1, ScalaType(ty2)) =>
+      throw new UnsupportedOperationException(s"Cannot convert $ty1 to ScalaType $ty2")
 
     case _ => super.visitTerm(term)
   }

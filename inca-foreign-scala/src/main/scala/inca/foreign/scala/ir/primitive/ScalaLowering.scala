@@ -89,4 +89,3 @@ trait ForeignScalaLowering extends ScalaLowering
   with scalaArith.ScalaLowering 
   with scalaData.ScalaLowering
   with scalaString.ScalaLowering
-  with mono.ScalaLowering

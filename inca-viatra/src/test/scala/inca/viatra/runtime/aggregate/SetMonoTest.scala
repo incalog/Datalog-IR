@@ -1,6 +1,6 @@
 package inca.viatra.runtime.aggregate
 
-import inca.foreign.scala.ir.mono.{scalaSetMonoDefinition, ScalaLowering as MonoScalaLowering}
+import inca.foreign.scala.ir.mono.{scalaSetMonoDefinition, MonoLowering as MonoScalaLowering}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering}
 import inca.ir
@@ -391,3 +391,24 @@ class SetMonoTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((0, -1), (6, 5), (10, 9), (2, 1), (4, 3), (8, 7)))(res.entries.toSet)
+
+
+  test("Test set mono: nested sets"):
+    val relation = Relation(
+      "main",
+      Seq(Param("x", TInt)),
+      Seq(Body(Seq(
+        Eq(Var("counter"), IntNum(0)),
+        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+        Eq(Var("m"), NewMono(scalaSetMonoDefinition(TSet(TInt)))),
+        WriteMono(Var("m"), SetLit(Seq(IntNum(1), IntNum(2)))),
+        WriteMono(Var("m"), SetLit(Seq(IntNum(17), IntNum(18)))),
+        SetMember(Var("s"), ReadMono(Var("m"))),
+        SetMember(Var("x"), Var("s"))
+      )))
+    ).addHint(impure.PureHint)
+
+    val engine = compile(relation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(Set(1, 17))(res.entries.toSet)
