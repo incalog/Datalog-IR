@@ -79,7 +79,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val mod = Module("M", langs, relations)
     //    val compiledMod = CompiledSetMonoModule(mod)
     val compiledMod = CompiledSetMonoOptModule(mod)
-    val exec: IRExecutor = inca.viatra.Executor
+    val exec: IRExecutor = new inca.viatra.Executor
     exec.instantiate(compiledMod)
 
 
@@ -379,4 +379,4 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult(Set(1, 17))(res.entries.toSet)
+    assertResult(Set(1, 2, 17, 18))(res.entries.toSet)

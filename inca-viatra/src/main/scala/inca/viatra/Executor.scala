@@ -9,10 +9,11 @@ import inca.viatra.runtime.{EnginePool, Query}
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import inca.viatra.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
+import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 
-object Executor extends IRExecutor:
+class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, module: PSystem.Module) extends ExecutorEngine:
     private def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
       val params = parameterNames.zip(values).map { case (p, v) => spec.getPositionOfParameter(p) -> v }.toMap
@@ -65,6 +66,6 @@ object Executor extends IRExecutor:
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)
 
     val scope = new QueryScope(new DataModel())
-    val (viatraEngine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (viatraEngine, feed) = EnginePool.loadEngineAndDatabase(scope, backendFactory)
     new Engine(viatraEngine, feed, psystemModule)
 

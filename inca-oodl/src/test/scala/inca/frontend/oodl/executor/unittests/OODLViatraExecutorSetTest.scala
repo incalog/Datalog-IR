@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorSetTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   test("Set") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/Set.oodl")

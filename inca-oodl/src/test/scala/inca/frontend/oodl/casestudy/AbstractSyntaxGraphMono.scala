@@ -340,10 +340,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run: Set Mono Aggregation") {
-    val engine = inca.viatra.Executor.instantiate(compiled)
+    val engine = new inca.viatra.Executor().instantiate(compiled)
 //    engine.readAll().foreach(r => println(r.asTable))
     for (i <- 0 until 5) {
-      val engine = inca.viatra.Executor.instantiate(compiled)
+      val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
@@ -364,10 +364,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run: Set Mono Opt") {
-    val engine = inca.viatra.Executor.instantiate(compiledOpt)
+    val engine = new inca.viatra.Executor().instantiate(compiledOpt)
     //    engine.readAll().foreach(r => println(r.asTable))
     for (i <- 0 until 5) {
-      val engine = inca.viatra.Executor.instantiate(compiledOpt)
+      val engine = new inca.viatra.Executor().instantiate(compiledOpt)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))

@@ -9,7 +9,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalViatraExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(new inca.viatra.Executor)
 
   // Unittests
 
