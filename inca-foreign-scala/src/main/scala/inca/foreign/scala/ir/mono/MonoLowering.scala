@@ -147,7 +147,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         inputTy = ScalaType.any,
         outputTy = ScalaType.int,
         initCode = "0",
-        addCode = "(st: Int, a: Any) => x + 1"
+        addCode = "(st: Int, a: Any) => st + 1"
       )
     case MonoAggregationOperator(StringMonoDefinition) =>
       inputConversion = Some((TString, ScalaType.string))

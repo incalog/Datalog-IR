@@ -8,13 +8,18 @@ import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunct
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
+import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
 case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
 
   override def name: Name = fun.name
 
   override def sourceLocation: SourceLocation = fun.name
+
+  private class OODLTypeChecker extends IRTypechecker with primitive.Typechecker
+  override def typechecker: BaseIRTypechecker = new OODLTypeChecker()
 
   val oodlLogging = compilerOptions.oodlLogging
   val logTyped: Boolean = oodlLogging.logTypeInformation

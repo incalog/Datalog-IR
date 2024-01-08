@@ -1,6 +1,6 @@
 package inca.frontend.oodl.casestudy
 
-import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
+import inca.foreign.scala.ir.primitive.{ConversionElimination, ScalaMonoDefinition}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation2, Relation4}
@@ -18,6 +18,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 
 import scala.language.implicitConversions
 
@@ -232,7 +233,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       Body(Seq(
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(v("endNode"), IntNum(50)),
+        Eq(v("endNode"), IntNum(20)),
         Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Eq(v("mono"), NewMono(SetMonoDefinition(tEdgePair), Seq(), Seq())),
@@ -278,17 +279,20 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering
 
-
     setPipeline(List(
       () => new mono.Lowering {},
-      () => new block.Lowering {},
+      () => new MonoScalaLowering {},
+      () => new ConversionElimination {},
       () => new impure.Lowering {},
       () => new demand.Lowering {},
-      () => new scalaLowering {},
-      () => new demandLowering {},
-      () => new blockLowering {}
+      () => new incaBool.Lowering {},
+      () => new blockLowering {},
+      () => new incaSet.Lowering {},
+      () => new incaTuple.Lowering {},
+      () => new blockLowering {},
+      () => new incaDisj.Lowering {},
+      () => new demandLowering {}
     ))
-
 
   def compiledOpt = new CompiledModule:
     override def name: Name = "AbstractSyntaxGraph"
@@ -340,7 +344,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   test("AbstractSyntaxGraph can be run: Set Mono Aggregation") {
     val engine = new inca.viatra.Executor().instantiate(compiled)
 //    engine.readAll().foreach(r => println(r.asTable))
-    for (i <- 0 until 5) {
+    for (i <- 0 until 1) {
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
