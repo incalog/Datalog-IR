@@ -291,20 +291,10 @@ object GeneratePSystem:
       // We only support a single aggregation column
       val Seq(aggregatedColumn) = agg.aggregationColumns
       val outTerm = agg.args(aggregatedColumn).asInstanceOf[AggregateColumnArg].t
-      val argTerms = args.map {
-        case TermArg(t) => t
-        case a@WildcardArg() =>
-          val name = gensym.fresh("_")
-          varDeclarations += genTempVar(name)
-          Var(Name(name)).typed(a.typ.get)
-        case AggregateColumnArg(t) =>
-          val name = gensym.fresh("_")
-          varDeclarations += genTempVar(name)
-          Var(Name(name)).typed(t.typ.get)
-      }
+      val argTerms = args.map(compileArg)
       val result = compileTerm(outTerm)
       val module = env.getOrElse(rel.name, throw new IllegalArgumentException(s"Unknown relation $rel"))
-      val argTuple = s"Tuples.flatTupleOf(${argTerms.map(compileTerm).mkString(",")})"
+      val argTuple = s"Tuples.flatTupleOf(${argTerms.mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
 
       val code = op match
@@ -337,8 +327,16 @@ object GeneratePSystem:
       code
 
   private def compileArg(a: Arg): Code = a match
-    case TermArg(t) => compileTerm(t)
-    case WildcardArg() => throw IllegalStateException("Encountered unexpected wildcard argument!")
+    case TermArg(t) =>
+      compileTerm(t)
+    case a@WildcardArg() =>
+      val name = gensym.fresh("_")
+      varDeclarations += genTempVar(name)
+      compileTerm(Var(Name(name)).typed(a.typ.get))
+    case AggregateColumnArg(t) =>
+      val name = gensym.fresh("_")
+      varDeclarations += genTempVar(name)
+      compileTerm(Var(Name(name)).typed(t.typ.get))
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {

@@ -3,12 +3,13 @@ package inca.frontend.datalog.executor
 import inca.frontend.datalog.compile.DatalogCompilerOptions
 import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.util.FileUtil
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogViatraExecutorTest extends AnyFunSuite:
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
-  val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor)
+  val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
 
   test("Path") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
@@ -36,6 +37,7 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("SPath", (1, 4, ?))
+    println(res.entries)
     assertResult(1)(res.entries.size)
     assertResult((1, 4, 7))(res.entries.head)
 
