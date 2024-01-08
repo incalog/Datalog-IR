@@ -120,10 +120,10 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         addCode = s"(st: Set[$sty], a: $sty) => st + a"
       )
     case MonoAggregationOperator(mm@MapMonoDefinition(keyTy, mono)) =>
-      val kt = getSTName(keyTy)
-      val inputVTy = getSTName(mono.typ.in)
-      val stateVTy = getSTName(mono.typ.state)
-      val outputVTy = getSTName(mono.typ.out)
+      val kt = ScalaInca.compileType(keyTy)
+      val inputVTy = ScalaInca.compileType(mono.typ.in)
+      val stateVTy = ScalaInca.compileType(mono.typ.state)
+      val outputVTy = ScalaInca.compileType(mono.typ.out)
       val valueAggOp = visitAggregationOperator(MonoAggregationOperator(mono)).asInstanceOf[ScalaMonoAggregationOperator]
       val initCode = valueAggOp.initCode
       val addCode = valueAggOp.addCode

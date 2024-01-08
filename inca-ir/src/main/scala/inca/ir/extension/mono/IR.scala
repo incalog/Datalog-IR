@@ -171,6 +171,6 @@ case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInM
     val k = gensym.freshName("k")
     val v = gensym.freshName("v")
     MapComprehension(Var(k), mono.resultTerm(Var(v), gensym), Seq(
-      MapContains(Var(k), state), 
+      MapContains(state, Var(k)), 
       Eq(Var(v), MapLookUp(state, Var(k)))
     ))
