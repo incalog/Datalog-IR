@@ -9,11 +9,12 @@ import inca.ir.extension.string.TString
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes, ArithmeticMonoDefinition as ArithMonoDef}
 import inca.ir.extension.block.Block
-import inca.ir.extension.set.TSet
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.map.TMap
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.util.Gensym
 
 object ScalaInca extends ForeignLanguage:
   type Code = String
@@ -26,8 +27,10 @@ object ScalaInca extends ForeignLanguage:
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
     case TData(RefByName(name)) => ScalaType(name)
-    case TSet(ty) => ScalaType(s"Set[${compileType(ty).name}]")
-    case TTuple(tys) => ScalaType(s"(${tys.map(compileType.andThen(_.name))})")
+    case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
+    case TTuple(Seq(ty)) => compileType(ty)
+    case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
+    case TMap(k, v) => ScalaType(s"Map[${compileType(k).name}, ${compileType(v).name}]")
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
@@ -71,7 +74,7 @@ case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Se
 
 object ScalaConstantTerm:
   val TRUE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
-  val FALSE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
+  val FALSE: ScalaConstantTerm = ScalaConstantTerm("false", ScalaType.bool)
 
 
 
@@ -82,31 +85,17 @@ case class ScalaAggregationOperator(name: Name, ty: Type, initCode: String, addC
 
 case class ScalaMonoAggregationOperator(name: Name,
                                         inputTy: Type,
-                                        stateTy: Type,
+                                        outputTy: Type,
                                         initCode: String,
-                                        addCode: String)
+                                        addCode: String
+                                       )
   extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
-  override def resultType: Type = stateTy
+  override def resultType: Type = outputTy
   def typecheck(in: Seq[Type]): Option[String] = in match
     case Seq(t) if t == inputTy => None
     case _ => Some(s"Ill-typed mono aggregation, expected $inputTy but got $in")
 
-
-case class ScalaAggregationAtom(op: AggregationOperator, rel: Name, out: Term, args: Seq[Term], aggregatedColumn: Int) extends ForeignAtom:
-  override val lang: ScalaInca.type = ScalaInca
-  override val code: String = op match
-    case ScalaAggregationOperator(_, _, initCode, addCode) => s"" // TODO: code
-    case _ => "???"
-
-  override def vars: Seq[Var] = args.flatMap(_.vars)
-
-  override def toString: String =
-    val inArgs = args.zipWithIndex.map {
-      case (_, i) if i == aggregatedColumn => "#"
-      case (a, _) => s"$a"
-    }
-    s"""$out = aggregate ${rel.name}(${inArgs.mkString(", ")}) with $op"""
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
   def withExtendedName(suffix: String): ScalaDefnModuleEntry = this.copy(name = Name(name.name + suffix))
@@ -121,7 +110,7 @@ case class ScalaMonoDefinition(name: Name,
                                typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
   def typecheck(in: Seq[Type]): Option[String] = None
-  override def resultTerm(state: Term): Term =
+  override def resultTerm(state: Term, gensym: Gensym): Term =
     ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
 
   override def toString: String =

@@ -2,23 +2,18 @@ package inca.foreign.scala.ir.arithmetic
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Eq, Term, TermType, Type, Var}
+import inca.ir.{Atom, BaseIR, Eq, Term, Type}
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator, MonoDefinition}
-import inca.ir.{name2string, string2name}
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
+import inca.ir.string2name
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.ScalaMonoDefinition.builtinMono
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaMonoDefinition, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
-  override val name: String = "ScalaArithmetic"
-  override val loweredIRs: Set[BaseIR] = Set(arithmetic.IR)
-  override val requiredIRs: Set[BaseIR] = super.requiredIRs ++ Set(block.IR)
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TInt | TDouble  => true
     case _ => super.isTypeSupported(ty)
@@ -74,46 +69,6 @@ trait ScalaLowering extends BaseScalaLowering:
           initCode = "Double.MinValue",
           addCode = "(x: Double, y: Double) => x max y",
         )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.SumInt) =>
-        ScalaMonoAggregationOperator(
-          name = "SumInt Mono",
-          inputTy = ScalaType.int,
-          stateTy = ScalaType.int,
-          initCode = "0",
-          addCode = "(x:Int,y:Int) => x + y"
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.SumDouble) =>
-        ScalaMonoAggregationOperator(
-          name = "SumDouble Mono",
-          inputTy = ScalaType.double,
-          stateTy = ScalaType.double,
-          initCode = "0",
-          addCode = "(x:Double,y:Double) => x + y"
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxInt) =>
-        ScalaMonoAggregationOperator(
-          name = "Max Int Mono",
-          inputTy = ScalaType.int,
-          stateTy = ScalaType.int,
-          initCode = "Int.MinValue",
-          addCode = "(x:Int,y:Int) => x max y",
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxDouble) =>
-        ScalaMonoAggregationOperator(
-          name = "Max Double Mono",
-          inputTy = ScalaType.double,
-          stateTy = ScalaType.double,
-          initCode = "Double.NegativeInfinity",
-          addCode = "(x:Double,y:Double) => x max y",
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.Count) =>
-        ScalaMonoAggregationOperator(
-          name = "Count Mono",
-          inputTy = ScalaType.any,
-          stateTy = ScalaType.int,
-          initCode = "0", 
-          addCode = "(st: Int, a: Any) => x + 1"
-        )
       case _ => super.visitAggregationOperator(op)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
@@ -139,8 +94,7 @@ trait ScalaLowering extends BaseScalaLowering:
         typedParams(lhs).zip(typedParams(rhs)).map {
           case ((l, lty), (r, rty)) if lty == rty =>
             val ty = compileType(lty)
-            val v = Var(freshName())
-            block.Block(Eq(v, createScalaBinOp(op, ty, l -> ty, r -> ty)), v)
+            createScalaBinOp(op, ty, l -> ty, r -> ty)
           case ((_, lty), (_, rty)) =>
             throw IllegalStateException(s"Can not apply `$op` to incompatible types: $lty and $rty")
         }

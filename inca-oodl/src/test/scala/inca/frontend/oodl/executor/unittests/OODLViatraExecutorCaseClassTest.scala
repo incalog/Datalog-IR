@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   /** Case class */
 
@@ -38,7 +38,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$$TString_TString$$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    val query = Relation.from("Set$$TString_TString$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1, 3)
     val expectedResult = Set(
       ("A", "W"), ("Z", "Y"), ("Y", "W"), ("B", "C"),

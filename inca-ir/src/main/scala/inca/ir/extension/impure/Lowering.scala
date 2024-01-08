@@ -111,6 +111,9 @@ trait Lowering extends BaseLowering:
   override def visitBody(body: Body): Seq[Body] = impurityScoped(super.visitBody(body))
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case Impure(v, Seq(), up, kind) if !up.vars.contains(v) =>
+      val freshCounter = freshImpurityCounter(kind)
+      Eq(freshCounter, up) :: Nil
     case Impure(v, atoms, up, kind)  =>
       val counter = getImpurityCounter(kind)
       val as = atoms.flatMap(visitAtom)

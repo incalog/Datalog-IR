@@ -11,7 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 @Ignore
 class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   test("DependencyAnalysis") {
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/DependencyAnalysis.oodl")

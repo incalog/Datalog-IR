@@ -6,7 +6,7 @@ import inca.ir.extension.tuple.TTuple
 import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 
-trait Typechecker extends BaseIRTypechecker{
+trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case MapLit(Nil) =>
       TMap(TNothing, TNothing).bound
@@ -22,6 +22,7 @@ trait Typechecker extends BaseIRTypechecker{
       lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
           val tys = params.map(_.ty)
+          // should check nondemanded is also non-empty
           val (demanded, nondemanded) = tys.partition(_.isInstanceOf[TDemand])
           val output = TTuple.make(nondemanded)
           if (demanded.isEmpty)
@@ -70,7 +71,7 @@ trait Typechecker extends BaseIRTypechecker{
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case MapContains(map, key) =>
       val TMap(tyK, _) = inferMapTerm(map, Mode.Bound)._1
-      checkTerm(key, tyK, Mode.Bound)
+      checkTerm(key, tyK, mode)
     case _ => super.checkAtom(atom, mode)
 
   private def inferMapTerm(t: Term, mode: Mode): (TMap, Mode) = inferTerm(t, mode) match
@@ -84,5 +85,3 @@ trait Typechecker extends BaseIRTypechecker{
       checkType(kty)
       checkType(vty)
     case _ => super.checkType(ty)
-
-}

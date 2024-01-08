@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorMonoTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   // Unittests
   test("Count mono") {

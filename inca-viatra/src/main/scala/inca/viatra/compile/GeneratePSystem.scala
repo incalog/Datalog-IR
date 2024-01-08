@@ -9,12 +9,15 @@ import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
 import inca.util.compileroptions.CompilerOptions
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations
+
+import scala.collection.mutable.ListBuffer
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
@@ -197,6 +200,7 @@ object GeneratePSystem:
        |$content
        |body""".stripMargin.indent(indent)
 
+  val varDeclarations: ListBuffer[String] = ListBuffer.empty
   /** Map expressions to their output variable */
   var evalExp: Seq[(Code, String)] = Seq()
   /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
@@ -213,7 +217,8 @@ object GeneratePSystem:
     
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
-        val varContent = VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar).mkString("\n")
+        varDeclarations.clear()
+        varDeclarations ++= VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar)
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
 
         evalExp = Seq()
@@ -223,6 +228,7 @@ object GeneratePSystem:
         val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
         val exprsContent = evalExp.map(_._1).mkString("\n")
 
+        val varContent = varDeclarations.mkString("\n")
         val bodyContent = s"$varContent\n$litContent\n$exprsDef\n$exprsContent\n$atomContent"
         compileBody(moduleName, relation, bodyContent)(indent + 4)
       }
@@ -280,62 +286,64 @@ object GeneratePSystem:
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
       s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
-    case primitive.ScalaAggregationAtom(ScalaMonoAggregationOperator(name, ScalaType(inTy), ScalaType(stateTy), initCode, addCode), rel, out, args, aggregatedColumn) =>
-      val result = compileTerm(out)
-      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
-      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
+
+    case agg@Aggregate(rel, args, op) =>
+      // We only support a single aggregation column
+      val Seq(aggregatedColumn) = agg.aggregationColumns
+      val outTerm = agg.args(aggregatedColumn).asInstanceOf[AggregateColumnArg].t
+      val argTerms = args.map(compileArg)
+      val result = compileTerm(outTerm)
+      val module = env.getOrElse(rel.name, throw new IllegalArgumentException(s"Unknown relation $rel"))
+      val argTuple = s"Tuples.flatTupleOf(${argTerms.mkString(",")})"
       val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
 
-      val code = s"""
-           | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
-           |   override val name: String = "$name"
-           |   override def init: $stateTy = $initCode
-           |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
-           | }.aggregator
-           |""".stripMargin
-
-      val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
-      s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-    // special case: count aggregation, which is neither associative nor commutative,
-    // so we use a builtin count aggregation implemented in VIATRA system
-    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, scalaTy, initCode, addCode), rel, out, args, aggregatedColumn) if name.name == "Count" =>
-      val result = compileTerm(out)
-      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
-      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
-      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
-      s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
-    case primitive.ScalaAggregationAtom(ScalaAggregationOperator(name, ScalaType(scalaTyp), initCode, addCode), rel, out, args, aggregatedColumn) =>
-      val result = compileTerm(out)
-      val module = env.getOrElse(rel, throw new IllegalArgumentException(s"Unknown relation $rel"))
-      val argTuple = s"Tuples.flatTupleOf(${args.map(compileTerm).mkString(",")})"
-      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
-
-      val code =
-        s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTyp] {
-           |       override val name = "$name"
-           |       override def init: $scalaTyp = $initCode
-           |       override def join(v1: $scalaTyp, v2: $scalaTyp): $scalaTyp = ($addCode)(v1, v2)
-           |       override val isAssociative = true
-           |       override val isCommutative = true
-           |     }.aggregator
-           |""".stripMargin
-      val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
-      s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-//    case ArithmeticAggregationOperator.Count =>
-//      ???
-    case primitive.ScalaAggregationAtom(agg, _, _, _, _) =>
-      throw IllegalArgumentException(s"Unexpected aggregation operator $agg")
+      val code = op match
+        case ScalaAggregationOperator(Name("Count"), scalaTy, initCode, addCode) =>
+          s"new PatternMatchCounter(body, $argTuple, $callQuery, $result)"
+        case ScalaAggregationOperator(name, ScalaType(scalaTyp), initCode, addCode) =>
+          val code =
+            s"""new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTyp] {
+               |       override val name = "$name"
+               |       override def init: $scalaTyp = $initCode
+               |       override def join(v1: $scalaTyp, v2: $scalaTyp): $scalaTyp = ($addCode)(v1, v2)
+               |       override val isAssociative = true
+               |       override val isCommutative = true
+               |     }.aggregator
+               |""".stripMargin
+          val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
+          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+        case ScalaMonoAggregationOperator(name, ScalaType(inTy), ScalaType(stateTy), initCode, addCode) =>
+          val code =
+            s"""
+               | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
+               |   override val name: String = "$name"
+               |   override def init: $stateTy = $initCode
+               |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
+               | }.aggregator
+               |""".stripMargin
+          val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
+          s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
+        case _ => throw IllegalArgumentException(s"Unexpected aggregation operator $op")
+      code
 
   private def compileArg(a: Arg): Code = a match
-    case TermArg(t) => compileTerm(t)
-    case WildcardArg() => throw IllegalStateException("Encountered unexpected wildcard argument!")
+    case TermArg(t) =>
+      compileTerm(t)
+    case a@WildcardArg() =>
+      val name = gensym.fresh("_")
+      varDeclarations += genTempVar(name)
+      compileTerm(Var(Name(name)).typed(a.typ.get))
+    case AggregateColumnArg(t) =>
+      val name = gensym.fresh("_")
+      varDeclarations += genTempVar(name)
+      compileTerm(Var(Name(name)).typed(t.typ.get))
 
   // This method should always return the name of a PVariable
   private def compileTerm(t: Term): Code = t match {
     case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
-        case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty")
+        case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty of term $t")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
       pVar2Code += pvarName -> (Some(name), s"""env.getValue("$name").asInstanceOf[$ty]""")
@@ -379,6 +387,7 @@ object GeneratePSystem:
       evalExp :+= (evalExpCode, outName)
       pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${sty.name}]"""))
       pvarName
+    case _ => throw new UnsupportedOperationException(s"Unknown term $t")
   }
 
   private def genExprEvalVar(name: String): Code = {
@@ -391,7 +400,7 @@ object GeneratePSystem:
   }
 
   private def genLiteralVarName[T](lit: String, ty: primitive.ScalaType): String = {
-    ty.name + lit.hashCode.toString.replace("-", "_")
+    ty.name.replace("[", "$").replace("]", "$") + lit.hashCode.toString.replace("-", "_")
   }
 
   private def genPParam(param: Param): Code = {

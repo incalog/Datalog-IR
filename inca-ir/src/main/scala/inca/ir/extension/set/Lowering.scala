@@ -53,10 +53,12 @@ trait Lowering extends BaseLowering:
   private case class SetConstructor(name: Name, vars: Seq[(Name, Type)], setEnum: SetEnum)
 
   private var constructorCount: Map[Type, Int] = Map().withDefaultValue(0)
-  private var constructors: Map[(Type, Term), SetConstructor] = Map()
+  private var setTypeConstructors: Map[Type, Map[Term, SetConstructor]] = Map()
   private def addConstructor(originalTerm: Term, setEnum: SetEnum): (Name, Seq[(Name, Type)]) =
     val memTy = visitType(memberType(originalTerm))
-    constructors.get((memTy, originalTerm)) match
+    addSetType(memTy)
+    val constructors = setTypeConstructors.getOrElse(memTy, Map())
+    constructors.get(originalTerm) match
       case Some(SetConstructor(name, vars, _)) => (name, vars)
       case None =>
         val count = constructorCount(memTy)
@@ -67,24 +69,29 @@ trait Lowering extends BaseLowering:
         val (boundVars, bindingVars) = vars.partition(!_.typ.get.mode.isBinding)
         val freeVars = boundVars.toSet diff bindingVars.toSet
         val constructorParams = freeVars.toSeq.map(v => v.name -> visitType(v.typ.get.ty))
-        constructors += (memTy, originalTerm) -> SetConstructor(name, constructorParams, setEnum)
+        setTypeConstructors += memTy -> (constructors + (originalTerm -> SetConstructor(name, constructorParams, setEnum)))
         (name, constructorParams)
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
     val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
 //    cons.typed(TSet(memTy).closed)
     cons
+  private def addSetType(memTy: Type): Unit =
+    val memTyLowered = visitType(memTy)
+    setTypeConstructors.get(memTyLowered) match
+      case None => setTypeConstructors += memTyLowered -> Map()
+      case _ => //nothign
 
   private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
-  private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}$$enum")
+  private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}enum")
 
   private def makeSetDefinitions: Seq[ModuleEntry] =
-    val types = constructors.groupBy(_._1._1).toSeq
-    types.flatMap { case (memTy, terms) =>
-      val (datas, rel) = defunctionalizeSet(memTy, terms.values.toSeq)
+    setTypeConstructors.flatMap { case (memTy, constructors) =>
+      println(memTy -> constructors)
+      val (datas, rel) = defunctionalizeSet(memTy, constructors.values.toSeq)
       datas :+ rel
-    }
+    }.toSeq
 
   /** Generates defunctionalize set data type and enumerating relation */
   private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (Seq[DataModuleEntry], Relation) =
@@ -114,22 +121,27 @@ trait Lowering extends BaseLowering:
   private var currentModule: Module = _
   override def visitModule(module: Module): Module =
     currentModule = module
-    constructors = Map()
+    setTypeConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeSetDefinitions
     m.copy(contents = m.contents ++ defs)
 
   private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires typed IR, type missing in $t")).ty match
-    case TSet(memTy) => memTy
+    case TSet(memTy) => visitType(memTy)
     case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match
-      case TSet(memTy) => TData(dataNameOf(memTy))
+      case TSet(memTy) => TData(dataNameOf(visitType(memTy)))
       case _ => super.visitType(ty)
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case Cast(t, ty) =>
+      ty match
+        case TSet(memTy) => addSetType(memTy)
+        case _ => // nothing
+      super.visitTerm(term)
     case SetLit(ts) =>
       val elems = ts.map(visitTerm)
       val setEnum = new SetEnum:
@@ -184,6 +196,7 @@ trait Lowering extends BaseLowering:
     case SetMember(elemTerm, setTerm) => preserveHints(atom) {
       val Seq(s) = visitTerm(setTerm)
       val memTy = memberType(setTerm)
+      addSetType(memTy)
       val ts = visitTerm(elemTerm)
       ts.map(elem => Call(relNameOf(memTy), Seq(s.arg, elem.arg)))
     }

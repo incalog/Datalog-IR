@@ -43,7 +43,7 @@ object MockURI {
       val closingIdx = str.lastIndexOf(")")
       if (openIdx != -1 && closingIdx != -1) {
         val name = str.substring(0, openIdx)
-        val args = str.substring(openIdx + 1, closingIdx).split(", ")
+        val args = str.substring(openIdx + 1, closingIdx).split(", ").toSeq
         ConstructorValue(name , args.map(deconstruct))
       } else {
         str.toBooleanOption.map(ScalaValue.apply).getOrElse(

@@ -1,18 +1,15 @@
 package inca.foreign.scala.ir.data
 
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, name2string}
-import inca.ir.extension.block
+import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, Var, WildcardArg, name2string}
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
-  override val name: String = "ScalaData"
-  override val loweredIRs: Set[BaseIR] = Set(data.IR)
-  override val requiredIRs: Set[BaseIR] = Set(IR, block.IR)
-
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
     case _ => super.isTypeSupported(ty)
@@ -81,11 +78,13 @@ trait ScalaLowering extends BaseScalaLowering:
           val paramReadCode = s"$asInstanceOfCall.$paramName"
           val paramRead = ScalaTerm(paramReadCode, pTy, visitTerm(term))
           Eq(t, paramRead)
+        case ((paramName, pTy), WildcardArg()) =>
+          val paramReadCode = s"$asInstanceOfCall.$paramName"
+          val paramRead = ScalaTerm(paramReadCode, pTy, visitTerm(term))
+          Eq(Var(Name(gensym.fresh("_"))), paramRead)
         case _ => throw IllegalStateException("Found unexpected wildcard! Make sure you called visitTerm")
       }
       guard +: paramReads
-    case s: ScalaAggregationAtom =>
-      super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match

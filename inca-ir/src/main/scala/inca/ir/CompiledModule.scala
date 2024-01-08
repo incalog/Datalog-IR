@@ -82,9 +82,8 @@ trait CompiledModule:
         printStep(s"Lowering: ${lowFun.name}", l)
 
       val checker = typechecker
-      checker.checkModule(l)
-
-      if (logLowerings && logTyped)
+      try checker.checkModule(l)
+      finally if (logLowerings && logTyped)
         printStep(s"Lowering: ${lowFun.name}", l)
       l
     }

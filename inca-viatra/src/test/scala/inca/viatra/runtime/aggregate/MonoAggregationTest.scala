@@ -1,24 +1,60 @@
 package inca.viatra.runtime.aggregate
 
-import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
+import inca.foreign.scala.analysis.{ScalaAbstractInterpreter, ScalaIROptimizer}
+import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
+import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaMonoDefinition, ScalaType}
+import inca.foreign.scala.visitors.ScalaStatisticsCollector
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Relation3, UnitRelation, Relation as Table}
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.foreign.ConvertForeignIR
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
-import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, impure, mono, string}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
+import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 
 import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.mutable
+
+
+case class CompiledMonoModule(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
+  override def name: Name = mod.name
+  override def sourceLocation: SourceLocation = mod.name
+  override def ir: Module = mod
+  private class MonoTypeChecker extends IRTypechecker with primitive.Typechecker
+  override def typechecker: BaseIRTypechecker = new MonoTypeChecker()
+  override def printStatistics(module: Module, str: String): Unit =
+    ScalaStatisticsCollector.printStatistics(module, str)
+
+
+  override def optimize(p: Seq[Module]): Seq[Module] = p
+
+  setPipeline(List(
+    () => new mono.Lowering(optimizeSetMono = false) {},
+    () => new MonoScalaLowering {},
+    () => new ConversionElimination {},
+    () => new impure.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
+    () => new ForeignScalaLowering {}
+  ))
+
 
 
 class MonoAggregationTest extends AnyFunSuiteLike {
@@ -31,7 +67,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     impure.IR +
     block.IR +
     string.IR +
-    bool.IR
+    bool.IR +
+    map.IR
   
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -41,8 +78,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
-    compiledMod.setPipeline(CompiledMonoModule.pipeline)
-    val exec: IRExecutor = inca.viatra.Executor
+    val exec: IRExecutor = new inca.viatra.Executor
     exec.instantiate(compiledMod)
 
   private lazy val relation1: Relation = Relation(
@@ -240,7 +276,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     "(st: Double, a: Int) => st + a",
     "(st: Double) => st.toString",
     Seq(),
-    MonoTypes(TInt, TDouble, TString)
+    MonoTypes(TInt, TDouble, ScalaType.string)
   )
 
   private val customMono2 = ScalaMonoDefinition(
@@ -249,7 +285,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     "(st: String, a: Int) => (st.toDouble + a).toString",
     "(st: String) => st.toDouble",
     Seq(),
-    MonoTypes(TInt, TString, TDouble)
+    MonoTypes(TInt, TString, ScalaType.double)
   )
 
 
@@ -263,7 +299,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(customMono1, Seq(TString), Seq())),
-      Eq(Var("b"), ReadMono(Var("m")))
+      Eq(Var("b"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.string, TString))
     )))).addHint(PureHint)
 
   test("Test using user-defined mono definition 1") {
@@ -283,7 +319,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(customMono2, Seq(TString), Seq())),
-      Eq(Var("b"), ReadMono(Var("m")))
+      Eq(Var("b"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.double, TDouble))
     )))).addHint(PureHint)
 
 
@@ -297,17 +333,17 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   // non-standard set mono, probably we need to add a SetSize term?
   // TODO: test polymorphic setmono
-  private lazy val SetMono = ScalaMonoDefinition(
-    "SetMono",
+  private lazy val SetSizeMono = ScalaMonoDefinition(
+    "SetSizeMono",
     initCode = "Set[Any]()",
     addCode = "(st: Set[Any], a: Any) => st + a",
     resultCode = "(st: Set[Any]) => st.size",
     constructorParamTypes = Seq(),
-    typ = MonoTypes(TAny, TSet(TAny), TInt)
+    typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
   )
 
   // compute the size of graph
-  // main(n: TInt) :- m = SetMono, size(m), b = n.result()
+  // main(n: TInt) :- m = SetSizeMono, size(m), b = n.result()
   // size(m) :- edge(e1, e2), m <- e1, m <- e2
   private lazy val graphSizeMain = Relation(
     "main",
@@ -315,19 +351,19 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(SetMono, Seq(), Seq())),
+      Eq(Var("m"), NewMono(SetSizeMono, Seq(), Seq())),
       Call("size", Seq(Var("m"))),
-      Eq(Var("n"), ReadMono(Var("m")))
+      Eq(Var("n"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.int, TInt))
     )))
   ).addHint(PureHint)
 
   private lazy val graphSize = Relation(
     "size",
-    Seq(Param("m", TDemand(TMono(TAny, TInt, Seq())))),
+    Seq(Param("m", TDemand(SetSizeMono.monoType(Seq())))),
     Seq(Body(Seq(
       ExtensionalCall("edge", Seq(Var("e1"), Var("e2"))),
-      WriteMono(Var("m"), Cast(Var("e1"), TAny), Seq()),
-      WriteMono(Var("m"), Cast(Var("e2"), TAny), Seq()),
+      WriteMono(Var("m"), Cast(Var("e1"), ScalaType("Any")), Seq()),
+      WriteMono(Var("m"), Cast(Var("e2"), ScalaType("Any")), Seq()),
     )))
   )
 

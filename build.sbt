@@ -42,6 +42,7 @@ lazy val inca_fun = (project in file("inca-fun"))
 
 lazy val inca_oodl = (project in file("inca-oodl"))
   .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_foreign_scala % "compile->compile")
   .dependsOn(inca_viatra % "test->test")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
@@ -179,3 +180,6 @@ lazy val inca = (project in file(".")).settings(
 //)
 //
 
+inca_foreign_scala / libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % "latest.integration" % Test
+)

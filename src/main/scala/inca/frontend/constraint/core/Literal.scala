@@ -22,5 +22,5 @@ case class DoubleLiteral(v: Double) extends Literal {
   override def prettyprint: String = v.toString
 }
 case class StringLiteral(v: String) extends Literal {
-  override def prettyprint: String = '\"' + v + '\"'
+  override def prettyprint: String = '\"' +: v :+ '\"'
 }

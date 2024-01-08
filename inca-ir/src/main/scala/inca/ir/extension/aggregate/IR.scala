@@ -1,6 +1,6 @@
 package inca.ir.extension.aggregate
 
-import inca.ir.{Arg, Atom, BaseIR, Language, Name, Ref, Relation, Term, TermArg, Type, Var, WildcardArg}
+import inca.ir.*
 
 object IR extends IR { }
 trait IR extends BaseIR:
@@ -15,6 +15,12 @@ case class AggregateColumnArg(t: Term) extends Arg:
 case class Aggregate(rel: Ref[Relation], args: Seq[Arg], op: AggregationOperator) extends Atom:
   override def toString: String = s"aggregate($rel(${args.mkString(", ")}), $op)"
   override def vars: Seq[Var] = args.flatMap(_.vars)
+  def aggregationColumns: Seq[Int] = args.zipWithIndex.filter(_._1.isInstanceOf[AggregateColumnArg]).map(_._2)
+  def mapAggregateColumn(f: Term => Arg): Seq[Arg] =
+    args.map {
+      case AggregateColumnArg(t) => f(t)
+      case a => a
+    }
 
 trait AggregationOperator:
   def resultType: Type
