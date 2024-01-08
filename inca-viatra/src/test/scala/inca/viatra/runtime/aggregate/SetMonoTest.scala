@@ -14,12 +14,14 @@ import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
-import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString, tuple}
+import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, tuple, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
+import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
@@ -85,9 +87,12 @@ class SetMonoTest extends AnyFunSuiteLike:
 
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
+    compile(TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL, relations:_*)
+
+  private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledSetMonoModule(mod)
-    val exec: IRExecutor = inca.viatra.Executor
+    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
     exec.instantiate(compiledMod)
 
   test("Test naive set mono: basic test 1"):
@@ -408,7 +413,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       )))
     ).addHint(impure.PureHint)
 
-    val engine = compile(relation)
+    val engine = compile(DRedReteBackendFactory.INSTANCE, relation)
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult(Set(1, 17))(res.entries.toSet)
+    assertResult(Set(1, 2, 17, 18))(res.entries.toSet)

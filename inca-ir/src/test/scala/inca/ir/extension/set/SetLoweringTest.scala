@@ -236,7 +236,5 @@ class SetLoweringTest extends AnyFunSuite {
     val mainRelation = Relation("main", Seq(Param("s1", TSet(TSet(TInt)))), Seq(Body(Seq(
       Eq(Var("s1"), SetLit(Seq(SetLit(Seq(IntNum(1))))))
     ))))
-    assertThrows[TypeErrorException](
-      module(mainRelation)
-    )
+    module(mainRelation)
 }

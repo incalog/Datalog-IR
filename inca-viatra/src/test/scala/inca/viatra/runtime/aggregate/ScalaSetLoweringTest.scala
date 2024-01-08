@@ -58,7 +58,7 @@ class ScalaSetLoweringTest extends AnyFunSuiteLike:
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledSetModule(mod)
-    val exec: IRExecutor = inca.viatra.Executor
+    val exec: IRExecutor = new inca.viatra.Executor
     exec.instantiate(compiledMod)
 
   test("Lower set literal"):

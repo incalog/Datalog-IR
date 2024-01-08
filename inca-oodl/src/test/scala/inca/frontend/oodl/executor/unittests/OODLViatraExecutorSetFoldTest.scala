@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorSetFoldTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   test("Set fold int") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/setfold/PrimitiveSetFold.oodl")

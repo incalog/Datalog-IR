@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   /** Case class */
 

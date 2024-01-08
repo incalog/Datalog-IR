@@ -74,7 +74,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
-    val exec: IRExecutor = inca.viatra.Executor
+    val exec: IRExecutor = new inca.viatra.Executor
     exec.instantiate(compiledMod)
 
   private lazy val relation1: Relation = Relation(
