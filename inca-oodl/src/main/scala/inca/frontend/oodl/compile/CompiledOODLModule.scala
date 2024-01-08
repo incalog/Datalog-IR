@@ -7,6 +7,8 @@ import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
+import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
+import inca.foreign.scala.ir.primitive.ConversionElimination
 
 case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
 
@@ -70,6 +72,8 @@ object CompiledOODLModule:
   // 2. Impure before Disjunction
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new mono.Lowering {},
+    () => new MonoScalaLowering {},
+    () => new ConversionElimination {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},

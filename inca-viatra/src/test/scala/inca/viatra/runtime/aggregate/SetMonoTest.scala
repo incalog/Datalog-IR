@@ -95,7 +95,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
     exec.instantiate(compiledMod)
 
-  test("Test naive set mono: basic test 1"):
+  test("Test set mono: basic test 1"):
     val relation = Relation(
       "main",
       Seq(Param("s", TSet(TInt))),
@@ -115,7 +115,7 @@ class SetMonoTest extends AnyFunSuiteLike:
 //    assertResult(Set(1, 17))(res.entries.head)
 
 
-  test("Test naive set mono: basic test 2"):
+  test("Test set mono: basic test 2"):
     val relation = Relation(
       "main",
       Seq(Param("s", TInt)),
@@ -135,7 +135,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     assertResult(Set(1, 17))(res.entries.toSet)
 
 
-  test("Test naive set mono: performing set union with mono result"):
+  test("Test set mono: performing set union with mono result"):
     val relation = Relation(
       "main",
       Seq(Param("elem", TInt)),
@@ -156,7 +156,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 2))(res.entries.toSet)
 
-  test("Test naive set mono: performing set intersection with mono result"):
+  test("Test set mono: performing set intersection with mono result"):
     val relation = Relation(
       "main",
       Seq(Param("elem", TInt)),
@@ -178,7 +178,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     assert(res.entries.nonEmpty)
     assertResult(Set(2))(res.entries.toSet)
 
-  test("Test naive set mono: performing set comprehension"):
+  test("Test set mono: performing set comprehension"):
     val relation = Relation(
       "main",
       Seq(Param("elem", TInt)),

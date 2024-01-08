@@ -54,7 +54,7 @@ trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
       val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
 
       mono match
-        case _: SetMonoDefinition2 if optimizeSetMono =>
+        case _: SetMonoDefinition if optimizeSetMono =>
           val keyArgs = tm.keys.map(_ => WildcardArg())
           val collArgs = Var(Name("m")).arg +: keyArgs :+ Var(Name("elem")).arg
           val project = Eq(Var(Name("output")),

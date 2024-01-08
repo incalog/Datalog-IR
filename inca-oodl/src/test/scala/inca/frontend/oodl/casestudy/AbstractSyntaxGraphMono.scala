@@ -2,17 +2,17 @@ package inca.frontend.oodl.casestudy
 
 import inca.foreign.scala.ir.primitive.ScalaMonoDefinition
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString, tuple as scalaTuple}
+import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
-import inca.ir.extension.{arithmetic, block, bool as incaBool, data, demand, impure, mono, set as incaSet, string, tuple as incaTuple, disjunction as incaDisj, aggregate as incaAgg}
+import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.extension.set.{SetMember, TSet}
-import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NaiveSetMonoDefinition, NewMono, ReadMono, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.{Impure, PureHint}
@@ -235,7 +235,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         Eq(v("endNode"), IntNum(50)),
         Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
-        Eq(v("mono"), NewMono(NaiveSetMonoDefinition(tEdgePair), Seq(), Seq())),
+        Eq(v("mono"), NewMono(SetMonoDefinition(tEdgePair), Seq(), Seq())),
         Call("edgesDefs", Seq(v("defs"), v("mono"))),
 //        SetMember(TupleLit(Seq(v("from"), v("to"))), ReadMono(v("mono")))
         SetMember(Var("v"), ReadMono(v("mono"))),
@@ -274,7 +274,6 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     private trait blockLowering extends block.Lowering with primitive.Visitor
 
     private trait scalaLowering extends primitive.ScalaLowering
-      with scalaTuple.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering
@@ -311,7 +310,6 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     private trait blockLowering extends block.Lowering with primitive.Visitor
 
     private trait scalaLowering extends primitive.ScalaLowering
-      with scalaTuple.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering

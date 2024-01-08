@@ -7,7 +7,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.*
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.extension.arithmetic.TInt
+import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.data.TData
 import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap}
@@ -51,6 +51,8 @@ trait ConversionElimination extends BaseLowering:
       Seq(AtomAsBool(Eq(term, ScalaConstantTerm("true", ScalaType("Boolean")))))
     case ConvertForeignIR(term, ScalaType("Int"), TInt) =>
       Seq(Cast(term, TInt))
+    case ConvertForeignIR(term, ScalaType("Double"), TDouble) =>
+      Seq(Cast(term, TDouble))
     case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
       Seq(Cast(term, TData(nm2)))
     case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
@@ -120,14 +122,20 @@ trait ConversionElimination extends BaseLowering:
         Seq(Call(memRelName, Seq(Var("key").arg, Var("value").arg, term.arg)))
       )
       visitTerm(map)
+    case ConvertForeignIR(term, ScalaType("Any"), TAny) =>
+      Seq(Cast(term, TAny))
     case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
       throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
 
     case ConvertIRForeign(term, ty1, ty2) if ty1 == ty2 => Seq(term)
     case ConvertIRForeign(term, TInt, ScalaType("Int")) =>
       Seq(Cast(term, ScalaType("Int")))
+    case ConvertIRForeign(term, TDouble, ScalaType("Double")) =>
+      Seq(Cast(term, ScalaType("Double")))
     case ConvertIRForeign(term, TString, ScalaType("String")) =>
       Seq(Cast(term, ScalaType("String")))
+    case ConvertIRForeign(term, TAny, ScalaType("Any")) =>
+      Seq(Cast(term, ScalaType("Any")))
     case ConvertIRForeign(term, TData(RefByName(Name(nm1))), ScalaType(nm2)) if nm1 == nm2 =>
       Seq(Cast(term, ScalaType(nm2)))
     case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>

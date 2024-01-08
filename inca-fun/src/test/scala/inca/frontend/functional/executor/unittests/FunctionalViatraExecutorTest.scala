@@ -160,13 +160,13 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var setAdt = res.entries.head
-    var query = Relation.from("Set$TString$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    var query = Relation.from("Set$TString$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"))(res.toSet)
 
     res = loaded.execute("flip", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(0, 1))(res.toSet)
   }
@@ -179,7 +179,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     // Query main to get the set ADT, afterwards query the set relation
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    val query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(1, 3))(res.toSet)
   }
@@ -191,43 +191,43 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head
-    var query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    var query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3,4))(res.toSet)
 
     res = loaded.execute("main2", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(1,4))(res.toSet)
 
     res = loaded.execute("main3", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(16))(res.toSet)
 
     res = loaded.execute("main4", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(10))(res.toSet)
 
     res = loaded.execute("main5", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3,4))(res.toSet)
 
     res = loaded.execute("main6", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3,4,5))(res.toSet)
 
     /*res = loaded.execute("main7", Seq())
     setAdt = res.entries.head
-    query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query)
     println(res)
     assertResult(Set())(res.toSet)*/
@@ -240,7 +240,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("union", Seq())
     val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
+    val query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(0, 1))(res.toSet)
   }

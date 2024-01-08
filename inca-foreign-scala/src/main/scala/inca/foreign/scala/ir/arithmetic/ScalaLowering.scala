@@ -8,7 +8,7 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
 import inca.ir.extension.block
 import inca.ir.extension.aggregate
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator, NaiveSetMonoDefinition}
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
 import inca.ir.string2name
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
@@ -68,46 +68,6 @@ trait ScalaLowering extends BaseScalaLowering:
           ty = ScalaType.double,
           initCode = "Double.MinValue",
           addCode = "(x: Double, y: Double) => x max y",
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.SumInt) =>
-        ScalaMonoAggregationOperator(
-          name = "SumInt Mono",
-          inputTy = ScalaType.int,
-          outputTy = ScalaType.int,
-          initCode = "0",
-          addCode = "(x:Int,y:Int) => x + y"
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.SumDouble) =>
-        ScalaMonoAggregationOperator(
-          name = "SumDouble Mono",
-          inputTy = ScalaType.double,
-          outputTy = ScalaType.double,
-          initCode = "0",
-          addCode = "(x:Double,y:Double) => x + y"
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxInt) =>
-        ScalaMonoAggregationOperator(
-          name = "Max Int Mono",
-          inputTy = ScalaType.int,
-          outputTy = ScalaType.int,
-          initCode = "Int.MinValue",
-          addCode = "(x:Int,y:Int) => x max y",
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.MaxDouble) =>
-        ScalaMonoAggregationOperator(
-          name = "Max Double Mono",
-          inputTy = ScalaType.double,
-          outputTy = ScalaType.double,
-          initCode = "Double.NegativeInfinity",
-          addCode = "(x:Double,y:Double) => x max y",
-        )
-      case MonoAggregationOperator(ArithmeticMonoDefinition.Count) =>
-        ScalaMonoAggregationOperator(
-          name = "Count Mono",
-          inputTy = ScalaType.any,
-          outputTy = ScalaType.int,
-          initCode = "0", 
-          addCode = "(st: Int, a: Any) => x + 1"
         )
       case _ => super.visitAggregationOperator(op)
 

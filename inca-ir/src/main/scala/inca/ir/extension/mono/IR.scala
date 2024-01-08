@@ -127,7 +127,7 @@ object StringMonoDefinition extends BuiltInMonoDefinition:
     [[TForeign(ScalaSet(ft))]] = ...
  */
 
-case class SetMonoDefinition2(ty: Type) extends BuiltInMonoDefinition:
+case class SetMonoDefinition(ty: Type) extends BuiltInMonoDefinition:
   override def name: Name = s"SetMonoDef_$ty"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(ty, TSet(ty), TSet(ty))
@@ -143,25 +143,6 @@ case class SetMonoDefinition2(ty: Type) extends BuiltInMonoDefinition:
 //    MapComprehension(Var(k), valMono.resultTerm(Var(v), gensym),
 //      Seq(rtMapElem(Var(k), Var(v), state)))
 
-
-trait SetMonoDefinition(ST: Type, A: Type, B: Type) extends BuiltInMonoDefinition:
-  override def name: Name = s"SetMonoDef_${ST}_${A}_$B"
-  override def constructorParamTypes: Seq[Type] = Seq()
-  override def typ: MonoTypes = MonoTypes(A, TSet(ST), TSet(B))
-  def addMap(input: Term): Term
-  def resultMap(state: Term): Term
-  override def resultTerm(state: Term, gensym: Gensym): Term = 
-    val elem = gensym.freshName("elem")
-    SetComprehension(
-      resultMap(Var(elem)),
-      Seq(SetMember(Var(elem), state))
-    )
-
-case class NaiveSetMonoDefinition(T: Type) extends SetMonoDefinition(T, T, T):
-  override def name: Name = s"NaiveSetMonoDef_$T"
-  override def addMap(input: Term): Term = input
-  override def resultMap(state: Term): Term = state
-  override def resultTerm(state: Term, gensym: Gensym): Term = state
 
 case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInMonoDefinition:
   override def name: Name = s"MapMonoDef_${keyTy}_$mono"

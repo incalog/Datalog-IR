@@ -8,7 +8,7 @@ import inca.ir.extension.string.*
 import inca.ir.extension.string
 import inca.ir.*
 import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.mono.{MonoAggregationOperator, NaiveSetMonoDefinition, StringMonoDefinition}
+import inca.ir.extension.mono.{MonoAggregationOperator, StringMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
   override def isTypeSupported(ty: Type): Boolean = ty match
@@ -33,14 +33,3 @@ trait ScalaLowering extends BaseScalaLowering:
       case _ =>
         super.visitTerm(term)
   }
-
-  override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(StringMonoDefinition) =>
-      ScalaMonoAggregationOperator(
-        name = "String Mono",
-        inputTy = ScalaType.string,
-        outputTy = ScalaType.string,
-        initCode = """""""",
-        addCode = "(st: String, a: String) => st + a"
-      )
-    case _ => super.visitAggregationOperator(op)

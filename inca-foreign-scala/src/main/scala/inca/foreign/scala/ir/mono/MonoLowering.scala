@@ -1,15 +1,18 @@
 package inca.foreign.scala.ir.mono
 
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaMonoAggregationOperator, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaInca, ScalaMonoAggregationOperator, ScalaMonoDefinition, ScalaType}
+import inca.ir
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOperator}
+import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.{aggregate, demand, foreign, mono, set}
-import inca.ir.extension.mono.{MapMonoDefinition, MonoAggregationOperator, NaiveSetMonoDefinition, SetMonoDefinition2}
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, MapMonoDefinition, MonoAggregationOperator, SetMonoDefinition, StringMonoDefinition}
 import inca.ir.extension.set.TSet
+import inca.ir.extension.string.TString
 import inca.ir.lowering.BaseLowering
 
 
@@ -36,7 +39,12 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case agg@Aggregate(rel, args, op) =>
-      var newAgg = Aggregate(rel, args.flatMap(visitArg), visitAggregationOperator(op))
+      val newArgs = args.flatMap {
+        case WildcardArg() => Seq(WildcardArg())
+        case TermArg(t) => visitArg(TermArg(t))
+        case AggregateColumnArg(t) => visitArg(AggregateColumnArg(t))
+      }
+      var newAgg = Aggregate(rel, newArgs, visitAggregationOperator(op))
       var suffix = Seq[Atom]()
       val Seq(aggIndex) = agg.aggregationColumns
 
@@ -95,7 +103,68 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
   }
 
   override def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op match
-    case MonoAggregationOperator(SetMonoDefinition2(ty)) =>
+    case MonoAggregationOperator(ArithmeticMonoDefinition.SumInt) =>
+      inputConversion = Some((TInt, ScalaType.int))
+      outputConversion = Some((ScalaType.int, TInt))
+      ScalaMonoAggregationOperator(
+        name = "Sum Int Mono",
+        inputTy = ScalaType.int,
+        outputTy = ScalaType.int,
+        initCode = "0",
+        addCode = "(x:Int,y:Int) => x + y"
+      )
+    case MonoAggregationOperator(ArithmeticMonoDefinition.SumDouble) =>
+      inputConversion = Some((TDouble, ScalaType.double))
+      outputConversion = Some((ScalaType.double, TDouble))
+      ScalaMonoAggregationOperator(
+        name = "Sum Double Mono",
+        inputTy = ScalaType.double,
+        outputTy = ScalaType.double,
+        initCode = "0",
+        addCode = "(x:Double,y:Double) => x + y"
+      )
+    case MonoAggregationOperator(ArithmeticMonoDefinition.MaxInt) =>
+      inputConversion = Some((TInt, ScalaType.int))
+      outputConversion = Some((ScalaType.int, TInt))
+      ScalaMonoAggregationOperator(
+        name = "Max Int Mono",
+        inputTy = ScalaType.int,
+        outputTy = ScalaType.int,
+        initCode = "Int.MinValue",
+        addCode = "(x:Int,y:Int) => x max y",
+      )
+    case MonoAggregationOperator(ArithmeticMonoDefinition.MaxDouble) =>
+      inputConversion = Some((TDouble, ScalaType.double))
+      outputConversion = Some((ScalaType.double, TDouble))
+      ScalaMonoAggregationOperator(
+        name = "Max Double Mono",
+        inputTy = ScalaType.double,
+        outputTy = ScalaType.double,
+        initCode = "Double.NegativeInfinity",
+        addCode = "(x:Double,y:Double) => x max y",
+      )
+    case MonoAggregationOperator(ArithmeticMonoDefinition.Count) =>
+      inputConversion = Some((TAny, ScalaType.any))
+      outputConversion = Some((ScalaType.int, TInt))
+      ScalaMonoAggregationOperator(
+        name = "Count Mono",
+        inputTy = ScalaType.any,
+        outputTy = ScalaType.int,
+        initCode = "0",
+        addCode = "(st: Int, a: Any) => x + 1"
+      )
+    case MonoAggregationOperator(StringMonoDefinition) =>
+      inputConversion = Some((TString, ScalaType.string))
+      outputConversion = Some((ScalaType.string, TString))
+      ScalaMonoAggregationOperator(
+        name = "String Mono",
+        inputTy = ScalaType.string,
+        outputTy = ScalaType.string,
+        initCode = """""""",
+        addCode = "(st: String, a: String) => st + a"
+      )
+
+    case MonoAggregationOperator(SetMonoDefinition(ty)) =>
       val sty = ScalaInca.compileType(ty)
       val styName = sty.name
       val scalaSet = ScalaType(s"Set[$styName]")
@@ -109,15 +178,6 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         scalaSet,
         initCode = s"Set[$styName]()",
         addCode = s"(st: Set[$styName], a: $styName) => st + a"
-      )
-    case MonoAggregationOperator(NaiveSetMonoDefinition(ty)) =>
-      val sty = getSTName(ty)
-      ScalaMonoAggregationOperator(
-        Name(s"ScalaNaiveSetMono$$${sty.replace("[", "$").replace("]", "$")}"),
-        ScalaType(sty),
-        ScalaType(s"Set[$sty]"),
-        initCode = s"Set[$sty]()",
-        addCode = s"(st: Set[$sty], a: $sty) => st + a"
       )
     case MonoAggregationOperator(mm@MapMonoDefinition(keyTy, mono)) =>
       val kt = ScalaInca.compileType(keyTy)
@@ -138,11 +198,18 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
              | else st + (a._1 -> $addCode($initCode, a._2))
              |""".stripMargin
       )
+    // user-defined mono
+    case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, constructorParamTypes, typ)) =>
+      val inputType = ScalaInca.compileType(typ.in)
+      val outputType = ScalaInca.compileType(typ.state)
+      inputConversion = Some((typ.in, inputType))
+      outputConversion = Some((outputType, typ.state))
+      ScalaMonoAggregationOperator(name, inputType, outputType, initCode, addCode)
     case _ => super.visitAggregationOperator(op)
 
-def scalaSetMonoDefinition(ty: Type): SetMonoDefinition2 = {
+def scalaSetMonoDefinition(ty: Type): SetMonoDefinition = {
   val rtTy = ScalaInca.compileType(ty)
   val scalaSetType = ScalaType(s"Set[${rtTy.name}]")
-  SetMonoDefinition2(ty)
+  SetMonoDefinition(ty)
 }
 
