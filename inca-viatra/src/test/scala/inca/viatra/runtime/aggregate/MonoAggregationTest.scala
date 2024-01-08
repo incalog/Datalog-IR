@@ -333,17 +333,17 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   // non-standard set mono, probably we need to add a SetSize term?
   // TODO: test polymorphic setmono
-  private lazy val SetMono = ScalaMonoDefinition(
-    "SetMono",
+  private lazy val SetSizeMono = ScalaMonoDefinition(
+    "SetSizeMono",
     initCode = "Set[Any]()",
     addCode = "(st: Set[Any], a: Any) => st + a",
     resultCode = "(st: Set[Any]) => st.size",
     constructorParamTypes = Seq(),
-    typ = MonoTypes(TAny, TSet(TAny), ScalaType.int)
+    typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
   )
 
   // compute the size of graph
-  // main(n: TInt) :- m = SetMono, size(m), b = n.result()
+  // main(n: TInt) :- m = SetSizeMono, size(m), b = n.result()
   // size(m) :- edge(e1, e2), m <- e1, m <- e2
   private lazy val graphSizeMain = Relation(
     "main",
@@ -351,7 +351,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(SetMono, Seq(), Seq())),
+      Eq(Var("m"), NewMono(SetSizeMono, Seq(), Seq())),
       Call("size", Seq(Var("m"))),
       Eq(Var("n"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.int, TInt))
     )))
@@ -359,11 +359,11 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   private lazy val graphSize = Relation(
     "size",
-    Seq(Param("m", TDemand(TMono(TAny, ScalaType.int, Seq())))),
+    Seq(Param("m", TDemand(SetSizeMono.monoType(Seq())))),
     Seq(Body(Seq(
       ExtensionalCall("edge", Seq(Var("e1"), Var("e2"))),
-      WriteMono(Var("m"), Cast(Var("e1"), TAny), Seq()),
-      WriteMono(Var("m"), Cast(Var("e2"), TAny), Seq()),
+      WriteMono(Var("m"), Cast(Var("e1"), ScalaType("Any")), Seq()),
+      WriteMono(Var("m"), Cast(Var("e2"), ScalaType("Any")), Seq()),
     )))
   )
 
