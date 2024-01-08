@@ -39,11 +39,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case agg@Aggregate(rel, args, op) =>
-      val newArgs = args.flatMap {
-        case WildcardArg() => Seq(WildcardArg())
-        case TermArg(t) => visitArg(TermArg(t))
-        case AggregateColumnArg(t) => visitArg(AggregateColumnArg(t))
-      }
+      val newArgs = args.flatMap(visitArg)
       var newAgg = Aggregate(rel, newArgs, visitAggregationOperator(op))
       var suffix = Seq[Atom]()
       val Seq(aggIndex) = agg.aggregationColumns
