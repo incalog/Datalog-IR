@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
-import inca.ir.extension.aggregate.Aggregate
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
@@ -69,20 +69,6 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     case WildcardArg() => Seq(TermArg(Var(Name(gensym.freshName("_")))))
     case _ => super.visitArg(arg)
 
-  /** Aggregation */
-  // Note: Leave this in, otherwise we get a compiler error...
-  //  override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator = op match
-  //    // For user-defined mono definition
-  //    case _ => super.visitAggregationOperator(op)
-
-
-
-  // Note: leaving aggregate atom unchanged is correct only if it has been lowered by mono.ScalaLowering and conversion elimination
-  // TODO: eliminate above precondition
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
-    case Aggregate(rel, args, op) => Seq(atom)
-    case _ => super.visitAtom(atom)
-  }
 
   protected def createRelName(name: String): Name =
     gensym.freshName(
