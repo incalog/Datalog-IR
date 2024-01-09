@@ -6,6 +6,7 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.ir.execution.{ExecutorEngine, IRExecutor, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, Mul, Sub, TInt}
+import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
@@ -187,9 +188,31 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     assertResult(Set(1, 2, 3))(res.entries.toSet)
 
 
-//  test("Map Mono: basic test 4"):
+  test("Map Mono: basic test 4"):
+    val mainRelation = Relation("main",
+      Seq(Param("elem", TTuple(Seq(TInt, TString)))),
+      Seq(Body(Seq(
+        Eq(Var("counter"), IntNum(0)),
+        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+        Eq(Var("mono"), NewMono(MapMonoDefinition(TInt, SetMonoDefinition(TTuple(Seq(TInt, TString)))))),
+        WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), TupleLit(Seq(IntNum(1), StringLit("1")))))),
+        WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), TupleLit(Seq(IntNum(2), StringLit("2")))))),
+        WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), TupleLit(Seq(IntNum(1), StringLit("3")))))),
+        WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), TupleLit(Seq(IntNum(4), StringLit("4")))))),
+        Eq(Var("map"), ReadMono(Var("mono"))),
+        SetMember(Var("elem"), MapLookUp(Var("map"), IntNum(1)))
+      )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(Set((1, "1"), (2, "2")))(res.entries.toSet)
+
+
+//  test("Map Mono: basic test 5"):
 //    val mainRelation = Relation("main",
-//      Seq(Param("elem", TTuple(Seq(TInt, TString)))),
+//      Seq(Param("elem", TBoolean)),
 //      Seq(Body(Seq(
 //        Eq(Var("counter"), IntNum(0)),
 //        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
@@ -206,10 +229,29 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
 //    engine.readAll().foreach(res => println(res.asTable))
 //    val res = engine.read(UnitRelation("main"))
 //    assert(res.entries.nonEmpty)
-//    assertResult(Set(1, 2, 3))(res.entries.toSet)
-
-
-
+//    assertResult(Set((1, "1"), (2, "2")))(res.entries.toSet)
+//
+//
+//  test("Map Mono: basic test 6"):
+//    val mainRelation = Relation("main",
+//      Seq(Param("elem", TTuple(Seq(TInt, TString)))),
+//      Seq(Body(Seq(
+//        Eq(Var("counter"), IntNum(0)),
+//        Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+//        Eq(Var("mono"), NewMono(MapMonoDefinition(TTuple(Seq(TString, TInt)), SetMonoDefinition(TTuple(Seq(TInt, TString)))))),
+//        WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), TupleLit(Seq(IntNum(1), StringLit("1")))))),
+//        WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), TupleLit(Seq(IntNum(2), StringLit("2")))))),
+//        WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), TupleLit(Seq(IntNum(1), StringLit("3")))))),
+//        WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), TupleLit(Seq(IntNum(4), StringLit("4")))))),
+//        Eq(Var("map"), ReadMono(Var("mono"))),
+//        SetMember(Var("elem"), MapLookUp(Var("map"), TupleLit(Seq(IntNum(1), StringLit("1")))))
+//      )))).addHint(PureHint)
+//
+//    val engine = compile(mainRelation)
+//    engine.readAll().foreach(res => println(res.asTable))
+//    val res = engine.read(UnitRelation("main"))
+//    assert(res.entries.nonEmpty)
+//    assertResult(Set((1, "1"), (2, "2")))(res.entries.toSet)
 
 
   // TODO: 1. MapMono with user-defined mono

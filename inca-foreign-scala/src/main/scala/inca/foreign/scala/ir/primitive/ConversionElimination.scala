@@ -169,7 +169,9 @@ trait ConversionElimination extends BaseLowering:
         Var(elem)
       ))
     case ConvertIRForeign(term, TTuple(tys), stup@ScalaType(s"($styStr)")) =>
-      val stys = styStr.split(',').toSeq.map(_.trim)
+//      val stys = styStr.split(',').toSeq.map(_.trim)
+      val stys = tys.map(ty => ScalaInca.compileType(ty).name)
+      require(stys.mkString("(", ", ", ")") == stup.name, s"Unmatched type:\nIR type: ${TTuple(tys)}\nScalaType: $stup")
       val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
       val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
       val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
