@@ -259,7 +259,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val mainRelation = Relation("main", Seq(Param("s", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(StringMonoDefinition, Seq(), Seq())),
+      Eq(Var("m"), NewMono(StringMonoDefinition(), Seq(), Seq())),
       WriteMono(Var("m"), StringLit("1+1"), Seq()),
       Eq(Var("s"), ReadMono(Var("m")))
     )))).addHint(PureHint)

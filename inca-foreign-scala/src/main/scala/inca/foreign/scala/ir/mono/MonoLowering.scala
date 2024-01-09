@@ -7,11 +7,12 @@ import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOperator}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.map.TMap
 import inca.ir.extension.{aggregate, demand, foreign, mono, set}
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, MapMonoDefinition, MonoAggregationOperator, SetMonoDefinition, StringMonoDefinition}
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoAggregationOperator, SetMonoDefinition, StringMonoDefinition}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.string.TString
 import inca.ir.extension.tuple.TTuple
@@ -151,7 +152,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         initCode = "0",
         addCode = "(st: Int, a: Any) => st + 1"
       )
-    case MonoAggregationOperator(StringMonoDefinition) =>
+    case MonoAggregationOperator(StringMonoDefinition()) =>
       inputConversion = Some((TString, ScalaType.string))
       outputConversion = Some((ScalaType.string, TString))
       ScalaMonoAggregationOperator(
@@ -161,7 +162,16 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         initCode = """""""",
         addCode = "(st: String, a: String) => st + a"
       )
-
+    case MonoAggregationOperator(DisjMonoDefinition()) =>
+      inputConversion = Some((TBoolean, ScalaType.bool))
+      outputConversion = Some((ScalaType.bool, TBoolean))
+      ScalaMonoAggregationOperator(
+        name = "Disjunction Mono",
+        inputTy = ScalaType.bool,
+        outputTy = ScalaType.bool,
+        initCode = "false",
+        addCode = "(st: Boolean, a: Boolean) => st || a"
+      )
     case MonoAggregationOperator(SetMonoDefinition(ty)) =>
       val sty = ScalaInca.compileType(ty)
       val styName = sty.name

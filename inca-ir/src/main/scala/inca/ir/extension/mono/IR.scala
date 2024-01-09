@@ -2,6 +2,7 @@ package inca.ir.extension.mono
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.map.{MapFun, MapLookUp, TMap}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.string.{StringLit, TString}
@@ -102,10 +103,16 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
     case SumToPair => TupleLit(Seq(state, StringLit("this should be a string")))
 
 
-object StringMonoDefinition extends BuiltInMonoDefinition:
+case class StringMonoDefinition() extends BuiltInMonoDefinition:
   override def name: Name = "StringConcatMono"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TString, TString, TString)
+  override def resultTerm(state: Term, gensym: Gensym): Term = state
+
+case class DisjMonoDefinition() extends BuiltInMonoDefinition:
+  override def name: Name = "DisjMono"
+  override def constructorParamTypes: Seq[Type] = Seq()
+  override def typ: MonoTypes = MonoTypes(TBoolean, TBoolean, TBoolean)
   override def resultTerm(state: Term, gensym: Gensym): Term = state
 
 /*

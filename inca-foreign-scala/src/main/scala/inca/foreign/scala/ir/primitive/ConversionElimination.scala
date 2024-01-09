@@ -91,7 +91,11 @@ trait ConversionElimination extends BaseLowering:
           visitTerm(ConvertForeignIR(proj, ScalaType(sty), ty))
         })
       )
-    case ConvertForeignIR(term, smap@ScalaType(s"Map[$fkTy, $fvTy]"), TMap(irkTy, irvTy)) =>
+    case ConvertForeignIR(term, smap@ScalaType(s"Map[$fKVTy]"), TMap(irkTy, irvTy)) =>
+      val fmapTy = ScalaInca.compileType(TMap(irkTy, irvTy)).name
+      require(fmapTy == smap.name, s"Unmacthed type:\nScala Type: $fmapTy\nIR Type: $smap")
+      val fkTy = ScalaInca.compileType(irkTy).name
+      val fvTy = ScalaInca.compileType(irvTy).name
       val memRelName = createRelName(s"ScalaMapToMap$$$irkTy$$$irvTy")
       val mapTy = s"Map[$fkTy, $fvTy]"
       val memRel = Relation(
