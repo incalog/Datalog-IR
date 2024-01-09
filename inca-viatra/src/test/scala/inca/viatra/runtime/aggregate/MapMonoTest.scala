@@ -1,16 +1,19 @@
 package inca.viatra.runtime.aggregate
 
 import inca.foreign.scala.ir as scalaExt
-import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering}
+import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaMonoDefinition, ScalaType}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
-import inca.ir.execution.{ExecutorEngine, IRExecutor, UnitRelation}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, Mul, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
+import inca.ir.extension.demand.TDemand
+import inca.ir.extension.foreign.ConvertForeignIR
 import inca.ir.extension.impure.{Impure, PureHint}
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, Var, WildcardArg, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, NewMono, ReadMono, SetMonoDefinition, WriteMono}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
+import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.{SetLit, SetMember, TSet, IR as setIR, Lowering as setLowering}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
@@ -19,6 +22,7 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.runtime.aggregate.builtin.arithmetic.SumIntMono
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
@@ -394,7 +398,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     assertResult((1, "1", 1, 1, "1", 1, "1", 1))(res.entries.head)
 
 
-  test("Map Mono: basic test 13: two map monos whose key type is TTuple[TString, TInt] and value mono is SetMono[TTuple[TInt, TString]]"):
+  test("Map Mono basic test 13: two map monos whose key type is TTuple[TString, TInt] and value mono is SetMono[TTuple[TInt, TString]]"):
     val mainRelation = Relation("main",
       Seq(Param("elem", TTuple(Seq(TInt, TString)))),
       Seq(Body(Seq(
@@ -417,12 +421,104 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     assertResult(Set((2, "2"), (-2, "-2")))(res.entries.toSet)
 
 
-  // TODO: 1. MapMono with user-defined mono
+  test("Map Mono basic test 14: value mono is a user-defined mono"):
+    val SetSizeMono = ScalaMonoDefinition(
+      "SetSizeMono",
+      initCode = "Set[Any]()",
+      addCode = "(st: Set[Any], a: Any) => st + a",
+      resultCode = "(st: Set[Any]) => st.size",
+      constructorParamTypes = Seq(),
+      typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
+    )
+
+    val mainRelation = Relation("main", Seq(Param("size", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(MapMonoDefinition(TTuple(Seq(TString, TInt)), SetSizeMono))),
+      WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
+        Cast(TupleLit(Seq(IntNum(1), StringLit("1"))), ScalaType.any)
+      ))),
+      WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
+        Cast(TupleLit(Seq(IntNum(-1), StringLit("-1"))), ScalaType.any)
+      ))),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("size"), ConvertForeignIR(
+        MapLookUp(Var("map"), TupleLit(Seq(StringLit("-1"), IntNum(1)))),
+        ScalaType.int,
+        TInt
+      ))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(2)(res.entries.head)
+
+
+  test("Map mono basic test 15: recursive relation"):
+    val mainRelation = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("m"), NewMono(MapMonoDefinition(TString, SumInt))),
+      Eq(Var("node1"), StringLit("A")),
+      Call("collNode", Seq(Var("m").arg, Var("node1").arg)),
+      Eq(Var("node2"), StringLit("F")),
+      Call("collNode", Seq(Var("m").arg, Var("node2").arg)),
+      Eq(Var("map"), ReadMono(Var("m"))),
+      Eq(Var("num"), MapLookUp(ReadMono(Var("m")), StringLit("A")))
+    )))).addHint(PureHint)
+
+    val collNode = Relation("collNode",
+      Seq(
+        Param("mono", TDemand(TMono(TTuple(Seq(TString, TInt)), TMap(TString, TInt), Seq()))),
+        Param("t", TDemand(TString))
+      ), Seq(Body(Seq(
+        ExtensionalCall("leaf", Seq(Var("t").arg)),
+        WriteMono(Var("mono"), TupleLit(Seq(Var("t"), IntNum(1))))
+      )),
+        Body(Seq(
+          ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
+          WriteMono(Var("mono"), TupleLit(Seq(Var("t"), IntNum(1))))
+        ))
+      ))
+
+    val extLeaf = ExtensionalRelation(
+      "leaf", Seq(Param("t", TString))
+    )
+
+    val extBTree = ExtensionalRelation(
+      "btree", Seq(Param("t", TString), Param("l", TString), Param("r", TString))
+    )
+
+    lazy val edbLeaf: Relation1[Seq[String]] = Relation1("leaf", Seq("t"), Seq(Seq("C"), Seq("D"), Seq("E"), Seq("I"), Seq("J"), Seq("K"), Seq("L"), Seq("A")))
+
+    val edbBTree: Relation3[Seq[String], Seq[String], Seq[String]] = Relation3(
+      "btree",
+      Seq("t", "l", "r"),
+      Seq(
+        Seq("A", "A", "A"),
+//        Seq("B", "D", "E"),
+//        Seq("F", "G", "H"),
+//        Seq("G", "I", "K"),
+//        Seq("H", "L", "J")
+      )
+    )
+
+    val engine = compile(mainRelation, collNode, extLeaf, extBTree)
+    engine.insert(edbLeaf)
+    engine.insert(edbBTree)
+    engine.readAll().foreach(res => println(res.asTable))
+
+
+  // TODO: 1. MapMono with user-defined mono ✔
   //       2. MapMono with map mono
   //       3. MapMono whose keys can be lowered ✔
   //       4. MapMono with ADT
   //       5. MapMono with MapUnion, ...
-  //       6. MapMono with recursive relations
+  //       6. MapMono with recursive relations ✔
   //       7. Two Map Monos ✔
   //
 }

@@ -139,7 +139,7 @@ case class SetMonoDefinition(ty: Type) extends BuiltInMonoDefinition:
 
 
 case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInMonoDefinition:
-  override def name: Name = s"MapMonoDef_${keyTy}_$mono"
+  override def name: Name = s"MapMonoDef_${keyTy}_${mono.name}"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TTuple(Seq(keyTy, mono.typ.in)), TMap(keyTy, mono.typ.state), TMap(keyTy, mono.typ.out))
   override def resultTerm(state: Term, gensym: Gensym): Term = 
@@ -147,5 +147,5 @@ case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInM
     val v = gensym.freshName("v")
     MapFun(
       Seq(Param(k, keyTy)),
-      MapLookUp(state, Var(k))
+      mono.resultTerm(MapLookUp(state, Var(k)), gensym)
     )
