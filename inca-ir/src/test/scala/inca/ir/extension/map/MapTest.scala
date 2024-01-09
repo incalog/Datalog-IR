@@ -1,8 +1,10 @@
 package inca.ir.extension.map
 
-import inca.ir.extension.arithmetic.{IntNum, TInt}
+import inca.ir.extension.arithmetic.{Add, IntNum, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.string.{StringLit, TString}
+import inca.ir.extension.{block, demand, disjunction, tuple, arithmetic}
+import inca.ir.lowering.BaseLowering
 import inca.ir.typing.IRTypechecker
 import inca.ir.{Body, Eq, Language, Module, Param, Relation, TNothing, Var, string2name}
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -10,9 +12,29 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 class MapTest extends AnyFunSuiteLike {
   def module(relations: Relation*): Module =
-    val typechecker = new IRTypechecker {}
-    val mod = Module("M", Language(IR), relations)
-    typechecker.checkProgram(Seq(mod))
+    val typecheckerBefore = new IRTypechecker
+
+    val mapLowering = Seq(
+      new Lowering {},
+      new disjunction.Lowering {},
+      new tuple.Lowering {},
+      new block.Lowering {},
+      new demand.Lowering {}
+    )
+
+    def lower(l: BaseLowering, m: Module): Module =
+      val checker = new IRTypechecker
+      try checker.checkModule(m)
+      finally checker.getErrors.foreach(println)
+      println(s"Lowering ${l.name}")
+      val lowered = l.lower(m)
+      println(lowered)
+      lowered
+
+    val mod = Module("M", Language(IR, arithmetic.IR, disjunction.IR, tuple.IR, block.IR, demand.IR), relations)
+    typecheckerBefore.checkModule(mod)
+    println(mod)
+    val lowered = mapLowering.foldLeft(mod)((mod, l) => lower(l, mod))
     mod
 
   test("Empty map"){
@@ -75,5 +97,22 @@ class MapTest extends AnyFunSuiteLike {
     )
 
     module(mainRelation, someCallRelation)
+  }
+  
+
+  test("Map comprehension"){
+    val mainRelation = Relation(
+      "main",
+      Seq(Param("m2", TMap(TInt, TInt))),
+      Seq(Body(Seq(
+        Eq(Var("m1"), MapLit(Seq((IntNum(1), IntNum(2))))),
+        Eq(Var("m2"), MapComprehension(Var("k"), Add(Var("v"), IntNum(1)), Seq(
+          MapContains(Var("m1"), Var("k")),
+          Eq(Var("v"), MapLookUp(Var("m1"), Var("k")))
+        )))
+      )))
+    )
+    println(module(mainRelation))
+
   }
 }

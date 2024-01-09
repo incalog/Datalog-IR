@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.extension.block.Block
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData}
-import inca.ir.extension.demand.TDemand
+import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
@@ -193,7 +193,18 @@ trait Lowering extends BaseLowering:
       }
       Seq(block.Block(atoms, Var(valVar)))
     case MapComprehension(key, value, atoms) =>
-      ???
+      val ats = atoms.flatMap(visitAtom)
+      val ks = visitTerm(key)
+      val vs = visitTerm(value)
+      val mapEnum = new MapEnum:
+        override def apply(keyVar: Name, valVar: Name): Seq[Atom] =
+          ats :+ Disjunction(ks.zip(vs).map((k, v) =>
+            DisjunctionAlternative(Seq(
+              Eq(k, Var(keyVar)),
+              Eq(v, Var(valVar))
+            )))
+          )
+      Seq(callAddConstructor(term, mapEnum))
     case _ => super.visitTerm(term)
   }
 
@@ -202,7 +213,7 @@ trait Lowering extends BaseLowering:
       val (keyTy, valTy) = keyValType(map)
       val Seq(m) = visitTerm(map)
       val atoms = visitTerm(key).map { keyTerm =>
-        Call(relNameOf(keyTy, valTy), Seq(m.arg, keyTerm.arg, WildcardArg()), neg = true)
+        Call(relNameOf(keyTy, valTy), Seq(m.arg, keyTerm.arg, WildcardArg())).addHint(DemandIgnoreCallHint)
       }
       atoms
     case _ => super.visitAtom(atom)

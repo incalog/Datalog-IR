@@ -20,7 +20,8 @@ trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
   override def requiredIRs: Set[BaseIR] = Set(aggregate.IR, demandIR, impureIR, dataIR)
 
   private def normName(s: String) : String =
-    Seq("(", ")", "[", "]", ", ").foldLeft(s)((s, t) => s.replace(t, "$"))
+    Seq("(", ")", "[", "]", ", ").foldLeft(s)((s, t) => s.replace(t, "$")).replaceAll("\\${2,}", "\\$")
+
 
   /** Each mono kind gets its own data type, based on input, output, and keys */
   def monoDataType(tm: TMono): TData =
@@ -31,7 +32,7 @@ trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
 
   def monoDataConstructor(mono: MonoDefinition, keys: Seq[Type]): Name =
     val tm = mono.monoType(keys)
-    Name(normName(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}_${mono.name}"))
+    Name(normName(s"${mono.name}$$${tm.keys.mkString("_")}"))
 
   def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
     val data = DataDefinition(monoDataType(tm).ref.name)

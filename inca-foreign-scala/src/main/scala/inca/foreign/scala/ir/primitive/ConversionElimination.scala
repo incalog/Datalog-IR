@@ -119,7 +119,7 @@ trait ConversionElimination extends BaseLowering:
       val map = MapComprehension(
         ConvertForeignIR(Var(key), ScalaType(fkTy), irkTy),
         ConvertForeignIR(Var(value), ScalaType(fvTy), irvTy),
-        Seq(Call(memRelName, Seq(Var("key").arg, Var("value").arg, term.arg)))
+        Seq(Call(memRelName, Seq(Var(key).arg, Var(value).arg, term.arg)))
       )
       visitTerm(map)
     case ConvertForeignIR(term, ScalaType("Any"), TAny) =>

@@ -1,12 +1,9 @@
 package inca.ir.extension.mono
 
 import inca.ir.*
-import inca.ir.extension.aggregate.AggregationOperatorUserDefined
 import inca.ir.extension.arithmetic.{TDouble, TInt}
-import inca.ir.extension.demand.TDemand
-import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
-import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap}
-import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
+import inca.ir.extension.map.{MapFun, MapLookUp, TMap}
+import inca.ir.extension.set.TSet
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit}
 import inca.util.Gensym
@@ -133,16 +130,6 @@ case class SetMonoDefinition(ty: Type) extends BuiltInMonoDefinition:
   override def typ: MonoTypes = MonoTypes(ty, TSet(ty), TSet(ty))
   override def resultTerm(state: Term, gensym: Gensym): Term = state
 
-//case class MapMonoDefinition2(keyTy: Type, valMono: MonoDefinition, rtMap: (Type,Type) => Type, rtMapElem: (Term,Term,Term) => Atom) extends BuiltInMonoDefinition:
-//  override def name: Name = s"SetMonoDef_$keyTy"
-//  override def constructorParamTypes: Seq[Type] = Seq()
-//  override def typ: MonoTypes = MonoTypes(keyTy, rtMap(keyTy, valMono.typ.state), TMap(keyTy, valMono.typ.out))
-//  override def resultTerm(state: Term, gensym: Gensym): Term =
-//    val k = gensym.freshName("k")
-//    val v = gensym.freshName("v")
-//    MapComprehension(Var(k), valMono.resultTerm(Var(v), gensym),
-//      Seq(rtMapElem(Var(k), Var(v), state)))
-
 
 case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInMonoDefinition:
   override def name: Name = s"MapMonoDef_${keyTy}_$mono"
@@ -151,7 +138,7 @@ case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInM
   override def resultTerm(state: Term, gensym: Gensym): Term = 
     val k = gensym.freshName("k")
     val v = gensym.freshName("v")
-    MapComprehension(Var(k), mono.resultTerm(Var(v), gensym), Seq(
-      MapContains(state, Var(k)), 
-      Eq(Var(v), MapLookUp(state, Var(k)))
-    ))
+    MapFun(
+      Seq(Param(k, keyTy)),
+      MapLookUp(state, Var(k))
+    )

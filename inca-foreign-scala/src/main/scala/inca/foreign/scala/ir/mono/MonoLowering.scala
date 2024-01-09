@@ -9,10 +9,12 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOp
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand}
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
+import inca.ir.extension.map.TMap
 import inca.ir.extension.{aggregate, demand, foreign, mono, set}
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, MapMonoDefinition, MonoAggregationOperator, SetMonoDefinition, StringMonoDefinition}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.string.TString
+import inca.ir.extension.tuple.TTuple
 import inca.ir.lowering.BaseLowering
 
 
@@ -176,22 +178,27 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
         addCode = s"(st: Set[$styName], a: $styName) => st + a"
       )
     case MonoAggregationOperator(mm@MapMonoDefinition(keyTy, mono)) =>
-      val kt = ScalaInca.compileType(keyTy)
-      val inputVTy = ScalaInca.compileType(mono.typ.in)
-      val stateVTy = ScalaInca.compileType(mono.typ.state)
-      val outputVTy = ScalaInca.compileType(mono.typ.out)
+      val kt = ScalaInca.compileType(keyTy).name // scala type of key
+      val inputVSTy = ScalaInca.compileType(mono.typ.in).name 
+      val stateVSTy = ScalaInca.compileType(mono.typ.state).name
+      val outputVSTy = ScalaInca.compileType(mono.typ.out).name
       val valueAggOp = visitAggregationOperator(MonoAggregationOperator(mono)).asInstanceOf[ScalaMonoAggregationOperator]
       val initCode = valueAggOp.initCode
       val addCode = valueAggOp.addCode
+      val inputMMSTy = ScalaInca.compileType(mm.typ.in).name // scala type of value mono's input
+      val stateMMSTy = ScalaInca.compileType(mm.typ.state).name // scala type of value mono's state
+      val outputMMSTy = ScalaInca.compileType(mm.typ.out).name // scala type value mono's output
+      inputConversion = Some((mm.typ.in, ScalaType(inputMMSTy)))
+      outputConversion = Some((ScalaType(stateMMSTy), mm.typ.state))
       ScalaMonoAggregationOperator(
         name = s"ScalaMapMonoAggregation_${keyTy}_${mono.name}",
-        inputTy = ScalaType(s"($kt, $inputVTy)"),
-        outputTy = ScalaType(s"Map[$kt, $stateVTy]"),
-        initCode = s"Map[$kt, $stateVTy]()",
+        inputTy = ScalaType(inputMMSTy),
+        outputTy = ScalaType(stateMMSTy),
+        initCode = s"$stateMMSTy()",
         addCode =
-          s"""(st: Map[$kt, $stateVTy], a: ($kt, $inputVTy)) =>
-             | if st.contains(a._1) then st + (a._1 -> ($addCode (st(a._1), a._2)))
-             | else st + (a._1 -> $addCode($initCode, a._2))
+          s"""(st: $stateMMSTy, a: $inputMMSTy) =>
+             | if st.contains(a._1) then st + (a._1 -> ($addCode)(st(a._1), a._2))
+             | else st + (a._1 -> ($addCode)($initCode, a._2))
              |""".stripMargin
       )
     // user-defined mono
