@@ -77,12 +77,13 @@ trait Lowering extends BaseLowering:
           case None =>
             throw IllegalStateException(s"Untyped term $t")
         }
-        val endIndex = idx + tupleTy.tys(idx).size
+        val flatIdx = (0 until idx).flatMap(i => visitTerm(Project(t, i))).size
+        val endIndex = flatIdx + tupleTy.tys(idx).size
         visitTerm(t) match {
           case ts: Seq[Term] if endIndex <= ts.size =>
-            ts.slice(idx, endIndex)
+            ts.slice(flatIdx, endIndex)
           case ts: Seq[Term] if endIndex > ts.size =>
-            throw IndexOutOfBoundsException(s"Projection index range ($idx, $endIndex) out of bounds!")
+            throw IndexOutOfBoundsException(s"Projection index range ($flatIdx, $endIndex) out of bounds!")
           case _ =>
             throw IllegalStateException(s"Can not project unknown term: $term")
         }
