@@ -47,3 +47,12 @@ class OODLViatraExecutorIfTest extends AnyFunSuite:
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
   }
+
+  test("If Object") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/if/IfObject.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq(1))
+    assertResult(1)(res.entries.head)
+  }

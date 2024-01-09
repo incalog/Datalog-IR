@@ -8,7 +8,7 @@ import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 // Compiles but doesn't terminate
-@Ignore
+//@Ignore
 class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)

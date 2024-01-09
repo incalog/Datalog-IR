@@ -64,6 +64,7 @@ trait CompiledModule:
     val logTyped = irLogging.logTypeInformation
     val logModule = irLogging.logModule
     val logLowerings = irLogging.logLowerings
+    val logOptimizations = irLogging.logOptimizations
     val logStatsBeforeLowering = irLogging.logStatsBeforeLowering
     val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
     val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
@@ -94,10 +95,13 @@ trait CompiledModule:
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
     if (logStatsAfterOptimization)
-      printStatistics(l, s"before optimization")
+      printStatistics(p1.head, s"before optimization")
     val p2 = optimize(p1)
     if (logStatsAfterOptimization)
-      printStatistics(l, s"before optimization")
+      printStatistics(p2.head, s"before optimization")
+
+    if (logOptimizations)
+      printStep(s"Optimized: ", p2)
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()

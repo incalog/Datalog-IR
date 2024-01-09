@@ -24,10 +24,10 @@ class Cons(val hd: Def, val tl: DefList) extends DefList {
     this.tl.accept(v)
   }
   override def findByName(name: String): Def = {
-      if (this.hd.name == name)
-        return this.hd
-      else
-        return this.tl.findByName(name)
+    if (this.hd.name == name)
+      return this.hd
+    else
+      return this.tl.findByName(name)
   }
   override def concat(d: DefList): DefList = new Cons(this.hd, this.tl.concat(d))
 }
@@ -147,7 +147,7 @@ case class Edge(val from: Def, val to: Def) { }
 //  }
 //}
 
-class Mapper {
+class GenerateProgram {
     def mkDef(i: Int): Def = {
       val n: Int = i+1
       new Def("a" + i.toString(), new Add(new Var("a" + n.toString()), new Num(i)))
@@ -179,16 +179,18 @@ class Mapper {
     }
 }
 
-@main def main(endNode: Int, step: Int): Unit = {
-  val mapper: Mapper = new Mapper()
+@main def main(endNode: Int, step: Int): Int = {
+  val generate = new GenerateProgram()
 
-  val defs: DefList = mapper.prog(0, endNode, step)
+  val defs: DefList = generate.prog(0, 2, 1)
   val main: Def = defs.head()
   val prog: Prog = new Prog(defs)
 
-  val resolving: NameAnalysis = new NameAnalysis(prog)
+  val resolving = new NameAnalysis(prog)
   prog.accept(resolving)
 
 //    val depending: DependencyAnalysis = new DependencyAnalysis()
 //    prog.accept(depending)
+
+  return 1
 }
