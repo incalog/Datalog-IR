@@ -88,6 +88,8 @@ lazy val inca_viatra = (project in file("inca-viatra"))
   .settings(
     scalaVersion := "3.3.0",
 
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
