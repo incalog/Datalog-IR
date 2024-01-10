@@ -1,2 +1,0 @@
-module M
-@main def main(n: Int): Int = -n

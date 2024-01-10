@@ -1,5 +1,0 @@
-module ParametricEq
-
-def eq[A](x: A,  y: A): Boolean = x == y
-
-@main def main(x: Int, y: Int): Boolean = eq[Int](x, y)

@@ -1,2 +1,0 @@
-module SetIntersection
-@main def main(): Set[Int] = {1, 2, 3} & {1, 3}

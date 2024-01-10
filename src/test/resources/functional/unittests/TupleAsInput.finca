@@ -1,5 +1,0 @@
-module TupleAsInput
-
-@main def main(x: (Int, String)): String =
-  let (x1, x2) = x in x2
-@main def main2(x: (Int, String)): (Int, String) = x

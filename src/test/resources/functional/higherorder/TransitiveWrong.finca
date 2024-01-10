@@ -1,7 +1,0 @@
-module TransitiveWrong
-
-def transitive(r: Set[(Int, Int)]): Set[(Int, Int)] =
-  r ++ {(n1,n3) | (n1,n2) in r, (n2,n3) in transitive(r)}
-
-@main def main(): Set[(Int, Int)] =
-  transitive({(1,2), (2,3), (3,1)})

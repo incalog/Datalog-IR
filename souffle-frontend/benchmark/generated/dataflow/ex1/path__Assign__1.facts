@@ -1,4 +1,0 @@
-$Assign("x", $Num(2))	$Num(2)
-$Assign("y", $Num(2))	$Num(2)
-$Assign("y", $Add($Var("x"), $Var("y")))	$Add($Var("x"), $Var("y"))
-$Assign("x", $Add($Var("x"), $Num(2)))	$Add($Var("x"), $Num(2))
