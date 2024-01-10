@@ -45,7 +45,7 @@ case class CompiledSetMonoModule(mod: Module) extends CompiledModule:
   private trait tupleLowering extends tuple.Lowering with primitive.Visitor
 
   setPipeline(List(
-    () => new mono.Lowering(optimizeSetMono = false) {},
+    () => new mono.Lowering(optimizeMono = false) {},
     () => new MonoScalaLowering {},
     () => new ConversionElimination {},
     () => new impure.Lowering {},

@@ -54,7 +54,7 @@ case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
 
 
   setPipeline(List(
-    () => new mono.Lowering(optimizeSetMono = false) {},
+    () => new mono.Lowering(optimizeMono = false) {},
     () => new MonoScalaLowering {},
     () => new ConversionElimination {},
     () => new impure.Lowering {},

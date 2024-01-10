@@ -14,8 +14,8 @@ import inca.ir.extension.set.SetComprehension
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.lowering.BaseLowering
 
-trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
-  override val name: String = s"Mono(optimizeSet = $optimizeSetMono)"
+trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
+  override val name: String = s"Mono(optimize = $optimizeMono)"
   override def loweredIRs: Set[BaseIR] = Set(IR)
   override def requiredIRs: Set[BaseIR] = Set(aggregate.IR, demandIR, impureIR, dataIR)
 
@@ -54,17 +54,11 @@ trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
       val args = Var(Name("id")) +: Var(Name("name")) +: mono.constructorParamTypes.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
       val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
 
-      mono match
-        case _: SetMonoDefinition if optimizeSetMono =>
-          val keyArgs = tm.keys.map(_ => WildcardArg())
-          val collArgs = Var(Name("m")).arg +: keyArgs :+ Var(Name("elem")).arg
-          val project = Eq(Var(Name("output")),
-            SetComprehension(
-              Var(Name("elem")),
-              Seq(Call(RefByName(monoCollectName(tm)), collArgs, false).addHint(DemandIgnoreCallHint))
-            )
-          )
-          Body(Seq(destruct, project))
+      val atoms = mono match
+        case _: SetMonoDefinition if optimizeMono =>
+          optimizeSetMono(tm)
+        case m: MapMonoDefinition if optimizeMono =>
+          optimizeMapMono(tm, m)
         case _ =>
           val keyArgs = tm.keys.map(_ => WildcardArg())
           val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
@@ -72,9 +66,50 @@ trait Lowering(optimizeSetMono: Boolean = true) extends BaseLowering:
           val op = MonoAggregationOperator(mono)
           val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
           val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state")), gensym))
-          Body(Seq(destruct, aggregate, project))
+          Seq(aggregate, project)
+      Body(destruct +: atoms)
     }
     Relation(monoAggregateName(tm), params, bodies)
+
+
+  private def optimizeSetMono(tm: TMono): Seq[Atom] =
+    val keyArgs = tm.keys.map(_ => WildcardArg())
+    val collArgs = Var(Name("m")).arg +: keyArgs :+ Var(Name("elem")).arg
+    val project = Eq(Var(Name("output")),
+      SetComprehension(
+        Var(Name("elem")),
+        Seq(Call(RefByName(monoCollectName(tm)), collArgs, false).addHint(DemandIgnoreCallHint))
+      )
+    )
+    Seq(project)
+
+  /**
+   * Map Mono Optimization sketch:
+   *
+   * Coll(mm: MapMono, kv: TDemand(TTuple(K,V))) = nil
+   * Agg(mm: MapMono, m: TMap(K,V)) = aggregate(Call(Coll(mm, #m)), mm.monoOp)
+   * ~>
+   * Coll(mm: MapMono, kv: TDemand(TTuple(K,V))) = nil
+   * Coll$split(mm: MapMono, k: TDemand(K), v: TDemand(V)) = Coll(mm, kv), k == kv._1, v == kv._2
+   * Agg(mm: MapMono, m: TMap(K,V)) =
+   * m == {(k,v) |
+   * Coll$split(mm, k, _),
+   * aggregate(Call(Coll$split(mm, k, #v)), mm.valMono.monoOp)
+   * }
+   *
+   * // for nested map monos
+   * Agg(mm: MapMono, m: TMap(K,V)) =
+   * m == {(k,v) |
+   * Coll$split(mm, k, _),
+   * v == {(k2,v2) |
+   * Coll$split$split(mm, k, k2, _),
+   * aggregate(Call(Coll$split(mm, k, k2, #v2)), mm.valMono.monoOp)
+   * }
+   * }
+   *
+   */
+  private def optimizeMapMono(tm: TMono, m: MapMonoDefinition): Seq[Atom] =
+
 
   var monoDefs: Set[(MonoDefinition, Seq[Type])] = _
   var monoTypes: Set[TMono] = _

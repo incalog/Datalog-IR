@@ -41,7 +41,7 @@ case class CompiledMonoModule(mod: Module, override val compilerOptions: Compile
   override def optimize(p: Seq[Module]): Seq[Module] = p
 
   setPipeline(List(
-    () => new mono.Lowering(optimizeSetMono = false) {},
+    () => new mono.Lowering(optimizeMono = false) {},
     () => new MonoScalaLowering {},
     () => new ConversionElimination {},
     () => new impure.Lowering {},
