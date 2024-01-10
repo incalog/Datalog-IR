@@ -257,31 +257,15 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run") {
-    val engine = new inca.viatra.Executor().instantiate(compiled)
-
-    val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-    engine.readAll().foreach(r => println(r.asTable))
-    //System.exit(1)
-
-    // warmup
-    /*for (i <- 0 until 10) yield {
-      println(s"Warmup: ${i + 1}")
+    for (i <- 0 until 1) {
       val engine = new inca.viatra.Executor().instantiate(compiled)
-      val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-      //val relation = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq(Seq(0, 50, 10, null))))
-      //println(engine.readAll().map(_.size).sum)
-
-      EnginePool.disposeAllEngines()
-      System.gc()
+      val start = System.currentTimeMillis()
+      val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+      val end = System.currentTimeMillis()
+      println(s"Execution time ${end - start}ms")
+      println(relation1.asTable)
     }
-
-    for (i <- 0 until 5) {
-      println(s"Measure: ${i + 1}")
-      val engine = new inca.viatra.Executor().instantiate(compiled)
-      //engine.readAll().foreach(r => println(r.asTable))
-      val relation = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-      //println(relation.asTable)
-    }*/
   }
 
   

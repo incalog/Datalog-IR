@@ -553,9 +553,8 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     )))).addHint(PureHint)
 
     // Failure reason: lowering of nested maps is ill-supported
-    assertThrows[TypeErrorException](
-      compile(mainRelation)
-    )
+    compile(mainRelation)
+
 //    engine.readAll().foreach(res => println(res.asTable))
 //    val res = engine.read(UnitRelation("main"))
 //    assert(res.entries.nonEmpty)

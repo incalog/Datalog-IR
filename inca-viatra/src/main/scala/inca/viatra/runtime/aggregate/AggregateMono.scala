@@ -28,6 +28,9 @@ class AggregatorMono[ST, A](val agg: MonoAggregation[ST, A]) extends IMultisetAg
     }
   }
 
+  override def combine(left: ST, right: AggState[ST, A]): ST =
+    right.as.foldLeft(left)(agg.add)
+
   override def getAggregate(acc: AggState[ST, A]): ST =
     acc.st
 
