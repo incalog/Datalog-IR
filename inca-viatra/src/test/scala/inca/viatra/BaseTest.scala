@@ -1,4 +1,4 @@
-package inca.base
+package inca.viatra
 
 import inca.ir.extension.arithmetic
 import inca.ir.extension.string
@@ -94,7 +94,7 @@ class BaseTest extends AnyFunSuiteLike:
     viatraLogging.update("typed", false)
     viatraLogging.update("module", true)
     viatraLogging.update("lowerings", false)
-    viatraLogging.update("psystem", true)
+    viatraLogging.update("psystem", false)
 
     val viatraOptions = options("viatra_options")
     viatraOptions.update("apply_double_aggregation_rewrite", true)

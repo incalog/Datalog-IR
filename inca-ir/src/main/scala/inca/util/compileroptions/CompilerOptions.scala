@@ -69,8 +69,8 @@ class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])]):
   protected def setDefaults(): Unit =
     irLogging.logTypeInformation = true
     irLogging.logModule = true
-    irLogging.logLowerings = true
-    irLogging.logOptimizations = true
+    irLogging.logLowerings = false
+    irLogging.logOptimizations = false
     irLogging.logStatsBeforeLowering = false
     irLogging.logStatsBeforeOptimizations = false
     irLogging.logStatsAfterOptimizations = false
