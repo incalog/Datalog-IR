@@ -74,6 +74,8 @@ trait CompiledModule:
     if (logStatsBeforeLowering)
       StatisticsCollector.printStatistics(checked, "before lowering")
 
+    stopIfNeeded()
+    
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))

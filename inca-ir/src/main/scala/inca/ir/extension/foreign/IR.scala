@@ -32,7 +32,7 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   
   def inTypes: Seq[Type]
   def outTypes: Seq[Type]
-  def visitor: BaseIRVisitor
+  def visitArgs(f: Term => Seq[Term]): Seq[Term]
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
 

@@ -31,16 +31,8 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 
   def tEdgePair = TTuple(Seq(t("TDef"), t("TDef")))
   def tEdgeSetMono = TMono(tEdgePair, TSet(tEdgePair), Seq())
-  val edgeSetMonoDef = new ScalaMonoDefinition(
-    "EdgeSetMono",
-    "Set[Def,Def]()",
-    "(st: Set[Def,Def], a: (Def,Def)) => st + a",
-    "(st: Set[Def,Def]) => st",
-    Seq(),
-    MonoTypes(tEdgePair, TSet(tEdgePair), TSet(tEdgePair))
-  )
 
-  val datas = Seq(
+  def datas = Seq(
     DataDefinition("TProg"),
     CaseDefinition("Prog", t("TDefList"), t("TProg")),
 
@@ -57,7 +49,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     CaseDefinition("Add", Seq(t("TExp"), t("TExp")), t("TExp")),
   )
 
-  val edgesDefs = Relation("edgesDefs",
+  def edgesDefs = Relation("edgesDefs",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
       Param("mono", TDemand(tEdgeSetMono))
@@ -73,7 +65,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       ))
     )
   )
-  val edgesDef = Relation("edgesDef",
+  def edgesDef = Relation("edgesDef",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
       Param("def", TDemand(t("TDef"))),
@@ -94,7 +86,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val target = Relation("target",
+  def target = Relation("target",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
       Param("e", TDemand(t("TExp"))),
@@ -116,7 +108,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val findDef = Relation("findDef",
+  def findDef = Relation("findDef",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
       Param("name", TDemand(TString)),
@@ -138,7 +130,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val makeProg = Relation("makeProg",
+  def makeProg = Relation("makeProg",
     Seq(
       Param("from", TDemand(TInt)),
       Param("to", TDemand(TInt)),
@@ -178,7 +170,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val makeLine = Relation("makeLine",
+  def makeLine = Relation("makeLine",
     Seq(
       Param("i", TDemand(TInt)),
       Param("to", TDemand(TInt)),
@@ -205,7 +197,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val concat = Relation("concat",
+  def concat = Relation("concat",
     Seq(
       Param("l1", TDemand(t("TDefList"))),
       Param("l2", TDemand(t("TDefList"))),
@@ -224,7 +216,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  val main = Relation("main",
+  def main = Relation("main",
     Seq(
       Param("from", t("TDef")),
       Param("to", t("TDef"))
@@ -238,7 +230,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Eq(v("mono"), NewMono(SetMonoDefinition(tEdgePair), Seq(), Seq())),
         Call("edgesDefs", Seq(v("defs"), v("mono"))),
-//        SetMember(TupleLit(Seq(v("from"), v("to"))), ReadMono(v("mono")))
+        //        SetMember(TupleLit(Seq(v("from"), v("to"))), ReadMono(v("mono")))
         SetMember(Var("v"), ReadMono(v("mono"))),
         Eq(Var("from"), Project(Var("v"), 0)),
         Eq(Var("to"), Project(Var("v"), 1)),
@@ -247,40 +239,40 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   ).addHint(PureHint)
 
 
-  val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaBool.IR + incaAgg.IR,
+  private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaBool.IR + incaAgg.IR,
     datas ++
-    Seq(
-      edgesDefs,
-      edgesDef,
-      target,
-      findDef,
-      makeProg,
-      makeLine,
-      concat,
-      main
-    )
+      Seq(
+        edgesDefs,
+        edgesDef,
+        target,
+        findDef,
+        makeProg,
+        makeLine,
+        concat,
+        main
+      )
   )
 
-  def compiled = new CompiledModule:
+  class Compiled(optMono: Boolean) extends CompiledModule:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
-    override def compilerOptions: CompilerOptions = CompilerOptions.default
-
-    override def optimize(p: Seq[Module]): Seq[Module] = p
-    private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
-    override def typechecker: BaseIRTypechecker = new ScalaSetTypeChecker
+    override val ir: Module = mod
+    override def compilerOptions: CompilerOptions = {
+      val opt = CompilerOptions.default
+      opt.irLogging.logLowerings = true
+      opt.irLogging.logTypeInformation = true
+      opt
+    }
+    override def typechecker: BaseIRTypechecker = new IRTypechecker with primitive.Typechecker
     private trait demandLowering extends demand.Lowering with primitive.Visitor
-
     private trait blockLowering extends block.Lowering with primitive.Visitor
-
     private trait scalaLowering extends primitive.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering
 
     setPipeline(List(
-      () => new mono.Lowering {},
+      () => new mono.Lowering(optMono) {},
       () => new MonoScalaLowering {},
       () => new ConversionElimination {},
       () => new impure.Lowering {},
@@ -291,60 +283,27 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       () => new incaTuple.Lowering {},
       () => new blockLowering {},
       () => new incaDisj.Lowering {},
-      () => new demandLowering {}
-    ))
-
-  def compiledOpt = new CompiledModule:
-    override def name: Name = "AbstractSyntaxGraph"
-
-    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-    override def ir: Module = mod
-
-    override def compilerOptions: CompilerOptions = CompilerOptions.default
-
-    override def optimize(p: Seq[Module]): Seq[Module] = p
-
-    private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
-
-    override def typechecker: BaseIRTypechecker = new ScalaSetTypeChecker
-
-    private trait demandLowering extends demand.Lowering with primitive.Visitor
-
-    private trait blockLowering extends block.Lowering with primitive.Visitor
-
-    private trait scalaLowering extends primitive.ScalaLowering
-      with scalaArith.ScalaLowering
-      with scalaData.ScalaLowering
-      with scalaString.ScalaLowering
-
-
-    setPipeline(List(
-      () => new mono.Lowering {},
-      () => new impure.Lowering {},
-      () => new demand.Lowering {},
-      () => new incaBool.Lowering {},
-      () => new blockLowering {},
-      () => new incaSet.Lowering {},
-      () => new incaTuple.Lowering {},
-      () => new blockLowering {},
-      () => new incaDisj.Lowering {},
-      () => new demandLowering {}
+      () => new demandLowering {},
     ))
 
   test("AbstractSyntaxGraph is well-typed: Set Mono Aggregation") {
+    val compiled = new Compiled(false)
     try compiled.checked
-    finally println(mod)
+    finally println(compiled.ir)
   }
 
-  test("AbstractSyntaxGraph can be lowered: Set Mono Aggregation") {
-    compiled.lowered
+  test("AbstractSyntaxGraph can be lowered without optimization: Set Mono Aggregation") {
+    new Compiled(false).lowered
   }
 
-  test("AbstractSyntaxGraph can be run: Set Mono Aggregation") {
-    val engine = new inca.viatra.Executor().instantiate(compiled)
-//    engine.readAll().foreach(r => println(r.asTable))
+  test("AbstractSyntaxGraph can be lowered with optimization: Set Mono Aggregation") {
+    new Compiled(true).lowered
+  }
+
+  test("AbstractSyntaxGraph can be run without optimization: Set Mono Aggregation") {
+    //    engine.readAll().foreach(r => println(r.asTable))
     for (i <- 0 until 1) {
+      val compiled = new Compiled(false)
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
@@ -355,21 +314,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     }
   }
 
-
-  test("AbstractSyntaxGraph is well-typed: Set Mono Opt ") {
-    try compiledOpt.checked
-    finally println(mod)
-  }
-
-  test("AbstractSyntaxGraph can be lowered: Set Mono Opt") {
-    compiledOpt.lowered
-  }
-
-  test("AbstractSyntaxGraph can be run: Set Mono Opt") {
-    val engine = new inca.viatra.Executor().instantiate(compiledOpt)
-    //    engine.readAll().foreach(r => println(r.asTable))
+  test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation") {
     for (i <- 0 until 5) {
-      val engine = new inca.viatra.Executor().instantiate(compiledOpt)
+      val compiled = new Compiled(false)
+      val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))

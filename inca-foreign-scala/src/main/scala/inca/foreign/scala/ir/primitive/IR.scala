@@ -55,7 +55,8 @@ case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolea
     ScalaInca.compileType(tty)
   }
   override def outTypes: Seq[ScalaType] = Seq(ty)
-  override def visitor: BaseIRVisitor = new ScalaVisitor {}
+  override def visitArgs(f: Term => Seq[Term]): Seq[Term] =
+    Seq(this.copy(args = args.flatMap(f)))
   override def toString: String =
     if (isApp)
       s"""`($code)(${args.mkString(", ")})`"""
@@ -70,7 +71,7 @@ case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Se
   override def inTypes: Seq[ScalaType] = Seq()
   override def outTypes: Seq[ScalaType] = Seq(ty)
   override def toString: String = s"`$code`"
-  override def visitor: BaseIRVisitor = new ScalaVisitor {}
+  override def visitArgs(f: Term => Seq[Term]): Seq[Term] = Seq(this)
 
 object ScalaConstantTerm:
   val TRUE: ScalaConstantTerm = ScalaConstantTerm("true", ScalaType.bool)
