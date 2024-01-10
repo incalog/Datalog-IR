@@ -467,7 +467,6 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Eq(Var("num"), MapLookUp(Var("map"), StringLit("B")))
     )))).addHint(PureHint)
 
-    /* Unsupported types of aggregation in VIATRA: Combines the given aggregate result and accumulator into a single aggregate result. */
     val mainRelationFail = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),

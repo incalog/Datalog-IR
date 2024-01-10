@@ -109,8 +109,8 @@ trait Lowering extends BaseLowering:
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match
-      case tm@TMap(keyTy, valTy) =>
-        mapTypes += tm
+      case TMap(keyTy, valTy) =>
+        mapTypes += TMap(visitType(keyTy), visitType(valTy))
         TData(dataNameOf(keyTy, valTy))
       case _ => super.visitType(ty)
   }
