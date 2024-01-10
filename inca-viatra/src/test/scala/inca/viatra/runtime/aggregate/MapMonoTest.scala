@@ -5,7 +5,7 @@ import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLower
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, GT, IntNum, Mul, Sub, TInt}
+import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
@@ -19,7 +19,7 @@ import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.{arithmetic, block, bool, data, demand, map, not, set, string, tuple}
 import inca.ir.extension.{disjunction, impure, mono}
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.aggregate.builtin.arithmetic.SumIntMono
@@ -456,18 +456,28 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     assertResult(2)(res.entries.head)
 
 
-  test("Map mono basic test 15: recursive relation"):
-    val mainRelation = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
+  test("Map mono basic test 15: calculating the height of tree (recursive relation)"):
+    val mainRelationSucc = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(MapMonoDefinition(TString, SumInt))),
-      Eq(Var("node1"), StringLit("A")),
-      Call("collNode", Seq(Var("m").arg, Var("node1").arg)),
-      Eq(Var("node2"), StringLit("F")),
-      Call("collNode", Seq(Var("m").arg, Var("node2").arg)),
-      Eq(Var("map"), ReadMono(Var("m"))),
-      Eq(Var("num"), MapLookUp(ReadMono(Var("m")), StringLit("A")))
+      Eq(Var("mono"), NewMono(MapMonoDefinition(TString, SumInt))),
+      Eq(Var("node"), StringLit("B")),
+      Call("collNode", Seq(Var("mono").arg, Var("node").arg)),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("num"), MapLookUp(Var("map"), StringLit("B")))
     )))).addHint(PureHint)
+
+    /* Unsupported types of aggregation in VIATRA: Combines the given aggregate result and accumulator into a single aggregate result. */
+    val mainRelationFail = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(MapMonoDefinition(TString, SumInt))),
+      Eq(Var("node"), StringLit("A")),
+      Call("collNode", Seq(Var("mono").arg, Var("node").arg)),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("num"), MapLookUp(Var("map"), StringLit("A")))
+    )))).addHint(PureHint)
+
 
     val collNode = Relation("collNode",
       Seq(
@@ -481,7 +491,11 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
           ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
           Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
           Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
-          WriteMono(Var("mono"), TupleLit(Seq(Var("t"), IntNum(1))))
+          Eq(Var("map"), ReadMono(Var("mono"))),
+          Eq(Var("lh"), MapLookUp(Var("map"), Var("l"))),
+          Eq(Var("rh"), MapLookUp(Var("map"), Var("r"))),
+          Eq(Var("height"), Add(Max(Var("lh"), Var("rh")), IntNum(1))),
+          WriteMono(Var("mono"), TupleLit(Seq(Var("t"), Var("height"))))
         ))
       ))
 
@@ -493,32 +507,64 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       "btree", Seq(Param("t", TString), Param("l", TString), Param("r", TString))
     )
 
-    lazy val edbLeaf: Relation1[Seq[String]] = Relation1("leaf", Seq("t"), Seq(Seq("C"), Seq("D"), Seq("E"), Seq("I"), Seq("J"), Seq("K"), Seq("L"), Seq("A")))
+    lazy val edbLeaf: Relation1[Seq[String]] = Relation1("leaf", Seq("t"), Seq(Seq("C"), Seq("D"), Seq("E"), Seq("I"), Seq("J"), Seq("K"), Seq("L")))
 
     val edbBTree: Relation3[Seq[String], Seq[String], Seq[String]] = Relation3(
       "btree",
       Seq("t", "l", "r"),
       Seq(
-        Seq("A", "A", "A"),
-//        Seq("B", "D", "E"),
-//        Seq("F", "G", "H"),
-//        Seq("G", "I", "K"),
-//        Seq("H", "L", "J")
+        Seq("A", "B", "C"),
+        Seq("B", "D", "E"),
+        Seq("F", "G", "H"),
+        Seq("G", "I", "K"),
+        Seq("H", "L", "J")
       )
     )
 
-    val engine = compile(mainRelation, collNode, extLeaf, extBTree)
+    val engine = compile(mainRelationSucc, collNode, extLeaf, extBTree)
+//    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
     engine.readAll().foreach(res => println(res.asTable))
 
 
+
+  test("Map momo basic test 16: value mono is another map mono"):
+    val valueMapMono = MapMonoDefinition(TString, SetMonoDefinition(TInt))
+    val mapMono = MapMonoDefinition(TString, valueMapMono)
+    val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(2))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("odd"), IntNum(-1))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(4))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("even"), IntNum(-2))))
+      )),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      SetMember(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
+    )))).addHint(PureHint)
+
+    // Failure reason: lowering of nested maps is ill-supported
+    assertThrows[TypeErrorException](
+      compile(mainRelation)
+    )
+//    engine.readAll().foreach(res => println(res.asTable))
+//    val res = engine.read(UnitRelation("main"))
+//    assert(res.entries.nonEmpty)
+
+
   // TODO: 1. MapMono with user-defined mono ✔
-  //       2. MapMono with map mono
+  //       2. MapMono with map mono ✔ (not successful)
   //       3. MapMono whose keys can be lowered ✔
-  //       4. MapMono with ADT
-  //       5. MapMono with MapUnion, ...
-  //       6. MapMono with recursive relations ✔
-  //       7. Two Map Monos ✔
+  //       4. MapMono with recursive relations ✔ (not successful)
+  //       5. Two Map Monos ✔
   //
 }
