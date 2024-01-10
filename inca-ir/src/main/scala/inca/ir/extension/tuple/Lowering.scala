@@ -77,7 +77,7 @@ trait Lowering extends BaseLowering:
           case None =>
             throw IllegalStateException(s"Untyped term $t")
         }
-        val flatIdx = (0 until idx).flatMap(i => visitTerm(Project(t, i))).size
+        val flatIdx = tupleTy.tys.slice(0, idx).map(_.size).sum
         val endIndex = flatIdx + tupleTy.tys(idx).size
         visitTerm(t) match {
           case ts: Seq[Term] if endIndex <= ts.size =>
