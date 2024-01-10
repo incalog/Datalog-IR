@@ -109,6 +109,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
    *
    */
   private def optimizeMapMono(tm: TMono, m: MapMonoDefinition): Seq[Atom] =
+    ???
 
 
   var monoDefs: Set[(MonoDefinition, Seq[Type])] = _
