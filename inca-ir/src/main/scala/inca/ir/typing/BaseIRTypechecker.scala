@@ -21,20 +21,25 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     program.foreach(checkModule)
   }
 
+  protected var currentEntry: ModuleEntry = _
+  def addDependency(to: ModuleEntry, neg: Boolean = false): Unit = addDependency(currentEntry, to, neg)
+
   def checkModule(module: Module): Unit = scopedTypeContext {
     module.contents.sorted.foreach(bindModuleEntry)
-    module.contents.sorted.foreach(checkModuleEntry)
+    module.contents.sorted.foreach { entry =>
+      currentEntry = entry
+      checkModuleEntry(entry)
+    }
     this.failOnError()
   }
 
   def bindModuleEntry(entry: ModuleEntry): Unit =
     registerModuleEntry(entry)
 
-  def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match {
-      case relation: Relation => scopedTypeContext { checkRelation(relation) }
-      case relation: ExtensionalRelation => // nothing
-      case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
-  }
+  def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
+    case relation: Relation => scopedTypeContext { checkRelation(relation) }
+    case relation: ExtensionalRelation => // nothing
+    case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
 
   def checkRelation(relation: Relation): Unit = {
     // bind parameters
@@ -159,6 +164,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   def checkCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
     val paramTys = inferRelationRef(ref, atom)
+    ref.target.foreach(addDependency(currentEntry, _, !mode.isBinding))
     if (paramTys.size != args.size)
       error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
     val argMode = mode match

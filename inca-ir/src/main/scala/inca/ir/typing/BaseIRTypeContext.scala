@@ -10,6 +10,14 @@ trait BaseIRTypeContext extends TypeIO:
 
   var vars: Map[Name, VarInfo] = Map()
 
+  enum Dependency:
+    case Postive
+    case Negative
+  object Dependency:
+    def apply(neg: Boolean): Dependency = if (neg) Negative else Postive
+
+  var moduleEntryDependencies: Map[ModuleEntry, (ModuleEntry, Dependency)] = Map()
+
   protected def startContextTransaction(): Transaction = new Transaction(vars)
   class Transaction(oldVars: Map[Name, VarInfo]):
     private var committed: Boolean = false
@@ -81,3 +89,6 @@ trait BaseIRTypeContext extends TypeIO:
     case _ => false
 
   def isParam(name: Name): Boolean = vars.get(name).exists(_.target.isInstanceOf[Param])
+
+  def addDependency(from: ModuleEntry, to: ModuleEntry, neg: Boolean): Unit =
+    moduleEntryDependencies += from -> (to, Dependency(neg))

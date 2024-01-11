@@ -7,6 +7,7 @@ trait Typechecker extends BaseIRTypechecker:
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Aggregate(ref, args, op) =>
       val paramTys = inferRelationRef(ref, atom)
+      ref.target.foreach(addDependency(_))
       if (paramTys.size != args.size)
         error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
 

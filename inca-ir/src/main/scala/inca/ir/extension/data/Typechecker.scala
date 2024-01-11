@@ -9,24 +9,28 @@ import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, Type
 
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  def lookupDataDefinition(name: Name, s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
-    entries.get(name) match
+  private def lookupDataDefinition(ref: Ref[DataDefinition], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
+    entries.get(ref.name) match
       case Some(dd: DataDefinition) =>
+        ref.resolved(dd)
         Some((Seq(), dd))
       case Some(ParametricModuleEntry(tyParams, dd: DataDefinition)) =>
+        ref.resolved(dd)
         Some((tyParams, dd))
       case _ =>
-        error(s"Could not find data type $name", s)
+        error(s"Could not find data type ${ref.name}", s)
         None
 
-  def lookupConstruct(name: Name, locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
-    entries.get(name) match
+  def lookupConstruct(ref: Ref[CaseDefinition], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
+    entries.get(ref.name) match
       case Some(cd: CaseDefinition) =>
+        ref.resolved(cd)
         Some((Seq(), cd))
       case Some(ParametricModuleEntry(tyParams, cd: CaseDefinition)) =>
+        ref.resolved(cd)
         Some((tyParams, cd))
       case _ =>
-        error(s"Could not find constructor $name", locations: _*)
+        error(s"Could not find constructor ${ref.name}", locations: _*)
         None
 
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
@@ -37,11 +41,12 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.checkModuleEntry(moduleEntry)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Construct(ref, args) => lookupConstruct(ref.name, term) match
+    case Construct(ref, args) => lookupConstruct(ref, term) match
       case None =>
         error(s"Unknown constructor ${ref.name}", term)
         TAny.bound
-      case Some((typeParams, CaseDefinition(_, params, data))) =>
+      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+        addDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
         val tyArgs = ref match
@@ -67,10 +72,11 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.inferTermExtend(term, mode)
 
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Deconstruct(t, RefByName(name), args, neg) => lookupConstruct(name, atom) match
+    case Deconstruct(t, ref, args, neg) => lookupConstruct(ref, atom) match
       case None =>
-        error(s"Unknown constructor $name", atom)
-      case Some((typeParams, CaseDefinition(_, params, data))) =>
+        error(s"Unknown constructor $ref", atom)
+      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+        addDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 
@@ -110,9 +116,11 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
   override def checkType(ty: Type): Unit = ty match
     case TData(ref) =>
-      val (tyParams, entry) = lookupDataDefinition(ref.name, ty) match
+      val (tyParams, entry) = lookupDataDefinition(ref, ty) match
         case None => (Seq(), null)
-        case Some((tyParams, dd)) => (tyParams, dd)
+        case Some((tyParams, dd)) =>
+          addDependency(dd)
+          (tyParams, dd)
       ref match
         case RefByName(name) =>
           if (tyParams.nonEmpty)
