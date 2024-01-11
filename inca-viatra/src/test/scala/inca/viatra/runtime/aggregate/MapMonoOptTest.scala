@@ -6,6 +6,7 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
+import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
@@ -502,7 +503,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
 
 
 
-  test("Map momo basic test 16: value mono is another map mono"):
+  test("Map momo basic test 16: value mono is a multi-map mono"):
     val valueMapMono = MapMonoDefinition(TString, SetMonoDefinition(TInt))
     val mapMono = MapMonoDefinition(TString, valueMapMono)
     val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
@@ -531,11 +532,97 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
     assertResult(Set(2, 4))(res.entries.toSet)
 
 
+  test("Test generating nested maps from relation"):
+    val mainRelation = Relation("main", Seq(
+        Param("v1", TInt),
+        Param("v2", TInt),
+        Param("v3", TInt),
+      ), Seq(Body(Seq(Eq(
+        Var("map"),
+        MapComprehension(
+          Var("k1"),
+          Var("map1"),
+          Seq(
+            Call("someRel", Seq(Var("k1").arg, WildcardArg(), WildcardArg())),
+            Eq(Var("map1"), MapComprehension(
+              Var("k2"),
+              Var("v"),
+              Seq(Call("someRel", Seq(Var("k1").arg, Var("k2").arg, Var("v").arg)))
+            )
+          ))
+        )
+      ),
+      Eq(Var("v1"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(2))),
+      Eq(Var("v2"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(3))),
+      Eq(Var("v3"), MapLookUp(MapLookUp(Var("map"), IntNum(2)), IntNum(2))),
+    ))))
 
-  // TODO: 1. MapMono with user-defined mono ✔
-  //       2. MapMono with map mono ✔ (not successful)
-  //       3. MapMono whose keys can be lowered ✔
-  //       4. MapMono with recursive relations ✔ (not successful)
-  //       5. Two Map Monos ✔
-  //
+    val mainRelation2 = Relation(
+      "main",
+      Seq(
+        Param("v1", TInt),
+        Param("v2", TInt),
+        Param("v3", TInt),
+        Param("map", TMap(TInt, TMap(TInt, TInt)))
+      ), Seq(Body(Seq(
+        Eq(Var("map"), MapFun(Seq(Param("k1", TInt)), MapFun(Seq(Param("k2", TInt)), Block(Call("someRel", Seq(Var("k1").arg, Var("k2").arg, Var("v").arg)), Var("v"))))),
+        Eq(Var("v1"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(3))),
+        Eq(Var("v2"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(2))),
+        Eq(Var("v3"), MapLookUp(MapLookUp(Var("map"), IntNum(2)), IntNum(2))),
+      ))
+    ))
+
+
+    val mapRelation = Relation("someRel", Seq(
+      Param("k1", TInt),
+      Param("k2", TInt),
+      Param("v", TInt)
+    ), Seq(
+      Body(Seq(
+        Eq(Var("k1"), IntNum(1)),
+        Eq(Var("k2"), IntNum(2)),
+        Eq(Var("v"), IntNum(3))
+      )),
+      Body(Seq(
+        Eq(Var("k1"), IntNum(1)),
+        Eq(Var("k2"), IntNum(3)),
+        Eq(Var("v"), IntNum(4))
+      )),
+      Body(Seq(
+        Eq(Var("k1"), IntNum(2)),
+        Eq(Var("k2"), IntNum(2)),
+        Eq(Var("v"), IntNum(3))
+      ))
+    ))
+    val engine = compile(mainRelation2, mapRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+
+  test("Map momo basic test 17: optimization of nested map mono"):
+    val valueMapMono = MapMonoDefinition(TString, SumInt)
+    val mapMono = MapMonoDefinition(TString, valueMapMono)
+    val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(2))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("odd"), IntNum(-1))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(4))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("even"), IntNum(-2))))
+      )),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(6)(res.entries.head)
+
 }
