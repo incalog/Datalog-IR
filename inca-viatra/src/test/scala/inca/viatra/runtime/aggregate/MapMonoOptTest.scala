@@ -22,11 +22,10 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
-import inca.viatra.runtime.aggregate.builtin.arithmetic.SumIntMono
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
+case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
   override def compilerOptions: CompilerOptions = CompilerOptions.default
 
   override def name: Name = mod.name
@@ -52,11 +51,12 @@ case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
 
   private trait mapLowering extends map.Lowering with primitive.Visitor
 
+  private trait conversionElimination extends ConversionElimination with primitive.Visitor
 
   setPipeline(List(
-    () => new mono.Lowering(optimizeMono = false) {},
+    () => new mono.Lowering(optimizeMono = true) {},
     () => new MonoScalaLowering {},
-    () => new ConversionElimination {},
+    () => new conversionElimination {},
     () => new impure.Lowering {},
     () => new setLowering {},
     () => new mapLowering {},
@@ -75,7 +75,7 @@ case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
 
 
 
-class ScalaMapMonoTest extends AnyFunSuiteLike {
+class ScalaMapMonoOptTest extends AnyFunSuiteLike {
 
   private val langs: Language = BaseIR.language +
     set.IR +
@@ -97,42 +97,10 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledScalaMapMonoModule(mod)
+    val compiledMod = CompiledScalaMapMonoOptModule(mod)
     val exec: IRExecutor = inca.viatra.Executor()
     exec.instantiate(compiledMod)
-
-
-  // Reason: we cannot enumerate keys of a map because keys are demanded inputs.
-  test("Unsuccessful try of using map comprehension to transform a map to another map"):
-    val mainRelation = Relation("main", Seq(Param("foo", TInt)), Seq(Body(Seq(
-      Eq(Var("map1"), MapLit(Seq((IntNum(1), IntNum(2)), (IntNum(3), IntNum(4))))),
-      Eq(Var("map2"), MapComprehension(Var("key"), Var("value"), Seq(
-        MapContains(Var("map1"), Var("key")),
-        Eq(Var("value"), MapLookUp(Var("map1"), Var("key")))
-      ))),
-      Eq(Var("foo"), MapLookUp(Var("map2"), IntNum(1)))
-    ))))
-
-    val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
-    val res = engine.read(UnitRelation("main"))
-    assert(res.entries.isEmpty)
-
-
-  test("Use MapFrom to generate a map from another map"):
-    val mainRelation = Relation("main", Seq(Param("foo", TInt)), Seq(Body(Seq(
-      Eq(Var("map1"), MapLit(Seq((IntNum(1), IntNum(2)), (IntNum(3), IntNum(4))))),
-      Eq(Var("map2"), MapFun(Seq(Param("key", TInt)), MapLookUp(Var("map1"), Var("key")))),
-      Eq(Var("foo"), MapLookUp(Var("map2"), IntNum(1)))
-    ))))
-
-    val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
-    val res = engine.read(UnitRelation("main"))
-    assert(res.entries.nonEmpty)
-    assertResult(2)(res.entries.head)
-
-
+  
   // mono = new MapMono[Int, Int](arithMonoDef)
   // Optimize map mono:
   // m@MapMono += (1, 2)
@@ -442,9 +410,8 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         Cast(TupleLit(Seq(IntNum(-1), StringLit("-1"))), ScalaType.any)
       ))),
       Eq(Var("map"), ReadMono(Var("mono"))),
-      Eq(Var("size"), ConvertForeignIR(
+      Eq(Var("size"), Cast(
         MapLookUp(Var("map"), TupleLit(Seq(StringLit("-1"), IntNum(1)))),
-        ScalaType.int,
         TInt
       ))
     )))).addHint(PureHint)
@@ -521,7 +488,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     )
 
     val engine = compile(mainRelationSucc, collNode, extLeaf, extBTree)
-//    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
+    //    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
     engine.readAll().foreach(res => println(res.asTable))
@@ -555,6 +522,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(2, 4))(res.entries.toSet)
+
 
 
   // TODO: 1. MapMono with user-defined mono ✔
