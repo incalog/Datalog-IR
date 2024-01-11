@@ -124,7 +124,8 @@ case class Call(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 object Call:
   def apply(name: Name, args: Seq[Arg], neg: Boolean = false): Call = Call(RefByName(name), args, neg)
-
+object NegCall:
+  def apply(name: Name, args: Seq[Arg]): Call = Call(RefByName(name), args, true)
 
 case class ExtensionalCall(ref: Ref[ExtensionalRelation], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =

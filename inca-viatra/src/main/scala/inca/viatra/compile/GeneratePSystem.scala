@@ -70,7 +70,7 @@ object GeneratePSystem:
 
     // we need type information to translate the datalog code to scala code
     val typechecker = new Typechecker {}
-    typechecker.checkModule(module)
+    typechecker.checkProgram(Seq(module))
 
     if (logModule && logTyped)
       printStep("Module", module)
@@ -86,7 +86,8 @@ object GeneratePSystem:
         if (logLowerings && !logTyped)
           printStep(s"Lowering: ${low.name}", lowered)
 
-        typechecker.checkModule(lowered)
+        val typechecker = new Typechecker {}
+        typechecker.checkProgram(Seq(lowered))
 
         if (logLowerings && logTyped)
           printStep(s"Lowering: ${low.name}", lowered)

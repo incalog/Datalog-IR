@@ -16,7 +16,7 @@ trait Typechecker extends data.Typechecker with typeparam.Typechecker:
       checkAlternatives(cases) { case c@Case(ref, patVars, body) =>
         val params = lookupConstruct(ref, c) match
           case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
-            addDependency(cd)
+            addTypeDependency(cd)
             val substMap0 = matchRef(ref, typeParams, c)
 
             val substMap = checkDeconstruct(mathceeType, data.ref, matchee)

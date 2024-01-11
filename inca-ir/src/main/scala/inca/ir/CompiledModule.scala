@@ -39,7 +39,7 @@ trait CompiledModule:
 
   lazy val checked: Module =
     val checker = typechecker
-    checker.checkModule(ir)
+    checker.checkProgram(Seq(ir))
     ir
 
   // TODO should be configurable
@@ -84,7 +84,7 @@ trait CompiledModule:
         printStep(s"Lowering: ${lowFun.name}", l)
 
       val checker = typechecker
-      try checker.checkModule(l)
+      try checker.checkProgram(Seq(l))
       finally if (logLowerings && logTyped)
         printStep(s"Lowering: ${lowFun.name}", l)
       l

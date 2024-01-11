@@ -78,7 +78,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -149,7 +149,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -189,7 +189,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
     typechecker.failOnError()
     println(mod)
     assertResult(expectedMod)(lowering.lower(mod))
@@ -274,7 +274,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
     typechecker.failOnError()
 
     assertResult(expectedMod)(lowering.lower(mod))
@@ -301,9 +301,9 @@ class TupleLoweringTest extends AnyFunSuiteLike:
     ))
 
     val typechecker1 = IRTypechecker()
-    typechecker1.checkModule(mod)
+    typechecker1.checkProgram(Seq(mod))
     typechecker1.failOnError()
     val typechecker2 = IRTypechecker()
-    typechecker2.checkModule(lowering.lower(mod))
+    typechecker2.checkProgram(Seq(lowering.lower(mod)))
     typechecker2.failOnError()
   }

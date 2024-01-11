@@ -16,7 +16,7 @@ trait BaseIRTypeContext extends TypeIO:
   object Dependency:
     def apply(neg: Boolean): Dependency = if (neg) Negative else Postive
 
-  var moduleEntryDependencies: Map[ModuleEntry, (ModuleEntry, Dependency)] = Map()
+  protected val dependencyGraph: DependencyGraph = new DependencyGraph
 
   protected def startContextTransaction(): Transaction = new Transaction(vars)
   class Transaction(oldVars: Map[Name, VarInfo]):
@@ -90,5 +90,5 @@ trait BaseIRTypeContext extends TypeIO:
 
   def isParam(name: Name): Boolean = vars.get(name).exists(_.target.isInstanceOf[Param])
 
-  def addDependency(from: ModuleEntry, to: ModuleEntry, neg: Boolean): Unit =
-    moduleEntryDependencies += from -> (to, Dependency(neg))
+  def addDependency(from: ModuleEntry, to: ModuleEntry, info: DependencyInfo): Unit =
+    dependencyGraph.addEdge(from, to, info)

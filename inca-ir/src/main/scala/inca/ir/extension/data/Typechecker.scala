@@ -46,7 +46,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         error(s"Unknown constructor ${ref.name}", term)
         TAny.bound
       case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
-        addDependency(cd)
+        addTypeDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
         val tyArgs = ref match
@@ -76,7 +76,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       case None =>
         error(s"Unknown constructor $ref", atom)
       case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
-        addDependency(cd)
+        addTypeDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 
@@ -119,7 +119,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       val (tyParams, entry) = lookupDataDefinition(ref, ty) match
         case None => (Seq(), null)
         case Some((tyParams, dd)) =>
-          addDependency(dd)
+          addTypeDependency(dd)
           (tyParams, dd)
       ref match
         case RefByName(name) =>
