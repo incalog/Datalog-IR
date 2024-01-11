@@ -22,6 +22,8 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
@@ -90,6 +92,12 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
     map.IR +
     disjunction.IR +
     string.IR
+
+  private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
+    val mod = Module("M", langs, relations)
+    val compiledMod = CompiledScalaMapMonoOptModule(mod)
+    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+    exec.instantiate(compiledMod)
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -487,8 +495,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
       )
     )
 
-    val engine = compile(mainRelationSucc, collNode, extLeaf, extBTree)
-    //    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
+    val engine = compile(DRedReteBackendFactory.INSTANCE, mainRelationSucc, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
     engine.readAll().foreach(res => println(res.asTable))
