@@ -29,7 +29,6 @@ trait ModuleEntry extends SourceLocation with Hints:
 
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
   def name: Name
-  def as[T]: Ref[T] = this.asInstanceOf[Ref[T]]
 case class RefByName[Target](name: Name) extends Ref[Target]:
   override def toString: String = name.name
 
@@ -72,8 +71,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-trait IRelation extends ModuleEntry
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends IRelation:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   def withExtendedName(suffix: String): Relation = this.copy(name = Name(name.name + suffix))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -86,7 +84,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends I
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends IRelation:
+case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
   def signature: Seq[Type] = params.map(_.ty)

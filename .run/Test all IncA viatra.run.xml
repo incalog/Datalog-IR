@@ -7,6 +7,31 @@
       <list />
     </option>
     <option name="testKind" value="All in package" />
+    <option name="classBuf">
+      <list>
+        <option value="inca.viatra.BaseTest" />
+        <option value="inca.viatra.runtime.aggregate.ScalaMapMonoTest" />
+        <option value="inca.viatra.runtime.aggregate.SetMonoTest" />
+        <option value="inca.viatra.runtime.aggregate.SetMonoOptTest" />
+        <option value="inca.viatra.runtime.aggregate.MonoAggregationTest" />
+        <option value="inca.ir.typing.TypeCheckerTest" />
+        <option value="inca.ir.lowering.CombinedLoweringTest" />
+        <option value="inca.ir.extension.edbdata.EdbDataTest" />
+        <option value="inca.ir.extension.set.SetLoweringTest" />
+        <option value="inca.ir.extension.mono.MonoTypeTest" />
+        <option value="inca.ir.extension.mono.MonoTypeLoweringTest" />
+        <option value="inca.ir.extension.disjunction.DisjunctionLoweringTest" />
+        <option value="inca.ir.extension.block.BlockLoweringTest" />
+        <option value="inca.ir.extension.block.BlockBoundednessTest" />
+        <option value="inca.ir.extension.map.MapTest" />
+        <option value="inca.ir.extension.impure.ImpureLoweringTest" />
+        <option value="inca.ir.extension.tuple.TupleLoweringTest" />
+        <option value="inca.ir.extension.typeparam.TypeParamLoweringTest" />
+        <option value="inca.ir.extension.not.NotLoweringTest" />
+        <option value="inca.ir.extension.not.NotBoundednessTest" />
+        <option value="inca.ir.extension.demand.DemandLoweringTest" />
+      </list>
+    </option>
     <option name="shortenClasspath" value="NONE" />
     <option name="testPackagePath" value="inca" />
     <method v="2">
