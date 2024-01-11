@@ -1,4 +1,4 @@
-package inca.frontend.oodl.executor.unittests
+package inca.frontend.oodl.compile.casestudy
 
 import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
