@@ -17,7 +17,7 @@ import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Decons
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.{Impure, PureHint}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 
 import scala.language.implicitConversions
@@ -301,9 +301,16 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run without optimization: Set Mono Aggregation") {
-    //    engine.readAll().foreach(r => println(r.asTable))
-    for (i <- 0 until 1) {
+    for (i <- 0 until 3) {
       val compiled = new Compiled(false)
+
+//      println(compiled.dependencyGraph.toGraphViz)
+//      val check = new IRTypechecker with primitive.Typechecker
+//      check.checkProgram(Seq(compiled.lowered))
+//      val graph = check.getDependencyGraph
+//      println(graph.filter(_ => true, (_, _, info) => info != DependencyInfo.TypeReference).toGraphViz)
+//      graph.cycles.foreach(c => println(graph.prettyPrintCycle(c)))
+
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
@@ -315,8 +322,13 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation") {
-    for (i <- 0 until 5) {
-      val compiled = new Compiled(false)
+    for (i <- 0 until 3) {
+      val compiled = new Compiled(true)
+//      val check = new IRTypechecker with primitive.Typechecker
+//      check.checkProgram(Seq(compiled.lowered))
+//      val graph = check.getDependencyGraph
+//      println(graph.filter(_ => true, (_, _, info) => info != DependencyInfo.TypeReference).toGraphViz)
+
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
@@ -326,5 +338,3 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       println(relation1.asTable)
     }
   }
-
-  

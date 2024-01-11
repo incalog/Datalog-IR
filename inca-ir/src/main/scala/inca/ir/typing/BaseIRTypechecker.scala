@@ -24,7 +24,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     val negativeCycles = dependencyGraph.negativeCycles
     negativeCycles.foreach( cycle =>
-      val cycleS = cycle.map(_._1.name).mkString("", " -> ", s" -> ${cycle.head._1.name}")
+      val cycleS = dependencyGraph.prettyPrintCycle(cycle.map(_._1))
       error(s"Negative cycle is not allowed:\n  $cycleS", program:_*)
     )
 
@@ -93,8 +93,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
-    case v@Var(RefByName(name)) => mode match
-      case Mode.Binding => lookupVar(name) match
+    case v@Var(ref@RefByName(name)) => mode match
+      case Mode.Binding => lookupVar(ref) match
         case None =>
           registerVar(name, v, expected)
           bindVar(name)
@@ -106,7 +106,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
           Mode.Bound
-      case Mode.Bound => lookupVar(name) match
+      case Mode.Bound => lookupVar(ref) match
         case None =>
           error(s"Undefined variable $v at closed position", v)
           Mode.Bound
@@ -117,7 +117,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
           Mode.Bound
-      case Mode.Collapse => lookupVar(name) match
+      case Mode.Collapse => lookupVar(ref) match
         case None =>
           Mode.Collapse
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
@@ -133,8 +133,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       m
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case v@Var(RefByName(name)) => mode match
-      case Mode.Binding => lookupVar(name) match
+    case v@Var(ref@RefByName(name)) => mode match
+      case Mode.Binding => lookupVar(ref) match
         case None =>
           error(s"Cannot infer type of Undefined variable $v", v)
           registerVar(name, v, TAny)
@@ -145,7 +145,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           ty.binding
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           ty.bound
-      case Mode.Bound => lookupVar(name) match
+      case Mode.Bound => lookupVar(ref) match
         case None =>
           error(s"Undefined variable $v at closed position", v)
           TAny.bound
@@ -154,7 +154,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           ty.bound
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           ty.bound
-      case Mode.Collapse => lookupVar(name) match
+      case Mode.Collapse => lookupVar(ref) match
         case None =>
           TAny.collapsed
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>

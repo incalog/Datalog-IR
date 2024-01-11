@@ -118,6 +118,13 @@ trait Graph[N, E] {
     cycle
   }
 
+  def filter(nodeFilter: N => Boolean, edgeFilter: (N,N,E) => Boolean): Graph[N, E] =
+    val g = cloneGraph()
+    for (n <- g.nodes if !nodeFilter(n))
+      g.removeNode(n)
+    g.edges.mapValuesInPlace((from, tos) => tos.filter((to,info) => edgeFilter(from,to,info)))
+    g
+
   def toGraphViz: String = {
     val sb = new StringBuilder()
     nodes.foreach { from =>
@@ -138,6 +145,7 @@ trait Graph[N, E] {
     case "edge" => "edge_"
     case _ => s.replace("$", "_")
 
+  protected def cloneGraph(): Graph[N,E]
   protected def nodeToGraphViz(n: N): String
   protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
   protected def nodeGraphVizAttributes(from: N): String

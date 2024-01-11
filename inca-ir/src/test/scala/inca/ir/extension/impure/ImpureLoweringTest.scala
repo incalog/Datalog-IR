@@ -24,7 +24,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
     override val ty: Type = arithmetic.TInt
   def alloc(to: Term): Impure =
     val local = Name(gensym.fresh("currentAlloc"))
-    Impure(local,
+    Impure(RefByName(local),
       Seq(Eq(to, data.Construct("mkOID", Seq(Var(local))))),
       arithmetic.Add(Var(local), arithmetic.IntNum(1)),
       impureAlloc
@@ -152,7 +152,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
           Param(Name("v"), TDemand(arithmetic.TDouble))
         ),
         Seq(Body(Seq(
-          Impure(Name("currentUpdate"),
+          Impure(RefByName(Name("currentUpdate")),
             Seq(),
             arithmetic.Add(Var(Name("currentUpdate")), IntNum(1)),
             impureUpdate

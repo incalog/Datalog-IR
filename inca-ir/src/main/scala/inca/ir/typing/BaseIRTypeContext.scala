@@ -1,6 +1,6 @@
 package inca.ir.typing
 
-import inca.ir.{Module, ModuleEntry, Name, Param, Term, Type, Var}
+import inca.ir.{Module, ModuleEntry, Name, Param, Ref, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
@@ -82,7 +82,12 @@ trait BaseIRTypeContext extends TypeIO:
 
   def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
 
-  def lookupVar(name: Name): Option[VarInfo] = vars.get(name)
+  def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
+    vars.get(ref.name) match
+      case None => None
+      case Some(info) =>
+        ref.resolved(info.target)
+        Some(info)
 
   def isBoundVar(name: Name): Boolean = vars.get(name) match
     case Some(VarInfo(_, _, VarMode.Bound)) => true
@@ -92,3 +97,5 @@ trait BaseIRTypeContext extends TypeIO:
 
   def addDependency(from: ModuleEntry, to: ModuleEntry, info: DependencyInfo): Unit =
     dependencyGraph.addEdge(from, to, info)
+
+  def getDependencyGraph: DependencyGraph = dependencyGraph

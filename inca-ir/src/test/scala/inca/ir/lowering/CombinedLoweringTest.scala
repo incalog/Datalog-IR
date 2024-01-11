@@ -20,7 +20,6 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
   val disjunctionIR = disjunction.IR
   val tupleDisjunctionIR: TupleDisjunctionIR = new TupleDisjunctionIR {}
 
-  val typechecker: Typechecker = new Typechecker {}
 
   test("Disjunction Tuple to Base") {
     val tupleLowering = new tuple.Lowering {}
@@ -112,6 +111,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
+    val typechecker: Typechecker = new Typechecker {}
     typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(
@@ -215,6 +215,7 @@ class CombinedLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
+    val typechecker: Typechecker = new Typechecker {}
     typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(lowering.lower(mod))

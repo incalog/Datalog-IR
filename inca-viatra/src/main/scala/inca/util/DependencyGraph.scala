@@ -29,6 +29,12 @@ class DependencyGraph(module: Module) extends Graph[String, DependencyEdge]:
     }
   }
 
+  override def cloneGraph(): Graph[String, DependencyEdge] =
+    val g = new DependencyGraph(module)
+    g.nodes ++= this.nodes
+    g.edges ++= this.edges
+    g
+
   override protected def nodeToGraphViz(n: String): String =
     n.replace("$", "_")
 

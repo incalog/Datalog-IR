@@ -3,7 +3,7 @@ package inca.ir
 import inca.ir.extension.*
 import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
 import inca.util.CompilationMessage
@@ -37,10 +37,10 @@ trait CompiledModule:
   protected def printStatistics(module: Module, str: String): Unit =
     StatisticsCollector.printStatistics(module, str)
 
-  lazy val checked: Module =
+  lazy val (checked, dependencyGraph): (Module, DependencyGraph) =
     val checker = typechecker
     checker.checkProgram(Seq(ir))
-    ir
+    (ir, checker.getDependencyGraph)
 
   // TODO should be configurable
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
