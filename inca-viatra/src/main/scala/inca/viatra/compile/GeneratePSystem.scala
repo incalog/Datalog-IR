@@ -175,6 +175,7 @@ object GeneratePSystem:
        |import inca.viatra.compile.PSystem
        |import inca.viatra.runtime.Query.Specification
        |import inca.viatra.runtime.index.NamedRelationKey
+       |import inca.viatra.runtime.index.virtual._
        |
        |import inca.viatra.runtime.aggregate.builtin
        |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
@@ -281,8 +282,9 @@ object GeneratePSystem:
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       s"new TypeConstraint(body, $tuple, $key)"
     case ExtensionalCall(RefByName(name), args, true) =>
-      // use a type filter ?
-      ???
+      val key = s"""NotNamedRelationIndex.Key("$name", ${args.size})"""
+      val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
+      s"new TypeFilterConstraint(body, $tuple, $key)"
     case Eq(lhs, rhs, false) =>
       s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
