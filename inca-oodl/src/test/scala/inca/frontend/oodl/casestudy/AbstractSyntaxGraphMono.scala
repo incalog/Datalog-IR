@@ -15,7 +15,7 @@ import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.impure.{Impure, PureHint}
+import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
@@ -236,7 +236,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         Eq(Var("to"), Project(Var("v"), 1)),
       ))
     )
-  ).addHint(PureHint)
+  ).addHint(MainHint)
 
 
   private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaBool.IR + incaAgg.IR,

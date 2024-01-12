@@ -9,7 +9,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.impure.{Impure, PureHint}
+import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
@@ -106,7 +106,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         WriteMono(Var("m"), IntNum(17), Seq()),
         Eq(Var("s"), ReadMono(Var("m")))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -127,7 +127,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         WriteMono(Var("m"), IntNum(17)),
         SetMember(Var("s"), ReadMono(Var("m")))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -148,7 +148,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetUnion(Var("s1"), SetLit(Seq(IntNum(2))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -170,7 +170,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetIntersection(Var("s1"), SetLit(Seq(IntNum(2), IntNum(3))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -192,7 +192,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1"))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -213,7 +213,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       Eq(Var("m"), NewMono(scalaSetMonoDefinition(TData("TEdge")), Seq(), Seq())),
       Call("collEdge", Seq(Var("m").arg)),
       Eq(Var("s"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val collRelation = Relation(
       "collEdge",
@@ -259,11 +259,11 @@ class SetMonoTest extends AnyFunSuiteLike:
       WriteMono(Var("m"), Var("b")),
       WriteMono(Var("m"), BoolFalse),
       SetMember(Var("c"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val relation2 = Relation("foo", Seq(Param("b", TBoolean)), Seq(Body(Seq(
       Eq(Var("b"), BoolTrue)
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val engine = compile(relation, relation2)
     engine.readAll().foreach(res => println(res.asTable))
@@ -282,7 +282,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       WriteMono(Var("m"), Var("a")),
       WriteMono(Var("m"), Var("b")),
       SetMember(Var("b"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -297,7 +297,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       Eq(Var("m"), NewMono(scalaSetMonoDefinition(TTuple(Seq(TInt, TInt))))),
       WriteMono(Var("m"), TupleLit(Seq(IntNum(-1), IntNum(-2)))),
       SetMember(TupleLit(Seq(Var("c"), Var("d"))), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
     // Problem: if tuple is compiled into Scala terms, arguments "c" and "d" cannot be unbound variables
     val engine = compile(relation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -314,7 +314,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       Eq(Var("node2"), StringLit("F")),
       Call("collNode", Seq(Var("m").arg, Var("node2").arg)),
       SetMember(Var("elem"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val collNode = Relation("collNode",
       Seq(
@@ -371,7 +371,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       Eq(Var("m"), NewMono(scalaSetMonoDefinition(intPair))),
       Call("collPair", Seq(Var("m").arg, IntNum(10).arg)),
       SetMember(Var("pair"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val evenRelation = Relation(
       "collPair",
@@ -411,7 +411,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         SetMember(Var("s"), ReadMono(Var("m"))),
         SetMember(Var("x"), Var("s"))
       )))
-    ).addHint(impure.PureHint)
+    ).addHint(impure.MainHint)
 
     val engine = compile(DRedReteBackendFactory.INSTANCE, relation)
     engine.readAll().foreach(res => println(res.asTable))

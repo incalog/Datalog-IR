@@ -39,7 +39,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
     )))
-  ).addHint(impure.PureHint)
+  ).addHint(impure.MainHint)
 
   // size(t, m) :- leaf(t), t += 1@(t)
   //            :- btree(t, l, r), size(l, m), size(r, m),

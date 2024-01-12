@@ -148,8 +148,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
     registerAllVars(relation)
 
-    // TODO: Replace this with main hint
-    val isMainRelation = relation.hasHint(PureHintKey)
+    val isMainRelation = relation.hasHint(MainHintKey)
 
     impurityOutParams = relevantImpurities.map(k => Param(freshImpurityCounter(k, relation).name, k.ty))
     val impurityInParams = relevantImpurities.map(k => Param(freshImpurityCounter(k, relation).name, demand.TDemand(k.ty)))

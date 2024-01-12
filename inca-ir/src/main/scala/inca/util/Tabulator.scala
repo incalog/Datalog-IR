@@ -4,19 +4,25 @@ trait Design:
   def top: (String, String, String, String)
   def header: (String, String, String, String)
   def bottom: (String, String, String, String)
-  def line: (String, String)
+  def verticalLine: String
 
 case object Classic extends Design:
   override val top: (String, String, String, String) = ("+", "+", "+", "-")
   override val header: (String, String, String, String) = ("+", "+", "+", "-")
   override val bottom: (String, String, String, String) = ("+", "+", "+", "-")
-  override val line: (String, String) = ("-", "|")
+  override val verticalLine: String = "|"
 
 case object Fancy extends Design:
   override val top: (String, String, String, String) = ("┌", "┬", "┐", "─")
   override val header: (String, String, String, String) = ("╞", "╪", "╡", "═")
   override val bottom: (String, String, String, String) = ("└", "┴", "┘", "─")
-  override val line: (String, String) = ("─", "│")
+  override val verticalLine: String = "│"
+
+case object Markdown extends Design:
+  override val top: (String, String, String, String) = ("", "", "", "")
+  override val header: (String, String, String, String) = ("|", "|", "|", "-")
+  override val bottom: (String, String, String, String) = ("", "", "", "")
+  override val verticalLine: String = "|"
 
 object Tabulator {
   val defaultDesign: Design = Fancy
@@ -49,7 +55,7 @@ object Tabulator {
       List()).mkString("\n")
 
   private def formatRow(row: Seq[Any], colSizes: Seq[Int], design: Design): String = {
-    val (horizontal, vertical) = design.line
+    val vertical = design.verticalLine
     val cells = for ((item, size) <- row.zip(colSizes)) yield
       if (size == 0)
         ""

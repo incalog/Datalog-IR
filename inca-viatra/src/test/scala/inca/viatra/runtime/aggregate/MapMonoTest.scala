@@ -9,7 +9,7 @@ import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
-import inca.ir.extension.impure.{Impure, PureHint}
+import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
@@ -145,7 +145,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("mono"), NewMono(MapMonoDefinition(TInt, ArithmeticMonoDefinition.SumInt))),
       Eq(Var("p"), ReadMono(Var("mono")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -164,7 +164,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), IntNum(2)))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         Eq(Var("value"), MapLookUp(Var("map"), IntNum(1)))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -185,7 +185,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), IntNum(4)))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("elem"), MapLookUp(Var("map"), IntNum(1)))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -207,7 +207,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), TupleLit(Seq(IntNum(4), StringLit("4")))))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("elem"), MapLookUp(Var("map"), IntNum(1)))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -228,7 +228,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(IntNum(2), BoolFalse))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         Eq(Var("value"), MapLookUp(Var("map"), IntNum(1)))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -250,7 +250,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(BoolFalse, TupleLit(Seq(IntNum(4), StringLit("4")))))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("elem"), MapLookUp(Var("map"), BoolTrue))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -269,7 +269,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(IntNum(1), StringLit("1"))), TupleLit(Seq(IntNum(1), IntNum(1)))))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), TupleLit(Seq(IntNum(1), StringLit("1")))))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -288,7 +288,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(IntNum(1), IntNum(1))), TupleLit(Seq(IntNum(1), IntNum(1)))))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), TupleLit(Seq(IntNum(1), IntNum(1)))))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -308,7 +308,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(IntNum(1), StringLit("1"))), IntNum(1)))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), TupleLit(Seq(IntNum(1), StringLit("1")))))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -328,7 +328,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(IntNum(1), IntNum(1))), IntNum(1)))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), TupleLit(Seq(IntNum(1), IntNum(1)))))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -347,7 +347,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(StringLit("1"), IntNum(1)))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), StringLit("1")))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -365,7 +365,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono"), TupleLit(Seq(IntNum(1), TupleLit(Seq(StringLit("1"), IntNum(1)))))),
         Eq(Var("map"), ReadMono(Var("mono"))),
         SetMember(Var("value"), MapLookUp(Var("map"), IntNum(1)))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -412,7 +412,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         WriteMono(Var("mono2"), TupleLit(Seq(TupleLit(Seq(StringLit("-2"), IntNum(2))), TupleLit(Seq(IntNum(-2), StringLit("-2")))))),
         Eq(Var("map"), ReadMono(Var("mono2"))),
         SetMember(Var("elem"), MapLookUp(Var("map"), TupleLit(Seq(StringLit("-2"), IntNum(2)))))
-      )))).addHint(PureHint)
+      )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -447,7 +447,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
         ScalaType.int,
         TInt
       ))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(res => println(res.asTable))
@@ -465,7 +465,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Call("collNode", Seq(Var("mono").arg, Var("node").arg)),
       Eq(Var("map"), ReadMono(Var("mono"))),
       Eq(Var("num"), MapLookUp(Var("map"), StringLit("B")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val mainRelationFail = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
@@ -475,7 +475,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Call("collNode", Seq(Var("mono").arg, Var("node").arg)),
       Eq(Var("map"), ReadMono(Var("mono"))),
       Eq(Var("num"), MapLookUp(Var("map"), StringLit("A")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
 
     val collNode = Relation("collNode",
@@ -549,7 +549,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       )),
       Eq(Var("map"), ReadMono(Var("mono"))),
       SetMember(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     // Failure reason: lowering of nested maps is ill-supported
     compile(mainRelation)

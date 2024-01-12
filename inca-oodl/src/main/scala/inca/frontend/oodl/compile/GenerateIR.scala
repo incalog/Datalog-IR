@@ -136,7 +136,7 @@ class GenerateIR:
 
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember
-    ))).addHint(impure.PureHint)
+    ))).addHint(impure.MainHint)
 
   def compileCastRelation(): ir.Relation =
     val runtimeTyp = ir.Var("ty")

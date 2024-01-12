@@ -9,7 +9,7 @@ import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Rela
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
-import inca.ir.extension.impure.{Impure, PureHint}
+import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
@@ -91,7 +91,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
 
   private lazy val mainInput: ExtensionalRelation = ExtensionalRelation(
@@ -118,7 +118,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.PureHint)
+    )))).addHint(impure.MainHint)
 
   test("Test case 2") {
     val engine = compile(relation3)
@@ -138,7 +138,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.PureHint)
+    )))).addHint(impure.MainHint)
 
   private lazy val relation5: Relation = Relation(
     "size",
@@ -187,7 +187,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("t"), Var("m1"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
   test("Test case 4") {
     val engine = compile(relation6, relation5, extLeaf)
@@ -244,7 +244,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("t"), Var("m2"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
-    )))).addHint(impure.PureHint)
+    )))).addHint(impure.MainHint)
 
   test("Test case 6") {
     val engine = compile(relation8, relation7, extLeaf, extBTree)
@@ -262,7 +262,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(StringMonoDefinition(), Seq(), Seq())),
       WriteMono(Var("m"), StringLit("1+1"), Seq()),
       Eq(Var("s"), ReadMono(Var("m")))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
     engine.readAll().foreach(println)
@@ -300,7 +300,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(customMono1, Seq(TString), Seq())),
       Eq(Var("b"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.string, TString))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
   test("Test using user-defined mono definition 1") {
     val engine = compile(relationUserDefinedMono1)
@@ -320,7 +320,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("m"), NewMono(customMono2, Seq(TString), Seq())),
       Eq(Var("b"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.double, TDouble))
-    )))).addHint(PureHint)
+    )))).addHint(MainHint)
 
 
   test("Test using user-defined mono definition 2") {
@@ -355,7 +355,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("m"))),
       Eq(Var("n"), ConvertForeignIR(ReadMono(Var("m")), ScalaType.int, TInt))
     )))
-  ).addHint(PureHint)
+  ).addHint(MainHint)
 
   private lazy val graphSize = Relation(
     "size",
