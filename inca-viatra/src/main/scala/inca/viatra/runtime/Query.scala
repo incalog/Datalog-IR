@@ -50,7 +50,12 @@ object Query:
       getAllMatches.asScala.map(_.toArray)
 
 
-  case class Match(spec: Specification, private var values: Array[AnyRef], isMutable: Boolean) extends BasePatternMatch:
+  case class Match(spec: Specification, values: Array[AnyRef], isMutable: Boolean) extends BasePatternMatch:
+    if (spec.getInternalQueryRepresentation.getParameters.size != values.length) {
+      val q = spec.getInternalQueryRepresentation
+      throw new IllegalArgumentException(s"Relation ${q.getSimpleName} has ${q.getParameters.size()} parameters ${q.getParameterNames}, but only ${values.length} values were provided ${util.Arrays.toString(values)}")
+    }
+
     override def specification(): Specification = spec
 
     override def get(parameterName: String): Any =

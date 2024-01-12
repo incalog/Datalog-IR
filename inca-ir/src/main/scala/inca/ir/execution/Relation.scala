@@ -10,7 +10,7 @@ object Relation {
     val params = matches.indices.map(i => s"param_$i")
     Relation.from(relName, params, Seq(matches))
 
-  def from(relName: RelationName, parameterNames: Seq[RelationName], matches: Iterable[Seq[Any]]): Relation =
+  def from(relName: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)
       case 1 => Relation1(relName, parameterNames, matches)
@@ -33,31 +33,6 @@ object Relation {
       case 18 => Relation18(relName, parameterNames, matches)
       case 19 => Relation19(relName, parameterNames, matches)
       case 20 => Relation20(relName, parameterNames, matches)
-    }
-
-  def fromMatches(relName: RelationName, parameterNames: Seq[RelationName], matches: Iterable[Seq[Any]]): Relation =
-    parameterNames.size match {
-      case 0 => UnitRelation(relName)
-      case 1 => execution.Relation1(relName, parameterNames, matches)
-      case 2 => execution.Relation2(relName, parameterNames, matches)
-      case 3 => execution.Relation3(relName, parameterNames, matches)
-      case 4 => execution.Relation4(relName, parameterNames, matches)
-      case 5 => execution.Relation5(relName, parameterNames, matches)
-      case 6 => execution.Relation6(relName, parameterNames, matches)
-      case 7 => execution.Relation7(relName, parameterNames, matches)
-      case 8 => execution.Relation8(relName, parameterNames, matches)
-      case 9 => execution.Relation9(relName, parameterNames, matches)
-      case 10 => execution.Relation10(relName, parameterNames, matches)
-      case 11 => execution.Relation11(relName, parameterNames, matches)
-      case 12 => execution.Relation12(relName, parameterNames, matches)
-      case 13 => execution.Relation13(relName, parameterNames, matches)
-      case 14 => execution.Relation14(relName, parameterNames, matches)
-      case 15 => execution.Relation15(relName, parameterNames, matches)
-      case 16 => execution.Relation16(relName, parameterNames, matches)
-      case 17 => execution.Relation17(relName, parameterNames, matches)
-      case 18 => execution.Relation18(relName, parameterNames, matches)
-      case 19 => execution.Relation19(relName, parameterNames, matches)
-      case 20 => execution.Relation20(relName, parameterNames, matches)
     }
 }
 
@@ -111,10 +86,10 @@ case class UnitRelation(name: RelationName) extends Relation {
   case class Tuple()
   lazy val arity: Int = 0
   lazy val size: Int = 0
-  val parameterNames: Seq[String] = Seq.empty
-  val entries: Iterable[Tuple] = Iterable.empty
+  lazy val parameterNames: Seq[String] = Seq.empty
+  lazy val entries: Iterable[Tuple] = Iterable.empty
   override def unflattenEntry(entry: Seq[Any]): Tuple = Tuple()
-  val matches: Iterable[Seq[Any]] = Seq.empty
+  lazy val matches: Iterable[Seq[Any]] = Seq.empty
 }
 
 case class Relation1[A <: AnyRef](name: RelationName,

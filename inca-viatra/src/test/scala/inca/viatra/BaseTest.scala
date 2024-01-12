@@ -112,7 +112,7 @@ class BaseTest extends AnyFunSuiteLike:
 
     import scala.jdk.CollectionConverters.*
 
-    val res = execution.Relation.fromMatches(
+    val res = execution.Relation.from(
       mainMatcher.getPatternName,
       mainMatcher.getParameterNames.asScala.toList,
       mainMatcher.getAllMatchArrays.map(_.toSeq))

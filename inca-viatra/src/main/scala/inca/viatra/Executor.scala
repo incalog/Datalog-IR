@@ -26,23 +26,15 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       pattern.map(n => read(UnitRelation(n)))
 
     override def insert(edb: Relation): Unit =
-      if (edb.entries.nonEmpty) {
-        edb.entries.foreach { t =>
-          val input = edb.flattenEntry(t)
-          feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
-        }
-      } else {
-        feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf())
+      edb.entries.foreach { t =>
+        val input = edb.flattenEntry(t)
+        feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
       }
 
     override def remove(edb: Relation): Unit =
-      if (edb.entries.nonEmpty) {
-        edb.entries.foreach { t =>
-          val input = edb.flattenEntry(t)
-          feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
-        }
-      } else {
-        feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf())
+      edb.entries.foreach { t =>
+        val input = edb.flattenEntry(t)
+        feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
       }
 
     override def addUpdateListener(up: RelationUpdateListener): Unit =
@@ -86,9 +78,10 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
         }
       else {
         val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), spec)
-        matcher.getAllMatches(queryMatch).asScala
+        val scala = matcher.getAllMatches.asScala
+        scala
       }
-    Relation.fromMatches(name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
+    Relation.from(name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
 
   override type Tuple = Any
   override def name: RelationName = queryRel.name
