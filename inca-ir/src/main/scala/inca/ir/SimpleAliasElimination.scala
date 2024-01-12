@@ -20,9 +20,12 @@ import inca.ir.visitors.IRVisitor
  * b == 4
  * a == b
  * c == a
+ * R(c)
  *
  * ~>
- *
+ * 
+ * b == 4
+ * R(b)
  *
  */
 
