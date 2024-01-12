@@ -112,45 +112,6 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
    * }
    *
    */
-//  private def optimizeMapMono(tm: TMono, m: MapMonoDefinition): Seq[Atom] =
-//    val collName = monoCollectName(tm).name
-//    val collParams = createCollParams(tm).map(p => Param(p.name, p.ty match
-//        case TDemand(ty) => ty
-//        case ty => ty
-//    ))
-//    val splitCollName = Name(gensym.fresh(collName + "$split"))
-//    val kp = Param(gensym.freshName(Name("key")), m.keyTy)
-//    val vp = Param(gensym.freshName(Name("value")), m.mono.typ.in)
-//    val args = collParams.map(p => Var(p.name).arg)
-//    val optCollRel = Relation(
-//      Name(gensym.fresh(collName + "$split")),
-//      collParams.dropRight(1) :+ kp :+ vp,
-//      Seq(Body(Seq(
-//        Call(Name(collName), args).addHint(DemandIgnoreCallHint),
-//        Eq(Var(kp.name), Project(Var(collParams.last.name), 0)),
-//        Eq(Var(vp.name), Project(Var(collParams.last.name), 1))
-//      )))
-//    )
-//    mapMonoColl += optCollRel
-//    val callAtom = Call(
-//      optCollRel.name,
-//      Var(Name("m")).arg +: tm.keys.map(_ => WildcardArg()) :+ Var(Name("key")).arg :+ WildcardArg()
-//    ).addHint(DemandIgnoreCallHint)
-//    val agg = Aggregate(
-//      RefByName(optCollRel.name),
-//      callAtom.args.dropRight(1) :+ AggregateColumnArg(Var(Name("value"))),
-//      MonoAggregationOperator(m.mono)
-//    )
-//    val map = MapComprehension(
-//      Var(Name("key")),
-//      Var(Name("value")),
-//      Seq(callAtom, agg)
-//    )
-//    val project = m.resultTerm(map, gensym)
-//    Seq(Eq(project, Var(Name("output"))))
-
-  // TODO: multi-maps and nested multi-maps
-
   private def optimizeMapMono(tm: TMono, m: MapMonoDefinition): Seq[Atom] =
     var valueMono: Option[MonoDefinition] = None
 
@@ -192,15 +153,27 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
           (0 until keyNum).map(i => Var(Name(s"k$i")).arg)) :+ WildcardArg()
     ).addHint(DemandIgnoreCallHint)
 
+
     def createMapFun(i: Int): MapFun =
       val param = Param(Name(s"k$i"), keyTys(i))
       val tm = if i == keyNum - 1 then
-        Block(Seq(
-          callAtom, Aggregate(
-            RefByName(optCollRel.name),
-            callAtom.args.dropRight(1) :+ AggregateColumnArg(Var(Name("v"))),
-            MonoAggregationOperator(valueMono.get)
-          )), Var(Name("v")))
+        valueMono.getOrElse(throw IllegalStateException(s"value mono is not expected to be None")) match
+          case MapMonoDefinition(_, _) => throw IllegalStateException(s"$valueMono is not expected to be a map mono")
+          case SetMonoDefinition(_) =>
+            val elem = gensym.fresh("elem")
+            SetComprehension(
+              Var(Name(elem)),
+              Seq(
+                callAtom.copy(args = callAtom.args.dropRight(1) :+ Var(Name(elem)).arg)
+              )
+            )
+          case vmono =>
+            Block(Seq(
+              callAtom, Aggregate(
+                RefByName(optCollRel.name),
+                callAtom.args.dropRight(1) :+ AggregateColumnArg(Var(Name("v"))),
+                MonoAggregationOperator(valueMono.get)
+              )), Var(Name("v")))
       else createMapFun(i + 1)
       MapFun(Seq(param), tm)
 
