@@ -5,13 +5,13 @@ import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLower
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, UnitRelation}
-import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
+import inca.ir.extension.arithmetic.{Add, DoubleNum, GT, IntNum, Max, Mul, Sub, TDouble, TInt}
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
 import inca.ir.extension.impure.{Impure, PureHint}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
@@ -54,6 +54,8 @@ case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
 
   private trait mapLowering extends map.Lowering with primitive.Visitor
 
+  private trait setLowering extends set.Lowering with primitive.Visitor
+
   private trait conversionElimination extends ConversionElimination with primitive.Visitor
 
   setPipeline(List(
@@ -78,7 +80,7 @@ case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
 
 
 
-class ScalaMapMonoOptTest extends AnyFunSuiteLike {
+class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
   private val langs: Language = BaseIR.language +
     set.IR +
@@ -500,36 +502,9 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
     engine.readAll().foreach(res => println(res.asTable))
-
-
-
-  test("Map momo basic test 16: value mono is a multi-map mono"):
-    val valueMapMono = MapMonoDefinition(TString, SetMonoDefinition(TInt))
-    val mapMono = MapMonoDefinition(TString, valueMapMono)
-    val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
-      Eq(Var("counter"), IntNum(0)),
-      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("mono"), NewMono(mapMono)),
-      WriteMono(Var("mono"), TupleLit(
-        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(2))))
-      )),
-      WriteMono(Var("mono"), TupleLit(
-        Seq(StringLit("neg"), TupleLit(Seq(StringLit("odd"), IntNum(-1))))
-      )),
-      WriteMono(Var("mono"), TupleLit(
-        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(4))))
-      )),
-      WriteMono(Var("mono"), TupleLit(
-        Seq(StringLit("neg"), TupleLit(Seq(StringLit("even"), IntNum(-2))))
-      )),
-      Eq(Var("map"), ReadMono(Var("mono"))),
-      SetMember(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
-    )))).addHint(PureHint)
-
-    val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult(Set(2, 4))(res.entries.toSet)
+    assert(res.entries.nonEmpty)
+    assertResult(2)(res.entries.head)
 
 
   test("Test generating nested maps from relation"):
@@ -597,7 +572,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
     val engine = compile(mainRelation2, mapRelation)
     engine.readAll().foreach(res => println(res.asTable))
 
-  test("Map momo basic test 17: optimization of nested map mono"):
+  test("Map momo basic test 16: value mono is another map mono with a non-relative value mono"):
     val valueMapMono = MapMonoDefinition(TString, SumInt)
     val mapMono = MapMonoDefinition(TString, valueMapMono)
     val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
@@ -625,4 +600,242 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike {
     val res = engine.read(UnitRelation("main"))
     assertResult(6)(res.entries.head)
 
-}
+
+  test("Map momo basic test 17: value mono is a multi-map mono"):
+    val valueMapMono = MapMonoDefinition(TString, SetMonoDefinition(TInt))
+    val mapMono = MapMonoDefinition(TString, valueMapMono)
+    val mainRelation = Relation("main", Seq(Param("elem", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(2))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("odd"), IntNum(-1))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("pos"), TupleLit(Seq(StringLit("even"), IntNum(4))))
+      )),
+      WriteMono(Var("mono"), TupleLit(
+        Seq(StringLit("neg"), TupleLit(Seq(StringLit("even"), IntNum(-2))))
+      )),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      SetMember(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(Set(2, 4))(res.entries.toSet)
+
+
+  private def makeTp[T](K: Seq[T] => T, ts: T*): T =
+    if ts.size == 1 then ts.head
+    else if ts.size == 2 then K(ts.toSeq)
+    else K(Seq(ts.head, makeTp(K, ts.tail:_*)))
+
+  private def nmapLookUp(map: Term, keys: Term*): Term =
+    if keys.size == 1 then MapLookUp(map, keys.head)
+    else if keys.size > 1 then MapLookUp(nmapLookUp(map, keys.dropRight(1):_*), keys.last)
+    else throw IllegalAccessError(s"$keys is an empty list")
+
+
+  test("Map mono basic test 18: 3-level nested map mono with primitive key types"):
+    val mapMono = MapMonoDefinition(TInt, MapMonoDefinition(TDouble, MapMonoDefinition(TString, SumInt)))
+    val mainRelation = Relation("main", Seq(Param("year", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), makeTp(TupleLit.apply, IntNum(1), DoubleNum(2.5), StringLit("JGU"), IntNum(2023))),
+      WriteMono(Var("mono"), makeTp(TupleLit.apply, IntNum(1), DoubleNum(2.5), StringLit("JGU"), IntNum(1))),
+      WriteMono(Var("mono"), makeTp(TupleLit.apply, IntNum(1), DoubleNum(2.5), StringLit("JGU is named at"), IntNum(1946))),
+      Eq(Var("thisyear"), nmapLookUp(ReadMono(Var("mono")), IntNum(1), DoubleNum(2.5), StringLit("JGU"))),
+      Eq(Var("startedyear"), nmapLookUp(ReadMono(Var("mono")), IntNum(1), DoubleNum(2.5), StringLit("JGU is named at"))),
+      Eq(Var("year"), Sub(Var("thisyear"), Var("startedyear"))),
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(2024-1946)(res.entries.head)
+
+
+  test("Map mono basic test 19: 2-level map mono with non-primitive key types"):
+    val mapMono = MapMonoDefinition(TTuple(Seq(TInt, TString)), MapMonoDefinition(TInt, DisjMonoDefinition()))
+    val mainRelation = Relation("main", Seq(Param("res", TBoolean)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), makeTp(TupleLit.apply, TupleLit(Seq(IntNum(1), StringLit("1"))), IntNum(1), BoolFalse)),
+      Eq(Var("res"), nmapLookUp(ReadMono(Var("mono")), TupleLit(Seq(IntNum(1), StringLit("1"))), IntNum(1)))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(0)(res.entries.head)
+
+
+  test("Map mono basic test 20: 3-level nested map mono with non-primitive key types (also test lowering ADT with non-primitive parameters)"):
+    val mapMono = MapMonoDefinition(TBoolean, MapMonoDefinition(TTuple(Seq(TInt, TString)), MapMonoDefinition(TSet(TInt), DisjMonoDefinition())))
+    val mainRelation = Relation("main", Seq(Param("res1", TBoolean), Param("res2", TBoolean)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono1"), NewMono(mapMono)),
+      WriteMono(Var("mono1"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)), BoolFalse)),
+      WriteMono(Var("mono1"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)), BoolFalse)),
+      Eq(Var("mono2"), NewMono(mapMono)),
+      WriteMono(Var("mono2"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)), BoolFalse)),
+      WriteMono(Var("mono2"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)), BoolTrue)),
+      Eq(Var("res1"), nmapLookUp(ReadMono(Var("mono1")), BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)))),
+      Eq(Var("res2"), nmapLookUp(ReadMono(Var("mono2")), BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(IntNum(1)))),
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult((0, 1))(res.entries.head)
+
+  test("Map mono basic test 21: 3-level nested map mono with non-primitive key types (also test lowering ADT with non-primitive parameters)"):
+    val mapMono = MapMonoDefinition(TBoolean, MapMonoDefinition(TTuple(Seq(TInt, TString)), MapMonoDefinition(TSet(TTuple(Seq(TInt, TString))), DisjMonoDefinition())))
+    val mainRelation = Relation("main", Seq(Param("res1", TBoolean), Param("res2", TBoolean)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono1"), NewMono(mapMono)),
+      WriteMono(Var("mono1"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("1")))), BoolFalse)),
+      WriteMono(Var("mono1"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("1")))), BoolTrue)),
+      Eq(Var("mono2"), NewMono(mapMono)),
+      WriteMono(Var("mono2"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("1")))), BoolFalse)),
+      WriteMono(Var("mono2"), makeTp(TupleLit.apply, BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("2")))), BoolTrue)),
+      Eq(Var("res1"), nmapLookUp(ReadMono(Var("mono1")), BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("1")))))),
+      Eq(Var("res2"), nmapLookUp(ReadMono(Var("mono2")), BoolTrue, TupleLit(Seq(IntNum(1), StringLit("1"))), SetLit.from(TupleLit(Seq(IntNum(1), StringLit("1")))))),
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult((1, 0))(res.entries.head)
+
+
+  test("Map mono basic test 22: 3-level nested map mono with user-defined mono definitions"):
+    val SetSizeMono = ScalaMonoDefinition(
+      "SetSizeMono",
+      initCode = "Set[Any]()",
+      addCode = "(st: Set[Any], a: Any) => st + a",
+      resultCode = "(st: Set[Any]) => st.size",
+      constructorParamTypes = Seq(),
+      typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
+    )
+    val mapMono = MapMonoDefinition(TBoolean, MapMonoDefinition(TTuple(Seq(TInt, TString)), MapMonoDefinition(TSet(TTuple(Seq(TInt, TString))), SetSizeMono)))
+
+    val key1 = Seq(
+      BoolTrue,
+      TupleLit(Seq(IntNum(1), StringLit("JGU"))),
+      SetLit.from(TupleLit(Seq(IntNum(1), StringLit("Info"))))
+    )
+
+    val key2 = Seq(
+      BoolTrue,
+      TupleLit(Seq(IntNum(1), StringLit("JGU"))),
+      SetLit.from(TupleLit(Seq(IntNum(1), StringLit("Info"))))
+    )
+
+    val tp1 = makeTp(
+      TupleLit.apply,
+      key1 :+ Cast(StringLit("PL"), ScalaType.any):_*
+    )
+
+    val tp2 = makeTp(
+      TupleLit.apply,
+      key1 :+ Cast(StringLit("Algorithm"), ScalaType.any): _*
+    )
+
+
+    val mainRelation = Relation("main", Seq(Param("size", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      WriteMono(Var("mono"), tp1),
+      WriteMono(Var("mono"), tp2),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("size"), Cast(nmapLookUp(Var("map"), key1:_*), TInt))
+    )))).addHint(PureHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(2)(res.entries.head)
+
+
+  test("Map mono basic test 23: 3-level nested map mono with recursive aggregation"):
+    val mapMono = MapMonoDefinition(TInt, MapMonoDefinition(TDouble, MapMonoDefinition(TString, SumInt)))
+
+    val mainRelation = Relation("main", Seq(Param("num", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      Eq(Var("node"), StringLit("A")),
+      Call("collNode", Seq(Var("mono").arg, Var("node").arg)),
+      Eq(Var("map"), ReadMono(Var("mono"))),
+      Eq(Var("num"), nmapLookUp(Var("map"), IntNum(1), DoubleNum(3), StringLit("A")))
+    )))).addHint(PureHint)
+
+
+    val collNode = Relation("collNode",
+      Seq(
+        Param("mono", TDemand(TMono(makeTp(TTuple.apply, TInt, TDouble, TString, TInt), TMap(TInt, TMap(TDouble, TMap(TString, TInt))), Seq()))),
+        Param("t", TDemand(TString))
+      ), Seq(Body(Seq(
+        ExtensionalCall("leaf", Seq(Var("t").arg)),
+        WriteMono(Var("mono"), makeTp(TupleLit.apply, IntNum(1), DoubleNum(3), Var("t"), IntNum(1)))
+      )),
+        Body(Seq(
+          ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
+          Eq(Var("map"), ReadMono(Var("mono"))),
+          Eq(Var("lh"), nmapLookUp(Var("map"), IntNum(1), DoubleNum(3), Var("l"))),
+          Eq(Var("rh"), nmapLookUp(Var("map"), IntNum(1), DoubleNum(3), Var("r"))),
+          Eq(Var("height"), Add(Max(Var("lh"), Var("rh")), IntNum(1))),
+          WriteMono(Var("mono"), makeTp(TupleLit.apply, IntNum(1), DoubleNum(3), Var("t"), Var("height")))
+        ))
+      ))
+    val extLeaf = ExtensionalRelation(
+      "leaf", Seq(Param("t", TString))
+    )
+    val extBTree = ExtensionalRelation(
+      "btree", Seq(Param("t", TString), Param("l", TString), Param("r", TString))
+    )
+    lazy val edbLeaf: Relation1[Seq[String]] = Relation1("leaf", Seq("t"), Seq(Seq("C"), Seq("D"), Seq("E"), Seq("I"), Seq("J"), Seq("K"), Seq("L")))
+    val edbBTree: Relation3[Seq[String], Seq[String], Seq[String]] = Relation3(
+      "btree",
+      Seq("t", "l", "r"),
+      Seq(
+        Seq("A", "B", "C"),
+        Seq("B", "D", "E"),
+        Seq("F", "G", "H"),
+        Seq("G", "I", "K"),
+        Seq("H", "L", "J")
+      )
+    )
+    val engine = compile(DRedReteBackendFactory.INSTANCE, mainRelation, collNode, extLeaf, extBTree)
+    engine.insert(edbLeaf)
+    engine.insert(edbBTree)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assert(res.entries.nonEmpty)
+    assertResult(3)(res.entries.head)
+
+
+/* TODO: 1. 3-level nested map mono with primitive key types ✔
+ *       2. 3-level nested map mono with non-primitive key types, e.g. tuples, booleans ✔
+ *       4. 3-level nested mono with user-defined mono ✔
+ *       5. recursive 3-level nested mono ✔
+ *       6. 3-level nested multi-map mono with primitive key types
+ *       7. 3-level nested multi-map mono with non-primitive key types
+ *       8. recursive 3-level nested multi-map mono
+ *       9. multiple nested mono instances... ✔
+ *
+ */

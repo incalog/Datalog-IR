@@ -88,7 +88,6 @@ trait Lowering extends BaseLowering:
 
   private def makeSetDefinitions: Seq[ModuleEntry] =
     setTypeConstructors.flatMap { case (memTy, constructors) =>
-      println(memTy -> constructors)
       val (datas, rel) = defunctionalizeSet(memTy, constructors.values.toSeq)
       datas :+ rel
     }.toSeq
