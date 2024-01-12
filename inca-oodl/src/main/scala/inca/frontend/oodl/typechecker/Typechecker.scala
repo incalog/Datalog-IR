@@ -1,8 +1,8 @@
 package inca.frontend.oodl.typechecker
 
-// TODO: Support generics
+// TODO: Support generics. Currently this is pretty hacked, incomplete and not working correctly
 // TODO: assign variables to method calls that return unit is not allowed
-// TODO: Check that each path returns
+// TODO: Check that each path (e.g. in an if statement) returns
 
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
@@ -22,6 +22,11 @@ class Typechecker extends TypeContext with TypeIO:
         ConstructorDef(Seq(), None, Seq(), Seq()),
         FieldDef(Seq(), None, "result", TInt, None, true),
         MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TAny)), TUnit, Seq())
+      )),
+      ClassDef(Seq(MonoClassAnno()), None, "mono.Set", Seq(ParametricType(Name("T"))), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq()),
+        //FieldDef(Seq(), None, "result", TName(Name("T"), Seq()), None, true),
+        MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TName(Name("T"), Seq()))), TUnit, Seq())
       ))
     )
   )
@@ -32,8 +37,10 @@ class Typechecker extends TypeContext with TypeIO:
   }
 
   def typecheck(module: Module): Unit = scopedTypeContext {
+    // TODO: Handle this correctly with a better import system
     // Bind all builtins
     builtinModule.classes.foreach(bindClass(_, builtinModule))
+    builtinModule.classes.foreach(typecheck)
 
     val moduleNames = module.name +: module.imports.map(_.name)
     val classNames = module.classes.map(_.name)
@@ -93,7 +100,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   var uninitializedFields: Map[Name, FieldDef] = Map()
 
-  def typecheck(classDef: ClassDef): Unit = {
+  def typecheck(classDef: ClassDef): Unit = scopedTypeContext {
     // Note: We only allow a single constructor
     classDef.contentMap.foreach {
       case (_, cs) if cs.size > 1 =>
@@ -119,12 +126,19 @@ class Typechecker extends TypeContext with TypeIO:
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
+    classDef.tyParams.foreach(p => bindTyVar(p.name, p))
+
     classDef.fields.foreach(f => typecheck(f, classDef))
     classDef.methods.foreach(m => typecheck(m, classDef))
     classDef.constructors.foreach { constructor =>
       // every path trough a constructor must initialize all fields
       val storeUninitializedFields = uninitializedFields
       typecheck(constructor, classDef)
+
+      if (classDef.isMonoClass) {
+        uninitializedFields -= Name("result")
+      }
+
       uninitializedFields.foreach { case (fieldName, fieldDef) =>
         error(s"Field '$fieldName' is not initialized", fieldDef)
       }
@@ -150,6 +164,12 @@ class Typechecker extends TypeContext with TypeIO:
       resolveNamedType(t1)
       resolveNamedType(t2)
       (t1.target, t2.target) match
+        case (Some(p1: ParametricType), Some(p2: ParametricType)) =>
+          p1.name == p2.name
+        case (Some(p: ParametricType), Some(c: ClassDef)) =>
+          true
+        case (Some(c: ClassDef), Some(p: ParametricType)) =>
+          true
         case (Some(c1: ClassDef), Some(c2: ClassDef)) if c1 == c2 =>
           true
         case (Some(c1: ClassDef), Some(c2: ClassDef)) =>
@@ -226,8 +246,13 @@ class Typechecker extends TypeContext with TypeIO:
         resolveNamedType(ty)
         resolveNamedType(inferred)
         if (subtype(inferred, ty) && inferred != ty)
-          term.casted(ty)
-          ty
+          ty match
+            case t: TName if t.target.exists(_.isInstanceOf[ParametricType]) =>
+              // Don't cast to generic types
+              inferred
+            case _ =>
+              term.casted(ty)
+              ty
         else
           inferred
       case _ =>
@@ -290,7 +315,7 @@ class Typechecker extends TypeContext with TypeIO:
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
-    val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq()))) // TODO: Support generics
+    val clsTy = TName(classDef.name, classDef.tyParams.map(v => TName(v.name, Seq()))) // TODO: Support generics
     typecheckTy(clsTy)
 
     val thisVar = VarDeclare(Name("this"), Some(clsTy), None, true)
@@ -339,7 +364,7 @@ class Typechecker extends TypeContext with TypeIO:
     val beforeSuperBody = constructorDef.body.slice(0, superCallIndex + 1)
     val afterSuperBody = constructorDef.body.slice(superCallIndex + 1, constructorDef.body.size)
 
-    val clsTy = TName(classDef.name, classDef.tyVars.map(v => TName(v.name, Seq())))
+    val clsTy = TName(classDef.name, classDef.tyParams.map(v => TName(v.name, Seq())))
     typecheckTy(clsTy)
 
     typecheck(beforeSuperBody, clsTy)(Some(classDef))
@@ -623,6 +648,14 @@ class Typechecker extends TypeContext with TypeIO:
 
     case setMember@SetMember(name, target, predicate) =>
       typecheckExp(target, None) match {
+        case TName(Name("mono.Set"), Seq(ty)) =>
+          bindVar(name, setMember, ty, immutable = true)
+          if (predicate.isDefined)
+            assertSubtype(typecheckExp(predicate.get, None), TBoolean, target)
+          ty
+        case TName(Name("mono.Set"), tys) =>
+          error(s"Unexpected mono.Set with type arguments: $tys", expression)
+          TAny
         case TSet(ty) =>
           bindVar(name, setMember, ty, immutable = true)
           if (predicate.isDefined)
@@ -700,8 +733,8 @@ class Typechecker extends TypeContext with TypeIO:
           val primaryConstructor = constructors.head
           val expectedNumArgs = primaryConstructor.params.size
           // Ensure the number of type arguments matches
-          if (cls.tyVars.size != tyArgs.size)
-            error(s"Expected ${cls.tyVars.size} type arguments, but got ${tyArgs.size}", expression)
+          if (cls.tyParams.size != tyArgs.size)
+            error(s"Expected ${cls.tyParams.size} type arguments, but got ${tyArgs.size}", expression)
           // Ensure the number of arguments matches
           if (args.size != expectedNumArgs)
             error(s"Expected $expectedNumArgs arguments, but got ${args.size}", expression)
@@ -738,18 +771,33 @@ class Typechecker extends TypeContext with TypeIO:
     newTarget
   }
 
-  private def resolveNamedType(ty: Type): Option[ClassDef] = {
-    ty match
+  private def resolveNamedType(ty: Type): Option[TName.Target] = {
+    val res = ty match
       case t: TName if t.isBuiltIn =>
         None
+      case t@TName(name, tys) if t.target.isDefined =>
+        // Don't reevaluate generic parameter
+        tys.foreach(resolveNamedType)
+        t.target
       case t@TName(name, tys) =>
-        // TODO: Support generics ?
-        lookupClass(name) match
-          case Some(classDef) =>
+        val (cls, _) = withErrors {
+          lookupClass(name).map { classDef =>
             resolveTarget(t)(classDef)
             // Resolve nested generics
             tys.foreach(resolveNamedType)
-            Some(classDef)
-          case None => None
+            classDef
+          }
+        }
+
+        if (cls.isDefined)
+          cls
+        else
+          val pTy = lookupTyVar(name).map { tyParam =>
+            resolveTarget(t)(tyParam)
+            tys.foreach(resolveNamedType)
+            tyParam
+          }
+          pTy
       case _ => None
+    res
   }

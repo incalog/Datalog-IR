@@ -139,12 +139,13 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case NewMono(mono, keys, args) =>
+      // TODO: Visit types in keys ?
       monoDefs += (mono, keys)
       monoTypes += mono.monoType(keys)
       val dataConstr = monoDataConstructor(mono, keys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
-      val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args)
+      val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
       val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
       val block = Block(imp, mVar)
       Seq(block)
@@ -152,7 +153,8 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
       val tm = m.typ.get.ty.asInstanceOf[TMono]
       val output = Name(gensym.fresh("output"))
       val name = monoAggregateName(tm)
-      val call = Call(name, Seq(m.arg, Var(output).arg))
+      val terms = visitTerm(m) :+ Var(output)
+      val call = Call(name, terms.map(_.arg))
       Seq(Block(call, Var(output)))
     case _ => super.visitTerm(term)
   }
@@ -160,7 +162,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case WriteMono(m, input, keys) =>
       val tm = m.typ.get.ty.asInstanceOf[TMono]
-      val args = m +: keys :+ input
+      val args = visitTerm(m) ++ keys.flatMap(visitTerm) ++ visitTerm(input)
       Seq(Call(monoCollectName(tm), args.map(_.arg)))
     case _ => super.visitAtom(atom)
   }

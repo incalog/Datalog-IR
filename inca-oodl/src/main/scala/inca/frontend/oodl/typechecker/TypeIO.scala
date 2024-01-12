@@ -7,7 +7,7 @@ import scala.collection.mutable.ListBuffer
 
 
 /* The Typechecker results */
-trait TypeIO {
+trait TypeIO:
   private val errors: ListBuffer[CompilationMessage] = ListBuffer()
   private val warnings: ListBuffer[CompilationMessage] = ListBuffer()
 
@@ -21,14 +21,20 @@ trait TypeIO {
 
   def hasTypeErrors: Boolean = errors.nonEmpty
   def hasTypeWarnings: Boolean = warnings.nonEmpty
-  def printTypeIO(): Unit = {
+  def printTypeIO(): Unit =
     errors.foreach(println)
     warnings.foreach(println)
-  }
-}
 
-object TypeIO {
+  def withErrors[A](f: => A): (A, List[CompilationMessage]) =
+    val oldErrors = errors.toList
+    errors.clear()
+    val a = f
+    val newErrors = errors.toList
+    errors.clear()
+    errors ++= oldErrors
+    (a, newErrors)
+
+object TypeIO:
   /* Errors that can occur in typechecking */
   case class TypeWarning(msg: String, sourceLocations: Seq[SourceLocation])
   case class TypeError(msg: String, sourceLocations: Seq[SourceLocation])
-}

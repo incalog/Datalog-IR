@@ -76,62 +76,28 @@ class NameAnalysis(val prog: Prog) extends Visitor {
 
 case class Edge(val from: Def, val to: Def) { }
 
-//class DependencyAnalysis extends Visitor {
-//  val edges: MonotoneSet = new MonotoneSet()
-//
-//  def edgeSet(): Set[Edge] = {
-//    val set: `scala.collection.immutable.Set[Any]` = this.edges.get()
-//    val list: `scala.collection.immutable.Vector[Any]` = set.`toVector`
-//    this.edgeSetIter(list, 0)
-//  }
-//  def edgeSetIter(list: `scala.collection.immutable.Vector[Any]`, ix: Int): Set[Edge] = {
-//    val e: Edge = list.`apply`(ix).asInstanceOf[Edge]
-//    if (ix == list.`size` - 1) {
-//      Set(e)
-//    } else {
-//      Set(e) ++ this.edgeSetIter(list, ix + 1)
-//    }
-//  }
-//
-//  @override def visitVar(v: Var, d: Def): Unit = {
-//    val trg: Def = v.target
-//    if (trg != null) {
-//      this.edges += new Edge(d, trg)
-//      fix trg.accept(this)
-//    }
-//  }
-//
-//  def directDependencies(d: Def): Set[Def] = {
-//    for (e <- this.edgeSet() if e.from == d) yield e.to
-//  }
-//
-//  def dependencies(d1: Def): Set[Def] = {
-//    this.directDependencies(d1) ++
-//    for (d2 <- this.directDependencies(d1);
-//         d3 <- this.dependencies(d2))
-//      yield d3
-//  }
-//}
-//
-//class MonotoneSet extends BalancedMonotone[Any, `scala.collection.immutable.Set[Any]`] {
-//    @static
-//    def init(): `scala.collection.immutable.Set[Any]` = {
-//        `scala.collection.immutable.Set[Any]`()
-//    }
-//
-//    @static
-//    def join(m1: `scala.collection.immutable.Set[Any]`, m2: `scala.collection.immutable.Set[Any]`): `scala.collection.immutable.Set[Any]` = {
-//        m1 ++ m2
-//    }
-//
-//    def lift(element: Any): `scala.collection.immutable.Set[Any]` = {
-//        `scala.collection.immutable.Set[Any]`(element)
-//    }
-//
-//    def get(): `scala.collection.immutable.Set[Any]` = {
-//        this.result
-//    }
-//}
+class DependencyAnalysis extends Visitor {
+  val edges: mono.Set[Edge] = new mono.Set[Edge]()
+
+  override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null) {
+      this.edges += new Edge(d, trg)
+      fix trg.accept(this)
+    }
+  }
+
+  def directDependencies(d: Def): Set[Def] = {
+    for (e <- this.edges if e.from == d) yield e.to
+  }
+
+  def dependencies(d1: Def): Set[Def] = {
+    this.directDependencies(d1) ++
+    for (d2 <- this.directDependencies(d1);
+         d3 <- this.dependencies(d2))
+      yield d3
+  }
+}
 
 //class ReachVisitor extends Visitor {
 //  val reachable: MonotoneSet = new MonotoneSet()
@@ -179,7 +145,7 @@ class GenerateProgram {
     }
 }
 
-@main def main(endNode: Int, step: Int): Int = {
+@main def main(endNode: Int, step: Int): Set[String] = {
   val generate = new GenerateProgram()
 
   val defs: DefList = generate.prog(0, 2, 1)
@@ -189,8 +155,9 @@ class GenerateProgram {
   val resolving = new NameAnalysis(prog)
   prog.accept(resolving)
 
-//    val depending: DependencyAnalysis = new DependencyAnalysis()
-//    prog.accept(depending)
+  val depending = new DependencyAnalysis()
+  main.accept(depending)
 
-  return 1
+  val depResult = depending.dependencies(main)
+  for (dep <- depResult) yield dep.name
 }

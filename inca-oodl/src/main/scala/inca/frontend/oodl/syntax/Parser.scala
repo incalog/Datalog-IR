@@ -138,7 +138,7 @@ object Parser:
   val setType: P[TSet] = op("Set") *> inBrackets(recType).mapWithLoc(TSet.apply)
 
   def genericName: P[TName] =
-    (identifier ~ inBrackets(recType.repSep0(op(','))).?).mapWithLoc {
+    (qualifiedIdentifier ~ inBrackets(recType.repSep0(op(','))).?).mapWithLoc {
       case (name, tys) => TName(name, tys.getOrElse(Seq()))
     }
 

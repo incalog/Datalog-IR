@@ -11,12 +11,12 @@ trait Visitor extends BaseIRVisitor:
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case MapLit(ts) =>
-      val tts: Seq[(Term, Term)] = ts flatMap {
+      val tts: Seq[(Term, Term)] = ts.flatMap {
         case (k, v) => visitTerm(k).zip(visitTerm(v))
       }
       Seq(MapLit(tts))
     case MapFrom(name) =>
-      Seq(term)
+      Seq(MapFrom(name))
     case MapFun(params, valTerm) =>
       visitTerm(valTerm).map(MapFun(params.flatMap(visitParam), _))
     case MapPlus(map, key, value) =>

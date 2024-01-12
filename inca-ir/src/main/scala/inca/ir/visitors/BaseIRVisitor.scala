@@ -58,7 +58,6 @@ trait BaseIRVisitor:
     case TermArg(t) => visitTerm(t).map(TermArg.apply)
     case WildcardArg() => Seq(WildcardArg())
 
-
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case Var(ref) => Seq(Var(visitRef(ref)))
     case Cast(t, ty) =>

@@ -204,7 +204,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
   override def visitAtom(atom: Atom, enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Seq[Atom] =
     atom match
-      case Impure(v, Seq(), up, kind) if !up.vars.contains(v) =>
+      case Impure(v, Seq(), up, kind) if !up.vars.map(_.name).contains(v.name) =>
         val freshCounter = freshImpurityCounter(kind, enclosure)
         Eq(freshCounter, up) :: Nil
       case Impure(v, atoms, up, kind)  =>

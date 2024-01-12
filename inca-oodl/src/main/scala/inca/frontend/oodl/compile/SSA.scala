@@ -16,7 +16,7 @@ class SSA:
 
   def visitClassDef(c: ClassDef)(implicit gensym: Gensym): ClassDef =
     gensym.register(c.name.name)
-    ClassDef(c.annos, c.vis, c.name, c.tyVars, c.parentCls, c.content.map(visitClassContent))
+    ClassDef(c.annos, c.vis, c.name, c.tyParams, c.parentCls, c.content.map(visitClassContent))
 
   def visitClassContent(c: ClassContent)(implicit gensym: Gensym): ClassContent = c match
     case cd: ConstructorDef => visitConstructorDef(cd)

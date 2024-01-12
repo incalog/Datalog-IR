@@ -6,7 +6,7 @@ import inca.ir.{Term, Type}
 
 trait Visitor extends BaseIRVisitor:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
-    case StringLit(_) => Seq(term)
+    case StringLit(s) => Seq(StringLit(s))
     case StringConcat(lhs, rhs) =>
       visitTerm(lhs).zip(visitTerm(rhs)).map(StringConcat.apply)
     case ToString(t) =>

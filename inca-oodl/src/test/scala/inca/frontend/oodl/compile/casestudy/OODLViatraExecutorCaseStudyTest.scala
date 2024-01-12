@@ -7,8 +7,7 @@ import inca.util.FileUtil
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
-// Compiles but doesn't terminate
-//@Ignore
+// Why is this so, so much slower than the old hacked implementation ?
 class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
@@ -18,6 +17,9 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
-    val res = loaded.execute("main", Seq(10, 2))
-    assertResult(11)(res.entries.head)
+    var res = loaded.execute("main", Seq(10, 2))
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$TString$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 2)
+    assertResult(Set("a0", "a1", "a2"))(res.toSet)
   }

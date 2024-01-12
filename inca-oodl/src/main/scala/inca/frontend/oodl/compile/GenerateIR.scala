@@ -1,5 +1,6 @@
 package inca.frontend.oodl.compile
 
+import inca.foreign.scala.ir.mono.scalaSetMonoDefinition
 import inca.frontend.oodl.compile.GenerateIR.*
 import inca.frontend.oodl.foreign.OODLAggregationOperator
 import inca.frontend.oodl.syntax.*
@@ -522,7 +523,7 @@ class GenerateIR:
             )
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
 
-    case constrCall@ConstructorCall(name, _, args) =>
+    case constrCall@ConstructorCall(name, tyArgs, args) =>
       val (classDef, constrDef) = constrCall.target match
         case Some((c, constr)) => (c, constr)
         case _ => throw IllegalStateException(s"Unresolved target for constructor call '$constrCall'")
@@ -535,6 +536,7 @@ class GenerateIR:
         case cls if cls.isMonoClass =>
           cls.name match
             case Name("mono.Count") => irmono.NewMono(irmono.ArithmeticMonoDefinition.Count, Seq(), Seq())
+            case Name("mono.Set") => irmono.NewMono(scalaSetMonoDefinition(compileType(tyArgs.head)))
             case _ => ???
         case _ =>
           val oidVar = ir.Var(gensym.fresh("oid"))
@@ -636,7 +638,17 @@ class GenerateIR:
         case _ => setLit
     case SetMember(name, recv, predicate) =>
       val cond = predicate.map(compileExpression).getOrElse(bool.BoolTrue)
-      block.Block(irset.SetMember(ir.Var(name), compileExpression(recv)), cond)
+      val isMonoSetReceiver = recv.typ match
+        case Some(t: TName) => t.target match
+          case Some(cls: ClassDef) => cls.isMonoClass
+          case _ => false
+        case _ => false
+      val setTerm =
+        if (isMonoSetReceiver)
+          irmono.ReadMono(compileExpression(recv))
+        else
+          compileExpression(recv)
+      block.Block(irset.SetMember(ir.Var(name), setTerm), cond)
     case SetComprehension(member, body) =>
       val memberTerms = member.map(compileExpression)
       val bodyTerm = compileExpression(body)
@@ -654,4 +666,16 @@ class GenerateIR:
     case TDouble => irarith.TDouble
     case TBoolean => bool.TBoolean
     case TString => irstring.TString
-    case TNull | _: TName => irdata.TData("ID")
+    case t@TName(name, tyArgs) => t.target match {
+      case Some(cls: ClassDef) if cls.isMonoClass => cls.name match {
+        case Name("mono.Count") =>
+          irmono.TMono(ir.TAny, irarith.TInt, Seq())
+        case Name("mono.Set") =>
+          val valueTy = compileType(tyArgs.head)
+          irmono.TMono(valueTy, irset.TSet(valueTy), Seq())
+        case _ => ???
+      }
+      case Some(cls: ClassDef) => irdata.TData("ID")
+      case target => throw IllegalStateException(s"Unexpected type target $target")
+    }
+    case TNull => irdata.TData("ID")
