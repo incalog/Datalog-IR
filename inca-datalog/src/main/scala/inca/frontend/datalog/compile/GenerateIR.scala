@@ -110,4 +110,5 @@ class GenerateIR {
     case Type.Int() => arithmetic.TInt
     case Type.Double() => arithmetic.TDouble
     case Type.String() => string.TString
+    case Type.Any() => ir.TAny
 }

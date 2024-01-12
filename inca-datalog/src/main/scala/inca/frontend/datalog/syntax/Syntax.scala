@@ -42,11 +42,13 @@ enum Type extends SourceLocation:
   case Int()
   case Double()
   case String()
+  case Any()
 
   override def toString: Predef.String = this match
     case Int() => "Int"
     case Double() => "Double"
     case String() => "String"
+    case Any() => "Any"
 
 enum Atom extends SourceLocation:
   case Call(ref: Ref[IRelation], args: Seq[Term], not: Boolean)

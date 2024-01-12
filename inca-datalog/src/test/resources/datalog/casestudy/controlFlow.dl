@@ -1,42 +1,42 @@
 
-edb simpleStmt(Int).
+edb simpleStmt(Any).
 
-edb whileStmt(Int).
-edb whileBody(Int, Int).
+edb whileStmt(Any).
+edb whileBody(Any, Any).
 
-edb ifStmt(Int).
-edb ifThen(Int, Int).
-edb ifElse(Int, Int).
+edb ifStmt(Any).
+edb ifThen(Any, Any).
+edb ifElse(Any, Any).
 
-edb blockStmt(Int).
-edb blockFirst(Int, Int).
-edb blockNext(Int, Int).
+edb blockStmt(Any).
+edb blockFirst(Any, Any).
+edb blockNext(Any, Any).
 
 
-stmt(Int).
+stmt(Any).
 stmt(s) :- simpleStmt(s).
 stmt(s) :- whileStmt(s).
 stmt(s) :- ifStmt(s).
 
-cflow(Int, Int).
+cflow(Any, Any).
 cflow(s1, s2) :- simpleStmt(s1), blockNext(s1, s2).
-cflow(s1, s2) :- whileStmt(s1), whileBody(s1, s2), firstStmt(b, s2).
-cflow(s2, s1) :- whileStmt(s1), whileBody(s1, s2), lastStmt(b, s2).
+cflow(s1, s2) :- whileStmt(s1), whileBody(s1, b), firstStmt(b, s2).
+cflow(s2, s1) :- whileStmt(s1), whileBody(s1, b), lastStmt(b, s2).
 cflow(s1, s2) :- whileStmt(s1), blockNext(s1, s2).
 
-firstStmt(Int, Int).
+firstStmt(Any, Any).
 firstStmt(s, s) :- simpleStmt(s).
 firstStmt(s, s) :- ifStmt(s).
 firstStmt(s, s) :- whileStmt(s).
 firstStmt(s, u) :- blockStmt(s), blockFirst(s,t), firstStmt(t,u).
 
-lastStmt(Int, Int).
+lastStmt(Any, Any).
 lastStmt(s, s) :- simpleStmt(s).
 lastStmt(s, s) :- ifStmt(s).
 lastStmt(s, s) :- whileStmt(s).
 lastStmt(s, u) :- blockStmt(s), blockFirst(s,t), lastStmtBlock(t,u).
 
-lastStmtBlock(Int, Int).
+lastStmtBlock(Any, Any).
 lastStmtBlock(s,u) :- blockNext(s,t), lastStmtBlock(t,u).
 lastStmtBlock(s,u) :- not blockNext(s,s), lastStmt(s,u).
 

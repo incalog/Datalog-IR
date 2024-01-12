@@ -47,9 +47,13 @@ trait Relation {
   def parameterNames: Seq[String]
   def entries: Iterable[Tuple]
   def toSet: Set[Tuple] = entries.toSet
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = entry match
-    case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
-    case v: AnyRef => Seq(v)
+  def flattenEntry(entry: Tuple): Seq[AnyRef] =
+    if (arity == 0)
+      Seq()
+    else if (arity == 1)
+      Seq(entry.asInstanceOf[AnyRef])
+    else entry match
+      case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
   def unflattenEntry(entry: Seq[Any]): Tuple
   def matches: Iterable[Seq[Any]]
   

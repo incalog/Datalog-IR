@@ -13,6 +13,7 @@ import scala.collection.mutable.ListBuffer
 class ControlFlowTest extends AnyFunSuite:
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
+  options.irLogging.logModule = false
   val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
 
 
@@ -27,6 +28,11 @@ class ControlFlowTest extends AnyFunSuite:
 
     val id: Int = nextId
     nextId += 1
+
+    override def equals(obj: Any): Boolean = obj match
+      case that: Stmt => this.id == that.id
+      case _ => false
+    override def hashCode(): Int = id
 
     def foreach(f: Stmt => Unit): Unit =
       f(this)
@@ -49,27 +55,27 @@ class ControlFlowTest extends AnyFunSuite:
     s.foreach(collect)
 
     // edb simpleStmt(Int).
-    val edbSimple = Relation1("simpleStmt", Seq("s"), simples.toSeq.map(s => Seq(s.id)))
+    val edbSimple = Relation1("simpleStmt", Seq("s"), simples.toSeq.map(s => Seq(s)))
 
     //edb whileStmt(Int).
-    val edbWhile = Relation1("whileStmt", Seq("s"), whiles.toSeq.map(s => Seq(s.id)))
+    val edbWhile = Relation1("whileStmt", Seq("s"), whiles.toSeq.map(s => Seq(s)))
     //edb whileBody(Int, Int).
-    val edbWhileBody = Relation2("whileBody", Seq("w", "b"), whiles.toSeq.map(s => Seq(s.id, s.body.id)))
+    val edbWhileBody = Relation2("whileBody", Seq("w", "b"), whiles.toSeq.map(s => Seq(s, s.body)))
 
     //edb ifStmt(Int).
-    val edbIf = Relation1("ifStmt", Seq("s"), ifs.toSeq.map(s => Seq(s.id)))
+    val edbIf = Relation1("ifStmt", Seq("s"), ifs.toSeq.map(s => Seq(s)))
     //edb ifThen(Int, Int).
     //edb ifElse(Int, Int).
 
     //edb blockStmt(Int).
-    val edbBlock = Relation1("blockStmt", Seq("s"), blocks.toSeq.map(s => Seq(s.id)))
+    val edbBlock = Relation1("blockStmt", Seq("s"), blocks.toSeq.map(s => Seq(s)))
     //edb blockFirst(Int, Int).
-    val edbBlockFirst = Relation2("blockStmt", Seq("s", "f"), blocks.toSeq.flatMap(s =>
-      s.list.headOption.map(f => Seq(s.id, f.id)))
+    val edbBlockFirst = Relation2("blockFirst", Seq("s", "f"), blocks.toSeq.flatMap(s =>
+      s.list.headOption.map(f => Seq(s, f)))
     )
     //edb blockNext(Int, Int).
     val edbBlockNext = Relation2("blockNext", Seq("s1", "s2"), blocks.flatMap { block =>
-      block.list.zip(block.list.tail).map((pred, succ) => Seq(pred.id, succ.id))
+      block.list.zip(block.list.tail).map((pred, succ) => Seq(pred, succ))
     })
 
 
@@ -84,6 +90,7 @@ class ControlFlowTest extends AnyFunSuite:
 
     val s = Block(List(Simple("a"), Simple("b"), Simple("c"), Simple("d")))
     val edbs = stmtToEdbRelations(s)
+//    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
 
     val stmt = loaded.query("stmt")
@@ -93,7 +100,7 @@ class ControlFlowTest extends AnyFunSuite:
     println(cflow.asTable)
   }
 
-  test("control flow while") {
+  test("control flow while flat") {
     val code = FileUtil.readFileFromResource("datalog/casestudy/controlFlow.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(pipeline)
@@ -101,12 +108,27 @@ class ControlFlowTest extends AnyFunSuite:
 
     val s = Block(List(Simple("a"), While(Simple("b")), Simple("d"), Simple("e")))
     val edbs = stmtToEdbRelations(s)
-    edbs.foreach(t => println(t.asTable))
+//    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
 
     println(s)
-    s.foreach(s => println(s"${s.id}\t = $s"))
+    val cflow = loaded.query("cflow")
+    println(cflow.asTable)
+  }
 
+  test("control flow while deep") {
+    val code = FileUtil.readFileFromResource("datalog/casestudy/controlFlow.dl")
+    val compiled = exec.compileDatalog(code, options)
+    compiled.setPipeline(pipeline)
+    val loaded = exec.loadDatalog(compiled)
+
+    val s = Block(List(Simple("a"), While(Block(List(Simple("b"), Simple("c")))), Simple("d"), Simple("e")))
+    val edbs = stmtToEdbRelations(s)
+//    edbs.foreach(t => println(t.asTable))
+    edbs.foreach(loaded.engine.insert)
+
+    println(s)
+//    loaded.engine.readAll().map(_.asTable).foreach(println)
     val cflow = loaded.query("cflow")
     println(cflow.asTable)
   }

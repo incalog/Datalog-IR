@@ -58,7 +58,8 @@ object Parser:
     "not",
     "Int",
     "Double",
-    "String"
+    "String",
+    "Any"
   )
 
   def keyword(s: String): P[Unit] =
@@ -167,7 +168,8 @@ object Parser:
   val typ: P[Type] =
     keyword("Int").mapWithLoc(_ => Type.Int()) |
       keyword("Double").mapWithLoc(_ => Type.Double()) |
-      keyword("String").mapWithLoc(_ => Type.String())
+      keyword("String").mapWithLoc(_ => Type.String()) |
+      keyword("Any").mapWithLoc(_ => Type.Any())
 
   val signature: P[(Name, Seq[Type])] =
     identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
