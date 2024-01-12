@@ -86,7 +86,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
-  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
+  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:

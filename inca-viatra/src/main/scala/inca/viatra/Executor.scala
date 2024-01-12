@@ -1,7 +1,7 @@
 package inca.viatra
 
 import inca.ir.CompiledModule
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, UnitRelation}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, UnitRelation}
 import inca.util.ScalaCompiler
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime.Query.Specification
@@ -15,33 +15,12 @@ import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, Ti
 
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, module: PSystem.Module) extends ExecutorEngine:
-    private def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
-      val params = parameterNames.zip(values).map { case (p, v) => spec.getPositionOfParameter(p) -> v }.toMap
-      val arr = Seq.range(0, arity).map(params.getOrElse(_, null))
-      Query.Match(spec, arr.toArray, isMutable = false)
-    }
 
     override def read(rel: Relation): Relation =
       val spec = module.patterns(rel.name)()
       //val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
-      //val diff = System.nanoTime() - start
-      //println(s"The time: ${diff/1000000000d}")
-
-      import scala.jdk.CollectionConverters.*
-      val parameterNames = matcher.getParameterNames.asScala.toSeq
-
-      val output =
-        if (rel.nonEmpty)
-          rel.entries.flatMap { t =>
-            val inputMatch = toQueryMatch(rel.parameterNames, parameterNames.size, rel.flattenEntry(t), spec)
-            matcher.getAllMatches(inputMatch).asScala
-          }
-        else {
-          val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), spec)
-          matcher.getAllMatches(queryMatch).asScala
-        }
-      Relation.fromMatches(rel.name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
+      new ViatraRelation(rel, spec, matcher)
 
     override def readAll(): Seq[Relation] =
       val pattern = module.patterns.keys.toSeq.sorted
@@ -69,3 +48,48 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
     val (viatraEngine, feed) = EnginePool.loadEngineAndDatabase(scope, backendFactory)
     new Engine(viatraEngine, feed, psystemModule)
 
+/** Lazily rewrite matcher into Scala relation */
+class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Query.Matcher) extends Relation:
+  import scala.jdk.CollectionConverters.*
+  matcher.getSpecification
+  private var evaled: Boolean = false
+  lazy val outputRel =
+    evaled = true
+    def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
+      val params = parameterNames.zip(values).map { case (p, v) => spec.getPositionOfParameter(p) -> v }.toMap
+      val arr = Seq.range(0, arity).map(params.getOrElse(_, null))
+      Query.Match(spec, arr.toArray, isMutable = false)
+    }
+    val output =
+      if (queryRel.nonEmpty)
+        queryRel.entries.flatMap { t =>
+          val inputMatch = toQueryMatch(parameterNames, parameterNames.size, queryRel.flattenEntry(t), spec)
+          matcher.getAllMatches(inputMatch).asScala
+        }
+      else {
+        val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), spec)
+        matcher.getAllMatches(queryMatch).asScala
+      }
+    Relation.fromMatches(name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
+
+  override type Tuple = Any
+  override def name: RelationName = queryRel.name
+  override def arity: Int = matcher.getParameterNames.size()
+  override def parameterNames: Seq[String] = matcher.getParameterNames.asScala.toSeq
+
+  override def size: Int = outputRel.size
+  override def entries: Iterable[Tuple] = outputRel.entries
+  override def matches: Iterable[Seq[Any]] = outputRel.matches
+
+  override def toString: RelationName =
+    val size = if (evaled) this.size.toString else "?"
+    val entriesS =
+      if (evaled)
+        matches.map { e =>
+          parameterNames.zip(e).map { case (name, value) =>
+            s"$name: $value"
+          }.mkString("(", ", ", ")")
+        }.mkString("{", ", ", "}")
+      else
+        "?"
+    s"${getClass.getSimpleName}(name: $name, size: $size, entries: $entriesS)"

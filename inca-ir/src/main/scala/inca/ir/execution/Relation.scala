@@ -72,7 +72,9 @@ trait Relation {
   def parameterNames: Seq[String]
   def entries: Iterable[Tuple]
   def toSet: Set[Tuple] = entries.toSet
-  def flattenEntry(entry: Tuple): Seq[AnyRef]
+  def flattenEntry(entry: Tuple): Seq[AnyRef] = entry match
+    case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
+    case v: AnyRef => Seq(v)
   def matches: Iterable[Seq[Any]]
 
   if (parameterNames.size != arity)
@@ -102,14 +104,12 @@ trait Relation {
 }
 
 case class UnitRelation(name: RelationName) extends Relation {
-  type Tuple = Unit
+  case class Tuple()
   lazy val arity: Int = 0
   lazy val size: Int = 0
   lazy val parameterNames: Seq[String] = Seq.empty
   lazy val entries: Iterable[Tuple] = Iterable.empty
   lazy val matches: Iterable[Seq[Any]] = Seq.empty
-
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq.empty
 }
 
 case class Relation1[A <: AnyRef](name: RelationName,
@@ -120,8 +120,6 @@ case class Relation1[A <: AnyRef](name: RelationName,
   lazy val arity: Int = 1
   lazy val size: Int = matches.size
   lazy val entries: Iterable[Tuple] = matches.map(_.head.asInstanceOf[A])
-
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(entry)
 }
 
 
@@ -139,9 +137,6 @@ case class Relation2[
       entry(1).asInstanceOf[A2]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2
-  )
 }
 
 
@@ -161,9 +156,6 @@ case class Relation3[
       entry(2).asInstanceOf[A3]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3
-  )
 }
 
 
@@ -185,9 +177,6 @@ case class Relation4[
       entry(3).asInstanceOf[A4]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4
-  )
 }
 
 
@@ -211,9 +200,6 @@ case class Relation5[
       entry(4).asInstanceOf[A5]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5
-  )
 }
 
 
@@ -239,9 +225,6 @@ case class Relation6[
       entry(5).asInstanceOf[A6]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6
-  )
 }
 
 
@@ -269,9 +252,6 @@ case class Relation7[
       entry(6).asInstanceOf[A7]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7
-  )
 }
 
 
@@ -301,9 +281,6 @@ case class Relation8[
       entry(7).asInstanceOf[A8]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8
-  )
 }
 
 
@@ -335,9 +312,6 @@ case class Relation9[
       entry(8).asInstanceOf[A9]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9
-  )
 }
 
 
@@ -371,9 +345,6 @@ case class Relation10[
       entry(9).asInstanceOf[A10]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10
-  )
 }
 
 
@@ -409,9 +380,6 @@ case class Relation11[
       entry(10).asInstanceOf[A11]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11
-  )
 }
 
 
@@ -449,10 +417,6 @@ case class Relation12[
       entry(11).asInstanceOf[A12]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12
-  )
 }
 
 
@@ -492,10 +456,6 @@ case class Relation13[
       entry(12).asInstanceOf[A13]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13
-  )
 }
 
 
@@ -537,10 +497,6 @@ case class Relation14[
       entry(13).asInstanceOf[A14]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14
-  )
 }
 
 
@@ -584,10 +540,6 @@ case class Relation15[
       entry(14).asInstanceOf[A15]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15
-  )
 }
 
 
@@ -633,10 +585,6 @@ case class Relation16[
       entry(15).asInstanceOf[A16]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15, entry._16
-  )
 }
 
 
@@ -684,10 +632,6 @@ case class Relation17[
       entry(16).asInstanceOf[A17]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15, entry._16, entry._17
-  )
 }
 
 
@@ -737,10 +681,6 @@ case class Relation18[
       entry(17).asInstanceOf[A18]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15, entry._16, entry._17, entry._18
-  )
 }
 
 
@@ -792,10 +732,6 @@ case class Relation19[
       entry(18).asInstanceOf[A19]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15, entry._16, entry._17, entry._18, entry._19
-  )
 }
 
 
@@ -849,9 +785,5 @@ case class Relation20[
       entry(19).asInstanceOf[A20]
     )
   }
-  def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(
-    entry._1, entry._2, entry._3, entry._4, entry._5, entry._6, entry._7, entry._8, entry._9, entry._10, entry._11,
-    entry._12, entry._13, entry._14, entry._15, entry._16, entry._17, entry._18, entry._19, entry._20
-  )
 }
 

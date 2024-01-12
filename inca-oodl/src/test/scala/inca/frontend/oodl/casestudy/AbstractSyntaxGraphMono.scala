@@ -301,7 +301,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run without optimization: Set Mono Aggregation") {
-    for (i <- 0 until 3) {
+    for (i <- 0 until 5) {
       val compiled = new Compiled(false)
 
 //      println(compiled.dependencyGraph.toGraphViz)
@@ -314,7 +314,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
       println(s"Execution time ${end - start}ms")
       println(relation1.asTable)
@@ -322,7 +322,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation") {
-    for (i <- 0 until 3) {
+    for (i <- 0 until 5) {
       val compiled = new Compiled(true)
 //      val check = new IRTypechecker with primitive.Typechecker
 //      check.checkProgram(Seq(compiled.lowered))
@@ -332,7 +332,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
       println(s"Execution time ${end - start}ms")
       println(relation1.asTable)
