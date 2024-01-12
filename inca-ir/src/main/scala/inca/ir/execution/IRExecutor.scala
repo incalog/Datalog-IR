@@ -3,7 +3,8 @@ package inca.ir.execution
 import inca.ir.CompiledModule
 
 trait ExecutorEngine:
-  /* The input to this method is best understood using an example.
+  /**
+   * The input to this method is best understood using an example.
    * Consider the input for a standard path program:
    *     IR-Module: path(x,y) :- ...
    * The input you could provide to this functions might be:
@@ -14,16 +15,31 @@ trait ExecutorEngine:
    *     2. the parameter names in the input must match the parameters names of the relation definition in the IR-Module
    */
   def read(rel: Relation): Relation
-  /*
+  /**
    * Read all output relations from the idb.
    */
   def readAll(): Seq[Relation]
-  /*
+
+  /**
    * Insert a relation into the edb.
-   * You might add multiple tuples at once by specifying multiple `matches` for a Relation.
-   * Note, the parameter names are not relevant and in fact will be ignored.
+   * Note, the parameter names are not relevant and will be ignored.
    */
   def insert(edb: Relation): Unit
+  /**
+   * Remove (part of) a relation from the edb.
+   * Note, the parameter names are not relevant and will be ignored.
+   */
+  def remove(edb: Relation): Unit
+
+  /** Registers an update listener. */
+  def addUpdateListener(up: RelationUpdateListener): Unit
+  /** Unregisters an update listener. */
+  def removeUpdateListener(up: RelationUpdateListener): Unit
+  /** Executes `f` while `up` is registered. */
+  def withUpdateListener[A](up: RelationUpdateListener)(f: => A): A =
+    addUpdateListener(up)
+    try f
+    finally removeUpdateListener(up)
 
 trait IRExecutor:
   type Engine <: ExecutorEngine

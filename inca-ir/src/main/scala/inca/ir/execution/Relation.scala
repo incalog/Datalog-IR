@@ -75,6 +75,7 @@ trait Relation {
   def flattenEntry(entry: Tuple): Seq[AnyRef] = entry match
     case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
     case v: AnyRef => Seq(v)
+  def unflattenEntry(entry: Seq[Any]): Tuple
   def matches: Iterable[Seq[Any]]
   
   def contains(tup: Tuple): Boolean =
@@ -110,9 +111,10 @@ case class UnitRelation(name: RelationName) extends Relation {
   case class Tuple()
   lazy val arity: Int = 0
   lazy val size: Int = 0
-  lazy val parameterNames: Seq[String] = Seq.empty
-  lazy val entries: Iterable[Tuple] = Iterable.empty
-  lazy val matches: Iterable[Seq[Any]] = Seq.empty
+  val parameterNames: Seq[String] = Seq.empty
+  val entries: Iterable[Tuple] = Iterable.empty
+  override def unflattenEntry(entry: Seq[Any]): Tuple = Tuple()
+  val matches: Iterable[Seq[Any]] = Seq.empty
 }
 
 case class Relation1[A <: AnyRef](name: RelationName,
@@ -123,6 +125,7 @@ case class Relation1[A <: AnyRef](name: RelationName,
   lazy val arity: Int = 1
   lazy val size: Int = matches.size
   lazy val entries: Iterable[Tuple] = matches.map(_.head.asInstanceOf[A])
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry.head.asInstanceOf[A]
 }
 
 
@@ -134,12 +137,9 @@ case class Relation2[
 
   lazy val arity: Int = 2
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2])
 }
 
 
@@ -152,13 +152,9 @@ case class Relation3[
 
   lazy val arity: Int = 3
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3])
 }
 
 
@@ -172,14 +168,9 @@ case class Relation4[
 
   lazy val arity: Int = 4
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4])
 }
 
 
@@ -194,15 +185,9 @@ case class Relation5[
 
   lazy val arity: Int = 5
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5])
 }
 
 
@@ -218,16 +203,9 @@ case class Relation6[
 
   lazy val arity: Int = 6
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6])
 }
 
 
@@ -244,17 +222,9 @@ case class Relation7[
 
   lazy val arity: Int = 7
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7) => (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7])
 }
 
 
@@ -272,18 +242,12 @@ case class Relation8[
 
   lazy val arity: Int = 8
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8])
 }
 
 
@@ -302,19 +266,12 @@ case class Relation9[
 
   lazy val arity: Int = 9
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9])
 }
 
 
@@ -334,20 +291,12 @@ case class Relation10[
 
   lazy val arity: Int = 10
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10])
 }
 
 
@@ -368,21 +317,12 @@ case class Relation11[
 
   lazy val arity: Int = 11
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11])
 }
 
 
@@ -404,22 +344,12 @@ case class Relation12[
 
   lazy val arity: Int = 12
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12])
 }
 
 
@@ -442,23 +372,12 @@ case class Relation13[
 
   lazy val arity: Int = 13
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13])
 }
 
 
@@ -482,24 +401,12 @@ case class Relation14[
 
   lazy val arity: Int = 14
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14])
 }
 
 
@@ -524,25 +431,14 @@ case class Relation15[
 
   lazy val arity: Int = 15
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15])
 }
 
 
@@ -568,26 +464,14 @@ case class Relation16[
 
   lazy val arity: Int = 16
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15],
-      entry(15).asInstanceOf[A16]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15], a16.asInstanceOf[A16])
 }
 
 
@@ -614,27 +498,14 @@ case class Relation17[
 
   lazy val arity: Int = 17
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15],
-      entry(15).asInstanceOf[A16],
-      entry(16).asInstanceOf[A17]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17])
 }
 
 
@@ -662,28 +533,14 @@ case class Relation18[
 
   lazy val arity: Int = 18
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15],
-      entry(15).asInstanceOf[A16],
-      entry(16).asInstanceOf[A17],
-      entry(17).asInstanceOf[A18]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18])
 }
 
 
@@ -712,29 +569,14 @@ case class Relation19[
 
   lazy val arity: Int = 19
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15],
-      entry(15).asInstanceOf[A16],
-      entry(16).asInstanceOf[A17],
-      entry(17).asInstanceOf[A18],
-      entry(18).asInstanceOf[A19]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18, a19) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19])
 }
 
 
@@ -764,29 +606,13 @@ case class Relation20[
 
   lazy val arity: Int = 20
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { entry =>
-    (
-      entry(0).asInstanceOf[A1],
-      entry(1).asInstanceOf[A2],
-      entry(2).asInstanceOf[A3],
-      entry(3).asInstanceOf[A4],
-      entry(4).asInstanceOf[A5],
-      entry(5).asInstanceOf[A6],
-      entry(6).asInstanceOf[A7],
-      entry(7).asInstanceOf[A8],
-      entry(8).asInstanceOf[A9],
-      entry(9).asInstanceOf[A10],
-      entry(10).asInstanceOf[A11],
-      entry(11).asInstanceOf[A12],
-      entry(12).asInstanceOf[A13],
-      entry(13).asInstanceOf[A14],
-      entry(14).asInstanceOf[A15],
-      entry(15).asInstanceOf[A16],
-      entry(16).asInstanceOf[A17],
-      entry(17).asInstanceOf[A18],
-      entry(18).asInstanceOf[A19],
-      entry(19).asInstanceOf[A20]
-    )
-  }
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18, a19, a20) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+       a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+       a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20])
 }
 

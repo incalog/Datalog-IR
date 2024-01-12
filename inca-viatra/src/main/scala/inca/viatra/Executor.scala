@@ -1,14 +1,14 @@
 package inca.viatra
 
 import inca.ir.CompiledModule
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, UnitRelation}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
 import inca.util.ScalaCompiler
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime.Query.Specification
 import inca.viatra.runtime.{EnginePool, Query}
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import inca.viatra.runtime.db.Database
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
+import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
@@ -18,7 +18,6 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
 
     override def read(rel: Relation): ViatraRelation =
       val spec = module.patterns(rel.name)()
-      //val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
       new ViatraRelation(rel, spec, matcher)
 
@@ -36,6 +35,25 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
         feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf())
       }
 
+    override def remove(edb: Relation): Unit =
+      if (edb.entries.nonEmpty) {
+        edb.entries.foreach { t =>
+          val input = edb.flattenEntry(t)
+          feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
+        }
+      } else {
+        feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf())
+      }
+
+    override def addUpdateListener(up: RelationUpdateListener): Unit =
+      val spec = module.patterns(up.rel.name)()
+      val matcher = spec.getMatcher(engine)
+      engine.addMatchUpdateListener(matcher, ViatraUpdateListener(up), false)
+
+    override def removeUpdateListener(up: RelationUpdateListener): Unit =
+      val spec = module.patterns(up.rel.name)()
+      val matcher = spec.getMatcher(engine)
+      engine.removeMatchUpdateListener(matcher, ViatraUpdateListener(up))
 
   override def instantiate(m: CompiledModule): Engine =
     val options = m.compilerOptions
@@ -48,10 +66,10 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
     val (viatraEngine, feed) = EnginePool.loadEngineAndDatabase(scope, backendFactory)
     new Engine(viatraEngine, feed, psystemModule)
 
-/** Lazily rewrite matcher into Scala relation */
+/** Rewrites matcher into Scala relation on-demand only */
 class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Query.Matcher) extends Relation:
   import scala.jdk.CollectionConverters.*
-  matcher.getSpecification
+
   private var evaled: Boolean = false
   lazy val outputRel =
     evaled = true
@@ -79,6 +97,7 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
 
   override def size: Int = outputRel.size
   override def entries: Iterable[Tuple] = outputRel.entries
+  override def unflattenEntry(entry: Seq[Any]): Any = outputRel.unflattenEntry(entry)
   override def matches: Iterable[Seq[Any]] = outputRel.matches
 
   override def toString: RelationName =
@@ -93,3 +112,8 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
       else
         "?"
     s"${getClass.getSimpleName}(name: $name, size: $size, entries: $entriesS)"
+
+case class ViatraUpdateListener(up: RelationUpdateListener) extends IMatchUpdateListener[Query.Match]:
+  override def notifyAppearance(m: Query.Match): Unit = up.tupleAdded(up.rel.unflattenEntry(m.toArray.toSeq))
+  override def notifyDisappearance(m: Query.Match): Unit = up.tupleRemoved(up.rel.unflattenEntry(m.toArray.toSeq))
+
