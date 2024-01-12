@@ -1,0 +1,42 @@
+
+edb simpleStmt(Int).
+
+edb whileStmt(Int).
+edb whileBody(Int, Int).
+
+edb ifStmt(Int).
+edb ifThen(Int, Int).
+edb ifElse(Int, Int).
+
+edb blockStmt(Int).
+edb blockFirst(Int, Int).
+edb blockNext(Int, Int).
+
+
+stmt(Int).
+stmt(s) :- simpleStmt(s).
+stmt(s) :- whileStmt(s).
+stmt(s) :- ifStmt(s).
+
+cflow(Int, Int).
+cflow(s1, s2) :- simpleStmt(s1), blockNext(s1, s2).
+cflow(s1, s2) :- whileStmt(s1), whileBody(s1, s2), firstStmt(b, s2).
+cflow(s2, s1) :- whileStmt(s1), whileBody(s1, s2), lastStmt(b, s2).
+cflow(s1, s2) :- whileStmt(s1), blockNext(s1, s2).
+
+firstStmt(Int, Int).
+firstStmt(s, s) :- simpleStmt(s).
+firstStmt(s, s) :- ifStmt(s).
+firstStmt(s, s) :- whileStmt(s).
+firstStmt(s, u) :- blockStmt(s), blockFirst(s,t), firstStmt(t,u).
+
+lastStmt(Int, Int).
+lastStmt(s, s) :- simpleStmt(s).
+lastStmt(s, s) :- ifStmt(s).
+lastStmt(s, s) :- whileStmt(s).
+lastStmt(s, u) :- blockStmt(s), blockFirst(s,t), lastStmtBlock(t,u).
+
+lastStmtBlock(Int, Int).
+lastStmtBlock(s,u) :- blockNext(s,t), lastStmtBlock(t,u).
+lastStmtBlock(s,u) :- not blockNext(s,s), lastStmt(s,u).
+

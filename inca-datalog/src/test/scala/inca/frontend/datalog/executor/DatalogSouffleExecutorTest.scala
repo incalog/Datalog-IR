@@ -16,17 +16,17 @@ class DatalogSouffleExecutorTest extends AnyFunSuite:
     compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
-    var res = loaded.query("Path", (?, ?))
+    var res = loaded.query("Path", Seq(?, ?))
     assertResult(11)(res.size)
 
-    res = loaded.query("Path", (?, 5), (3, ?))
+    res = loaded.query("Path", Seq(?, 5), Seq(3, ?))
     println(s"The res: $res")
     assertResult(4)(res.size)
 
-    res = loaded.query("Path", (1, ?))
+    res = loaded.query("Path", Seq(1, ?))
     assertResult(4)(res.size)
 
-    res = loaded.query("Path", (2, 5))
+    res = loaded.query("Path", Seq(2, 5))
     assertResult(1)(res.size)
   }
 

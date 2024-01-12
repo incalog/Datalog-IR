@@ -10,6 +10,7 @@
     <option name="classBuf">
       <list>
         <option value="inca.viatra.BaseTest" />
+        <option value="inca.viatra.incremental.IncrementalPathTest" />
         <option value="inca.viatra.runtime.aggregate.ScalaMapMonoTest" />
         <option value="inca.viatra.runtime.aggregate.SetMonoTest" />
         <option value="inca.viatra.runtime.aggregate.SetMonoOptTest" />

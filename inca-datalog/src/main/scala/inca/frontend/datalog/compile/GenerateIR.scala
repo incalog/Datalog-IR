@@ -15,7 +15,17 @@ class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR) + arithmetic.IR + string.IR)
 
   def compileModule(m: Module): ir.Module =
-    ir.Module(Name("Datalog"), irLang, m.relations.flatMap(compileRelation))
+    ir.Module(Name("Datalog"), irLang, m.relations.flatMap(compileModuleEntry))
+
+  def compileModuleEntry(me: IRelation): Seq[ir.ModuleEntry] = me match
+    case r: EdbRelation => Seq(compileEdbRelation(r))
+    case r: Relation => compileRelation(r)
+
+  def compileEdbRelation(r: EdbRelation): ir.ExtensionalRelation = gensym.scoped {
+    val vars = r.params.map(ty => Name(gensym.fresh("param")) -> compileType(ty))
+    val params = vars.map(v => ir.Param(v._1, v._2))
+    ir.ExtensionalRelation(r.name, params)
+  }
 
   def compileRelation(r: Relation): Seq[ir.Relation] = gensym.scoped {
     val vars = r.params.map(ty => Name(gensym.fresh("param")) -> compileType(ty))
@@ -69,7 +79,9 @@ class GenerateIR {
     ir.Body(r.body.map(compileAtom) ++ headAtoms)
 
   def compileAtom(a: Atom): ir.Atom = a match
-    case Atom.Call(name, args, neg) => ir.Call(name, args.map(compileArg), neg)
+    case Atom.Call(ref, args, neg) => ref.target.get match
+      case _: EdbRelation => ir.ExtensionalCall(ref.name, args.map(compileArg), neg)
+      case _: Relation => ir.Call(ref.name, args.map(compileArg), neg)
     case Atom.Compare(lhs, op, rhs) => op match
       case "==" => ir.Eq(compileTerm(lhs), compileTerm(rhs))
       case "!=" => ir.Eq(compileTerm(lhs), compileTerm(rhs), true)

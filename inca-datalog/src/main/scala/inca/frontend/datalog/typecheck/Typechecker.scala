@@ -8,13 +8,17 @@ import inca.ir.util.SourceLocation
 class Typechecker extends TypeIO {
 
   var ctx: Map[Name, Type] = Map()
-  var rels: Map[Name, Seq[Type]] = Map()
+  var rels: Map[Name, (Seq[Type], IRelation)] = Map()
 
   val arithOps = Set("+","-","*","/")
 
   def checkModule(m: Module): Unit =
-    rels = m.relations.map(r => r.name -> r.params).toMap
-    m.relations.foreach(checkRelation)
+    rels = m.relations.map(r => r.name -> (r.params, r)).toMap
+    m.relations.foreach(checkModuleEntry)
+
+  def checkModuleEntry(me: IRelation): Unit = me match
+    case r: EdbRelation => // nothing
+    case r: Relation => checkRelation(r)
 
   def checkRelation(r: Relation): Unit =
     r.rules.foreach(checkRule(_, r.params))
@@ -28,11 +32,12 @@ class Typechecker extends TypeIO {
     r.body.foreach(checkAtom)
 
   def checkAtom(a: Atom): Unit = a match
-    case Atom.Call(name, args, not) => rels.get(name) match
+    case Atom.Call(ref, args, not) => rels.get(ref.name) match
       case None =>
-        error(s"Unknown relation $name", a)
+        error(s"Unknown relation ${ref.name}", a)
         args.foreach(inferTermOpt)
-      case Some(params) =>
+      case Some((params, rel)) =>
+        ref.resolved(rel)
         if (args.size != params.size)
           error(s"Wrong number of arguments, expected ${params.size} but got ${args.size}", a)
         args.zip(params).foreach(checkTerm)
