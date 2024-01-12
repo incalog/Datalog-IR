@@ -76,6 +76,9 @@ trait Relation {
     case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
     case v: AnyRef => Seq(v)
   def matches: Iterable[Seq[Any]]
+  
+  def contains(tup: Tuple): Boolean =
+    entries.exists(_ == tup)
 
   if (parameterNames.size != arity)
     throw new IllegalArgumentException(s"Expected $arity parameter names but got ${parameterNames.size}.")

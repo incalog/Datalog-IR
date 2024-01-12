@@ -16,7 +16,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, Ti
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, module: PSystem.Module) extends ExecutorEngine:
 
-    override def read(rel: Relation): Relation =
+    override def read(rel: Relation): ViatraRelation =
       val spec = module.patterns(rel.name)()
       //val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
