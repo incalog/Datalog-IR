@@ -1,42 +1,34 @@
+edb functionBody(String, Any).
 
-edb simpleStmt(Any).
-
-edb whileStmt(Any).
-edb whileBody(Any, Any).
-
-edb ifStmt(Any).
-edb ifThen(Any, Any).
-edb ifElse(Any, Any).
-
-edb blockStmt(Any).
-edb blockFirst(Any, Any).
-edb blockNext(Any, Any).
-
+edb simple(Any).
+edb call(Any, String).
+edb while(Any, Any).
+edb next(Any, Any).
 
 stmt(Any).
-stmt(s) :- simpleStmt(s).
-stmt(s) :- whileStmt(s).
-stmt(s) :- ifStmt(s).
+stmt(s) :- simple(s).
+stmt(s) :- call(s,_).
+stmt(s) :- while(s,_).
 
 cflow(Any, Any).
-cflow(s1, s2) :- simpleStmt(s1), blockNext(s1, s2).
-cflow(s1, s2) :- whileStmt(s1), whileBody(s1, b), firstStmt(b, s2).
-cflow(s2, s1) :- whileStmt(s1), whileBody(s1, b), lastStmt(b, s2).
-cflow(s1, s2) :- whileStmt(s1), blockNext(s1, s2).
-
-firstStmt(Any, Any).
-firstStmt(s, s) :- simpleStmt(s).
-firstStmt(s, s) :- ifStmt(s).
-firstStmt(s, s) :- whileStmt(s).
-firstStmt(s, u) :- blockStmt(s), blockFirst(s,t), firstStmt(t,u).
+cflow(s1, s2) :- simple(s1), next(s1, s2).
+cflow(s1, s2) :- while(s1,s2).
+cflow(last, s1) :- while(s1,b), lastStmt(b, last).
+cflow(s1, s2) :- while(s1,_), next(s1, s2).
+cflow(s1, s2) :- call(s1,f), functionBody(f,s2).
+cflow(last, s2) :- call(s1,f), functionBody(f,b), lastStmt(b,last), next(s1,s2).
 
 lastStmt(Any, Any).
-lastStmt(s, s) :- simpleStmt(s).
-lastStmt(s, s) :- ifStmt(s).
-lastStmt(s, s) :- whileStmt(s).
-lastStmt(s, u) :- blockStmt(s), blockFirst(s,t), lastStmtBlock(t,u).
+lastStmt(s1, s3) :- next(s1, s2), lastStmt(s2, s3).
+lastStmt(s1, s1) :- stmt(s1), not hasNext(s1).
 
-lastStmtBlock(Any, Any).
-lastStmtBlock(s,u) :- blockNext(s,t), lastStmtBlock(t,u).
-lastStmtBlock(s,u) :- not blockNext(s,s), lastStmt(s,u).
+hasNext(Any).
+hasNext(s) :- next(s,_).
+
+reachable(Any, Any).
+reachable(from, to) :- cflow(from, to).
+reachable(from, to) :- cflow(from, via), reachable(via, to).
+
+deadCode(Any).
+deadCode(s) :- functionBody("main", b), stmt(s), not reachable(b, s).
 

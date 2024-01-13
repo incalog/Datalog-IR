@@ -1,7 +1,7 @@
 package inca.viatra.incremental
 
 import inca.ir.*
-import inca.ir.execution.{DeltaRelationConstructor, Relation2}
+import inca.ir.execution.Relation2
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.util.SourceLocation
@@ -25,12 +25,12 @@ class IncrementalPathTest extends AnyFunSuiteLike:
   def initialEdges(nodes: Int, loopDistance: Int): Relation2[Integer, Integer] = Relation2("edge", Seq("from", "to"),
     (for (i <- 0 until nodes by 3) yield
       Seq(i, i+3))
-      ++
-      (for (i <- 0 until nodes by 5) yield
-        Seq(i, i + 5))
-      ++
-      (for (i <- loopDistance until nodes by loopDistance) yield
-        Seq(i, i - loopDistance))
+    ++
+    (for (i <- 0 until nodes by 5) yield
+      Seq(i, i + 5))
+    ++
+    (for (i <- loopDistance until nodes by loopDistance) yield
+      Seq(i, i - loopDistance))
   )
 
   def moreEdges(from: Int, nodes: Int, loopDistance: Int): Relation2[Integer, Integer] = Relation2("edge", Seq("from", "to"),
@@ -49,9 +49,8 @@ class IncrementalPathTest extends AnyFunSuiteLike:
     val compiled = new Compiled(mod)
     for (i <- 0 until 5) {
       val engine = new inca.viatra.Executor().instantiate(compiled)
-      val edges = initialEdges(1000, 100)
       val start = System.currentTimeMillis()
-      engine.insert(edges)
+      engine.insert(initialEdges(1000, 100))
       val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))
       val end = System.currentTimeMillis()
 
@@ -68,30 +67,23 @@ class IncrementalPathTest extends AnyFunSuiteLike:
     val compiled = new Compiled(mod)
 
     val engine = new inca.viatra.Executor().instantiate(compiled)
-    val edges = initialEdges(1000, 100)
     val initialStart = System.currentTimeMillis()
-    engine.insert(edges)
-    val initPath = engine.read(Relation2("path", Seq("from", "to"), Seq()))
+    engine.insert(initialEdges(1000, 100))
+    val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))
     val initialEnd = System.currentTimeMillis()
 
     println(s"Initial execution time ${initialEnd - initialStart}ms")
-    println(s"Found ${initPath.size} paths initially")
+    println(s"Found ${path.size} paths initially")
 
-    val extra = 50
+    val extra = 10
     for (i <- 0 until 5) {
-      val inputDelta = moreEdges(2000 + i * extra, 2000 + i * extra + extra, 10)
       val start = System.currentTimeMillis()
-      val outputDelta = DeltaRelationConstructor(Relation2("path", Seq("from", "to"), Seq()))
-      engine.withUpdateListener(outputDelta) {
-        engine.insert(inputDelta)
-      }
-      engine.insert(inputDelta)
-//      val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))
+      engine.insert(moreEdges(1000 + i * extra, 1000 + i * extra + extra, 100))
+      val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))
       val end = System.currentTimeMillis()
 
       println(s"Execution time ${end - start}ms")
-      println(outputDelta)
-//      println(s"Found ${path.size} paths")
+      println(s"Found ${path.size} paths")
     }
 
 
