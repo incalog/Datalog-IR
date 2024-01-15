@@ -212,9 +212,10 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case NewMono(mono, keys, args) =>
       // TODO: Visit types in keys ?
-      monoDefs += (mono, keys)
-      monoTypes += mono.monoType(keys)
-      val dataConstr = monoDataConstructor(mono, keys)
+      val vkeys = keys.map(visitType)
+      monoDefs += (mono, vkeys)
+      monoTypes += mono.monoType(vkeys)
+      val dataConstr = monoDataConstructor(mono, vkeys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
       val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
