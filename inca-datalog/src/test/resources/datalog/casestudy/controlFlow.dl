@@ -1,9 +1,10 @@
-edb functionBody(String, Any).
 
 edb simple(Any).
 edb call(Any, String).
 edb while(Any, Any).
 edb next(Any, Any).
+
+edb functionBody(String, Any).
 
 stmt(Any).
 stmt(s) :- simple(s).
