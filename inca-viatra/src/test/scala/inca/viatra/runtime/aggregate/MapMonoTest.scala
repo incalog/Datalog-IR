@@ -551,12 +551,10 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       SetMember(Var("elem"), MapLookUp(MapLookUp(Var("map"), StringLit("pos")), StringLit("even")))
     )))).addHint(MainHint)
 
-    // Failure reason: lowering of nested maps is ill-supported
-    compile(mainRelation)
-
-//    engine.readAll().foreach(res => println(res.asTable))
-//    val res = engine.read(UnitRelation("main"))
-//    assert(res.entries.nonEmpty)
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+    assertResult(Set(2, 4))(res.entries.toSet)
 
 
   // TODO: 1. MapMono with user-defined mono ✔

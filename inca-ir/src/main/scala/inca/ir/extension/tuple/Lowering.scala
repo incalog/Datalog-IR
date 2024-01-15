@@ -2,6 +2,7 @@ package inca.ir.extension.tuple
 
 import inca.ir.*
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.data.CaseDefinition
 import inca.ir.extension.tuple.{IR, Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{name2string, string2name}
@@ -36,6 +37,16 @@ trait Lowering extends BaseLowering:
     // Reset the cache of flattened variables
     cachedFlatten = Map()
     super.visitExtensionalRelation(relation)
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) { moduleEntry match
+    case CaseDefinition(name, args, data) =>
+      val visitedArgs = args.flatMap {
+        case tt@TTuple(tys) => tt.flatten
+        case arg => Seq(visitType(arg))
+      }
+      Seq(CaseDefinition(name, visitedArgs, data))
+    case _ => super.visitModuleEntry(moduleEntry)
+  }
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     // Reset the cache of flattened variables

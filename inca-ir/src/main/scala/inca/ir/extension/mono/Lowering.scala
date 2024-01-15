@@ -10,8 +10,10 @@ import inca.ir.extension.aggregate
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand, IR as demandIR}
 import inca.ir.extension.impure.{Impure, IR as impureIR}
+import inca.ir.extension.map.{MapComprehension, MapFun}
 import inca.ir.extension.set.SetComprehension
 import inca.ir.extension.string.{StringLit, TString}
+import inca.ir.extension.tuple.{Project, TTuple}
 import inca.ir.lowering.BaseLowering
 
 trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
@@ -41,11 +43,13 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     )
     data +: cases
 
-  def createCollectingRelation(tm: TMono): Relation =
+  private def createCollParams(tm: TMono): Seq[Param] =
     val data = monoDataType(tm)
-    val keyParams = tm.keys.zipWithIndex.map((ty,ix) => Param(Name(s"key_$ix"), TDemand(ty)))
-    val params = Param(Name("m"), TDemand(data)) +: keyParams :+ Param(Name("input"), TDemand(tm.input))
-    Relation(monoCollectName(tm), params, Seq(Body(Seq())))
+    val keyParams = tm.keys.zipWithIndex.map((ty, ix) => Param(Name(s"key_$ix"), TDemand(ty)))
+    Param(Name("m"), TDemand(data)) +: keyParams :+ Param(Name("input"), TDemand(tm.input))
+
+  def createCollectingRelation(tm: TMono): Relation =
+    Relation(monoCollectName(tm), createCollParams(tm), Seq(Body(Seq())))
 
   def createAggregationRelation(tm: TMono, monos: Seq[MonoDefinition]): Relation =
     val params = Seq(Param(Name("m"), TDemand(monoDataType(tm))), Param(Name("output"), tm.output))
@@ -57,8 +61,8 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
       val atoms = mono match
         case _: SetMonoDefinition if optimizeMono =>
           optimizeSetMono(tm)
-        case m: MapMonoDefinition if optimizeMono =>
-          optimizeMapMono(tm, m)
+//        case mm@MapMonoDefinition(keyTy1, MapMonoDefinition(_, _)) => optimizeNestedMapMono(tm, mm)
+        case m: MapMonoDefinition if optimizeMono => optimizeMapMono(tm, m)
         case _ =>
           val keyArgs = tm.keys.map(_ => WildcardArg())
           val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
@@ -109,15 +113,83 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
    *
    */
   private def optimizeMapMono(tm: TMono, m: MapMonoDefinition): Seq[Atom] =
-    ???
+    var valueMono: Option[MonoDefinition] = None
+
+    def collInputTyp(mono: MapMonoDefinition): Seq[Type] = mono match
+      case MapMonoDefinition(ty1, mm@MapMonoDefinition(ty2, valMono)) => ty1 +: collInputTyp(mm)
+      case MapMonoDefinition(ty, mm) => valueMono = Some(mm); Seq(ty, mm.typ.in)
+
+    val inputTys = collInputTyp(m)
+    val keyTys = inputTys.dropRight(1)
+    val valTy = inputTys.last
+    val collName = monoCollectName(tm).name
+    val collParams = createCollParams(tm).map(p => Param(p.name, p.ty match
+      case TDemand(ty) => ty
+      case ty => ty
+    ))
+    val splitCollName = Name(gensym.fresh(collName + "$split"))
+    val keyParams = keyTys.map(ty => Param(gensym.freshName(Name("key")), ty))
+    val vParam = Param(gensym.freshName(Name("value")), valTy)
+    val args = collParams.map(p => Var(p.name).arg)
+
+    def projNestedTuple(tp : Term, params: Seq[Param]): Seq[Eq] = params match
+      case Seq(param) => Seq(Eq(tp, Var(param.name)))
+      case param +: tail => Eq(Project(tp, 0), Var(param.name)) +: projNestedTuple(Project(tp, 1), tail)
+
+
+    val optCollRel = Relation(
+      Name(gensym.fresh(collName + "$split")),
+      collParams.dropRight(1) ++ keyParams :+ vParam,
+      Seq(Body(
+        Call(Name(collName), args).addHint(DemandIgnoreCallHint) +:
+        projNestedTuple(Var(collParams.last.name), keyParams :+ vParam),
+      ))
+    )
+    mapMonoColl += optCollRel
+    val keyNum = keyParams.size
+    val callAtom = Call(
+        optCollRel.name,
+        Var(Name("m")).arg +: (tm.keys.map(_ => WildcardArg()) ++
+          (0 until keyNum).map(i => Var(Name(s"k$i")).arg)) :+ WildcardArg()
+    ).addHint(DemandIgnoreCallHint)
+
+
+    def createMapFun(i: Int): MapFun =
+      val param = Param(Name(s"k$i"), keyTys(i))
+      val tm = if i == keyNum - 1 then
+        valueMono.getOrElse(throw IllegalStateException(s"value mono is not expected to be None")) match
+          case MapMonoDefinition(_, _) => throw IllegalStateException(s"$valueMono is not expected to be a map mono")
+          case SetMonoDefinition(_) =>
+            val elem = gensym.fresh("elem")
+            SetComprehension(
+              Var(Name(elem)),
+              Seq(
+                callAtom.copy(args = callAtom.args.dropRight(1) :+ Var(Name(elem)).arg)
+              )
+            )
+          case vmono =>
+            Block(Seq(
+              callAtom, Aggregate(
+                RefByName(optCollRel.name),
+                callAtom.args.dropRight(1) :+ AggregateColumnArg(Var(Name("v"))),
+                MonoAggregationOperator(valueMono.get)
+              )), Var(Name("v")))
+      else createMapFun(i + 1)
+      MapFun(Seq(param), tm)
+
+    val project = m.resultTerm(createMapFun(0), gensym)
+    Seq(Eq(project, Var(Name("output"))))
+
 
 
   var monoDefs: Set[(MonoDefinition, Seq[Type])] = _
   var monoTypes: Set[TMono] = _
+  var mapMonoColl: Set[Relation] = _
 
   override def visitModule(module: ir.Module): ir.Module =
     monoDefs = Set()
     monoTypes = Set()
+    mapMonoColl = Set()
     val mod = super.visitModule(module)
 
     val defaultTypes = monoTypes.map(t => t -> Set()).toMap
@@ -128,8 +200,8 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     val aggregateRels = defsByType.map((tm, defs) => createAggregationRelation(tm, defs.toSeq.map(_._1))).toSeq
 
 //    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
-    
-    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels)
+
+    mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels ++ mapMonoColl)
 
   override def visitType(ty: Type): Type = ty match
     case tm@TMono(in, out, keys) =>
