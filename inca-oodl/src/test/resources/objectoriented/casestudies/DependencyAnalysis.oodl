@@ -161,7 +161,7 @@ class GenerateProgram {
 
 @main def main(endNode: Int, step: Int): Set[String] = {
   val generate = new GenerateProgram()
-  val defs: DefList = generate.prog(0, 2, 1)
+  val defs: DefList = generate.prog(0, endNode, step)
   //val defs: DefList = generate.prog()
 
   val main: Def = defs.head()
