@@ -75,6 +75,7 @@ class NameAnalysis(val prog: Prog) extends Visitor {
 }
 
 case class Edge(val from: Def, val to: Def) { }
+//class Edge(val from: Def, val to: Def) { }
 
 class DependencyAnalysis extends Visitor {
   val edges: mono.Set[Edge] = new mono.Set[Edge]()
@@ -145,10 +146,24 @@ class GenerateProgram {
     }
 }
 
+
+/*class GenerateProgram {
+  def prog(): DefList = {
+    val d1 = new Def("a", new Var("c"))
+    val d2 = new Def("b", new Num(2))
+    val d3 = new Def("c", new Var("a"))
+    val d4 = new Def("d", new Var("b"))
+    val main = new Def("main", new Var("c"))
+    val defs = new Cons(main, new Cons(d4, new Cons(d3, new Cons(d2, new Cons(d1, new Nil())))))
+    return defs
+  }
+}*/
+
 @main def main(endNode: Int, step: Int): Set[String] = {
   val generate = new GenerateProgram()
-
   val defs: DefList = generate.prog(0, 2, 1)
+  //val defs: DefList = generate.prog()
+
   val main: Def = defs.head()
   val prog: Prog = new Prog(defs)
 

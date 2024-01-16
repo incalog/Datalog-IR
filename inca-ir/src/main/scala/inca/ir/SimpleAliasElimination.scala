@@ -23,7 +23,7 @@ import inca.ir.visitors.IRVisitor
  * R(c)
  *
  * ~>
- * 
+ *
  * b == 4
  * R(b)
  *

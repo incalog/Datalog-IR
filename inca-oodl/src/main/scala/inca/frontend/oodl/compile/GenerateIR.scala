@@ -50,6 +50,7 @@ case object MutationImpurityKind extends irimpure.ImpurityKind:
 object GenerateIR:
   def subtypeRelationName = "subtype$"
   def castRelationName = "cast$"
+  def runtimeTypeRelationName = "runtimeType$"
   def extensionalRelationPrefix = "ext_"
   def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
@@ -94,7 +95,8 @@ class GenerateIR:
     } ++ extMainInputRelations
 
     val castRelation = compileCastRelation()
-    val builtinContent = builtinIdDatastructures ++ Seq(objClass, castRelation)
+    val runtimeTypeRelation = compileRuntimeTypeRelation()
+    val builtinContent = builtinIdDatastructures ++ Seq(objClass, castRelation, runtimeTypeRelation)
 
     ir.Module(
       m.name,
@@ -105,15 +107,7 @@ class GenerateIR:
   /** Helper */
 
   private def matchRuntimeType(t: ir.Term, tyTerm: ir.Term): ir.Atom =
-    disjunction.Disjunction(
-      builtinIdDatastructures.flatMap {
-        case irdata.CaseDefinition(name, args, _) =>
-          val wildcardArgs = (0 until args.size - 1).map(_ => WildcardArg())
-          val deconstr = irdata.Deconstruct(t, RefByName(name), tyTerm.arg +: wildcardArgs, false)
-          Some(DisjunctionAlternative(deconstr))
-        case _ => None
-      }
-    )
+    ir.Call(runtimeTypeRelationName, Seq(t.arg, tyTerm.arg))
 
   /** Module content */
 
@@ -138,6 +132,41 @@ class GenerateIR:
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember
     ))).addHint(impure.MainHint)
+
+  /**
+   * We represent objects and structural objects as ADTs:
+   * ```
+   * Identity = OID(cls, allocCount) | SID(cls, fields)
+   * ```
+   * The `cls` fields are unique to each subclass. If we want to dynamically dispatch a method call, we now first need
+   * to decide if the class is a case class or a normal class. Therefore we need a disjunction with destructs, which
+   * lowers to multiple bodies (one for each case of a case class and one for the OID):
+   * ```
+   * R(this: Identity) :- ?OID(C, ...), dispatch$MethodName(C, ...)
+   * R(this: Identity) :- ?SID(C, ...), dispatch$MethodName(C, ...)
+   * ```
+   *
+   * That is, for each relation that performs a method call we need multiple different bodies. This is inefficient.
+   * To prevent this performance bottleneck we introduce this helper relation. That way, we only introduce multiple
+   * bodies in a single relation.
+   */
+  def compileRuntimeTypeRelation(): ir.Relation =
+    val runtimeTyp = ir.Var("ty")
+    ir.Relation(runtimeTypeRelationName,
+      Seq(
+        ir.Param("this", demand.TDemand(irdata.TData("ID"))),
+        ir.Param("type", irstring.TString)
+      ), Seq(ir.Body(Seq(
+        disjunction.Disjunction(
+          builtinIdDatastructures.flatMap {
+            case irdata.CaseDefinition(name, args, _) =>
+              val wildcardArgs = (0 until args.size - 1).map(_ => WildcardArg())
+              val deconstr = irdata.Deconstruct(ir.Var("this"), RefByName(name), ir.Var("type").arg +: wildcardArgs, false)
+              Some(DisjunctionAlternative(deconstr))
+            case _ => None
+          }
+        )
+      ))))
 
   def compileCastRelation(): ir.Relation =
     val runtimeTyp = ir.Var("ty")

@@ -76,7 +76,7 @@ object CompiledOODLModule:
   // 1. Not before block
   // 2. Impure before Disjunction
   val pipeline: List[() => BaseIRVisitor] = List(
-    () => new mono.Lowering {},
+    () => new mono.Lowering(optimizeMono = true) {},
     () => new MonoScalaLowering {},
     () => new ConversionElimination {},
     () => new aggregateset.Lowering {},
