@@ -106,6 +106,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
       "org.eclipse.viatra" % "viatra-query-runtime" % "2.7.0",
       // Required for runtime reflection and code execution
+      //("org.scala-lang" %% "scala3-interfaces" % scalaVersion.value).cross(CrossVersion.disabled)
       "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
     )
   )
