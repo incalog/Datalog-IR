@@ -7,13 +7,16 @@ import dotty.tools.dotc.Driver
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.{VirtualDirectory, VirtualFile}
 
-import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import dotty.tools.repl.AbstractFileClassLoader
 import inca.util.compileroptions.CompilerOptions
 
 import scala.io.Codec
 
+// TODO: This solution does not seem to work with sbt. The Driver class mentions, that you can use the dotty interface
+//  without instanciating a concrete driver.
+//  See: https://github.com/lampepfl/dotty/blob/main/compiler/test/dotty/tools/dotc/InterfaceEntryPointTest.scala
+//  Doing it that way should probably work for sbt as well.
 class ScalaCompiler(val options: CompilerOptions) {
   val viatraLogging = options("viatra_logging")
   val logPsystem = viatraLogging.readBoolean("psystem")
@@ -23,7 +26,7 @@ class ScalaCompiler(val options: CompilerOptions) {
   private case class DriverImpl(classpathDirectories: List[AbstractFile], outputDirectory: AbstractFile) extends Driver {
     private val compileCtx0 = initCtx.fresh
 
-    given Context = compileCtx0.fresh
+    val ctx = compileCtx0.fresh
       .setSetting(
         compileCtx0.settings.classpath,
         classpathDirectories.map(_.path).mkString(":")
@@ -35,7 +38,7 @@ class ScalaCompiler(val options: CompilerOptions) {
         outputDirectory
       )
 
-    val compiler: dotc.Compiler = newCompiler
+    val compiler: dotc.Compiler = newCompiler(using ctx)
   }
 
   private def runObjectMethod(objectName: String, classLoader: ClassLoader, methodName: String, paramClasses: Seq[Class[?]], arguments: Any*): Any = {
@@ -47,10 +50,8 @@ class ScalaCompiler(val options: CompilerOptions) {
 
   private def compileCode(code: String, classpathDirectories: List[AbstractFile], outputDirectory: AbstractFile): Unit = {
     val driver = DriverImpl(classpathDirectories, outputDirectory)
-    import driver.given Context
-
     val sourceFile = SourceFile(VirtualFile("(inline)", code.getBytes(StandardCharsets.UTF_8)), Codec.UTF8)
-    val run = driver.compiler.newRun
+    val run = driver.compiler.newRun(using driver.ctx)
     run.compileSources(List(sourceFile))
   }
 
