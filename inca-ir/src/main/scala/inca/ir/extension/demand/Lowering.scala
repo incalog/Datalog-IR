@@ -43,7 +43,8 @@ trait Lowering extends BaseLowering:
         }
         Body(prefix ++ eqs)
       }
-      Relation(demandRelationName(rel), params, bodies)
+      // There is a good chance we end up with the exact same body twice (e.g See the abstract syntax graph example)
+      Relation(demandRelationName(rel), params, bodies.toSet.toSeq)
     }
 
   private var currentModule: ir.Module = _
