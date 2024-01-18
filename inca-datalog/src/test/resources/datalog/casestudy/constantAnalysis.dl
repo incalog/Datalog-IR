@@ -1,0 +1,11 @@
+// expressions
+edb num(Any, Int).
+edb add(Any, Any, Any). // expression + expression
+edb var(Any, String). // var read
+
+// statements
+edb vardef(Any, String, Any). // stmt, name, expr
+edb next(Any, Any).
+
+
+// cvalue(Any, String, Int).

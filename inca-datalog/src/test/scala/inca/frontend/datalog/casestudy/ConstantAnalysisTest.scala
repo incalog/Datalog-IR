@@ -119,6 +119,14 @@ class ConstantAnalysisTest extends AnyFunSuite:
     Seq(edbVarDef, edbNext)
 
 
+  test("System Setup Test") {
+    val code = FileUtil.readFileFromResource("datalog/casestudy/constantAnalysis.dl")
+    val compiled = exec.compileDatalog(code, options)
+    compiled.setPipeline(pipeline)
+    val loaded = exec.loadDatalog(compiled)
+    println("You have successfully setup the environment for Lab 9.")
+  }
+
   test("constant seq") {
     val code = FileUtil.readFileFromResource("datalog/casestudy/constantAnalysis.dl")
     val compiled = exec.compileDatalog(code, options)
@@ -141,7 +149,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
   }
 
   test("constant seq - reassign") {
-    val code = FileUtil.readFileFromResource("datalog/casestudy/constantAnalysis2.dl")
+    val code = FileUtil.readFileFromResource("datalog/casestudy/constantAnalysis.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
