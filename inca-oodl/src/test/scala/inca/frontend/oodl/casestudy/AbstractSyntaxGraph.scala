@@ -135,10 +135,10 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
         Eq(v("next"), Add(v("from"), v("step"))),
         Call("makeLine", Seq(v("from"), v("next"), v("line"))),
         Eq(v("circle"), Construct("Def", Seq(
-          StringConcat(StringLit("a"), ToString(v("to"))),
+          StringConcat(StringLit("a"), ToString(v("from"))),
           Construct("Add", Seq(
             Construct("Var", StringConcat(StringLit("a"), ToString(v("next")))),
-            Construct("Num", v("to"))
+            Construct("Num", v("from"))
           ))
         ))),
         Call("makeProg", Seq(v("next"), v("to"), v("step"), v("rec"))),
@@ -151,10 +151,10 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
       Body(Seq(
         GE(v("from"), v("to")),
         Eq(v("circle"), Construct("Def", Seq(
-          StringConcat(StringLit("a"), ToString(v("to"))),
+          StringConcat(StringLit("a"), ToString(v("from"))),
           Construct("Add", Seq(
-            Construct("Var", StringConcat(StringLit("a"), ToString(v("step")))),
-            Construct("Num", v("to"))
+            Construct("Var", StringConcat(StringLit("a"), ToString(IntNum(0)))),
+            Construct("Num", v("from"))
           ))
         ))),
         Eq(v("defs"), Construct("Cons", Seq(v("circle"), Construct("Nil", Seq()))))
@@ -215,8 +215,8 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
-        Eq(v("endNode"), IntNum(50)),
-        Eq(v("step"), IntNum(10)),
+        Eq(v("endNode"), IntNum(4)),
+        Eq(v("step"), IntNum(2)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Call("edgesDefs", Seq(v("defs"), v("from"), v("to")))
       ))
@@ -257,15 +257,17 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run") {
-    for (i <- 0 until 5) {
+    //for (i <- 0 until 5) {
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
+
+      engine.readAll().foreach(r => println(r.asTable))
       println(s"Execution time ${end - start}ms")
-      println(relation1.asTable)
-    }
+      //println(relation1.asTable)
+    //}
   }
 
   
