@@ -16,11 +16,11 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
 
-class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
+class AbstractSyntaxGraphByToken extends AnyFunSuiteLike:
 
-  val TDefList = TAny
-  val TDef = TAny
-  val TExp = TAny
+  val TDefList = TInt
+  val TDef = TInt
+  val TExp = TInt
 
   def t(s: String) = TData(s)
   def v(s: String) = Var(s)
@@ -54,10 +54,10 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
   )
   val edgesDef = Relation("edgesDef",
     Seq(
-      Param("defs", TDemand(TDefList)), // DefList
-      Param("def", TDemand(TDef)), // Def
-      Param("from", TDef), // Def
-      Param("to", TDef) // Def
+      Param("defs", TDemand(TDefList)),
+      Param("def", TDemand(TDef)),
+      Param("from", TDef),
+      Param("to", TDef)
     ),
     Seq(
       Body(Seq(
@@ -97,9 +97,9 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
   val findDef = Relation("findDef",
     Seq(
-      Param("defs", TDemand(TDefList)), // DefList
+      Param("defs", TDemand(TDefList)),
       Param("name", TDemand(TString)),
-      Param("def", TDef) // Def
+      Param("def", TDef)
     ),
     Seq(
       Body(Seq(
@@ -119,8 +119,8 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
   val main = Relation("main",
     Seq(
-      Param("from", TDef), // Def
-      Param("to", TDef) // Def
+      Param("from", TDef),
+      Param("to",TDef)
     ),
     Seq(
       Body(Seq(
@@ -169,9 +169,9 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
     val id: Int = freshId()
 
     def args: Seq[Any] = this match
-      case Num(value) => Seq(this, value)
-      case Var(name) => Seq(this, name)
-      case Add(lhs, rhs) => Seq(this, lhs, rhs)
+      case Num(value) => Seq(this.id, value)
+      case Var(name) => Seq(this.id, name)
+      case Add(lhs, rhs) => Seq(this.id, lhs.id, rhs.id)
 
     def collect(filter: (ele: Exp) => Boolean): Seq[Exp] =
       val res = if filter(this) then Seq(this) else Seq()
@@ -179,8 +179,10 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
         case Add(lhs, rhs) => res ++ lhs.collect(filter) ++ rhs.collect(filter)
         case _ => res
 
-  class Def(val name: String, val exp: Exp):
-    def args: Seq[Any] = Seq(this, name, exp)
+  case class Def(val name: String, val exp: Exp):
+    val id: Int = freshId()
+
+    def args: Seq[Any] = Seq(this.id, name, exp.id)
 
     override def toString: String =
       s"${this.getClass.getSimpleName}${this.args.tail.mkString("(", ",", ")")}"
@@ -210,8 +212,8 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
     val id: Int = freshId()
 
     def args: Seq[Any] = this match
-      case Nil() => Seq(this)
-      case Cons(hd, tl) => Seq(this, hd, tl)
+      case Nil() => Seq(this.id)
+      case Cons(hd, tl) => Seq(this.id, hd.id, tl.id)
 
     def concat(d: DefList): DefList = this match
       case Cons(hd, tl) => Cons(hd, tl.concat(d))
@@ -306,7 +308,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
     val defs = prog.collectDefs()
 
-    val edbDefList = Relation1("_defList", Seq("list"), Seq(Seq(prog)))
+    val edbDefList = Relation1("_defList", Seq("list"), Seq(prog.id))
     val edbNils = Relation1("_nil", Seq("list"), prog.collectNils().map(_.args))
     val edbCons = Relation3("_con", Seq("list", "hd", "tl"), prog.collectCons().map(_.args))
     val edbDefs = Relation3("_def", Seq("def", "name", "exp"), defs.map(_.args))
@@ -325,7 +327,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
-      //println(relation1.asTable)
+      println(relation1.asTable)
       val executionTimeInMs = (end - start) / 1000 / 1000
       executionTimeInMs
     }
