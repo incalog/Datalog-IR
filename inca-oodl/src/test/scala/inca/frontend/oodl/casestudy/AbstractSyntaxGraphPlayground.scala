@@ -137,7 +137,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
     )
   )
 
-  val edgesDefsInput = Relation("edgesDefs$input",
+  /*val edgesDefsInput = Relation("edgesDefs$input",
     Seq(
       Param("defs$0", TDefList)
   ), Seq(
@@ -215,6 +215,71 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
         Eq(v("defname"), v("name"), true),
         Eq(v("defs$0"), v("tl")),
         Eq(v("name$0"), v("name"))
+      )),
+    ))*/
+
+  val edgesDefsInput = Relation("edgesDefs$input",
+    Seq(
+      Param("defs$0", TDefList)
+    ), Seq(
+      Body(Seq(
+        Call("edgesDefs$input", Seq(v("defs"))),
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("defs$0")))
+      )),
+      Body(Seq(
+        ExtensionalCall("_defList", Seq(v("defs$0")))
+      ))
+    ))
+
+  val edgesDefInput = Relation("edgesDef$input",
+    Seq(
+      Param("defs$0", TDefList),
+      Param("def$0", TDef),
+    ), Seq(
+      Body(Seq(
+        Call("edgesDefs$input", Seq(v("defs$0"))),
+        ExtensionalCall("_con", Seq(v("defs$0"), v("def$0"), v("tl")))
+      )),
+      Body(Seq(
+        Call("edgesDef$input", Seq(v("defs$0"), v("def"))),
+        ExtensionalCall("_def", Seq(v("def"), WildcardArg(), v("e"))),
+        Call("target", Seq(v("defs$0"), v("e"), v("def$0")))
+      ))
+    ))
+
+  val targetInput = Relation("target$input",
+    Seq(
+      Param("defs$0", TDefList),
+      Param("e$0", TExp),
+    ), Seq(
+      Body(Seq(
+        Call("edgesDef$input", Seq(v("defs$0"), v("def"))),
+        ExtensionalCall("_def", Seq(v("def"), WildcardArg(), v("e$0")))
+      )),
+      Body(Seq(
+        Call("target$input", Seq(v("defs$0"), v("e"))),
+        ExtensionalCall("_add", Seq(v("e"), v("e$0"), v("e2")))
+      )),
+      Body(Seq(
+        Call("target$input", Seq(v("defs$0"), v("e"))),
+        ExtensionalCall("_add", Seq(v("e"), v("e1"), v("e$0")))
+      )),
+    ))
+
+  val findDefInput = Relation("findDef$input",
+    Seq(
+      Param("defs$0", TDefList),
+      Param("name$0", TString),
+    ), Seq(
+      Body(Seq(
+        Call("target$input", Seq(v("defs$0"), v("e"))),
+        ExtensionalCall("_var", Seq(v("e"), v("name$0")))
+      )),
+      Body(Seq(
+        Call("findDef$input", Seq(v("defs"), v("name$0"))),
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("defs$0"))),
+        ExtensionalCall("_def", Seq(v("hd"), v("defname"), WildcardArg())),
+        Eq(v("defname"), v("name$0"), true)
       )),
     ))
 
