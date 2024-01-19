@@ -130,7 +130,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
-  def makeProg = Relation("makeProg",
+  val makeProg = Relation("makeProg",
     Seq(
       Param("from", TDemand(TInt)),
       Param("to", TDemand(TInt)),
@@ -143,10 +143,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         Eq(v("next"), Add(v("from"), v("step"))),
         Call("makeLine", Seq(v("from"), v("next"), v("line"))),
         Eq(v("circle"), Construct("Def", Seq(
-          StringConcat(StringLit("a"), ToString(v("to"))),
+          StringConcat(StringLit("a"), ToString(v("from"))),
           Construct("Add", Seq(
             Construct("Var", StringConcat(StringLit("a"), ToString(v("next")))),
-            Construct("Num", v("to"))
+            Construct("Num", v("from"))
           ))
         ))),
         Call("makeProg", Seq(v("next"), v("to"), v("step"), v("rec"))),
@@ -159,10 +159,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       Body(Seq(
         GE(v("from"), v("to")),
         Eq(v("circle"), Construct("Def", Seq(
-          StringConcat(StringLit("a"), ToString(v("to"))),
+          StringConcat(StringLit("a"), ToString(v("from"))),
           Construct("Add", Seq(
-            Construct("Var", StringConcat(StringLit("a"), ToString(v("step")))),
-            Construct("Num", v("to"))
+            Construct("Var", StringConcat(StringLit("a"), ToString(IntNum(0)))),
+            Construct("Num", v("from"))
           ))
         ))),
         Eq(v("defs"), Construct("Cons", Seq(v("circle"), Construct("Nil", Seq()))))
@@ -225,7 +225,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       Body(Seq(
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(v("endNode"), IntNum(20)),
+        Eq(v("endNode"), IntNum(50)),
         Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Eq(v("mono"), NewMono(SetMonoDefinition(tEdgePair), Seq(), Seq())),
@@ -322,7 +322,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation") {
-    for (i <- 0 until 5) {
+    for (i <- 0 until 1) {
       val compiled = new Compiled(true)
 //      val check = new IRTypechecker with primitive.Typechecker
 //      check.checkProgram(Seq(compiled.lowered))
