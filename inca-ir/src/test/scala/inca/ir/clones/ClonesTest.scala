@@ -7,7 +7,9 @@ import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
 import inca.ir.analysis.ValueNumbering
+                                                                                                                                                                                                    
 
+// TODO add Tests with DoubleNum
 
 class ClonesTest extends AnyFunSuite {
 
@@ -461,37 +463,63 @@ class ClonesTest extends AnyFunSuite {
     performTest(expected,input)
   }
 
-  test("comparison that should not be removed") {
+  test("Redundant term in Eq with binding rhs var") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
-            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
-            Eq(Var(Name("Z")), Add(IntNum(2), IntNum(1))),
-            Eq(Var("Y"), Var("Z")),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
+            Eq(Var(Name("X1")), IntNum(1)),
+            Eq(IntNum(1), Var(Name("X2"))),
+            Eq(Var(Name("param$0")), Var(Name("X1"))),
+            Eq(Var(Name("param$1")), Var(Name("X2")))
           ))
         ))
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
-            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
-//            Eq(Var(Name("Z")), Var(Name("X"))),
-            Eq(Var("Y"), Var("X")),     // TODO this gets removed but should stay since it makes relation empty
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("X")))
+            Eq(Var(Name("X1")), IntNum(1)),
+            //Eq(IntNum(1), Var(Name("X2"))),
+            Eq(Var(Name("param$0")), Var(Name("X1"))),
+            Eq(Var(Name("param$1")), Var(Name("X1")))
           ))
         ))
       ))
     performTest(expected, input)
   }
+
+//  test("comparison that should not be removed") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+//            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+//            Eq(Var(Name("Z")), Add(IntNum(2), IntNum(1))),
+//            Eq(Var("Y"), Var("Z")),
+//            Eq(Var(Name("param$0")), Var(Name("X"))),
+//            Eq(Var(Name("param$1")), Var(Name("Y"))),
+//            Eq(Var(Name("param$2")), Var(Name("Z")))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+//            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+////            Eq(Var(Name("Z")), Var(Name("X"))),
+//            Eq(Var("Y"), Var("X")),     // this gets removed but should stay since it makes relation empty -> assumption that such bodies where treated before VN
+//            Eq(Var(Name("param$0")), Var(Name("X"))),
+//            Eq(Var(Name("param$1")), Var(Name("Y"))),
+//            Eq(Var(Name("param$2")), Var(Name("X")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
   test("Call replace Args") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -625,6 +653,40 @@ class ClonesTest extends AnyFunSuite {
         ))
       ))
     performTest(expected,input)
+  }
+
+  test("Simple Redundant Call") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            Eq(Var(Name("param$0")), Var(Name("X1")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            //Call(Name("b"), Seq(TermArg(Var(Name("X1"))), false),
+            Eq(Var(Name("param$0")), Var(Name("X1")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
 
   test("Add (Commutativity)") {

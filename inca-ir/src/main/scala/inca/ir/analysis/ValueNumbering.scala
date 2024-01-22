@@ -6,7 +6,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.util.SourceLocation
 
 
-// TODO inherit from IROptimizer or IRVisitor?
+
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
 class ValueNumbering extends IRVisitor {
 
@@ -23,9 +23,7 @@ class ValueNumbering extends IRVisitor {
   // TODO dont use scala`s hashing function
   //    Type of argument -> change from Term to e.g. Analyzable since need to Hash Calls too?
   private def getHashCode(elem: Term): Hashed = elem match {
-    case Var(Name(name)) if VN.contains(name) =>
-        //println(VN(name))
-        hashTable.find(_._2 == name).head._1
+    case Var(Name(name)) if VN.contains(name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
 
@@ -44,52 +42,77 @@ class ValueNumbering extends IRVisitor {
     super.visitBody(body)
   }
 
+  // TODO add more cases (e.g. more rules, DoubleNum)
+  //  probably no recursive call needed here since called in visitTerm
+  private def simplify(term: Term): Term = term //match{
+//    case BinOp(lhs,rhs,"+") => (lhs, rhs) match{
+//      case (l, IntNum(0)) => l
+//      case (IntNum(0),r) => r
+//      case (IntNum(l), IntNum(r)) => IntNum(l+r)
+//      case (IntNum(l), BinOp(IntNum(r), rvar, "+")) => BinOp(IntNum(l+r), rvar, "+")
+//      case (IntNum(l), BinOp(rvar, IntNum(r), "+")) => BinOp(IntNum(l+r), rvar, "+")
+//      case (BinOp(IntNum(l), lvar, "+"), IntNum(r)) => BinOp(lvar, IntNum(l+r), "+")
+//      case (BinOp(lvar, IntNum(l), "+"), IntNum(r)) => BinOp(lvar, IntNum(l+r), "+")
+//      case (l,r) => BinOp(l,r,"+")
+//    }
+//    case BinOp(lhs, rhs, "-") => (lhs, rhs) match{
+//      case (l, IntNum(0) ) => l
+//      case (IntNum(0), r) => r
+//      case (Var(Name(l)), Var(Name(r))) => if l == r then IntNum(0) else BinOp(Var(Name(l)), Var(Name(r)), "-")
+//      case (IntNum(l), IntNum(r)) => IntNum (l - r)
+//      case (l, r) => BinOp(l, r, "-")
+//    }
+//    case BinOp(lhs, rhs, "*") => (lhs, rhs) match {
+//      case (_, IntNum(0)) | (IntNum(0), _) => IntNum(0)
+//      case (IntNum(1), r) => r
+//      case (l, IntNum(1)) => l
+//      case (IntNum(l), IntNum(r)) => IntNum(l * r)
+//      case (l, r) => BinOp(l, r, "*")
+//    }
+//    case BinOp(lhs, rhs, "/") => (lhs, rhs) match{
+//      case (l, IntNum(1)) => l
+//      case (IntNum(l), IntNum(r)) /*if r != 0*/ => DoubleNum(l/r) // TODO -> type error?
+//      case (l,r) => BinOp(l, r, "/")
+//    }
+//    case BinOp(lhs, rhs, "%") => (lhs, rhs) match{
+//      case (l, IntNum(1)) => l
+//      case (IntNum(l),IntNum(r)) => IntNum(l%r)
+//      case (l,r) => BinOp(l, r, "%")
+//    }
+//    case BinOp(lhs, rhs, "min") => (lhs, rhs) match{
+//      case (IntNum(l), IntNum(r)) => if l < r then IntNum(l) else IntNum(r)
+//      case (l,r) => BinOp(l, r, "min")
+//    }
+//    case BinOp(lhs, rhs, "max") => (lhs, rhs) match {
+//      case (IntNum(l), IntNum(r)) => if l > r then IntNum(l) else IntNum(r)
+//      case (l, r) => BinOp(l, r, "max")
+//    }
+//    case UnOp(t, "abs") => t match{
+//      case IntNum(value) => if value >= 0 then IntNum(value) else IntNum(-1*value)
+//      case s => UnOp(s, "abs")
+//    }
+//    case BinOp(lhs,rhs,op) => BinOp(simplify(lhs),simplify(rhs),op)
+//    case _ => term
+//  }
+
+
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
     case v@Var(Name(name)) if VN.contains(name) => Seq(Var(Name(VN(name))))
-//      val newVar: Var = if VN.contains(name) then Var(Name(VN(name))) else v
-//      val termHash: Hashed = getHashCode(newVar)
-//      Seq(if (hashTable.contains(termHash)) then Var(Name(hashTable(termHash))) else newVar)
-
-//    case t@BinOp(lhs,rhs,op) =>
-////      val newLhs = visitTerm(lhs).head
-////      val newRhs = visitTerm(rhs).head
-//      val newTerm = super.visitTerm(t).head
-//
-//      val termHash: Hashed = getHashCode(newTerm)
-//      Seq(if (hashTable.contains(termHash)) then Var(Name(hashTable(termHash))) else newTerm)
-    case IntNum(_) => Seq(term) // TODO ?
+    case IntNum(_) => Seq(term)
     case _ =>
       val newTerm = super.visitTerm(term).head
       val termHash: Hashed = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then Var(Name(hashTable(termHash))) else newTerm)
+      Seq(if (hashTable.contains(termHash)) then Var(Name(hashTable(termHash))) else simplify(newTerm))
   }
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match{
     case Eq(vari@Var(Name(x)), e, false) /*if vari.mode.isBinding*/ =>   // TODO use vari.mode.isBinding so that certain comparisons will not be removed?
-      val newTerm = visitTerm(e).head
-      val exprHash: Hashed = getHashCode(newTerm)
-      // TODO simplify
-      if (hashTable.contains(exprHash)) {
-        val v: ValNum = newTerm match{
-          case Var(Name(str)) => str  // then term was already replaced in visitTerm
-          case _ => hashTable(exprHash)  // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
-        }
-        VN += (x, v)
-        // remove "Assignment" or replace right hand side
-        if isParam(x) then Seq( Eq(Var(Name(x)), newTerm) ) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
-        else Seq()
-      }
-      else {
-        val v = x
-        VN += (x, v)
-        hashTable += (exprHash, v)
-        Seq(
-          // return with newTerm
-          Eq(Var(Name(x)), newTerm)
-        )
-      }
+      treatBinding(x,e)
+    case Eq(e, vari@Var(Name(x)), false) /*if vari.mode.isBinding*/ =>
+      treatBinding(x,e)
+
 // TODO use this or not
 //
 //    case Eq(vari@Var(Name(x)), e, false) if !vari.mode.isBinding =>   // then not removed and not added to tables
@@ -114,13 +137,11 @@ class ValueNumbering extends IRVisitor {
 //        )
 //      }
 
-    case Call(ref, args, false) =>
+//    case Call(ref, args, false) =>
       // TODO determine if arg is being bound -> treat those like Var in Eq above (if not neg)?
-      //  but could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1) == b(a2) not necessarily implies that a1 == a2
-//      val newArgs = args.flatMap(visitArg)
-//      Seq(Call(ref,newArgs,false))
-      val newCall = super.visitAtom(atom).head
-//      val otherRelation: Relation = ref.target.get  // TODO target not known
+      //  but could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1), b(a2) not necessarily implies that a1 == a2
+//      val newCall = super.visitAtom(atom).head
+//      val referencedRelation: Relation = ref.target.get  // TODO target not known
 //      if (otherRelation.bodies.size <= 1){  // then args which are bound by call have a unique value
 //
 ////        args.map{arg =>
@@ -130,11 +151,55 @@ class ValueNumbering extends IRVisitor {
 ////        }
 //
 //      }
-      Seq(newCall)
-
-//    case ExtensionalCall(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) => ???
+      // TODO hash Call (after replacing args) and remove it if already computed
+      // TODO second VN & hash- table for atoms?
+//      val newCall = super.visitAtom(atom).head
+//      val callHash: Hashed = getHashCode(newCall)
+//      val x = referencedRelation.name ++ args.toString()
+//      if (hashTable.contains(callHash)) {
+//        val v: ValNum = hashTable(callHash)
+//        VN += (x, v)
+//        // remove Call or replace args
+//        if args.exists(isParam(_)) then Seq(newCall)
+//        else Seq()
+//      }
+//      else {
+//        val v = x
+//        VN += (x, v)
+//        hashTable += (callHash, v)
+//        Seq(
+//          newCall
+//        )
+//      }
+//      Seq(newCall)
 
     case _ => super.visitAtom(atom)
   }
+
+
+  private def treatBinding(x: String, e: Term): Seq[Atom] = {
+    val newTerm = visitTerm(e).head
+    val exprHash: Hashed = getHashCode(newTerm)
+    if (hashTable.contains(exprHash)) {
+      val v: ValNum = newTerm match {
+        case Var(Name(str)) => str // then term was already replaced in visitTerm
+        case _ => hashTable(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
+      }
+      VN += (x, v)
+      // remove "Assignment" or replace right hand side
+      if isParam(x) then Seq(Eq(Var(Name(x)), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
+      else Seq()
+    }
+    else {
+      val v = x
+      VN += (x, v)
+      hashTable += (exprHash, v)
+      Seq(
+        // return with newTerm
+        Eq(Var(Name(x)), newTerm)
+      )
+    }
+  }
+
 
 }

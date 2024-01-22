@@ -1,0 +1,19 @@
+module NoDemand
+
+class A {
+	var i: Int = 0
+
+	def inc(): Unit = {
+		this.i = this.i + 1
+	}
+}
+
+@main
+def main(): Int = {
+    val a: A = new A()
+    a.inc()
+    a.inc()
+    a.inc()
+    return 3
+    //return a.i
+}
