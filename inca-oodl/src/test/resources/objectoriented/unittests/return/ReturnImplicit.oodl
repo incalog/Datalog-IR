@@ -1,6 +1,4 @@
 module ReturnImplicitTest
 
 @main
-def main(): Int = {
-    1
-}
+def main(): Int = 1

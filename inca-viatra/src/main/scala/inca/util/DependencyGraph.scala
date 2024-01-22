@@ -2,7 +2,6 @@ package inca.util
 
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Call, Module, Name, RefByName, Relation}
-import inca.foreign.scala.ir.primitive.ScalaAggregationAtom
 import inca.util.DependencyGraph.{AggregationCall, DependencyEdge, NegativeCall, PositiveCall}
 
 
@@ -23,12 +22,18 @@ class DependencyGraph(module: Module) extends Graph[String, DependencyEdge]:
           this.addEdge(relName, name.name, PositiveCall)
         case Call(RefByName(name), args, true) =>
           this.addEdge(relName, name.name, NegativeCall)
-        case agg@ScalaAggregationAtom(_, rel: Name, _, _, _) =>
+        case agg@Aggregate(rel: Name, _, _) =>
           this.addEdge(relName, s"$rel$$${agg.hashCode()}", AggregationCall)
         case _ => // do nothing
       }
     }
   }
+
+  override def cloneGraph(): Graph[String, DependencyEdge] =
+    val g = new DependencyGraph(module)
+    g.nodes ++= this.nodes
+    g.edges ++= this.edges
+    g
 
   override protected def nodeToGraphViz(n: String): String =
     n.replace("$", "_")

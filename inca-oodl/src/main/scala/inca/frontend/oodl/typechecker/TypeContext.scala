@@ -8,19 +8,22 @@ import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO:
   private var vars: Map[Name, (Var.Target, Type, Boolean)] = Map()
-  //private var tyVars: Map[Name, TName.Target] = Map()
+  private var tyVars: Map[Name, ParametricType] = Map()
   private var classDefs: MultiDict[Name, (Module, ClassDef)] = MultiDict()
+  private var funDefs: Map[Name, FunctionDef] = Map()
 
   private var modules: Map[Name, Module] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val varsSaved = vars
-    //val tyVarsSaved = tyVars
+    val tyVarsSaved = tyVars
+    val fun = funDefs
     val c = classDefs
     val modulesSaved = modules
     val t = f
     vars = varsSaved
-    //tyVars = tyVarsSaved
+    tyVars = tyVarsSaved
+    funDefs = fun
     classDefs = c
     modules = modulesSaved
     t
@@ -44,22 +47,20 @@ trait TypeContext extends TypeIO:
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
 
-  /*def bindTyVar(name: Name, decl: TName.Target): Unit = {
+  def bindTyVar(name: Name, decl: ParametricType): Unit =
     tyVars.get(name) match {
       case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
       case None =>
     }
     tyVars += name ->decl
-  }
 
-  def lookupTyVar(name: Name): Option[TName.Target] = {
+  def lookupTyVar(name: Name): Option[ParametricType] =
     tyVars.get(name) match {
       case Some(decl) => Some(decl)
       case None =>
-        error(s"Unbound type variable $name", name)
+        throw IllegalStateException(s"Unbound type variable $name")//, name)
         None
     }
-  }*/
 
   //def isTypeVar(name: Name): Boolean = tyVars.contains(name)
 
@@ -80,6 +81,12 @@ trait TypeContext extends TypeIO:
     }
 
   /** Module content */
+
+  def bindFunction(fun: FunctionDef): Unit =
+    funDefs += fun.name -> fun
+
+  def lookupFunction(name: Name): Option[FunctionDef] =
+    funDefs.get(name)
 
   def bindClass(clazz: ClassDef, module: Module): Unit =
     classDefs += clazz.name -> (module, clazz)

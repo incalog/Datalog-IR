@@ -2,6 +2,7 @@ package inca.ir.extension.tuple
 
 import inca.ir.*
 import inca.ir.Hint.preserveHints
+import inca.ir.extension.data.CaseDefinition
 import inca.ir.extension.tuple.{IR, Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{name2string, string2name}
@@ -9,7 +10,7 @@ import inca.ir.{name2string, string2name}
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Tuple"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
@@ -36,6 +37,16 @@ trait Lowering extends BaseLowering:
     // Reset the cache of flattened variables
     cachedFlatten = Map()
     super.visitExtensionalRelation(relation)
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) { moduleEntry match
+    case CaseDefinition(name, args, data) =>
+      val visitedArgs = args.flatMap {
+        case tt@TTuple(tys) => tt.flatten
+        case arg => Seq(visitType(arg))
+      }
+      Seq(CaseDefinition(name, visitedArgs, data))
+    case _ => super.visitModuleEntry(moduleEntry)
+  }
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     // Reset the cache of flattened variables
@@ -77,18 +88,19 @@ trait Lowering extends BaseLowering:
           case None =>
             throw IllegalStateException(s"Untyped term $t")
         }
-        val endIndex = idx + tupleTy.tys(idx).size
+        val flatIdx = tupleTy.tys.slice(0, idx).map(_.size).sum
+        val endIndex = flatIdx + tupleTy.tys(idx).size
         visitTerm(t) match {
           case ts: Seq[Term] if endIndex <= ts.size =>
-            ts.slice(idx, endIndex)
+            ts.slice(flatIdx, endIndex)
           case ts: Seq[Term] if endIndex > ts.size =>
-            throw IndexOutOfBoundsException(s"Projection index range ($idx, $endIndex) out of bounds!")
+            throw IndexOutOfBoundsException(s"Projection index range ($flatIdx, $endIndex) out of bounds!")
           case _ =>
             throw IllegalStateException(s"Can not project unknown term: $term")
         }
       case TupleLit(ts) =>
         ts.flatMap(visitTerm)
-      case Var(name) =>
+      case Var(RefByName(name)) =>
         val vars = flatten(name, term.typ.getOrElse(throw IllegalArgumentException(s"Untyped term $term")).ty)
         vars.map { case (n, _) => Var(n) }
       case _ => super.visitTerm(term)

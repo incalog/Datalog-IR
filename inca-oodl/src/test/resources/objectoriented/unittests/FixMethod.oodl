@@ -1,0 +1,12 @@
+module FixKeyword
+
+class A {
+  def fixMethod(): Unit = {
+    fix this.fixMethod()
+  }
+}
+
+@main def main(): Unit = {
+  val a = new A()
+  return a.fixMethod()
+}

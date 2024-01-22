@@ -55,7 +55,9 @@ case class ParametricType(name: Name) extends SourceLocation with TName.Target:
   def prettyprint(implicit indent: String): String = name.name
   override def toString: String = prettyprint("")
 
-case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent:
+case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent with Var.Target:
+  def isMain: Boolean = annos.exists(_.isInstanceOf[MainFunctionAnno])
+  
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""
@@ -67,8 +69,9 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
        |$indent}""".stripMargin
   }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], parentCls: Seq[Type], content: Seq[ClassContent]) extends ModuleContent with TName.Target:
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyParams: Seq[ParametricType], parentCls: Seq[Type], content: Seq[ClassContent]) extends ModuleContent with TName.Target:
   def isCaseClass: Boolean = annos.exists(_.isInstanceOf[CaseClassAnno])
+  def isMonoClass: Boolean = annos.exists(_.isInstanceOf[MonoClassAnno])
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
     case field: FieldDef => field.name
@@ -117,7 +120,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     val paramsS = params.map(_.prettyprint).mkString("(" , ", ", ")")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    s"""$annoPrefix$indent${visS}def $name$tyS$paramsS: $outS = {
+    s"""$indent$annoPrefix${visS}def $name$tyS$paramsS: $outS = {
        |$bodyS
        |$indent}""".stripMargin
   }
@@ -129,7 +132,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
-    s"""$annoPrefix$indent${visS}this($paramsS) = {
+    s"""$indent$annoPrefix${visS}this($paramsS) = {
        |$bodyS
        |$indent}""".stripMargin
   }

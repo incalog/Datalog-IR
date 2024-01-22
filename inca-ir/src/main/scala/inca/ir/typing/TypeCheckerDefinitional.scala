@@ -117,7 +117,7 @@ object TypeCheckerDefinitional:
         checkBound(t, ctx, ty)
         (Boundness.Bound, ctx)
       case _ => t match
-        case Var(x) => ctx.get(x.name) match
+        case Var(RefByName(x)) => ctx.get(x.name) match
           case Some((ty, b)) =>
             assertComparable(ty, expected, t)
             val cl = if (b == VarMode.Bound) Bound else Binding
@@ -186,7 +186,7 @@ object TypeCheckerDefinitional:
       TSet(join(ty1, ty2))
 
   def inferBinding(t: Term, ctx: Context): (Type, Boundness, Context) = t match
-    case Var(x) => ctx.get(x.name) match
+    case Var(RefByName(x)) => ctx.get(x.name) match
       case Some((ty, b)) =>
         val cl = if (b == VarMode.Bound) Bound else Binding
         (ty, cl, ctx + (x.name -> (ty, VarMode.Bound)))

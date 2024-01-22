@@ -5,8 +5,12 @@ class Num(value: Int)
 @main def main(cond: Boolean): Set[Int] = {
     val nums: Set[Int] = for (i <- Set(1,2)) yield i*i
     if (cond) {
-        return Set(new Num(1).value, new Num(2).value)
+        val n1 = new Num(1)
+        val n2 = new Num(2)
+        return Set(n1.value, n2.value)
     } else {
-        return nums ++ Set(new Num(3).value, new Num(4).value)
+        val n1 = new Num(3)
+        val n2 = new Num(4)
+        return nums ++ Set(n1.value, n2.value)
     }
 }

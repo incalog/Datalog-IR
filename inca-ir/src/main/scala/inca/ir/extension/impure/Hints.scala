@@ -4,9 +4,7 @@ import inca.ir.Hint
 import inca.ir.Hint.Key
 import inca.ir.Var
 
-object Hints:
-  val PureKey = "PURE"
-
-  object Pure extends Hint:
-    override def key: Key = PureKey
+object MainHintKey extends Hint.Key
+object MainHint extends Hint:
+  override def key: Key = MainHintKey
 

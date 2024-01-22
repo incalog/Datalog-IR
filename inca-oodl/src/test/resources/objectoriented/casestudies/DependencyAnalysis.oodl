@@ -1,0 +1,178 @@
+module ASG
+
+class Visitor {
+  def visitProg(n: Prog): Unit = { }
+  def visitDef(d: Def): Unit = { }
+  def visitNum(n: Num, d: Def): Unit = { }
+  def visitVar(v: Var, d: Def): Unit = { }
+  def visitAdd(a: Add, d: Def): Unit = { }
+}
+
+class DefList {
+  def accept(v: Visitor): Unit = {}
+  def findByName(name: String): Def = null
+  def head(): Def = null
+  def concat(d: DefList): DefList = d
+}
+
+class Nil extends DefList { }
+
+class Cons(val hd: Def, val tl: DefList) extends DefList {
+  override def head(): Def = { this.hd }
+  override def accept(v: Visitor): Unit = {
+    this.hd.accept(v)
+    this.tl.accept(v)
+  }
+  override def findByName(name: String): Def = {
+    if (this.hd.name == name)
+      return this.hd
+    else
+      return this.tl.findByName(name)
+  }
+  override def concat(d: DefList): DefList = new Cons(this.hd, this.tl.concat(d))
+}
+
+class Prog(val defs: DefList) {
+  def accept(v: Visitor): Unit = {
+    this.defs.accept(v)
+    v.visitProg(this)
+  }
+}
+
+class Def(val name: String, val exp: Exp) {
+  def accept(v: Visitor): Unit = {
+    v.visitDef(this)
+    this.exp.accept(v, this)
+  }
+}
+
+class Exp {
+  def accept(v: Visitor, d: Def): Unit = {}
+}
+class Num(val value: Int) extends Exp {
+  override def accept(v: Visitor, d: Def): Unit = {
+    v.visitNum(this, d)
+  }
+}
+class Var(val name: String) extends Exp {
+  var target: Def = null
+  override def accept(v: Visitor, d: Def): Unit = {
+    v.visitVar(this, d)
+  }
+}
+class Add(val lhs: Exp, val rhs: Exp) extends Exp {
+  override def accept(v: Visitor, d: Def): Unit = {
+    v.visitAdd(this, d)
+    this.lhs.accept(v, d)
+    this.rhs.accept(v, d)
+  }
+}
+
+class NameAnalysis(val prog: Prog) extends Visitor {
+  override def visitVar(v: Var, d: Def): Unit = {
+    v.target = this.prog.defs.findByName(v.name)
+  }
+}
+
+case class Edge(val from: Def, val to: Def) { }
+//class Edge(val from: Def, val to: Def) { }
+
+class DependencyAnalysis extends Visitor {
+  val edges: mono.Set[Edge] = new mono.Set[Edge]()
+
+  override def visitVar(v: Var, d: Def): Unit = {
+    val trg: Def = v.target
+    if (trg != null) {
+      this.edges += new Edge(d, trg)
+      fix trg.accept(this)
+    }
+  }
+
+  def directDependencies(d: Def): Set[Def] = {
+    for (e <- this.edges if e.from == d) yield e.to
+  }
+
+  def dependencies(d1: Def): Set[Def] = {
+    this.directDependencies(d1) ++
+    for (d2 <- this.directDependencies(d1);
+         d3 <- this.dependencies(d2))
+      yield d3
+  }
+}
+
+//class ReachVisitor extends Visitor {
+//  val reachable: MonotoneSet = new MonotoneSet()
+//
+//  @override def visitDef(d: Def): Unit = {
+//    this.reachable += d
+//  }
+//
+//  @override def visitVar(v: Var, d: Def): Unit = {
+//    val trg: Def = v.target
+//    if (trg != null)
+//        fix trg.accept(this)
+//  }
+//}
+
+class GenerateProgram {
+    def mkDef(i: Int): Def = {
+      val n: Int = i+1
+      new Def("a" + i.toString(), new Add(new Var("a" + n.toString()), new Num(i)))
+    }
+
+    def line(i: Int, to: Int): DefList = {
+      if (i < to) {
+        val d: Def = this.mkDef(i)
+        val ds: DefList = this.line(i + 1, to)
+        return new Cons(d, ds)
+      } else {
+        return new Nil()
+      }
+    }
+
+    def circle(from: Int, to: Int): Def = {
+        new Def("a" + to.toString(), new Add(new Var("a" + from.toString()), new Num(to)))
+    }
+
+    def prog(from: Int, to: Int, step: Int): DefList = {
+        if (from < to) {
+          val ds1: DefList = this.line(from, from+step)
+          val d: Def = this.circle(from+step, from)
+          val ds2: DefList = this.prog(from+step, to, step)
+          return ds1.concat(new Cons(d, ds2))
+        } else {
+          return new Cons(this.circle(0, to), new Nil())
+        }
+    }
+}
+
+
+/*class GenerateProgram {
+  def prog(): DefList = {
+    val d1 = new Def("a", new Var("c"))
+    val d2 = new Def("b", new Num(2))
+    val d3 = new Def("c", new Var("a"))
+    val d4 = new Def("d", new Var("b"))
+    val main = new Def("main", new Var("c"))
+    val defs = new Cons(main, new Cons(d4, new Cons(d3, new Cons(d2, new Cons(d1, new Nil())))))
+    return defs
+  }
+}*/
+
+@main def main(endNode: Int, step: Int): Set[String] = {
+  val generate = new GenerateProgram()
+  val defs: DefList = generate.prog(0, endNode, step)
+  //val defs: DefList = generate.prog()
+
+  val main: Def = defs.head()
+  val prog: Prog = new Prog(defs)
+
+  val resolving = new NameAnalysis(prog)
+  prog.accept(resolving)
+
+  val depending = new DependencyAnalysis()
+  main.accept(depending)
+
+  val depResult = depending.dependencies(main)
+  for (dep <- depResult) yield dep.name
+}

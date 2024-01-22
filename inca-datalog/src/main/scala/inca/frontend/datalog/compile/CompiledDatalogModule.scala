@@ -7,16 +7,28 @@ import inca.ir.{CompiledModule, Name, Module as IRModule}
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.util.compileroptions.CompilerOptions
 
-case class CompiledDatalogModule(mod: Module) extends CompiledModule {
+case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
 
   override def name: Name = Name("Datalog")
 
   override def sourceLocation: SourceLocation = Name("Datalog")
 
+  val logTyped: Boolean = compilerOptions.datalogLogging.logTypeInformation
+
   lazy val typed: Module = {
+    val logMod = compilerOptions.datalogLogging.logModule
+
+    if (logMod && !logTyped)
+      printStep("Datalog-Module", mod)
+
     val typer: Typechecker = new Typechecker
     typer.checkModule(mod)
+
+    if (logMod && logTyped)
+      printStep("Datalog-Module", mod)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()

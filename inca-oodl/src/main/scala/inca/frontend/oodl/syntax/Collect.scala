@@ -38,7 +38,7 @@ trait Collect[R]:
   def collectStatement(stmt: Statement): Seq[R] = stmt match
     case Expr(expression) => collectExpression(expression)
     case Return(expression) => collectExpression(expression)
-    case Assign(lhs, rhs) => collectExpression(lhs) ++ collectExpression(rhs)
+    case Assign(lhs, op, rhs) => collectExpression(lhs) ++ collectExpression(rhs)
     case VarDeclare(name, typ, maybeExpression, immutable) => maybeExpression.flatMap(collectExpression).toSeq
     case Super(args) => args.flatMap(collectExpression)
     case If(cnd, thn, els) => collectExpression(cnd) ++ thn.flatMap(collectStatement) ++ els.flatMap(collectStatement)
@@ -51,7 +51,7 @@ trait Collect[R]:
     case MethodCall(recv, fun, tyArgs, args, isFix) => collectExpression(recv) ++ args.flatMap(collectExpression)
     case TypeCast(recv, toTyp) => collectExpression(recv) ++ collectType(toTyp)
     case InstanceOf(recv, ofTyp) => collectExpression(recv) ++ collectType(ofTyp)
-    case Tuple(exps) => exps.flatMap(collectExpression)
+    case TupleExp(exps) => exps.flatMap(collectExpression)
     case SetExp(exps, tty) => exps.flatMap(collectExpression)
     case SetMember(name, recv, predicate) => collectExpression(recv) ++ predicate.flatMap(collectExpression)
     case SetComprehension(member, body) => member.flatMap(collectExpression) ++ collectExpression(body)

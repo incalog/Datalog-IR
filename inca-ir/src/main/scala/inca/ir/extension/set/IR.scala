@@ -3,7 +3,7 @@ package inca.ir.extension.set
 import inca.ir.*
 
 case class TSet(ty: Type) extends Type:
-  override def toString: String = s"Set[$ty]"
+  override def toString: String = s"TSet[$ty]"
 
 case class SetLit(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("Set(", ", ", ")")
@@ -13,7 +13,7 @@ object SetLit:
   def empty: SetLit = new SetLit(Seq())
 
 /** Wraps a named relation as a set of tuples */
-case class SetRef(name: Name) extends Term:
+case class SetFrom(name: Name) extends Term:
   override def toString: String = s"Set.from($name)"
   override def vars: Seq[Var] = Seq()
 
@@ -30,6 +30,7 @@ case class SetComprehension(elem: Term, atoms: Seq[Atom]) extends Term:
   override def toString: String = s"Set($elem | ${atoms.mkString(", ")})"
   override def vars: Seq[Var] = elem.vars ++ atoms.flatMap(_.vars)
 
+// TODO: Use arguments instead of term to support wildcards
 case class SetMember(mem: Term, s: Term) extends Atom:
   override def toString: String = s"($mem in $s)"
   override def vars: Seq[Var] = mem.vars ++ s.vars

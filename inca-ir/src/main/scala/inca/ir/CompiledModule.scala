@@ -3,14 +3,16 @@ package inca.ir
 import inca.ir.extension.*
 import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
 import inca.util.CompilationMessage
+import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
 
 trait CompiledModule:
+  def compilerOptions: CompilerOptions
   def name: Name
   def sourceLocation: SourceLocation
 
@@ -30,11 +32,15 @@ trait CompiledModule:
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val checked: Module =
-    val checker = new IRTypechecker
-    println(ir)
-    checker.checkModule(ir)
-    ir
+  protected def typechecker: BaseIRTypechecker = new IRTypechecker
+  
+  protected def printStatistics(module: Module, str: String): Unit =
+    StatisticsCollector.printStatistics(module, str)
+
+  lazy val (checked, dependencyGraph): (Module, DependencyGraph) =
+    val checker = typechecker
+    checker.checkProgram(Seq(ir))
+    (ir, checker.getDependencyGraph)
 
   // TODO should be configurable
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
@@ -46,46 +52,65 @@ trait CompiledModule:
     this.postProcessingPipeline = pipeline
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
+  protected def printStep(title: String, content: Any): Unit =
+    println(title)
+    println(content)
+    println()
+    println("~~~~~~~~~~~~~~~~~~~~~~~")
+    println()
+
   def lowered: Module =
-    StatisticsCollector.printStatistics(checked, "before lowering")
-    //println()
-    //println(checked)
-    //println()
-    var i = 0
+    val irLogging = compilerOptions.irLogging
+    val logTyped = irLogging.logTypeInformation
+    val logModule = irLogging.logModule
+    val logLowerings = irLogging.logLowerings
+    val logOptimizations = irLogging.logOptimizations
+    val logStatsBeforeLowering = irLogging.logStatsBeforeLowering
+    val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
+    val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
+
+    if (logModule)
+      printStep("IR-Module", if (!logTyped) ir else checked)
+
+    if (logStatsBeforeLowering)
+      StatisticsCollector.printStatistics(checked, "before lowering")
+
+    stopIfNeeded()
+    
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
 
-      println(s"Lowering $i")
-      println(l)
-      println()
+      if (logLowerings && !logTyped)
+        printStep(s"Lowering: ${lowFun.name}", l)
 
-      val checker = new IRTypechecker()
-      checker.checkModule(l)
-
-      /*println(s"Checked $i")
-      println(l)
-      println()*/
-      i += 1
+      val checker = typechecker
+      try checker.checkProgram(Seq(l))
+      finally if (logLowerings && logTyped)
+        printStep(s"Lowering: ${lowFun.name}", l)
       l
     }
 
-    StatisticsCollector.printStatistics(l, s"before optimization")
+    if (logStatsBeforeOptimization)
+      printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
-    StatisticsCollector.printStatistics(p1.head, s"after optimization 1")
+    if (logStatsAfterOptimization)
+      printStatistics(p1.head, s"before optimization")
     val p2 = optimize(p1)
-    StatisticsCollector.printStatistics(p2.head, s"after optimization 2")
-    println(p2)
+    if (logStatsAfterOptimization)
+      printStatistics(p2.head, s"before optimization")
+
+    if (logOptimizations)
+      printStep(s"Optimized: ", p2)
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
+      if (logLowerings)
+        printStep(s"Post processing lowering: ${lowFun.name}", l)
       l
     }
-
-  // TODO implement
-  def valueNumbering(p: Module): Module = p
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
@@ -94,7 +119,7 @@ trait CompiledModule:
     //println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
-    val checker = new IRTypechecker
+    val checker = typechecker
     checker.checkProgram(po)
     po
 

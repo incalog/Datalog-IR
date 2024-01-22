@@ -5,7 +5,7 @@ import inca.ir.{BaseIR, Body, Call, Cast, Eq, Language, Module, Param, Relation,
 import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.ir.extension.set.*
 import inca.ir.extension.*
-import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
+import inca.ir.extension.arithmetic.{Add, IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.lowering.BaseLowering
 import inca.ir.typing.TypeErrorException
@@ -26,15 +26,15 @@ class SetLoweringTest extends AnyFunSuite {
 
     def lower(l: BaseLowering, m: Module): Module =
       val checker = new IRTypechecker
-      try checker.checkModule(m)
+      try checker.checkProgram(Seq(m))
       finally checker.getErrors.foreach(println)
-      println(s"Lowering ${l.loweredIRs}")
+      println(s"Lowering ${l.name}")
       val lowered = l.lower(m)
       println(lowered)
       lowered
 
     val mod = Module("M", Language(IR, arithmetic.IR), relations)
-    typecheckerBefore.checkModule(mod)
+    typecheckerBefore.checkProgram(Seq(mod))
     println(mod)
     val lowered = setLowering.foldLeft(mod)((mod, l) => lower(l, mod))
     lowered
@@ -220,6 +220,21 @@ class SetLoweringTest extends AnyFunSuite {
     ))*/
 
     val mod = module(mainRelation)
-
   }
+
+  test("Set comprehension"):
+    implicit val typechecker: Typechecker = new Typechecker {}
+    val mainRelation = Relation("main", Seq(Param("s1", TSet(TInt))), Seq(Body(Seq(
+      Eq(Var("s1"), SetLit(Seq(IntNum(1), IntNum(2)))),
+      Eq(Var("s2"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1")))))
+    ))))
+    val mod = module(mainRelation)
+
+
+  test("Higher-order set"):
+    implicit val typechecker: Typechecker = new Typechecker {}
+    val mainRelation = Relation("main", Seq(Param("s1", TSet(TSet(TInt)))), Seq(Body(Seq(
+      Eq(Var("s1"), SetLit(Seq(SetLit(Seq(IntNum(1))))))
+    ))))
+    module(mainRelation)
 }

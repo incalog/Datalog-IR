@@ -33,13 +33,13 @@ object Parser:
     P.product01(P.charsWhile0(c => c != '*').void, P.string("*/") | P.char('*') ~ rec).void
   )
   val comment: P[Unit] = lineComment | blockComment
-  val whitespace: P[Unit] = (P.charIn(" \t\r\n").void | comment)
+  val whitespace: P[Unit] = P.charIn(" \t\r\n").void | comment
   def whitespaces0(min: Int = 0): P0[Unit] = whitespace.rep0.void
 
   def spaced[A](p: P[A], min: Int = 0): P[A] =
     p <* whitespaces0(min)
 
-  val keywords = Set(
+  val keywords: Set[String] = Set(
     "module",
     "import",
     "private",
@@ -58,7 +58,8 @@ object Parser:
     "new",
     "null",
     "for",
-    "yield"
+    "yield",
+    "fix"
   )
 
   def keyword(s: String): P[Unit] =
@@ -81,7 +82,7 @@ object Parser:
     spaced(id).mapWithLoc(Name.apply)
 
   val qualifiedIdentifier: P[Name] =
-    spaced(id ~ (P.char('.') ~ id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
+    spaced(id ~ (P.char('.') *> id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
 
   def inParens[A](p: P0[A]): P[A] =
     op('(') *> p <* op(')')
@@ -137,7 +138,7 @@ object Parser:
   val setType: P[TSet] = op("Set") *> inBrackets(recType).mapWithLoc(TSet.apply)
 
   def genericName: P[TName] =
-    (identifier ~ inBrackets(recType.repSep0(op(','))).?).mapWithLoc {
+    (qualifiedIdentifier ~ inBrackets(recType.repSep0(op(','))).?).mapWithLoc {
       case (name, tys) => TName(name, tys.getOrElse(Seq()))
     }
 
@@ -176,7 +177,7 @@ object Parser:
 
   lazy val tupleExp: P[Expression] = inParens(recExpression.repSep0(op(','))).mapWithLoc {
     case e::Nil => e
-    case es => Tuple(es)
+    case es => TupleExp(es)
   }
 
   val boolLit: P[BoolLit] = spaced(
@@ -218,18 +219,18 @@ object Parser:
   lazy val constructorExpr: P[ConstructorCall] =
     val tyArgs = inBrackets(typ.repSep0(op(','))).?
     val args = inParens(recExpression.repSep0(op(',')))
-    (keyword("new") *> identifier ~ tyArgs ~ args).mapWithLoc {
+    (keyword("new") *> qualifiedIdentifier ~ tyArgs ~ args).mapWithLoc {
       case ((name, tyArgs), args) => ConstructorCall(name, tyArgs.getOrElse(Seq()), args)
     }
 
   lazy val varExpr: P[Var] =
     identifier.mapWithLoc(Var.apply)
 
-  def selectExprStep(e: Expression): P[Expression] =
+  def selectExprStep(e: Expression, isFix: Boolean): P[Expression] =
     val tyArgs = inBrackets(typ.repSep0(op(','))).?
     val args = inParens(recExpression.repSep0(op(',')))
     val methodCall = (identifier ~ tyArgs ~ args).backtrack.mapWithLoc { case ((name, tyArgs), args) =>
-      MethodCall(e, name, tyArgs.getOrElse(Seq()), args, false)
+      MethodCall(e, name, tyArgs.getOrElse(Seq()), args, isFix)
     }
     val asIsInstanceOfOrSelect = (identifier ~ tyArgs).backtrack.mapWithLoc {
       case (Name("asInstanceOf"), Some(Seq(ty: Type))) =>
@@ -239,13 +240,15 @@ object Parser:
       case (name, None) =>
         Select(e, name)
     }
-    (methodCall | asIsInstanceOfOrSelect)
+    methodCall | asIsInstanceOfOrSelect
 
-  def selectExprRec(e: Expression): P0[Expression] =
-    ((P.char('.') *> selectExprStep(e)) flatMap selectExprRec) | P.pure(e)
+  def selectExprRec(e: Expression, isFix: Boolean): P0[Expression] =
+    ((P.char('.') *> selectExprStep(e, isFix)).flatMap(e => selectExprRec(e, isFix))) | P.pure(e)
 
   lazy val selectExpr: P[Expression] =
-    atomicExp flatMap selectExprRec
+    (keyword("fix").?.with1 ~ atomicExp).flatMap {
+      case (fix, e) => selectExprRec(e, fix.isDefined)
+    }
 
   lazy val atomicExp: P[Expression] =
       //foldExp.backtrack |
@@ -274,7 +277,7 @@ object Parser:
     oneOperator(List("==", ">=", "<=", "!=", "<", ">"))
 
   val additiveOperator: P[String] =
-    oneOperator(List("++", "+", "-"))
+    (oneOperator(List("++", "+", "-")) <* P.not(P.string("="))).backtrack
 
   val multiplicativeOperator: P[String] =
     oneOperator(List("*", "/", "&", "%")).backtrack
@@ -337,16 +340,16 @@ object Parser:
   val params: P0[Seq[Param]] =
     inParens(param.repSep0(op(","))) | P.pure(Seq())
 
-  private val function = ((funcAnno.rep0 ~ visibility.?).with1 ~
+  private val function = (funcAnno.rep0 ~ visibility.?).with1 ~
     keyword("def") ~ identifier ~ typeParams ~ params ~
-    op(":") ~ typ ~ op("=") ~ statements)
+    op(":") ~ typ ~ op("=") ~ statements
 
   /** Statements */
 
   // TODO: We can remove this if we make the typechecker smarter
   private def insertMissingReturn(stmts: Seq[Statement]): Seq[Statement] =
     // Automatically insert return statements
-    val unitStmt = Return(Tuple(Seq()))
+    val unitStmt = Return(TupleExp(Seq()))
     val lastStmt = stmts.lastOption.getOrElse(unitStmt)
     val newTail = lastStmt match
       case Return(_) =>
@@ -369,16 +372,25 @@ object Parser:
       spaced(inBraces(statement.rep0(0)))
     ).map(insertMissingReturn)
 
-  lazy val statement: P[Statement] = valDeclStmt | varDeclStmt | returnStmt | ifElseStmt | assignStmt.backtrack | exprStmt
+  lazy val statement: P[Statement] =
+    valDeclStmt |
+    varDeclStmt |
+    returnStmt |
+    ifElseStmt |
+    monoAddStmt.backtrack |
+    assignStmt.backtrack |
+    exprStmt
 
   lazy val returnStmt: P[Return] = (keyword("return") *> expression.?).map {
     case Some(expr) => Return(expr)
-    case None => Return(Tuple(Seq()))
+    case None => Return(TupleExp(Seq()))
   }
 
   lazy val exprStmt: P[Statement] = expression.mapWithLoc(Expr.apply)
 
-  lazy val assignStmt: P[Assign] = ((expression <* op("=")) ~ expression).mapWithLoc { case (lhs, rhs) => Assign(lhs, rhs) }
+  lazy val monoAddStmt: P[Assign] = ((expression <* op("+=")) ~ expression).mapWithLoc((mono, value) => Assign(mono, Name("+="), value))
+
+  lazy val assignStmt: P[Assign] = ((expression <* op("=")) ~ expression).mapWithLoc((lhs, rhs) => Assign(lhs, Name("="), rhs))
 
   lazy val ifElseStmt: P[If] = {
     val ifBlock = keyword("if") *>
@@ -413,7 +425,7 @@ object Parser:
     val privateVarDeclArg = param.mapWithLoc {
       case Param(name, typ) => FieldDef(Seq(GeneratedConstructorFieldAnno()), Some(Private()), name, typ, None, true)
     }
-    val decls = (varDeclArg | valDeclArg | privateVarDeclArg)
+    val decls = varDeclArg | valDeclArg | privateVarDeclArg
     inParens(decls.repSep0(op(","))) | P.pure(Seq())
 
   private def baseFieldDef(immutable: Boolean): P[FieldDef] = {
@@ -462,7 +474,7 @@ object Parser:
         // Generate a constructor + fields based on the header
         val constrParams = primaryConstrFields.map(f => Param(f.name, f.typ))
         val superCall = Super(superArgs)
-        val fieldAssigns = primaryConstrFields.map(f => Assign(Select(Var("this"), f.name), Var(f.name)))
+        val fieldAssigns = primaryConstrFields.map(f => Assign(Select(Var("this"), f.name), Name("="), Var(f.name)))
         val constrDef = ConstructorDef(Seq(), None, constrParams, superCall +: fieldAssigns)
 
         val allContent = (primaryConstrFields :+ constrDef) ++ clsContent
@@ -479,6 +491,6 @@ object Parser:
     keyword("import") *> qualifiedIdentifier.mapWithLoc(Import.apply)
 
   val module: P[Module] =
-    whitespaces0(0).with1 *>
+    whitespaces0().with1 *>
     keyword("module") *> (qualifiedIdentifier ~ impor.rep0 ~ content.rep0)
       .mapWithLoc { case ((name, imports),contents) => Module(name, imports, contents) }

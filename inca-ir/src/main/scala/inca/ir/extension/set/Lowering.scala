@@ -1,19 +1,14 @@
 package inca.ir.extension.set
 
 import inca.ir.*
-import inca.util.namify
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.block.Block
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
-import inca.ir.extension.tuple.{TTuple, TupleLit}
+import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
-import inca.ir.typing.Mode
-import inca.util.Gensym
-
-import scala.collection.immutable.{AbstractSeq, LinearSeq}
+import inca.util.namify
 
 /*
  * Proposal: Represent set with IDs expressed as ADTs
@@ -47,7 +42,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq}
  * we generated for the set.
  */
 trait Lowering extends BaseLowering:
-
+  override val name: String = "Set"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(block.IR, data.IR, demand.IR, disjunction.IR, tuple.IR)
 
@@ -58,10 +53,12 @@ trait Lowering extends BaseLowering:
   private case class SetConstructor(name: Name, vars: Seq[(Name, Type)], setEnum: SetEnum)
 
   private var constructorCount: Map[Type, Int] = Map().withDefaultValue(0)
-  private var constructors: Map[(Type, Term), SetConstructor] = Map()
+  private var setTypeConstructors: Map[Type, Map[Term, SetConstructor]] = Map()
   private def addConstructor(originalTerm: Term, setEnum: SetEnum): (Name, Seq[(Name, Type)]) =
     val memTy = visitType(memberType(originalTerm))
-    constructors.get((memTy, originalTerm)) match
+    addSetType(memTy)
+    val constructors = setTypeConstructors.getOrElse(memTy, Map())
+    constructors.get(originalTerm) match
       case Some(SetConstructor(name, vars, _)) => (name, vars)
       case None =>
         val count = constructorCount(memTy)
@@ -72,67 +69,78 @@ trait Lowering extends BaseLowering:
         val (boundVars, bindingVars) = vars.partition(!_.typ.get.mode.isBinding)
         val freeVars = boundVars.toSet diff bindingVars.toSet
         val constructorParams = freeVars.toSeq.map(v => v.name -> visitType(v.typ.get.ty))
-        constructors += (memTy, originalTerm) -> SetConstructor(name, constructorParams, setEnum)
+        setTypeConstructors += memTy -> (constructors + (originalTerm -> SetConstructor(name, constructorParams, setEnum)))
         (name, constructorParams)
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
-    val cons = Construct(name, vars.map(v => Var(v._1)))
+    val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
 //    cons.typed(TSet(memTy).closed)
     cons
+  private def addSetType(memTy: Type): Unit =
+    val memTyLowered = visitType(memTy)
+    setTypeConstructors.get(memTyLowered) match
+      case None => setTypeConstructors += memTyLowered -> Map()
+      case _ => //nothign
 
-  private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}")
+  private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
-  private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}$$enum")
+  private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}enum")
 
   private def makeSetDefinitions: Seq[ModuleEntry] =
-    val types = constructors.groupBy(_._1._1).toSeq
-    types.flatMap { case (memTy, terms) =>
-      val (data, rel) = defunctionalizeSet(memTy, terms.values.toSeq)
-      Seq(data, rel)
-    }
+    setTypeConstructors.flatMap { case (memTy, constructors) =>
+      val (datas, rel) = defunctionalizeSet(memTy, constructors.values.toSeq)
+      datas :+ rel
+    }.toSeq
 
   /** Generates defunctionalize set data type and enumerating relation */
-  private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (DataDefinition, Relation) =
+  private def defunctionalizeSet(memTy: Type, constructors: Seq[SetConstructor]): (Seq[DataModuleEntry], Relation) =
     val dataName = dataNameOf(memTy)
     val relName = relNameOf(memTy)
     val setParam = Param("$set", TDemand(TData(dataName)))
     val elemParam = Param("$elem", memTy)
 
+    val data = DataDefinition(dataName)
     val (cases, rules) = constructors.map { case SetConstructor(consName, caseVars, setEnum) =>
-      val caseDef = CaseDefinition(consName, caseVars.map(_._2))
+      val caseDef = CaseDefinition(consName, caseVars.map(_._2), TData(data.name))
 
       val atoms = setEnum(elemParam.name)
       if (atoms.isEmpty) {
         (caseDef, None)
       } else {
-        val rule = Body(Deconstruct(Var(setParam.name), consName, caseVars.map(v => Var(v._1).arg)) +: atoms)
+        val rule = Body(
+          Deconstruct(Var(setParam.name), RefByName(consName), caseVars.map(v => Var(v._1).arg), false)
+            +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip
 
-    val data = DataDefinition(dataName, cases)
     val rel = Relation(relName, Seq(setParam, elemParam), rules.flatten)
-    (data, rel)
+    (data +: cases, rel)
 
   private var currentModule: Module = _
-  protected override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module =
     currentModule = module
-    constructors = Map()
+    setTypeConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeSetDefinitions
     m.copy(contents = m.contents ++ defs)
 
   private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires typed IR, type missing in $t")).ty match
-    case TSet(memTy) => memTy
+    case TSet(memTy) => visitType(memTy)
     case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match
-      case TSet(memTy) => TData(dataNameOf(memTy))
+      case TSet(memTy) => TData(dataNameOf(visitType(memTy)))
       case _ => super.visitType(ty)
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case Cast(t, ty) =>
+      ty match
+        case TSet(memTy) => addSetType(memTy)
+        case _ => // nothing
+      super.visitTerm(term)
     case SetLit(ts) =>
       val elems = ts.map(visitTerm)
       val setEnum = new SetEnum:
@@ -142,7 +150,7 @@ trait Lowering extends BaseLowering:
           else
             Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
       Seq(callAddConstructor(term, setEnum))
-    case SetRef(name) =>
+    case SetFrom(name) =>
       val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] =
@@ -187,6 +195,7 @@ trait Lowering extends BaseLowering:
     case SetMember(elemTerm, setTerm) => preserveHints(atom) {
       val Seq(s) = visitTerm(setTerm)
       val memTy = memberType(setTerm)
+      addSetType(memTy)
       val ts = visitTerm(elemTerm)
       ts.map(elem => Call(relNameOf(memTy), Seq(s.arg, elem.arg)))
     }

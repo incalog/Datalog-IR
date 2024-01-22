@@ -1,0 +1,4 @@
+module SetTest
+
+
+@main def main(): Set[Int] = Set(2, 1, 3) & Set(4, 3)

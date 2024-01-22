@@ -6,6 +6,7 @@ import inca.ir.{Atom, Term}
 
 // Simple syntactic optimizer
 trait Optimizer extends IRVisitor:
+  override val name: String = "Syntactic Bool optimizer"
 
   override def visitTerm(term: Term): Seq[Term] = term match
     case BoolOr(BoolTrue, _) => Seq(BoolTrue)

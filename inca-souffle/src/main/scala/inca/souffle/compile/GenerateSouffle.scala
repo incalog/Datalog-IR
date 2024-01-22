@@ -8,6 +8,7 @@ import inca.ir.extension.aggregate as agg
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data
 import inca.ir.extension.aggregate
+import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.souffle.syntax.*
 
 // TODO what is output? Need main hint
@@ -41,9 +42,12 @@ object GenerateSouffle:
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
         val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, qualifyName(name), Map())
         Seq(relDecl, inputDirective)
-      case data.DataDefinition(name, cases) =>
+      case data.DataDefinition(name) =>
+        val cases = module.contents.collect {
+          case cd@CaseDefinition(_, _, td) if td.ref.name == name => cd
+        }
         val adtBranches = cases.map {
-          case data.CaseDefinition(name, args) =>
+          case data.CaseDefinition(name, args, TData(RefByName(_))) =>
             val cotrArgs = args.zipWithIndex.map { case(ty, idx) =>
               Attribute(s"param_$idx", compileType(ty))
             }
@@ -52,6 +56,8 @@ object GenerateSouffle:
         val adtDef = TypeDeclConstraint.ADTType(adtBranches)
         val typeDecl = ProgramContent.TypeDecl(cleanName(name), adtDef)
         Seq(typeDecl)
+      case data.CaseDefinition(name, args, data) => Seq()
+
     }
     Program(contents)
 
@@ -69,13 +75,13 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
-    case data.Deconstruct(t, name, args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
+    case data.Deconstruct(t, RefByName(name), args, false) => Atom.Equal(compileTerm(t), Term.Constr(cleanName(name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
-    case agg.Aggregate(name, args, op) =>
+    case agg.Aggregate(RefByName(name), args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }
-      val (AggregateColumnArg(ir.Var(resultVar)), resultIdx) = result.head
+      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head : @unchecked
       // TODO need to generate safely
       val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
       val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)
@@ -99,7 +105,7 @@ object GenerateSouffle:
     case ir.WildcardArg() => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
-    case ir.Var(name) => Term.Var(cleanName(name))
+    case ir.Var(RefByName(name)) => Term.Var(cleanName(name))
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)
@@ -113,11 +119,11 @@ object GenerateSouffle:
     case arith.UnOp(t, "abs") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
-    case data.Construct(name, args) => Term.Constr(cleanName(name), args.map(compileTerm))
+    case data.Construct(RefByName(name), args) => Term.Constr(cleanName(name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match
     case arith.TInt => Type.Number
     case arith.TDouble => Type.Float
     case string.TString => Type.Symbol
-    case data.TData(name) => Type.Name(qualifyName(name))
+    case data.TData(RefByName(name)) => Type.Name(qualifyName(name))
 

@@ -20,11 +20,11 @@ class DemandLoweringTest extends AnyFunSuiteLike:
     var printedMod = false
     var lowered: Module = null
     try {
-      typecheckerBefore.checkModule(mod)
+      typecheckerBefore.checkProgram(Seq(mod))
       println(mod)
       printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
-      typecheckerAfter.checkModule(lowered)
+      typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
       if (!printedMod)

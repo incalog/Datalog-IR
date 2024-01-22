@@ -1,7 +1,0 @@
-module ComposeLambda
-
-def compose(f: Int => `Double`, g: `Double` => String): Int => String =
-  (n: Int) => g(f(n))
-
-@main def main(): String =
-  compose((n: Int) => `Math.sqrt`(n), (d: `Double`) => `String.valueOf`(d))(2)

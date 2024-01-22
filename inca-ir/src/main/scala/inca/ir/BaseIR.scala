@@ -9,7 +9,6 @@ import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
 implicit def name2string(name: Name): String = name.toString
-
 implicit def term2Arg(term: Term): Arg = term.arg
 
 case class Name(name: String) extends SourceLocation:
@@ -21,13 +20,15 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
-
+  lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
+  def withExtendedName(suffix: String): ModuleEntry
 
-trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation
+trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
+  def name: Name
 case class RefByName[Target](name: Name) extends Ref[Target]:
   override def toString: String = name.name
 
@@ -71,6 +72,7 @@ case class TermType(ty: Type, mode: Mode):
       throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
+  def withExtendedName(suffix: String): Relation = this.copy(name = Name(name.name + suffix))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -83,7 +85,8 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
-  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")} = nil"
+  def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
@@ -93,15 +96,17 @@ case class Body(atoms: Seq[Atom]) extends Hints:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 
-case class Var(name: Name) extends Term with Var.Target:
+case class Var(ref: Ref[Var.Target]) extends Term with Var.Target:
+  def name: Name = ref.name
   override def toString: String =
     if (typ.isEmpty)
-      s"$name" + analysisString
+      s"$ref" + analysisString
     else
-      s"$name: ${typ.get}" + analysisString
+      s"$ref: ${typ.get}" + analysisString
   override def vars: Seq[Var] = Seq(this)
 
 object Var:
+  def apply(name: Name): Var = new Var(RefByName(name))
   trait Target extends SourceLocation
 
 case class Cast(t: Term, ty: Type) extends Term:
@@ -119,9 +124,10 @@ case class Call(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
   override def vars: Seq[Var] = args.flatMap(_.vars)
 object Call:
   def apply(name: Name, args: Seq[Arg], neg: Boolean = false): Call = Call(RefByName(name), args, neg)
+object NegCall:
+  def apply(name: Name, args: Seq[Arg]): Call = Call(RefByName(name), args, true)
 
-
-case class ExtensionalCall(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
+case class ExtensionalCall(ref: Ref[ExtensionalRelation], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString

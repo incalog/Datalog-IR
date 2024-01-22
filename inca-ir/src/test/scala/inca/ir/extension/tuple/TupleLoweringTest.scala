@@ -1,9 +1,11 @@
 package inca.ir.extension.tuple
 
 import inca.ir.*
+import inca.ir.extension.arithmetic.{IntNum, TInt, IR as arithIR}
+import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.extension.tuple
 import inca.ir.extension.tuple.{IR, Project, TTuple}
-import inca.ir.typing.Typechecker
+import inca.ir.typing.{IRTypechecker, Typechecker}
 import inca.util.CompilationMessage
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -76,7 +78,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -147,7 +149,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
 
     assertResult(expectedMod)(lowering.lower(mod))
   }
@@ -187,7 +189,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
     typechecker.failOnError()
     println(mod)
     assertResult(expectedMod)(lowering.lower(mod))
@@ -272,8 +274,36 @@ class TupleLoweringTest extends AnyFunSuiteLike:
       )
     ))
 
-    typechecker.checkModule(mod)
+    typechecker.checkProgram(Seq(mod))
     typechecker.failOnError()
 
     assertResult(expectedMod)(lowering.lower(mod))
+  }
+
+  test("Nested tuples"){
+    val mod = Module("Test", tupleIR.language + arithIR + stringIR, Seq(
+      Relation("main",
+        Seq(
+          Param("a", TTuple(Seq(TTuple(Seq(TInt, TString)), TInt))),
+          Param("b", TTuple(Seq(TInt, TString))),
+          Param("c", TInt),
+          Param("d", TString),
+          Param("e", TInt)
+        ),
+        Seq(Body(Seq(
+          Eq(Var("a"), TupleLit(Seq(TupleLit(Seq(IntNum(1), StringLit("1"))), IntNum(1)))),
+          Eq(Var("b"), Project(Var("a"), 0)),
+          Eq(Var("c"), Project(Var("b"), 0)),
+          Eq(Var("d"), Project(Var("b"), 1)),
+          Eq(Var("e"), Project(Var("a"), 1)),
+        )))
+      )
+    ))
+
+    val typechecker1 = IRTypechecker()
+    typechecker1.checkProgram(Seq(mod))
+    typechecker1.failOnError()
+    val typechecker2 = IRTypechecker()
+    typechecker2.checkProgram(Seq(lowering.lower(mod)))
+    typechecker2.failOnError()
   }

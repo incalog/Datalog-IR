@@ -18,7 +18,7 @@ event(Int, Int, Int).
 event(0, 215, 22).
 event(1, 15, 12).
 event(2, 137, 0).
-event(3, 365, 17).
+event(3, 17, 12).
 event(4, 215, 22).
 
 attend(Int, String).
@@ -37,7 +37,7 @@ location(3, "03-324").
 location(4, "N3").
 
 eventsOn17(Int).
-eventsOn17(X) :- event(X, _, 17).
+eventsOn17(X) :- event(X, 17, _).
 
 same(Int, Int).
 same(E1, E2) :- event(E1, D, T), event(E2, D, T), E1 != E2.

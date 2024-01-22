@@ -3,8 +3,6 @@ package inca.ir.extension.demand
 import inca.ir.Hint
 import inca.ir.Hint.Key
 
-object Hints:
-  val IgnoreCallKey = "NO_INPUT"
-
-  object IgnoreCall extends Hint:
-    override def key: Key = IgnoreCallKey
+object DemandIgnoreCallHintKey extends Hint.Key
+object DemandIgnoreCallHint extends Hint:
+  override def key: Key = DemandIgnoreCallHintKey

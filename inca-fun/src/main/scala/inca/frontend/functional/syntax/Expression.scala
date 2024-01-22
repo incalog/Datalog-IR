@@ -137,7 +137,7 @@ trait Pattern extends SourceLocation {
   def vars: Map[Name, Option[Type]]
   def prettyprint: String
 }
-case class ConstructorPattern(constr: Name, args: Seq[PatternVariable]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
+case class ConstructorPattern(constr: Name, args: Seq[PatternVariable]) extends Pattern with Resolvable[(DataConstructor, DataDef)] with Var.Target {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint: String = s"$constr(${args.map(_.prettyprint).mkString(", ")})"
 }

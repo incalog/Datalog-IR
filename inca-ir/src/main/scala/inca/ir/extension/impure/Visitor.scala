@@ -9,5 +9,5 @@ trait Visitor extends BaseIRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case Impure(v, atoms, up, kind) =>
       val as = atoms.flatMap(visitAtom)
-      visitTerm(up).map(t => Impure(v, as, t, kind))
+      visitTerm(up).map(t => Impure(visitRef(v), as, t, kind))
     case _ => super.visitAtom(atom))

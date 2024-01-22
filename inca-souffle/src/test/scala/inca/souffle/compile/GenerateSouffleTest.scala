@@ -5,12 +5,14 @@ import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.data
 import inca.ir.execution.Relation as Rel
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.extension.data.DataDefinition
+import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.util.SourceLocation
 import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.util.compileroptions.CompilerOptions.default
+import inca.util.compileroptions.CompilerOptions
 
 class GenerateSouffleTest extends AnyFunSuite:
   val pipeline: List[() => BaseIRVisitor] = List(
@@ -58,10 +60,11 @@ class GenerateSouffleTest extends AnyFunSuite:
       Eq(Var("Y"), arith.IntNum(5)),
       Eq(Var("X"), arith.Abs(Var("Y")))))
   ))
-  val natDecl: DataDefinition = data.DataDefinition("Nat", Seq(
-    data.CaseDefinition("Zero", Seq()),
-    data.CaseDefinition("Succ", Seq(data.TData("Nat")))
-  ))
+  val natDecl: Seq[DataModuleEntry] = Seq(
+    data.DataDefinition("Nat"),
+    data.CaseDefinition("Zero", Seq(), data.TData("Nat")),
+    data.CaseDefinition("Succ", Seq(data.TData("Nat")), data.TData("Nat"))
+  )
   val natRel: Relation = Relation("test", Seq(Param("X", data.TData("Nat"))), Seq(
     Body(Seq(
       Eq(Var("Y"), data.Construct("Succ", Seq(data.Construct("Zero", Seq())))),
@@ -80,7 +83,7 @@ class GenerateSouffleTest extends AnyFunSuite:
     Seq(
       Body(Seq(
         Call("pathCol", Seq(Var("X"), Var("Y"), Var("DUMMY"))),
-        aggregate.Aggregate("pathCol", Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
+        aggregate.Aggregate(RefByName("pathCol"), Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
     )
   )
   
@@ -88,7 +91,7 @@ class GenerateSouffleTest extends AnyFunSuite:
     Seq(
       Body(Seq(
         Call("edge", Seq(Var("X"), Var("DUMMY"))),
-        aggregate.Aggregate("edge", Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
+        aggregate.Aggregate(RefByName("edge"), Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
     )
   )
   
@@ -119,7 +122,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   }
   
   test("data example") {
-    val module = Module("PathExample", Language.Datalog, Seq(natDecl, natRel))
+    val module = Module("PathExample", Language.Datalog, natDecl :+ natRel)
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }
@@ -136,6 +139,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "MaxExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     val rels = engine.readAll()
@@ -148,6 +152,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "PathExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
@@ -162,6 +167,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def name: Name = "MaxExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
+      override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(1, 5), Seq(2, 3), Seq(2, 1), Seq(3, 4), Seq(3, 5), Seq(4, 8))))

@@ -1,7 +1,7 @@
 package inca.frontend.datalog.syntax
 
 import cats.parse.{Numbers, Parser as P, Parser0 as P0}
-import inca.ir.Name
+import inca.ir.{Name, RefByName}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
@@ -54,10 +54,12 @@ object Parser:
     p <* whitespaces0
 
   val keywords = Set(
+    "edb",
     "not",
     "Int",
     "Double",
-    "String"
+    "String",
+    "Any"
   )
 
   def keyword(s: String): P[Unit] =
@@ -149,7 +151,7 @@ object Parser:
 
   val call: P[Atom.Call] =
     (keyword("not").?.with1 ~ identifier ~ inParens(term.repSep0(op(',')))).mapWithLoc {
-      case ((not, name), args) => Atom.Call(name, args, not.isDefined)
+      case ((not, name), args) => Atom.Call(RefByName(name), args, not.isDefined)
     }
 
   val comparator: P[String] =
@@ -166,7 +168,8 @@ object Parser:
   val typ: P[Type] =
     keyword("Int").mapWithLoc(_ => Type.Int()) |
       keyword("Double").mapWithLoc(_ => Type.Double()) |
-      keyword("String").mapWithLoc(_ => Type.String())
+      keyword("String").mapWithLoc(_ => Type.String()) |
+      keyword("Any").mapWithLoc(_ => Type.Any())
 
   val signature: P[(Name, Seq[Type])] =
     identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
@@ -187,6 +190,9 @@ object Parser:
       case ((name, params), bodies) => name -> bodies.map(as => Rule(params, as))
     }
 
+  val edbRelation: P[EdbRelation] =
+    keyword("edb") *> signature.map { case (name, params) => EdbRelation(name, params) }
+
   val relation: P[Relation] =
     (signature ~ rule.backtrack.rep0).flatMap {
       case ((name, params), rules) =>
@@ -196,5 +202,8 @@ object Parser:
           P.pure(Relation(name, params, rules.flatMap(_._2)))
     }
 
+  val moduleEntry: P[IRelation] =
+    edbRelation | relation
+
   val module: P0[Module] =
-    whitespaces0 *> relation.rep0.mapWithLoc(Module.apply)
+    whitespaces0 *> moduleEntry.rep0.mapWithLoc(Module.apply)

@@ -10,10 +10,13 @@ import scala.collection.immutable.Seq
 trait BaseIRVisitor:
   case object FailedBody extends Throwable
 
+  // Name used for debugging
+  def name: String = ""
+
   def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
     modules.map(visitModule)
 
-  protected def visitModule(module: ir.Module): ir.Module =
+  def visitModule(module: ir.Module): ir.Module =
     ir.Module(module.name, module.lang, module.contents.flatMap(visitModuleEntry))
 
   def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
@@ -53,11 +56,10 @@ trait BaseIRVisitor:
 
   def visitArg(arg: Arg): Seq[Arg] = arg match
     case TermArg(t) => visitTerm(t).map(TermArg.apply)
-    case a => Seq(a)
-
+    case WildcardArg() => Seq(WildcardArg())
 
   def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
-    case Var(name) => Seq(Var(name))
+    case Var(ref) => Seq(Var(visitRef(ref)))
     case Cast(t, ty) =>
       val tty = visitType(ty)
       visitTerm(t).map(Cast(_, tty))

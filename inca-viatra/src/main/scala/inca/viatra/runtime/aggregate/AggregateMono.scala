@@ -8,7 +8,7 @@ import scala.jdk.CollectionConverters._
 case class AggState[ST,A](st: ST, as: List[A])
 
 /** An aggregator for operations that are associative and commutative */
-class AggregatorMono[ST, A, B](val agg: MonoAggregation[ST, A, B]) extends IMultisetAggregationOperator[A, AggState[ST,A], ST] {
+class AggregatorMono[ST, A](val agg: MonoAggregation[ST, A]) extends IMultisetAggregationOperator[A, AggState[ST,A], ST] {
 
   override def getShortDescription: String = agg.name
   override def getName: String = agg.name
@@ -27,6 +27,9 @@ class AggregatorMono[ST, A, B](val agg: MonoAggregation[ST, A, B]) extends IMult
       AggState(newSt, newAs)
     }
   }
+
+  override def combine(left: ST, right: AggState[ST, A]): ST =
+    right.as.foldLeft(left)(agg.add)
 
   override def getAggregate(acc: AggState[ST, A]): ST =
     acc.st

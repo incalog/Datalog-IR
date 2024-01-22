@@ -1,8 +1,9 @@
 package inca.viatra.util
 
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaAggregationAtom, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, Visitor}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaTerm, ScalaType, Visitor}
+import inca.ir.extension.aggregate.Aggregate
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, Body, Module, ModuleEntry, Relation, Term, Var, name2string}
+import inca.ir.{Atom, Body, Module, ModuleEntry, RefByName, Relation, Term, Var, name2string}
 
 private trait Collector[T] extends IRVisitor with Visitor {
   private var collection: Seq[T] = Seq()
@@ -13,7 +14,7 @@ private trait Collector[T] extends IRVisitor with Visitor {
 
 protected[viatra] class VarCollector extends Collector[String] {
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Var(name) =>
+    case Var(RefByName(name)) =>
       collect(name)
       super.visitTerm(term)
     case _ =>
@@ -36,7 +37,7 @@ protected[viatra] object VarCollector {
 
 protected[viatra] class LitCollector extends Collector[(String, ScalaType)] {
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case _: ScalaAggregationAtom => Seq()
+    case _: Aggregate => Seq()
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
@@ -71,13 +72,6 @@ protected[viatra] class ScalaModuleEntryCollector extends Collector[ScalaDefnMod
       super.visitModuleEntry(moduleEntry)
     case _ => 
       super.visitModuleEntry(moduleEntry)
-
-  /*override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case ScalaAggregationAtom(ScalaAggregation.Custom(defn), _, _, _, _, _) => 
-      collect(defn)
-      super.visitAtom(atom)
-    case _ => 
-      super.visitAtom(atom)*/
 }
 
 protected[viatra] object ScalaModuleEntryCollector {

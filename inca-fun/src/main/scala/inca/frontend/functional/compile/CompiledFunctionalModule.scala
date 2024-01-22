@@ -1,34 +1,53 @@
 package inca.frontend.functional.compile
 
 import inca.frontend.functional.foreign
-import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
+import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, not, set, tuple}
-import inca.ir.typing.IRTypechecker
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 
-case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
+case class CompiledFunctionalModule(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
+  extends CompiledModule:
 
   override def name: Name = fun.name
-
   override def sourceLocation: SourceLocation = fun.name
 
+  val funLogging = compilerOptions.funLogging
+  val logTyped: Boolean = funLogging.logTypeInformation
+
   lazy val typed: Module = {
+    val logMod = funLogging.logModule
+    if (logMod && !logTyped)
+      printStep("Functional-Module", fun)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
+
+    if (logMod && logTyped)
+      printStep("Functional-Module", fun)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
     fun
   }
 
-  lazy val monoModule: Module = {
+  /*lazy val monoModule: Module = {
+    val logMono = funLogging.readBoolean("mono")
     val mono = new Monomorph
     val module = mono.transModule(typed)
+
+    if (logMono && !logTyped)
+      printStep("Mono", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logMono && logTyped)
+      printStep("Mono", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
@@ -36,22 +55,41 @@ case class CompiledFunctionalModule(fun: Module) extends CompiledModule:
   }
 
   lazy val defunModule: Module = {
+    val logDefun = funLogging.readBoolean("defun")
+
     val defun = new Defunctionalize
     val module = defun.transModule(monoModule)
+
+    if (logDefun && !logTyped)
+      printStep("Defun", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logDefun && logTyped)
+      printStep("Defun", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
     module
-  }
+  }*/
 
   lazy val normalizedFoldModule: Module = {
+    val logNormalized = funLogging.logNormalizedModule
+
     val norm = new NormalizeFold
-    val module = norm.visitModule(defunModule)
-    println(module)
+    val module = norm.visitModule(typed)
+
+    if (logNormalized && !logTyped)
+      printStep("Normalized", module)
+
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
+
+    if (logNormalized && logTyped)
+      printStep("Normalized", module)
+
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
@@ -70,8 +108,10 @@ object CompiledFunctionalModule:
   )
 
   val pipeline: List[() => BaseIRVisitor] = List(
+    () => new typeparam.Lowering {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
+    () => new map.Lowering {},
     () => new bool.Optimizer {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
@@ -79,5 +119,5 @@ object CompiledFunctionalModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {},
+    () => new tuple.Lowering {}
   ) // arith + string + data

@@ -1,5 +1,0 @@
-module If2
-@main def main(): Int =
-  let x = 7 in
-    let y = -3 in
-      (if (x > 0) x else x * -1) + (if (y > 0) y else y * -1)

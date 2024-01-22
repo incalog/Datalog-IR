@@ -1,17 +1,19 @@
 package inca.util
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 // based on LangComp Lab work of Saleh Oshaghi and Tomislav Pree
 trait Graph[N, E] {
   val nodes: mutable.Set[N] = mutable.Set()
   val edges: mutable.Map[N, Set[(N, E)]] = mutable.Map()
 
-  def addNode(n: N): Unit = {
+  def addNode(n: N): Unit =
+    assert(!locked)
     nodes += n
-  }
 
-  def addEdge(from: N, to: N, info: E): Unit = {
+  def addEdge(from: N, to: N, info: E): Unit =
+    assert(!locked)
     nodes += from
     nodes += to
     edges.get(from) match {
@@ -20,15 +22,14 @@ trait Graph[N, E] {
       case None =>
         edges += from -> Set((to, info))
     }
-  }
 
-  def removeNode(node: N): Unit = {
+  def removeNode(node: N): Unit =
+    assert(!locked)
     nodes -= node
     edges.remove(node)
     edges.mapValuesInPlace { (_, es) =>
       es.filter(_._1 != node)
     }
-  }
 
   lazy val outermostCycles: List[List[N]] = {
     def isNested(cycle: List[N]): Boolean = {
@@ -46,7 +47,9 @@ trait Graph[N, E] {
   private case object InStack extends VisistedFlag
   private case object Done extends VisistedFlag
 
-  lazy val cycles: List[List[N]] = {
+  private var locked: Boolean = false
+  lazy val cycles: List[List[N]] =
+    locked = true
     val visited: mutable.Map[N, VisistedFlag] = mutable.Map()
     nodes.foreach { n => visited(n) = NotVisisted }
 
@@ -61,7 +64,25 @@ trait Graph[N, E] {
       }
     }
     cycles.toList
-  }
+
+  lazy val cyclesWithInfo: List[List[(N,E)]] =
+    cycles.flatMap { cycle =>
+      var prefixes: List[Vector[(N,E)]] = List(Vector())
+      val reverse = cycle.reverse
+      reverse.zip(reverse.tail).foreach { (from, to) =>
+        val fromEdges = edges(from)
+        val fromToEdges = fromEdges.filter(_._1 == to).map(_._2)
+        prefixes =
+          for (prefix <- prefixes; info <- fromToEdges) yield
+            prefix :+ (from,info)
+      }
+      val last = reverse.last
+      val loopEdges = edges(last).filter(_._1 == reverse.head).map(_._2)
+      prefixes =
+        for (prefix <- prefixes; info <- loopEdges) yield
+          prefix :+ (last, info)
+      prefixes.map(_.toList)
+    }
 
   private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()
@@ -97,6 +118,13 @@ trait Graph[N, E] {
     cycle
   }
 
+  def filter(nodeFilter: N => Boolean, edgeFilter: (N,N,E) => Boolean): Graph[N, E] =
+    val g = cloneGraph()
+    for (n <- g.nodes if !nodeFilter(n))
+      g.removeNode(n)
+    g.edges.mapValuesInPlace((from, tos) => tos.filter((to,info) => edgeFilter(from,to,info)))
+    g
+
   def toGraphViz: String = {
     val sb = new StringBuilder()
     nodes.foreach { from =>
@@ -113,6 +141,11 @@ trait Graph[N, E] {
        |""".stripMargin
   }
 
+  def namify(s: String): String = s match
+    case "edge" => "edge_"
+    case _ => s.replace("$", "_")
+
+  protected def cloneGraph(): Graph[N,E]
   protected def nodeToGraphViz(n: N): String
   protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
   protected def nodeGraphVizAttributes(from: N): String

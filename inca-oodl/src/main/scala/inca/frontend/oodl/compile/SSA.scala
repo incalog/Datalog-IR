@@ -16,7 +16,7 @@ class SSA:
 
   def visitClassDef(c: ClassDef)(implicit gensym: Gensym): ClassDef =
     gensym.register(c.name.name)
-    ClassDef(c.annos, c.vis, c.name, c.tyVars, c.parentCls, c.content.map(visitClassContent))
+    ClassDef(c.annos, c.vis, c.name, c.tyParams, c.parentCls, c.content.map(visitClassContent))
 
   def visitClassContent(c: ClassContent)(implicit gensym: Gensym): ClassContent = c match
     case cd: ConstructorDef => visitConstructorDef(cd)
@@ -61,7 +61,7 @@ class SSA:
     case Super(args) =>
       Seq(Super(args.map(visitExpression)))
 
-    case Assign(v@Var(targetName), rhs) =>
+    case Assign(v@Var(targetName), Name("="), rhs) =>
       v.target match
         case Some(varDecl: VarDeclare) =>
           val rhsExp = visitExpression(rhs)
@@ -76,8 +76,8 @@ class SSA:
         case trg =>
           throw new IllegalStateException(s"Unexpected variable target $trg")
 
-    case Assign(lhs, rhs) =>
-      Seq(Assign(visitExpression(lhs), visitExpression(rhs)))
+    case Assign(lhs, op, rhs) =>
+      Seq(Assign(visitExpression(lhs), op, visitExpression(rhs)))
 
     case VarDeclare(name, typ, maybeExpression, immutable) =>
       gensym.register(name.name)
@@ -105,7 +105,7 @@ class SSA:
         val (thnName, thnType) = thnEnv.getOrElse(name, oldEnv(name))
         val (elsName, elsType) = elsEnv.getOrElse(name, oldEnv(name))
         if (thnType != elsType)
-          throw new RuntimeException(s"Type mismatch for variable $newName: ${thnType} != ${elsType}")
+          throw new RuntimeException(s"Type mismatch for variable $newName: $thnType != $elsType")
         env = env + (name -> ((newName, thnType)))
         VarPhiAssign(newName, thnType, ifStmt, thnName, elsName)
       }
@@ -125,8 +125,8 @@ class SSA:
       TypeCast(visitExpression(recv), toTyp)
     case InstanceOf(recv, ofTyp) =>
       InstanceOf(visitExpression(recv), ofTyp)
-    case Tuple(exps) =>
-      Tuple(exps.map(visitExpression))
+    case TupleExp(exps) =>
+      TupleExp(exps.map(visitExpression))
     case SetExp(exps, tty) =>
       SetExp(exps.map(visitExpression), tty)
     case SetMember(name, recv, predicate) =>

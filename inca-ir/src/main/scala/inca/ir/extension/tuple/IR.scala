@@ -12,6 +12,13 @@ case class TTuple(tys: Seq[Type]) extends Type:
   override def toString: String = tys.mkString("(", ", ", ")")
   override def size: Int = tys.map(_.size).sum
   override def flatten: Seq[Type] = tys.flatMap(_.flatten)
+object TTuple:
+  def make(ts: Seq[Type]): Type =
+    if (ts.size == 1)
+      ts.head
+    else
+      TTuple(ts)
+
 
 case class TupleLit(ts: Seq[Term]) extends Term:
   if (ts.size == 1)

@@ -32,7 +32,8 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
   with ArithmeticAbstractInterpreter[Value, VBool]
   with DataAbstractInterpreter[Value, VBool]
   with StringAbstractInterpreter[Value, VBool]
-  with AggregateAbstractInterpreter[Value, VBool]:
+  with AggregateAbstractInterpreter[Value, VBool]
+  with ForeignAbstractInterpreter[Value, VBool]:
 
   override def top: Value = Value.Top
   override def topBool: VBool = VBool.Top
@@ -132,6 +133,7 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
 
   override val stringOps: StringOps[Value] = new StringOps[Value]:
     override def stringLit(s: String): Value = Value.String(s)
+    override def toString(v: Value): Value = Value.String(v.toString)
     override def concat(v1: Value, v2: Value): Value = (v1, v2) match
       case (Value.String(s1), Value.String(s2)) => Value.String(s1 + s2)
       case _ => Value.Top

@@ -13,6 +13,7 @@ import inca.ir.typing.Mode
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
+  override val name: String = "AggregateSet"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(aggregate.IR, set.IR)
 
@@ -20,7 +21,7 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  protected override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module =
     currentModule = module
     val m = super.visitModule(module)
     m.copy(contents = m.contents ++ newrels)
@@ -42,10 +43,9 @@ trait Lowering extends BaseLowering:
           val newparams = rel.params.updated(ix, Param(newparamName, ty))
           val memberAtom = SetMember(ir.Var(newparamName), ir.Var(param.name))
           rel = rel.copy(params = newparams, bodies = rel.bodies.map(b => Body(b.atoms :+ memberAtom)))
-        // TODO case AggregateArg.WildCard
       newrels += rel
       preserveHints(atom) {
-        Seq(Aggregate(newrelName, args, op))
+        Seq(Aggregate(RefByName(newrelName), args, op))
       }
 
     case _ => super.visitAtom(atom)

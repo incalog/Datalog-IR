@@ -54,7 +54,7 @@ case class InstanceOf(recv: Expression, ofTyp: Type) extends Expression:
   override def vars: Map[Name, Option[Type]] = recv.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"$recv.isInstanceOf[$ofTyp]"
 
-case class Tuple(exps: Seq[Expression]) extends Expression:
+case class TupleExp(exps: Seq[Expression]) extends Expression:
   override def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
@@ -62,7 +62,8 @@ case class Tuple(exps: Seq[Expression]) extends Expression:
 case class SetExp(exps: Seq[Expression], tty: Option[Type] = None) extends Expression:
   def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    exps.map(_.prettyprint).mkString("Set(", ", ", ")")
+    val tyArgs = if (tty.isDefined) s"[${tty.get}]" else ""
+    exps.map(_.prettyprint).mkString(s"Set$tyArgs(", ", ", ")")
 
 case class SetMember(name: Name, recv: Expression, predicate: Option[Expression]) extends Expression with Var.Target:
   def vars: Map[Name, Option[Type]] = recv.vars ++ (if (predicate.isDefined) predicate.get.vars else Map())

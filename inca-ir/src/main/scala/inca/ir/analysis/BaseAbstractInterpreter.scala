@@ -120,10 +120,10 @@ trait BaseAbstractInterpreter[V, B]:
   def evalAtomExtend(at: Atom): AtomResult = at match
     case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
     case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
-    case Call(name, args, _) => evalCall(name, args)
-    case ExtensionalCall(name, args, _) => evalCall(name, args)
+    case Call(ref, args, _) => evalCall(ref, args)
+    case ExtensionalCall(ref, args, _) => evalCall(ref, args)
 
-  final def evalCall(ref: Ref[Relation], args: Seq[Arg]): AtomResult =
+  final def evalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg]): AtomResult =
     val vs = args.map {
       case TermArg(a) =>
         if (a.mode.isBinding) {
@@ -163,7 +163,7 @@ trait BaseAbstractInterpreter[V, B]:
   final def assign(assignee: Term, v: V): AtomResult = assignee match
     case Var(x) =>
       if (assignee.mode.isBinding) {
-        env += x.name -> v
+        env += x.name.name -> v
         assignee.storeAnalysisResult(TermResult(v, trueBool))
         AtomResult(trueBool, trueBool)
       } else {
@@ -184,10 +184,11 @@ trait BaseAbstractInterpreter[V, B]:
     r
 
   protected def evalTermExtend(t: Term): TermResult = t match
-    case Var(x) =>
+    case Var(RefByName(x)) =>
       // FIXME: Is this correct ? See above
       TermResult(env.getOrElse(x, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
+    case _ => TermResult(top, topBool)
 
 //trait BoolOps[V]:
 //  def and(v1: V, v2: V): V

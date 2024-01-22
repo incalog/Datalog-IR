@@ -1,7 +1,7 @@
 package inca.souffle
 
 import inca.ir.CompiledModule
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
 import inca.souffle.compile.GenerateSouffle
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, Type}
 import inca.util.FileUtil
@@ -69,6 +69,10 @@ object Executor extends IRExecutor:
       val file = getPath(directive)
       val content = relToString(edb, directive)
       FileUtil.writeFile(file, content)
+
+    override def remove(edb: Relation): Unit = throw new UnsupportedOperationException()
+    override def addUpdateListener(up: RelationUpdateListener): Unit = throw new UnsupportedOperationException()
+    override def removeUpdateListener(up: RelationUpdateListener): Unit = throw new UnsupportedOperationException()
 
     private def relToString(edb: Relation, directive: ProgramContent.Directive): String =
       val delimiter = getSeperator(directive)

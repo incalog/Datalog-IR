@@ -1,0 +1,15 @@
+module CaseClassSetFold
+
+class Base
+case class Num(num: Int) extends Base {
+    def add(other: Num): Num = new Num(this.num + other.num)
+}
+
+def add(i: Num, j: Num): Num = i.add(j)
+
+@main
+def main(): Int = {
+    val s = Set(new Num(1), new Num(2), new Num(3))
+    val n = s.fold(new Num(0), add)
+    n.num
+}

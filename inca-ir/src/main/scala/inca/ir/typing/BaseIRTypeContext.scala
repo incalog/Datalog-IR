@@ -1,6 +1,6 @@
 package inca.ir.typing
 
-import inca.ir.{Module, ModuleEntry, Name, Param, Term, Type, Var}
+import inca.ir.{Module, ModuleEntry, Name, Param, Ref, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
@@ -9,6 +9,14 @@ trait BaseIRTypeContext extends TypeIO:
   case class VarInfo(target: Var.Target, ty: Type, mode: VarMode)
 
   var vars: Map[Name, VarInfo] = Map()
+
+  enum Dependency:
+    case Postive
+    case Negative
+  object Dependency:
+    def apply(neg: Boolean): Dependency = if (neg) Negative else Postive
+
+  protected val dependencyGraph: DependencyGraph = new DependencyGraph
 
   protected def startContextTransaction(): Transaction = new Transaction(vars)
   class Transaction(oldVars: Map[Name, VarInfo]):
@@ -36,9 +44,12 @@ trait BaseIRTypeContext extends TypeIO:
   }
 
   def scopedVariables[T](vs: Set[Name])(f: => T): T = {
-    val varsSaved = vars.filter(kv => vs(kv._1))
+    val varsSaved = vs.map(v => v -> vars.get(v))
     val t = f
-    vars = vars ++ varsSaved
+    varsSaved.foreach {
+      case (v, None) => vars -= v
+      case (v, Some(info)) => vars += v -> info
+    }
     t
   }
 
@@ -50,7 +61,7 @@ trait BaseIRTypeContext extends TypeIO:
     modules += (name -> module)
   }
 
-  def bindModuleEntry(entry: ModuleEntry): Unit = {
+  def registerModuleEntry(entry: ModuleEntry): Unit = {
     val name = entry.name
     entries.get(name).foreach { bound =>
       error(s"Found multiple entries with same name $name", name, bound.name)
@@ -71,10 +82,20 @@ trait BaseIRTypeContext extends TypeIO:
 
   def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
 
-  def lookupVar(name: Name): Option[VarInfo] = vars.get(name)
+  def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
+    vars.get(ref.name) match
+      case None => None
+      case Some(info) =>
+        ref.resolved(info.target)
+        Some(info)
 
   def isBoundVar(name: Name): Boolean = vars.get(name) match
     case Some(VarInfo(_, _, VarMode.Bound)) => true
     case _ => false
 
   def isParam(name: Name): Boolean = vars.get(name).exists(_.target.isInstanceOf[Param])
+
+  def addDependency(from: ModuleEntry, to: ModuleEntry, info: DependencyInfo): Unit =
+    dependencyGraph.addEdge(from, to, info)
+
+  def getDependencyGraph: DependencyGraph = dependencyGraph

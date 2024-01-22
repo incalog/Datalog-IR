@@ -6,11 +6,12 @@ import inca.frontend.functional.syntax.{DataDef, FunctionDef}
 import inca.ir.{Atom, BaseIR, ModuleEntry, name2string, string2name}
 import inca.ir.lowering.BaseLowering
 import inca.ir.extension.aggregate.{Aggregate, IR as iragg}
-import inca.foreign.scala.ir.primitive.{IR as irprimitive}
+import inca.foreign.scala.ir.primitive
 
 trait Lowering extends BaseLowering:
+  override val name: String = "Foreign"
   override def loweredIRs: Set[BaseIR] = Set(iragg)
-  override def requiredIRs: Set[BaseIR] = Set(iragg, irprimitive)
+  override def requiredIRs: Set[BaseIR] = Set(iragg, primitive.IR)
 
   val generateScala = new GenerateScala
 
@@ -23,16 +24,16 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] =
     atom match
       case Aggregate(rel, args, aggOp@FunctionalIncaAggregationOperator(fun, init, op)) =>
-        val ty = FunctionalInca.compileType(aggOp.to)
-        // TODO: Lower the type
+        // TODO: Lower type e.g. Boolean to int before passing it into this function
 
         generateScala.genFunDef(fun)
         val generatedCode = generateScala.generated.mkString("\n")
 
         scalaModules = scalaModules + ScalaDefnModuleEntry("Aggregation$" + fun.name, generatedCode)
 
-        val aggCode = generateScala.genAggregation(fun.name, init, op, aggOp.to)
-        val scalaAggOp = ScalaAggregationOperator(ScalaInca.compileType(ty), aggCode + ".aggregator")
+        val initCode = generateScala.transExp(init)
+        val addCode = generateScala.transExp(op)
+        val scalaAggOp = ScalaAggregationOperator(fun.name, aggOp.resultType, initCode, addCode)
         Seq(Aggregate(rel, args, scalaAggOp))
       case _ =>
         super.visitAtom(atom)

@@ -1,0 +1,35 @@
+
+edb simple(Any).
+edb call(Any, String).
+edb while(Any, Any).
+edb next(Any, Any).
+
+edb functionBody(String, Any).
+
+stmt(Any).
+stmt(s) :- simple(s).
+stmt(s) :- call(s,_).
+stmt(s) :- while(s,_).
+
+cflow(Any, Any).
+cflow(s1, s2) :- simple(s1), next(s1, s2).
+cflow(s1, s2) :- while(s1,s2).
+cflow(last, s1) :- while(s1,b), lastStmt(b, last).
+cflow(s1, s2) :- while(s1,_), next(s1, s2).
+cflow(s1, s2) :- call(s1,f), functionBody(f,s2).
+cflow(last, s2) :- call(s1,f), functionBody(f,b), lastStmt(b,last), next(s1,s2).
+
+lastStmt(Any, Any).
+lastStmt(s1, s3) :- next(s1, s2), lastStmt(s2, s3).
+lastStmt(s1, s1) :- stmt(s1), not hasNext(s1).
+
+hasNext(Any).
+hasNext(s) :- next(s,_).
+
+reachable(Any, Any).
+reachable(from, to) :- cflow(from, to).
+reachable(from, to) :- cflow(from, via), reachable(via, to).
+
+deadCode(Any).
+deadCode(s) :- functionBody("main", b), stmt(s), not reachable(b, s).
+

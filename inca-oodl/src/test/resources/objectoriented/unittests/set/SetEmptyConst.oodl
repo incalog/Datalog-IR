@@ -1,6 +1,3 @@
 module SetTest
 
-@main
-def main(): Set[Int] = {
-    return Set[Int]()
-}
+@main def main(): Set[Int] = Set[Int]()

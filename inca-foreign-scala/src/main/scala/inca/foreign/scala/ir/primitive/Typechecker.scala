@@ -5,37 +5,23 @@ import inca.ir.extension.data.DataDefinition
 import inca.ir.extension.foreign.ForeignModuleEntry
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, Relation, TAny, Term, TermType, Type, string2name}
+import inca.ir.{Atom, ExtensionalRelation, ModuleEntry, RefByName, Relation, TAny, Term, TermType, Type, string2name}
 
 trait Typechecker extends BaseIRTypechecker:
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case ScalaDefnModuleEntry(_, _) => // nothing
     case _ => super.checkModuleEntry(moduleEntry)
 
-  override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
-    // ScalaTypes and their corresponding type are the same
-    val areEqual = (ty, outside) match
-      case (ScalaType(_), ScalaType(_)) => ty == outside
-      case (ScalaType(_), _) => ty == ScalaInca.compileType(outside)
-      case (_, ScalaType(_)) => ScalaInca.compileType(ty) == outside
-      case (_, _) => ty == outside
-    if (!areEqual)
-      error(s"$t of type $ty is not comparable to $outside")
-
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case ScalaAggregationAtom(ScalaAggregationOperator(ty, _), rel, out, args, aggregatedColumn) =>
-      if (aggregatedColumn >= args.size)
-        error(s"Aggregated column index $aggregatedColumn out of bounds ${args.size}")
-      val params = lookupRelationParams(rel, args.size, atom)
-      args.zip(params).zipWithIndex.foreach {
-        case ((t, p), i) if i == aggregatedColumn =>
-          assertComparable(p.ty, ty, atom)
-          checkTerm(t, p.ty, Mode.Collapse)
-        case ((t, p), i) =>
-          checkTerm(t, p.ty, Mode.Collapse)
-      }
-      checkTerm(out, ty, mode)
-    case _ => super.checkAtom(atom, mode)
+  // this is wrong, scala and datalog types are not compatible
+//  override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
+//    // ScalaTypes and their corresponding type are the same
+//    val areEqual = (ty, outside) match
+//      case (ScalaType(_), ScalaType(_)) => ty == outside
+////      case (ScalaType(_), _) => ty == ScalaInca.compileType(outside)
+////      case (_, ScalaType(_)) => ScalaInca.compileType(ty) == outside
+//      case (_, _) => ty == outside
+//    if (!areEqual)
+//      error(s"$t of type $ty is not comparable to $outside", t)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case ScalaTerm(_, ty, args, _) =>

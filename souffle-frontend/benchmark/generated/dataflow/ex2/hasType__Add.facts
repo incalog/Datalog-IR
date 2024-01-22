@@ -1,3 +1,0 @@
-$Add($Var("y"), $Num(1))
-$Add($Var("x"), $Var("y"))
-$Add($Var("x"), $Var("y"))

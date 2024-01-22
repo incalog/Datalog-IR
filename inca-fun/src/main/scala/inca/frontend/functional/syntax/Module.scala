@@ -102,7 +102,7 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with Resolvable[TName.Target] with DataConstructor.Target with Var.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with Resolvable[DataDef] with DataConstructor.Target with Var.Target {
 
   def constructorType(data: DataDef): TFun = {
     if (data.tyVars.nonEmpty)

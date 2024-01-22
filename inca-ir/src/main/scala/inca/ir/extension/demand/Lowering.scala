@@ -10,6 +10,7 @@ import inca.util.Gensym
 import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
+  override val name: String = "Demand"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
@@ -42,12 +43,13 @@ trait Lowering extends BaseLowering:
         }
         Body(prefix ++ eqs)
       }
-      Relation(demandRelationName(rel), params, bodies)
+      // There is a good chance we end up with the exact same body twice (e.g See the abstract syntax graph example)
+      Relation(demandRelationName(rel), params, bodies.toSet.toSeq)
     }
 
   private var currentModule: ir.Module = _
 
-  protected override def visitModule(module: ir.Module): ir.Module = {
+  override def visitModule(module: ir.Module): ir.Module = {
     currentModule = module
     phase = Phase.InsertDemandGuards
     val m1 = super.visitModule(module)
@@ -100,24 +102,23 @@ trait Lowering extends BaseLowering:
             case (Param(_, TDemand(_)), _) => None
             case _ => None
           }
-          if (demandedArgs.nonEmpty && !atom.hasHint(Hints.IgnoreCallKey))
+          if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
             addDemandRule(rel, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case Aggregate(rel, args, op) =>
-          val params = currentModule.relations.get(rel.name) match
+          val params = currentModule.relations.get(rel.name.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
             case (Param(_, TDemand(_)), arg) =>
               arg match
-                case TermArg(tm) =>
-                  Some(tm)
+                case TermArg(tm) => Some(tm)
                 case AggregateColumnArg(tm) => Some(tm)
                 case _ => None
             case _ => None
           }
-          if (demandedArgs.nonEmpty && !atom.hasHint(Hints.IgnoreCallKey))
-            addDemandRule(rel, bodyPrefix.toList, demandedArgs)
+          if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
+            addDemandRule(rel.name, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)

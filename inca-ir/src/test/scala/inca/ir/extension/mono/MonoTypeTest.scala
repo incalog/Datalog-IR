@@ -2,7 +2,7 @@ package inca.ir.extension.mono
 
 import inca.ir.{Var, *}
 import inca.ir.extension.mono
-import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, Max}
+import inca.ir.extension.mono.ArithmeticMonoDefinition.Count
 import inca.ir.extension.string
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.arithmetic
@@ -21,7 +21,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   def module(relations: ModuleEntry*)(using typechecker: Typechecker): Module =
     val mod = Module("M", BaseIR.language+demand.IR+mono.IR+impure.IR+data.IR, relations)
-    try typechecker.checkModule(mod)
+    try typechecker.checkProgram(Seq(mod))
     finally {
       println(mod)
       typechecker.getErrors.foreach(println)
@@ -39,24 +39,24 @@ class MonoTypeTest extends AnyFunSuiteLike {
       Call(Name("size"), Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
     )))
-  ).addHint(impure.Hints.Pure)
+  ).addHint(impure.MainHint)
 
   // size(t, m) :- leaf(t), t += 1@(t)
   //            :- btree(t, l, r), size(l, m), size(r, m),
   //               t += 1@(t)
   private lazy val relation2 : Relation = Relation(
     "size",
-    Seq(Param("t", TString), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
+    Seq(Param("t", TString), Param("m", TDemand(TMono(TAny, TInt, Seq(TString))))),
     Seq(
       Body(Seq(
         Call(Name("leaf"), Seq(Var("t"))),
-        WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
+        WriteMono(Var("m"), Cast(IntNum(1), TAny), Seq(Var("t")))
       )),
       Body(Seq(
         Call(Name("btree"), Seq(Var("t"), Var("l"), Var("r"))),
         Call(Name("size"), Seq(Var("l"), Var("m"))),
         Call(Name("size"), Seq(Var("r"), Var("m"))),
-        WriteMono(Var("m"), IntNum(2), Seq(Var("t")))
+        WriteMono(Var("m"), Cast(IntNum(2), TAny), Seq(Var("t")))
       ))
     )
   )
@@ -162,7 +162,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     val mod = module(relation3, relation6)
     val lowered = lowering.visitProgram(Seq(mod)).head
     val typeckecker2 = new IRTypechecker {}
-    typeckecker2.checkModule(lowered)
+    typeckecker2.checkProgram(Seq(lowered))
     println(lowered)
   }
 

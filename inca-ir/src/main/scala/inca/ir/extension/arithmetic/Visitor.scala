@@ -6,7 +6,7 @@ import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{Atom, Term, Type}
 
 trait Visitor extends BaseIRVisitor with not.Visitor:
-  override def visitAtom(atom: Atom): Seq[Atom] =  preserveHints(atom)(atom match
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match
     case BinCompare(lhs, rhs, op) => visitTerm(lhs).zip(visitTerm(rhs)).map((l,r) => BinCompare(l, r, op))
     case _ => super.visitAtom(atom))
 

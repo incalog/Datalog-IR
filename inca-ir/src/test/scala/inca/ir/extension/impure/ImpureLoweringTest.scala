@@ -17,14 +17,15 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
   val gensym = new Gensym()
 
-  val oidDataDef = data.DataDefinition(Name("OID"), Seq(data.CaseDefinition(Name("OID"), Seq(arithmetic.TInt))))
+  val oidDataDef = data.DataDefinition(Name("OID"))
+  val oidCaseDef = data.CaseDefinition(Name("mkOID"), Seq(arithmetic.TInt), TData(oidDataDef.name))
   val impureAlloc = new ImpurityKind:
     override val name: String = "alloc"
     override val ty: Type = arithmetic.TInt
   def alloc(to: Term): Impure =
     val local = Name(gensym.fresh("currentAlloc"))
-    Impure(Var(local),
-      Seq(Eq(to, data.Construct("OID", Seq(Var(local))))),
+    Impure(RefByName(local),
+      Seq(Eq(to, data.Construct("mkOID", Seq(Var(local))))),
       arithmetic.Add(Var(local), arithmetic.IntNum(1)),
       impureAlloc
     )
@@ -43,11 +44,11 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
     var printedMod = false
     var lowered: Module = null
     try {
-      typecheckerBefore.checkModule(mod)
+      typecheckerBefore.checkProgram(Seq(mod))
       println(mod)
       printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
-      typecheckerAfter.checkModule(lowered)
+      typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
       if (!printedMod)
@@ -68,6 +69,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
   test("Simple lower to BaseIR") {
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))
@@ -82,7 +84,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
+    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
     assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
   }
 
@@ -93,6 +95,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
 
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))
@@ -116,15 +119,16 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
       )
     )
 
-    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    assert((1 until 6).forall(i => rVars.contains(s"alloc$$$i")))
-    assert(qVars.contains("alloc$0"))
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    val qVars = m.relations("Q").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    assert((1 until 5).forall(i => rVars.contains(s"alloc$$$i")))
+    assert(!qVars.exists(_.startsWith("alloc")))
   }
 
   test("multiple impurity kinds") {
     val m = module(
       oidDataDef,
+      oidCaseDef,
       Relation("R",
         Seq(
           Param("a", TData(oidDataDef.name))
@@ -148,7 +152,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
           Param(Name("v"), TDemand(arithmetic.TDouble))
         ),
         Seq(Body(Seq(
-          Impure(Var(Name("currentUpdate")),
+          Impure(RefByName(Name("currentUpdate")),
             Seq(),
             arithmetic.Add(Var(Name("currentUpdate")), IntNum(1)),
             impureUpdate
@@ -157,10 +161,10 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
       )
     )
 
-    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.name.name)
-    assert((1 until 8).forall(i => rVars.contains(s"alloc$$$i")))
-    assert((1 until 5).forall(i => rVars.contains(s"update$$$i")))
-    assert((1 until 1).forall(i => fieldVars.contains(s"alloc$$$i")))
-    assert((1 until 2).forall(i => fieldVars.contains(s"update$$$i")))
+    val rVars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    val fieldVars = m.relations("Field").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    assert((1 until 5).forall(i => rVars.contains(s"alloc$$$i")))
+    assert((1 until 6).forall(i => rVars.contains(s"update$$$i")))
+    assert(!fieldVars.exists(_.startsWith("alloc")))
+    assert((1 until 3).forall(i => fieldVars.contains(s"update$$$i")))
   }
