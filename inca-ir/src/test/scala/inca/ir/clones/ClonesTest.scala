@@ -15,11 +15,12 @@ class ClonesTest extends AnyFunSuite {
 
   def performTest(expected: IRModule, input: IRModule): Unit = {
     val VN = new ValueNumbering
-    val typechecker = new Typechecker {}  // TODO move typechecker into ValueNumbering ?
-    typechecker.checkModule(input)
+    val typecheckerBefore = new Typechecker {}  // TODO move typechecker into ValueNumbering ?
+    typecheckerBefore.checkProgram(Seq(input))
     println(s"before VN: \n$input")
     val result = VN.valueNumbering(input)
-    typechecker.checkModule(result)
+    val typecheckerAfter = new Typechecker {}
+    typecheckerAfter.checkProgram(Seq(input))
     println(s"after VN: \n$result")
     assertResult(expected)(result)
   }

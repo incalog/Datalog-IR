@@ -1,6 +1,6 @@
 package inca.ir.analysis
 import inca.ir
-import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Name, Param, Ref, Relation, Term, TermArg, Var}
+import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Name, Param, Ref, RefByName, Relation, Term, TermArg, Var}
 import inca.ir.visitors.IRVisitor
 import inca.ir.extension.arithmetic.*
 import inca.ir.util.SourceLocation
@@ -23,7 +23,7 @@ class ValueNumbering extends IRVisitor {
   // TODO dont use scala`s hashing function
   //    Type of argument -> change from Term to e.g. Analyzable since need to Hash Calls too?
   private def getHashCode(elem: Term): Hashed = elem match {
-    case Var(Name(name)) if VN.contains(name) => hashTable.find(_._2 == name).head._1
+    case Var(RefByName(Name(name))) if VN.contains(name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
 
@@ -98,19 +98,19 @@ class ValueNumbering extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(Name(name)) if VN.contains(name) => Seq(Var(Name(VN(name))))
+    case v@Var(RefByName(Name(name))) if VN.contains(name) => Seq(Var(RefByName(Name(VN(name)))))
     case IntNum(_) => Seq(term)
     case _ =>
       val newTerm = super.visitTerm(term).head
       val termHash: Hashed = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then Var(Name(hashTable(termHash))) else simplify(newTerm))
+      Seq(if (hashTable.contains(termHash)) then Var(RefByName(Name(hashTable(termHash)))) else simplify(newTerm))
   }
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match{
-    case Eq(vari@Var(Name(x)), e, false) /*if vari.mode.isBinding*/ =>   // TODO use vari.mode.isBinding so that certain comparisons will not be removed?
+    case Eq(vari@Var(RefByName(Name(x))), e, false) /*if vari.mode.isBinding*/ =>   // TODO use vari.mode.isBinding so that certain comparisons will not be removed?
       treatBinding(x,e)
-    case Eq(e, vari@Var(Name(x)), false) /*if vari.mode.isBinding*/ =>
+    case Eq(e, vari@Var(RefByName(Name(x))), false) /*if vari.mode.isBinding*/ =>
       treatBinding(x,e)
 
 // TODO use this or not
@@ -182,12 +182,12 @@ class ValueNumbering extends IRVisitor {
     val exprHash: Hashed = getHashCode(newTerm)
     if (hashTable.contains(exprHash)) {
       val v: ValNum = newTerm match {
-        case Var(Name(str)) => str // then term was already replaced in visitTerm
+        case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
         case _ => hashTable(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
       }
       VN += (x, v)
       // remove "Assignment" or replace right hand side
-      if isParam(x) then Seq(Eq(Var(Name(x)), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
+      if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
       else Seq()
     }
     else {
@@ -196,7 +196,7 @@ class ValueNumbering extends IRVisitor {
       hashTable += (exprHash, v)
       Seq(
         // return with newTerm
-        Eq(Var(Name(x)), newTerm)
+        Eq(Var(RefByName(Name(x))), newTerm)
       )
     }
   }
