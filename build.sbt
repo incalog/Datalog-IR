@@ -8,6 +8,9 @@ ThisBuild / scalacOptions += "-deprecation"
 
 ThisBuild / Test / parallelExecution := false
 
+// This patches the class path to make sbt-test work
+ThisBuild / fork := true
+
 val verString = "3.3.0"
 
 
@@ -34,13 +37,13 @@ lazy val inca_fun = (project in file("inca-fun"))
     scalaVersion := verString,
 
     // Patch the class path to make sbt-test work
-    Test / testOptions += Tests.Setup(() => {
+    /*Test / testOptions += Tests.Setup(() => {
       val jars = scala.collection.mutable.ListBuffer.empty[String]
       (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
       jars += System.getProperty("java.class.path")
       val classPathSeparator = System.getProperty("path.separator")
       System.setProperty("java.class.path", jars.mkString(classPathSeparator))
-    }),
+    }),*/
 
     libraryDependencies ++= Seq(
       // Additional data structures, such as MultiDict
@@ -61,13 +64,13 @@ lazy val inca_oodl = (project in file("inca-oodl"))
     scalaVersion := verString,
 
     // Patch the class path to make sbt-test work
-    Test / testOptions += Tests.Setup(() => {
+    /*Test / testOptions += Tests.Setup(() => {
       val jars = scala.collection.mutable.ListBuffer.empty[String]
       (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
       jars += System.getProperty("java.class.path")
       val classPathSeparator = System.getProperty("path.separator")
       System.setProperty("java.class.path", jars.mkString(classPathSeparator))
-    }),
+    }),*/
 
     libraryDependencies ++= Seq(
       // Additional data structures, such as MultiDict
@@ -87,13 +90,13 @@ lazy val inca_datalog = (project in file("inca-datalog"))
     scalaVersion := verString,
 
     // Patch the class path to make sbt-test work
-    Test / testOptions += Tests.Setup(() => {
+    /*Test / testOptions += Tests.Setup(() => {
       val jars = scala.collection.mutable.ListBuffer.empty[String]
       (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
       jars += System.getProperty("java.class.path")
       val classPathSeparator = System.getProperty("path.separator")
       System.setProperty("java.class.path", jars.mkString(classPathSeparator))
-    }),
+    }),*/
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -117,13 +120,13 @@ lazy val inca_viatra = (project in file("inca-viatra"))
   .dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
     scalaVersion := verString,
-    Test / testOptions += Tests.Setup(() => {
+    /*Test / testOptions += Tests.Setup(() => {
       val jars = scala.collection.mutable.ListBuffer.empty[String]
       (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
       jars += System.getProperty("java.class.path")
       val classPathSeparator = System.getProperty("path.separator")
       System.setProperty("java.class.path", jars.mkString(classPathSeparator))
-    }),
+    }),*/
 
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
