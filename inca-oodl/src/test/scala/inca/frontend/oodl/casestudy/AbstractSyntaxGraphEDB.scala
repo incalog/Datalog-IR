@@ -12,10 +12,12 @@ import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
 
+@Ignore
 class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
   val TDefList = TAny

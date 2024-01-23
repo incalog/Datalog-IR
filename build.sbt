@@ -5,15 +5,17 @@ ThisBuild / organization := "de.uni-mainz.informatik.pl"
 ThisBuild / version := "0.1"
 
 ThisBuild / scalacOptions += "-deprecation"
-ThisBuild / scalaVersion := "3.3.0"
 
-Test / parallelExecution := false
+ThisBuild / Test / parallelExecution := false
+
+val verString = "3.3.0"
+
 
 val truediffVersion = "0.1.5-SNAPSHOT"
 
 lazy val inca_ir = (project in file("inca-ir"))
   .settings(
-  //scalaVersion := "3.3.0",
+  scalaVersion := verString,
 
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -29,7 +31,16 @@ lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_foreign_scala % "compile->compile")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
-    //scalaVersion := "3.3.0",
+    scalaVersion := verString,
+
+    // Patch the class path to make sbt-test work
+    Test / testOptions += Tests.Setup(() => {
+      val jars = scala.collection.mutable.ListBuffer.empty[String]
+      (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
+      jars += System.getProperty("java.class.path")
+      val classPathSeparator = System.getProperty("path.separator")
+      System.setProperty("java.class.path", jars.mkString(classPathSeparator))
+    }),
 
     libraryDependencies ++= Seq(
       // Additional data structures, such as MultiDict
@@ -47,7 +58,16 @@ lazy val inca_oodl = (project in file("inca-oodl"))
   .dependsOn(inca_viatra % "test->test")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
-    //scalaVersion := "3.3.0",
+    scalaVersion := verString,
+
+    // Patch the class path to make sbt-test work
+    Test / testOptions += Tests.Setup(() => {
+      val jars = scala.collection.mutable.ListBuffer.empty[String]
+      (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
+      jars += System.getProperty("java.class.path")
+      val classPathSeparator = System.getProperty("path.separator")
+      System.setProperty("java.class.path", jars.mkString(classPathSeparator))
+    }),
 
     libraryDependencies ++= Seq(
       // Additional data structures, such as MultiDict
@@ -64,7 +84,16 @@ lazy val inca_datalog = (project in file("inca-datalog"))
   .dependsOn(inca_viatra % "compile->compile; test->test")
   .dependsOn(inca_souffle % "test->test")
   .settings(
-    //scalaVersion := "3.3.0",
+    scalaVersion := verString,
+
+    // Patch the class path to make sbt-test work
+    Test / testOptions += Tests.Setup(() => {
+      val jars = scala.collection.mutable.ListBuffer.empty[String]
+      (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
+      jars += System.getProperty("java.class.path")
+      val classPathSeparator = System.getProperty("path.separator")
+      System.setProperty("java.class.path", jars.mkString(classPathSeparator))
+    }),
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -76,7 +105,7 @@ lazy val inca_datalog = (project in file("inca-datalog"))
 lazy val inca_foreign_scala = (project in file("inca-foreign-scala"))
   .dependsOn(inca_ir % "compile->compile")
   .settings(
-    //scalaVersion := "3.3.0",
+    scalaVersion := verString,
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -87,9 +116,14 @@ lazy val inca_viatra = (project in file("inca-viatra"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
-    //scalaVersion := "3.3.0",
-
-    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    scalaVersion := verString,
+    Test / testOptions += Tests.Setup(() => {
+      val jars = scala.collection.mutable.ListBuffer.empty[String]
+      (Runtime / fullClasspath).value.foreach { e => jars += e.data.getAbsolutePath }
+      jars += System.getProperty("java.class.path")
+      val classPathSeparator = System.getProperty("path.separator")
+      System.setProperty("java.class.path", jars.mkString(classPathSeparator))
+    }),
 
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -114,8 +148,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
 lazy val inca_souffle = (project in file("inca-souffle"))
   .dependsOn(inca_ir % "compile->compile")
   .settings(
-    //scalaVersion := "3.3.0",
-
+    scalaVersion := verString,
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
