@@ -316,7 +316,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
     val edbs = Seq(edbDefList, edbNils, edbCons, edbDefs, edbNums, edbVars, edbAdds)
 
-    val runs = 35
+    val runs = 1
     val executionTimes = (0 until runs).map { _ =>
       val engine = new inca.viatra.Executor().instantiate(compiled)
       edbs.foreach(engine.insert)
@@ -325,7 +325,14 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
-      //println(relation1.asTable)
+      println(relation1.asTable)
+      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
+      engine.readAll().foreach { r =>
+        println(s"${r.name}: ${r.size}")
+      }
+
+      println(engine.read(Relation1("edgesDef", Seq("deflist"), Seq(Seq(prog)))).size)
+
       val executionTimeInMs = (end - start) / 1000 / 1000
       executionTimeInMs
     }

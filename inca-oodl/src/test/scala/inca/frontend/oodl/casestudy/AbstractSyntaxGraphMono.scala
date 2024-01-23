@@ -75,7 +75,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       Body(Seq(
         Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("to"))),
-        Eq(v("from"), v("def"))
+        Eq(v("from"), v("def")),
       )),
       Body(Seq(
         Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
@@ -335,6 +335,10 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
       println(s"Execution time ${end - start}ms")
+      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
+      engine.readAll().foreach { r =>
+        println(s"${r.name}: ${r.size}")
+      }
       println(relation1.asTable)
     }
   }

@@ -257,7 +257,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   }
 
   test("AbstractSyntaxGraph can be run") {
-    for (i <- 0 until 5) {
+    for (i <- 0 until 1) {
       val engine = new inca.viatra.Executor().instantiate(compiled)
       val start = System.nanoTime()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
@@ -266,6 +266,10 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
 
       //engine.readAll().foreach(r => println(r.asTable))
       println(s"Execution time ${(end - start) / 1000 / 1000}ms")
+      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
+      engine.readAll().foreach { r =>
+        println(s"${r.name}: ${r.size}")
+      }
       println(relation1.asTable)
     }
   }
