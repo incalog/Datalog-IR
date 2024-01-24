@@ -67,9 +67,9 @@ class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])]):
        case _ => throw IllegalStateException("Expected IRLoggingSection, but got Section")
 
   protected def setDefaults(): Unit =
-    irLogging.logTypeInformation = true
-    irLogging.logModule = true
-    irLogging.logLowerings = true
+    irLogging.logTypeInformation = false
+    irLogging.logModule = false
+    irLogging.logLowerings = false
     irLogging.logOptimizations = false
     irLogging.logStatsBeforeLowering = false
     irLogging.logStatsBeforeOptimizations = false

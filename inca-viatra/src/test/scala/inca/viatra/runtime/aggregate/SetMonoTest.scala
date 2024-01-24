@@ -109,7 +109,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.size == 1)
 //    assertResult(Set(1, 17))(res.entries.head)
@@ -130,7 +130,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(1, 17))(res.entries.toSet)
 
@@ -151,7 +151,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 2))(res.entries.toSet)
@@ -173,7 +173,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(2))(res.entries.toSet)
@@ -195,7 +195,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(2, 3, 4))(res.entries.toSet)
@@ -248,7 +248,7 @@ class SetMonoTest extends AnyFunSuiteLike:
 
     val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs:_*)
     engine.insert(edbEdge)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
 
   test("Set Mono with boolean element type (type that can be lowered)"):
     val relation = Relation("main", Seq(Param("c", TBoolean)), Seq(Body(Seq(
@@ -266,7 +266,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(relation, relation2)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
 //    assert(res.entries.nonEmpty)
 //    assertResult(true)(res.entries.head)
@@ -285,7 +285,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
 //    assert(res.entries.nonEmpty)
 //    assertResult((1, 2))(res.entries.head)
@@ -300,7 +300,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
     // Problem: if tuple is compiled into Scala terms, arguments "c" and "d" cannot be unbound variables
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
 
 
@@ -357,7 +357,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     val engine = compile(mainRelation, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set("A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "J"))(res.entries.toSet)
@@ -392,7 +392,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     )
 
     val engine = compile(mainRelation, evenRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((0, -1), (6, 5), (10, 9), (2, 1), (4, 3), (8, 7)))(res.entries.toSet)
@@ -414,6 +414,6 @@ class SetMonoTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(DRedReteBackendFactory.INSTANCE, relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(1, 2, 17, 18))(res.entries.toSet)

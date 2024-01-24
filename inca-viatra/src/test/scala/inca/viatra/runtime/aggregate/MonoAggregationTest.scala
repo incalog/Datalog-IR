@@ -101,7 +101,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   test("Test case 1") {
     val engine = compile(relation1)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.nonEmpty)
     assertResult(0)(res.entries.head)
@@ -122,7 +122,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   test("Test case 2") {
     val engine = compile(relation3)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(1)(res.entries.head)
   }
@@ -304,7 +304,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   test("Test using user-defined mono definition 1") {
     val engine = compile(relationUserDefinedMono1)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     println(res.entries.head)
     assertResult("0.0")(res.entries.head)
@@ -325,7 +325,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   test("Test using user-defined mono definition 2") {
     val engine = compile(relationUserDefinedMono2)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(0)(res.entries.head)
   }
@@ -392,7 +392,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     // Problems: should we make collection and aggregation relation pure?
     val engine = compile(graphSizeMain, graphSize, extEdge)
     engine.insert(edbEdge)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
 //    val res = engine.read(UnitRelation("main"))
 
   }
