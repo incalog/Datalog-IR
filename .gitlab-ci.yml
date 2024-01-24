@@ -1,10 +1,15 @@
-image: hseeberger/scala-sbt:11.0.6_1.3.10_2.13.1
-#image: sbtscala/scala-sbt:eclipse-temurin-focal-17.0.9_9_1.9.8_3.3.1
+image: sbtscala/scala-sbt:eclipse-temurin-focal-17.0.9_9_1.9.8_3.3.1
 
 stages:
   - test
 
 before_script:
+  - pushd /tmp
+  - wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/keyrings/souffle-archive-keyring.gpg
+  - echo "deb [signed-by=/usr/share/keyrings/souffle-archive-keyring.gpg] https://souffle-lang.github.io/ppa/ubuntu/ stable main" | tee /etc/apt/sources.list.d/souffle.list
+  - apt update
+  - apt install -y souffle
+  - popd
   - sbt sbtVersion
   - sbt update
 

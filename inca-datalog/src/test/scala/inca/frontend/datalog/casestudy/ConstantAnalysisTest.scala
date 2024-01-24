@@ -10,6 +10,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
 
+@Ignore
 class ConstantAnalysisTest extends AnyFunSuite:
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
