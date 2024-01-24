@@ -23,8 +23,8 @@ class MonoTypeTest extends AnyFunSuiteLike {
     val mod = Module("M", BaseIR.language+demand.IR+mono.IR+impure.IR+data.IR, relations)
     try typechecker.checkProgram(Seq(mod))
     finally {
-      println(mod)
-      typechecker.getErrors.foreach(println)
+      //println(mod)
+      //typechecker.getErrors.foreach(println)
     }
     mod
 
@@ -163,7 +163,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     val lowered = lowering.visitProgram(Seq(mod)).head
     val typeckecker2 = new IRTypechecker {}
     typeckecker2.checkProgram(Seq(lowered))
-    println(lowered)
+    //println(lowered)
   }
 
   private lazy val relation7: Relation = Relation(

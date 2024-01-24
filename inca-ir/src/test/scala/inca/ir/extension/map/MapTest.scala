@@ -25,15 +25,15 @@ class MapTest extends AnyFunSuiteLike {
     def lower(l: BaseLowering, m: Module): Module =
       val checker = new IRTypechecker
       try checker.checkProgram(Seq(m))
-      finally checker.getErrors.foreach(println)
-      println(s"Lowering ${l.name}")
+      //finally checker.getErrors.foreach(println)
+      //println(s"Lowering ${l.name}")
       val lowered = l.lower(m)
-      println(lowered)
+      //println(lowered)
       lowered
 
     val mod = Module("M", Language(IR, arithmetic.IR, disjunction.IR, tuple.IR, block.IR, demand.IR), relations)
     typecheckerBefore.checkProgram(Seq(mod))
-    println(mod)
+    //println(mod)
     val lowered = mapLowering.foldLeft(mod)((mod, l) => lower(l, mod))
     mod
 
@@ -112,7 +112,7 @@ class MapTest extends AnyFunSuiteLike {
         )))
       )))
     )
-    println(module(mainRelation))
+    //println(module(mainRelation))
 
   }
 }
