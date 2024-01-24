@@ -289,7 +289,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   test("AbstractSyntaxGraph is well-typed: Set Mono Aggregation") {
     val compiled = new Compiled(false)
     try compiled.checked
-    finally println(compiled.ir)
+    //finally println(compiled.ir)
   }
 
   test("AbstractSyntaxGraph can be lowered without optimization: Set Mono Aggregation") {
@@ -316,8 +316,8 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
-      println(s"Execution time ${end - start}ms")
-      println(relation1.asTable)
+      //println(s"Execution time ${end - start}ms")
+      //println(relation1.asTable)
     }
   }
 
@@ -334,11 +334,11 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.currentTimeMillis()
-      println(s"Execution time ${end - start}ms")
+      /*println(s"Execution time ${end - start}ms")
       println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
       engine.readAll().foreach { r =>
         println(s"${r.name}: ${r.size}")
       }
-      println(relation1.asTable)
+      println(relation1.asTable)*/
     }
   }

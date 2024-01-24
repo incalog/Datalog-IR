@@ -566,11 +566,11 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
     setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {
-    println(mod)
+    //println(mod)
     try
       compiled.checked
-      println(compiled.dependencyGraph.toGraphViz)
-    finally println(mod)
+      //println(compiled.dependencyGraph.toGraphViz)
+    //finally println(mod)
   }
 
   test("AbstractSyntaxGraph can be lowered") {
@@ -578,8 +578,8 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       compiled.lowered
       val typechecker = new IRTypechecker
       typechecker.checkProgram(Seq(compiled.lowered))
-      println(typechecker.getDependencyGraph.toGraphViz)
-    finally println(compiled.lowered)
+      //println(typechecker.getDependencyGraph.toGraphViz)
+    //finally println(compiled.lowered)
   }
 
   test("AbstractSyntaxGraph can be run") {
@@ -606,18 +606,18 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
-      println(relation1.asTable)
+      //println(relation1.asTable)
       val executionTimeInMs = (end - start) / 1000 / 1000
 
-      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
+      /*println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
       engine.readAll().foreach { r =>
         println(s"${r.name}: ${r.size}")
       }
-      println(engine.read(UnitRelation("collect$edgesDefs")).asTable)
+      println(engine.read(UnitRelation("collect$edgesDefs")).asTable)*/
 
       executionTimeInMs
     }
-    println(s"Execution times in ms: $executionTimes")
-    println(s"Execution average: ${executionTimes.drop(5).sum / (runs - 5)}")
+    //println(s"Execution times in ms: $executionTimes")
+    //println(s"Execution average: ${executionTimes.drop(5).sum / (runs - 5)}")
   }
   

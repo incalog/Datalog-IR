@@ -17,7 +17,7 @@ class TypecheckerTest extends AnyFunSuite {
   def testTypecheck(code: String): Unit =
     val checker = new Typechecker
     val module = Parser.parseModule(code)
-    println(module)
+    //println(module)
     checker.typecheck(module)
     checker.printTypeIO()
     assertResult(Nil)(checker.getErrors)
@@ -32,10 +32,7 @@ class TypecheckerTest extends AnyFunSuite {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")
           file.close()
-          if (sourceCode.contains("fold("))
-            println(s"Skipping file with 'fold'")
-          else
-            testTypecheck(sourceCode)
+          testTypecheck(sourceCode)
         }
       }
       FileVisitResult.CONTINUE

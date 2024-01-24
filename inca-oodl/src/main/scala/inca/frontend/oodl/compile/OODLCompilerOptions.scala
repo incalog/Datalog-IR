@@ -29,13 +29,10 @@ final class OODLCompilerOptions private(defaults: Seq[(String, Seq[(String, Any)
       case _ => OODLLoggingSection("oodl_logging", Map())
 
   override def setDefaults(): Unit =
-    irLogging.logTypeInformation = true
-    irLogging.logModule = true
-    irLogging.logLowerings = false
-    irLogging.logOptimizations = false
+    super.setDefaults()
 
-    oodlLogging.logTypeInformation = true
-    oodlLogging.logModule = true
+    oodlLogging.logTypeInformation = false
+    oodlLogging.logModule = false
     oodlLogging.logSSAModule = false
     oodlLogging.verboseOutput = false
 

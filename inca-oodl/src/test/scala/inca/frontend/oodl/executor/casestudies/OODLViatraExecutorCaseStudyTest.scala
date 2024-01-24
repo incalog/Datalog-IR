@@ -27,6 +27,6 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val query = Relation.from("Set$TString$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
 
-    println(diff.toDouble / 1000 / 1000 / 1000)
+    //println(diff.toDouble / 1000 / 1000 / 1000)
     assertResult(0.to(endNode).map("a" + _).toSet)(res.toSet)
   }

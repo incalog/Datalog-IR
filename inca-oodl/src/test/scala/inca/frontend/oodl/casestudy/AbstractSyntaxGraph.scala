@@ -246,14 +246,14 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {
-    println(mod)
+    //println(mod)
     try compiled.checked
-    finally println(mod)
+    //finally println(mod)
   }
 
   test("AbstractSyntaxGraph can be lowered") {
     try compiled.lowered
-    finally println(compiled.lowered)
+    //finally println(compiled.lowered)
   }
 
   test("AbstractSyntaxGraph can be run") {
@@ -265,12 +265,12 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
       val end = System.nanoTime()
 
       //engine.readAll().foreach(r => println(r.asTable))
-      println(s"Execution time ${(end - start) / 1000 / 1000}ms")
+      /*println(s"Execution time ${(end - start) / 1000 / 1000}ms")
       println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
       engine.readAll().foreach { r =>
         println(s"${r.name}: ${r.size}")
       }
-      println(relation1.asTable)
+      println(relation1.asTable)*/
     }
   }
 
