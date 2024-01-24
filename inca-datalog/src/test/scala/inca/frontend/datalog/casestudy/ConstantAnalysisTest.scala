@@ -6,6 +6,7 @@ import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.ir.execution.{Relation, Relation1, Relation2, Relation3, RelationUpdateListener}
 import inca.util.FileUtil
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
