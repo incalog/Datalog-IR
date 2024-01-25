@@ -447,7 +447,7 @@ object GeneratePSystem:
     case _: (TEdbNode | TEdbList) => "truechange.URI"
     case TEdbValue(ScalaType(sty)) => sty
 
-  private def genEdbTypeKey(ety: Type): (String, String) = ety match
+  private def genEdbTypeKey(ety: EdbType): (String, String) = ety match
     case TEdbValue(ScalaType(sty)) =>
       val sort = s"truechange.JavaLitType(classOf[$sty])"
       val key = s"PrimitiveTypeKey($sort)"
