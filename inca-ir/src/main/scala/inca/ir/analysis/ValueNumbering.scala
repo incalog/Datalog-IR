@@ -12,11 +12,12 @@ import inca.ir.util.SourceLocation
  */
 
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
-class ValueNumbering(simplify: Boolean = false) extends IRVisitor {
+class ValueNumbering(simplify: Boolean = false, propagateConstants: Boolean = false) extends IRVisitor {
 
   type ValNum = String
   type Hashed = Int
 
+  var Const: Map[String, Term] = Map()
   var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
   var hashTable: Map[Hashed, ValNum] = Map()
 
@@ -123,7 +124,12 @@ class ValueNumbering(simplify: Boolean = false) extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(RefByName(Name(name))) if VN.contains(name) => Seq(Var(RefByName(Name(VN(name)))))
+    case v@Var(RefByName(Name(name))) if Const.contains(name) && this.propagateConstants => Seq(Const(name))
+    case v@Var(RefByName(Name(name))) if VN.contains(name) =>
+      Seq(
+        if Const.contains(VN(name)) && this.propagateConstants then
+          Const(VN(name))
+        else Var(RefByName(Name(VN(name)))))
     case IntNum(_) => Seq(term)
     case _ =>
       val newTerm = super.visitTerm(term).head
@@ -204,6 +210,11 @@ class ValueNumbering(simplify: Boolean = false) extends IRVisitor {
 
   private def treatBinding(x: String, e: Term): Seq[Atom] = {
     val newTerm = visitTerm(e).head
+    val isConst = newTerm match {
+      case IntNum(_) | DoubleNum(_) => true
+      case _ => false
+    }
+
     val exprHash: Hashed = getHashCode(newTerm)
     if (hashTable.contains(exprHash)) {
       val v: ValNum = newTerm match {
@@ -211,7 +222,7 @@ class ValueNumbering(simplify: Boolean = false) extends IRVisitor {
         case _ => hashTable(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
       }
       VN += (x, v)
-      // remove "Assignment" or replace right hand side
+      // remove "Assignment" or replace term
       if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
       else Seq()
     }
@@ -219,6 +230,12 @@ class ValueNumbering(simplify: Boolean = false) extends IRVisitor {
       val v = x
       VN += (x, v)
       hashTable += (exprHash, v)
+
+      if (isConst && this.propagateConstants) {
+        Const += (x, newTerm)
+        if !isParam(x) then return Seq()
+      }
+
       Seq(
         // return with newTerm
         Eq(Var(RefByName(Name(x))), newTerm)
