@@ -224,12 +224,12 @@ object GeneratePSystem:
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX$n" }
 
-    evalExp = Seq()
-    pVar2Code = Map()
-    atomCode.clear()
-
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
+        evalExp = Seq()
+        pVar2Code = Map()
+        atomCode.clear()
+
         varDeclarations.clear()
         varDeclarations ++= VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar)
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
