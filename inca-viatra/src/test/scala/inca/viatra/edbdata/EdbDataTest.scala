@@ -1,47 +1,36 @@
 package inca.viatra.edbdata
 
+import inca.ir.execution.{Relation1, Relation2}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
-import inca.ir.extension.demand.TDemand
 import inca.ir.extension.edbdata.*
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{Body, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TNothing, Var, string2name}
+import inca.ir.{Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TNothing, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.Executor
+import inca.viatra.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuiteLike
-import truechange.EditScript
+import truechange.*
 
 class EdbDataTest extends AnyFunSuiteLike:
   val exec = new Executor()
 
-  class EdbCompiledModule(val ir: Module) extends CompiledModule:
+  class EdbCompiledModule(val ir: Module, dataModel: DataModel) extends CompiledModule:
     override def name: Name = ir.name
     override def compilerOptions: CompilerOptions = CompilerOptions.default
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    lazy val engine: exec.Engine = exec.instantiate(this)
+    lazy val engine: exec.Engine = exec.instantiate(this, dataModel)
 
-  def module(relations: ModuleEntry*): EdbCompiledModule =
+  def module(dataModel: DataModel, relations: ModuleEntry*): EdbCompiledModule =
     val typechecker = new IRTypechecker {}
     val mod = Module("M", Language(IR), relations)
     try typechecker.checkProgram(Seq(mod))
     finally println(mod)
-    new EdbCompiledModule(mod)
-
-  test("Peano schema"){
-    val mod = module(
-      EdbNodeDefinition("Nat"),
-      EdbNodeDefinition("Zero", "Nat"),
-      EdbNodeDefinition("Succ", "Nat"),
-      EdbFieldDefinition("Succ", "pred", TEdbNode("Nat"))
-    )
-    mod.engine.feed.processEditScript(EditScript(Seq(
-
-    )))
-  }
+    new EdbCompiledModule(mod, dataModel)
 
   test("Type enumerate") {
-    module(
+    val mod = module(Nat.dataModel,
       EdbNodeDefinition("Nat"),
       EdbNodeDefinition("Zero", "Nat"),
       EdbNodeDefinition("Succ", "Nat"),
@@ -58,10 +47,25 @@ class EdbDataTest extends AnyFunSuiteLike:
         ))
       ))
     )
+
+    import Nat.*
+    val n = Succ(Succ(Zero()))
+    val edits = n.load()
+    mod.engine.feed.processEditScript(edits)
+
+    edits.print()
+
+    val succs = mod.engine.read(Relation1("succs", Seq("n"), Seq()))
+    println(succs.asTable)
+    assertResult(2)(succs.size)
+
+    val nats = mod.engine.read(Relation1("nats", Seq("n"), Seq()))
+    println(nats.asTable)
+    assertResult(3)(nats.size)
   }
 
   test("Type field enumerate") {
-    module(
+    val mod = module(Nat.dataModel,
       EdbNodeDefinition("Nat"),
       EdbNodeDefinition("Zero", "Nat"),
       EdbNodeDefinition("Succ", "Nat"),
@@ -73,40 +77,87 @@ class EdbDataTest extends AnyFunSuiteLike:
         ))
       ))
     )
+
+    import Nat.*
+    val n = Succ(Succ(Zero()))
+    val edits = n.load()
+    mod.engine.feed.processEditScript(edits)
+
+    edits.print()
+
+    val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
+    println(preds.asTable)
+    assertResult(2)(preds.size)
   }
 
   test("Type field lookup") {
-    module(
+    val mod = module(Nat.dataModel,
       EdbNodeDefinition("Nat"),
       EdbNodeDefinition("Zero", "Nat"),
       EdbNodeDefinition("Succ", "Nat"),
       EdbFieldDefinition("Succ", "pred", TEdbNode("Nat")),
 
-      Relation("preds", Seq(Param("s", TDemand(TEdbNode("Succ"))), Param("p", TEdbNode("Nat"))), Seq(
+      Relation("succs", Seq(Param("n", TEdbNode("Succ"))), Seq(
         Body(Seq(
+          Eq(Var("n"), LookupEdbType(TEdbNode("Succ")))
+        ))
+      )),
+
+      Relation("preds", Seq(Param("s", TEdbNode("Succ")), Param("p", TEdbNode("Nat"))), Seq(
+        Body(Seq(
+          Call("succs", Seq(Var("s").arg)),
           Eq(Var("p"), LookupEdbField(Var("s"), "pred"))
         ))
       ))
     )
+
+    import Nat.*
+    val n = Succ(Succ(Zero()))
+    val edits = n.load()
+    mod.engine.feed.processEditScript(edits)
+
+    edits.print()
+
+    val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
+    println(preds.asTable)
+    assertResult(2)(preds.size)
   }
 
   test("Type field inverse lookup") {
-    module(
+    val mod = module(Nat.dataModel,
       EdbNodeDefinition("Nat"),
       EdbNodeDefinition("Zero", "Nat"),
       EdbNodeDefinition("Succ", "Nat"),
       EdbFieldDefinition("Succ", "pred", TEdbNode("Nat")),
 
-      Relation("preds", Seq(Param("s", TEdbNode("Succ")), Param("p", TDemand(TEdbNode("Nat")))), Seq(
+      Relation("nats", Seq(Param("n", TEdbNode("Nat"))), Seq(
         Body(Seq(
+          Eq(Var("n"), LookupEdbType(TEdbNode("Nat")))
+        ))
+      )),
+
+      Relation("preds", Seq(Param("s", TEdbNode("Succ")), Param("p", TEdbNode("Nat"))), Seq(
+        Body(Seq(
+          Call("nats", Seq(Var("p").arg)),
           Eq(Var("p"), LookupEdbField(Var("s"), "pred"))
         ))
       ))
     )
+
+    import Nat.*
+    val n = Succ(Succ(Zero()))
+    val edits = n.load()
+    mod.engine.feed.processEditScript(edits)
+
+    edits.print()
+
+    val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
+    println(preds.asTable)
+    assertResult(2)(preds.size)
   }
 
   test("Exp schema") {
-    module(
+    module(new DataModel(),
       EdbNodeDefinition("Exp"),
       EdbNodeDefinition("Var", "Exp"),
       EdbFieldDefinition("Var", "name", TEdbValue(TString)),

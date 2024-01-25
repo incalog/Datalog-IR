@@ -48,13 +48,17 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       engine.removeMatchUpdateListener(matcher, ViatraUpdateListener(up))
 
   override def instantiate(m: CompiledModule): Engine =
+    instantiate(m, new DataModel())
+  
+  def instantiate(m: CompiledModule, dataModel: DataModel): Engine =
     val options = m.compilerOptions
     val code = GeneratePSystem.compileModules(Seq(m.lowered), options)
+    println(code)
     val loadSource = s"$code;\n${m.name}"
     val compiler = new ScalaCompiler(options)
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)
 
-    val scope = new QueryScope(new DataModel())
+    val scope = new QueryScope(dataModel)
     val (viatraEngine, feed) = EnginePool.loadEngineAndDatabase(scope, backendFactory)
     new Engine(viatraEngine, feed, psystemModule)
 
