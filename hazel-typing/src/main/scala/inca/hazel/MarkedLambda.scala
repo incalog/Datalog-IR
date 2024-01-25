@@ -10,6 +10,7 @@ import inca.ir.extension.edbdata.*
 import inca.ir.extension.map.*
 import inca.ir.extension.not.*
 import inca.ir.extension.string.*
+import inca.viatra.Executor
 
 import scala.collection.mutable.ListBuffer
 
@@ -645,5 +646,13 @@ object MarkedLambda extends App:
   try compiled.checked
   finally println(module)
 
-//   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
-//   println(compiled.lowered)
+  println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
+  println(compiled.lowered)
+
+  val dataModel = ???
+   
+  val exec = new Executor()
+  val engine = exec.instantiate(compiled, dataModel)
+  
+  engine.feed.processEditScript(???)
+  
