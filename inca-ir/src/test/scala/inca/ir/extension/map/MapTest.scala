@@ -35,7 +35,7 @@ class MapTest extends AnyFunSuiteLike {
     typecheckerBefore.checkProgram(Seq(mod))
     //println(mod)
     val lowered = mapLowering.foldLeft(mod)((mod, l) => lower(l, mod))
-    mod
+    lowered
 
   test("Empty map"){
     val mainRelation = Relation(
@@ -113,6 +113,17 @@ class MapTest extends AnyFunSuiteLike {
       )))
     )
     //println(module(mainRelation))
+  }
 
+  test("Map plus") {
+    val mainRelation = Relation(
+      "main",
+      Seq(Param("m2", TMap(TString, TInt))),
+      Seq(Body(Seq(
+        Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+        Eq(Var("m2"), MapPlus(Var("m1"), StringLit("B"), IntNum(2)))
+      )))
+    )
+    module(mainRelation)
   }
 }
