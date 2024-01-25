@@ -650,9 +650,8 @@ object MarkedLambda extends App:
   println(compiled.lowered)
 
   val dataModel = ???
-   
+
   val exec = new Executor()
   val engine = exec.instantiate(compiled, dataModel)
-  
+
   engine.feed.processEditScript(???)
-  
