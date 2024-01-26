@@ -11,6 +11,7 @@ import inca.ir.extension.map.*
 import inca.ir.extension.not.*
 import inca.ir.extension.string.*
 import inca.viatra.Executor
+import inca.viatra.runtime.context.DataModel
 
 import scala.collection.mutable.ListBuffer
 
@@ -41,19 +42,9 @@ class MarkedLambda:
     Construct(TProd, Seq(ty1, ty2))
 
   private val TypeAnno = TEdbNode("TypeAnno")
-  contents ++= Seq(
-    EdbNodeDefinition(TypeAnno.name),
-    EdbNodeDefinition("TAUnknown", TypeAnno.name),
-    EdbNodeDefinition("TANum", TypeAnno.name),
-    EdbNodeDefinition("TABool", TypeAnno.name),
-    EdbNodeDefinition("TAArrow", TypeAnno.name),
-    EdbFieldDefinition("TAArrow", "dom", TypeAnno),
-    EdbFieldDefinition("TAArrow", "codom", TypeAnno),
-    EdbNodeDefinition("TAProd", TypeAnno.name),
-    EdbFieldDefinition("TAProd", "fst", TypeAnno),
-    EdbFieldDefinition("TAProd", "snd", TypeAnno)
-  )
+  contents ++= EdbDataModuleEntry.fromNodeMetaInfos(edb.typeAnnoNodes)
 
+  // TODO rewrite akin to TypeAnno:
   private val Exp = TEdbNode("Exp")
   contents ++= Seq(
     EdbNodeDefinition(Exp.name),
@@ -318,7 +309,8 @@ class MarkedLambda:
       Body( // MKSFree
         EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
           Eq(mark, Construct(MFree, Seq())),
-          Not(MapContains(ctx, x)),
+          // TODO: Not(MapContains(ctx, x)), creates a negative cycle
+          Eq(IntNum(0), IntNum(1)), // TODO dummy constraint that always fails
           Eq(ty, ConstructTUnknown)
         )
       ),
@@ -649,9 +641,29 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
   println(compiled.lowered)
 
-  val dataModel = ???
+
+  val dataModel = DataModel.from(edb.allNodes:_*)
 
   val exec = new Executor()
   val engine = exec.instantiate(compiled, dataModel)
 
-  engine.feed.processEditScript(???)
+  {
+    import edb.*
+    val t1 = TAArrow(TANum(), TANum())
+    val t2 = TAArrow(TABool(), TANum())
+    val t3 = TAArrow(TAUnknown(), TANum())
+
+    println(s"Loading $t1")
+    engine.feed.processEditScript(t1.loadEdits)
+
+    println(s"Replace by $t2.to")
+    val (edits12, newT2) = t1.compareTo(t2)
+    engine.feed.processEditScript(edits12)
+
+    println(s"Replace by $t3")
+    val (edits23, newT3) = newT2.compareTo(t3)
+    engine.feed.processEditScript(edits23)
+  }
+
+// negative cycle
+// synMark -> Map$TString@edb_Type$$rel -> Map$TString@edb_Type$$rel$input -> synMark$input -> anaMark -> synMark

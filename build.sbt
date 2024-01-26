@@ -18,14 +18,18 @@ val truediffVersion = "0.1.5-SNAPSHOT"
 
 lazy val inca_ir = (project in file("inca-ir"))
   .settings(
-  scalaVersion := scalaVersionString,
+    scalaVersion := scalaVersionString,
 
-  libraryDependencies ++= Seq(
-    "org.scalatest" %% "scalatest" % "3.2.16" % "test",
-    "org.typelevel" %% "cats-parse" % "0.3.9",
-    "org.typelevel" %% "cats-core" % "2.9.0",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
+      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+    )
   )
-)
 
 lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
@@ -140,6 +144,7 @@ lazy val hazel_typing = (project in file("hazel-typing"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_foreign_scala % "compile->compile")
   .dependsOn(inca_viatra % "compile->compile")
+  .dependsOn(hazel_typing_diffable % "compile->compile")
   .settings(
     scalaVersion := "3.3.0",
 
@@ -147,5 +152,18 @@ lazy val hazel_typing = (project in file("hazel-typing"))
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
     )
   )
+lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
+  .settings(
+    scalaVersion := "2.13.10",
+    scalacOptions += "-Ymacro-annotations",
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
+    libraryDependencies ++= Seq(
+      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+      ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    )
+  )
 

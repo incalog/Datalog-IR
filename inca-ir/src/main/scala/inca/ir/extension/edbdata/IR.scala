@@ -1,6 +1,10 @@
 package inca.ir.extension.edbdata
 
 import inca.ir.*
+import inca.ir.extension.arithmetic.TInt
+import truechange.{AnyType, JavaLitType, ListType, NamedLink, NodeMetaInfo, NothingType, OptionType, RefType, SortType}
+
+import scala.collection.mutable.ListBuffer
 
 trait EdbDataModuleEntry extends ModuleEntry
 
@@ -64,6 +68,57 @@ enum Link:
   override def toString: String = this match
     case Field(name) => name.toString
     case _ => super.toString
+
+object EdbDataModuleEntry:
+  def fromNodeMetaInfos(nodes: Seq[NodeMetaInfo]): Seq[EdbDataModuleEntry] =
+    nodes.flatMap(fromNodeMetaInfo)
+
+  def fromNodeMetaInfos(node: NodeMetaInfo, nodes: NodeMetaInfo*): Seq[EdbDataModuleEntry] =
+    fromNodeMetaInfo(node) ++ nodes.flatMap(fromNodeMetaInfo)
+
+  def fromNodeMetaInfo(node: NodeMetaInfo): Seq[EdbDataModuleEntry] =
+    if (node.superSorts.size > 1)
+      throw new IllegalArgumentException(s"EDB nodes with multiple super sorts not currently supported")
+
+    val nodeName = EdbType.fromTruechangeSortType(node.sort).name
+    val buf = ListBuffer.empty[EdbDataModuleEntry]
+    val sup = node.superSorts.headOption.map(EdbType.fromTruechangeSortType(_).name)
+    buf += EdbNodeDefinition(nodeName, sup)
+    node.links.foreach { case (NamedLink(linkName), trgTy) =>
+      buf += EdbFieldDefinition(nodeName, Name(linkName), EdbType.fromTruechangeType(trgTy))
+    }
+    node.litLinks.foreach { case (NamedLink(linkName), trgTy) =>
+      buf += EdbFieldDefinition(nodeName, Name(linkName), EdbType.fromTruechangeLitType(trgTy))
+    }
+    buf.toList
+
+object EdbType:
+  def fromTruechangeType(ty: truechange.Type, simpleName: Boolean = true): EdbType = ty match
+    case st: SortType => fromTruechangeSortType(st)
+    case ListType(elTy) => TEdbList(fromTruechangeType(elTy))
+    case _ => throw new UnsupportedOperationException(s"Cannot convert $ty to EdbType")
+
+  def fromTruechangeSortType(ty: truechange.SortType, simpleName: Boolean = true): TEdbNode =
+    val name = ty.name
+    if (simpleName) {
+      val ix = name.lastIndexOf('.')
+      if (ix < 0)
+        TEdbNode(Name(name))
+      else
+        TEdbNode(Name(name.substring(ix + 1)))
+    } else {
+      TEdbNode(Name(name))
+    }
+
+
+  def fromTruechangeLitType(lty: truechange.LitType): EdbType = lty match
+    case JavaLitType(cl) =>
+      println(s"LitType class $cl")
+      if (cl == classOf[Int])
+        TEdbValue(TInt)
+      else
+        throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
+    case _ => throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
 
 object IR extends IR
 trait IR extends BaseIR:
