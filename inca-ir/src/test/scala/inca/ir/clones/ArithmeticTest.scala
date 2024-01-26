@@ -6,23 +6,12 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
-import inca.ir.analysis.ValueNumbering
+import inca.ir.analysis.{ConfigVN, ValueNumbering}
 
 
-class ArithmeticTest extends AnyFunSuite{
+class ArithmeticTest extends ValueNumberingTestAbstract{
 
-
-  def performTest(expected: IRModule, input: IRModule, simplify: Boolean = false, propagateConstants: Boolean = false): Unit = {
-    val VN = new ValueNumbering(simplify,propagateConstants)
-    val typecheckerBefore = new Typechecker {}
-    typecheckerBefore.checkProgram(Seq(input))
-    println(s"before VN: \n$input")
-    val result = VN.valueNumbering(input)
-    val typecheckerAfter = new Typechecker {}
-    typecheckerAfter.checkProgram(Seq(result))
-    println(s"after VN: \n$result")
-    assertResult(expected)(result)
-  }
+  override val config: ConfigVN = ConfigVN(true)
 
 
   test("Add (Commutativity)") {
@@ -56,7 +45,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Add (Associativity)") {
@@ -90,7 +79,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Add zero") {
@@ -120,7 +109,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("sub not commutative") {
@@ -150,7 +139,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("sub") {
@@ -180,7 +169,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("mul commutative") {
@@ -210,7 +199,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("mul associative") {
@@ -240,7 +229,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("mul & add distributivity") {
@@ -280,7 +269,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("mul one and zero") {
@@ -316,7 +305,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("div") {
@@ -366,7 +355,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Remainder/mod") { // TODO cases that would not be solved by constant propagation ?
@@ -411,7 +400,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Min") {
@@ -447,7 +436,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Max") {
@@ -485,7 +474,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Abs") {
@@ -519,7 +508,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("Simpsons Example for Hash-Based") {
@@ -560,7 +549,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true)
+    performTest(expected, input)
   }
 
   test("propagate constants") {
@@ -596,7 +585,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true)
+    performTest(expected, input, ConfigVN(true, true))
   }
 
   test("propagate constants: zero") {
@@ -632,7 +621,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true)
+    performTest(expected, input, ConfigVN(true, true))
   }
 
   test("propagate constants: Remainder/mod") {
@@ -677,7 +666,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true)
+    performTest(expected, input, ConfigVN(true, true))
   }
 
   test("propagate constants: Min") {
@@ -713,7 +702,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true )
+    performTest(expected, input, ConfigVN(true, true))
   }
 
   test("propagate constants: Max") {
@@ -755,7 +744,7 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true)
+    performTest(expected, input, ConfigVN(true, true))
   }
 
   test("propagate constants: Abs") {
@@ -795,7 +784,117 @@ class ArithmeticTest extends AnyFunSuite{
           ))
         ))
       ))
-    performTest(expected, input, true, true)
+    performTest(expected, input, ConfigVN(true, true))
+  }
+
+  test("propagate constants: Two Bodies") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("H1")), Div(Mul(Var("Y"), Var("X")), IntNum(2))),
+            Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
+            Eq(Var(Name("Z")), Sub(Var("H1"), Mul(Var("H2"), IntNum(3)))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          )),
+          Body(Seq(
+            Eq(Var(Name("X")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("A")), Div(Var(Name("X")), Var(Name("Y")))),
+            Eq(Var(Name("B")), Div(Mul(Var("Y"), Var("X")), IntNum(2))), // should not be replaced with H1 from other body
+            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("B"))))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+//            Eq(Var(Name("X")), IntNum(5)),
+            //Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("H1")), IntNum(12)),
+            //Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
+//            Eq(Var(Name("Z")), IntNum(-24)),
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(-24))
+          )),
+          Body(Seq(
+//            Eq(Var(Name("X")), IntNum(4)),
+            //Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
+//            Eq(Var(Name("A")), IntNum(1)),
+//            Eq(Var(Name("B")), IntNum(8)), // should not be replaced with H1 from other body
+//            Eq(Var(Name("Z")), IntNum(13)),
+            Eq(Var(Name("param$0")), IntNum(4)),
+            Eq(Var(Name("param$1")), IntNum(4)),
+            Eq(Var(Name("param$2")), IntNum(13))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true,true))
+  }
+
+  test("propagate constants: Call replace Args") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("C")), Var(Name("B"))),
+            Call(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("B"))), TermArg(Var(Name("C")))), false),
+            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("B"))), TermArg(Var(Name("B")))), false),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("C")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+//            Eq(Var(Name("A")), IntNum(5)),
+            //            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+            //            Eq(Var(Name("C")), Var(Name("B"))),
+            Call(Name("b"), Seq(TermArg(IntNum(5)), TermArg(IntNum(5)), TermArg(IntNum(5))), false),
+            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(IntNum(5)), TermArg(IntNum(5))), false),
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5)),
+            Eq(Var(Name("param$1")), IntNum(5)),
+            Eq(Var(Name("param$2")), IntNum(5)),
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true,true))
   }
 
 }

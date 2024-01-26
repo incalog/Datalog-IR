@@ -5,21 +5,30 @@ import inca.ir.visitors.IRVisitor
 import inca.ir.extension.arithmetic.*
 import inca.ir.util.SourceLocation
 
-/** Assumptions:
-    - no unsatisfiable atoms
-    - no unbound Var (i.e. input was typechecked before)
+/*************************************************************************
+ *  Assumptions:
+ *   - no unsatisfiable atoms
+ *   - no unbound Var (i.e. input was typechecked before)
+ *
+ *************************************************************************/
 
- */
+
+
+/** wraps parameters for value numbering */
+case class ConfigVN(simplifyArithmetic: Boolean = false,
+                    propagateConstants: Boolean = false,
+                    occurrencesBeforeRemoved: Int = 0)
+
 
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
-class ValueNumbering(simplify: Boolean = false, propagateConstants: Boolean = false) extends IRVisitor {
+class ValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   type ValNum = String
   type Hashed = Int
 
-  var Const: Map[String, Term] = Map()
   var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
   var hashTable: Map[Hashed, ValNum] = Map()
+  var Const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
 
   def valueNumbering(module: ir.Module): ir.Module = {
     visitModule(module)
@@ -44,13 +53,14 @@ class ValueNumbering(simplify: Boolean = false, propagateConstants: Boolean = fa
   override def visitBody(body: Body): Seq[Body] = {
     VN = Map()
     hashTable = Map()
+    Const = Map()
     super.visitBody(body)
   }
 
   // TODO add more cases (e.g. more rules, DoubleNum)
   //  probably no recursive call needed here since called in visitTerm
   private def simplify(term: Term): Term = {
-    if !this.simplify then return term
+    if !this.config.simplifyArithmetic then return term
     term match {
       case DoubleNum(value) if value.isWhole => IntNum(value.intValue())
       case BinOp(lhs, rhs, "+") => (lhs, rhs) match {
@@ -124,10 +134,10 @@ class ValueNumbering(simplify: Boolean = false, propagateConstants: Boolean = fa
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(RefByName(Name(name))) if Const.contains(name) && this.propagateConstants => Seq(Const(name))
+    case v@Var(RefByName(Name(name))) if Const.contains(name) && this.config.propagateConstants => Seq(Const(name))
     case v@Var(RefByName(Name(name))) if VN.contains(name) =>
       Seq(
-        if Const.contains(VN(name)) && this.propagateConstants then
+        if Const.contains(VN(name)) && this.config.propagateConstants then
           Const(VN(name))
         else Var(RefByName(Name(VN(name)))))
     case IntNum(_) => Seq(term)
@@ -231,7 +241,7 @@ class ValueNumbering(simplify: Boolean = false, propagateConstants: Boolean = fa
       VN += (x, v)
       hashTable += (exprHash, v)
 
-      if (isConst && this.propagateConstants) {
+      if (isConst && this.config.propagateConstants) {
         Const += (x, newTerm)
         if !isParam(x) then return Seq()
       }

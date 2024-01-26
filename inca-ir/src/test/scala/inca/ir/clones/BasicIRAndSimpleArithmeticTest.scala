@@ -6,24 +6,13 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
-import inca.ir.analysis.ValueNumbering
+import inca.ir.analysis.{ConfigVN, ValueNumbering}
                                                                                                                                                                                                     
 
 // TODO add Tests with DoubleNum
 
-class BasicIRAndSimpleArithmeticTest extends AnyFunSuite {
+class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 
-  def performTest(expected: IRModule, input: IRModule, simplify: Boolean = false): Unit = {
-    val VN = new ValueNumbering(simplify)
-    val typecheckerBefore = new Typechecker {}
-    typecheckerBefore.checkProgram(Seq(input))
-    println(s"before VN: \n$input")
-    val result = VN.valueNumbering(input)
-    val typecheckerAfter = new Typechecker {}
-    typecheckerAfter.checkProgram(Seq(result))
-    println(s"after VN: \n$result")
-    assertResult(expected)(result)
-  }
 
   test("Simple Redundant term in Eq") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -385,7 +374,7 @@ class BasicIRAndSimpleArithmeticTest extends AnyFunSuite {
           ))
         ))
       ))
-    performTest(expected,input,true)
+    performTest(expected,input,ConfigVN(true))
   }
 
   test("Redundant term in LT") {
@@ -522,7 +511,29 @@ class BasicIRAndSimpleArithmeticTest extends AnyFunSuite {
 //    performTest(expected, input)
 //  }
 
-
+  test("If lowered (small)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("main"), Seq(Param("main_result$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("x")), IntNum(7)),
+            Eq(Var(Name("if_result$0")), Var(Name("x"))),
+            Eq(Var(Name("main_result$0")), Var(Name("if_result$0"))),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("main"), Seq(Param("main_result$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("x")), IntNum(7)),
+            //            Eq(Var(Name("if_result$0")), Var(Name("x"))),
+            Eq(Var(Name("main_result$0")), Var(Name("x"))),
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
 
   test("Call replace Args") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -691,5 +702,8 @@ class BasicIRAndSimpleArithmeticTest extends AnyFunSuite {
       ))
     performTest(expected, input)
   }
+
+
+
 
 }
