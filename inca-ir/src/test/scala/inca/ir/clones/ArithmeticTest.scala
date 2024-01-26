@@ -759,9 +759,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("B"), Abs(Var("Y"))),
             Eq(Var("C"), Abs(Var("Z"))),
             Eq(Var("C"), Abs(Var("A"))),
-            Eq(Abs(Var("C")), Var("D")),
+//            Eq(Abs(Var("C")), Var("D")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("D"))),
+            Eq(Var(Name("param$1")), Var(Name("A"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
@@ -895,6 +895,69 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         ))
       ))
     performTest(expected, input, ConfigVN(true,true))
+  }
+
+  test("Redundant Term in Eq: multiple relations") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(IntNum(2), Var("X1")),
+            Eq(Var(Name("param$0")), Var(Name("X1")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), Add(IntNum(1), IntNum(10)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(11))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true, true))
+  }
+
+  test("Redundant term in Eq with more Eqs with same Var") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), IntNum(1)),
+            Eq(Var(Name("Y")), IntNum(1)),
+            Eq(Var(Name("X")), Mul(IntNum(1), IntNum(1))),
+            Eq(Var(Name("Z1")), Div(IntNum(1), IntNum(1))),
+            Eq(Var(Name("Z2")), IntNum(1)),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Z1")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), IntNum(1)),
+            //Eq(Var(Name("Y")), Var(Name("X"))),
+//            Eq(Var(Name("X")), Mul(IntNum(1), IntNum(1))), // TODO gets remembered correctly but could be removed here
+            //            Eq(Var(Name("Z1")), Mul(IntNum(1), IntNum(1)))),
+            //            Eq(Var(Name("Z2")), IntNum(1)),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("X")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
 
 }

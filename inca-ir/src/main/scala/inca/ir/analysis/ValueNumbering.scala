@@ -35,8 +35,8 @@ class ValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   // TODO dont use scala`s hashing function
-  //    Type of argument -> change from Term to e.g. Analyzable since need to Hash Calls too?
-  private def getHashCode(elem: Term): Hashed = elem match {
+  // Type of argument -> changed from Term to Analyzable since need to Hash Atoms like Calls too
+  private def getHashCode(elem: Analyzable): Hashed = elem match {
     case Var(RefByName(Name(name))) if VN.contains(name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
@@ -149,76 +149,28 @@ class ValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match{
-    case Eq(vari@Var(RefByName(Name(x))), e, false) /*if vari.mode.isBinding*/ =>   // TODO use vari.mode.isBinding so that certain comparisons will not be removed?
-      treatBinding(x,e)
-    case Eq(e, vari@Var(RefByName(Name(x))), false) /*if vari.mode.isBinding*/ =>
-      treatBinding(x,e)
+    case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>   // use vari.mode.isBinding so that next case is chosen correctly
+      treatBindingInEq(x,e)
+    case Eq(e, vari@Var(RefByName(Name(x))), false) /*if vari.mode.isBinding*/ =>   // TODO here too?
+      treatBindingInEq(x,e)
+    case Eq(Var(RefByName(Name(x))), e, false) =>
+      treatBindingInEq(x,e)
 
-// TODO use this or not
-//
-//    case Eq(vari@Var(Name(x)), e, false) if !vari.mode.isBinding =>   // then not removed and not added to tables
-//      val newTerm = visitTerm(e).head
-//      val exprHash: Hashed = getHashCode(newTerm)
-//      if (hashTable.contains(exprHash)) {
-//        val v: ValNum = newTerm match {
-//          case Var(Name(str)) => str // then term was already replaced in visitTerm
-//          case _ => hashTable(exprHash) // term was already processed in visitTerm but there it was decided not to replace it
+    case call@Call(ref, args, false) => valueNumberAtoms(call, args)
+    // TODO can equivalence of two vars not be concluded from calls?
+    //  could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1), b(a2) not necessarily implies that a1 == a2
+//        val otherRelation = ref.target.get
+//        if (otherRelation.bodies.size <= 1){  // then args which are bound by call have a unique value
+//          args.map{arg =>
+//           ???
+//          }
 //        }
-//        // VN += (x, v)
-//        // do not remove since this Eq is not an "Assignment" and may change the meaning of the program
-//        Seq(Eq(Var(Name(x)), newTerm))
-//      }
-//      else {
-//        val v = x
-//        // VN += (x, v)
-//        // hashTable += (exprHash, v)
-//        Seq(
-//          // return with newTerm
-//          Eq(Var(Name(x)), newTerm)
-//        )
-//      }
 
-//    case Call(ref, args, false) =>
-      // TODO determine if arg is being bound -> treat those like Var in Eq above (if not neg)?
-      //  but could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1), b(a2) not necessarily implies that a1 == a2
-//      val newCall = super.visitAtom(atom).head
-//      val referencedRelation: Relation = ref.target.get  // TODO target not known
-//      if (otherRelation.bodies.size <= 1){  // then args which are bound by call have a unique value
-//
-////        args.map{arg =>
-////          arg.vars.map{vari =>
-////            ???
-////          }
-////        }
-//
-//      }
-      // TODO hash Call (after replacing args) and remove it if already computed
-      // TODO second VN & hash- table for atoms?
-//      val newCall = super.visitAtom(atom).head
-//      val callHash: Hashed = getHashCode(newCall)
-//      val x = referencedRelation.name ++ args.toString()
-//      if (hashTable.contains(callHash)) {
-//        val v: ValNum = hashTable(callHash)
-//        VN += (x, v)
-//        // remove Call or replace args
-//        if args.exists(isParam(_)) then Seq(newCall)
-//        else Seq()
-//      }
-//      else {
-//        val v = x
-//        VN += (x, v)
-//        hashTable += (callHash, v)
-//        Seq(
-//          newCall
-//        )
-//      }
-//      Seq(newCall)
-
-    case _ => super.visitAtom(atom)
+    case _ => valueNumberAtoms(atom)
   }
 
 
-  private def treatBinding(x: String, e: Term): Seq[Atom] = {
+  private def treatBindingInEq(x: String, e: Term): Seq[Atom] = {
     val newTerm = visitTerm(e).head
     val isConst = newTerm match {
       case IntNum(_) | DoubleNum(_) => true
@@ -233,7 +185,7 @@ class ValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
       VN += (x, v)
       // remove "Assignment" or replace term
-      if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm  TODO isParam enough ?
+      if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       else Seq()
     }
     else {
@@ -243,13 +195,40 @@ class ValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       if (isConst && this.config.propagateConstants) {
         Const += (x, newTerm)
-        if !isParam(x) then return Seq()
+        if !isParam(x) then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
 
       Seq(
         // return with newTerm
         Eq(Var(RefByName(Name(x))), newTerm)
       )
+    }
+  }
+
+
+  private def valueNumberAtoms(atom: Atom, callArgs: Seq[Arg] = Seq()): Seq[Atom] = { // callArgs only given to function if atom is a call
+    val newAtom = super.visitAtom(atom).head
+    val atomHash: Hashed = getHashCode(newAtom)
+    val x = atom.toString
+
+    if (hashTable.contains(atomHash)) { // TODO other Maps for Atoms or okay like this ?
+      val v: ValNum = hashTable(atomHash)
+      VN += (x, v)
+      // remove Call or replace args
+      if atom.vars.exists(arg => isParam(arg.toString)) then Seq(newAtom)
+      else Seq()
+    }
+    else {
+      val v = x
+      VN += (x, v)
+      hashTable += (atomHash, v)
+
+      callArgs.foreach { case TermArg(t) => t match // add binding vars to maps
+        case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => VN += (variName, variName); hashTable += (atomHash, variName)
+        case _ =>
+      }
+
+      Seq(newAtom)
     }
   }
 
