@@ -5,7 +5,7 @@ import inca.ir.{Atom, Body, Eq, Name, RefByName, Term, TermType, Var}
 import inca.ir.visitors.IRVisitor
 
 /**
- * TODO: We need to restructure the optimizations (including the once with the abstract interpreter)
+ * TODO: We need to restructure the optimizations (including the one with the abstract interpreter)
  *  into a better package structure
  *
  * Note: We currently need this because the DependencyAnalysis becomes to big. We need to make the

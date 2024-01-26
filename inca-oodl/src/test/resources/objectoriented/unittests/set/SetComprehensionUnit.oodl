@@ -1,0 +1,17 @@
+module SetComprehensionUnit
+
+class A {
+  val nums: mono.Set[Int] = new mono.Set[Int]()
+
+  def add(i: Int): Unit = {
+    this.nums += i
+  }
+}
+
+@main
+def main(): Set[Int] = {
+  val a = new A()
+  for (i <- Set(1,2,3)) yield
+    a.add(i)
+  for (i <- a.nums) yield i
+}

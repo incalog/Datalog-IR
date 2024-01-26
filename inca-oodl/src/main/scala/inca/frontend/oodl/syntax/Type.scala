@@ -47,7 +47,11 @@ object TTuple {
 }
 
 case class TName(name: Name, tyArgs: Seq[Type]) extends Type with Resolvable[TName.Target]:
-  override def prettyprint: String = name.name
+  override def prettyprint: String =
+    if (tyArgs.nonEmpty)
+      s"""$name[${tyArgs.mkString(", ")}]"""
+    else
+      name.name
   override def flatten: Seq[Type] = Seq(this)
   def isBuiltIn: Boolean = builtInTypes.contains(name.name)
 

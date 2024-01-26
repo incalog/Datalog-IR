@@ -18,15 +18,33 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
-
-    val start = System.nanoTime()
     var res = loaded.execute("main", Seq(endNode, step))
-    val diff = System.nanoTime() - start
 
     val setAdt = res.entries.head
     val query = Relation.from("Set$TString$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
 
-    //println(diff.toDouble / 1000 / 1000 / 1000)
     assertResult(0.to(endNode).map("a" + _).toSet)(res.toSet)
+  }
+
+  test("ControlFlowGraph") {
+    val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 3)
+
+    println(res)
+
+    val expectedRes = Set(
+      ("VarDef", "While"), ("Assign", "While"), ("While", "Assign"),
+      ("VarDef", "VarDef"), ("Assign", "Assign")
+    )
+
+    //println(diff.toDouble / 1000 / 1000 / 1000)
+    assertResult(expectedRes)(res.toSet)
   }
