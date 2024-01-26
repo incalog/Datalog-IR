@@ -1,9 +1,7 @@
 package inca.ir.extension.impure
 
-import inca.ir.Hint
-import inca.ir.Hint.Key
-import inca.ir.Var
+import inca.ir.{Hint, HintKey}
 
-object MainHint extends Hint, Hint.Key:
-  override def key: Key = this
+object MainHint extends Hint, HintKey[MainHint.type]:
+  override def key: HintKey[_] = this
 
