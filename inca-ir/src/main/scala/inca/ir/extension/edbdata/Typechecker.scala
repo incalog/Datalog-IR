@@ -4,6 +4,8 @@ import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
 import inca.ir.*
 
+import scala.annotation.tailrec
+
 trait Typechecker extends BaseIRTypechecker:
 
   def lookupEdbNode(name: Name, s: SourceLocation): Option[(Seq[Name], EdbNodeDefinition)] =
@@ -13,6 +15,13 @@ trait Typechecker extends BaseIRTypechecker:
       case _ =>
         error(s"Could not find data type $name", s)
         None
+
+  @tailrec
+  private def rootEdbNodeOf(name: Name, s: SourceLocation): Option[EdbNodeDefinition] = lookupEdbNode(name, s) match
+    case Some((_,dd)) => dd.sup match
+      case None => Some(dd)
+      case Some(sup) => rootEdbNodeOf(sup.name, s)
+    case None => None
 
   def lookupEdbField(name: Name, locations: SourceLocation*): Option[(Seq[Name], EdbFieldDefinition)] =
     entries.get(name) match
@@ -38,6 +47,14 @@ trait Typechecker extends BaseIRTypechecker:
     case TEdbList(ty) => checkEdbType(ty, s)
     case TEdbNode(name) => lookupEdbNode(name, s)
     case _ => throw new IllegalArgumentException(s"Cannot check unknown $ety")
+
+  override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
+    case (TEdbNode(name1), TEdbNode(name2)) => (rootEdbNodeOf(name1, t), rootEdbNodeOf(name2, t)) match
+      case (Some(dd1), Some(dd2)) =>
+        if (dd1.name != dd2.name)
+          error(s"$t of type $ty is not comparable to $outside: $ty and $outside do not share a common supertype", t)
+      case _ => // lookup error
+    case _ => super.assertComparable(ty, outside, t)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case LookupEdbType(ety) =>
