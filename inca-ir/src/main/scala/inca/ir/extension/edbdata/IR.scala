@@ -93,22 +93,14 @@ object EdbDataModuleEntry:
     buf.toList
 
 object EdbType:
-  def fromTruechangeType(ty: truechange.Type, simpleName: Boolean = true): EdbType = ty match
+  def fromTruechangeType(ty: truechange.Type): EdbType = ty match
     case st: SortType => fromTruechangeSortType(st)
     case ListType(elTy) => TEdbList(fromTruechangeType(elTy))
     case _ => throw new UnsupportedOperationException(s"Cannot convert $ty to EdbType")
 
-  def fromTruechangeSortType(ty: truechange.SortType, simpleName: Boolean = true): TEdbNode =
+  def fromTruechangeSortType(ty: truechange.SortType): TEdbNode =
     val name = ty.name
-    if (simpleName) {
-      val ix = name.lastIndexOf('.')
-      if (ix < 0)
-        TEdbNode(Name(name))
-      else
-        TEdbNode(Name(name.substring(ix + 1)))
-    } else {
-      TEdbNode(Name(name))
-    }
+    TEdbNode(Name(name))
 
 
   def fromTruechangeLitType(lty: truechange.LitType): EdbType = lty match

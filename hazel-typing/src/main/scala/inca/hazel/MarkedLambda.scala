@@ -41,7 +41,7 @@ class MarkedLambda:
   private val ConstructTProd = (ty1: Term, ty2: Term) =>
     Construct(TProd, Seq(ty1, ty2))
 
-  private val TypeAnno = TEdbNode("TypeAnno")
+  private val TypeAnno = TEdbNode(q("TypeAnno"))
   contents ++= EdbDataModuleEntry.fromNodeMetaInfos(edb.typeAnnoNodes)
 
   // TODO rewrite akin to TypeAnno:
@@ -119,35 +119,37 @@ class MarkedLambda:
   private def x = Var("x")
   private def xStr = Var("xStr")
 
+  def q(name: String): String = s"inca.hazel.edb.$name"
+
   private val typeOfEdbType = "typeOfEdbType"
   contents += Relation(
     typeOfEdbType,
     Seq(Param(ty(1).name, TypeAnno), Param(ty(2).name, Type)),
     Seq(
       Body(
-        EdbDeconstruct(ty(1), "TAUnknown") ++ Seq(
+        EdbDeconstruct(ty(1), q("TAUnknown")) ++ Seq(
           Eq(ty(2), Construct(TUnknown, Seq()))
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), "TANum") ++ Seq(
+        EdbDeconstruct(ty(1), q("TANum")) ++ Seq(
           Eq(ty(2), Construct(TNum, Seq()))
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), "TABool") ++ Seq(
+        EdbDeconstruct(ty(1), q("TABool")) ++ Seq(
           Eq(ty(2), Construct(TBool, Seq()))
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), "TAArrow", "dom" -> Var("tadom"), "codom" -> Var("tacodom")) ++ Seq(
+        EdbDeconstruct(ty(1), q("TAArrow"), "dom" -> Var("tadom"), "codom" -> Var("tacodom")) ++ Seq(
           Call(typeOfEdbType, Seq(Var("tadom"), Var("tdom"))),
           Call(typeOfEdbType, Seq(Var("tacodom"), Var("tcodom"))),
           Eq(ty(2), Construct(TArrow, Seq(Var("tdom"), Var("tcodom"))))
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), "TAProd", "fst" -> Var("tafst"), "snd" -> Var("tasnd")) ++ Seq(
+        EdbDeconstruct(ty(1), q("TAProd"), "fst" -> Var("tafst"), "snd" -> Var("tasnd")) ++ Seq(
           Call(typeOfEdbType, Seq(Var("tafst"), Var("tfst"))),
           Call(typeOfEdbType, Seq(Var("tasnd"), Var("tsnd"))),
           Eq(ty(2), Construct(TProd, Seq(Var("tfst"), Var("tsnd"))))
@@ -648,7 +650,6 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
   println(compiled.lowered)
 
-
   val dataModel = DataModel.from(edb.allNodes:_*)
 
   val exec = new Executor()
@@ -661,16 +662,19 @@ object MarkedLambda extends App:
     val t3 = TAArrow(TAUnknown(), TANum())
 
     println(s"Loading $t1")
+    t1.loadEdits.print()
     engine.feed.processEditScript(t1.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
 
-    println(s"Replace by $t2.to")
+    println(s"Replace by $t2")
     val (edits12, newT2) = t1.compareTo(t2)
+    edits12.print()
     engine.feed.processEditScript(edits12)
     engine.readAll().map(_.asTable).foreach(println)
 
     println(s"Replace by $t3")
     val (edits23, newT3) = newT2.compareTo(t3)
+    edits23.print()
     engine.feed.processEditScript(edits23)
     engine.readAll().map(_.asTable).foreach(println)
   }
