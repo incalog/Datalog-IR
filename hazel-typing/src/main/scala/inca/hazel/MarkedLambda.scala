@@ -107,7 +107,7 @@ class MarkedLambda:
 
   private val ConstructMNone = Construct(MNone, Seq())
 
-  private val Ctx = TMap(TEdbValue(TString), Type)
+  private val Ctx = TMap(TString, Type)
 
   private def ctx = Var("ctx")
   private def e = Var("e")
@@ -117,6 +117,7 @@ class MarkedLambda:
   private def ty = Var("ty")
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
+  private def xStr = Var("xStr")
 
   private val typeOfEdbType = "typeOfEdbType"
   contents += Relation(
@@ -303,7 +304,7 @@ class MarkedLambda:
       Body( // MKSVar
         EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
           Eq(mark, ConstructMNone),
-          Eq(ty, MapLookUp(ctx, x))
+          Eq(ty, MapLookUp(ctx, Cast(x, TString)))
         )
       ),
       Body( // MKSFree
@@ -323,9 +324,10 @@ class MarkedLambda:
           "body" -> e(1)
         ) ++ Seq(
           Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(3).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(3).arg)
           ),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTArrow(ty(2), ty(3)))
@@ -382,9 +384,10 @@ class MarkedLambda:
             synMark,
             Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
           ),
+          Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, x, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -504,9 +507,10 @@ class MarkedLambda:
           Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
           Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
           Call(consistent, Seq(ty(2).arg, ty(4).arg)),
+          Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -521,9 +525,10 @@ class MarkedLambda:
         ) ++ Seq(
           Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
           Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, x, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
           ),
           Eq(mark, Construct(MLamAnaInconAsc, Seq(ty(4))))
         )
@@ -537,10 +542,11 @@ class MarkedLambda:
           "body" -> e(1)
         ) ++ Seq(
           Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
             Seq(
-              MapPlus(ctx, x, ty(2)).arg,
+              MapPlus(ctx, xStr, ty(2)).arg,
               e(1).arg,
               mark(1).arg,
               ConstructTUnknown
@@ -561,9 +567,10 @@ class MarkedLambda:
             synMark,
             Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
           ),
+          Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, x, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -655,14 +662,17 @@ object MarkedLambda extends App:
 
     println(s"Loading $t1")
     engine.feed.processEditScript(t1.loadEdits)
+    engine.readAll().map(_.asTable).foreach(println)
 
     println(s"Replace by $t2.to")
     val (edits12, newT2) = t1.compareTo(t2)
     engine.feed.processEditScript(edits12)
+    engine.readAll().map(_.asTable).foreach(println)
 
     println(s"Replace by $t3")
     val (edits23, newT3) = newT2.compareTo(t3)
     engine.feed.processEditScript(edits23)
+    engine.readAll().map(_.asTable).foreach(println)
   }
 
 // negative cycle
