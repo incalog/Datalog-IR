@@ -6,7 +6,7 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
-import inca.ir.analysis.{ConfigVN, ValueNumbering}
+import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 
 class ArithmeticTest extends ValueNumberingTestAbstract{
@@ -954,6 +954,44 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //            Eq(Var(Name("Z2")), IntNum(1)),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Add DoubleNum") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TDouble), Param("param$1", TDouble), Param("param$2", TDouble)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), DoubleNum(1.2)),
+            Eq(Var(Name("Y")), DoubleNum(3.4)),
+            Eq(Var(Name("H1")), Add(Var("X"), DoubleNum(2.4))),
+            Eq(Var(Name("H2")), Add(DoubleNum(2.4), Var("X"))),
+            Eq(Var(Name("H3")), Add(DoubleNum(2.4), IntNum(0))),
+            Eq(Var(Name("H4")), Add(Var(Name("H2")), DoubleNum(0.0))),
+            Eq(Var(Name("Z")), Add(Var("H3"), Var("H4"))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TDouble), Param("param$1", TDouble), Param("param$2", TDouble)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), DoubleNum(1.2)),
+            Eq(Var(Name("Y")), DoubleNum(3.4)),
+            Eq(Var(Name("H1")), Add(Var("X"), DoubleNum(2.4))),
+//            Eq(Var(Name("H2")), Add(DoubleNum(2.4), Var("X"))),
+//            Eq(Var(Name("H3")), Add(DoubleNum(2.4), IntNum(0))),
+//            Eq(Var(Name("H4")), Add(Var(Name("H2")), DoubleNum(0.0))),
+            Eq(Var(Name("Z")), Add(Var("H1"), Var("H1"))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
       ))

@@ -6,8 +6,8 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
-import inca.ir.analysis.{ConfigVN, ValueNumbering}
-                                                                                                                                                                                                    
+import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
+
 
 // TODO add Tests with DoubleNum
 
@@ -790,6 +790,40 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         ))
       ))
     performTest(expected, input)
+  }
+
+  test("Redundant bodies") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"),IntNum(1)))
+          )),
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n", Int(1))))
+//          )),
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true, true))
   }
 
 

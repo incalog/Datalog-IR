@@ -6,8 +6,7 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
-import inca.ir.analysis.{ConfigVN, ValueNumbering}
-
+import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 
 abstract class ValueNumberingTestAbstract extends AnyFunSuite{
