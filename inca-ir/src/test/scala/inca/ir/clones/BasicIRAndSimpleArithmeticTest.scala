@@ -819,11 +819,45 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var(Name("n")), IntNum(10)),
             GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
+  }
+
+  test("Redundant bodies 2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
+//            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+//          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(4)),
+            Eq(Var(Name("n")), IntNum(10)),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true))
   }
 
 

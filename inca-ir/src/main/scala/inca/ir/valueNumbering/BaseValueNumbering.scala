@@ -20,9 +20,15 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   type ValNum = String
   type Hashed = Int
 
+  // maps for terms and atoms
   var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
   var hashTable: Map[Hashed, ValNum] = Map()
   var Const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
+
+  // maps for bodies
+  var VNBodies: Map[String, ValNum] = Map() 
+  var hashTableBodies: Map[Hashed, ValNum] = Map()
+
 
   def valueNumbering(module: ir.Module): ir.Module = {
     visitModule(module)
@@ -34,6 +40,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     case Var(RefByName(Name(name))) if VN.contains(name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
+  private def getHashCode(body: Body): Hashed = body.hashCode()
 
 
   private var relationParams: Seq[Name] = Seq()
@@ -41,6 +48,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
     relationParams = relation.params.map(_.name)
+    VNBodies = Map()
+    hashTableBodies = Map()
     super.visitRelation(relation)
   }
 
@@ -48,10 +57,27 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     VN = Map()
     hashTable = Map()
     Const = Map()
-    val newBody = super.visitBody(body)
-    // TODO value number bodies
-    //  valueNumberBodies(newBody)
-    newBody
+    valueNumberBodies(body)
+  }
+
+  private def valueNumberBodies(body: Body): Seq[Body] = {
+    val newBody = super.visitBody(body).head
+    val x = newBody.toString
+
+    val bodyHash: Hashed = getHashCode(newBody)
+    if (hashTableBodies.contains(bodyHash)) {
+      val v: ValNum = hashTableBodies(bodyHash)
+      VNBodies += (x, v)
+      // remove redundant body
+      Seq()
+    }
+    else {
+      val v = x
+      VNBodies += (x, v)
+      hashTableBodies += (bodyHash, v)
+
+      Seq(newBody)
+    }
   }
 
   protected def simplify(term: Term): Term
