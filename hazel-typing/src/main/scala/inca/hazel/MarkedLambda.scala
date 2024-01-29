@@ -44,43 +44,8 @@ class MarkedLambda:
   private val TypeAnno = TEdbNode(q("TypeAnno"))
   contents ++= EdbDataModuleEntry.fromNodeMetaInfos(edb.typeAnnoNodes)
 
-  // TODO rewrite akin to TypeAnno:
-  private val Exp = TEdbNode("Exp")
-  contents ++= Seq(
-    EdbNodeDefinition(Exp.name),
-    EdbNodeDefinition("EHole", Exp.name),
-    EdbNodeDefinition("EVar", Exp.name),
-    EdbFieldDefinition("EVar", "name", TEdbValue(TString)),
-    EdbNodeDefinition("ELam", Exp.name),
-    EdbFieldDefinition("ELam", "param", TEdbValue(TString)),
-    EdbFieldDefinition("ELam", "ty", TypeAnno),
-    EdbFieldDefinition("ELam", "body", Exp),
-    EdbNodeDefinition("EAp", Exp.name),
-    EdbFieldDefinition("EAp", "lhs", Exp),
-    EdbFieldDefinition("EAp", "rhs", Exp),
-    EdbNodeDefinition("ELet", Exp.name),
-    EdbFieldDefinition("ELet", "name", TEdbValue(TString)),
-    EdbFieldDefinition("ELet", "def", Exp),
-    EdbFieldDefinition("ELet", "body", Exp),
-    EdbNodeDefinition("ENum", Exp.name),
-    EdbFieldDefinition("ENum", "num", TEdbValue(TInt)),
-    EdbNodeDefinition("EPlus", Exp.name),
-    EdbFieldDefinition("EPlus", "lhs", Exp),
-    EdbFieldDefinition("EPlus", "rhs", Exp),
-    EdbNodeDefinition("ETrue", Exp.name),
-    EdbNodeDefinition("EFalse", Exp.name),
-    EdbNodeDefinition("EIf", Exp.name),
-    EdbFieldDefinition("EIf", "guard", Exp),
-    EdbFieldDefinition("EIf", "lhs", Exp),
-    EdbFieldDefinition("EIf", "rhs", Exp),
-    EdbNodeDefinition("EPair", Exp.name),
-    EdbFieldDefinition("EPair", "lhs", Exp),
-    EdbFieldDefinition("EPair", "rhs", Exp),
-    EdbNodeDefinition("EProjL", Exp.name),
-    EdbFieldDefinition("EProjL", "exp", Exp),
-    EdbNodeDefinition("EProjR", Exp.name),
-    EdbFieldDefinition("EProjR", "exp", Exp)
-  )
+  private val Exp = TEdbNode(q("Exp"))
+  contents ++= EdbDataModuleEntry.fromNodeMetaInfos(edb.expNodes)
 
   private val Mark = TData("Mark")
   private val MNone = "None"
@@ -142,14 +107,24 @@ class MarkedLambda:
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), q("TAArrow"), "dom" -> Var("tadom"), "codom" -> Var("tacodom")) ++ Seq(
+        EdbDeconstruct(
+          ty(1),
+          q("TAArrow"),
+          "dom" -> Var("tadom"),
+          "codom" -> Var("tacodom")
+        ) ++ Seq(
           Call(typeOfEdbType, Seq(Var("tadom"), Var("tdom"))),
           Call(typeOfEdbType, Seq(Var("tacodom"), Var("tcodom"))),
           Eq(ty(2), Construct(TArrow, Seq(Var("tdom"), Var("tcodom"))))
         )
       ),
       Body(
-        EdbDeconstruct(ty(1), q("TAProd"), "fst" -> Var("tafst"), "snd" -> Var("tasnd")) ++ Seq(
+        EdbDeconstruct(
+          ty(1),
+          q("TAProd"),
+          "fst" -> Var("tafst"),
+          "snd" -> Var("tasnd")
+        ) ++ Seq(
           Call(typeOfEdbType, Seq(Var("tafst"), Var("tfst"))),
           Call(typeOfEdbType, Seq(Var("tasnd"), Var("tsnd"))),
           Eq(ty(2), Construct(TProd, Seq(Var("tfst"), Var("tsnd"))))
@@ -379,7 +354,7 @@ class MarkedLambda:
           e,
           "ELet",
           "name" -> x,
-          "def" -> e(1),
+          "defn" -> e(1),
           "body" -> e(2)
         ) ++ Seq(
           Call(
@@ -562,7 +537,7 @@ class MarkedLambda:
           e,
           "ELet",
           "name" -> x,
-          "def" -> e(1),
+          "defn" -> e(1),
           "body" -> e(2)
         ) ++ Seq(
           Call(
@@ -650,7 +625,7 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
   println(compiled.lowered)
 
-  val dataModel = DataModel.from(edb.allNodes:_*)
+  val dataModel = DataModel.from(edb.allNodes: _*)
 
   val exec = new Executor()
   val engine = exec.instantiate(compiled, dataModel)
