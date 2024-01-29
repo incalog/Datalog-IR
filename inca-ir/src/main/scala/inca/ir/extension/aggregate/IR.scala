@@ -12,6 +12,7 @@ case class AggregateColumnArg(t: Term) extends Arg:
   override def toString: String = s"#$t"
   override def vars: Seq[Var] = t.vars
 
+// TODO: Support aggregation over Extensional Relation ?
 case class Aggregate(rel: Ref[Relation], args: Seq[Arg], op: AggregationOperator) extends Atom:
   override def toString: String = s"aggregate($rel(${args.mkString(", ")}), $op)"
   override def vars: Seq[Var] = args.flatMap(_.vars)

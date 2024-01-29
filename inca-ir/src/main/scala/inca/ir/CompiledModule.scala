@@ -33,7 +33,7 @@ trait CompiledModule:
   }
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
-  
+
   protected def printStatistics(module: Module, str: String): Unit =
     StatisticsCollector.printStatistics(module, str)
 
@@ -76,7 +76,7 @@ trait CompiledModule:
       StatisticsCollector.printStatistics(checked, "before lowering")
 
     stopIfNeeded()
-    
+
     val l = pipeline.foldLeft(checked) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))

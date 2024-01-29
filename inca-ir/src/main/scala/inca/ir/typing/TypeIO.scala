@@ -17,8 +17,8 @@ trait TypeIO:
   def warn(msg: String, sourceLocations: SourceLocation*): Unit =
     warnings += CompilationMessage(msg, sourceLocations, CompilationMessage.WARNING)
 
-  def getErrors: List[CompilationMessage] = errors.toList
-  def getWarnings: List[CompilationMessage] = warnings.toList
+  def getErrors: List[CompilationMessage] = errors.toList.distinct
+  def getWarnings: List[CompilationMessage] = warnings.toList.distinct
 
   def hasTypeErrors: Boolean = errors.nonEmpty
   def hasTypeWarnings: Boolean = warnings.nonEmpty

@@ -97,7 +97,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 17))(res.entries.toSet)
@@ -118,7 +118,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 2))(res.entries.toSet)
@@ -139,7 +139,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(2))(res.entries.toSet)
@@ -161,7 +161,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(2, 3, 4))(res.entries.toSet)
@@ -214,7 +214,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
 
     val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs:_*)
     engine.insert(edbEdge)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
 
   test("Set Mono with boolean element type (type that can be lowered)"):
     val relation = Relation("main", Seq(Param("b", TBoolean)), Seq(Body(Seq(
@@ -228,7 +228,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1))(res.entries.toSet)
@@ -247,7 +247,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((1, 2))(res.entries.head)
@@ -262,7 +262,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((-1, -2))(res.entries.head)
@@ -321,7 +321,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(mainRelation, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set("A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "J"))(res.entries.toSet)
@@ -356,7 +356,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     )
 
     val engine = compile(mainRelation, evenRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((0,-1), (6,5), (10,9), (2,1), (4,3), (8,7)))(res.entries.toSet)
@@ -377,6 +377,6 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     ).addHint(impure.MainHint)
 
     val engine = compile(relation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(1, 2, 17, 18))(res.entries.toSet)

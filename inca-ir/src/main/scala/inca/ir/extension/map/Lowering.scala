@@ -151,7 +151,24 @@ trait Lowering extends BaseLowering:
           terms.map(Eq(_, Var(valVar)))
       Seq(callAddConstructor(term, mapEnum))
     case MapPlus(map, key, value) =>
-      ???
+      val (keyTy, valTy) = keyValType(map)
+      val Seq(s1) = visitTerm(map)
+      val Seq(k) = visitTerm(key)
+      val Seq(v) = visitTerm(value)
+      val mapEnum = new MapEnum:
+        override def apply(keyVar: Name, valVar: Name): Seq[Atom] = Seq(
+          Disjunction(Seq(
+            DisjunctionAlternative(
+              Eq(Var(keyVar), k),
+              Eq(Var(valVar), v)
+            ),
+            DisjunctionAlternative(
+              Eq(Var(keyVar), k, neg = true),
+              Call(relNameOf(keyTy, valTy), Seq(s1.arg, Var(keyVar), Var(valVar).arg))
+              )
+          ))
+        )
+      Seq(callAddConstructor(term, mapEnum))
     case MapUnion(t1, t2) =>
       val (keyTy1, valTy1) = keyValType(t1)
       val (keyTy2, valTy2) = keyValType(t2)

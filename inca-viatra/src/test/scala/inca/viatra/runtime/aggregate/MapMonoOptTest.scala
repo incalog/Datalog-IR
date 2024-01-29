@@ -127,7 +127,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
 
@@ -146,7 +146,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(3)(res.entries.head)
@@ -167,7 +167,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set(1, 2, 3))(res.entries.toSet)
@@ -189,7 +189,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((1, "1"), (2, "2")))(res.entries.toSet)
@@ -210,7 +210,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
@@ -232,7 +232,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((1, "1"), (2, "2")))(res.entries.toSet)
@@ -251,7 +251,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((1, 1))(res.entries.head)
@@ -270,7 +270,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((1, 1))(res.entries.head)
@@ -290,7 +290,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
@@ -310,7 +310,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
@@ -329,7 +329,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
@@ -347,7 +347,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(("1", 1))(res.entries.head)
@@ -371,7 +371,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult((1, "1", 1, 1, "1", 1, "1", 1))(res.entries.head)
@@ -394,7 +394,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(Set((2, "2"), (-2, "-2")))(res.entries.toSet)
@@ -428,7 +428,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(2)(res.entries.head)
@@ -501,7 +501,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(DRedReteBackendFactory.INSTANCE, mainRelationSucc, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(2)(res.entries.head)
@@ -570,7 +570,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       ))
     ))
     val engine = compile(mainRelation2, mapRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
 
   test("Map momo basic test 16: value mono is another map mono with a non-relative value mono"):
     val valueMapMono = MapMonoDefinition(TString, SumInt)
@@ -596,7 +596,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(6)(res.entries.head)
 
@@ -625,7 +625,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(2, 4))(res.entries.toSet)
 
@@ -656,7 +656,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(2024-1946)(res.entries.head)
 
@@ -672,7 +672,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(0)(res.entries.head)
 
@@ -693,7 +693,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult((0, 1))(res.entries.head)
 
@@ -713,7 +713,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult((1, 0))(res.entries.head)
 
@@ -763,7 +763,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(2)(res.entries.head)
@@ -823,7 +823,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(DRedReteBackendFactory.INSTANCE, mainRelation, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(3)(res.entries.head)
@@ -840,7 +840,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(2024, 1946))(res.entries.toSet)
 
@@ -856,7 +856,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set(0))(res.entries.toSet)
 
@@ -877,7 +877,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set((0, 1), (0, 0)))(res.entries.toSet)
 
@@ -897,7 +897,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set((1, 0), (0, 0)))(res.entries.toSet)
 
@@ -918,7 +918,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set((2, "-2", 3, "-3"), (1, "-1", 3, "-3")))(res.entries.toSet)
 
@@ -941,7 +941,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(Set((2, "-2", 3, "-3"), (1, "-1", 3, "-3")))(res.entries.toSet)
 
@@ -1001,6 +1001,6 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(DRedReteBackendFactory.INSTANCE, mainRelation, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)

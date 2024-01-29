@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, Term, TermArg, TermType, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -11,11 +11,16 @@ import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
+import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.runtime.index.dynamic.ParentIndex
+import inca.viatra.runtime.index.{LinkNodeKey, PrimitiveTypeKey}
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{Equality, TypeFilterConstraint}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 
 import scala.collection.mutable.ListBuffer
 object GeneratePSystem:
@@ -23,6 +28,7 @@ object GeneratePSystem:
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
+  val EDB_PREFIX = "edb_"
 
   private trait BlockLowering extends block.Lowering with primitive.Visitor
   private trait Typechecker extends typing.IRTypechecker with primitive.Typechecker
@@ -174,7 +180,7 @@ object GeneratePSystem:
        |
        |import inca.viatra.compile.PSystem
        |import inca.viatra.runtime.Query.Specification
-       |import inca.viatra.runtime.index.NamedRelationKey
+       |import inca.viatra.runtime.index._
        |import inca.viatra.runtime.index.virtual._
        |
        |import inca.viatra.runtime.aggregate.builtin
@@ -207,6 +213,7 @@ object GeneratePSystem:
   var evalExp: Seq[(Code, String)] = Seq()
   /** Map PVariable name to (name of the variable, getter code) or (None, literal value) */
   var pVar2Code: Map[String, (Option[String], Code)] = Map()
+  val atomCode: ListBuffer[Code] = ListBuffer.empty
 
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = gensym.scoped {
     val qname = s"${moduleName}_${relation.name}"
@@ -216,17 +223,19 @@ object GeneratePSystem:
 
     val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX$n" }
-    
+
     val bodies = if (relation.bodies.nonEmpty)
       relation.bodies.map { body =>
+        evalExp = Seq()
+        pVar2Code = Map()
+        atomCode.clear()
+
         varDeclarations.clear()
         varDeclarations ++= VarCollector.collectAll(body).distinct.diff(paramNames).map(genTempVar)
         val litContent = LitCollector.collectAll(body).distinct.map { case (v, ty) => genLiteralVar(v, ty) }.mkString("\n")
 
-        evalExp = Seq()
-        pVar2Code = Map()
-
-        val atomContent = body.atoms.map(compileAtom).mkString("\n")
+        body.atoms.foreach(compileAtom)
+        val atomContent = atomCode.mkString("\n")
         val exprsDef = evalExp.map(e => genExprEvalVar(e._2)).mkString("\n")
         val exprsContent = evalExp.map(_._1).mkString("\n")
 
@@ -237,8 +246,6 @@ object GeneratePSystem:
     else {
       // Bind all variables to null and insert an invalid equality constraint
       // That way, we produce the correct result when aggregating
-      evalExp = Seq()
-      pVar2Code = Map()
 
       val paramConstraints = relation.params.map { p =>
           s"new Equality(body, $VARPREFIX${p.name} ,body.newConstantVariable(null))"
@@ -266,29 +273,29 @@ object GeneratePSystem:
      |}""".stripMargin.indent(indent)
   }
 
-  private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Code = atom match
+  private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Unit = atom match
     case Call(RefByName(name), args, false) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
-      s"new PositivePatternCall(body, $argTuple, $callQuery)"
+      atomCode += s"new PositivePatternCall(body, $argTuple, $callQuery)"
     case Call(RefByName(name), args, true) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
-      s"new NegativePatternCall(body, $argTuple, $callQuery)"
+      atomCode += s"new NegativePatternCall(body, $argTuple, $callQuery)"
     case ExtensionalCall(RefByName(name), args, false) =>
       val key = s"""NamedRelationKey("$name", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      s"new TypeConstraint(body, $tuple, $key)"
+      atomCode += s"new TypeConstraint(body, $tuple, $key)"
     case ExtensionalCall(RefByName(name), args, true) =>
       val key = s"""NotNamedRelationIndex.Key("$name", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      s"new TypeFilterConstraint(body, $tuple, $key)"
+      atomCode += s"new TypeFilterConstraint(body, $tuple, $key)"
     case Eq(lhs, rhs, false) =>
-      s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+      atomCode += s"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
     case Eq(lhs, rhs, true) =>
-      s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
+      atomCode += s"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})"""
 
     case agg@Aggregate(rel, args, op) =>
       // We only support a single aggregation column
@@ -327,7 +334,7 @@ object GeneratePSystem:
           val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
         case _ => throw IllegalArgumentException(s"Unexpected aggregation operator $op")
-      code
+      atomCode += code
 
   private def compileArg(a: Arg): Code = a match
     case TermArg(t) =>
@@ -346,6 +353,7 @@ object GeneratePSystem:
     case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
+        case Some(TermType(ety: EdbType, _)) => compileEdbType(ety)
         case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty of term $t")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
@@ -390,6 +398,35 @@ object GeneratePSystem:
       evalExp :+= (evalExpCode, outName)
       pVar2Code += (pvarName -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[${sty.name}]"""))
       pvarName
+
+    case LookupEdbType(ety) =>
+      val sty = compileEdbType(ety)
+      
+      val outName = gensym.fresh("edb_type")
+      varDeclarations += genTempVar(outName)
+      val pvarOut = s"$VARPREFIX$outName"
+      pVar2Code += (pvarOut -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[$sty]"""))
+
+      val (sort, key) = genEdbTypeKey(ety)
+      atomCode += s"new TypeConstraint(body, Tuples.staticArityFlatTupleOf($pvarOut), $key)"
+      pvarOut
+
+    case LookupEdbField(srcTerm, link) =>
+      val src = compileTerm(srcTerm)
+      val ety = t.typ.filter(_.ty.isInstanceOf[EdbType])
+        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
+        .ty.asInstanceOf[EdbType]
+      val sty = compileEdbType(ety)
+
+      val outName = gensym.fresh("edb_lookup")
+      varDeclarations += genTempVar(outName)
+      val pvarOut = s"$VARPREFIX$outName"
+      pVar2Code += (pvarOut -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[$sty]"""))
+      
+      val key = genEdbLinkKey(link, srcTerm.typ.getOrElse(throw new IllegalArgumentException(s"Requires typed term $srcTerm")).ty)
+      atomCode += s"new TypeConstraint(body, Tuples.staticArityFlatTupleOf($src, $pvarOut), $key)"
+      pvarOut
+
     case _ => throw new UnsupportedOperationException(s"Unknown term $t")
   }
 
@@ -406,9 +443,45 @@ object GeneratePSystem:
     ty.name.replace("[", "$").replace("]", "$") + lit.hashCode.toString.replace("-", "_")
   }
 
-  private def genPParam(param: Param): Code = {
-    s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
-  }
+  private def compileEdbType(ety: EdbType): Code = ety match
+    case _: (TEdbNode | TEdbList) => "truechange.URI"
+    case TEdbValue(ScalaType(sty)) => sty
+
+  private def genEdbTypeKey(ety: EdbType): (String, String) = ety match
+    case TEdbValue(ScalaType(sty)) =>
+      val sort = s"truechange.JavaLitType(classOf[$sty])"
+      val key = s"PrimitiveTypeKey($sort)"
+      (sort, key)
+    case TEdbNode(name) =>
+      val sort = s"truechange.SortType(\"${name.name}\")"
+      val key = s"NodeTypeKey($sort)"
+      (sort, key)
+    case TEdbList(ety) =>
+      val sort = s"truechange.ListType(${genEdbTypeKey(ety)._1})"
+      val key = s"NodeTypeKey($sort)"
+      (sort, key)
+
+  private def genEdbLinkKey(link: edbdata.Link, srcType: Type): String = link match
+    case Link.Field(Name(name)) => srcType match
+      case TEdbNode(Name(ty)) => s"""LinkNodeKey(("$ty", "$name"))"""
+      case _ => throw new IllegalArgumentException(s"Cannot read edb field $name from $srcType")
+    case Link.Parent => srcType match
+      case ety: EdbType => "dynamic.ParentIndex.Key"
+      case _ => throw new IllegalArgumentException(s"Cannot read edb parent from $srcType")
+    case Link.Children => ???
+    case Link.Next => ???
+    case Link.Prev => ???
+    case Link.Size => ???
+    case Link.First => ???
+    case Link.Last => ???
+  
+  private def genPParam(param: Param): Code = param.ty match
+    case ety: EdbType =>
+      val (sort, key) = genEdbTypeKey(ety)
+      s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}", $sort.toString, $key)"""
+    case _ =>
+        s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
+
 
   private def genBodyParam(param: Param): Code = {
     s"""val $VARPREFIX${param.name}: PVariable = body.getOrCreateVariableByName("${param.name}")"""

@@ -2,7 +2,7 @@ package inca.frontend.oodl.casestudy
 
 import inca.frontend.oodl.executor.OODLExecutor
 import inca.ir.*
-import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4}
+import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
@@ -12,10 +12,12 @@ import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.language.implicitConversions
 
+@Ignore
 class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
 
   val TDefList = TAny
@@ -34,7 +36,9 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
   val vars = ExtensionalRelation("_var", Seq(Param("exp", TExp), Param("name", TString)))
   val adds = ExtensionalRelation("_add", Seq(Param("exp", TExp), Param("lhs", TExp), Param("rhs", TExp)))
 
-  val edgesDefs = Relation("edgesDefs",
+  /** Manual demand */
+
+  /*val edgesDefs = Relation("edgesDefs",
     Seq(
       Param("defs", TDefList), // Deflist
       Param("from", TDef), // Def
@@ -47,6 +51,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
         Call("edgesDef", Seq(v("defs"), v("hd"), v("from"), v("to")))
       )),
       Body(Seq(
+        Call("edgesDefs$input", Seq(v("defs"))),
         ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
         Call("edgesDefs", Seq(v("tl"), v("from"), v("to")))
       ))
@@ -115,7 +120,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
         Eq(v("def"), v("hd"))
       )),
       Body(Seq(
-        Call("findDef$input", Seq(v("defs"), v("name"))),
+        //Call("findDef$input", Seq(v("defs"), v("name"))),
         ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
         ExtensionalCall("_def", Seq(v("hd"), v("defname"), WildcardArg())),
         Eq(v("defname"), v("name"), neg = true),
@@ -123,6 +128,118 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       ))
     )
   )
+  */
+
+  /** Group values */
+
+  val collectEdgesDefs = Relation("collect$edgesDefs",
+    Seq(
+      Param("token", TDemand(TDefList)),
+      Param("from", TDemand(TDef)),
+      Param("to", TDemand(TDef)),
+    ),
+    Seq(
+      Body(Seq())
+    )
+  )
+
+  val edgesDefs = Relation("edgesDefs",
+    Seq(
+      Param("token", TDemand(TDefList)), // Deflist
+      Param("defs", TDemand(TDefList)), // Deflist
+    ),
+    Seq(
+      Body(Seq(
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
+        Call("edgesDef", Seq(v("defs"), v("hd"), v("defs"), v("hd"))),
+        Call("collect$edgesDef", Seq(v("defs"), v("hd"), v("from"), v("to"))).addHint(DemandIgnoreCallHint),
+        Call("collect$edgesDefs", Seq(v("token"), v("from"), v("to")))
+      )),
+      Body(Seq(
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
+        Call("edgesDefs", Seq(v("token"), v("tl")))
+      ))
+    )
+  )
+
+  val collectEdgesDef = Relation("collect$edgesDef",
+    Seq(
+      Param("token$1", TDemand(TDefList)),
+      Param("token$2", TDemand(TDef)),
+      Param("from", TDemand(TDef)),
+      Param("to", TDemand(TDef)),
+    ),
+    Seq(
+      Body(Seq())
+    )
+  )
+
+  val edgesDef = Relation("edgesDef",
+    Seq(
+      Param("token$1", TDemand(TDefList)),
+      Param("token$2", TDemand(TDef)),
+      Param("defs", TDemand(TDefList)),
+      Param("def", TDemand(TDef))
+    ),
+    Seq(
+      Body(Seq(
+        ExtensionalCall("_def", Seq(v("def"), WildcardArg(), v("e"))),
+        Call("target", Seq(v("defs"), v("e"), v("to"))),
+        Eq(v("from"), v("def")),
+        Call("collect$edgesDef", Seq(v("token$1"), v("token$2"), v("from"), v("to")))
+      )),
+      Body(Seq(
+        ExtensionalCall("_def", Seq(v("def"), WildcardArg(), v("e"))),
+        Call("target", Seq(v("defs"), v("e"), v("trg"))),
+        Call("edgesDef", Seq(v("token$1"), v("token$2"), v("defs"), v("trg"))),
+      ))
+    )
+  )
+
+  val target = Relation("target",
+    Seq(
+      Param("defs", TDemand(TDefList)), // DefList
+      Param("e", TDemand(TExp)), // Exp
+      Param("def", TDef) // Def
+    ),
+    Seq(
+      Body(Seq(
+        ExtensionalCall("_var", Seq(v("e"), v("name"))),
+        Call("findDef", Seq(v("defs"), v("name"), v("def")))
+      )),
+      Body(Seq(
+        ExtensionalCall("_add", Seq(v("e"), v("e1"), v("e2"))),
+        Call("target", Seq(v("defs"), v("e1"), v("def")))
+      )),
+      Body(Seq(
+        ExtensionalCall("_add", Seq(v("e"), v("e1"), v("e2"))),
+        Call("target", Seq(v("defs"), v("e2"), v("def")))
+      ))
+    )
+  )
+
+  val findDef = Relation("findDef",
+    Seq(
+      Param("defs", TDemand(TDefList)), // DefList
+      Param("name", TDemand(TString)),
+      Param("def", TDef) // Def
+    ),
+    Seq(
+      Body(Seq(
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
+        ExtensionalCall("_def", Seq(v("hd"), v("defname"), WildcardArg())),
+        Eq(v("defname"), v("name")),
+        Eq(v("def"), v("hd"))
+      )),
+      Body(Seq(
+        ExtensionalCall("_con", Seq(v("defs"), v("hd"), v("tl"))),
+        ExtensionalCall("_def", Seq(v("hd"), v("defname"), WildcardArg())),
+        Eq(v("defname"), v("name"), neg = true),
+        Call("findDef", Seq(v("tl"), v("name"), v("def")))
+      ))
+    )
+  )
+
 
   val main = Relation("main",
     Seq(
@@ -132,7 +249,9 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
     Seq(
       Body(Seq(
         ExtensionalCall("_defList", Seq(v("defs"))),
-        Call("edgesDefs", Seq(v("defs"), v("from"), v("to")))
+        Eq(v("token"), v("defs")),
+        Call("edgesDefs", Seq(v("token"), v("defs"))),
+        Call("collect$edgesDefs", Seq(v("token"), v("from"), v("to"))).addHint(DemandIgnoreCallHint)
       ))
     )
   )
@@ -218,7 +337,9 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       )),
     ))*/
 
-  val edgesDefsInput = Relation("edgesDefs$input",
+  /** Inlined variables */
+
+  /*val edgesDefsInput = Relation("edgesDefs$input",
     Seq(
       Param("defs$0", TDefList)
     ), Seq(
@@ -281,7 +402,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
         ExtensionalCall("_def", Seq(v("hd"), v("defname"), WildcardArg())),
         Eq(v("defname"), v("name$0"), true)
       )),
-    ))
+    ))*/
 
 
   val mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + string.IR,
@@ -300,11 +421,13 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       target,
       findDef,
       main,
+      collectEdgesDef,
+      collectEdgesDefs
       // demand
-      edgesDefsInput,
-      edgesDefInput,
-      targetInput,
-      findDefInput
+      //edgesDefsInput,
+      //edgesDefInput,
+      //targetInput,
+      //findDefInput
     )
   )
 
@@ -440,14 +563,14 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
     override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
-    setPipeline(List())
+    setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {
-    println(mod)
+    //println(mod)
     try
       compiled.checked
-      println(compiled.dependencyGraph.toGraphViz)
-    finally println(mod)
+      //println(compiled.dependencyGraph.toGraphViz)
+    //finally println(mod)
   }
 
   test("AbstractSyntaxGraph can be lowered") {
@@ -455,8 +578,8 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       compiled.lowered
       val typechecker = new IRTypechecker
       typechecker.checkProgram(Seq(compiled.lowered))
-      println(typechecker.getDependencyGraph.toGraphViz)
-    finally println(compiled.lowered)
+      //println(typechecker.getDependencyGraph.toGraphViz)
+    //finally println(compiled.lowered)
   }
 
   test("AbstractSyntaxGraph can be run") {
@@ -483,11 +606,18 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
 //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
-      println(relation1.asTable)
+      //println(relation1.asTable)
       val executionTimeInMs = (end - start) / 1000 / 1000
+
+      /*println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
+      engine.readAll().foreach { r =>
+        println(s"${r.name}: ${r.size}")
+      }
+      println(engine.read(UnitRelation("collect$edgesDefs")).asTable)*/
+
       executionTimeInMs
     }
-    println(s"Execution times in ms: $executionTimes")
-    println(s"Execution average: ${executionTimes.drop(5).sum / (runs - 5)}")
+    //println(s"Execution times in ms: $executionTimes")
+    //println(s"Execution average: ${executionTimes.drop(5).sum / (runs - 5)}")
   }
   

@@ -25,13 +25,10 @@ final class DatalogCompilerOptions private(defaults: Seq[(String, Seq[(String, A
       case _ => DatalogLoggingSection("datalog_logging", Map())
 
   override def setDefaults(): Unit =
-    irLogging.logTypeInformation = true
-    irLogging.logModule = true
-    irLogging.logLowerings = false
-    irLogging.logOptimizations = false
+    super.setDefaults()
 
-    datalogLogging.logTypeInformation = true
-    datalogLogging.logModule = true
+    datalogLogging.logTypeInformation = false
+    datalogLogging.logModule = false
     datalogLogging.verboseOutput = false
 
 object DatalogCompilerOptions:

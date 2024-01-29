@@ -12,7 +12,6 @@ class EdbDataTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker {}
     val mod = Module("M", Language(IR), relations)
     try typechecker.checkProgram(Seq(mod))
-    finally println(mod)
     mod
 
   test("Peano schema"){

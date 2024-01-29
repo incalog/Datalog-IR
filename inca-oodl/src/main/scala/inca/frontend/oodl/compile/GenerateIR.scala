@@ -681,7 +681,16 @@ class GenerateIR:
     case SetComprehension(member, body) =>
       val memberTerms = member.map(compileExpression)
       val bodyTerm = compileExpression(body)
-      irset.SetComprehension(bodyTerm, memberTerms.map(t => ir.Eq(t, bool.BoolTrue)))
+      val comprehension = irset.SetComprehension(bodyTerm, memberTerms.map(t => ir.Eq(t, bool.BoolTrue)))
+      body.typ match
+        case Some(TUnit) =>
+          // TODO: Should this be done in the set lowering ?
+          //  Or should tuple represent empty tuples with an adt ?
+          // Force materialisation of unit tuples
+          val outVar = ir.Var(gensym.fresh("_"))
+          block.Block(irset.SetMember(outVar, comprehension), outVar)
+        case _ => comprehension
+
     case _ =>
       throw IllegalStateException(s"Unhandled expression $expr of class ${expr.getClass}")
 
@@ -705,6 +714,6 @@ class GenerateIR:
         case _ => ???
       }
       case Some(cls: ClassDef) => irdata.TData("ID")
-      case target => throw IllegalStateException(s"Unexpected type target $target")
+      case target => throw IllegalStateException(s"Unexpected type target $target for type $name")
     }
     case TNull => irdata.TData("ID")

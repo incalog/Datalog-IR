@@ -28,14 +28,14 @@ class SetLoweringTest extends AnyFunSuite {
       val checker = new IRTypechecker
       try checker.checkProgram(Seq(m))
       finally checker.getErrors.foreach(println)
-      println(s"Lowering ${l.name}")
+      //println(s"Lowering ${l.name}")
       val lowered = l.lower(m)
-      println(lowered)
+      //println(lowered)
       lowered
 
     val mod = Module("M", Language(IR, arithmetic.IR), relations)
     typecheckerBefore.checkProgram(Seq(mod))
-    println(mod)
+    //println(mod)
     val lowered = setLowering.foldLeft(mod)((mod, l) => lower(l, mod))
     lowered
 

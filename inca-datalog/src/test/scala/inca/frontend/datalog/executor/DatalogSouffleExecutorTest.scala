@@ -20,7 +20,6 @@ class DatalogSouffleExecutorTest extends AnyFunSuite:
     assertResult(11)(res.size)
 
     res = loaded.query("Path", Seq(?, 5), Seq(3, ?))
-    println(s"The res: $res")
     assertResult(4)(res.size)
 
     res = loaded.query("Path", Seq(1, ?))

@@ -18,8 +18,8 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     val checker = typechecker()
     try checker.checkProgram(Seq(mod))
     finally {
-      println(mod)
-      checker.getErrors.foreach(println)
+      //println(mod)
+      //checker.getErrors.foreach(println)
     }
     mod
 
