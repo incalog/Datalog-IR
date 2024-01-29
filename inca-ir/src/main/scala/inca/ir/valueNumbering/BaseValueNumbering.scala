@@ -23,10 +23,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // maps for terms and atoms
   var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
   var hashTable: Map[Hashed, ValNum] = Map()
-  var Const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
+  var const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
+  var count: Map[Hashed, Int] = Map()   // remembers how often term with hash has occurred
 
   // maps for bodies
-  var VNBodies: Map[String, ValNum] = Map() 
+  var VNBodies: Map[String, ValNum] = Map()
   var hashTableBodies: Map[Hashed, ValNum] = Map()
 
 
@@ -56,7 +57,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   override def visitBody(body: Body): Seq[Body] = {
     VN = Map()
     hashTable = Map()
-    Const = Map()
+    const = Map()
     valueNumberBodies(body)
   }
 
@@ -84,11 +85,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(RefByName(Name(name))) if Const.contains(name) && this.config.propagateConstants => Seq(Const(name))
+    case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
     case v@Var(RefByName(Name(name))) if VN.contains(name) =>
       Seq(
-        if Const.contains(VN(name)) && this.config.propagateConstants then
-          Const(VN(name))
+        if const.contains(VN(name)) && this.config.propagateConstants then
+          const(VN(name))
         else Var(RefByName(Name(VN(name)))))
     case _ =>
       val newTerm = super.visitTerm(term).head
@@ -130,6 +131,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         case _ => hashTable(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
       }
       VN += (x, v)
+
+      //count = count.updated(exprHash, count(exprHash) + 1)
+
       // remove "Assignment" or replace term
       if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       else Seq()
@@ -139,8 +143,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       VN += (x, v)
       hashTable += (exprHash, v)
 
+      //count += (exprHash,1)
+
       if (isConst(newTerm) && this.config.propagateConstants) {
-        Const += (x, newTerm)
+        const += (x, newTerm)
         if !isParam(x) then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
 
@@ -170,7 +176,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       hashTable += (atomHash, v)
 
       callArgs.foreach { case TermArg(t) => t match // add binding vars to maps
-        case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => VN += (variName, variName); hashTable += (atomHash, variName)
+        case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => VN += (variName, variName); hashTable += (atomHash, variName)//; count += (atomHash, 1)
+//        case Var(RefByName(Name(variName))) =>
+//          VN(variName)
+//          count = count.updated(atomHash, count(atomHash) + 1)
         case _ =>
       }
 
