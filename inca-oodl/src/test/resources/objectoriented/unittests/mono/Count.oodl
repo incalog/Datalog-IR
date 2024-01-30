@@ -4,5 +4,5 @@ module BuiltinCountMono
     val m = new mono.Count()
     m += "A"
     m += "B"
-    return m.result
+    return m.result()
 }

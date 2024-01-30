@@ -39,7 +39,7 @@ import inca.ir.Name
  * something$(s)
  */
 
-// TODO: Refactor this to share common code to create dispatch table with GenerateIR
+//TODO: Refactor this to share common code to create dispatch table with GenerateIR
 
 class GenerateScala:
   type Code = String
@@ -78,7 +78,7 @@ class GenerateScala:
   var builtinSIDCases: Map[String, Int] = Map()
 
   def transModule(module: Module): Code =
-    val caseClasses = module.classes.filter(_.isCaseClass)
+    val caseClasses = module.classes.filter(c => c.isCaseClass && !c.isMonoClass)
     val caseClassFields = caseClasses.map(c => c.name -> c.fields)
     builtinSIDCases = caseClassFields.map {
       case (name, fields) =>
@@ -89,7 +89,7 @@ class GenerateScala:
 
     // Only translate case classes and their parent classes
     val classMap = module.classes.map(c => c.name -> c).toMap
-    val classes = caseClasses.flatMap(c => collectParentClasses(c, classMap))
+    val classes = caseClasses.flatMap(c => collectParentClasses(c, classMap)).toSet.toSeq
 
     val collectedMethods = classes.map(c => c -> collectMethods(c)()).toMap
     // qualifiedMethodName -> (src1, trg1), ...,(srcN, trgN)
@@ -110,7 +110,7 @@ class GenerateScala:
     }.mkString("\n")
 
     val instanceOfCode = transIsInstanceOf(classes)
-    val classesCode = module.classes.map(transClassDef).mkString("\n")
+    val classesCode = classes.map(transClassDef).mkString("\n")
     val funCode = module.functions.filter(!_.isMain).map(transFunctionDef).mkString("\n")
     s"$instanceOfCode$funCode$methodsCode\n$classesCode"
 
@@ -128,8 +128,8 @@ class GenerateScala:
     } :+ "case _ => false").mkString("\n").indent(8)
 
     val sidExtractRuntimeClassCases = builtinSIDCases.map { case (sidCase, v) =>
-      val wildcards = 0.until(v).map(_ => "_").mkString(", ")
-      s"case $sidCase(c, $wildcards) => c"
+      val args = ("c" +: 0.until(v).map(_ => "_")).mkString(", ")
+      s"case $sidCase($args) => c"
     }.mkString("\n").indent(8)
     s"""
        |def isInstanceOf$$(this$$0: ID, ty: String) =
@@ -151,8 +151,8 @@ class GenerateScala:
       s"""case "$src" => ${reprMethod.name}$$$trg($methodCallArgs)"""
     }.mkString("\n").indent(8)
     val sidExtractRuntimeClassCases = builtinSIDCases.map { case (sidCase, v) =>
-      val wildcards = 0.until(v).map(_ => "_").mkString(", ")
-      s"case $sidCase(c, $wildcards) => c"
+      val args = ("c" +: 0.until(v).map(_ => "_")).mkString(", ")
+      s"case $sidCase($args) => c"
     }.mkString("\n").indent(8)
     s"""
        |def $qualifiedMethodName($reprMethodParam): $reprMethodOutTy =

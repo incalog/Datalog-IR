@@ -48,3 +48,23 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     //println(diff.toDouble / 1000 / 1000 / 1000)
     assertResult(expectedRes)(res.toSet)
   }
+
+  // TODO: File too large ...
+  /*
+  test("Flow sensitive Sign Analysis") {
+    val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+  
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$$TString_TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 4)
+  
+    println(res)
+  
+    //println(diff.toDouble / 1000 / 1000 / 1000)
+    //assertResult(expectedRes)(res.toSet)
+  }  */
