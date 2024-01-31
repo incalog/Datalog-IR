@@ -66,6 +66,7 @@ object GeneratePSystem:
       () => new string.ScalaLowering {}, // lower strings
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks
+      () => new ExtractLargeBodies {}
     )
 
     if (withDoubleAggregationRewrite)
@@ -186,6 +187,8 @@ object GeneratePSystem:
        |import inca.viatra.runtime.aggregate.builtin
        |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
        |import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
+       |
+       |import scala.util.{Try, Success, Failure}
        |
        |object ${mod.name} extends PSystem.Module {
        |${defns.mkString("")}

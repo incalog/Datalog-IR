@@ -186,7 +186,8 @@ class Stm {
     // abstract
     def accept(v: Visitor): Unit = { }
     def first(): Stm = this
-    def last(): Set[Stm] = Set(this)
+    //def last(): Set[Stm] = Set(this)
+    def last(): Stm = this
     def stringValue(): String = "Stm"
     // Default: Preserve all variables
     def transfer(from: Stm, manager: ValueManager): Unit = manager.transferAll(from, this)
@@ -217,14 +218,15 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     v.visitSequence(this)
   }
   override def first(): Stm = this.s1.first()
-  override def last(): Set[Stm] = this.s2.last()
+  //override def last(): Set[Stm] = this.s2.last()
+  override def last(): Stm = this.s2.last()
   override def stringValue(): String = "Sequence(" + this.s1.stringValue() + ", " + this.s2.stringValue() + ")"
   override def transfer(from: Stm, manager: ValueManager): Unit = {
     // Does not occur
   }
 }
 
-class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
+/*class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
   override def accept(v: Visitor): Unit = {
     this.cnd.accept(v)
     this.thn.accept(v)
@@ -239,7 +241,7 @@ class If(val cnd: Exp, val thn: Stm, val els: Stm) extends Stm {
     manager.transferAll(from, this.thn)
     manager.transferAll(from, this.els)
   }
-}
+}*/
 
 class While(val cnd: Exp, val body: Stm) extends Stm {
   override def accept(v: Visitor): Unit = {
@@ -253,10 +255,12 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
     manager.transferAll(from, this)
     manager.transferAll(from, this.body.first())
 
-    for (l2 <- this.body.last()) yield
+    fix manager.transferAll(this.body.last(), this)
+    fix manager.transferAll(this.body.last(), this.body.first())
+    /*for (l2 <- this.body.last()) yield
       manager.transferAll(l2, this)
     for (l <- this.body.last()) yield
-      manager.transferAll(l, this.body.first())
+      manager.transferAll(l, this.body.first())*/
 
     return
   }
@@ -304,7 +308,7 @@ class Visitor {
     def visitAssign(s: Assign): Unit = { }
     def visitSkip(s: Skip): Unit = { }
     def visitSequence(s: Sequence): Unit = { }
-    def visitIf(s: If): Unit = { }
+    //def visitIf(s: If): Unit = { }
     def visitWhile(s: While): Unit = { }
     def visitValDef(s: ValDef): Unit = { }
     def visitVarDef(s: VarDef): Unit = { }
@@ -319,20 +323,22 @@ class CfgVisitor extends Visitor {
 
   override def visitSequence(s: Sequence): Unit = {
     val to: Stm = s.s2.first()
-    for (from <- s.s1.last())
-        yield this.addPath(from, to)
+    this.addPath(s.s1.last(), to)
+    /*for (from <- s.s1.last())
+        yield this.addPath(from, to)*/
     return
   }
 
-  override def visitIf(s: If): Unit = {
+  /*override def visitIf(s: If): Unit = {
     this.cfg += (s, s.thn.first())
     this.cfg += (s, s.els.first())
-  }
+  }*/
 
   override def visitWhile(s: While): Unit = {
-    this.cfg += (s, s.body.first())
-    for (from <- s.body.last())
-        yield this.addPath(from, s)
+    this.addPath(s, s.body.first())
+    this.addPath(s.body.last(), s)
+    /*for (from <- s.body.last())
+        yield this.addPath(from, s)*/
     return
   }
 }
@@ -372,8 +378,6 @@ class FSSignAnalysis(val head: Stm, val cfg: mono.Set[(Stm, Stm)], val varNames:
     def iterate(): Unit = {
       for (e <- this.cfg)
           yield e._2.transfer(e._1, this)
-      // Comment in this line to compute the correct fixpoint using the interpreter
-      fix this.iterate()
       return
     }
 
@@ -386,7 +390,7 @@ class FSSignAnalysis(val head: Stm, val cfg: mono.Set[(Stm, Stm)], val varNames:
 
 
 class Examples {
-    def factorial: Stm =
+    /*def factorial(): Stm =
         new Sequence(new VarDef("n", new Num(5)),
             new Sequence(new VarDef("acc", new Num(1)),
                 new While(
@@ -399,7 +403,7 @@ class Examples {
             )
         )
 
-    /*def assignments: Stm =
+    def assignments(): Stm =
         new Sequence(new VarDef("m", new Num(3)),
             new Sequence(new Assign("m", new Num(2)),
                 new Sequence(
@@ -407,13 +411,14 @@ class Examples {
                     new ValDef("acc", new Num(1))
                 )
             )
-        )
+        )*/
 
-    def simpleAssignments: Stm =
+    //TODO: Functions are faste then values. Why ?
+    def simpleAssignments(): Stm =
         new Sequence(
             new ValDef("n", new Num(5)),
             new ValDef("acc", new Num(1))
-        )*/
+        )
 }
 
 @main
@@ -422,7 +427,7 @@ def main(): Set[(String, String, String)] = {
   val varNames: Set[String] = Set("n", "acc")
 
   val examples: Examples = new Examples()
-  val prog: Stm = examples.factorial()
+  val prog: Stm = examples.simpleAssignments()
 
   // Calculate CFG
   val cfgVisitor = new CfgVisitor()
@@ -432,8 +437,12 @@ def main(): Set[(String, String, String)] = {
   val signAna: FSSignAnalysis = new FSSignAnalysis(prog.first(), cfgVisitor.cfg, varNames)
   signAna.run()
 
-  // TODO: First cfg node is missing ?
-  for (s <- cfgVisitor.cfg; v <- varNames)
+  val firstRes = for (v <- varNames)
+    yield (prog.first().stringValue(), v, signAna.after.get(prog.first(), v).stringValue())
+
+  val tailRes = for (s <- cfgVisitor.cfg; v <- varNames)
     yield (s._2.stringValue(), v, signAna.after.get(s._2, v).stringValue())
+
+  firstRes ++ tailRes
 }
 

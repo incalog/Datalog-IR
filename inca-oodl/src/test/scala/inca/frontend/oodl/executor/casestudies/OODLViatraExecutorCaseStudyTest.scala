@@ -4,10 +4,12 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
+  // Timely algorithm fails without a message
   val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
 
   test("DependencyAnalysis") {
@@ -38,8 +40,6 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val query = Relation.from("Set$$TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
 
-    println(res)
-
     val expectedRes = Set(
       ("VarDef", "While"), ("Assign", "While"), ("While", "Assign"),
       ("VarDef", "VarDef"), ("Assign", "Assign")
@@ -49,22 +49,30 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     assertResult(expectedRes)(res.toSet)
   }
 
-  // TODO: File too large ...
-  /*
+  // This compiles but is way slower than the old case study... why ?
+  // Ideas, constructing a lot of objects is expensive, since we dublicate a lot of constructor calls
   test("Flow sensitive Sign Analysis") {
+    val dRedExec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
-    val compiled = exec.compileOODL(code, options)
+    val compiled = dRedExec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
-    val loaded = exec.loadOODL(compiled)
+    val loaded = dRedExec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
-  
+
     val setAdt = res.entries.head
     val query = Relation.from("Set$$TString_TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 4)
   
-    println(res)
-  
+    println(res.toSet)
+    val expectedRes = Set(
+      ("ValDef(n, Num(5))","acc","Bot"),
+      ("ValDef(acc, Num(1))","acc","Pos"),
+      ("ValDef(acc, Num(1))","n","Pos"),
+      ("ValDef(n, Num(5))","n","Pos")
+    )
+    assertResult(expectedRes)(res.toSet)
+
     //println(diff.toDouble / 1000 / 1000 / 1000)
     //assertResult(expectedRes)(res.toSet)
-  }  */
+  }

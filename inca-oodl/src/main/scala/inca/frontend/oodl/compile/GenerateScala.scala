@@ -49,7 +49,7 @@ class GenerateScala:
   /** Transitively collect all methods for a given qualified name */
   private def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[String, (ClassDef, MethodDef)] = {
     val methods = implClass.methods.map { m =>
-      val qualifiedMethodName = s"${m.name}$$${signatureString(m.signature)}"
+      val qualifiedMethodName = s"_${m.name}$$${signatureString(m.signature)}"
       qualifiedMethodName -> (implClass, m)
     }.toMap
 
@@ -244,7 +244,7 @@ class GenerateScala:
       val methodDef = methodCall.target match
         case Some((_, m)) => m
         case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
-      val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"
+      val qualifiedMethodName = s"_${methodDef.name}$$${signatureString(methodDef.signature)}"
       val recvCode = transExpression(recv)
       val tyCode = if (tyArgs.nonEmpty) tyArgs.map(transType).mkString("[", ",", "]") else ""
       val argsCode = (recvCode +: args.map(transExpression)).mkString(", ")
