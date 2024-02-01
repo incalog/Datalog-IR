@@ -416,17 +416,18 @@ object GeneratePSystem:
 
     case LookupEdbField(srcTerm, link) =>
       val src = compileTerm(srcTerm)
-      val ety = t.typ.filter(_.ty.isInstanceOf[EdbType])
+      val trgTy = t.typ.filter(_.ty.isInstanceOf[EdbType])
         .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
         .ty.asInstanceOf[EdbType]
-      val sty = compileEdbType(ety)
+      val trgTyCompiled = compileEdbType(trgTy)
 
       val outName = gensym.fresh("edb_lookup")
       varDeclarations += genTempVar(outName)
       val pvarOut = s"$VARPREFIX$outName"
-      pVar2Code += (pvarOut -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[$sty]"""))
-      
-      val key = genEdbLinkKey(link, srcTerm.typ.getOrElse(throw new IllegalArgumentException(s"Requires typed term $srcTerm")).ty)
+      pVar2Code += (pvarOut -> (Some(outName), s"""env.getValue("$outName").asInstanceOf[$trgTyCompiled]"""))
+
+      val srcTy = srcTerm.typ.getOrElse(throw new IllegalArgumentException(s"Requires typed term $srcTerm")).ty
+      val key = genEdbLinkKey(link, srcTy, trgTy)
       atomCode += s"new TypeConstraint(body, Tuples.staticArityFlatTupleOf($src, $pvarOut), $key)"
       pvarOut
 
@@ -464,9 +465,11 @@ object GeneratePSystem:
       val key = s"NodeTypeKey($sort)"
       (sort, key)
 
-  private def genEdbLinkKey(link: edbdata.Link, srcType: Type): String = link match
+  private def genEdbLinkKey(link: edbdata.Link, srcType: Type, trgType: Type): String = link match
     case Link.Field(Name(name)) => srcType match
-      case TEdbNode(Name(ty)) => s"""LinkNodeKey(("$ty", "$name"))"""
+      case TEdbNode(Name(ty)) => trgType match
+        case _: TEdbValue => s"""LinkPrimitiveKey(("$ty", "$name"))"""
+        case _ => s"""LinkNodeKey(("$ty", "$name"))"""
       case _ => throw new IllegalArgumentException(s"Cannot read edb field $name from $srcType")
     case Link.Parent => srcType match
       case ety: EdbType => "dynamic.ParentIndex.Key"
