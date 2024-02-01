@@ -1,7 +1,8 @@
 package inca.ir.extension.edbdata
 
 import inca.ir.*
-import inca.ir.extension.arithmetic.TInt
+import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.string.TString
 import truechange.{AnyType, JavaLitType, ListType, NamedLink, NodeMetaInfo, NothingType, OptionType, RefType, SortType}
 
 import scala.collection.mutable.ListBuffer
@@ -105,9 +106,12 @@ object EdbType:
 
   def fromTruechangeLitType(lty: truechange.LitType): EdbType = lty match
     case JavaLitType(cl) =>
-      println(s"LitType class $cl")
-      if (cl == classOf[Int])
+      if (cl == classOf[Int] || cl == classOf[Integer])
         TEdbValue(TInt)
+      else if (cl == classOf[Double] || cl == classOf[java.lang.Double])
+        TEdbValue(TDouble)
+      else if (cl == classOf[String])
+        TEdbValue(TString)
       else
         throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
     case _ => throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
