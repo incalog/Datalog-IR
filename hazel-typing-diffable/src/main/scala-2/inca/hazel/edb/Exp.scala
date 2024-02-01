@@ -5,7 +5,7 @@ import truediff.macros.diffable
 
 @diffable sealed trait Exp extends Diffable
 @diffable case class EHole() extends Exp
-@diffable case class EVar(x: String) extends Exp
+@diffable case class EVar(name: String) extends Exp
 @diffable case class ELam(param: String, ty: TypeAnno, body: Exp) extends Exp
 @diffable case class EAp(lhs: Exp, rhs: Exp) extends Exp
 @diffable case class ELet(name: String, defn: Exp, body: Exp) extends Exp

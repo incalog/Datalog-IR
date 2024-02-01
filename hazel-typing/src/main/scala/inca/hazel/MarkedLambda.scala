@@ -273,7 +273,7 @@ class MarkedLambda:
     synMark,
     Seq(
       Param(ctx.name, TDemand(Ctx)),
-      Param(e.name, TDemand(Exp)),
+      Param(e.name, Exp),
       Param(mark.name, Mark),
       Param(ty.name, Type)
     ),
@@ -468,7 +468,7 @@ class MarkedLambda:
     anaMark,
     Seq(
       Param(ctx.name, TDemand(Ctx)),
-      Param(e.name, TDemand(Exp)),
+      Param(e.name, Exp),
       Param(mark.name, Mark),
       Param(ty.name, TDemand(Type))
     ),
@@ -597,6 +597,19 @@ class MarkedLambda:
     )
   )
 
+  val mainSynMark = Name("mainSynMark")
+  contents += Relation(
+    mainSynMark,
+    Seq(
+      Param(e.name, Exp),
+      Param(mark.name, Mark),
+      Param(ty.name, Type)
+    ),
+    Seq(Body(Seq(
+      Call(synMark, Seq(MapLit(Seq()).arg, e.arg, mark.arg, ty.arg))
+    )))
+  )
+
   def module: Module = Module(
     "Hazel",
     new Language(
@@ -632,9 +645,9 @@ object MarkedLambda extends App:
 
   {
     import edb.*
-    val t1 = TAArrow(TANum(), TANum())
-    val t2 = TAArrow(TABool(), TANum())
-    val t3 = TAArrow(TAUnknown(), TANum())
+    val t1 = EPlus(ETrue(), ENum(3))
+    val t2 = EPlus(ENum(2), ENum(3))
+    val t3 = EPlus(ENum(2), EFalse())
 
     println(s"Loading $t1")
     t1.loadEdits.print()
