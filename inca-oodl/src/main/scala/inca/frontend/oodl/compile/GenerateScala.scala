@@ -39,7 +39,7 @@ import inca.ir.Name
  * something$(s)
  */
 
-// TODO: Refactor this to share common code to create dispatch table with GenerateIR
+//TODO: Refactor this to share common code to create dispatch table with GenerateIR
 
 class GenerateScala:
   type Code = String
@@ -49,7 +49,7 @@ class GenerateScala:
   /** Transitively collect all methods for a given qualified name */
   private def collectMethods(classDef: ClassDef)(implClass: ClassDef = classDef): Map[String, (ClassDef, MethodDef)] = {
     val methods = implClass.methods.map { m =>
-      val qualifiedMethodName = s"${m.name}$$${signatureString(m.signature)}"
+      val qualifiedMethodName = s"_${m.name}$$${signatureString(m.signature)}"
       qualifiedMethodName -> (implClass, m)
     }.toMap
 
@@ -78,7 +78,7 @@ class GenerateScala:
   var builtinSIDCases: Map[String, Int] = Map()
 
   def transModule(module: Module): Code =
-    val caseClasses = module.classes.filter(_.isCaseClass)
+    val caseClasses = module.classes.filter(c => c.isCaseClass && !c.isMonoClass)
     val caseClassFields = caseClasses.map(c => c.name -> c.fields)
     builtinSIDCases = caseClassFields.map {
       case (name, fields) =>
@@ -89,7 +89,7 @@ class GenerateScala:
 
     // Only translate case classes and their parent classes
     val classMap = module.classes.map(c => c.name -> c).toMap
-    val classes = caseClasses.flatMap(c => collectParentClasses(c, classMap))
+    val classes = caseClasses.flatMap(c => collectParentClasses(c, classMap)).toSet.toSeq
 
     val collectedMethods = classes.map(c => c -> collectMethods(c)()).toMap
     // qualifiedMethodName -> (src1, trg1), ...,(srcN, trgN)
@@ -110,7 +110,7 @@ class GenerateScala:
     }.mkString("\n")
 
     val instanceOfCode = transIsInstanceOf(classes)
-    val classesCode = module.classes.map(transClassDef).mkString("\n")
+    val classesCode = classes.map(transClassDef).mkString("\n")
     val funCode = module.functions.filter(!_.isMain).map(transFunctionDef).mkString("\n")
     s"$instanceOfCode$funCode$methodsCode\n$classesCode"
 
@@ -128,8 +128,8 @@ class GenerateScala:
     } :+ "case _ => false").mkString("\n").indent(8)
 
     val sidExtractRuntimeClassCases = builtinSIDCases.map { case (sidCase, v) =>
-      val wildcards = 0.until(v).map(_ => "_").mkString(", ")
-      s"case $sidCase(c, $wildcards) => c"
+      val args = ("c" +: 0.until(v).map(_ => "_")).mkString(", ")
+      s"case $sidCase($args) => c"
     }.mkString("\n").indent(8)
     s"""
        |def isInstanceOf$$(this$$0: ID, ty: String) =
@@ -151,8 +151,8 @@ class GenerateScala:
       s"""case "$src" => ${reprMethod.name}$$$trg($methodCallArgs)"""
     }.mkString("\n").indent(8)
     val sidExtractRuntimeClassCases = builtinSIDCases.map { case (sidCase, v) =>
-      val wildcards = 0.until(v).map(_ => "_").mkString(", ")
-      s"case $sidCase(c, $wildcards) => c"
+      val args = ("c" +: 0.until(v).map(_ => "_")).mkString(", ")
+      s"case $sidCase($args) => c"
     }.mkString("\n").indent(8)
     s"""
        |def $qualifiedMethodName($reprMethodParam): $reprMethodOutTy =
@@ -244,7 +244,7 @@ class GenerateScala:
       val methodDef = methodCall.target match
         case Some((_, m)) => m
         case _ => throw IllegalStateException(s"Unresolved target for method call '$methodCall'")
-      val qualifiedMethodName = s"${methodDef.name}$$${signatureString(methodDef.signature)}"
+      val qualifiedMethodName = s"_${methodDef.name}$$${signatureString(methodDef.signature)}"
       val recvCode = transExpression(recv)
       val tyCode = if (tyArgs.nonEmpty) tyArgs.map(transType).mkString("[", ",", "]") else ""
       val argsCode = (recvCode +: args.map(transExpression)).mkString(", ")

@@ -164,9 +164,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     case Cast(t, ty) =>
       checkType(ty)
+      val action = startContextTransaction()
       val m = withErrors(inferTerm(t, mode)) match
-        case (tt, Nil) => tt.mode
+        case (tt, Nil) =>
+          action.commit()
+          tt.mode
         case (tt,errsInfer) =>
+          action.abort()
           withErrors(checkTerm(t, ty, mode)) match
             case (m, Nil) => m
             case (_,errsCheck) =>

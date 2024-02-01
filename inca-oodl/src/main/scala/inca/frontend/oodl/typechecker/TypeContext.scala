@@ -58,7 +58,7 @@ trait TypeContext extends TypeIO:
     tyVars.get(name) match {
       case Some(decl) => Some(decl)
       case None =>
-        throw IllegalStateException(s"Unbound type variable $name")//, name)
+        error(s"Unbound type variable $name", name)
         None
     }
 

@@ -7,6 +7,14 @@ import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 
 trait Typechecker extends BaseIRTypechecker:
+  protected override def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
+    case MapLit(Nil) => expected match
+      case TMap(_, _) => Mode.Bound
+      case ty =>
+        assertComparable(TMap(TNothing, TNothing), ty, term)
+        Mode.Bound
+    case _ => super.checkTermExtend(term, expected, mode)
+
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case MapLit(Nil) =>
       TMap(TNothing, TNothing).bound
