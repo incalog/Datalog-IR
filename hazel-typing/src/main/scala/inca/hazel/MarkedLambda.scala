@@ -279,13 +279,13 @@ class MarkedLambda:
     ),
     Seq(
       Body( // MKSVar
-        EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
+        EdbDeconstruct(e, q("EVar"), "name" -> x) ++ Seq(
           Eq(mark, ConstructMNone),
           Eq(ty, MapLookUp(ctx, Cast(x, TString)))
         )
       ),
       Body( // MKSFree
-        EdbDeconstruct(e, "EVar", "name" -> x) ++ Seq(
+        EdbDeconstruct(e, q("EVar"), "name" -> x) ++ Seq(
           Eq(mark, Construct(MFree, Seq())),
           // TODO: Not(MapContains(ctx, x)), creates a negative cycle
           Eq(IntNum(0), IntNum(1)), // TODO dummy constraint that always fails
@@ -295,7 +295,7 @@ class MarkedLambda:
       Body( // MKSLam
         EdbDeconstruct(
           e,
-          "ELam",
+          q("ELam"),
           "param" -> x,
           "ty" -> ty(1),
           "body" -> e(1)
@@ -313,7 +313,7 @@ class MarkedLambda:
       Body( // MKSAp1
         EdbDeconstruct(
           e,
-          "EAp",
+          q("EAp"),
           "lhs" -> e(1),
           "rhs" -> e(2)
         ) ++ Seq(
@@ -332,7 +332,7 @@ class MarkedLambda:
       Body( // MKSAp2
         EdbDeconstruct(
           e,
-          "EAp",
+          q("EAp"),
           "lhs" -> e(1),
           "rhs" -> e(2)
         ) ++ Seq(
@@ -352,7 +352,7 @@ class MarkedLambda:
       Body( // MKSLet
         EdbDeconstruct(
           e,
-          "ELet",
+          q("ELet"),
           "name" -> x,
           "defn" -> e(1),
           "body" -> e(2)
@@ -370,13 +370,13 @@ class MarkedLambda:
         )
       ),
       Body( // MKSNum
-        EdbDeconstruct(e, "ENum") ++ Seq(
+        EdbDeconstruct(e, q("ENum")) ++ Seq(
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTNum)
         )
       ),
       Body( // MKSPlus
-        EdbDeconstruct(e, "EPlus", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+        EdbDeconstruct(e, q("EPlus"), "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
           Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTNum)),
           Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTNum)),
           Eq(mark, ConstructMNone),
@@ -384,13 +384,13 @@ class MarkedLambda:
         )
       ),
       Body( // MKSTrue
-        EdbDeconstruct(e, "ETrue") ++ Seq(
+        EdbDeconstruct(e, q("ETrue")) ++ Seq(
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTBool)
         )
       ),
       Body( // MKSFalse
-        EdbDeconstruct(e, "EFalse") ++ Seq(
+        EdbDeconstruct(e, q("EFalse")) ++ Seq(
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTBool)
         )
@@ -398,7 +398,7 @@ class MarkedLambda:
       Body( // MKSIf
         EdbDeconstruct(
           e,
-          "EIf",
+          q("EIf"),
           "guard" -> e(1),
           "lhs" -> e(2),
           "rhs" -> e(3)
@@ -413,7 +413,7 @@ class MarkedLambda:
       Body( // MKSInconsistentBranches
         EdbDeconstruct(
           e,
-          "EIf",
+          q("EIf"),
           "guard" -> e(1),
           "lhs" -> e(2),
           "rhs" -> e(3)
@@ -426,7 +426,7 @@ class MarkedLambda:
         )
       ),
       Body( // MKSPair
-        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+        EdbDeconstruct(e, q("EPair"), "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
           Eq(mark, ConstructMNone),
@@ -434,28 +434,28 @@ class MarkedLambda:
         )
       ),
       Body( // MKSProjL1
-        EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
+        EdbDeconstruct(e, q("EProjL"), "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(matchedProd, Seq(ty(1).arg, ty.arg, ty(2).arg)),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjL2
-        EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
+        EdbDeconstruct(e, q("EProjL"), "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
       Body( // MKSProjR1
-        EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
+        EdbDeconstruct(e, q("EProjR"), "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(matchedProd, Seq(ty(1).arg, ty(2).arg, ty.arg)),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjR2
-        EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
+        EdbDeconstruct(e, q("EProjR"), "exp" -> e(1)) ++ Seq(
           Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
@@ -476,7 +476,7 @@ class MarkedLambda:
       Body( // MKALam1
         EdbDeconstruct(
           e,
-          "ELam",
+          q("ELam"),
           "param" -> x,
           "ty" -> ty(1),
           "body" -> e(1)
@@ -495,7 +495,7 @@ class MarkedLambda:
       Body( // MKALam3
         EdbDeconstruct(
           e,
-          "ELam",
+          q("ELam"),
           "param" -> x,
           "ty" -> ty(1),
           "body" -> e(1)
@@ -513,7 +513,7 @@ class MarkedLambda:
       Body( // MKALam2
         EdbDeconstruct(
           e,
-          "ELam",
+          q("ELam"),
           "param" -> x,
           "ty" -> ty(1),
           "body" -> e(1)
@@ -535,7 +535,7 @@ class MarkedLambda:
       Body( // MKALet
         EdbDeconstruct(
           e,
-          "ELet",
+          q("ELet"),
           "name" -> x,
           "defn" -> e(1),
           "body" -> e(2)
@@ -555,7 +555,7 @@ class MarkedLambda:
       Body( // MKAIf
         EdbDeconstruct(
           e,
-          "EIf",
+          q("EIf"),
           "guard" -> e(1),
           "lhs" -> e(2),
           "rhs" -> e(3)
@@ -567,7 +567,7 @@ class MarkedLambda:
         )
       ),
       Body( // MKAPair1
-        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+        EdbDeconstruct(e, q("EPair"), "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
           Call(matchedProd, Seq(ty.arg, ty(1).arg, ty(2).arg)),
           Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
           Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
@@ -575,7 +575,7 @@ class MarkedLambda:
         )
       ),
       Body( // MKAPair2
-        EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
+        EdbDeconstruct(e, q("EPair"), "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
           Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTUnknown)),
           Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)),
           Eq(mark, Construct(MPairAnaNonProd, Seq(ty)))
