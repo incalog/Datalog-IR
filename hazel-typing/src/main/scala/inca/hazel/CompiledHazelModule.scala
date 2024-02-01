@@ -23,5 +23,5 @@ class CompiledHazelModule(val ir: Module) extends CompiledModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new tuple.Lowering {},
   ))

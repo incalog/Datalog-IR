@@ -10,6 +10,7 @@ import inca.ir.extension.edbdata.*
 import inca.ir.extension.map.*
 import inca.ir.extension.not.*
 import inca.ir.extension.string.*
+import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeVar}
 import inca.viatra.Executor
 import inca.viatra.runtime.context.DataModel
 
@@ -72,7 +73,22 @@ class MarkedLambda:
 
   private val ConstructMNone = Construct(MNone, Seq())
 
-  private val Ctx = TMap(TString, Type)
+
+  def TOption(t: Type): TData = TData(TypeApplication(Name("Option"), Seq(t)))
+  val NoneOpt = Name("NoneOpt")
+  val SomeOpt = Name("SomeOpt")
+  contents ++= Seq(
+    ParametricModuleEntry(Seq(Name("T")), DataDefinition(Name("Option"))),
+    ParametricModuleEntry(Seq(Name("T")), CaseDefinition(NoneOpt, Seq(), TOption(TypeVar("T")))),
+    ParametricModuleEntry(Seq(Name("T")), CaseDefinition(SomeOpt, Seq(TypeVar("T")), TOption(TypeVar("T"))))
+  )
+  def NoneType[Target <: ModuleEntry]: TypeApplication[Target] = TypeApplication(NoneOpt, Seq(Type))
+  def SomeType[Target <: ModuleEntry]: TypeApplication[Target] = TypeApplication(SomeOpt, Seq(Type))
+  def ConstructSomeType(t: Term): Construct = Construct(SomeType, Seq(t))
+
+
+  // a total context map
+  private val Ctx = TMap(TString, TOption(Type))
 
   private def ctx = Var("ctx")
   private def e = Var("e")
@@ -80,6 +96,7 @@ class MarkedLambda:
   private def mark = Var("mark")
   private def mark(i: Int) = Var(s"mark$i")
   private def ty = Var("ty")
+  private def tyOpt = Var("tyOpt")
   private def ty(i: Int) = Var(s"ty$i")
   private def x = Var("x")
   private def xStr = Var("xStr")
@@ -281,14 +298,15 @@ class MarkedLambda:
       Body( // MKSVar
         EdbDeconstruct(e, q("EVar"), "name" -> x) ++ Seq(
           Eq(mark, ConstructMNone),
-          Eq(ty, MapLookUp(ctx, Cast(x, TString)))
+          Eq(tyOpt, MapLookUp(ctx, Cast(x, TString))),
+          Deconstruct(tyOpt, SomeType, Seq(ty.arg), false)
         )
       ),
       Body( // MKSFree
         EdbDeconstruct(e, q("EVar"), "name" -> x) ++ Seq(
           Eq(mark, Construct(MFree, Seq())),
-          // TODO: Not(MapContains(ctx, x)), creates a negative cycle
-          Eq(IntNum(0), IntNum(1)), // TODO dummy constraint that always fails
+          Eq(tyOpt, MapLookUp(ctx, Cast(x, TString))),
+          Deconstruct(tyOpt, NoneType, Seq(), false),
           Eq(ty, ConstructTUnknown)
         )
       ),
@@ -304,7 +322,11 @@ class MarkedLambda:
           Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(3).arg)
+            Seq(
+              MapPlus(ctx, xStr, ConstructSomeType(ty(2))).arg,
+              e(1).arg,
+              mark(1).arg,
+              ty(3).arg)
           ),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTArrow(ty(2), ty(3)))
@@ -364,7 +386,11 @@ class MarkedLambda:
           Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(
+              MapPlus(ctx, xStr, ConstructSomeType(ty(1))).arg,
+              e(2).arg,
+              mark(2).arg,
+              ty.arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -487,7 +513,7 @@ class MarkedLambda:
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ConstructSomeType(ty(2))).arg, e(1).arg, mark(1).arg, ty(5).arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -505,7 +531,7 @@ class MarkedLambda:
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ConstructSomeType(ty(2))).arg, e(1).arg, mark(1).arg, ty(5).arg)
           ),
           Eq(mark, Construct(MLamAnaInconAsc, Seq(ty(4))))
         )
@@ -523,7 +549,7 @@ class MarkedLambda:
           Call(
             anaMark,
             Seq(
-              MapPlus(ctx, xStr, ty(2)).arg,
+              MapPlus(ctx, xStr, ConstructSomeType(ty(2))).arg,
               e(1).arg,
               mark(1).arg,
               ConstructTUnknown
@@ -547,7 +573,7 @@ class MarkedLambda:
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(MapPlus(ctx, xStr, ConstructSomeType(ty(1))).arg, e(2).arg, mark(2).arg, ty.arg)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -606,7 +632,14 @@ class MarkedLambda:
       Param(ty.name, Type)
     ),
     Seq(Body(Seq(
-      Call(synMark, Seq(MapLit(Seq()).arg, e.arg, mark.arg, ty.arg))
+      Eq(
+        ctx,
+        MapComprehension(xStr, Construct(NoneType, Seq()),
+          EdbDeconstruct(e(0), q("EVar"), "name" -> x) :+
+          Eq(xStr, Cast(x, TString))
+        )
+      ),
+      Call(synMark, Seq(ctx.arg, e.arg, mark.arg, ty.arg))
     )))
   )
 
@@ -621,7 +654,8 @@ class MarkedLambda:
         edbdata.IR,
         map.IR,
         not.IR,
-        string.IR
+        string.IR,
+        typeparam.IR
       )
     ),
     contents.toList
@@ -647,7 +681,7 @@ object MarkedLambda extends App:
     import edb.*
     val t1 = EPlus(ETrue(), ENum(3))
     val t2 = EPlus(ENum(2), ENum(3))
-    val t3 = EPlus(ENum(2), EFalse())
+    val t3 = EPlus(ENum(2), EVar("y"))
 
     println(s"Loading $t1")
     t1.loadEdits.print()
@@ -666,6 +700,3 @@ object MarkedLambda extends App:
     engine.feed.processEditScript(edits23)
     engine.readAll().map(_.asTable).foreach(println)
   }
-
-// negative cycle
-// synMark -> Map$TString@edb_Type$$rel -> Map$TString@edb_Type$$rel$input -> synMark$input -> anaMark -> synMark
