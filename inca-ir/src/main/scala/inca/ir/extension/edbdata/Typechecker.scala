@@ -85,7 +85,7 @@ trait Typechecker extends BaseIRTypechecker:
       ety.bound
     case LookupEdbField(src, link) =>
       inferTerm(src, Mode.Binding).ty match
-        case srcTy: EdbType => 
+        case srcTy: EdbType =>
           val trgTy = inferLinkLookup(srcTy, link, term)
           trgTy.bound
         case srcTy =>
