@@ -10,6 +10,8 @@ trait Visitor extends BaseIRVisitor:
     case _ => super.visitType(ty)
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case MapEmpty(kTy, vTy) =>
+      Seq(MapEmpty(visitType(kTy), visitType(vTy)))
     case MapLit(ts) =>
       val tts: Seq[(Term, Term)] = ts.flatMap {
         case (k, v) => visitTerm(k).zip(visitTerm(v))

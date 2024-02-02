@@ -16,6 +16,10 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.checkTermExtend(term, expected, mode)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
+    case MapEmpty(kTy, vTy) =>
+      checkType(kTy)
+      checkType(vTy)
+      TMap(kTy, vTy).bound
     case MapLit(Nil) =>
       TMap(TNothing, TNothing).bound
     case MapLit((k,v) +: kvs) =>

@@ -116,6 +116,10 @@ trait Lowering extends BaseLowering:
   }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
+    case MapEmpty(kTy, vTy) =>
+      val mapEnum = new MapEnum:
+        override def apply(keyVar: Name, valVar: Name): Seq[Atom] = Seq()
+      Seq(callAddConstructor(term, mapEnum))
     case MapLit(ts) =>
       val elems = ts.map(tt => visitTerm(tt._1).zip(visitTerm(tt._2)))
       val mapEnum = new MapEnum:

@@ -8,12 +8,6 @@ import scala.annotation.tailrec
 
 trait Typechecker extends BaseIRTypechecker:
 
-  override def checkParam(param: Param): Unit =
-    super.checkParam(param)
-    param.ty match
-      case _: EdbType => bindVar(param.name)
-      case _ => // nothing
-
   def lookupEdbNode(name: Name, s: SourceLocation): Option[(Seq[Name], EdbNodeDefinition)] =
     entries.get(name) match
       case Some(dd: EdbNodeDefinition) =>

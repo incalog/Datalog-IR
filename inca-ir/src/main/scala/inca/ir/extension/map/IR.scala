@@ -12,6 +12,10 @@ object IR extends IR {}
 case class TMap(k: Type, v: Type) extends Type:
   override def toString: String = s"Map[$k, $v]"
 
+case class MapEmpty(kTy: Type, vTy: Type) extends Term:
+  override def toString: String = s"Map[$kTy,$vTy]()"
+  override def vars: Seq[Var] = Seq()
+
 case class MapLit(ts: Seq[(Term, Term)]) extends Term:
   override def toString: String = s"Map(${ts.map[String]{(t1, t2) => s"$t1 -> $t2"}.mkString(", ")})"
   override def vars: Seq[Var] = ts.flatMap[Var]((t1, t2) => t1.vars ++ t2.vars)

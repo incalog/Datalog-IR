@@ -22,6 +22,7 @@ trait Visitor extends BaseIRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case UndefEdbType(ety) => Seq(UndefEdbType(visitEdbType(ety)))
     case UndefEdbField(t, link) => visitTerm(t).map(UndefEdbField(_, link))
+    case UndefEdbFieldInverse(srcTy, link, trg) => visitTerm(trg).map(t => UndefEdbFieldInverse(visitEdbType(srcTy), link, t))
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
