@@ -52,7 +52,7 @@ trait Typechecker extends BaseIRTypechecker:
     t
   }
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = scopedIgnoreDemand {
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = scopedIgnoreDemand {
     ignoreDemand = ignoreDemand || atom.hasHint(DemandIgnoreCallHint)
     super.checkAtom(atom, mode)
   }

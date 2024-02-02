@@ -9,7 +9,7 @@ import inca.ir.typing.Mode
 
 
 trait Typechecker extends data.Typechecker with typeparam.Typechecker:
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Match(matchee, cases) =>
       val mathceeType = inferTerm(matchee, mode.inverted).ty
 
