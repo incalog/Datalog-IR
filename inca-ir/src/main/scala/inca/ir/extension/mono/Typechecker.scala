@@ -21,7 +21,7 @@ trait Typechecker extends BaseIRTypechecker{
           TAny.bound
     case _ => super.inferTermExtend(term, mode)
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case WriteMono(m, input, keys) =>
       inferTerm(m, mode).ty match
         case TMono(inType, outType, keyTypes) =>

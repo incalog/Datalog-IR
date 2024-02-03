@@ -1,7 +1,8 @@
 package inca.ir.extension.edbdata
 
 import inca.ir.*
-import inca.ir.extension.arithmetic.TInt
+import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.extension.string.TString
 import truechange.{AnyType, JavaLitType, ListType, NamedLink, NodeMetaInfo, NothingType, OptionType, RefType, SortType}
 
 import scala.collection.mutable.ListBuffer
@@ -40,14 +41,18 @@ case class UndefEdbType(ty: EdbType) extends Atom:
   override def vars: Seq[Var] = Seq()
   override def toString: String = s"undef edb[$ty]"
 
-case class LookupEdbField(t: Term, link: Link) extends Term:
-  override def vars: Seq[Var] = t.vars
-  override def toString: String = s"($t).$link"
+case class LookupEdbField(src: Term, link: Link) extends Term:
+  override def vars: Seq[Var] = src.vars
+  override def toString: String = s"($src).$link"
 object LookupEdbField:
   def apply(t: Term, field: Name): LookupEdbField = new LookupEdbField(t, Link.Field(field))
-case class UndefEdbField(t: Term, link: Link) extends Atom:
-  override def vars: Seq[Var] = t.vars
-  override def toString: String = s"undef $t.$link"
+case class UndefEdbField(src: Term, link: Link) extends Atom:
+  override def vars: Seq[Var] = src.vars
+  override def toString: String = s"undef $src.$link"
+case class UndefEdbFieldInverse(srcTy: EdbType, link: Link, trg: Term) extends Atom:
+  override def vars: Seq[Var] = trg.vars
+  override def toString: String = s"undef $trg.$link^⁻¹"
+
 
 def EdbDeconstruct(t: Term, node: Name, fields: (String,Term)*): Seq[Atom] =
   Eq(Cast(t, TEdbNode(node)), LookupEdbType(TEdbNode(node))) +:
@@ -105,9 +110,12 @@ object EdbType:
 
   def fromTruechangeLitType(lty: truechange.LitType): EdbType = lty match
     case JavaLitType(cl) =>
-      println(s"LitType class $cl")
-      if (cl == classOf[Int])
+      if (cl == classOf[Int] || cl == classOf[Integer])
         TEdbValue(TInt)
+      else if (cl == classOf[Double] || cl == classOf[java.lang.Double])
+        TEdbValue(TDouble)
+      else if (cl == classOf[String])
+        TEdbValue(TString)
       else
         throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
     case _ => throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")

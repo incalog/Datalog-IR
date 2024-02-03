@@ -6,7 +6,7 @@ import inca.frontend.oodl.foreign.OODLAggregationOperator
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
-import inca.ir.{Arg, ExtensionalRelation, Language, Name, RefByName, TermArg, WildcardArg, name2string, string2name}
+import inca.ir.{Arg, ExtensionalRelation, Language, Name, RefByName, Term, TermArg, WildcardArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.aggregateset as iraggset
@@ -21,6 +21,7 @@ import inca.ir.extension.disjunction
 import inca.ir.extension.disjunction.DisjunctionAlternative
 import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
+import inca.ir.extension.map as irmap
 import inca.ir.extension.string as irstring
 import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
@@ -28,6 +29,8 @@ import inca.ir.extension.mono as irmono
 import inca.ir.extension.impure
 import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
+import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
+import inca.foreign.scala.ir.primitive as  irscala
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
@@ -58,7 +61,7 @@ class GenerateIR:
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
     + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
-    + iragg.IR + iraggset.IR + irimpure.IR + irmono.IR
+    + iragg.IR + iraggset.IR + irimpure.IR + irmono.IR + irmap.IR
   )
 
   val gensym: Gensym = new Gensym()
@@ -82,7 +85,7 @@ class GenerateIR:
       ExtensionalRelation(name, params :+ allocInParam :+ mutInParam :+ monoInParam)
     }
 
-    val classes = m.classes
+    val classes = m.classes.filter(!_.isMonoClass)
     builtinIdDatastructures = compileDatastructures(classes)
     val clsHierarchyRelation = compileClassHierarchy(classes)
     val dispatchRelations = compileMethodsAndDispatchTable(classes)
@@ -91,7 +94,10 @@ class GenerateIR:
     val moduleEntries = m.content.flatMap {
       case f: FunctionDef if f.isMain => Seq(compileMainFunction(f))
       case f: FunctionDef => Seq() // Skip all none main functions. We just use them for set fold
-      case c: ClassDef => compileClassDef(c)
+      case c: ClassDef if !c.isMonoClass => compileClassDef(c)
+      case m: ClassDef if m.isMonoClass =>
+        compileUserDefinedMono(m)
+        Seq()
     } ++ extMainInputRelations
 
     val castRelation = compileCastRelation()
@@ -469,6 +475,50 @@ class GenerateIR:
     )
   }
 
+  var userDefinedMonos: Map[Name, irmono.MonoDefinition] = Map()
+
+  def compileUserDefinedMono(classDef: ClassDef): Unit = {
+    val monoName = classDef.name
+    val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls
+
+    val genScala = new GenerateScala
+
+    def genClosure(methodDef: MethodDef) =
+      val inArgs = methodDef.params.map(p => s"${p.name}: ${genScala.transType(p.typ)}").mkString("(", ",", ")")
+      val body = genScala.transStatements(methodDef.body)
+      s"$inArgs => { $body }"
+
+    val initMethod = classDef.methods.filter(_.name.name == "init").head
+    val initCode = s"{ ${genScala.transStatements(initMethod.body)} }"
+
+    val addMethod = classDef.methods.filter(_.name.name == "+=").head
+    val addCode = genClosure(addMethod)
+
+    val resultMethod = classDef.methods.filter(_.name.name == "result").head
+    val resultCode = genClosure(resultMethod)
+
+    val monoDef = new irscala.ScalaMonoDefinition(
+      monoName,
+      initCode,
+      addCode,
+      resultCode,
+      Seq(),
+      irmono.MonoTypes(compileType(inTy), compileType(stateTy), irscala.ScalaType(genScala.transType(outTy)))
+    )
+    userDefinedMonos += monoName -> monoDef
+    monoDef
+  }
+
+  def generateMonoDefinition(name: Name, tyArgs: Seq[Type]): irmono.MonoDefinition = name match {
+    case Name("mono.Count") => irmono.ArithmeticMonoDefinition.Count
+    case Name("mono.Set") => scalaSetMonoDefinition(compileType(tyArgs.head))
+    case Name("mono.Map") =>
+      val kArg = tyArgs.head
+      val TName(monoName, monoArgs) = tyArgs.last
+      irmono.MapMonoDefinition(compileType(kArg), generateMonoDefinition(monoName, monoArgs))
+    case name => userDefinedMonos(name)
+  }
+
   def compileExpression(e: Expression): ir.Term = e.cast match
     case None => compileCastedExpression(e)
     case Some(trgTy) => ir.Cast(compileCastedExpression(e), compileType(trgTy))
@@ -526,9 +576,10 @@ class GenerateIR:
           val recvTerm = compileExpression(recv)
           val resultVar = ir.Var(gensym.fresh(fieldDef.name))
 
-          if (classDef.isMonoClass && fieldDef.name.name == "result")
-            irmono.ReadMono(compileExpression(recv))
-          else if (classDef.isCaseClass)
+          /*if (classDef.isMonoClass && fieldDef.name.name == "result")
+            val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = classDef.parentCls
+            ir.Cast(irmono.ReadMono(compileExpression(recv)), compileType(outTy))*/
+          if (classDef.isCaseClass)
             // This is only okay, since case classes can not inherit fields. Otherwise we would need to match at runtime
             val allFields = classDef.fields
             val signature = allFields.map(_.typ)
@@ -563,10 +614,7 @@ class GenerateIR:
           val caseArgs = irstring.StringLit(classDef.name) +: args.map(compileExpression)
           irdata.Construct(caseName, caseArgs)
         case cls if cls.isMonoClass =>
-          cls.name match
-            case Name("mono.Count") => irmono.NewMono(irmono.ArithmeticMonoDefinition.Count, Seq(), Seq())
-            case Name("mono.Set") => irmono.NewMono(scalaSetMonoDefinition(compileType(tyArgs.head)))
-            case _ => ???
+          irmono.NewMono(generateMonoDefinition(cls.name, tyArgs))
         case _ =>
           val oidVar = ir.Var(gensym.fresh("oid"))
           val allocVar = Name(gensym.freshName("current" + AllocImpurityKind.name))
@@ -597,6 +645,27 @@ class GenerateIR:
 
     case methodCall@MethodCall(recv, fun, _, args, isFix) =>
       recv.typ match
+        case Some(t@TName(Name("mono.Map"), tyArgs)) =>
+          fun match
+            case Name("get") =>
+              def nmapLookUp(map: Term, keys: Seq[Term]): Term =
+                if keys.size == 1 then irmap.MapLookUp(map, keys.head)
+                else if keys.size > 1 then irmap.MapLookUp(nmapLookUp(map, keys.dropRight(1)), keys.last)
+                else throw IllegalAccessError(s"$keys is an empty list")
+              val readMap = nmapLookUp(irmono.ReadMono(compileExpression(recv)), args.map(compileExpression))
+              ir.Cast(readMap, compileType(expr.typ.get))
+        case Some(t: TName) if t.target.exists(t => t.isInstanceOf[ClassDef] && t.asInstanceOf[ClassDef].isMonoClass) =>
+          // Read UserDefined monos
+          val classDef = t.target.get.asInstanceOf[ClassDef]
+          fun match
+            case Name("result") =>
+              val readMono = irmono.ReadMono(compileExpression(recv))
+              if (classDef.parentCls.nonEmpty)
+                val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = classDef.parentCls
+                ir.Cast(readMono, compileType(outTy))
+              else
+                // Handle built in mono, such as count mono
+                readMono
         case Some(t: TName) if t.isBuiltIn =>
           fun.name match
             case "toString" => irstring.ToString(compileExpression(recv))
@@ -682,19 +751,38 @@ class GenerateIR:
       val memberTerms = member.map(compileExpression)
       val bodyTerm = compileExpression(body)
       val comprehension = irset.SetComprehension(bodyTerm, memberTerms.map(t => ir.Eq(t, bool.BoolTrue)))
-      body.typ match
-        case Some(TUnit) =>
-          // TODO: Should this be done in the set lowering ?
-          //  Or should tuple represent empty tuples with an adt ?
-          // Force materialisation of unit tuples
-          val outVar = ir.Var(gensym.fresh("_"))
-          block.Block(irset.SetMember(outVar, comprehension), outVar)
-        case _ => comprehension
-
+      // Force materialisation of sets to evaluate possible side effects
+      val outVar = ir.Var(gensym.fresh("comp"))
+      block.Block(
+        Seq(
+          ir.Eq(outVar, comprehension),
+          irset.SetMember(ir.Var(gensym.fresh("_")), outVar)
+        ), outVar)
     case _ =>
       throw IllegalStateException(s"Unhandled expression $expr of class ${expr.getClass}")
 
   /** Type */
+
+  private def compileOutTypeFromMonoMap(mono: TName): ir.Type =
+    val outTy = mono.tyArgs.last match
+      case t: TName if t.name.name == "mono.Map" => compileOutTypeFromMonoMap(t)
+      case t: TName =>
+        val cls = t.target.get.asInstanceOf[ClassDef]
+        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+        val generateScala = new GenerateScala {}
+        irscala.ScalaType(generateScala.transType(outTy))
+      case t => throw IllegalStateException(s"Found none class type $t in mono map")
+    irmap.TMap(compileType(mono.tyArgs.head), outTy)
+
+  private def compileInTypeFromMonoMap(mono: TName): ir.Type =
+    val outTy = mono.tyArgs.last match
+      case t: TName if t.name.name == "mono.Map" => compileInTypeFromMonoMap(t)
+      case t: TName =>
+        val cls = t.target.get.asInstanceOf[ClassDef]
+        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+        compileType(outTy)
+      case t => throw IllegalStateException(s"Found none class type $t in mono map")
+    irtuple.TTuple(Seq(compileType(mono.tyArgs.head), outTy))
 
   def compileType(ty: Type): ir.Type = ty match
     case TAny => ir.TAny
@@ -711,7 +799,13 @@ class GenerateIR:
         case Name("mono.Set") =>
           val valueTy = compileType(tyArgs.head)
           irmono.TMono(valueTy, irset.TSet(valueTy), Seq())
-        case _ => ???
+        case Name("mono.Map") =>
+          //val inTy = compileType(tyArgs.head)
+          //val outTy = compileType(tyArgs.last)
+          irmono.TMono(compileInTypeFromMonoMap(t), compileOutTypeFromMonoMap(t), Seq())
+        case _ =>
+          val Seq(TName(Name("mono.Type"), Seq(inTy, _, outTy))) = cls.parentCls
+          irmono.TMono(compileType(inTy), compileType(outTy), Seq())
       }
       case Some(cls: ClassDef) => irdata.TData("ID")
       case target => throw IllegalStateException(s"Unexpected type target $target for type $name")

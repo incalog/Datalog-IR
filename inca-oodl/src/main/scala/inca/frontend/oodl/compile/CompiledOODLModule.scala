@@ -4,7 +4,7 @@ import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledModule, Name, SimpleAliasElimination, Module as IRModule}
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, mono, not, set, tuple}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
@@ -81,6 +81,7 @@ object CompiledOODLModule:
     () => new ConversionElimination {},
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
+    () => new map.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
     () => new not.Lowering {},

@@ -6,7 +6,7 @@ import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.set.TSet
 
 trait Typechecker extends BaseIRTypechecker:
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case AggregateSet(rel, args, op) =>
       val paramTys = inferRelationRef(rel, atom)
       rel.target.foreach(addDependency(currentEntry, _, DependencyInfo.AggregationCall))

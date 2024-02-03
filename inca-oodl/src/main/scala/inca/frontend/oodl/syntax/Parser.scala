@@ -341,7 +341,7 @@ object Parser:
     inParens(param.repSep0(op(","))) | P.pure(Seq())
 
   private val function = (funcAnno.rep0 ~ visibility.?).with1 ~
-    keyword("def") ~ identifier ~ typeParams ~ params ~
+    keyword("def") ~ (identifier | P.string("+=").string.map(Name.apply)) ~ typeParams ~ params ~
     op(":") ~ typ ~ op("=") ~ statements
 
   /** Statements */
@@ -463,7 +463,11 @@ object Parser:
       (keyword("extends") *> typ ~ inParens(expression.repSep0(op(','))).?).? ~ classContent).mapWithLoc {
       case ((((((vis, annos), name), tys), primaryConstrFields), maybeParentCls), clsContent)  =>
         // Inherit from Object if no superclass is specified
+        var isMono = false
         val (parentCls, superArgs) = maybeParentCls match
+          case Some((cls@TName(Name("mono.Type"), _), _)) =>
+            isMono = true
+            (cls, Seq())
           case Some((cls, Some(args))) =>
             (cls, args)
           case Some((cls, None)) =>
@@ -478,9 +482,13 @@ object Parser:
         val constrDef = ConstructorDef(Seq(), None, constrParams, superCall +: fieldAssigns)
 
         val allContent = (primaryConstrFields :+ constrDef) ++ clsContent
-        val annotations = annos match
-          case Some(value) => Seq(value)
-          case None => Seq()
+        val annotations =
+          if (isMono)
+              Seq(MonoClassAnno())
+          else
+            annos match
+              case Some(value) => Seq(value)
+              case None => Seq()
         ClassDef(annotations, vis, name, tys.getOrElse(Seq()), Seq(parentCls), allContent)
     }
 

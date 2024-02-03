@@ -8,6 +8,12 @@ import scala.annotation.tailrec
 
 trait Typechecker extends BaseIRTypechecker:
 
+  override def checkParam(param: Param): Unit =
+    super.checkParam(param)
+    param.ty match
+      case _: EdbType => bindVar(param.name)
+      case _ => // nothing
+
   def lookupEdbNode(name: Name, s: SourceLocation): Option[(Seq[Name], EdbNodeDefinition)] =
     entries.get(name) match
       case Some(dd: EdbNodeDefinition) =>
@@ -28,7 +34,7 @@ trait Typechecker extends BaseIRTypechecker:
       case Some(cd: EdbFieldDefinition) =>
         Some((Seq(), cd))
       case _ =>
-        error(s"Could not find constructor $name", locations: _*)
+        error(s"Could not find field $name", locations: _*)
         None
 
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
@@ -37,6 +43,7 @@ trait Typechecker extends BaseIRTypechecker:
       lookupEdbNode(node, moduleEntry)
       checkEdbType(ty, moduleEntry)
     case _ => super.checkModuleEntry(moduleEntry)
+
 
   override def checkType(ty: Type): Unit = ty match
     case ety: EdbType => checkEdbType(ety, ty)
@@ -56,31 +63,48 @@ trait Typechecker extends BaseIRTypechecker:
       case _ => // lookup error
     case _ => super.assertComparable(ty, outside, t)
 
+  def inferLinkLookup(srcTy: EdbType, link: Link, locations: SourceLocation*): Type = link match
+    case Link.Parent | Link.Children =>
+      TEdbValue(TAny)
+    case Link.Prev | Link.Next => srcTy match
+      case TEdbList(ety) => ety
+      case ty =>
+        error(s"Cannot lookup field $link on $ty", locations:_*)
+        ty
+    case Link.Field(field) => srcTy match
+      case TEdbNode(node) => lookupEdbField(edbFieldName(node, field)) match
+        case Some((_, EdbFieldDefinition(_, _, target))) => target
+        case _ => TAny // error produced by lookupEdbConstruct
+    case _ =>
+      error(s"Cannot lookup field $link on $srcTy", locations:_*)
+      srcTy
+
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case LookupEdbType(ety) =>
       checkEdbType(ety, term)
       ety.bound
     case LookupEdbField(src, link) =>
-      link match
-        case Link.Parent | Link.Children =>
-          inferTerm(src, Mode.Binding)
-          TEdbValue(TAny).bound
-        case Link.Prev | Link.Next =>
-          inferTerm(src, Mode.Binding).ty match
-            case TEdbList(ety) => ety.bound
-            case ty =>
-              error(s"Cannot lookup field $link on $ty", term)
-              ty.bound
-        case Link.Field(field) => inferTerm(src, Mode.Binding).ty match
-          case TEdbNode(node) => lookupEdbField(edbFieldName(node, field)) match
-            case Some((_, EdbFieldDefinition(_, _, target))) =>
-              target.bound
-            case _ =>
-              // error produced by lookupEdbConstruct
-              TAny.bound
-        case _ =>
-          val tt = inferTerm(src, Mode.Binding)
-          error(s"Cannot lookup field $link on ${tt.ty}", term)
-          tt
+      inferTerm(src, Mode.Binding).ty match
+        case srcTy: EdbType => 
+          val trgTy = inferLinkLookup(srcTy, link, term)
+          trgTy.bound
+        case srcTy =>
+          error(s"Cannot lookup field $link on $srcTy", term)
+          TAny.bound
     case _ => super.inferTermExtend(term, mode)
 
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case UndefEdbType(ety) =>
+      checkEdbType(ety, atom)
+    case UndefEdbField(src, link) =>
+      inferTerm(src, Mode.Bound).ty match
+        case srcTy: EdbType =>
+          val trgTy = inferLinkLookup(srcTy, link, atom)
+          trgTy.bound
+        case srcTy =>
+          error(s"Cannot lookup field $link on $srcTy", atom)
+          TAny.bound
+    case UndefEdbFieldInverse(srcTy, link, trg) =>
+      val trgTy = inferLinkLookup(srcTy, link, atom)
+      checkTerm(trg, trgTy, Mode.Bound)
+    case _ => super.checkAtom(atom, mode)
