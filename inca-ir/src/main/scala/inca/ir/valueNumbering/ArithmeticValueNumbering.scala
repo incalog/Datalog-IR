@@ -15,7 +15,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
   protected def simplify(term: Term): Term = {
     if !this.config.simplifyArithmetic then return term
     term match {
-      case DoubleNum(value) if value.isWhole => IntNum(value.intValue())
+//      case DoubleNum(value) if value.isWhole => IntNum(value.intValue())
       case BinOp(lhs, rhs, "+") => (lhs, rhs) match {
         case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
         case (IntNum(0), _) | (DoubleNum(0), _) => rhs
@@ -23,14 +23,14 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
         case (DoubleNum(l), DoubleNum(r)) => DoubleNum(l + r)
 //        case (DoubleNum(l), IntNum(r)) => DoubleNum(l + r)
 //        case (IntNum(l), DoubleNum(r)) => DoubleNum(l + r)
-        case (IntNum(l), BinOp(IntNum(r), rvar, "+")) => BinOp(IntNum(l + r), rvar, "+")
-        case (IntNum(l), BinOp(rvar, IntNum(r), "+")) => BinOp(IntNum(l + r), rvar, "+")
-        case (BinOp(IntNum(l), lvar, "+"), IntNum(r)) => BinOp(IntNum(l + r), lvar, "+")
-        case (BinOp(lvar, IntNum(l), "+"), IntNum(r)) => BinOp(IntNum(l + r), lvar, "+")
-        case (DoubleNum(l), BinOp(DoubleNum(r), rvar, "+")) => BinOp(DoubleNum(l + r), rvar, "+")
-        case (DoubleNum(l), BinOp(rvar, DoubleNum(r), "+")) => BinOp(DoubleNum(l + r), rvar, "+")
-        case (BinOp(DoubleNum(l), lvar, "+"), DoubleNum(r)) => BinOp(DoubleNum(l + r), lvar, "+")
-        case (BinOp(lvar, DoubleNum(l), "+"), DoubleNum(r)) => BinOp(DoubleNum(l + r), lvar, "+")
+        case (IntNum(l), BinOp(IntNum(r), rterm, "+")) => BinOp(IntNum(l + r), rterm, "+")
+        case (IntNum(l), BinOp(rterm, IntNum(r), "+")) => BinOp(IntNum(l + r), rterm, "+")
+        case (BinOp(IntNum(l), rterm, "+"), IntNum(r)) => BinOp(IntNum(l + r), rterm, "+")
+        case (BinOp(lterm, IntNum(l), "+"), IntNum(r)) => BinOp(IntNum(l + r), lterm, "+")
+        case (DoubleNum(l), BinOp(DoubleNum(r), rterm, "+")) => BinOp(DoubleNum(l + r), rterm, "+")
+        case (DoubleNum(l), BinOp(rterm, DoubleNum(r), "+")) => BinOp(DoubleNum(l + r), rterm, "+")
+        case (BinOp(DoubleNum(l), lterm, "+"), DoubleNum(r)) => BinOp(DoubleNum(l + r), lterm, "+")
+        case (BinOp(lterm, DoubleNum(l), "+"), DoubleNum(r)) => BinOp(DoubleNum(l + r), lterm, "+")
 //        case (BinOp(lhs, rhs, "+"),rrhs) =>
 //          val temp = simplify(Add(rrhs, lhs))
 //          if (temp != Add(rrhs, lhs)) {
@@ -45,9 +45,12 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 //          } else {
 //            Add(simplify(Add(llhs,rhs)),lhs)
 //          }
-        case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "+") // this and following two for commutativity
+        case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "+") // this and following four for commutativity & associativity
         case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_)|DoubleNum(_))) => BinOp(rNum, lvar, "+")
-        case (lBinOp@BinOp(_, _, _), rhs) => BinOp(rhs, lBinOp, "+")
+        case (lhs, BinOp(lNum@(IntNum(_)|DoubleNum(_)), rterm, "+")) => BinOp(lNum, simplify(BinOp(lhs, rterm, "+")), "+")
+        //        case (lhs, BinOp(lterm, rNum@(IntNum(_) | DoubleNum(_)),  "+")) => BinOp(rNum, simplify(BinOp(lhs, lterm, "+")), "+")
+        case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) => if getHashCode(lBinOp) > getHashCode(rBinOp) then Add(rBinOp,lBinOp) else term
+        case (lBinOp@BinOp(_, _, _), rhs) => simplify(BinOp(rhs, lBinOp, "+"))
         case (l, r) => BinOp(l, r, "+")
       }
       case BinOp(lhs, rhs, "-") => (lhs, rhs) match {
@@ -81,9 +84,11 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
         case (DoubleNum(l), BinOp(rvar, DoubleNum(r), "*")) => BinOp(DoubleNum(l * r), rvar, "*")
         case (BinOp(DoubleNum(l), lvar, "*"), DoubleNum(r)) => BinOp(DoubleNum(l * r), lvar, "*")
         case (BinOp(lvar, DoubleNum(l), "*"), DoubleNum(r)) => BinOp(DoubleNum(l * r), lvar, "*")
-        case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "*") // this and following two for commutativity
+        case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "*") // this and following four for commutativity & associativity
         case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_) | DoubleNum(_))) => BinOp(rNum, lvar, "*")
-        case (lBinOp@BinOp(_, _, _), rhs) => BinOp(rhs, lBinOp, "*")
+        case (lhs, BinOp(lNum@(IntNum(_)|DoubleNum(_)), rterm, "*")) => BinOp(lNum, simplify(BinOp(lhs, rterm, "*")), "*")
+        case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) => if getHashCode(lBinOp) > getHashCode(rBinOp) then Mul(rBinOp,lBinOp) else term
+        case (lBinOp@BinOp(_, _, _), rhs) => simplify(BinOp(rhs, lBinOp, "*"))
         case (l, BinOp(lhs, rhs, "+")) => Add(simplify(Mul(l, lhs)), simplify(Mul(l, rhs))) //  for distributivity
         case (Var(RefByName(Name(nameL))), BinOp(lhs, Var(RefByName(Name(nameR))), "/")) => if nameL == nameR then lhs else term
 //        case (Var(RefByName(Name(nameL))), BinOp(DoubleNum(l), Var(RefByName(Name(nameR))), "/")) => if nameL == nameR then DoubleNum(l) else term

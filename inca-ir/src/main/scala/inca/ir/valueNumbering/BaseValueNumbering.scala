@@ -37,11 +37,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   // TODO dont use scala`s hashing function
   // Type of argument -> changed from Term to Analyzable since need to Hash Atoms like Calls too
-  private def getHashCode(elem: Analyzable): Hashed = elem match {
+  protected def getHashCode(elem: Analyzable): Hashed = elem match {
     case Var(RefByName(Name(name))) if VN.contains(name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
-  private def getHashCode(body: Body): Hashed = body.hashCode()
+  protected def getHashCode(body: Body): Hashed = body.hashCode()
 
 
   private var relationParams: Seq[Name] = Seq()
