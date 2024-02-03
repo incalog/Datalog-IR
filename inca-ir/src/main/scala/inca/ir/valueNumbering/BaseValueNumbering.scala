@@ -81,6 +81,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  private def newVar(nameStr: String, ty: Option[TermType] = None): Var = {
+    val v = Var(RefByName(Name(nameStr)))
+    v.typ = ty
+    v
+  }
+
   protected def simplify(term: Term): Term
 
   /** replaces term with Var if possible */
@@ -90,11 +96,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       Seq(
         if const.contains(VN(name)) && this.config.propagateConstants then
           const(VN(name))
-        else Var(RefByName(Name(VN(name)))))
+        else newVar(VN(name),term.typ)
+      )
     case _ =>
       val newTerm = super.visitTerm(term).head
+      if term.typ.nonEmpty then newTerm.typed(term.typ.get) // TODO okay ?
       val termHash: Hashed = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then Var(RefByName(Name(hashTable(termHash)))) else simplify(newTerm))
+      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash),term.typ) else simplify(newTerm))
   }
 
 
@@ -135,7 +143,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       //count = count.updated(exprHash, count(exprHash) + 1)
 
       // remove "Assignment" or replace term
-      if isParam(x) then Seq(Eq(Var(RefByName(Name(x))), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+      if isParam(x) then Seq(Eq(newVar(x,e.typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       else Seq()
     }
     else {
@@ -152,7 +160,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       Seq(
         // return with newTerm
-        Eq(Var(RefByName(Name(x))), newTerm)
+        Eq(newVar(x,e.typ), newTerm)
       )
     }
   }
