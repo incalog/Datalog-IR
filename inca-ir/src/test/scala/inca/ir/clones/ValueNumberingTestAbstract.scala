@@ -17,12 +17,13 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
     val VN = new ValueNumbering(config)
     val typecheckerBefore = new Typechecker {}
     typecheckerBefore.checkProgram(Seq(input))
-    println(s"before VN: \n$input")
+    println(s"before VN: \n$input\n")
     val result = VN.valueNumbering(input)
     val typecheckerAfter = new Typechecker {}
     typecheckerAfter.checkProgram(Seq(result))
     println(s"after VN: \n$result")
     assertResult(expected)(result)
+    println("#"*100)
   }
 
 

@@ -124,6 +124,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     //          }
     //        }
 
+    case call@ExtensionalCall(ref, args, false) => valueNumberAtoms(call, args)
+
     case _ => valueNumberAtoms(atom)
   }
 

@@ -754,6 +754,99 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Ext Call replace Args") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("C")), Var(Name("B"))),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("B"))), TermArg(Var(Name("C")))), false),
+            ExtensionalCall(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("B"))), TermArg(Var(Name("B")))), false),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("C")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)))
+      ))
+
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
+            //            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
+            //            Eq(Var(Name("C")), Var(Name("B"))),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("A"))), TermArg(Var(Name("A")))), false),
+            ExtensionalCall(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("A"))), TermArg(Var(Name("A")))), false),
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Ext Call: Simple Redundant Var bound in Ext Call") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            Eq(Var("X2"), Var("X1")),
+            Eq(Var(Name("param$0")), Var(Name("X1"))),
+            Eq(Var(Name("param$1")), Var(Name("X2")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            //            Eq(Var("X2"), Var("X1")),
+            Eq(Var(Name("param$0")), Var(Name("X1"))),
+            Eq(Var(Name("param$1")), Var(Name("X1")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Redundant Ext Calls") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            Eq(Var("X1"), Var("X2")),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+            Eq(Var(Name("param$0")), Var(Name("X2")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            //            Eq(Var("X1"), Var("X2")),
+            //            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            //            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+            Eq(Var(Name("param$0")), Var(Name("X1")))
+          ))
+        )),
+        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+      ))
+    performTest(expected, input)
+  }
+
   test("Redundant Atoms") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
