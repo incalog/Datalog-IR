@@ -1,0 +1,8 @@
+module Test
+
+class A {
+    @main
+    def main(i: Int): Int = {
+        return 1 + i
+    }
+}

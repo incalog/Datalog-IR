@@ -1,0 +1,15 @@
+module FieldAccess1
+
+class A {
+    var value: Int
+
+    def this(value: Int) = {
+        this.value = value
+    }
+
+    @main
+    def main(): Int = {
+        val a: A = new A(3)
+        return a.value + a.value
+    }
+}

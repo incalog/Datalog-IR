@@ -1,0 +1,20 @@
+module SetTest
+
+class A {
+    var value: Int = 0
+
+    def someMethod(is: Set[Int]): Set[Int] = {
+        //val res: Set[Int] = for (i <- is) yield i*i
+        this.value = 1
+        //return is
+        return Set[Int]()
+    }
+}
+
+@main
+def main(): Set[Int] = {
+    val a: A = new A()
+    val res: Set[Int] = a.someMethod(Set[Int]())
+    a.value = a.value + 1
+    return res ++ Set(a.value)
+}

@@ -1,0 +1,4 @@
+$While($GreaterThan($Num(10), $Var("x")), $Assign("y", $Add($Var("y"), $Num(1))))
+$While($GreaterThan($Var("z"), $Num(2)), $Assign("z", $Num(2)))
+$While($GreaterThan($Var("y"), $Num(7)), $Sequence($Assign("y", $Add($Var("x"), $Var("y"))), $While($GreaterThan($Var("z"), $Num(2)), $Assign("z", $Num(2)))))
+$While($GreaterThan($Var("x"), $Num(6)), $Sequence($Assign("x", $Add($Var("x"), $Var("y"))), $While($GreaterThan($Var("y"), $Num(7)), $Sequence($Assign("y", $Add($Var("x"), $Var("y"))), $While($GreaterThan($Var("z"), $Num(2)), $Assign("z", $Num(2)))))))
