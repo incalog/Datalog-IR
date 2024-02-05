@@ -137,37 +137,82 @@ class PointsToTest extends AnyFunSuite:
 //    edbs.foreach(loaded.engine.insert)
 //    edbs.foreach(e => println(e.asTable))
 
+//    val nextEDB = Relation2("next", Seq("from", "to"), Seq(
+//      Seq(1, 2), Seq(2, 3), Seq(3, 4), Seq(5, 6), Seq(6, 7), Seq(4, 9)
+//    ))
+//    val newEDB = Relation3("new", Seq("loc", "var", "obj"), Seq(
+//      Seq(1, "a", 1), Seq(2, "b", 2), Seq(5, "c", 5)
+//    ))
+//    val assignEDB = Relation3("assign", Seq("loc", "from", "to"), Seq(
+//      Seq(8, "c", "a")
+//    ))
+//    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
+//      Seq(3, "a", "f", "b"),
+//      Seq(6, "c", "f", "a"),
+//      Seq(7, "a", "f", "c"),
+//    ))
+//    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
+//      Seq(9, "d", "c", "f"),
+//    ))
+//    val ifEDB = Relation4("if", Seq("loc", "cond", "then", "else"), Seq(
+//      Seq(4, "X", 5, 8)
+//    ))
     val nextEDB = Relation2("next", Seq("from", "to"), Seq(
-      Seq(1, 2), Seq(2, 3), Seq(3, 4), Seq(5, 6), Seq(6, 7), Seq(4, 9)
+      Seq(1, 2), Seq(2, 5)
     ))
     val newEDB = Relation3("new", Seq("loc", "var", "obj"), Seq(
-      Seq(1, "a", 1), Seq(2, "b", 2), Seq(5, "c", 5)
+      Seq(1, "a", 1), Seq(3, "b", 3)
     ))
     val assignEDB = Relation3("assign", Seq("loc", "from", "to"), Seq(
-      Seq(8, "c", "a")
+      Seq(4, "b", "a"), Seq(5, "a", "b")
     ))
-    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
-      Seq(3, "a", "f", "b"),
-      Seq(6, "c", "f", "a"),
-      Seq(7, "a", "f", "c"),
-    ))
-    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
-      Seq(9, "d", "c", "f"),
-    ))
+//    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
+//      Seq(3, "a", "f", "b"),
+//      Seq(6, "c", "f", "a"),
+//      Seq(7, "a", "f", "c"),
+//    ))
+//    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
+//      Seq(9, "d", "c", "f"),
+//    ))
     val ifEDB = Relation4("if", Seq("loc", "cond", "then", "else"), Seq(
-      Seq(4, "X", 5, 8)
+      Seq(2, "X", 3, 4)
     ))
-    val edbs = Seq(nextEDB, newEDB, assignEDB, ifEDB, storeEDB, loadEDB)
+    val edbs = Seq(nextEDB, newEDB, assignEDB, ifEDB)
     edbs.foreach(loaded.engine.insert)
 
-    val pointsto = loaded.query("pointsto")
-    println(pointsto.asTable)
-    val fieldpointsto = loaded.query("fieldpointsto")
-    println(fieldpointsto.asTable)
+
+    val nextInsert = Relation2("next", Seq("from", "to"), Seq(
+      Seq(5, 6)
+    ))
+    val newInsert = Relation3("new", Seq("loc", "var", "obj"), Seq(
+      Seq(4, "b", 4)
+    ))
+    val assignInsert = Relation3("assign", Seq("loc", "from", "to"), Seq(
+      Seq(6, "c", "a"),
+    ))
+    val assignDelete = Relation3("assign", Seq("loc", "from", "to"), Seq(
+      Seq(4, "b", "a"),
+    ))
+
+    val inserts = Seq(nextInsert, newInsert, assignInsert)
+
+//    val pointsto = loaded.query("pointsto")
+//    println(pointsto.asTable)
+//    val fieldpointsto = loaded.query("fieldpointsto")
+//    println(fieldpointsto.asTable)
     val cpointsto = loaded.query("cpointsto")
     println(cpointsto.asTable)
-    val cfieldpointsto = loaded.query("cfieldpointsto")
-    println(cfieldpointsto.asTable)
+
+    println("DELETE")
+    loaded.engine.remove(assignDelete)
+    val cpointsto2 = loaded.query("cpointsto")
+    println(cpointsto2.asTable)
+    println("INSERT")
+    inserts.foreach(loaded.engine.insert)
+    val cpointsto3 = loaded.query("cpointsto")
+    println(cpointsto3.asTable)
+//    val cfieldpointsto = loaded.query("cfieldpointsto")
+//    println(cfieldpointsto.asTable)
   }
 
 //  test("constant seq - reassign") {
