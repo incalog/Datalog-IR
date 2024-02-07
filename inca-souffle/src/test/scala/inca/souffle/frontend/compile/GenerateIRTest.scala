@@ -56,11 +56,13 @@ class GenerateIRTest extends AnyFunSuite:
 
 
   test("compile path") {
+    val nodeTy = Type.Name(QualifiedName(Seq("Node")))
     val prog = Program(Seq(
+      ProgramContent.TypeDecl("Node", TypeDeclConstraint.EqType(Type.Symbol)),
       ProgramContent.RelationDecl(
         Seq("edge"),
         Seq(
-          Attribute("n", Type.Symbol), Attribute("m", Type.Symbol)
+          Attribute("n", nodeTy), Attribute("m", nodeTy)
         ),
         Seq(),
         None
@@ -72,7 +74,7 @@ class GenerateIRTest extends AnyFunSuite:
       ProgramContent.RelationDecl(
         Seq("path"),
         Seq(
-          Attribute("n", Type.Symbol), Attribute("m", Type.Symbol)
+          Attribute("n", nodeTy), Attribute("m", nodeTy)
         ),
         Seq(),
         None

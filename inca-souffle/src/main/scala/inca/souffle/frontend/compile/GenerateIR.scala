@@ -22,6 +22,18 @@ import inca.ir.extension.disjunction as irdis
 import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.typeparam as irtype
 
+/**
+ * Things to consider in general:
+ * - We need a way to distinguish edb from idb calls (decl without rules are edb ?)
+ *
+ * Things to consider regarding components:
+ * 1. Components can call relations defined outside of their scope
+ * 2. We need to prefix calls to relations inside the component, but only, if they are defined inside the component
+ * 3. The same as above also holds for types
+ * 4.
+ *
+ */
+
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
@@ -69,27 +81,28 @@ class GenerateIR {
     }
     compDecl
 
-  private def collectComponentInit(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent.ComponentInit, Seq[String]] =
+  private def collectComponentInit(content: Seq[ProgramContent], componentPrefix: Seq[String] = Seq()): Map[ProgramContent.ComponentInit, Seq[String]] =
     var compInit: Map[ProgramContent.ComponentInit, Seq[String]] = Map()
     content.foreach {
       case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
         val ComponentType(compName, argTypes) = ty
-        val newPrefix = prefix :+ compName
+        val newPrefix = componentPrefix :+ compName
         compInit ++ collectComponentInit(compContent, newPrefix)
       case init@ProgramContent.ComponentInit(_, ty) =>
         val ComponentType(compName, argTypes) = ty
-        compInit += (init -> (prefix :+ compName))
+        compInit += (init -> (componentPrefix :+ compName))
       case _ => // nothing
     }
     compInit*/
 
+
   private def collectRules(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[Seq[String], Seq[ProgramContent]] =
     var rules: Map[Seq[String], Seq[ProgramContent]] = Map()
     content.foreach {
-      case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
+      /*case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
         val ComponentType(compName, argTypes) = ty
         val newPrefix = prefix :+ compName
-        rules ++ collectRules(content, newPrefix)
+        rules ++ collectRules(content, newPrefix)*/
       case decl: ProgramContent.RelationDecl =>
         decl.names.foreach { n =>
           val name = prefix :+ n
@@ -263,7 +276,7 @@ class GenerateIR {
 
     case Term.Unary(UnOp.Neg, t) => ???
     case Term.Unary(UnOp.Bnot, t) => ???
-    case Term.Unary(UnOp.Lnot, t) => ???
+    case Term.Unary(UnOp.Lnot, t) => irbool.BoolNot(compileTerm(t))
 
     case Term.Binary(t1, BinOp.Add, t2) => irarith.Add(compileTerm(t1), compileTerm(t2))
     case Term.Binary(t1, BinOp.Sub, t2) => irarith.Sub(compileTerm(t1), compileTerm(t2))
@@ -273,7 +286,10 @@ class GenerateIR {
     case Term.Binary(t1, BinOp.Pow, t2) => ???
     case Term.Binary(t1, BinOp.Land, t2) => irbool.BoolAnd(compileTerm(t1), compileTerm(t2))
     case Term.Binary(t1, BinOp.Lor, t2) => irbool.BoolOr(compileTerm(t1), compileTerm(t2))
-    case Term.Binary(t1, BinOp.Lxor, t2) => ???
+    case Term.Binary(t1, BinOp.Lxor, t2) =>
+      val a = compileTerm(t1)
+      val b = compileTerm(t2)
+      irbool.BoolAnd(irbool.BoolOr(a, b), irbool.BoolNot(irbool.BoolAnd(a, b)))
     case Term.Binary(t1, BinOp.Band, t2) => ???
     case Term.Binary(t1, BinOp.Bor, t2) => ???
     case Term.Binary(t1, BinOp.Bxor, t2) => ???
