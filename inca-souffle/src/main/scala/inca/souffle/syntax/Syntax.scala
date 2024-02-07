@@ -60,12 +60,16 @@ enum ProgramContent:
 
 
 enum TypeDeclConstraint:
+  case DefType()
+  case EqType(ty: Type)
   case SubType(ty: Type)
   case UnionType(alts: Seq[Type])
   case RecordType(alts: Record)
   case ADTType(alts: Seq[ADTConstructor])
 
   override def toString: String = this match
+    case DefType() => ""
+    case EqType(ty) => s"= $ty"
     case SubType(ty) => s"<: $ty"
     case UnionType(alts) => s"= ${alts.mkString(" | ")}"
     case RecordType(rec) => s"= $rec"

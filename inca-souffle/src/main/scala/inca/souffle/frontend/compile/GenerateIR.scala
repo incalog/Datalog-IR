@@ -3,7 +3,7 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.Language
 import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
-import inca.souffle.syntax.{Atom, Attribute, BinOp, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, UnOp}
+import inca.souffle.syntax.{Atom, Attribute, BinOp, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
 import inca.util.Gensym
 import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
@@ -67,11 +67,24 @@ class GenerateIR {
       case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
         compileRelationDecl(relDecl)
       case ProgramContent.Rule(heads, body, queryPlan) =>
-        Seq() // nothing
-      case _ => Seq()
+        Seq() // nothing, handled by ProgramContent.RelationDecl
+      case ProgramContent.Fact(name, args) =>
+        Seq() // nothing, handled by ProgramContent.RelationDecl
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
+        ???
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
+        ???
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
+        ???
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(ty)) =>
+        throw IllegalStateException(s"Subtypes are not supported: $content")
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
+        throw IllegalStateException(s"Union types are not supported: $content")
+      case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
+        throw IllegalStateException(s"RecordType types are not supported: $content")
+      case _ =>
+        Seq()
       /*
-      case ProgramContent.TypeDecl(name, rhs) => ???
-      case ProgramContent.Fact(name, args) => ???
       case ProgramContent.Directive(dirQualifier, name, attrs) => ???
       case ProgramContent.ComponentDecl(ty, superTys, content) => ???
       case ProgramContent.ComponentInit(n, compType) => ???
@@ -80,40 +93,44 @@ class GenerateIR {
       case ProgramContent.Pragma(option, arg) => ???*/
 
   private def cleanParamName(name: String): ir.Name =
+    // We know that $ is disallowed as souffle variable name
     ir.Name(s"$name$$param")
-  
-  private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.Relation] =
+
+  private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
     names.map { relName =>
       val params = attrs.map(compileAttribute)
       val rules = ruleMap(relName)
-      ir.Relation(
-        ir.Name(relName),
-        params,
-        rules.map {
+      // Fixme: decls without any body are extensional. Correct ?
+      val isExtensionalRelation = rules.isEmpty
+      if (isExtensionalRelation) {
+        ir.ExtensionalRelation(ir.Name(relName), params)
+      } else {
+        ir.Relation(ir.Name(relName), params, rules.map {
           case r: ProgramContent.Rule => compileRule(decl, r)
           case f: ProgramContent.Fact => compileFact(decl, f)
-        }
-      )
+        })
+      }
     }
 
   private def compileAttribute(attr: Attribute): ir.Param =
-    ir.Param(ir.Name(attr.name), compileType(attr.ty))
+    ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule): ir.Body =
     val ProgramContent.Rule(head, atoms, queryPlanOption) = rule
     val Seq(Atom.Call(_, vars: Seq[Term.Var])) = head
-    val renamingAtoms = vars.zip(decl.attrs).map { (headVar, attr) =>
-      ir.Eq(ir.Var(ir.Name(headVar.name)), ir.Var(ir.Name(attr.name)))
+    // rules might use other names than relations
+    val renameAtoms = vars.zip(decl.attrs).map { (headVar, attr) =>
+      ir.Eq(ir.Var(ir.Name(headVar.name)), ir.Var(cleanParamName(attr.name)))
     }
-    ir.Body(atoms.map(compileAtom) ++ renamingAtoms)
+    ir.Body(atoms.map(compileAtom) ++ renameAtoms)
 
   private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
     val ProgramContent.Fact(name, args) = fact
     ir.Body(
       args.zip(decl.attrs).map { (arg, attr) =>
-        ir.Eq(ir.Var(ir.Name(attr.name)), compileTerm(arg))
+        ir.Eq(ir.Var(cleanParamName(attr.name)), compileTerm(arg))
       }
     )
 
