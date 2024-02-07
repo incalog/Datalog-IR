@@ -54,9 +54,10 @@ class GenerateIR {
           case head =>
             throw IllegalStateException(s"Can not handle head atom: $head")
         }
-      case fact@ProgramContent.Fact(name, _) =>
-        val newRules = rules.getOrElse(name, Seq()) :+ fact
-        rules += (name -> newRules)
+      case fact@ProgramContent.Fact(qn, _) =>
+        val name = qualifiedNameToIrName(qn) 
+        val newRules = rules.getOrElse(name.name, Seq()) :+ fact
+        rules += (name.name -> newRules)
       case _ => // nothing
     }
     rules
@@ -96,6 +97,8 @@ class GenerateIR {
     // We know that $ is disallowed as souffle variable name
     ir.Name(s"$name$$param")
 
+  private def qualifiedNameToIrName(qn: QualifiedName): ir.Name = ir.Name(qn.ns.mkString("$"))
+
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
@@ -134,11 +137,12 @@ class GenerateIR {
       }
     )
 
+
   private def compileAtom(atom: Atom): ir.Atom = atom match
     case Atom.Not(atom) =>
       irnot.Not(compileAtom(atom))
-    case Atom.Call(QualifiedName(ns), args) =>
-      ir.Call(ir.Name(ns.mkString("$")), args.map(compileTerm).map(_.arg))
+    case Atom.Call(qn, args) =>
+      ir.Call(qualifiedNameToIrName(qn), args.map(compileTerm).map(_.arg))
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
     case Atom.LessThan(t1, t2) =>

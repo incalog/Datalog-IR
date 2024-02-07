@@ -1,4 +1,4 @@
-package inca.souffle.compile
+package inca.souffle.compile.backend
 
 import inca.ir.*
 import inca.ir.extension.arithmetic as arith

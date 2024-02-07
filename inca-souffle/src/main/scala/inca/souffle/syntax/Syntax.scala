@@ -7,7 +7,7 @@ enum ProgramContent:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
   case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
-  case Fact(name: String, args: Seq[Term])
+  case Fact(name: QualifiedName, args: Seq[Term])
   case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue])
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
   case ComponentInit(n: String, compType: ComponentType)
