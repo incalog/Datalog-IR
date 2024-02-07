@@ -164,7 +164,7 @@ class GenerateIRTest extends AnyFunSuite:
     ))
 
     println(prog)
-    val path = execute(prog)("comp$path")
+    val path = execute(prog)("nats")
 
     println(path.asTable)
   }
