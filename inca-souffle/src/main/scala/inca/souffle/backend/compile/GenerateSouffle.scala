@@ -1,4 +1,5 @@
-package inca.souffle.compile
+package inca.souffle.backend.compile
+
 import inca.ir
 import inca.ir.RefByName
 import inca.ir.TermArg

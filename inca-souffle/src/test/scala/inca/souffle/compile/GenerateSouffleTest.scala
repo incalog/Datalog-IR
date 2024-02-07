@@ -7,10 +7,11 @@ import inca.ir.execution.Relation as Rel
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.util.SourceLocation
-import inca.souffle.Executor
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
+import inca.souffle.backend.Executor
+import inca.souffle.backend.compile.GenerateSouffle
 import inca.util.compileroptions.CompilerOptions.default
 import inca.util.compileroptions.CompilerOptions
 

@@ -1,15 +1,14 @@
-package inca.souffle
+package inca.souffle.backend
 
-import inca.ir.CompiledModule
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
-import inca.souffle.compile.GenerateSouffle
+import inca.ir.{CompiledModule, string2name}
+import inca.souffle.backend.compile.GenerateSouffle
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, Type}
 import inca.util.FileUtil
-import inca.ir.string2name
 
-import scala.util.{Failure, Success, Try}
 import java.io.File
 import scala.sys.process.*
+import scala.util.{Failure, Success, Try}
 
 // TODO we assume that directives use defaults
 // inputs are in <name>.facts of directory
