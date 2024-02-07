@@ -99,7 +99,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   test("path example") {
     val module = Module("PathExample", Language.Datalog, Seq(edgeRel, pathRel))
     val prog = GenerateSouffle.compileModule(module)
-    //println(prog)
+    println(prog)
   }
   test("notconnected example") {
     val module = Module("PathExample", Language.Datalog, Seq(edgeRel, nodeRel, pathRel, notConnectedRel) )

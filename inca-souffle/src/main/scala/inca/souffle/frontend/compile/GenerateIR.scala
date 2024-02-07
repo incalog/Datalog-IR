@@ -3,6 +3,23 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.Language
 import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
+import inca.souffle.syntax.{Atom, Attribute, BinOp, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, UnOp}
+import inca.util.Gensym
+import inca.ir.extension.map as irmap
+import inca.ir.extension.not as irnot
+import inca.ir.extension.set as irset
+import inca.ir.extension.string as irstring
+import inca.ir.extension.tuple as irtuple
+import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.aggregateset as iraggset
+import inca.ir.extension.arithmetic as irarith
+import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.block as irblock
+import inca.ir.extension.bool as irbool
+import inca.ir.extension.bool.{BoolFalse, BoolTrue}
+import inca.ir.extension.data as irdata
+import inca.ir.extension.disjunction as irdis
+import inca.ir.extension.datamatch as irmatch
 
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
@@ -10,5 +27,159 @@ class GenerateIR {
     + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
     + iragg.IR + iraggset.IR + typeparam.IR
   )
+
+  val gensym: Gensym = new Gensym()
+
+  // Collect all rules and facts for a given relation name
+  var ruleMap: Map[String, Seq[ProgramContent]] = Map()
+
+  val componentMap: Map[String, ProgramContent.ComponentDecl] = Map()
+  val initComponentMap: Map[String, ProgramContent.ComponentInit] = Map()
+  //val prefixMap: Map[ProgramContent.ComponentInit, String]
+  val typeMap: Map[Type, ir.Type] = Map()
+
+  def compileProgram(prog: Program, name: String): ir.Module =
+    // collect all rules
+    ruleMap = collectAllRules(prog)
+    ir.Module(ir.Name(name), irLang, prog.content.flatMap(compileProgramContent))
+
+  private def collectAllRules(prog: Program): Map[String, Seq[ProgramContent]] =
+    var rules: Map[String, Seq[ProgramContent]] = Map()
+    prog.content.foreach {
+      case rule: ProgramContent.Rule =>
+        rule.heads.foreach {
+          case Atom.Call(QualifiedName(Seq(name)), vars: Seq[Term.Var]) =>
+            val newRules = rules.getOrElse(name, Seq()) :+ rule
+            rules += (name -> newRules)
+          case head =>
+            throw IllegalStateException(s"Can not handle head atom: $head")
+        }
+      case fact@ProgramContent.Fact(name, _) =>
+        val newRules = rules.getOrElse(name, Seq()) :+ fact
+        rules += (name -> newRules)
+      case _ => // nothing
+    }
+    rules
+
+  private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
+    content match
+
+      case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
+        compileRelationDecl(relDecl)
+      case ProgramContent.Rule(heads, body, queryPlan) =>
+        Seq() // nothing
+      case _ => Seq()
+      /*
+      case ProgramContent.TypeDecl(name, rhs) => ???
+      case ProgramContent.Fact(name, args) => ???
+      case ProgramContent.Directive(dirQualifier, name, attrs) => ???
+      case ProgramContent.ComponentDecl(ty, superTys, content) => ???
+      case ProgramContent.ComponentInit(n, compType) => ???
+      case ProgramContent.Override(n) => ???
+      case ProgramContent.FunctorDecl(name, params, retType, stateful) => ???
+      case ProgramContent.Pragma(option, arg) => ???*/
+
+  private def cleanParamName(name: String): ir.Name =
+    ir.Name(s"$name$$param")
   
+  private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.Relation] =
+    // TODO: Do something with qualifiers and choiceDomain
+    val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
+    names.map { relName =>
+      val params = attrs.map(compileAttribute)
+      val rules = ruleMap(relName)
+      ir.Relation(
+        ir.Name(relName),
+        params,
+        rules.map {
+          case r: ProgramContent.Rule => compileRule(decl, r)
+          case f: ProgramContent.Fact => compileFact(decl, f)
+        }
+      )
+    }
+
+  private def compileAttribute(attr: Attribute): ir.Param =
+    ir.Param(ir.Name(attr.name), compileType(attr.ty))
+
+  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule): ir.Body =
+    val ProgramContent.Rule(head, atoms, queryPlanOption) = rule
+    val Seq(Atom.Call(_, vars: Seq[Term.Var])) = head
+    val renamingAtoms = vars.zip(decl.attrs).map { (headVar, attr) =>
+      ir.Eq(ir.Var(ir.Name(headVar.name)), ir.Var(ir.Name(attr.name)))
+    }
+    ir.Body(atoms.map(compileAtom) ++ renamingAtoms)
+
+  private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
+    val ProgramContent.Fact(name, args) = fact
+    ir.Body(
+      args.zip(decl.attrs).map { (arg, attr) =>
+        ir.Eq(ir.Var(ir.Name(attr.name)), compileTerm(arg))
+      }
+    )
+
+  private def compileAtom(atom: Atom): ir.Atom = atom match
+    case Atom.Not(atom) =>
+      irnot.Not(compileAtom(atom))
+    case Atom.Call(QualifiedName(ns), args) =>
+      ir.Call(ir.Name(ns.mkString("$")), args.map(compileTerm).map(_.arg))
+    case Atom.Disjunction(bodys) =>
+      irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
+    case Atom.LessThan(t1, t2) =>
+      irarith.LT(compileTerm(t1), compileTerm(t2))
+    case Atom.LessThanEqual(t1, t2) =>
+      irarith.LE(compileTerm(t1), compileTerm(t2))
+    case Atom.GreaterThan(t1, t2) =>
+      irarith.GT(compileTerm(t1), compileTerm(t2))
+    case Atom.GreaterThanEqual(t1, t2) =>
+      irarith.GE(compileTerm(t1), compileTerm(t2))
+    case Atom.Equal(t1, t2) =>
+      ir.Eq(compileTerm(t1), compileTerm(t2))
+    case Atom.Unequal(t1, t2) =>
+      ir.Eq(compileTerm(t1), compileTerm(t2), true)
+    case Atom.Match(t1, t2) => ???
+    case Atom.Contains(t1, t2) => ???
+    case Atom.True => ir.Eq(BoolTrue, BoolTrue)
+    case Atom.False => ir.Eq(BoolTrue, BoolFalse)
+
+  private def compileTerm(term: Term): ir.Term = term match
+    case Term.Var(name) => ir.Var(ir.Name(name))
+    case Term.StringLit(s) => irstring.StringLit(s)
+    case Term.NumberLit(n) => irarith.IntNum(n)
+    case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
+    case Term.FloatLit(f) => irarith.DoubleNum(f)
+    case Term.Nil => ???
+    case Term.List(s) => ???
+    case Term.Constr(name, args) => ???
+    case Term.Parens(t) => ???
+    case Term.TypeCast(t, ty) => ???
+    case Term.AggregatorTerm(agg) => ???
+    case Term.IntrinsicFunctorApp(f, args) => ???
+    case Term.UserDefFunctorApp(f, args) => ???
+
+    case Term.Unary(UnOp.Neg, t) => ???
+    case Term.Unary(UnOp.Bnot, t) => ???
+    case Term.Unary(UnOp.Lnot, t) => ???
+
+    case Term.Binary(t1, BinOp.Add, t2) => irarith.Add(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Sub, t2) => irarith.Sub(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Mul, t2) => irarith.Mul(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Div, t2) => irarith.Div(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Rem, t2) => ???
+    case Term.Binary(t1, BinOp.Pow, t2) => ???
+    case Term.Binary(t1, BinOp.Land, t2) => irbool.BoolAnd(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Lor, t2) => irbool.BoolOr(compileTerm(t1), compileTerm(t2))
+    case Term.Binary(t1, BinOp.Lxor, t2) => ???
+    case Term.Binary(t1, BinOp.Band, t2) => ???
+    case Term.Binary(t1, BinOp.Bor, t2) => ???
+    case Term.Binary(t1, BinOp.Bxor, t2) => ???
+    case Term.Binary(t1, BinOp.Bshl, t2) => ???
+    case Term.Binary(t1, BinOp.Bshr, t2) => ???
+    case Term.Binary(t1, BinOp.Bshru, t2) => ???
+
+  private def compileType(ty: Type): ir.Type = ty match
+    case Type.Number => irarith.TInt
+    case Type.Symbol => irstring.TString
+    case Type.Unsigned => irarith.TInt
+    case Type.Float => irarith.TDouble
+    case Type.Name(qualName) => ???
 }
