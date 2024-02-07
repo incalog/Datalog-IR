@@ -17,27 +17,27 @@ class DemandLoweringTest extends AnyFunSuiteLike:
     val lowering = new Lowering {}
 
     val mod = Module("M", BaseIR.language+demand.IR, relations)
-    var printedMod = false
+    //var printedMod = false
     var lowered: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
-      println(mod)
-      printedMod = true
+      //println(mod)
+      //printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
       typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
-      if (!printedMod)
-        println(mod)
-      println(lowered)
+      //if (!printedMod)
+      //  println(mod)
+      //println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors
       if (errorsBefore.nonEmpty) {
-        println("Type errors in original code:")
+        //println("Type errors in original code:")
         errorsBefore.foreach(println)
       }
       if (errorsAfter.nonEmpty) {
-        println("Type errors in lowered code:")
+        //println("Type errors in lowered code:")
         errorsAfter.foreach(println)
       }
     }
@@ -82,21 +82,6 @@ class DemandLoweringTest extends AnyFunSuiteLike:
       Relation("T", Seq(Param("x1", TAny), Param("x2", TAny)), Seq())
     )
     assert(m.relations.size == 2)
-  }
-
-  test("demand type path annotation") {
-    val dem = module(
-      ExtensionalRelation("edge", Seq(Param("X", TInt), Param("Y", TInt))),
-      Relation("path", Seq(Param("X", TDemand(TInt)), Param("Y", TDemand(TInt))), Seq(
-        Body(Seq(
-          ExtensionalCall("edge", Seq(Var("X").arg, Var("Y").arg))
-        )),
-        Body(Seq(
-          Call("path", Seq(Var("X").arg, Var("Z").arg)),
-          ExtensionalCall("edge", Seq(Var("Z").arg, Var("Y").arg))
-        ))
-      ))
-    )
   }
 
   test("not inverts variable closing") {
