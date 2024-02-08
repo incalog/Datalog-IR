@@ -42,7 +42,7 @@ enum ProgramContent:
       val superTysStr =
         if (superTys.isEmpty) ""
         else s": ${superTys.mkString(", ")}"
-      s""".comp $ty$superTys {
+      s""".comp $ty$superTysStr {
          |${contents.mkString("\n")}
          |}
          |""".stripMargin
