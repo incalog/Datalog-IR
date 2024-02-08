@@ -230,7 +230,7 @@ enum Term:
   case FloatLit(f: Float)
   case Nil
   case List(s: Seq[Term])
-  case Constr(name: String, args: Seq[Term])
+  case Constr(qualifiedName: QualifiedName, args: Seq[Term]) extends Term, Resolvable[ADTConstructor]
   case Parens(t: Term)
   case TypeCast(t: Term, ty: Type)
   case AggregatorTerm(agg: Aggregator)

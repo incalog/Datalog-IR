@@ -98,8 +98,12 @@ trait NameResolution:
     case Atom.False => // do nothing
 
   def resolveTerm(t: Term): Unit = t match
-    case Term.Constr(name, args) =>
+    case constr@Term.Constr(qualifiedName, args) =>
       // TODO resolve to constructors of ADTs?
+      ctx.lookupADTConstructor(qualifiedName) match {
+        case Some(adtConstr) => constr.resolved(adtConstr)
+        case None => throw IllegalArgumentException(s"Could not resolve ADT constructor $qualifiedName for $t")
+      }
       args.foreach(resolveTerm)
     case Term.Parens(t) =>
       resolveTerm(t)
@@ -139,4 +143,4 @@ trait NameResolution:
     case Aggregator.Range(begin, end, step) =>
       resolveTerm(begin)
       resolveTerm(end)
-      resolveTerm(step)
+      step.foreach(resolveTerm)

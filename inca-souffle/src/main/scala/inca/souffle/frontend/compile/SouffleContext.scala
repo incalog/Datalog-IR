@@ -1,7 +1,7 @@
 package inca.souffle.frontend.compile
 
 import inca.souffle.syntax.ProgramContent.*
-import inca.souffle.syntax.{ComponentType, QualifiedName}
+import inca.souffle.syntax.{ADTConstructor, ComponentType, QualifiedName, TypeDeclConstraint}
 
 
 trait SouffleContext:
@@ -9,10 +9,12 @@ trait SouffleContext:
   var relDecls: Map[String, RelationDecl] = Map()
   var compDecls: Map[ComponentType, ComponentDecl] = Map()
   var typeDecls: Map[String, TypeDecl] = Map()
+  var adtConstrs: Map[String, ADTConstructor] = Map()
   var compInits: Map[String, ComponentInit] = Map()
   var currentNestedComponent: Seq[ComponentType] = Seq()
 
   var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
+  var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, ADTConstructor]] = Map()
   var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
   var componentTypeToRelDecl: Map[Seq[ComponentType], Map[String, RelationDecl]] = Map()
 
@@ -72,6 +74,16 @@ trait SouffleContext:
     compDecls.get(compType)
 
   def bindTypeDecl(decl: TypeDecl): Unit =
+    // collect adt constructors first
+    decl.rhs match
+      case TypeDeclConstraint.ADTType(alts) =>
+        alts.foreach { constr =>
+          adtConstrs += (constr.name-> constr)
+          val updatedADTMap = componentTypeToADTConstr.getOrElse(currentNestedComponent, Map()) ++ Map(constr.name -> constr)
+          componentTypeToADTConstr += (currentNestedComponent -> updatedADTMap)
+        }
+      case _ => // do nothing
+
     typeDecls += (decl.name -> decl)
     val updatedTypeMap = componentTypeToTypeDecl.getOrElse(currentNestedComponent, Map()) ++ Map(decl.name -> decl)
     componentTypeToTypeDecl += (currentNestedComponent -> updatedTypeMap)
@@ -104,3 +116,26 @@ trait SouffleContext:
 
   def lookupComponentInt(name: String): Option[ComponentInit] =
     compInits.get(name)
+
+
+  def lookupADTConstructor(qn: QualifiedName): Option[ADTConstructor] =
+    // no prefix
+    if (qn.ns.size == 1)
+      adtConstrs.get(qn.ns.head)
+    else
+      lookupADTConstructorHelper(currentNestedComponent, qn.ns)
+
+  private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[ADTConstructor] =
+    if (qn.size == 1)
+      componentTypeToADTConstr.get(compPath) match
+        case Some(adtMap) => adtMap.get(qn.head)
+        case None => throw IllegalArgumentException("FAIL3")
+    else
+      componentTypeToInits.get(compPath) match
+        case Some(compInitMap) =>
+          compInitMap.get(qn.head) match
+            case Some(compInit) =>
+              lookupADTConstructorHelper(compPath :+ compInit.compType, qn.tail)
+            case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
+

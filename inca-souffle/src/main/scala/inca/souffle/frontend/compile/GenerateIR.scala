@@ -268,7 +268,7 @@ class GenerateIR {
     case Term.Nil => ???
     case Term.List(s) => ???
     case Term.Constr(name, args) =>
-      irdata.Construct(ir.Name(name), args.map(compileTerm))
+      irdata.Construct(qualifiedNameToIrName(name), args.map(compileTerm))
     case Term.Parens(t) =>
       // TODO: Is it fine to just ignore these ?
       compileTerm(t)
