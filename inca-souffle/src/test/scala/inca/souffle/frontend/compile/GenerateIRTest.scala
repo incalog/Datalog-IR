@@ -338,7 +338,7 @@ class GenerateIRTest extends AnyFunSuite:
       ),
       ProgramContent.Rule(
         Seq(Atom.Call(QualifiedName(Seq("nats")), Seq(Term.Var("n")))),
-        Seq(Atom.Equal(Term.Var("n"), Term.Constr("Succ", Seq(Term.Constr("Zero", Seq()))))),
+        Seq(Atom.Equal(Term.Var("n"), Term.Constr(QualifiedName(Seq("Succ")), Seq(Term.Constr(QualifiedName(Seq("Zero")), Seq()))))),
         None
       )
     ))

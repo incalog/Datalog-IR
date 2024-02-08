@@ -9,12 +9,12 @@ trait SouffleContext:
   var relDecls: Map[String, RelationDecl] = Map()
   var compDecls: Map[ComponentType, ComponentDecl] = Map()
   var typeDecls: Map[String, TypeDecl] = Map()
-  var adtConstrs: Map[String, ADTConstructor] = Map()
+  var adtConstrs: Map[String, TypeDecl] = Map()
   var compInits: Map[String, ComponentInit] = Map()
   var currentNestedComponent: Seq[ComponentType] = Seq()
 
   var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
-  var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, ADTConstructor]] = Map()
+  var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
   var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
   var componentTypeToRelDecl: Map[Seq[ComponentType], Map[String, RelationDecl]] = Map()
 
@@ -78,8 +78,8 @@ trait SouffleContext:
     decl.rhs match
       case TypeDeclConstraint.ADTType(alts) =>
         alts.foreach { constr =>
-          adtConstrs += (constr.name-> constr)
-          val updatedADTMap = componentTypeToADTConstr.getOrElse(currentNestedComponent, Map()) ++ Map(constr.name -> constr)
+          adtConstrs += (constr.name-> decl)
+          val updatedADTMap = componentTypeToADTConstr.getOrElse(currentNestedComponent, Map()) ++ Map(constr.name -> decl)
           componentTypeToADTConstr += (currentNestedComponent -> updatedADTMap)
         }
       case _ => // do nothing
@@ -118,14 +118,14 @@ trait SouffleContext:
     compInits.get(name)
 
 
-  def lookupADTConstructor(qn: QualifiedName): Option[ADTConstructor] =
+  def lookupADTConstructor(qn: QualifiedName): Option[TypeDecl] =
     // no prefix
     if (qn.ns.size == 1)
       adtConstrs.get(qn.ns.head)
     else
       lookupADTConstructorHelper(currentNestedComponent, qn.ns)
 
-  private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[ADTConstructor] =
+  private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
     if (qn.size == 1)
       componentTypeToADTConstr.get(compPath) match
         case Some(adtMap) => adtMap.get(qn.head)

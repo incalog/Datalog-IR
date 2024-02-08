@@ -116,9 +116,8 @@ trait NameResolution:
 
   def resolveTerm(t: Term): Unit = t match
     case constr@Term.Constr(qualifiedName, args) =>
-      // TODO resolve to constructors of ADTs?
       ctx.lookupADTConstructor(qualifiedName) match {
-        case Some(adtConstr) => constr.resolved(adtConstr)
+        case Some(typeDecl) => constr.resolved(typeDecl)
         case None => throw IllegalArgumentException(s"Could not resolve ADT constructor $qualifiedName for $t")
       }
       args.foreach(resolveTerm)

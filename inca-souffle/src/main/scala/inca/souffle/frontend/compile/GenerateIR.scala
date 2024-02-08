@@ -31,7 +31,7 @@ class GenerateIR {
   )
   val gensym: Gensym = new Gensym()
 
-  var types: Map[String, ir.Type] = Map()
+  var types: Map[ProgramContent.TypeDecl, ir.Type] = Map()
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
   var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
@@ -44,8 +44,34 @@ class GenerateIR {
     contentPrefixes = collectPrefixes(prog.content)
     rules = collectRules(prog.content)
     edbDecls = collectEdbDecls(prog.content)
+    types = collectTypes(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
+
+  private def collectTypes(content: Seq[ProgramContent]): Map[ProgramContent.TypeDecl, ir.Type] =
+    var types: Map[ProgramContent.TypeDecl, ir.Type] = Map()
+    content.foreach {
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
+        // ADT Types
+        val prefix = contentPrefixes(tyDecl)
+        val dataDefName = namesToIrName(prefix :+ name)
+        types += tyDecl -> irdata.TData(dataDefName)
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
+        // User defined types
+        types += tyDecl -> irstring.TString
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
+        // TODO: This assumes the aliased type is defined before this decl
+        ty match
+          case tName@Type.Name(qName) =>
+            val decl = tName.target.get
+            types += tyDecl -> types(decl)
+          case _ =>
+            types += tyDecl -> compileType(ty)
+      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
+        types ++= collectTypes(compContent)
+      case _ => // nothing
+    }
+    types
 
   private def collectPrefixes(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent, Seq[String]] =
     var declToPrefix: Map[ProgramContent, Seq[String]] = Map()
@@ -106,12 +132,8 @@ class GenerateIR {
         Seq() // nothing, handled by ProgramContent.RelationDecl
       case ProgramContent.Fact(name, args) =>
         Seq() // nothing, handled by ProgramContent.RelationDecl
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
-        val dataDef = irdata.DataDefinition(ir.Name(name))
-        val caseDefs = alts.map { case ADTConstructor(name, attrs) =>
-            irdata.CaseDefinition(ir.Name(name), attrs.map(a => compileType(a.ty)), irdata.TData(dataDef.name))
-        }
-        dataDef +: caseDefs
+      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
+        compileAdtDecl(typeDecl)
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(ty)) =>
         throw IllegalStateException(s"Subtypes are not supported: $content")
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
@@ -140,9 +162,6 @@ class GenerateIR {
   private def qualifiedNameToIrName(qn: QualifiedName): ir.Name =
     namesToIrName(qn.ns)
 
-  private def rName(relationName: String, prefix: Seq[String]): ir.Name =
-    ir.Name((prefix :+ relationName).mkString("$"))
-
   private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
     case ProgramContent.Rule(heads, _, _) =>
       heads.exists {
@@ -155,6 +174,16 @@ class GenerateIR {
   private def isEdbDecl(decl: ProgramContent.RelationDecl): Boolean =
     edbDecls.contains(decl)
 
+  private def compileAdtDecl(decl: ProgramContent.TypeDecl) =
+    val ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) = decl
+    val prefix = contentPrefixes(decl)
+    val dataDefName = namesToIrName(prefix :+ name)
+    val dataDef = irdata.DataDefinition(dataDefName)
+    val caseDefs = alts.map { case ADTConstructor(name, attrs) =>
+      irdata.CaseDefinition(namesToIrName(prefix :+ name), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
+    }
+    dataDef +: caseDefs
+
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
@@ -166,12 +195,11 @@ class GenerateIR {
       val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
       val prefix = contentPrefixes(decl)
 
-      // TODO: Introduce prefix
-      val isExtensionalRelation = isEdbDecl(decl) // TODO: Fix me based on input directive
+      val isExtensionalRelation = isEdbDecl(decl)
       if (isExtensionalRelation) {
-        ir.ExtensionalRelation(rName(relName, prefix), params)
+        ir.ExtensionalRelation(namesToIrName(prefix :+ relName), params)
       } else {
-        ir.Relation(rName(relName, prefix), params, rulesForRelation.map {
+        ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.map {
           case r: ProgramContent.Rule => compileRule(decl, r, relName)
           case f: ProgramContent.Fact => compileFact(decl, f)
           case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
@@ -189,7 +217,7 @@ class GenerateIR {
       case _ => Seq()
     }.headOption.getOrElse(Seq())
 
-    // rules might use other names than relations
+    // rules might use other variable names or even terms in their head
     val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
       ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
     }
@@ -202,7 +230,6 @@ class GenerateIR {
         ir.Eq(ir.Var(cleanParamName(attr.name)), compileTerm(arg))
       }
     )
-
 
   private def compileAtom(atom: Atom): ir.Atom = atom match
     case Atom.Not(atom) =>
@@ -243,7 +270,9 @@ class GenerateIR {
     case Term.FloatLit(f) => irarith.DoubleNum(f)
     case Term.Nil => ???
     case Term.List(s) => ???
-    case Term.Constr(name, args) =>
+    case constr@Term.Constr(name, args) =>
+      val decl = constr.target.get
+      val prefixes = contentPrefixes(decl)
       irdata.Construct(qualifiedNameToIrName(name), args.map(compileTerm))
     case Term.Parens(t) =>
       // TODO: Is it fine to just ignore these ?
@@ -282,5 +311,7 @@ class GenerateIR {
     case Type.Symbol => irstring.TString
     case Type.Unsigned => irarith.TInt
     case Type.Float => irarith.TDouble
-    case Type.Name(qn) => types(qualifiedNameToIrName(qn).name)
+    case nameTy@Type.Name(qn) =>
+      val decl = nameTy.target.get
+      types(decl)
 }
