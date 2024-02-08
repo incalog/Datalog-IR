@@ -110,7 +110,7 @@ enum Type:
   case Symbol
   case Unsigned
   case Float
-  case Name(qualName: QualifiedName)
+  case Name(qualName: QualifiedName) extends Type, Resolvable[ProgramContent.TypeDecl]
 
   override def toString: String = this match
     case Number => "number"
