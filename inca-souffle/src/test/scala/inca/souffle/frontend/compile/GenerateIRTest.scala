@@ -2,13 +2,10 @@ package inca.souffle.frontend.compile
 
 import inca.ir.*
 import inca.ir.execution.{Relation2, Relation as Rel}
-import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
-import inca.ir.extension.{aggregate, aggregateset, block, bool, data, datamatch, demand, disjunction, impure, not, set, tuple, arithmetic as arith}
+import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.souffle.backend.Executor
-import inca.souffle.backend.compile.GenerateSouffle
 import inca.souffle.syntax.ProgramContent.{Pragma, Rule}
 import inca.souffle.syntax.Term.StringLit
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
@@ -21,15 +18,12 @@ import scala.language.implicitConversions
 
 class GenerateIRTest extends AnyFunSuite:
   val pipeline: List[() => BaseIRVisitor] = List(
-    () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
-    () => new not.Lowering {},
-    () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new not.Lowering {}
   ) // arith + string + data
 
   class Compiled(val ir: Module) extends CompiledModule:
@@ -44,7 +38,6 @@ class GenerateIRTest extends AnyFunSuite:
   def execute(prog: Program): Map[String, Rel] =
     val genIR = GenerateIR()
     val mod = genIR.compileProgram(prog, "SouffleProgram")
-    println(mod)
 
     val compiled = new Compiled(mod)
     val engine = new inca.viatra.Executor().instantiate(compiled)

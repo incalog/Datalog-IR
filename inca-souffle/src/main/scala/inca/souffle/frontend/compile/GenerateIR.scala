@@ -32,7 +32,7 @@ class GenerateIR {
   )
   val gensym: Gensym = new Gensym()
 
-  var types: Map[ProgramContent.TypeDecl, ir.Type] = Map()
+  var types: Map[ProgramContent.TypeDecl, Type] = Map()
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
   var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
@@ -48,31 +48,6 @@ class GenerateIR {
     types = collectTypes(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
-  
-  private def collectTypes(content: Seq[ProgramContent]): Map[ProgramContent.TypeDecl, ir.Type] =
-    var types: Map[ProgramContent.TypeDecl, ir.Type] = Map()
-    content.foreach {
-      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
-        // User defined types
-        types += tyDecl -> irstring.TString
-      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
-        // ADT Types
-        val prefix = contentPrefixes(tyDecl)
-        val dataDefName = namesToIrName(prefix :+ name)
-        types += tyDecl -> irdata.TData(dataDefName)
-      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
-        // TODO: This assumes the aliased type is defined before this decl
-        ty match
-          case tName@Type.Name(qName) =>
-            val decl = tName.target.get
-            types += tyDecl -> types(decl)
-          case _ =>
-            types += tyDecl -> compileType(ty)
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        types ++= collectTypes(compContent)
-      case _ => // nothing
-    }
-    types
 
   private def collectPrefixes(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent, Seq[String]] =
     var declToPrefix: Map[ProgramContent, Seq[String]] = Map()
@@ -87,6 +62,24 @@ class GenerateIR {
       case _ => // nothing
     }
     declToPrefix
+
+  private def collectTypes(content: Seq[ProgramContent]): Map[ProgramContent.TypeDecl, Type] =
+    var types: Map[ProgramContent.TypeDecl, Type] = Map()
+    content.foreach {
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
+        // User defined types
+        types += tyDecl -> Type.Symbol
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
+        val adtTy = Type.Name(QualifiedName(Seq(name)))
+        adtTy.resolved(tyDecl)
+        types += tyDecl -> adtTy
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
+        types += tyDecl -> ty
+      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
+        types ++= collectTypes(compContent)
+      case _ => // nothing
+    }
+    types
 
   private def collectRules(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Seq[ProgramContent]] =
     var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
@@ -164,6 +157,7 @@ class GenerateIR {
     namesToIrName(qn.ns)
 
   private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
+    // A single rule can have multiple names. Only a single name must match
     case ProgramContent.Rule(heads, _, _) =>
       heads.exists {
         case Atom.Call(QualifiedName(ns), _) if ns.last == relName => true
@@ -287,7 +281,7 @@ class GenerateIR {
     case Term.IntrinsicFunctorApp(f, args) => ???
     case Term.UserDefFunctorApp(f, args) => ???
 
-    case Term.Unary(UnOp.Neg, t) => ???
+    case Term.Unary(UnOp.Neg, t) => irarith.Neg(compileTerm(t))
     case Term.Unary(UnOp.Bnot, t) => ???
     case Term.Unary(UnOp.Lnot, t) => irbool.BoolNot(compileTerm(t))
 
@@ -317,5 +311,10 @@ class GenerateIR {
     case Type.Float => irarith.TDouble
     case nameTy@Type.Name(qn) =>
       val decl = nameTy.target.get
-      types(decl)
+      decl match
+        case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(_)) =>
+          val prefix = contentPrefixes(decl)
+          irdata.TData(namesToIrName(prefix :+ name))
+        case _ =>
+          compileType(types(decl))
 }
