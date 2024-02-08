@@ -37,10 +37,6 @@ class ParserTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("inca/souffle/doop/micro.dl")
 
     val prog = Parser.parseSouffle(code)
-    println(prog)
-
     val progAgain = Parser.parseSouffle(prog.toString)
-    println(progAgain)
-
     assert(prog.toString == progAgain.toString)
   }

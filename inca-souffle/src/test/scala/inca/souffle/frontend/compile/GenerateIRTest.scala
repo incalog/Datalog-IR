@@ -10,6 +10,7 @@ import inca.souffle.syntax.ProgramContent.{Pragma, Rule}
 import inca.souffle.syntax.Term.StringLit
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
 import inca.souffle.syntax.{Atom, ProgramContent, Term, Type, *}
+import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.util.compileroptions.CompilerOptions.default
 import org.scalatest.funsuite.AnyFunSuite
@@ -337,4 +338,12 @@ class GenerateIRTest extends AnyFunSuite:
 
     val nats = execute(prog)("nats")
     assertResult("Succ(Zero())")(nats.entries.head.toString)
+  }
+  
+  test("compile micro.dl") {
+    val code = FileUtil.readFileFromResource("inca/souffle/doop/micro.dl")
+
+    val prog = Parser.parseSouffle(code)
+    val rels = execute(prog)
+    
   }
