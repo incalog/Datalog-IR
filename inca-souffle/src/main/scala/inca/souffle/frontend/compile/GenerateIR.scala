@@ -25,6 +25,7 @@ import inca.ir.extension.typeparam as irtype
 /**
  * Things to consider in general:
  * - We need a way to distinguish edb from idb calls (decl without rules are edb ?)
+ * - Answer: Rules where an input directive is given is edb
  *
  * Things to consider regarding components:
  * 1. Components can call relations defined outside of their scope
@@ -39,7 +40,6 @@ class GenerateIR {
     + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
     + iragg.IR + iraggset.IR + irtype.IR
   )
-
   val gensym: Gensym = new Gensym()
 
   //var componentDecl: Map[Seq[String], ProgramContent.ComponentDecl] = Map()

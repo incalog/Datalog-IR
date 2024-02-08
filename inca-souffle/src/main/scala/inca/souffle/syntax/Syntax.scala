@@ -1,21 +1,51 @@
 package inca.souffle.syntax
 
+import inca.ir.typing.Resolvable
+import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl}
+
 case class Program(content: Seq[ProgramContent]):
   override def toString: String = content.mkString("\n")
+
+//def resolveContents(contents: Seq[ProgramContent])(using decls: Map[String, RelationDecl], comps: Map[String, ComponentDecl]): Unit =
+//  val subcomps = comps ++ contents.flatMap {
+//    case comp: ComponentDecl => Seq(comp.ty.n -> comp)
+//    case _ => Seq()
+//  }
+//  val subdecls = decls ++ contents.flatMap {
+//    case decl: RelationDecl => decl.names.map(_ -> decl)
+//    case init: ComponentInit => ???
+//    case _ => Seq()
+//  }
+//  contents.foreach(_.resolve(using subdecls, subcomps))
+
 
 enum ProgramContent:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
   case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
-  case Fact(name: QualifiedName, args: Seq[Term])
-  case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue])
+  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[RelationDecl]
+  case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
-  case ComponentInit(n: String, compType: ComponentType)
+  case ComponentInit(n: String, compType: ComponentType) extends ProgramContent, Resolvable[ComponentDecl]
   // can only be within component decl
   case Override(n: String)
   // cannot be within component decl
   case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
   case Pragma(option: String, arg: Option[String])
+
+//  def resolve(using decls: Map[String, RelationDecl], comps: Map[String, ComponentDecl]): Unit = this match
+//    case r@Rule(heads, body, queryPlan) =>
+//      heads.foreach(_.resolve)
+//      body.foreach(_.resolve)
+//    case Fact(name, args) =>
+//    case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
+//    case TypeDecl(name, rhs) =>
+//    case Directive(dirQual, name, attrs) =>
+//    case ComponentDecl(ty, superTys, contents) => resolveContents(contents)
+//    case ComponentInit(n, componentType) =>
+//    case Override(n) =>
+//    case FunctorDecl(name, attrs, retty, stateful) =>
+//    case Pragma(option, arg) =>
 
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
@@ -23,7 +53,7 @@ enum ProgramContent:
         case Some(queryPlan) => queryPlan.toString
         case None => ""
       s"${heads.mkString(", ")} :- ${body.mkString(", ")}.$queryPlanStr"
-    case Fact(name, args) => s"$name(${args.mkString(", ")})."
+    case fact@Fact(name, args) => s"$name(${args.mkString(", ")}). -> ${fact.target.get}"
     case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       val qualifiersStr =
         if (qualifiers.isEmpty) ""
@@ -33,11 +63,11 @@ enum ProgramContent:
         case None => ""
       s".decl ${names.mkString(", ")}(${attrs.mkString(", ")})$qualifiersStr$choiceDomainStr"
     case TypeDecl(name, rhs) => s".type $name $rhs"
-    case Directive(dirQual, name, attrs) =>
+    case dir@Directive(dirQual, name, attrs) =>
       val attrsStr =
         if(attrs.isEmpty) ""
         else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
-      s"$dirQual $name$attrsStr"
+      s"$dirQual $name$attrsStr -> ${dir.target.get}"
     case ComponentDecl(ty, superTys, contents) =>
       val superTysStr =
         if (superTys.isEmpty) ""
@@ -46,8 +76,8 @@ enum ProgramContent:
          |${contents.mkString("\n")}
          |}
          |""".stripMargin
-    case ComponentInit(n, componentType) =>
-      s".init $n = $componentType"
+    case init@ComponentInit(n, componentType) =>
+      s".init $n = $componentType -> ${init.target.get}"
     case Override(n) => ".override $n"
     case FunctorDecl(name, attrs, retty, stateful) =>
       val statefulStr = if (stateful) " stateful" else ""
@@ -103,7 +133,7 @@ case class Conjunction(atoms: Seq[Atom])
 
 enum Atom:
   case Not(atom: Atom)
-  case Call(qualifiedName: QualifiedName, args: Seq[Term])
+  case Call(qualifiedName: QualifiedName, args: Seq[Term]) extends Atom, Resolvable[RelationDecl]
   case Disjunction(bodys: Seq[Conjunction])
   case LessThan(t1: Term, t2: Term)
   case LessThanEqual(t1: Term, t2: Term)
@@ -116,9 +146,24 @@ enum Atom:
   case True
   case False
 
+//  def resolve(using decls: Map[String, RelationDecl]): Unit = this match
+//    case Not(atom: Atom) => atom.resolve
+//    case c@Call(qualName, args) => c.resolved(decls(qualName.toString))
+//    case Disjunction(bodys) => bodys.foreach(_.atoms.foreach(_.resolve))
+//    case LessThan(t1, t2) =>
+//    case LessThanEqual(t1, t2) =>
+//    case GreaterThan(t1, t2) =>
+//    case GreaterThanEqual(t1, t2) =>
+//    case Equal(t1, t2) =>
+//    case Unequal(t1, t2) =>
+//    case Match(t1, t2) =>
+//    case Contains(t1, t2) =>
+//    case True =>
+//    case False =>
+
   override def toString: String = this match
     case Not(atom: Atom) => s"!$atom"
-    case Call(qualName, args) => s"$qualName(${args.mkString(", ")})"
+    case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")}) -> ${call.target.get}"
     case Disjunction(bodys) => ""
     case LessThan(t1, t2) => s"$t1 < $t2"
     case LessThanEqual(t1, t2) => s"$t1 <= $t2"

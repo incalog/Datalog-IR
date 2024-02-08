@@ -106,6 +106,47 @@ class GenerateIRTest extends AnyFunSuite:
     println(path.asTable)
   }
 
+  test("component resolution test") {
+    val prog = Program(
+      Seq(
+        ProgramContent.ComponentDecl(ComponentType("Component", Seq()), Seq(), Seq(
+          ProgramContent.TypeDecl("Base", TypeDeclConstraint.EqType(Type.Symbol)),
+          ProgramContent.RelationDecl(Seq("edge"), Seq(
+            Attribute("x", Type.Name(QualifiedName(Seq("Base")))),
+            Attribute("y", Type.Name(QualifiedName(Seq("Base"))))
+          ), Seq(), None),
+          ProgramContent.RelationDecl(Seq("path"), Seq(
+            Attribute("x", Type.Name(QualifiedName(Seq("Base")))),
+            Attribute("y", Type.Name(QualifiedName(Seq("Base"))))
+          ), Seq(), None),
+          ProgramContent.Rule(
+            Seq(Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))),
+            Seq(Atom.Call(QualifiedName(Seq("edge")), Seq(Term.Var("x"), Term.Var("y")))),
+            None
+          ),
+          ProgramContent.Rule(
+            Seq(Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))),
+            Seq(
+              Atom.Call(QualifiedName(Seq("edge")), Seq(Term.Var("x"), Term.Var("z"))),
+              Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("z"), Term.Var("y")))
+            ),
+            None
+          )
+        )),
+        ProgramContent.ComponentInit("comp", ComponentType("Component", Seq())),
+        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("a"), Term.StringLit("b"))),
+        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
+        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
+        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
+        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "path")), Map())
+      ))
+
+    // print(prog)
+    val nameRes = new NameResolution {}
+    nameRes.resolveProgram(prog)
+    print(prog)
+  }
+
   test("component test") {
     val prog = Program(
       Seq(
@@ -190,11 +231,15 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("zero")), Map())
       )
     )
+    // print(prog)
+    val nameRes = new NameResolution {}
+    nameRes.resolveProgram(prog)
+    print(prog)
 
-    println(prog)
-    val path = execute(prog)("comp$path")
-
-    println(path.asTable)
+//    println(prog)
+//    val path = execute(prog)("comp$path")
+//
+//    println(path.asTable)
   }
 
   test("adt test") {

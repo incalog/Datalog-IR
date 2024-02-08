@@ -1,0 +1,89 @@
+package inca.souffle.frontend.compile
+
+import inca.souffle.syntax.ProgramContent.*
+import inca.souffle.syntax.{ComponentType, QualifiedName}
+
+
+trait SouffleContext:
+
+  var relDecls: Map[String, RelationDecl] = Map()
+  var compDecls: Map[ComponentType, ComponentDecl] = Map()
+  var typeDecls: Map[String, TypeDecl] = Map()
+  var compInits: Map[String, ComponentInit] = Map()
+  var currentNestedComponent: Seq[ComponentType] = Seq()
+
+  var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
+  var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
+  var componentTypeToRelDecl: Map[Seq[ComponentType], Map[String, RelationDecl]] = Map()
+
+  def scopedTypeContext[T](f: => T): T = {
+    val declsSaved = relDecls
+    val compsSaved = compDecls
+    val typeDeclsSaved = typeDecls
+    val compInitsSaved = compInits
+    val savedCurrentNestedComponent = currentNestedComponent
+    val t = f
+    relDecls = declsSaved
+    compDecls = compsSaved
+    typeDecls =  typeDeclsSaved
+    compInits = compInitsSaved
+    currentNestedComponent = savedCurrentNestedComponent
+    t
+  }
+
+  def newComponentLevel(compType: ComponentType): Unit =
+    currentNestedComponent = currentNestedComponent :+ compType
+
+  def bindRelationDecl(decl: RelationDecl): Unit =
+    val relMap = decl.names.map { name =>
+      (name -> decl)
+    }.toMap
+    relDecls ++= relMap
+    val updatedRelMap = componentTypeToRelDecl.getOrElse(currentNestedComponent, Map()) ++ relMap
+    componentTypeToRelDecl += (currentNestedComponent -> updatedRelMap)
+
+  def lookupRelationDecl(qn: QualifiedName): Option[RelationDecl] =
+    // no prefix
+    if (qn.ns.size == 1)
+      relDecls.get(qn.ns.head)
+    else
+      lookupRelationDeclHelper(currentNestedComponent, qn.ns)
+
+  private def lookupRelationDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[RelationDecl] =
+    if (qn.size == 1)
+      componentTypeToRelDecl.get(compPath) match
+        case Some(relMap) => relMap.get(qn.head)
+        case None => throw IllegalArgumentException("FAIL3")
+    else
+      componentTypeToInits.get(compPath) match
+        case Some(compInitMap) =>
+          compInitMap.get(qn.head) match
+            case Some(compInit) =>
+              lookupRelationDeclHelper(compPath :+ compInit.compType, qn.tail)
+            case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
+
+
+  def bindComponentDecl(comp: ComponentDecl): Unit =
+    //    decls.get(decl).foreach { bound =>
+    //      error(s"Found multiple modules with same name $name", name, bound.name)
+    //    }
+    // TODO consider type parameters
+    compDecls += (comp.ty -> comp)
+
+  def lookupComponentDecl(compType: ComponentType): Option[ComponentDecl] =
+    compDecls.get(compType)
+
+  def bindTypeDecl(decl: TypeDecl): Unit =
+    typeDecls += (decl.name -> decl)
+
+  def lookupTypeDecl(name: String): Option[TypeDecl] =
+    typeDecls.get(name)
+
+  def bindComponentInit(compInit: ComponentInit): Unit =
+    compInits += (compInit.n -> compInit)
+    val newInitMap = componentTypeToInits.getOrElse(currentNestedComponent, Map()) + (compInit.n -> compInit)
+    componentTypeToInits += currentNestedComponent -> newInitMap
+
+  def lookupComponentInt(name: String): Option[ComponentInit] =
+    compInits.get(name)
