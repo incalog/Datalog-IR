@@ -6,18 +6,7 @@ import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, Relatio
 case class Program(content: Seq[ProgramContent]):
   override def toString: String = content.mkString("\n")
 
-//def resolveContents(contents: Seq[ProgramContent])(using decls: Map[String, RelationDecl], comps: Map[String, ComponentDecl]): Unit =
-//  val subcomps = comps ++ contents.flatMap {
-//    case comp: ComponentDecl => Seq(comp.ty.n -> comp)
-//    case _ => Seq()
-//  }
-//  val subdecls = decls ++ contents.flatMap {
-//    case decl: RelationDecl => decl.names.map(_ -> decl)
-//    case init: ComponentInit => ???
-//    case _ => Seq()
-//  }
-//  contents.foreach(_.resolve(using subdecls, subcomps))
-
+var nextId: Int = 0
 
 enum ProgramContent:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
@@ -33,19 +22,13 @@ enum ProgramContent:
   case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
   case Pragma(option: String, arg: Option[String])
 
-//  def resolve(using decls: Map[String, RelationDecl], comps: Map[String, ComponentDecl]): Unit = this match
-//    case r@Rule(heads, body, queryPlan) =>
-//      heads.foreach(_.resolve)
-//      body.foreach(_.resolve)
-//    case Fact(name, args) =>
-//    case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
-//    case TypeDecl(name, rhs) =>
-//    case Directive(dirQual, name, attrs) =>
-//    case ComponentDecl(ty, superTys, contents) => resolveContents(contents)
-//    case ComponentInit(n, componentType) =>
-//    case Override(n) =>
-//    case FunctorDecl(name, attrs, retty, stateful) =>
-//    case Pragma(option, arg) =>
+  val id: Int = nextId
+  nextId += 1
+
+  override def equals(obj: Any): Boolean = obj match
+    case that: ProgramContent => this.id == that.id
+    case _ => false
+  override def hashCode(): Int = id
 
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
@@ -53,7 +36,7 @@ enum ProgramContent:
         case Some(queryPlan) => queryPlan.toString
         case None => ""
       s"${heads.mkString(", ")} :- ${body.mkString(", ")}.$queryPlanStr"
-    case fact@Fact(name, args) => s"$name(${args.mkString(", ")}). -> ${fact.target.get}"
+    case fact@Fact(name, args) => s"$name(${args.mkString(", ")})." // -> ${fact.target.get}
     case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       val qualifiersStr =
         if (qualifiers.isEmpty) ""
@@ -67,7 +50,7 @@ enum ProgramContent:
       val attrsStr =
         if(attrs.isEmpty) ""
         else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
-      s"$dirQual $name$attrsStr -> ${dir.target.get}"
+      s"$dirQual $name$attrsStr" //  -> ${dir.target.get}
     case ComponentDecl(ty, superTys, contents) =>
       val superTysStr =
         if (superTys.isEmpty) ""
@@ -77,7 +60,7 @@ enum ProgramContent:
          |}
          |""".stripMargin
     case init@ComponentInit(n, componentType) =>
-      s".init $n = $componentType -> ${init.target.get}"
+      s".init $n = $componentType" // -> ${init.target.get}
     case Override(n) => ".override $n"
     case FunctorDecl(name, attrs, retty, stateful) =>
       val statefulStr = if (stateful) " stateful" else ""
@@ -146,24 +129,9 @@ enum Atom:
   case True
   case False
 
-//  def resolve(using decls: Map[String, RelationDecl]): Unit = this match
-//    case Not(atom: Atom) => atom.resolve
-//    case c@Call(qualName, args) => c.resolved(decls(qualName.toString))
-//    case Disjunction(bodys) => bodys.foreach(_.atoms.foreach(_.resolve))
-//    case LessThan(t1, t2) =>
-//    case LessThanEqual(t1, t2) =>
-//    case GreaterThan(t1, t2) =>
-//    case GreaterThanEqual(t1, t2) =>
-//    case Equal(t1, t2) =>
-//    case Unequal(t1, t2) =>
-//    case Match(t1, t2) =>
-//    case Contains(t1, t2) =>
-//    case True =>
-//    case False =>
-
   override def toString: String = this match
     case Not(atom: Atom) => s"!$atom"
-    case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")}) -> ${call.target.get}"
+    case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")})" // -> ${call.target.get}
     case Disjunction(bodys) => ""
     case LessThan(t1, t2) => s"$t1 < $t2"
     case LessThanEqual(t1, t2) => s"$t1 <= $t2"

@@ -21,6 +21,9 @@ import inca.ir.extension.data as irdata
 import inca.ir.extension.disjunction as irdis
 import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.typeparam as irtype
+import inca.souffle.frontend.compile.NameResolution
+
+import scala.annotation.tailrec
 
 /**
  * Things to consider in general:
@@ -42,18 +45,19 @@ class GenerateIR {
   )
   val gensym: Gensym = new Gensym()
 
-  //var componentDecl: Map[Seq[String], ProgramContent.ComponentDecl] = Map()
-  //var componentInit: Map[ProgramContent.ComponentInit, Seq[String]] = Map()
-
   var types: Map[String, ir.Type] = Map()
-  var rules: Map[Seq[String], Seq[ProgramContent]] = Map()
+  var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
+
+  var rulePrefixes: Map[ProgramContent.RelationDecl, Seq[String]] = Map()
 
   def compileProgram(prog: Program, name: String): ir.Module =
-    //componentDecl = collectComponentDecl(prog.content)
-    //componentInit = collectComponentInit(prog.content)
-    types = collectTypeAliases(prog.content)
+    val nameResolution = new NameResolution {}
+    nameResolution.resolveProgram(prog)
+
+    rulePrefixes = collectPrefixes(prog.content)
     rules = collectRules(prog.content)
-    ir.Module(ir.Name(name), irLang, prog.content.flatMap(c => compileProgramContent(c, Seq())))
+
+    ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
 
   private def collectTypeAliases(content: Seq[ProgramContent]): Map[String, ir.Type] =
     var types: Map[String, ir.Type] = Map()
@@ -73,69 +77,45 @@ class GenerateIR {
     }
     types
 
-  /*private def collectComponentDecl(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[Seq[String], ProgramContent.ComponentDecl] =
-    var compDecl: Map[Seq[String], ProgramContent.ComponentDecl] = Map()
+  private def collectPrefixes(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent.RelationDecl, Seq[String]] =
+    var declToPrefix: Map[ProgramContent.RelationDecl, Seq[String]] = Map()
     content.foreach {
-      case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
-        val ComponentType(compName, argTypes) = ty
-        val newPrefix = prefix :+ compName
-        compDecl += (newPrefix -> comp)
-        compDecl ++ collectComponentDecl(compContent, newPrefix)
-      case _ => // nothing
-    }
-    compDecl
-
-  private def collectComponentInit(content: Seq[ProgramContent], componentPrefix: Seq[String] = Seq()): Map[ProgramContent.ComponentInit, Seq[String]] =
-    var compInit: Map[ProgramContent.ComponentInit, Seq[String]] = Map()
-    content.foreach {
-      case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
-        val ComponentType(compName, argTypes) = ty
-        val newPrefix = componentPrefix :+ compName
-        compInit ++ collectComponentInit(compContent, newPrefix)
-      case init@ProgramContent.ComponentInit(_, ty) =>
-        val ComponentType(compName, argTypes) = ty
-        compInit += (init -> (componentPrefix :+ compName))
-      case _ => // nothing
-    }
-    compInit*/
-
-
-  private def collectRules(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[Seq[String], Seq[ProgramContent]] =
-    var rules: Map[Seq[String], Seq[ProgramContent]] = Map()
-    content.foreach {
-      /*case comp@ProgramContent.ComponentDecl(ty, superTys, compContent) =>
-        val ComponentType(compName, argTypes) = ty
-        val newPrefix = prefix :+ compName
-        rules ++ collectRules(content, newPrefix)*/
       case decl: ProgramContent.RelationDecl =>
-        decl.names.foreach { n =>
-          val name = prefix :+ n
-          val newRules = rules.getOrElse(name, Seq())
-          rules += (name -> newRules)
+        declToPrefix += (decl -> prefix)
+      case compInit@ProgramContent.ComponentInit(n, compType) =>
+        val compDecl@ProgramContent.ComponentDecl(_, _, compContent) = compInit.target.get
+        declToPrefix ++= collectPrefixes(compContent, prefix :+ n)
+      case _ => // nothing
+    }
+    declToPrefix
+
+  private def collectRules(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Seq[ProgramContent]] =
+    var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
+    content.foreach {
+      case rule@ProgramContent.Rule(heads, _, _) =>
+        rules ++= heads.map {
+          case call: Atom.Call =>
+            val relDecl = call.target.get
+            val existingRules = rules.getOrElse(relDecl, Seq())
+            relDecl -> (existingRules :+ rule)
         }
-      case rule: ProgramContent.Rule =>
-        rule.heads.foreach {
-          case Atom.Call(qn, _) =>
-            val qName = qualifiedNameToIrName(qn)
-            val name = prefix :+ qName.name
-            val newRules = rules.getOrElse(name, Seq()) :+ rule
-            rules += (name -> newRules)
-          case head =>
-            throw IllegalStateException(s"Can not handle head atom: $head")
-        }
-      case fact@ProgramContent.Fact(qn, _) =>
-        val qName = qualifiedNameToIrName(qn)
-        val name = prefix :+ qName.name
-        val newRules = rules.getOrElse(name, Seq()) :+ fact
-        rules += (name -> newRules)
+      case fact@ProgramContent.Fact(_, _) =>
+        val relDecl = fact.target.get
+        val existingRules = rules.getOrElse(relDecl, Seq())
+        rules += relDecl -> (existingRules :+ fact)
+      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
+        rules ++= collectRules(compContent)
       case _ => // nothing
     }
     rules
 
-  private def compileProgramContent(content: ProgramContent, instancePrefix: Seq[String]): Seq[ir.ModuleEntry] =
+  private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
+    contents.flatMap(compileProgramContent)
+
+  private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
       case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
-        compileRelationDecl(relDecl, instancePrefix)
+        compileRelationDecl(relDecl)
       case ProgramContent.Rule(heads, body, queryPlan) =>
         Seq() // nothing, handled by ProgramContent.RelationDecl
       case ProgramContent.Fact(name, args) =>
@@ -154,16 +134,8 @@ class GenerateIR {
         throw IllegalStateException(s"Record types are not supported: $content")
       case ProgramContent.TypeDecl(name, _) =>
         Seq() // nothing
-      /*case init@ProgramContent.ComponentInit(instanceName, compTy) =>
-        val ComponentType(compName, argTypes) = compTy
-        val compPrefix = componentInit(init)
-        val compDecl = componentDecl(compPrefix)
-        types ++= collectTypeAliases(compDecl.content)
-        compDecl.content.flatMap { c =>
-          compileProgramContent(c, instancePrefix ++ Seq(instanceName))
-        }
-      case ProgramContent.ComponentDecl(ty, superTys, content) =>
-        Seq() // nothing, handled by ProgramContent.ComponentInit*/
+      case ProgramContent.ComponentDecl(_, _, compContent) =>
+        compileProgramContents(compContent)
       case _ =>
         Seq()
       /*
@@ -176,30 +148,43 @@ class GenerateIR {
     // We know that $ is disallowed as souffle variable name
     ir.Name(s"$name$$param")
 
+  private def namesToIrName(ns: Seq[String]): ir.Name =
+    ir.Name(ns.mkString("$"))
+
   private def qualifiedNameToIrName(qn: QualifiedName): ir.Name =
-    ir.Name(qn.ns.mkString("$"))
+    namesToIrName(qn.ns)
 
   private def rName(relationName: String, prefix: Seq[String]): ir.Name =
     ir.Name((prefix :+ relationName).mkString("$"))
 
-  private def compileRelationDecl(decl: ProgramContent.RelationDecl, instancePrefix: Seq[String]): Seq[ir.ModuleEntry] =
+  private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
+    case ProgramContent.Rule(heads, _, _) =>
+      heads.exists {
+        case Atom.Call(QualifiedName(ns), _) if ns.last == relName => true
+        case _ => false
+      }
+    case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
+    case _ => false
+
+
+  private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
+
     names.map { relName =>
       val params = attrs.map(compileAttribute)
-      // TODO: Transform instancePrefix to component prefix
-      val componentPrefix = Seq()
-      val rulesForRel = rules(componentPrefix :+ relName)
 
-      // Extend our global map of rules to differentiate edb and idb calls
-      //ruleMapping += qualifiedNamesToIrName(prefix :+ relName).name -> rulesForRel
+      // Find all rules relevant for this relation
+      val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
+      val prefix = rulePrefixes(decl)
 
-      val isExtensionalRelation = rulesForRel.isEmpty
+      // TODO: Introduce prefix
+      val isExtensionalRelation = rulesForRelation.isEmpty // TODO: Fix me based on input directive
       if (isExtensionalRelation) {
-        ir.ExtensionalRelation(rName(relName, instancePrefix), params)
+        ir.ExtensionalRelation(rName(relName, prefix), params)
       } else {
-        ir.Relation(rName(relName, instancePrefix), params, rulesForRel.map {
-          case r: ProgramContent.Rule => compileRule(decl, r)
+        ir.Relation(rName(relName, prefix), params, rulesForRelation.map {
+          case r: ProgramContent.Rule => compileRule(decl, r, relName)
           case f: ProgramContent.Fact => compileFact(decl, f)
           case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
         })
@@ -209,11 +194,15 @@ class GenerateIR {
   private def compileAttribute(attr: Attribute): ir.Param =
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
-  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule): ir.Body =
-    val ProgramContent.Rule(head, atoms, queryPlanOption) = rule
-    val Seq(Atom.Call(_, terms)) = head
+  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): ir.Body =
+    val ProgramContent.Rule(heads, atoms, queryPlanOption) = rule
+    val headTerms = heads.map {
+      case Atom.Call(QualifiedName(ns), terms) if ns.last == relName => terms
+      case _ => Seq()
+    }.headOption.getOrElse(Seq())
+
     // rules might use other names than relations
-    val renameAtoms = terms.zip(decl.attrs).map { (headTerm, attr) =>
+    val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
       ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
     }
     ir.Body(atoms.map(compileAtom) ++ renameAtoms)
@@ -230,16 +219,16 @@ class GenerateIR {
   private def compileAtom(atom: Atom): ir.Atom = atom match
     case Atom.Not(atom) =>
       irnot.Not(compileAtom(atom))
-    case Atom.Call(qn, args) =>
-      val irName = qualifiedNameToIrName(qn)
+    case call@Atom.Call(QualifiedName(ns), args) =>
       val compileArgs = args.map(compileTerm).map(_.arg)
+      val decl = call.target.get
+      val prefix = rulePrefixes(decl)
       // TODO: Fix me
-      val componentPrefix = Seq()
-      val isExtensional = rules(componentPrefix :+ irName.name).isEmpty
-      if (isExtensional)
-        ir.ExtensionalCall(irName, compileArgs)
-      else
-        ir.Call(irName, compileArgs)
+      // val isExtensional = rules(componentPrefix :+ irName.name).isEmpty
+      //if (isExtensional)
+      //  ir.ExtensionalCall(irName, compileArgs)
+      //else
+      ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
     case Atom.LessThan(t1, t2) =>
