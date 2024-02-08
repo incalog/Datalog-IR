@@ -106,7 +106,7 @@ object Executor extends IRExecutor:
       val attrs = lines.head.split(delimiter).toSeq
       val size = attrs.size
 
-      val relName = directive.name.toString
+      val relName = directive.names.head.toString
       val relation = relationDecl(relName)
 
       val tuples = lines.map { t =>
@@ -116,13 +116,13 @@ object Executor extends IRExecutor:
         }
       }.toList
       val params = (0 until size).map(idx => s"param_${idx}")
-      Relation.from(directive.name.toString, params, tuples)
+      Relation.from(directive.names.head.toString, params, tuples)
 
     // TODO we just use the defaults currently
     private def getPath(dir: ProgramContent.Directive): String =
       dir.dirQualifier match
-        case DirectiveQualifier.Input => s"${dirFile.getAbsolutePath}/${dir.name}.facts"
-        case DirectiveQualifier.Output => s"${dirFile.getAbsolutePath}/${dir.name}.csv"
+        case DirectiveQualifier.Input => s"${dirFile.getAbsolutePath}/${dir.names.head}.facts"
+        case DirectiveQualifier.Output => s"${dirFile.getAbsolutePath}/${dir.names.head}.csv"
     private def getSeperator(dir: ProgramContent.Directive): String = dir.dirQualifier match
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"

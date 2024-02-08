@@ -3,8 +3,9 @@ package inca.souffle.syntax
 import cats.parse.{Numbers, Parser as P, Parser0 as P0}
 import inca.ir.util.SourceLocation
 import inca.ir.{Name, RefByName}
+import inca.souffle.syntax.Atom.Disjunction
 import inca.souffle.syntax.Parser.term
-import inca.souffle.syntax.ProgramContent.{Fact, Rule}
+import inca.souffle.syntax.ProgramContent.*
 
 import scala.language.implicitConversions
 
@@ -37,7 +38,7 @@ object Parser:
       }
   }
 
-  def parseModule(source: String): Program =
+  def parseSouffle(source: String): Program =
     (whitespaces0 *> module <* P.end).parseAll(source) match
       case Right(p) => p
       case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
@@ -70,7 +71,7 @@ object Parser:
     else
       spaced(P.string(s) *> P.not(letterDigit))
 
-  val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
+  val letter: P[Unit] = P.ignoreCaseCharIn('_' +: ('a' to 'z')).void
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ Some('_')).void
   val opSymbol: P[Unit] = P.charIn("!@#$%^&*()+=<>,.:?/\\_|").void
@@ -83,14 +84,26 @@ object Parser:
   val identifier: P[String] =
     spaced(id)
 
+  val varidentifier: P[String] =
+    spaced(P.char('?').?.with1 ~ id).map {
+      case (None, name) => name
+      case (Some(_), name) => s"?$name"
+    }
+
   val qualifiedIdentifier: P[QualifiedName] =
     spaced(id ~ (P.char('.') *> id).rep0).map((a, bs) => QualifiedName(a :: bs))
+
+  val intnum: P[Int] =
+    spaced(Numbers.signedIntString).map(_.toInt)
 
   def inParens[A](p: P0[A]): P[A] =
     op('(') *> p <* op(')')
 
   def inBraces[A](p: P0[A]): P[A] =
     op('{') *> p <* op('}')
+
+  def inAngles[A](p: P0[A]): P[A] =
+    op('<') *> p <* op('>')
 
   def inBrackets[A](p: P0[A]): P[A] =
     op('[') *> p <* op(']')
@@ -119,24 +132,23 @@ object Parser:
 
   /* Terms */
 
-  val intLit: P[Term] = spaced(
-    Numbers.signedIntString.mapWithLoc(s => Term.NumberLit(s.toInt))
-  )
+  val intLit: P[Term] = 
+    intnum.mapWithLoc(s => Term.NumberLit(s.toInt))
 
   val doubleLit: P[Term] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
       case (a,b) => Term.FloatLit(s"$a.$b".toDouble)
     })
 
-  val stringLit: P[Term] = spaced(
+  val stringLit: P[String] = spaced(
     P.char('"') *> P.charsWhile0(_ != '\"') <* P.char('"')
-  ).mapWithLoc(Term.StringLit.apply)
+  )
 
-  val literal: P[Term] = doubleLit.backtrack | intLit | stringLit
+  val literal: P[Term] = doubleLit.backtrack | intLit | stringLit.mapWithLoc(Term.StringLit.apply)
 
   val wildcard: P[Term] = op("_").mapWithLoc(_ => Term.Var("_"))
 
-  val variable: P[Term] = identifier.mapWithLoc(Term.Var.apply) | wildcard
+  val variable: P[Term] = varidentifier.mapWithLoc(Term.Var.apply) | wildcard
 
   val typ: P[Type] =
     oneOperator(List(Type.Number, Type.Symbol, Type.Unsigned, Type.Float)) |
@@ -145,7 +157,7 @@ object Parser:
 
   lazy val term = P.defer(termRec)
 
-  val aggregator: P[Aggregator] = ???
+  val aggregator: P[Aggregator] = P.fail
 
   val intrinsicFunctor: P[IntrinsicFunctor] =
     import IntrinsicFunctor.*
@@ -170,16 +182,17 @@ object Parser:
 
   val atomicTerm: P[Term] =
     literal |
-    variable |
     op("nil").mapWithLoc(_ => Term.Nil.apply()) |
     inBrackets(argList).mapWithLoc(Term.List.apply) |
     P.char('$') *> (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Term.Constr(name, args)) |
     op("as") *> inParens(term ~ (op(',') *> typ)).mapWithLoc((t,ty) => Term.TypeCast(t, ty)) |
     aggregator.mapWithLoc(Term.AggregatorTerm.apply) |
-    (intrinsicFunctor ~ inParens(argList)).map((f, args) => Term.IntrinsicFunctorApp(f, args)) |
-    (identifier ~ inParens(argList)).map((f, args) => Term.UserDefFunctorApp(UserDefFunctor(f), args)) |
+    (intrinsicFunctor ~ inParens(argList)).backtrack.map((f, args) => Term.IntrinsicFunctorApp(f, args)) |
+    (identifier ~ inParens(argList)).backtrack.map((f, args) => Term.UserDefFunctorApp(UserDefFunctor(f), args)) |
     (unop ~ term).map((op, arg) => Term.Unary(op, arg)) |
-    inParens(term)
+    inParens(term) |
+    variable
+
 
   val binop: P[BinOp] =
     import BinOp.*
@@ -221,14 +234,20 @@ object Parser:
       case ((lhs, op), rhs) => Atom.Compare(lhs, op, rhs)
     }
 
-  val atom: P[Atom] =
-    op('!') *> atom.map(Atom.Not.apply) |
+  lazy val atom: P[Atom] =
+    inParens(P.defer(disjunction)) |
+    op('!') *> P.defer(atom).map(Atom.Not.apply) |
     call.backtrack |
-    // TODO disjunction
     compare |
     // TODO match
     // TODO contains
     oneOperator(List(Atom.True, Atom.False))
+
+  lazy val disjunction: P[Atom.Disjunction] =
+    (atom.repSep(op(',')) ~ (op(';') *> P.defer(disjunction)).?).mapWithLoc {
+      case (alt, None) => Atom.Disjunction(Seq(alt.toList))
+      case (alt, Some(Disjunction(alts))) => Atom.Disjunction(alt.toList +: alts)
+    }
 
 //  val signature: P[(Name, Seq[Type])] =
 //    identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
@@ -245,20 +264,76 @@ object Parser:
   val plan: P[QueryPlan] =
     op(".plan") *>
       (
-        (Numbers.nonNegativeIntString <* op(':')) ~
-          inParens(Numbers.nonNegativeIntString.repSep0(op(',')))).repSep(op(',')).map( plans =>
-        QueryPlan(plans.toList.map(p => p._1.toInt -> p._2.map(_.toInt)))
+        (intnum <* op(':')) ~
+          inParens(intnum.repSep0(op(',')))).repSep(op(',')).map( plans =>
+        QueryPlan(plans.toList.map(p => p._1 -> p._2))
       )
 
   val rule: P[Rule] =
-    (atomList ~ (op(":-") *> atomList ~ plan.?)).mapWithLoc { case (heads, (body, plan)) => Rule(heads, body, plan) }
+    (atomList ~ (op(":-") *> (disjunction <* op('.')) ~ plan.?)).mapWithLoc { case (heads, (body, plan)) => Rule(heads, body, plan) }
 
   val fact: P[Fact] =
     (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Fact(name, args))
 
+  val attribute: P[Attribute] = ((varidentifier <* op(':')) ~ typ).map((name, ty) => Attribute(name, ty))
+  val qualifier: P[Qualifier] =
+    import Qualifier.*
+    oneOperator(List(
+      EqRel,
+      BTree,
+      Brie,
+      NoMagic,
+      Magic,
+      NoInline,
+      Inline,
+      Override
+    ))
 
-  val programContent: P[ProgramContent] =
-    rule | fact
+  val decl: P[RelationDecl] =
+    // TODO choice domain
+    (op(".decl") *> identifier.repSep(op(',')) ~ inParens(attribute.repSep0(op(','))) ~ qualifier.rep0).mapWithLoc {
+      case ((names, attrs), quals) => RelationDecl(names.toList, attrs.toList, quals, None)
+    }
+
+  val typeDeclConstraint: P[TypeDeclConstraint] =
+    import TypeDeclConstraint.*
+    (op("<:") *> typ).map(SubType.apply) |
+    (op("=") *> typ).map(EqType.apply)
+
+  val typeDecl: P[TypeDecl] =
+    (op(".type") *> identifier ~ typeDeclConstraint).mapWithLoc((name, con) => TypeDecl(name, con))
+
+  val directiveValue: P[DirectiveValue] =
+    stringLit.map(DirectiveValue.StringLit.apply) |
+    identifier.map(DirectiveValue.Id.apply) |
+    intnum.map(s => DirectiveValue.Number(s)) |
+    op("true").map(_ => DirectiveValue.True) |
+    op("false").map(_ => DirectiveValue.False)
+
+  val directive: P[Directive] =
+    import DirectiveQualifier.*
+    (oneOperator(List(Input, Output, Printsize, Limitsize))
+      ~ qualifiedIdentifier.repSep(op(','))
+      ~ inParens((identifier ~ (op("=") *> directiveValue)).repSep0(op(','))).?).mapWithLoc {
+      case ((qual, names), attrs) => Directive(qual, names.toList, attrs.getOrElse(List()).toMap)
+    }
+
+  val compType: P[ComponentType] =
+    (identifier ~ inAngles(identifier.repSep(op(','))).?).map((name, args) => ComponentType(name, args.map(_.toList).getOrElse(List())))
+
+  val componentContent: P[ProgramContent] =
+    P.defer(programContent).filter(_ => true)
+
+  val component: P[ComponentDecl] =
+    (op(".comp") *> compType ~ (op(':') *> compType.repSep(op(','))).? ~ inBraces(componentContent.rep0)).mapWithLoc {
+      case ((c, sups), content) => ComponentDecl(c, sups.map(_.toList).getOrElse(List()), content)
+    }
+
+  val componentInit: P[ComponentInit] =
+    (op(".init") *> identifier ~ (op('=') *> compType)).mapWithLoc((name, ty) => ComponentInit(name, ty))
+
+  lazy val programContent: P[ProgramContent] =
+    rule | fact | decl | typeDecl | directive | component | componentInit
 
   val module: P0[Program] =
     whitespaces0 *> programContent.rep0.map(Program.apply)

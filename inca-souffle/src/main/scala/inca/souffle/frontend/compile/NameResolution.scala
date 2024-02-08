@@ -26,7 +26,7 @@ trait NameResolution:
   def resolveProgramContent(content: ProgramContent): Unit = content match
     case ProgramContent.Rule(heads, body, queryPlan) =>
       heads.foreach(resolveAtom)
-      body.foreach(resolveAtom)
+      resolveAtom(body)
     case fact@ProgramContent.Fact(qualifiedName, args) =>
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => fact.resolved(relDecl)
@@ -46,10 +46,12 @@ trait NameResolution:
       ctx.lookupComponentDecl(compType) match
         case Some(compDecl) => compInit.resolved(compDecl)
         case None => throw IllegalArgumentException(s"Could not resolve ${compType.n} for $content")
-    case dir@ProgramContent.Directive(dirQualifier, name, attrs) =>
-      ctx.lookupRelationDecl(name) match
-        case Some(relDecl) => dir.resolved(relDecl)
-        case None => throw IllegalArgumentException(s"Could not resolve $name for $content")
+    case dir@ProgramContent.Directive(dirQualifier, names, attrs) =>
+      names.foreach(name =>
+        ctx.lookupRelationDecl(name) match
+          case Some(relDecl) => dir.resolved(relDecl)
+          case None => throw IllegalArgumentException(s"Could not resolve $name for $content")
+      )
     case ProgramContent.TypeDecl(name, rhs) => resolveTypeDeclConstraint(rhs)
     case ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       attrs.foreach { attr =>
@@ -92,7 +94,7 @@ trait NameResolution:
         case Some(relDecl) => call.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $atom")
     case Atom.Not(atom) => resolveAtom(atom)
-    case Atom.Disjunction(bodys) => bodys.foreach(_.atoms.foreach(resolveAtom))
+    case Atom.Disjunction(bodys) => bodys.foreach(_.foreach(resolveAtom))
     case Atom.Compare(t1, _, t2) =>
       resolveTerm(t1)
       resolveTerm(t2)

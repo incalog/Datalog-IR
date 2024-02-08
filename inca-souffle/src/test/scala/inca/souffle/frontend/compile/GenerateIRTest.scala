@@ -72,7 +72,7 @@ class GenerateIRTest extends AnyFunSuite:
         Seq(),
         None
       ),
-      ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("path")), Map()),
+      ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("path"))), Map()),
       ProgramContent.Rule(
         Seq(
           Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))
@@ -134,7 +134,7 @@ class GenerateIRTest extends AnyFunSuite:
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
-      ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "path")), Map())
+      ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("comp", "path"))), Map())
     ))
 
     val path = execute(prog)("comp$path")
@@ -185,8 +185,8 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "innerComp", "path")), Map()),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("zero")), Map())
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("comp", "innerComp", "path"))), Map()),
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
     )
     // print(prog)
@@ -226,7 +226,7 @@ class GenerateIRTest extends AnyFunSuite:
           Seq(Atom.Compare(Term.Var("n"), Comparator.EQ, Term.Constr(QualifiedName(Seq("comp", "innerComp", "Succ")), Seq(Term.Constr(QualifiedName(Seq("comp", "innerComp", "Zero")), Seq()))))),
           None
         ),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("nats")), Map()),
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("nats"))), Map()),
       )
     )
     val nameRes = new NameResolution {}
@@ -295,11 +295,11 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "innerComp", "path")), Map()),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "innerComp2", "path")), Map()),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("zero")), Map())
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("comp", "innerComp", "path"))), Map()),
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("comp", "innerComp2", "path"))), Map()),
+        ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
-    )
+     )
     // print(prog)
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)

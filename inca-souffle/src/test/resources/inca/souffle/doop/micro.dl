@@ -1,5 +1,4 @@
 // https://github.com/plast-lab/doop-mirror/blob/master/souffle-logic/analyses/micro/self-contained.dl
-
 // Main schema
 .type Modifier = symbol
 .type Type = symbol

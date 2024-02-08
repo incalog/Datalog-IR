@@ -32,9 +32,9 @@ object GenerateSouffle:
         val head = Atom.Call(QualifiedName(Seq(cleanName(name))), params.map(p => Term.Var(cleanName(p.name))))
 
         val conjunctions = bodies.map(compileBody)
-        val rules = conjunctions.map { conjunction => ProgramContent.Rule(Seq(head), conjunction.atoms, None) }
+        val rules = conjunctions.map { atoms => ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), None) }
         // TODO just a small hack for output directive
-        val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, qualifyName(name), Map())
+        val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
         Seq(relDecl, outputDirective) ++ rules
 
       case ir.ExtensionalRelation(name, params) =>
@@ -42,7 +42,7 @@ object GenerateSouffle:
           Attribute(cleanName(p.name), compileType(p.ty))
         }
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
-        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, qualifyName(name), Map())
+        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), Map())
         Seq(relDecl, inputDirective)
       case data.DataDefinition(name) =>
         val cases = module.contents.collect {
@@ -63,8 +63,8 @@ object GenerateSouffle:
     }
     Program(contents)
 
-  private def compileBody(body: ir.Body): Conjunction =
-    Conjunction(body.atoms.map(compileAtom))
+  private def compileBody(body: ir.Body): Seq[Atom] =
+    body.atoms.map(compileAtom)
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
     case ir.Call(RefByName(name), args, false) => Atom.Call(qualifyName(name), args.map(compileArg))

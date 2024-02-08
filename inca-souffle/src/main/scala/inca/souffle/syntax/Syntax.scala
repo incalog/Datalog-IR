@@ -12,9 +12,9 @@ var nextId: Int = 0
 enum ProgramContent extends SourceLocation:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
-  case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
+  case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan])
   case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[RelationDecl]
-  case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
+  case Directive(dirQualifier: DirectiveQualifier, names: List[QualifiedName], attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
   case ComponentInit(n: String, compType: ComponentType) extends ProgramContent, Resolvable[ComponentDecl]
   // can only be within component decl
@@ -34,9 +34,9 @@ enum ProgramContent extends SourceLocation:
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
       val queryPlanStr = queryPlan match
-        case Some(queryPlan) => queryPlan.toString
+        case Some(queryPlan) => "\n" + queryPlan.toString
         case None => ""
-      s"${heads.mkString(", ")} :- ${body.mkString(", ")}.$queryPlanStr"
+      s"${heads.mkString(", ")} :- $body.$queryPlanStr"
     case fact@Fact(name, args) => s"$name(${args.mkString(", ")})." // -> ${fact.target.get}
     case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       val qualifiersStr =
@@ -47,11 +47,11 @@ enum ProgramContent extends SourceLocation:
         case None => ""
       s".decl ${names.mkString(", ")}(${attrs.mkString(", ")})$qualifiersStr$choiceDomainStr"
     case TypeDecl(name, rhs) => s".type $name $rhs"
-    case dir@Directive(dirQual, name, attrs) =>
+    case dir@Directive(dirQual, names, attrs) =>
       val attrsStr =
         if(attrs.isEmpty) ""
         else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
-      s"$dirQual $name$attrsStr" //  -> ${dir.target.get}
+      s"$dirQual ${names.mkString(",")}$attrsStr" //  -> ${dir.target.get}
     case ComponentDecl(ty, superTys, contents) =>
       val superTysStr =
         if (superTys.isEmpty) ""
@@ -72,6 +72,10 @@ enum ProgramContent extends SourceLocation:
         case None => ""
       s".pragma $option$argStr"
 
+object ProgramContent:
+  object Rule:
+    def apply(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan]): ProgramContent.Rule =
+      new ProgramContent.Rule(heads, Atom.Disjunction(Seq(body)), queryPlan)
 
 enum TypeDeclConstraint:
   case DefType()
@@ -113,7 +117,6 @@ case class ADTConstructor(name: String, attrs: Seq[Attribute]):
 case class Attribute(name: String, ty: Type):
   override def toString: String = s"$name: $ty"
 
-case class Conjunction(atoms: Seq[Atom])
 
 enum Comparator:
   case LT
@@ -135,7 +138,7 @@ enum Comparator:
 enum Atom extends SourceLocation:
   case Not(atom: Atom)
   case Call(qualifiedName: QualifiedName, args: Seq[Term]) extends Atom, Resolvable[RelationDecl]
-  case Disjunction(bodys: Seq[Conjunction])
+  case Disjunction(bodys: Seq[Seq[Atom]])
   case Compare(t1: Term, comp: Comparator, t2: Term)
   case Match(t1: Term, t2: Term)
   case Contains(t1: Term, t2: Term)
@@ -145,12 +148,12 @@ enum Atom extends SourceLocation:
   override def toString: String = this match
     case Not(atom: Atom) => s"!$atom"
     case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")})" // -> ${call.target.get}
-    case Disjunction(bodys) => ""
+    case Disjunction(alts) => alts.map(_.mkString(",")).mkString(";")
+    case Compare(t1, op, t2) => s"$t1 $op $t2"
     case Match(t1, t2) => s"match($t1, $t2)"
     case Contains(t1, t2) => s"contains($t1, $t2)"
     case True => "true"
     case False => "false"
-
 
 enum BinOp:
   case Add
@@ -303,7 +306,7 @@ case class ChoiceDomain():
 
 // TODO query plan
 case class QueryPlan(plans: List[(Int, List[Int])]):
-  override def toString: String = s".plan " + plans.map((v, is) => s"v : ${is.mkString(",")}").mkString(", ")
+  override def toString: String = s".plan " + plans.map((v, is) => s"$v : ${is.mkString("(", ",", ")")}").mkString(", ")
 
 enum DirectiveQualifier:
   case Input

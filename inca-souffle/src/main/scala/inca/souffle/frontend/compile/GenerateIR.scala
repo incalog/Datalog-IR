@@ -224,7 +224,7 @@ class GenerateIR {
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): ir.Body =
-    val ProgramContent.Rule(heads, atoms, queryPlanOption) = rule
+    val ProgramContent.Rule(heads, atom, queryPlanOption) = rule
     val headTerms = heads.map {
       case Atom.Call(QualifiedName(ns), terms) if ns.last == relName => terms
       case _ => Seq()
@@ -234,7 +234,7 @@ class GenerateIR {
     val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
       ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
     }
-    val body = ir.Body(atoms.map(compileAtom) ++ renameAtoms)
+    val body = ir.Body(compileAtom(atom) +: renameAtoms)
     queryPlanOption match
       case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
       case None => body
@@ -260,7 +260,7 @@ class GenerateIR {
       else
         ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
     case Atom.Disjunction(bodys) =>
-      irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
+      irdis.Disjunction(bodys.map(atoms => irdis.DisjunctionAlternative(atoms.map(compileAtom))))
     case Atom.Compare(t1, Comparator.EQ, t2) =>
       ir.Eq(compileTerm(t1), compileTerm(t2))
     case Atom.Compare(t1, Comparator.NEQ, t2) =>
