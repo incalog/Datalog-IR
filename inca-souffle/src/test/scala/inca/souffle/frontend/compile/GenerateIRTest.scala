@@ -223,7 +223,7 @@ class GenerateIRTest extends AnyFunSuite:
         ),
         ProgramContent.Rule(
           Seq(Atom.Call(QualifiedName(Seq("nats")), Seq(Term.Var("n")))),
-          Seq(Atom.Equal(Term.Var("n"), Term.Constr(QualifiedName(Seq("comp", "innerComp", "Succ")), Seq(Term.Constr(QualifiedName(Seq("comp", "innerComp", "Zero")), Seq()))))),
+          Seq(Atom.Compare(Term.Var("n"), Comparator.EQ, Term.Constr(QualifiedName(Seq("comp", "innerComp", "Succ")), Seq(Term.Constr(QualifiedName(Seq("comp", "innerComp", "Zero")), Seq()))))),
           None
         ),
         ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("nats")), Map()),
@@ -330,7 +330,7 @@ class GenerateIRTest extends AnyFunSuite:
       ),
       ProgramContent.Rule(
         Seq(Atom.Call(QualifiedName(Seq("nats")), Seq(Term.Var("n")))),
-        Seq(Atom.Equal(Term.Var("n"), Term.Constr(QualifiedName(Seq("Succ")), Seq(Term.Constr(QualifiedName(Seq("Zero")), Seq()))))),
+        Seq(Atom.Compare(Term.Var("n"), Comparator.EQ, Term.Constr(QualifiedName(Seq("Succ")), Seq(Term.Constr(QualifiedName(Seq("Zero")), Seq()))))),
         None
       )
     ))

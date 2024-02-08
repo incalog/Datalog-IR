@@ -11,6 +11,7 @@ import inca.ir.extension.data
 import inca.ir.extension.aggregate
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.souffle.syntax.*
+import inca.souffle.syntax.Comparator.EQ
 
 // TODO what is output? Need main hint
 // Core + Arithmetic + String + Data
@@ -70,13 +71,12 @@ object GenerateSouffle:
     case ir.Call(RefByName(name), args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
     case ir.ExtensionalCall(RefByName(name), args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
     case ir.ExtensionalCall(RefByName(name), args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
-    case ir.Eq(lhs, rhs, false) => Atom.Equal(compileTerm(lhs), compileTerm(rhs))
-    case ir.Eq(lhs, rhs, true) => Atom.Unequal(compileTerm(lhs), compileTerm(rhs))
-    case arith.BinCompare(lhs, rhs, "<") => Atom.LessThan(compileTerm(lhs), compileTerm(rhs))
-    case arith.BinCompare(lhs, rhs, "<=") => Atom.LessThanEqual(compileTerm(lhs), compileTerm(rhs))
-    case arith.BinCompare(lhs, rhs, ">") => Atom.GreaterThan(compileTerm(lhs), compileTerm(rhs))
-    case arith.BinCompare(lhs, rhs, ">=") => Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs))
-    case data.Deconstruct(t, RefByName(name), args, false) => Atom.Equal(compileTerm(t), Term.Constr(qualifyName(name), args.map(compileArg)))
+    case ir.Eq(lhs, rhs, false) => Atom.Compare(compileTerm(lhs), Comparator.EQ, compileTerm(rhs))
+    case ir.Eq(lhs, rhs, true) => Atom.Compare(compileTerm(lhs), Comparator.NEQ, compileTerm(rhs))
+    case arith.BinCompare(lhs, rhs, c) =>
+      val op = Parser.comparator.parseAll(c).toOption.get
+      Atom.Compare(compileTerm(lhs), op, compileTerm(rhs))
+    case data.Deconstruct(t, RefByName(name), args, false) => Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
     case agg.Aggregate(RefByName(name), args, op) =>
       val result = args.zipWithIndex.collect {
@@ -95,7 +95,7 @@ object GenerateSouffle:
         case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
         case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
         case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
-      Atom.Equal(Term.Var(resultVar.name), Term.AggregatorTerm(souffleAgg))
+      Atom.Compare(Term.Var(resultVar.name), EQ, Term.AggregatorTerm(souffleAgg))
 
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 

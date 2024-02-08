@@ -3,7 +3,7 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.Language
 import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
-import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, ComponentType, DirectiveQualifier, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
+import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, Comparator, ComponentType, DirectiveQualifier, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
 import inca.util.Gensym
 import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
@@ -261,18 +261,12 @@ class GenerateIR {
         ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
-    case Atom.LessThan(t1, t2) =>
-      irarith.LT(compileTerm(t1), compileTerm(t2))
-    case Atom.LessThanEqual(t1, t2) =>
-      irarith.LE(compileTerm(t1), compileTerm(t2))
-    case Atom.GreaterThan(t1, t2) =>
-      irarith.GT(compileTerm(t1), compileTerm(t2))
-    case Atom.GreaterThanEqual(t1, t2) =>
-      irarith.GE(compileTerm(t1), compileTerm(t2))
-    case Atom.Equal(t1, t2) =>
+    case Atom.Compare(t1, Comparator.EQ, t2) =>
       ir.Eq(compileTerm(t1), compileTerm(t2))
-    case Atom.Unequal(t1, t2) =>
+    case Atom.Compare(t1, Comparator.NEQ, t2) =>
       ir.Eq(compileTerm(t1), compileTerm(t2), true)
+    case Atom.Compare(t1, op, t2) =>
+      irarith.BinCompare(compileTerm(t1), compileTerm(t2), op.toString)
     case Atom.Match(t1, t2) => ???
     case Atom.Contains(t1, t2) => ???
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
@@ -284,15 +278,12 @@ class GenerateIR {
     case Term.NumberLit(n) => irarith.IntNum(n)
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
     case Term.FloatLit(f) => irarith.DoubleNum(f)
-    case Term.Nil => ???
+    case Term.Nil() => ???
     case Term.List(s) => ???
     case constr@Term.Constr(name, args) =>
       val decl = constr.target.get
       val prefixes = contentPrefixes(decl)
       irdata.Construct(qualifiedNameToIrName(name), args.map(compileTerm))
-    case Term.Parens(t) =>
-      // TODO: Is it fine to just ignore these ?
-      compileTerm(t)
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
     case Term.AggregatorTerm(agg) => ???

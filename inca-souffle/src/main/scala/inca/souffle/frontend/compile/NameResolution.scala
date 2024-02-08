@@ -93,22 +93,7 @@ trait NameResolution:
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $atom")
     case Atom.Not(atom) => resolveAtom(atom)
     case Atom.Disjunction(bodys) => bodys.foreach(_.atoms.foreach(resolveAtom))
-    case Atom.LessThan(t1, t2) =>
-      resolveTerm(t1)
-      resolveTerm(t2)
-    case Atom.LessThanEqual(t1, t2) =>
-      resolveTerm(t1)
-      resolveTerm(t2)
-    case Atom.GreaterThan(t1, t2) =>
-      resolveTerm(t1)
-      resolveTerm(t2)
-    case Atom.GreaterThanEqual(t1, t2) =>
-      resolveTerm(t1)
-      resolveTerm(t2)
-    case Atom.Equal(t1, t2) =>
-      resolveTerm(t1)
-      resolveTerm(t2)
-    case Atom.Unequal(t1, t2) =>
+    case Atom.Compare(t1, _, t2) =>
       resolveTerm(t1)
       resolveTerm(t2)
     case Atom.Match(t1, t2) =>
@@ -127,8 +112,6 @@ trait NameResolution:
         case None => throw IllegalArgumentException(s"Could not resolve ADT constructor $qualifiedName for $t")
       }
       args.foreach(resolveTerm)
-    case Term.Parens(t) =>
-      resolveTerm(t)
     case Term.TypeCast(t, ty) =>
       resolveTerm(t)
       resolveType(ty)
@@ -144,7 +127,7 @@ trait NameResolution:
     case Term.NumberLit(n) =>
     case Term.UnsignedLit(n) =>
     case Term.FloatLit(f) =>
-    case Term.Nil =>
+    case Term.Nil() =>
     case Term.List(s) =>
 
   def resolveAggregator(agg: Aggregator): Unit = agg match

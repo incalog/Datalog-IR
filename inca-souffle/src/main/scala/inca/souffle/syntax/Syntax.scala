@@ -1,6 +1,7 @@
 package inca.souffle.syntax
 
 import inca.ir.typing.Resolvable
+import inca.ir.util.SourceLocation
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl}
 
 case class Program(content: Seq[ProgramContent]):
@@ -8,7 +9,7 @@ case class Program(content: Seq[ProgramContent]):
 
 var nextId: Int = 0
 
-enum ProgramContent:
+enum ProgramContent extends SourceLocation:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
   case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
@@ -88,7 +89,7 @@ enum TypeDeclConstraint:
     case RecordType(rec) => s"= $rec"
     case ADTType(alts) => s"= ${alts.mkString(" | ")}"
 
-enum Type:
+enum Type extends SourceLocation:
   case Number
   case Symbol
   case Unsigned
@@ -114,16 +115,28 @@ case class Attribute(name: String, ty: Type):
 
 case class Conjunction(atoms: Seq[Atom])
 
-enum Atom:
+enum Comparator:
+  case LT
+  case LE
+  case GT
+  case GE
+  case EQ
+  case NEQ
+
+  override def toString: String = this match
+    case Comparator.LT => "<"
+    case Comparator.LE => "<="
+    case Comparator.GT => ">"
+    case Comparator.GE => ">="
+    case Comparator.EQ => "="
+    case Comparator.NEQ => "!="
+
+
+enum Atom extends SourceLocation:
   case Not(atom: Atom)
   case Call(qualifiedName: QualifiedName, args: Seq[Term]) extends Atom, Resolvable[RelationDecl]
   case Disjunction(bodys: Seq[Conjunction])
-  case LessThan(t1: Term, t2: Term)
-  case LessThanEqual(t1: Term, t2: Term)
-  case GreaterThan(t1: Term, t2: Term)
-  case GreaterThanEqual(t1: Term, t2: Term)
-  case Equal(t1: Term, t2: Term)
-  case Unequal(t1: Term, t2: Term)
+  case Compare(t1: Term, comp: Comparator, t2: Term)
   case Match(t1: Term, t2: Term)
   case Contains(t1: Term, t2: Term)
   case True
@@ -133,12 +146,6 @@ enum Atom:
     case Not(atom: Atom) => s"!$atom"
     case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")})" // -> ${call.target.get}
     case Disjunction(bodys) => ""
-    case LessThan(t1, t2) => s"$t1 < $t2"
-    case LessThanEqual(t1, t2) => s"$t1 <= $t2"
-    case GreaterThan(t1, t2) => s"$t1 > $t2"
-    case GreaterThanEqual(t1, t2) => s"$t1 >= $t2"
-    case Equal(t1, t2) => s"$t1 = $t2"
-    case Unequal(t1, t2) => s"$t1 != $t2"
     case Match(t1, t2) => s"match($t1, $t2)"
     case Contains(t1, t2) => s"contains($t1, $t2)"
     case True => "true"
@@ -190,16 +197,15 @@ enum UnOp:
     case Lnot => "lnot"
 
 
-enum Term:
+enum Term extends SourceLocation:
   case Var(name: String)
   case StringLit(s: String)
   case NumberLit(n: Int)
   case UnsignedLit(n: Long)
-  case FloatLit(f: Float)
-  case Nil
+  case FloatLit(f: Double)
+  case Nil()
   case List(s: Seq[Term])
   case Constr(qualifiedName: QualifiedName, args: Seq[Term]) extends Term, Resolvable[ProgramContent.TypeDecl]
-  case Parens(t: Term)
   case TypeCast(t: Term, ty: Type)
   case AggregatorTerm(agg: Aggregator)
   case IntrinsicFunctorApp(f: IntrinsicFunctor, args: Seq[Term])
@@ -213,12 +219,11 @@ enum Term:
     case NumberLit(n) => n.toString
     case UnsignedLit(n) => n.toString
     case FloatLit(f) => f.toString
-    case Nil => "nil"
+    case Nil() => "nil"
     case List(s) => s"[${s.mkString(", ")}]"
     case Constr(name, args) =>
       val argList = s"(${args.mkString(", ")})"
       s"$$$name$argList"
-    case Parens(t) => s"(t)"
     case TypeCast(t, ty) => s"as($t, $ty)"
     case AggregatorTerm(agg) => agg.toString
     case IntrinsicFunctorApp(f, args) => s"$f(${args.mkString(", ")})"
@@ -297,8 +302,8 @@ case class ChoiceDomain():
   override def toString: String = ""
 
 // TODO query plan
-case class QueryPlan():
-  override def toString: String = s".plan "
+case class QueryPlan(plans: List[(Int, List[Int])]):
+  override def toString: String = s".plan " + plans.map((v, is) => s"v : ${is.mkString(",")}").mkString(", ")
 
 enum DirectiveQualifier:
   case Input
@@ -327,7 +332,7 @@ enum DirectiveValue:
     case False => "false"
 
 
-case class ComponentType(n: String, argTypes: Seq[String]):
+case class ComponentType(n: String, argTypes: Seq[String]) extends Resolvable[ComponentDecl]:
   override def toString: String =
     val argTypesStr =
       if (argTypes.isEmpty) ""
