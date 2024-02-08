@@ -48,18 +48,18 @@ class GenerateIR {
     types = collectTypes(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
-
+  
   private def collectTypes(content: Seq[ProgramContent]): Map[ProgramContent.TypeDecl, ir.Type] =
     var types: Map[ProgramContent.TypeDecl, ir.Type] = Map()
     content.foreach {
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
+        // User defined types
+        types += tyDecl -> irstring.TString
       case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
         // ADT Types
         val prefix = contentPrefixes(tyDecl)
         val dataDefName = namesToIrName(prefix :+ name)
         types += tyDecl -> irdata.TData(dataDefName)
-      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
-        // User defined types
-        types += tyDecl -> irstring.TString
       case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
         // TODO: This assumes the aliased type is defined before this decl
         ty match

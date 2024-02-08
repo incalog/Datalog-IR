@@ -55,7 +55,7 @@ class GenerateIRTest extends AnyFunSuite:
 
 
 
-  test("compile path") {
+  test("no component test") {
     val nodeTy = Type.Name(QualifiedName(Seq("Node")))
     val prog = Program(Seq(
       ProgramContent.TypeDecl("Node", TypeDeclConstraint.EqType(Type.Symbol)),
@@ -100,51 +100,13 @@ class GenerateIRTest extends AnyFunSuite:
         None
       )
     ))
-    println(prog)
     val path = execute(prog)("path")
-    
-    println(path.asTable)
-  }
-
-  test("component resolution test") {
-    val prog = Program(
-      Seq(
-        ProgramContent.ComponentDecl(ComponentType("Component", Seq()), Seq(), Seq(
-          ProgramContent.TypeDecl("Base", TypeDeclConstraint.EqType(Type.Symbol)),
-          ProgramContent.RelationDecl(Seq("edge"), Seq(
-            Attribute("x", Type.Name(QualifiedName(Seq("Base")))),
-            Attribute("y", Type.Name(QualifiedName(Seq("Base"))))
-          ), Seq(), None),
-          ProgramContent.RelationDecl(Seq("path"), Seq(
-            Attribute("x", Type.Name(QualifiedName(Seq("Base")))),
-            Attribute("y", Type.Name(QualifiedName(Seq("Base"))))
-          ), Seq(), None),
-          ProgramContent.Rule(
-            Seq(Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))),
-            Seq(Atom.Call(QualifiedName(Seq("edge")), Seq(Term.Var("x"), Term.Var("y")))),
-            None
-          ),
-          ProgramContent.Rule(
-            Seq(Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))),
-            Seq(
-              Atom.Call(QualifiedName(Seq("edge")), Seq(Term.Var("x"), Term.Var("z"))),
-              Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("z"), Term.Var("y")))
-            ),
-            None
-          )
-        )),
-        ProgramContent.ComponentInit("comp", ComponentType("Component", Seq())),
-        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("a"), Term.StringLit("b"))),
-        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
-        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
-        ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
-        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "path")), Map())
-      ))
-
-    // print(prog)
-    val nameRes = new NameResolution {}
-    nameRes.resolveProgram(prog)
-    print(prog)
+    val expected = Set(
+      ("a", "b"), ("a", "c"), ("a", "d"),
+      ("b", "b"), ("b", "c"), ("b", "d"),
+      ("c", "b"), ("c", "c"), ("c", "d")
+    )
+    assertResult(expected)(path.toSet)
   }
 
   test("component test") {
@@ -182,13 +144,16 @@ class GenerateIRTest extends AnyFunSuite:
       ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("comp", "path")), Map())
     ))
 
-    println(prog)
     val path = execute(prog)("comp$path")
-
-    println(path.asTable)
+    val expected = Set(
+      ("a", "b"), ("a", "c"), ("a", "d"),
+      ("b", "b"), ("b", "c"), ("b", "d"),
+      ("c", "b"), ("c", "c"), ("c", "d")
+    )
+    assertResult(expected)(path.toSet)
   }
 
-  test("nested component test") {
+  test("nested component test - custom types") {
     val prog = Program(
       Seq(
         ProgramContent.RelationDecl(Seq("zero"), Seq(
@@ -237,11 +202,45 @@ class GenerateIRTest extends AnyFunSuite:
     println(prog)
 
     val path = execute(prog)("comp$innerComp$path")
+    val expected = Set(
+      ("a", "b"), ("a", "c"), ("a", "d"),
+      ("b", "b"), ("b", "c"), ("b", "d"),
+      ("c", "b"), ("c", "c"), ("c", "d")
+    )
+    assertResult(expected)(path.toSet)
+  }
 
-//    println(prog)
-//    val path = execute(prog)("comp$path")
-//
-//    println(path.asTable)
+  test("nested component test - nested types") {
+    val prog = Program(
+      Seq(
+        ProgramContent.ComponentDecl(ComponentType("Component", Seq()), Seq(), Seq(
+          ProgramContent.ComponentDecl(ComponentType("InnerComponent", Seq()), Seq(), Seq(
+            ProgramContent.TypeDecl("Nat", ADTType(Seq(
+              ADTConstructor("Zero", Seq()),
+              ADTConstructor("Succ", Seq(Attribute("pred", Type.Name(QualifiedName(Seq("Nat")))))),
+            ))),
+          )),
+          ProgramContent.ComponentInit("innerComp", ComponentType("InnerComponent", Seq()))
+        )),
+        ProgramContent.ComponentInit("comp", ComponentType("Component", Seq())),
+        ProgramContent.RelationDecl(
+          Seq("nats"),
+          Seq(Attribute("n", Type.Name(QualifiedName(Seq("comp", "innerComp", "Nat"))))),
+          Seq(), None
+        ),
+        ProgramContent.Rule(
+          Seq(Atom.Call(QualifiedName(Seq("nats")), Seq(Term.Var("n")))),
+          Seq(Atom.Equal(Term.Var("n"), Term.Constr(QualifiedName(Seq("comp", "innerComp", "Succ")), Seq(Term.Constr(QualifiedName(Seq("comp", "innerComp", "Zero")), Seq()))))),
+          None
+        ),
+        ProgramContent.Directive(DirectiveQualifier.Output, QualifiedName(Seq("nats")), Map()),
+      )
+    )
+    val nameRes = new NameResolution {}
+    nameRes.resolveProgram(prog)
+
+    val nats = execute(prog)("nats")
+    assertResult("comp$innerComp$Succ(comp$innerComp$Zero())")(nats.entries.head.toString)
   }
 
   test("nested component test - no custom types") {
@@ -311,18 +310,18 @@ class GenerateIRTest extends AnyFunSuite:
     // print(prog)
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
-    println(prog)
+
+    val expected = Set(
+      ("a", "b"), ("a", "c"), ("a", "d"),
+      ("b", "b"), ("b", "c"), ("b", "d"),
+      ("c", "b"), ("c", "c"), ("c", "d")
+    )
 
     val path = execute(prog)("comp$innerComp$path")
-    println(path.asTable)
+    assertResult(expected)(path.toSet)
 
     val path2 = execute(prog)("comp$innerComp2$path")
-    println(path2.asTable)
-
-    //    println(prog)
-    //    val path = execute(prog)("comp$path")
-    //
-    //    println(path.asTable)
+    assertResult(expected)(path2.toSet)
   }
 
   test("adt test") {
@@ -343,8 +342,6 @@ class GenerateIRTest extends AnyFunSuite:
       )
     ))
 
-    println(prog)
-    val path = execute(prog)("nats")
-
-    println(path.asTable)
+    val nats = execute(prog)("nats")
+    assertResult("Succ(Zero())")(nats.entries.head.toString)
   }
