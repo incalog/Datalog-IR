@@ -23,66 +23,36 @@ import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.typeparam as irtype
 import inca.souffle.frontend.compile.NameResolution
 
-import scala.annotation.tailrec
-
-/**
- * Things to consider in general:
- * - We need a way to distinguish edb from idb calls (decl without rules are edb ?)
- * - Answer: Rules where an input directive is given is edb
- *
- * Things to consider regarding components:
- * 1. Components can call relations defined outside of their scope
- * 2. We need to prefix calls to relations inside the component, but only, if they are defined inside the component
- * 3. The same as above also holds for types
- *
- */
-
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
-    + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
-    + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
-    + iragg.IR + iraggset.IR + irtype.IR
+    + irarith.IR + block.IR + bool.IR + irdata.IR
+    + disjunction.IR + irnot.IR + irstring.IR
+    + iragg.IR + irtype.IR
   )
   val gensym: Gensym = new Gensym()
 
   var types: Map[String, ir.Type] = Map()
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
-  var rulePrefixes: Map[ProgramContent.RelationDecl, Seq[String]] = Map()
+  var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
   var edbDecls: Set[ProgramContent.RelationDecl] = Set()
 
   def compileProgram(prog: Program, name: String): ir.Module =
     val nameResolution = new NameResolution {}
     nameResolution.resolveProgram(prog)
 
-    rulePrefixes = collectPrefixes(prog.content)
+    contentPrefixes = collectPrefixes(prog.content)
     rules = collectRules(prog.content)
     edbDecls = collectEdbDecls(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
 
-  private def collectTypeAliases(content: Seq[ProgramContent]): Map[String, ir.Type] =
-    var types: Map[String, ir.Type] = Map()
-    content.foreach {
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
-        types += name -> irstring.TString
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
-        types += name -> (ty match
-          case Type.Number => irarith.TInt
-          case Type.Symbol => irstring.TString
-          case Type.Unsigned => irarith.TInt
-          case Type.Float => irarith.TDouble
-          case Type.Name(qn) => types(qualifiedNameToIrName(qn).name))
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
-        types += name -> irdata.TData(ir.Name(name))
-      case _ => //
-    }
-    types
-
-  private def collectPrefixes(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent.RelationDecl, Seq[String]] =
-    var declToPrefix: Map[ProgramContent.RelationDecl, Seq[String]] = Map()
+  private def collectPrefixes(content: Seq[ProgramContent], prefix: Seq[String] = Seq()): Map[ProgramContent, Seq[String]] =
+    var declToPrefix: Map[ProgramContent, Seq[String]] = Map()
     content.foreach {
       case decl: ProgramContent.RelationDecl =>
+        declToPrefix += (decl -> prefix)
+      case decl: ProgramContent.TypeDecl =>
         declToPrefix += (decl -> prefix)
       case compInit@ProgramContent.ComponentInit(n, compType) =>
         val compDecl@ProgramContent.ComponentDecl(_, _, compContent) = compInit.target.get
@@ -194,7 +164,7 @@ class GenerateIR {
 
       // Find all rules relevant for this relation
       val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
-      val prefix = rulePrefixes(decl)
+      val prefix = contentPrefixes(decl)
 
       // TODO: Introduce prefix
       val isExtensionalRelation = isEdbDecl(decl) // TODO: Fix me based on input directive
@@ -240,7 +210,7 @@ class GenerateIR {
     case call@Atom.Call(QualifiedName(ns), args) =>
       val compileArgs = args.map(compileTerm).map(_.arg)
       val decl = call.target.get
-      val prefix = rulePrefixes(decl)
+      val prefix = contentPrefixes(decl)
       val isExtensional = isEdbDecl(decl)
       if (isExtensional)
         ir.ExtensionalCall(namesToIrName(prefix :+ ns.last), compileArgs)
