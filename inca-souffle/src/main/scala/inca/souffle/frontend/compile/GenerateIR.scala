@@ -21,6 +21,7 @@ import inca.ir.extension.data as irdata
 import inca.ir.extension.disjunction as irdis
 import inca.ir.extension.datamatch as irmatch
 import inca.ir.extension.typeparam as irtype
+import inca.souffle.frontend.SouffleQueryPlanHint
 import inca.souffle.frontend.compile.NameResolution
 
 class GenerateIR {
@@ -221,7 +222,10 @@ class GenerateIR {
     val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
       ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
     }
-    ir.Body(atoms.map(compileAtom) ++ renameAtoms)
+    val body = ir.Body(atoms.map(compileAtom) ++ renameAtoms)
+    queryPlanOption match
+      case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
+      case None => body
 
   private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
     val ProgramContent.Fact(name, args) = fact
