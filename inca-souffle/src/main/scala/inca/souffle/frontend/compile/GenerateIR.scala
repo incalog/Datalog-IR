@@ -3,7 +3,7 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.Language
 import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
-import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, ComponentType, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
+import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, ComponentType, DirectiveQualifier, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
 import inca.util.Gensym
 import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
@@ -49,6 +49,7 @@ class GenerateIR {
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
   var rulePrefixes: Map[ProgramContent.RelationDecl, Seq[String]] = Map()
+  var edbDecls: Set[ProgramContent.RelationDecl] = Set()
 
   def compileProgram(prog: Program, name: String): ir.Module =
     val nameResolution = new NameResolution {}
@@ -56,6 +57,7 @@ class GenerateIR {
 
     rulePrefixes = collectPrefixes(prog.content)
     rules = collectRules(prog.content)
+    edbDecls = collectEdbDecls(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
 
@@ -108,6 +110,20 @@ class GenerateIR {
       case _ => // nothing
     }
     rules
+
+  private def collectEdbDecls(content: Seq[ProgramContent]): Set[ProgramContent.RelationDecl] =
+    // TODO: This assumes, we do not allow cases such as
+    //  .decl A, B
+    //  .input A
+    var edbDecls: Set[ProgramContent.RelationDecl] = Set()
+    content.foreach {
+      case input@ProgramContent.Directive(DirectiveQualifier.Input, _, _) =>
+        edbDecls += input.target.get
+      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
+        edbDecls ++= collectEdbDecls(compContent)
+      case _ => // nothing
+    }
+    edbDecls
 
   private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
     contents.flatMap(compileProgramContent)
@@ -166,6 +182,8 @@ class GenerateIR {
     case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
     case _ => false
 
+  private def isEdbDecl(decl: ProgramContent.RelationDecl): Boolean =
+    edbDecls.contains(decl)
 
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
@@ -179,7 +197,7 @@ class GenerateIR {
       val prefix = rulePrefixes(decl)
 
       // TODO: Introduce prefix
-      val isExtensionalRelation = rulesForRelation.isEmpty // TODO: Fix me based on input directive
+      val isExtensionalRelation = isEdbDecl(decl) // TODO: Fix me based on input directive
       if (isExtensionalRelation) {
         ir.ExtensionalRelation(rName(relName, prefix), params)
       } else {
@@ -223,12 +241,11 @@ class GenerateIR {
       val compileArgs = args.map(compileTerm).map(_.arg)
       val decl = call.target.get
       val prefix = rulePrefixes(decl)
-      // TODO: Fix me
-      // val isExtensional = rules(componentPrefix :+ irName.name).isEmpty
-      //if (isExtensional)
-      //  ir.ExtensionalCall(irName, compileArgs)
-      //else
-      ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
+      val isExtensional = isEdbDecl(decl)
+      if (isExtensional)
+        ir.ExtensionalCall(namesToIrName(prefix :+ ns.last), compileArgs)
+      else
+        ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(b => irdis.DisjunctionAlternative(b.atoms.map(compileAtom))))
     case Atom.LessThan(t1, t2) =>
