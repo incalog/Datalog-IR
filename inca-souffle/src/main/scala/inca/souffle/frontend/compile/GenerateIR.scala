@@ -73,6 +73,14 @@ class GenerateIR {
         val adtTy = Type.Name(QualifiedName(Seq(name)))
         adtTy.resolved(tyDecl)
         types += tyDecl -> adtTy
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) =>
+        val unionTy = Type.Name(QualifiedName(Seq(name)))
+        unionTy.resolved(tyDecl)
+        types += tyDecl -> unionTy
+      case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
+        val recordTy = Type.Name(QualifiedName(Seq(name)))
+        recordTy.resolved(tyDecl)
+        types += tyDecl -> recordTy
       case tyDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
         types += tyDecl -> ty
       case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
@@ -128,12 +136,12 @@ class GenerateIR {
         Seq() // nothing, handled by ProgramContent.RelationDecl
       case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
         compileAdtDecl(typeDecl)
+      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
+        compileUnionTypeDecl(typeDecl)
+      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
+        compileRecordTypeDecl(typeDecl)
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(ty)) =>
         throw IllegalStateException(s"Subtypes are not supported: $content")
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
-        throw IllegalStateException(s"Union types are not supported: $content")
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
-        throw IllegalStateException(s"Record types are not supported: $content")
       case ProgramContent.TypeDecl(name, _) =>
         Seq() // nothing
       case ProgramContent.ComponentDecl(_, _, compContent) =>
@@ -178,6 +186,16 @@ class GenerateIR {
       irdata.CaseDefinition(namesToIrName(prefix :+ name), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
     }
     dataDef +: caseDefs
+
+  private def compileUnionTypeDecl(decl: ProgramContent.TypeDecl) =
+    val ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) = decl
+    // TODO: Express Union types with ADTs
+    ???
+
+  private def compileRecordTypeDecl(decl: ProgramContent.TypeDecl) =
+    val ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) = decl
+    // TODO: Introduce IR for Record types
+    ???
 
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
@@ -315,6 +333,13 @@ class GenerateIR {
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(_)) =>
           val prefix = contentPrefixes(decl)
           irdata.TData(namesToIrName(prefix :+ name))
+        case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(_)) =>
+          val prefix = contentPrefixes(decl)
+          irdata.TData(namesToIrName(prefix :+ name))
+        case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(_)) =>
+          val prefix = contentPrefixes(decl)
+          ???
+          //irdata.TData(namesToIrName(prefix :+ name))
         case _ =>
           compileType(types(decl))
 }
