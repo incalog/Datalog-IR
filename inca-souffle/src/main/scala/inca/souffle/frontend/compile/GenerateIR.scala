@@ -30,7 +30,6 @@ import inca.ir.extension.typeparam as irtype
  * 1. Components can call relations defined outside of their scope
  * 2. We need to prefix calls to relations inside the component, but only, if they are defined inside the component
  * 3. The same as above also holds for types
- * 4.
  *
  */
 
@@ -62,7 +61,12 @@ class GenerateIR {
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.DefType()) =>
         types += name -> irstring.TString
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(ty)) =>
-        types += name -> compileType(ty)
+        types += name -> (ty match
+          case Type.Number => irarith.TInt
+          case Type.Symbol => irstring.TString
+          case Type.Unsigned => irarith.TInt
+          case Type.Float => irarith.TDouble
+          case Type.Name(qn) => types(qualifiedNameToIrName(qn).name))
       case ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
         types += name -> irdata.TData(ir.Name(name))
       case _ => //
@@ -111,7 +115,7 @@ class GenerateIR {
         }
       case rule: ProgramContent.Rule =>
         rule.heads.foreach {
-          case Atom.Call(qn, vars: Seq[Term.Var]) =>
+          case Atom.Call(qn, _) =>
             val qName = qualifiedNameToIrName(qn)
             val name = prefix :+ qName.name
             val newRules = rules.getOrElse(name, Seq()) :+ rule
@@ -207,10 +211,10 @@ class GenerateIR {
 
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule): ir.Body =
     val ProgramContent.Rule(head, atoms, queryPlanOption) = rule
-    val Seq(Atom.Call(_, vars: Seq[Term.Var])) = head
+    val Seq(Atom.Call(_, terms)) = head
     // rules might use other names than relations
-    val renameAtoms = vars.zip(decl.attrs).map { (headVar, attr) =>
-      ir.Eq(ir.Var(ir.Name(headVar.name)), ir.Var(cleanParamName(attr.name)))
+    val renameAtoms = terms.zip(decl.attrs).map { (headTerm, attr) =>
+      ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
     }
     ir.Body(atoms.map(compileAtom) ++ renameAtoms)
 
