@@ -1,7 +1,7 @@
 package inca.souffle.frontend.compile
 
 import inca.souffle.syntax.ProgramContent.RelationDecl
-import inca.souffle.syntax.{Aggregator, Atom, Program, ProgramContent, Term, Type}
+import inca.souffle.syntax.{Aggregator, Atom, Program, ProgramContent, Term, Type, TypeDeclConstraint}
 
 
 trait NameResolution:
@@ -44,7 +44,7 @@ trait NameResolution:
       ctx.lookupRelationDecl(name) match
         case Some(relDecl) => dir.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $name for $content")
-    case ProgramContent.TypeDecl(name, rhs) => // TODO
+    case ProgramContent.TypeDecl(name, rhs) => resolveTypeDeclConstraint(rhs)
     case ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       attrs.foreach { attr =>
         resolveType(attr.ty)
@@ -52,6 +52,23 @@ trait NameResolution:
     case ProgramContent.Override(n) => // TODO do nothing?
     case ProgramContent.FunctorDecl(name, params, retType, stateful) => // do nothing
     case ProgramContent.Pragma(option, arg) => // do nothing
+
+  def resolveTypeDeclConstraint(tyDeclConstraint: TypeDeclConstraint): Unit = tyDeclConstraint match
+    case TypeDeclConstraint.DefType() => // do nothing
+    case TypeDeclConstraint.EqType(ty) => resolveType(ty)
+    case TypeDeclConstraint.SubType(ty) => resolveType(ty)
+    case TypeDeclConstraint.UnionType(alts) =>
+      alts.foreach(resolveType)
+    case TypeDeclConstraint.RecordType(rec) =>
+      rec.attrs.foreach { attr =>
+        resolveType(attr.ty)
+      }
+    case TypeDeclConstraint.ADTType(alts) =>
+      alts.foreach { adtConstr =>
+        adtConstr.attrs.foreach { attr =>
+          resolveType(attr.ty)
+        }
+      }
 
   def resolveType(ty: Type): Unit = ty match
     case tyName@Type.Name(qualName) =>
