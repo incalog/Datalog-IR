@@ -65,9 +65,6 @@ trait SouffleContext:
 
 
   def bindComponentDecl(comp: ComponentDecl): Unit =
-    //    decls.get(decl).foreach { bound =>
-    //      error(s"Found multiple modules with same name $name", name, bound.name)
-    //    }
     // TODO consider type parameters
     compDecls += (comp.ty -> comp)
 
@@ -76,9 +73,29 @@ trait SouffleContext:
 
   def bindTypeDecl(decl: TypeDecl): Unit =
     typeDecls += (decl.name -> decl)
+    val updatedTypeMap = componentTypeToTypeDecl.getOrElse(currentNestedComponent, Map()) ++ Map(decl.name -> decl)
+    componentTypeToTypeDecl += (currentNestedComponent -> updatedTypeMap)
 
-  def lookupTypeDecl(name: String): Option[TypeDecl] =
-    typeDecls.get(name)
+  def lookupTypeDeclDecl(qn: QualifiedName): Option[TypeDecl] =
+    // no prefix
+    if (qn.ns.size == 1)
+      typeDecls.get(qn.ns.head)
+    else
+      lookupTypeDeclHelper(currentNestedComponent, qn.ns)
+
+  private def lookupTypeDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
+    if (qn.size == 1)
+      componentTypeToTypeDecl.get(compPath) match
+        case Some(typeMap) => typeMap.get(qn.head)
+        case None => throw IllegalArgumentException("FAIL3")
+    else
+      componentTypeToInits.get(compPath) match
+        case Some(compInitMap) =>
+          compInitMap.get(qn.head) match
+            case Some(compInit) =>
+              lookupTypeDeclHelper(compPath :+ compInit.compType, qn.tail)
+            case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
 
   def bindComponentInit(compInit: ComponentInit): Unit =
     compInits += (compInit.n -> compInit)
