@@ -1,7 +1,9 @@
 package inca.souffle.frontend.compile
 
 import inca.souffle.syntax.ProgramContent.RelationDecl
-import inca.souffle.syntax.{Aggregator, Atom, Program, ProgramContent, Term, Type, TypeDeclConstraint}
+import inca.souffle.syntax.{Aggregator, Atom, ComponentType, Program, ProgramContent, Term, Type, TypeDeclConstraint}
+
+import java.awt.Component
 
 
 trait NameResolution:
@@ -29,12 +31,16 @@ trait NameResolution:
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => fact.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $content")
-    case ProgramContent.ComponentDecl(ty, superTys, content) =>
+    case ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
       ctx.scopedTypeContext {
-        // TODO what to do with super types?
         ctx.newComponentLevel(ty)
-        content.foreach(register)
-        content.foreach(resolveProgramContent)
+        superTys.foreach { superCompType =>
+          ctx.lookupComponentDecl(superCompType) match
+            case Some(compDecl) => superCompType.resolved(compDecl)
+            case None => throw IllegalArgumentException(s"Could not resolve ${superCompType.n} for $content")
+        }
+        innerContent.foreach(register)
+        innerContent.foreach(resolveProgramContent)
       }
     case compInit@ProgramContent.ComponentInit(n, compType) =>
       ctx.lookupComponentDecl(compType) match
