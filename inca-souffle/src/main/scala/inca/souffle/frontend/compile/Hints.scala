@@ -13,4 +13,7 @@ case class SouffleQueryPlanHint(qp: QueryPlan) extends Hint:
 object SouffleInputHint extends Hint.Key
 case class SouffleInputHint(attrs: Map[String, DirectiveValue]) extends Hint:
   override def key: Key = SouffleInputHint
-  
+
+object SouffleOutputHint extends Hint, Hint.Key:
+  override def key: Key = this
+

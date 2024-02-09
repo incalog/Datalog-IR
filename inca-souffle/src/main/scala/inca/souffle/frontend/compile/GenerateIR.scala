@@ -5,7 +5,7 @@ import inca.ir.Language
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
-import inca.souffle.frontend.{SouffleInputHint, SouffleQueryPlanHint}
+import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.frontend.compile.GenerateIR.WILDCARD
 import inca.souffle.syntax.*
 import inca.util.Gensym
@@ -26,6 +26,7 @@ class GenerateIR {
 
   var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
   var edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = Map()
+  var outputDecls: Set[ProgramContent.RelationDecl] = Set()
 
   def compileProgram(prog: Program, name: String): ir.Module =
     val nameResolution = new NameResolution {}
@@ -34,6 +35,7 @@ class GenerateIR {
     contentPrefixes = collectPrefixes(prog.content)
     rules = collectRules(prog.content)
     edbDecls = collectEdbDecls(prog.content)
+    outputDecls = collectOutputDecls(prog.content)
     types = collectTypes(prog.content)
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content))
@@ -111,6 +113,20 @@ class GenerateIR {
       case _ => // nothing
     }
     edbDecls
+
+  private def collectOutputDecls(content: Seq[ProgramContent]): Set[ProgramContent.RelationDecl] =
+    // TODO: This assumes, we do not allow cases such as
+    //  .decl A, B
+    //  .input A
+    var outputDecls = Set[ProgramContent.RelationDecl]()
+    content.foreach {
+      case output@ProgramContent.Directive(DirectiveQualifier.Output, _, _) =>
+        outputDecls += output.target.get
+      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
+        outputDecls ++= collectOutputDecls(compContent)
+      case _ => // nothing
+    }
+    outputDecls
 
   private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
     contents.flatMap(compileProgramContent)
@@ -202,11 +218,14 @@ class GenerateIR {
         case None =>
           // Find all rules relevant for this relation
           val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
-          ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.flatMap {
+          val rel = ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.flatMap {
             case r: ProgramContent.Rule => compileRule(decl, r, relName)
             case f: ProgramContent.Fact => Seq(compileFact(decl, f))
             case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
           })
+          if (outputDecls.contains(decl)) 
+            rel.addHint(SouffleOutputHint)
+          rel
     }
 
   private def compileAttribute(attr: Attribute): ir.Param =

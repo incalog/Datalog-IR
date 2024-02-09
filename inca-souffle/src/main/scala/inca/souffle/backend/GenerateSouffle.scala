@@ -5,7 +5,7 @@ import inca.ir.{RefByName, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
-import inca.souffle.frontend.SouffleInputHint
+import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint}
 import inca.souffle.frontend.compile.GenerateIR
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
@@ -21,7 +21,7 @@ object GenerateSouffle:
       throw IllegalArgumentException(s"Cannot compile module containing the following features: ${illegalFeatures.mkString(", ")}")
 
     val contents = module.contents.flatMap {
-      case ir.Relation(name, params, bodies) =>
+      case rel@ir.Relation(name, params, bodies) =>
         val attrs = params.map { p =>
           Attribute(cleanName(p.name), compileType(p.ty))
         }
@@ -30,9 +30,13 @@ object GenerateSouffle:
 
         val conjunctions = bodies.map(compileBody)
         val rules = conjunctions.map { atoms => ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), None) }
-        // TODO just a small hack for output directive
-        val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
-        Seq(relDecl, outputDirective) ++ rules
+
+        if (rel.hasHint(SouffleOutputHint)) {
+          val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
+          Seq(relDecl, outputDirective) ++ rules
+        } else {
+          relDecl +: rules
+        }
 
       case edb@ir.ExtensionalRelation(name, params) =>
         val attrs = params.map { p =>
