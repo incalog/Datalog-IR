@@ -10,7 +10,7 @@ import inca.souffle.syntax.ProgramContent.*
 import scala.language.implicitConversions
 
 /**
- *  Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
+ *  Parser for Souffle programs
  */
 object Parser:
 

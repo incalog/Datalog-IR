@@ -20,6 +20,7 @@ class GenerateIR {
   var types: Map[ProgramContent.TypeDecl, Type] = Map()
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
+  // TODO: this is to restrictive. It does not allow the same .init twice
   var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
   var edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = Map()
   var outputDecls: Set[ProgramContent.RelationDecl] = Set()
