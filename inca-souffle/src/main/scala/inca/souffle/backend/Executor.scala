@@ -2,7 +2,7 @@ package inca.souffle.backend
 
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
 import inca.ir.{CompiledModule, string2name}
-import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, Type}
+import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, QualifiedName, Type}
 import inca.util.FileUtil
 
 import java.io.File
@@ -126,7 +126,6 @@ object Executor extends IRExecutor:
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"
 
-
   override def instantiate(m: CompiledModule): Engine =
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
@@ -138,12 +137,14 @@ object Executor extends IRExecutor:
     // create process
     val process = Process(s"souffle --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath}")
     // collect input and output directives
-    val inputFiles = souffleProg.content.collect {
-      case d@ProgramContent.Directive(DirectiveQualifier.Input, name, _) => name.toString -> d
+    val inputFiles = souffleProg.content.flatMap {
+      case d@ProgramContent.Directive(DirectiveQualifier.Input, names, _) => names.map { n => n.toString -> d }
+      case _ => Seq()
     }.toMap
 
-    val outputFiles = souffleProg.content.collect {
-      case d@ProgramContent.Directive(DirectiveQualifier.Output, name, _) => name.toString -> d
+    val outputFiles = souffleProg.content.flatMap {
+      case d@ProgramContent.Directive(DirectiveQualifier.Output, names, _) => names.map { n => n.toString -> d }
+      case _ => Seq()
     }.toMap
 
     val relationDecl = souffleProg.content.flatMap {

@@ -3,7 +3,6 @@ package inca.souffle.frontend
 import inca.ir.Hint
 import inca.ir.Hint.Key
 import inca.souffle.syntax.{DirectiveValue, QueryPlan}
-import inca.souffle.syntax.ProgramContent.Directive
 
 
 object SouffleQueryPlanHint extends Hint.Key
