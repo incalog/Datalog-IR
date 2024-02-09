@@ -33,13 +33,14 @@ object GenerateSouffle:
         val rules = conjunctions.zip(queryPlans).map { (atoms, queryPlanHintOption) =>
           ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), queryPlanHintOption.map(_.qp))
         }
-        
-        if (rel.hasHint(SouffleOutputHint)) {
-          val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
-          Seq(relDecl, outputDirective) ++ rules
-        } else {
-          relDecl +: rules
-        }
+
+        // TODO: Although this is correct for souffle programs, we currently expect all outputs for IncA programs
+        //if (rel.hasHint(SouffleOutputHint)) {
+        val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
+        Seq(relDecl, outputDirective) ++ rules
+        //} else {
+        //  relDecl +: rules
+        //}
 
       case edb@ir.ExtensionalRelation(name, params) =>
         val attrs = params.map { p =>

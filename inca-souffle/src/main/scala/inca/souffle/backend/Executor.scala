@@ -129,9 +129,8 @@ object Executor extends IRExecutor:
   override def instantiate(m: CompiledModule): Engine =
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
-    println(souffleProgFile)
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
-    //println(souffleProg)
+
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
     // create process
@@ -146,6 +145,8 @@ object Executor extends IRExecutor:
       case d@ProgramContent.Directive(DirectiveQualifier.Output, names, _) => names.map { n => n.toString -> d }
       case _ => Seq()
     }.toMap
+
+    println(outputFiles)
 
     val relationDecl = souffleProg.content.flatMap {
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)
