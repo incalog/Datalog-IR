@@ -6,12 +6,8 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
-import inca.souffle.frontend.compile.GenerateIR.WILDCARD
 import inca.souffle.syntax.*
 import inca.util.Gensym
-
-object GenerateIR:
-  val WILDCARD = "WILDCARD$"
 
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
@@ -251,8 +247,6 @@ class GenerateIR {
     }
 
 
-
-
   private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
     val ProgramContent.Fact(name, args) = fact
     ir.Body(
@@ -265,7 +259,7 @@ class GenerateIR {
     case Atom.Not(atom) =>
       irnot.Not(compileAtom(atom))
     case call@Atom.Call(QualifiedName(ns), args) =>
-      val compileArgs = args.map(compileTerm).map(_.arg)
+      val compileArgs = args.map(compileTermAsArgument)
       val decl = call.target.get
       val prefix = contentPrefixes(decl)
       edbDecls.get(decl) match
@@ -286,8 +280,11 @@ class GenerateIR {
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
 
+  private def compileTermAsArgument(term: Term): ir.Arg = term match
+    case Term.Var("_") => ir.WildcardArg() // Souffle only allows wildcards at argument positions
+    case _ => compileTerm(term).arg
+
   private def compileTerm(term: Term): ir.Term = term match
-    case Term.Var("_") => ir.Var(gensym.freshName(ir.Name(WILDCARD)))
     case Term.Var(name) => ir.Var(ir.Name(cleanName(name)))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
