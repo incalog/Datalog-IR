@@ -233,9 +233,6 @@ class GenerateIR {
 
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): Seq[ir.Body] =
     val ProgramContent.Rule(heads, atom, queryPlanOption) = rule
-    if (decl.names.exists(_.contains("isReferenceType")))
-      val y = 123
-
     // need to consider that there could be multiple heads for the same rule
     // e.g. R(x), R(y) :- Q(x, y).
     val headTermsPerRule = heads.flatMap {
