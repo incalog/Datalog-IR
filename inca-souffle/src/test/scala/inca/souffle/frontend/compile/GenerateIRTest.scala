@@ -41,6 +41,7 @@ class GenerateIRTest extends AnyFunSuite:
     val mod = genIR.compileProgram(prog, "SouffleProgram")
 
     val compiled = new Compiled(mod)
+    compiled.setPipeline(pipeline)
     val engine = new inca.viatra.Executor().instantiate(compiled)
     val rels = engine.readAll()
     rels.map { rel =>

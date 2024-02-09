@@ -154,12 +154,14 @@ class GenerateIR {
       case ProgramContent.FunctorDecl(name, params, retType, stateful) => ???
       case ProgramContent.Pragma(option, arg) => ???*/
 
+  private def cleanName(name: String): String =
+    name.replace("?", "_")
   private def cleanParamName(name: String): ir.Name =
     // We know that $ is disallowed as souffle variable name
-    ir.Name(s"$name$$param")
+    ir.Name(s"${cleanName(name)}$$param")
 
   private def namesToIrName(ns: Seq[String]): ir.Name =
-    ir.Name(ns.mkString("$"))
+    ir.Name(ns.map(cleanName).mkString("$"))
 
   private def qualifiedNameToIrName(qn: QualifiedName): ir.Name =
     namesToIrName(qn.ns)
@@ -282,7 +284,7 @@ class GenerateIR {
 
   private def compileTerm(term: Term): ir.Term = term match
     case Term.Var("_") => ir.Var(gensym.freshName(ir.Name("wildcard$")))
-    case Term.Var(name) => ir.Var(ir.Name(name))
+    case Term.Var(name) => ir.Var(ir.Name(cleanName(name)))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
