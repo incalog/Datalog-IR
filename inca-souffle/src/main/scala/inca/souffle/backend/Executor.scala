@@ -132,6 +132,7 @@ object Executor extends IRExecutor:
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     println(souffleProgFile)
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
+    //println(souffleProg)
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
     // create process

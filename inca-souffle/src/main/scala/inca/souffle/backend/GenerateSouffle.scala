@@ -5,7 +5,7 @@ import inca.ir.{RefByName, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
-import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint}
+import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.frontend.compile.GenerateIR
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
@@ -29,8 +29,11 @@ object GenerateSouffle:
         val head = Atom.Call(QualifiedName(Seq(cleanName(name))), params.map(p => Term.Var(cleanName(p.name))))
 
         val conjunctions = bodies.map(compileBody)
-        val rules = conjunctions.map { atoms => ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), None) }
-
+        val queryPlans = bodies.map(_.getHint[SouffleQueryPlanHint](SouffleQueryPlanHint))
+        val rules = conjunctions.zip(queryPlans).map { (atoms, queryPlanHintOption) =>
+          ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), queryPlanHintOption.map(_.qp))
+        }
+        
         if (rel.hasHint(SouffleOutputHint)) {
           val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
           Seq(relDecl, outputDirective) ++ rules
