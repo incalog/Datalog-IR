@@ -105,10 +105,10 @@ object GenerateSouffle:
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
   def cleanName(name: ir.Name): String =
-    if (name.name.startsWith(GenerateIR.WILDCARD))
-      "_"
-    else
-      name.name.replace("$", "_")
+    //if (name.name.startsWith(GenerateIR.WILDCARD))
+    //  "_"
+    //else
+    name.name.replace("$", "_")
 
   private def compileArg(a: ir.Arg): Term = a match
     case ir.TermArg(t) => compileTerm(t)
