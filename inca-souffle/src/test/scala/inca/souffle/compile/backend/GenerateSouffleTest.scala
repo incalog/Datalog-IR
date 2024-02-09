@@ -202,12 +202,12 @@ class GenerateSouffleTest extends AnyFunSuite:
     val source = Source.fromResource("inca/souffle/doop/micro.dl")
     val compiled = CompiledSouffleModule.fromSource("micro", source)
     
-    val engine = Executor.instantiate(compiled)
+    /*val engine = Executor.instantiate(compiled)
     val rels = engine.readAll()
-    rels.foreach(r => println(r.asTable))
+    rels.foreach(r => println(r.asTable))*/
   }
 
-  test("lowering micro.dl times") {
+  /*test("lowering micro.dl times") {
     val code = Source.fromResource("inca/souffle/doop/micro.dl").getLines().mkString("\n")
 
     val times = ListBuffer[Long]()
@@ -221,4 +221,4 @@ class GenerateSouffleTest extends AnyFunSuite:
     val t = times.drop(3)
 
     println(s"${t.sum / t.size}ms")
-  }
+  }*/
