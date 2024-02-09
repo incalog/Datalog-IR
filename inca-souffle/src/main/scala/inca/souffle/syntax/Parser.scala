@@ -56,13 +56,7 @@ object Parser:
   def spaced[A](p: P[A]): P[A] =
     p <* whitespaces0
 
-  val keywords = Set(
-    "nil",
-    "not",
-    "Int",
-    "Double",
-    "String",
-    "Any"
+  val keywords: Set[String] = Set(
   )
 
   def keyword(s: String): P[Unit] =
@@ -132,7 +126,7 @@ object Parser:
 
   /* Terms */
 
-  val intLit: P[Term] = 
+  val intLit: P[Term] =
     intnum.mapWithLoc(s => Term.NumberLit(s.toInt))
 
   val doubleLit: P[Term] = spaced(

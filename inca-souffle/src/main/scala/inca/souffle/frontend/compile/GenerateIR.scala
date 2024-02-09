@@ -140,7 +140,7 @@ class GenerateIR {
       case ProgramContent.Pragma(option, arg) => ???*/
 
   private def cleanName(name: String): String =
-    name.replace("?", "_")
+    name.replace("?", "Q_")
   private def cleanParamName(name: String): ir.Name =
     // We know that $ is disallowed as souffle variable name
     ir.Name(s"${cleanName(name)}$$param")

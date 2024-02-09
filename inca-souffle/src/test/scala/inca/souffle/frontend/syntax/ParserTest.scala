@@ -17,6 +17,8 @@ class ParserTest extends AnyFunSuite:
   }
 
   test("terms") {
+    Parser.varidentifier.parseAll("?returnType").getOrElse(???)
+    Parser.varidentifier.parseAll("returnType").getOrElse(???)
     Parser.term.parseAll("?returnType").getOrElse(???)
     Parser.term.parseAll("\"abc\"").getOrElse(???)
     Parser.intrinsicFunctor.parseAll("cat").getOrElse(???)
