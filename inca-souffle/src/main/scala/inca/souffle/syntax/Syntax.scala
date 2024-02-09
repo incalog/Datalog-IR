@@ -4,7 +4,7 @@ import inca.ir.typing.Resolvable
 import inca.ir.util.SourceLocation
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl}
 
-case class Program(content: Seq[ProgramContent]):
+case class Program(content: Seq[ProgramContent]) extends SourceLocation:
   override def toString: String = content.mkString("\n")
 
 var nextId: Int = 0

@@ -39,7 +39,7 @@ object Parser:
   }
 
   def parseSouffle(source: String): Program =
-    (whitespaces0 *> module <* P.end).parseAll(source) match
+    (whitespaces0 *> program <* P.end).parseAll(source) match
       case Right(p) => p
       case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
 
@@ -335,5 +335,5 @@ object Parser:
   lazy val programContent: P[ProgramContent] =
     rule | fact | decl | typeDecl | directive | component | componentInit
 
-  val module: P0[Program] =
-    whitespaces0 *> programContent.rep0.map(Program.apply)
+  val program: P0[Program] =
+    whitespaces0 *> programContent.rep0.mapWithLoc(Program.apply)

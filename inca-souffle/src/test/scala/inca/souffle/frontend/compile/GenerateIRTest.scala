@@ -346,5 +346,5 @@ class GenerateIRTest extends AnyFunSuite:
 
     val prog = Parser.parseSouffle(code)
     val rels = execute(prog)
-    
+    rels.foreach(r => println(r._2.asTable))
   }

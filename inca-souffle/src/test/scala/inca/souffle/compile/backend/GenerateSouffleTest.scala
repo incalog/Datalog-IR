@@ -12,8 +12,13 @@ import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, deman
 import inca.ir.visitors.BaseIRVisitor
 import inca.souffle.backend.Executor
 import inca.souffle.backend.compile.GenerateSouffle
+import inca.souffle.frontend.compile.CompiledSouffleModule
+import inca.souffle.syntax.Parser
+import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions.default
 import inca.util.compileroptions.CompilerOptions
+
+import scala.io.Source
 
 class GenerateSouffleTest extends AnyFunSuite:
   val pipeline: List[() => BaseIRVisitor] = List(
@@ -190,3 +195,12 @@ class GenerateSouffleTest extends AnyFunSuite:
 //    val rels = engine.readAll()
 //    println(rels)
 //  }
+
+  test("compile micro.dl") {
+    val source = Source.fromResource("inca/souffle/doop/micro.dl")
+    val compiled = CompiledSouffleModule.fromSource("micro", source)
+    
+    val engine = Executor.instantiate(compiled)
+    val rels = engine.readAll()
+    rels.foreach(r => println(r.asTable))
+  }

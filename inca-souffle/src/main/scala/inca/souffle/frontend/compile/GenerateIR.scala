@@ -2,33 +2,18 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.Language
-import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
-import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, Comparator, ComponentType, DirectiveQualifier, IntrinsicFunctor, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
-import inca.util.Gensym
-import inca.ir.extension.map as irmap
-import inca.ir.extension.not as irnot
-import inca.ir.extension.set as irset
-import inca.ir.extension.string as irstring
-import inca.ir.extension.tuple as irtuple
-import inca.ir.extension.aggregate as iragg
-import inca.ir.extension.aggregateset as iraggset
-import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.arithmetic.IntNum
-import inca.ir.extension.block as irblock
-import inca.ir.extension.bool as irbool
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
-import inca.ir.extension.data as irdata
-import inca.ir.extension.disjunction as irdis
-import inca.ir.extension.datamatch as irmatch
-import inca.ir.extension.typeparam as irtype
+import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.souffle.frontend.SouffleQueryPlanHint
-import inca.souffle.frontend.compile.NameResolution
+import inca.souffle.syntax.*
+import inca.util.Gensym
 
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
-    + irarith.IR + block.IR + bool.IR + irdata.IR
-    + disjunction.IR + irnot.IR + irstring.IR
-    + iragg.IR + irtype.IR
+    + irarith.IR + block.IR + irbool.IR + irdata.IR
+    + irdis.IR + irnot.IR + irstring.IR
+    + iragg.IR
   )
   val gensym: Gensym = new Gensym()
 
