@@ -10,8 +10,7 @@ import inca.ir.util.SourceLocation
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
-import inca.souffle.backend.Executor
-import inca.souffle.backend.compile.GenerateSouffle
+import inca.souffle.backend.{Executor, GenerateSouffle}
 import inca.souffle.frontend.compile.CompiledSouffleModule
 import inca.souffle.syntax.Parser
 import inca.util.FileUtil
@@ -196,7 +195,7 @@ class GenerateSouffleTest extends AnyFunSuite:
 //    println(rels)
 //  }
 
-  test("compile micro.dl") {
+  test("run micro.dl") {
     val source = Source.fromResource("inca/souffle/doop/micro.dl")
     val compiled = CompiledSouffleModule.fromSource("micro", source)
     

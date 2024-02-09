@@ -5,7 +5,7 @@ import inca.ir.Language
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
-import inca.souffle.frontend.SouffleQueryPlanHint
+import inca.souffle.frontend.{SouffleInputHint, SouffleQueryPlanHint}
 import inca.souffle.frontend.compile.GenerateIR.WILDCARD
 import inca.souffle.syntax.*
 import inca.util.Gensym
@@ -25,7 +25,7 @@ class GenerateIR {
   var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
 
   var contentPrefixes: Map[ProgramContent, Seq[String]] = Map()
-  var edbDecls: Set[ProgramContent.RelationDecl] = Set()
+  var edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = Map()
 
   def compileProgram(prog: Program, name: String): ir.Module =
     val nameResolution = new NameResolution {}
@@ -98,14 +98,14 @@ class GenerateIR {
     }
     rules
 
-  private def collectEdbDecls(content: Seq[ProgramContent]): Set[ProgramContent.RelationDecl] =
+  private def collectEdbDecls(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] =
     // TODO: This assumes, we do not allow cases such as
     //  .decl A, B
     //  .input A
-    var edbDecls: Set[ProgramContent.RelationDecl] = Set()
+    var edbDecls = Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]]()
     content.foreach {
       case input@ProgramContent.Directive(DirectiveQualifier.Input, _, _) =>
-        edbDecls += input.target.get
+        edbDecls += input.target.get -> input.attrs
       case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
         edbDecls ++= collectEdbDecls(compContent)
       case _ => // nothing
@@ -165,8 +165,6 @@ class GenerateIR {
     case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
     case _ => false
 
-  private def isEdbDecl(decl: ProgramContent.RelationDecl): Boolean =
-    edbDecls.contains(decl)
 
   private def compileAdtDecl(decl: ProgramContent.TypeDecl) =
     val ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) = decl
@@ -195,19 +193,20 @@ class GenerateIR {
     names.map { relName =>
       val params = attrs.map(compileAttribute)
 
-      val isExtensionalRelation = isEdbDecl(decl)
       val prefix = contentPrefixes(decl)
-      if (isExtensionalRelation) {
-        ir.ExtensionalRelation(namesToIrName(prefix :+ relName), params)
-      } else {
-        // Find all rules relevant for this relation
-        val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
-        ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.flatMap {
-          case r: ProgramContent.Rule => compileRule(decl, r, relName)
-          case f: ProgramContent.Fact => Seq(compileFact(decl, f))
-          case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
-        })
-      }
+      val edb = edbDecls.get(decl)
+      edb match
+        case Some(attrs) =>
+          ir.ExtensionalRelation(namesToIrName(prefix :+ relName), params)
+            .addHint(SouffleInputHint(attrs))
+        case None =>
+          // Find all rules relevant for this relation
+          val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
+          ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.flatMap {
+            case r: ProgramContent.Rule => compileRule(decl, r, relName)
+            case f: ProgramContent.Fact => Seq(compileFact(decl, f))
+            case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
+          })
     }
 
   private def compileAttribute(attr: Attribute): ir.Param =
@@ -253,11 +252,11 @@ class GenerateIR {
       val compileArgs = args.map(compileTerm).map(_.arg)
       val decl = call.target.get
       val prefix = contentPrefixes(decl)
-      val isExtensional = isEdbDecl(decl)
-      if (isExtensional)
-        ir.ExtensionalCall(namesToIrName(prefix :+ ns.last), compileArgs)
-      else
-        ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
+      edbDecls.get(decl) match
+        case Some(_) =>
+          ir.ExtensionalCall(namesToIrName(prefix :+ ns.last), compileArgs)
+        case None =>
+          ir.Call(namesToIrName(prefix :+ ns.last), compileArgs)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(atoms => irdis.DisjunctionAlternative(atoms.map(compileAtom))))
     case Atom.Compare(t1, Comparator.EQ, t2) =>

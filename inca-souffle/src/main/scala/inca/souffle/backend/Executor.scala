@@ -2,7 +2,6 @@ package inca.souffle.backend
 
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
 import inca.ir.{CompiledModule, string2name}
-import inca.souffle.backend.compile.GenerateSouffle
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, Type}
 import inca.util.FileUtil
 
@@ -131,6 +130,7 @@ object Executor extends IRExecutor:
   override def instantiate(m: CompiledModule): Engine =
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
+    println(souffleProgFile)
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
