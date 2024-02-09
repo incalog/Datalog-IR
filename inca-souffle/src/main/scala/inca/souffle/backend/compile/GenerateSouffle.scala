@@ -10,6 +10,7 @@ import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuilt
 import inca.ir.extension.data
 import inca.ir.extension.aggregate
 import inca.ir.extension.data.{CaseDefinition, TData}
+import inca.souffle.frontend.compile.GenerateIR
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
 
@@ -99,7 +100,11 @@ object GenerateSouffle:
 
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
-  def cleanName(name: ir.Name): String = name.name.replace("$", "_")
+  def cleanName(name: ir.Name): String =
+    if (name.name.startsWith(GenerateIR.WILDCARD))
+      "_"
+    else
+      name.name.replace("$", "_")
 
   private def compileArg(a: ir.Arg): Term = a match
     case ir.TermArg(t) => compileTerm(t)

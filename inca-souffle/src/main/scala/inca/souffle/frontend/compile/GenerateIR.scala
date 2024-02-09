@@ -6,8 +6,12 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.souffle.frontend.SouffleQueryPlanHint
+import inca.souffle.frontend.compile.GenerateIR.WILDCARD
 import inca.souffle.syntax.*
 import inca.util.Gensym
+
+object GenerateIR:
+  val WILDCARD = "WILDCARD$"
 
 class GenerateIR {
   val irLang: Language = new Language(Set(ir.BaseIR)
@@ -268,7 +272,7 @@ class GenerateIR {
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
 
   private def compileTerm(term: Term): ir.Term = term match
-    case Term.Var("_") => ir.Var(gensym.freshName(ir.Name("wildcard$")))
+    case Term.Var("_") => ir.Var(gensym.freshName(ir.Name(WILDCARD)))
     case Term.Var(name) => ir.Var(ir.Name(cleanName(name)))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
