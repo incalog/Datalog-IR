@@ -3,7 +3,7 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.Language
 import inca.ir.extension.{block, bool, demand, disjunction, typeparam}
-import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, Comparator, ComponentType, DirectiveQualifier, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
+import inca.souffle.syntax.{ADTConstructor, Atom, Attribute, BinOp, Comparator, ComponentType, DirectiveQualifier, IntrinsicFunctor, Program, ProgramContent, QualifiedName, Qualifier, Term, Type, TypeDeclConstraint, UnOp}
 import inca.util.Gensym
 import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
@@ -204,14 +204,13 @@ class GenerateIR {
     names.map { relName =>
       val params = attrs.map(compileAttribute)
 
-      // Find all rules relevant for this relation
-      val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
-      val prefix = contentPrefixes(decl)
-
       val isExtensionalRelation = isEdbDecl(decl)
+      val prefix = contentPrefixes(decl)
       if (isExtensionalRelation) {
         ir.ExtensionalRelation(namesToIrName(prefix :+ relName), params)
       } else {
+        // Find all rules relevant for this relation
+        val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
         ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.map {
           case r: ProgramContent.Rule => compileRule(decl, r, relName)
           case f: ProgramContent.Fact => compileFact(decl, f)
@@ -287,7 +286,27 @@ class GenerateIR {
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
     case Term.AggregatorTerm(agg) => ???
-    case Term.IntrinsicFunctorApp(f, args) => ???
+    case Term.IntrinsicFunctorApp(f, args) =>
+      f match
+        case IntrinsicFunctor.Ord => ???
+        case IntrinsicFunctor.ToFloat => ???
+        case IntrinsicFunctor.ToNumber => ???
+        case IntrinsicFunctor.ToString => ???
+        case IntrinsicFunctor.ToUnsigned => ???
+        case IntrinsicFunctor.Cat =>
+          val lhs = args.head
+          val rhs = args(1)
+          irstring.StringConcat(compileTerm(lhs), compileTerm(rhs))
+        case IntrinsicFunctor.StrLen =>
+        case IntrinsicFunctor.Substr => ???
+        case IntrinsicFunctor.Max =>
+          val lhs = args.head
+          val rhs = args(1)
+          irarith.Max(compileTerm(lhs), compileTerm(rhs))
+        case IntrinsicFunctor.Min =>
+          val lhs = args.head
+          val rhs = args(1)
+          irarith.Min(compileTerm(lhs), compileTerm(rhs))
     case Term.UserDefFunctorApp(f, args) => ???
 
     case Term.Unary(UnOp.Neg, t) => irarith.Neg(compileTerm(t))
