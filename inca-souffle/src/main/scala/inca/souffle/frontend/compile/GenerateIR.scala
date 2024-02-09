@@ -211,9 +211,9 @@ class GenerateIR {
       } else {
         // Find all rules relevant for this relation
         val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName))
-        ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.map {
+        ir.Relation(namesToIrName(prefix :+ relName), params, rulesForRelation.flatMap {
           case r: ProgramContent.Rule => compileRule(decl, r, relName)
-          case f: ProgramContent.Fact => compileFact(decl, f)
+          case f: ProgramContent.Fact => Seq(compileFact(decl, f))
           case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
         })
       }
@@ -222,21 +222,30 @@ class GenerateIR {
   private def compileAttribute(attr: Attribute): ir.Param =
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
-  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): ir.Body =
+  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): Seq[ir.Body] =
     val ProgramContent.Rule(heads, atom, queryPlanOption) = rule
-    val headTerms = heads.map {
-      case Atom.Call(QualifiedName(ns), terms) if ns.last == relName => terms
-      case _ => Seq()
-    }.headOption.getOrElse(Seq())
+    if (decl.names.exists(_.contains("isReferenceType")))
+      val y = 123
 
-    // rules might use other variable names or even terms in their head
-    val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
-      ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
+    // need to consider that there could be multiple heads for the same rule
+    // e.g. R(x), R(y) :- Q(x, y).
+    val headTermsPerRule = heads.flatMap {
+      case Atom.Call(QualifiedName(ns), terms) if ns.last == relName => Some(terms)
+      case _ => None
     }
-    val body = ir.Body(compileAtom(atom) +: renameAtoms)
-    queryPlanOption match
-      case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
-      case None => body
+    headTermsPerRule.map { headTerms =>
+      // rules might use other variable names or even terms in their head
+      val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
+        ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
+      }
+      val body = ir.Body(compileAtom(atom) +: renameAtoms)
+      queryPlanOption match
+        case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
+        case None => body
+    }
+
+
+
 
   private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
     val ProgramContent.Fact(name, args) = fact
