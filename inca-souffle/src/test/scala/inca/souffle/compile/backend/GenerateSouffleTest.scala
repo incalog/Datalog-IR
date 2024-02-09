@@ -17,6 +17,7 @@ import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions.default
 import inca.util.compileroptions.CompilerOptions
 
+import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 class GenerateSouffleTest extends AnyFunSuite:
@@ -195,6 +196,8 @@ class GenerateSouffleTest extends AnyFunSuite:
 //    println(rels)
 //  }
 
+
+
   test("run micro.dl") {
     val source = Source.fromResource("inca/souffle/doop/micro.dl")
     val compiled = CompiledSouffleModule.fromSource("micro", source)
@@ -202,4 +205,20 @@ class GenerateSouffleTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiled)
     val rels = engine.readAll()
     rels.foreach(r => println(r.asTable))
+  }
+
+  test("lowering micro.dl times") {
+    val code = Source.fromResource("inca/souffle/doop/micro.dl").getLines().mkString("\n")
+
+    val times = ListBuffer[Long]()
+    for (i <- 1 to 10) {
+      val compiled = CompiledSouffleModule.fromSourceCode("micro", code)
+      val start = System.nanoTime()
+      compiled.lowered
+      val end = System.nanoTime()
+      times += (end - start) / 1000 / 1000
+    }
+    val t = times.drop(3)
+
+    println(s"${t.sum / t.size}ms")
   }
