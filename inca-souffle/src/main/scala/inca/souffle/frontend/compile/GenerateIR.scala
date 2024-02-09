@@ -281,6 +281,7 @@ class GenerateIR {
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
 
   private def compileTerm(term: Term): ir.Term = term match
+    case Term.Var("_") => ir.Var(gensym.freshName(ir.Name("wildcard$")))
     case Term.Var(name) => ir.Var(ir.Name(name))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
