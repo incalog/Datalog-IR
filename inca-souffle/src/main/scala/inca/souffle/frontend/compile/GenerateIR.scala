@@ -297,7 +297,7 @@ class GenerateIR {
           val lhs = args.head
           val rhs = args(1)
           irstring.StringConcat(compileTerm(lhs), compileTerm(rhs))
-        case IntrinsicFunctor.StrLen =>
+        case IntrinsicFunctor.StrLen => ???
         case IntrinsicFunctor.Substr => ???
         case IntrinsicFunctor.Max =>
           val lhs = args.head
