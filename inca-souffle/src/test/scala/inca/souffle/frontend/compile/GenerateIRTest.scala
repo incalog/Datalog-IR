@@ -39,9 +39,16 @@ class GenerateIRTest extends AnyFunSuite:
   def execute(prog: Program): Map[String, Rel] =
     val genIR = GenerateIR()
     val mod = genIR.compileProgram(prog, "SouffleProgram")
+    println(prog)
+    println()
+    println()
+    println()
+
+    println(mod)
 
     val compiled = new Compiled(mod)
     compiled.setPipeline(pipeline)
+
     val engine = new inca.viatra.Executor().instantiate(compiled)
     val rels = engine.readAll()
     rels.map { rel =>
@@ -132,6 +139,7 @@ class GenerateIRTest extends AnyFunSuite:
         )
       )),
       ProgramContent.ComponentInit("comp", ComponentType("Component", Seq())),
+      ProgramContent.ComponentInit("comp2", ComponentType("Component", Seq())),
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("a"), Term.StringLit("b"))),
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
       ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
