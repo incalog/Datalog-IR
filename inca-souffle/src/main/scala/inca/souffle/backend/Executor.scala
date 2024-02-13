@@ -131,6 +131,8 @@ object Executor extends IRExecutor:
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
 
+    //println(souffleProg)
+
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
     // create process
@@ -146,7 +148,7 @@ object Executor extends IRExecutor:
       case _ => Seq()
     }.toMap
 
-    println(outputFiles)
+    //println(outputFiles)
 
     val relationDecl = souffleProg.content.flatMap {
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)

@@ -26,7 +26,7 @@ object GenerateSouffle:
           Attribute(cleanName(p.name), compileType(p.ty))
         }
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
-        val head = Atom.Call(QualifiedName(Seq(cleanName(name))), params.map(p => Term.Var(cleanName(p.name))))
+        val head = Atom.Call(qualifyName(name), params.map(p => Term.Var(cleanName(p.name))))
 
         val conjunctions = bodies.map(compileBody)
         val queryPlans = bodies.map(_.getHint[SouffleQueryPlanHint](SouffleQueryPlanHint))
@@ -82,7 +82,8 @@ object GenerateSouffle:
     case arith.BinCompare(lhs, rhs, c) =>
       val op = Parser.comparator.parseAll(c).toOption.get
       Atom.Compare(compileTerm(lhs), op, compileTerm(rhs))
-    case data.Deconstruct(t, RefByName(name), args, false) => Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(name), args.map(compileArg)))
+    case data.Deconstruct(t, RefByName(name), args, false) =>
+      Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
     case agg.Aggregate(RefByName(name), args, op) =>
       val result = args.zipWithIndex.collect {
@@ -101,18 +102,20 @@ object GenerateSouffle:
         case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
         case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
         case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
-      Atom.Compare(Term.Var(resultVar.name), EQ, Term.AggregatorTerm(souffleAgg))
+      Atom.Compare(Term.Var(cleanName(resultVar)), EQ, Term.AggregatorTerm(souffleAgg))
 
   private def qualifyName(name: ir.Name): QualifiedName = QualifiedName(Seq(cleanName(name)))
 
   def cleanName(name: ir.Name): String =
-    //if (name.name.startsWith(GenerateIR.WILDCARD))
-    //  "_"
-    //else
-    name.name.replace("$", "_")
+    // We must not use names that match a directive
+    name.name match
+      case "output" => "_output"
+      case "input" => "_input"
+      case s => s.replace("$", "_")
 
   private def compileArg(a: ir.Arg): Term = a match
     case ir.TermArg(t) => compileTerm(t)
+    case AggregateColumnArg(t) => compileTerm(t)
     case ir.WildcardArg() => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
@@ -130,6 +133,7 @@ object GenerateSouffle:
     case arith.UnOp(t, "abs") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
+    case string.ToString(t) => Term.IntrinsicFunctorApp(IntrinsicFunctor.ToString, Seq(compileTerm(t)))
     case data.Construct(RefByName(name), args) => Term.Constr(qualifyName(name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match

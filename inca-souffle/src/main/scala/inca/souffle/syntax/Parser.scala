@@ -221,7 +221,7 @@ object Parser:
 
   val comparator: P[Comparator] =
     import Comparator.*
-    oneOperator(List(LT, LE, GT, GE, EQ, NEQ))
+    oneOperator(List(LE, LT, GE, GT, EQ, NEQ))
 
   val compare: P[Atom] =
     (term ~ comparator ~ term).mapWithLoc {

@@ -39,12 +39,11 @@ class GenerateIRTest extends AnyFunSuite:
   def execute(prog: Program): Map[String, Rel] =
     val genIR = GenerateIR()
     val mod = genIR.compileProgram(prog, "SouffleProgram")
-    println(prog)
+    /*println(prog)
     println()
     println()
     println()
-
-    println(mod)
+    println(mod)*/
 
     val compiled = new Compiled(mod)
     compiled.setPipeline(pipeline)
@@ -54,7 +53,6 @@ class GenerateIRTest extends AnyFunSuite:
     rels.map { rel =>
       rel.name -> rel
     }.toMap
-
 
 
   test("no component test") {
