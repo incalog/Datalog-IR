@@ -10,29 +10,45 @@ object Relation {
     val params = matches.indices.map(i => s"param_$i")
     Relation.from(relName, params, Seq(matches))
 
-  def from(relName: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]): Relation =
-    parameterNames.size match {
+  def from(relName: RelationName, paramNames: Seq[String], queryMatches: Iterable[Seq[Any]]): Relation =
+    paramNames.size match {
       case 0 => UnitRelation(relName)
-      case 1 => Relation1(relName, parameterNames, matches)
-      case 2 => Relation2(relName, parameterNames, matches)
-      case 3 => Relation3(relName, parameterNames, matches)
-      case 4 => Relation4(relName, parameterNames, matches)
-      case 5 => Relation5(relName, parameterNames, matches)
-      case 6 => Relation6(relName, parameterNames, matches)
-      case 7 => Relation7(relName, parameterNames, matches)
-      case 8 => Relation8(relName, parameterNames, matches)
-      case 9 => Relation9(relName, parameterNames, matches)
-      case 10 => Relation10(relName, parameterNames, matches)
-      case 11 => Relation11(relName, parameterNames, matches)
-      case 12 => Relation12(relName, parameterNames, matches)
-      case 13 => Relation13(relName, parameterNames, matches)
-      case 14 => Relation14(relName, parameterNames, matches)
-      case 15 => Relation15(relName, parameterNames, matches)
-      case 16 => Relation16(relName, parameterNames, matches)
-      case 17 => Relation17(relName, parameterNames, matches)
-      case 18 => Relation18(relName, parameterNames, matches)
-      case 19 => Relation19(relName, parameterNames, matches)
-      case 20 => Relation20(relName, parameterNames, matches)
+      case 1 => Relation1(relName, paramNames, queryMatches)
+      case 2 => Relation2(relName, paramNames, queryMatches)
+      case 3 => Relation3(relName, paramNames, queryMatches)
+      case 4 => Relation4(relName, paramNames, queryMatches)
+      case 5 => Relation5(relName, paramNames, queryMatches)
+      case 6 => Relation6(relName, paramNames, queryMatches)
+      case 7 => Relation7(relName, paramNames, queryMatches)
+      case 8 => Relation8(relName, paramNames, queryMatches)
+      case 9 => Relation9(relName, paramNames, queryMatches)
+      case 10 => Relation10(relName, paramNames, queryMatches)
+      case 11 => Relation11(relName, paramNames, queryMatches)
+      case 12 => Relation12(relName, paramNames, queryMatches)
+      case 13 => Relation13(relName, paramNames, queryMatches)
+      case 14 => Relation14(relName, paramNames, queryMatches)
+      case 15 => Relation15(relName, paramNames, queryMatches)
+      case 16 => Relation16(relName, paramNames, queryMatches)
+      case 17 => Relation17(relName, paramNames, queryMatches)
+      case 18 => Relation18(relName, paramNames, queryMatches)
+      case 19 => Relation19(relName, paramNames, queryMatches)
+      case 20 => Relation20(relName, paramNames, queryMatches)
+      case 21 => Relation21(relName, paramNames, queryMatches)
+      case 22 => Relation22(relName, paramNames, queryMatches)
+      case 23 => Relation23(relName, paramNames, queryMatches)
+      case 24 => Relation24(relName, paramNames, queryMatches)
+      case 25 => Relation25(relName, paramNames, queryMatches)
+      case _ =>
+        // If we have too many parameters, we just fallback to a generic relation instance
+        new Relation:
+          override type Tuple = Seq[Any]
+          override def name: RelationName = relName
+          override def arity: Int = paramNames.size
+          override def size: Int = queryMatches.size
+          override def parameterNames: Seq[_root_.java.lang.String] = paramNames
+          override def entries: Iterable[Seq[Any]] = queryMatches
+          override def unflattenEntry(entry: Seq[Any]): Seq[Any] = entry
+          override def matches: Iterable[Seq[Any]] = queryMatches
     }
 }
 
@@ -595,3 +611,208 @@ case class Relation20[
        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20])
 }
 
+case class Relation21[
+  A1 <: AnyRef,
+  A2 <: AnyRef,
+  A3 <: AnyRef,
+  A4 <: AnyRef,
+  A5 <: AnyRef,
+  A6 <: AnyRef,
+  A7 <: AnyRef,
+  A8 <: AnyRef,
+  A9 <: AnyRef,
+  A10 <: AnyRef,
+  A11 <: AnyRef,
+  A12 <: AnyRef,
+  A13 <: AnyRef,
+  A14 <: AnyRef,
+  A15 <: AnyRef,
+  A16 <: AnyRef,
+  A17 <: AnyRef,
+  A18 <: AnyRef,
+  A19 <: AnyRef,
+  A20 <: AnyRef,
+  A21 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+
+  type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21)
+
+  lazy val arity: Int = 21
+  lazy val size: Int = matches.size
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match {
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18, a19, a20, a21) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+        a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20], a21.asInstanceOf[A21])
+  }
+}
+
+case class Relation22[
+  A1 <: AnyRef,
+  A2 <: AnyRef,
+  A3 <: AnyRef,
+  A4 <: AnyRef,
+  A5 <: AnyRef,
+  A6 <: AnyRef,
+  A7 <: AnyRef,
+  A8 <: AnyRef,
+  A9 <: AnyRef,
+  A10 <: AnyRef,
+  A11 <: AnyRef,
+  A12 <: AnyRef,
+  A13 <: AnyRef,
+  A14 <: AnyRef,
+  A15 <: AnyRef,
+  A16 <: AnyRef,
+  A17 <: AnyRef,
+  A18 <: AnyRef,
+  A19 <: AnyRef,
+  A20 <: AnyRef,
+  A21 <: AnyRef,
+  A22 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+
+  type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22)
+
+  lazy val arity: Int = 22
+  lazy val size: Int = matches.size
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match {
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+             a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18, a19, a20, a21, a22) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+        a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20], a21.asInstanceOf[A21], a22.asInstanceOf[A22])
+  }
+}
+
+case class Relation23[
+  A1 <: AnyRef,
+  A2 <: AnyRef,
+  A3 <: AnyRef,
+  A4 <: AnyRef,
+  A5 <: AnyRef,
+  A6 <: AnyRef,
+  A7 <: AnyRef,
+  A8 <: AnyRef,
+  A9 <: AnyRef,
+  A10 <: AnyRef,
+  A11 <: AnyRef,
+  A12 <: AnyRef,
+  A13 <: AnyRef,
+  A14 <: AnyRef,
+  A15 <: AnyRef,
+  A16 <: AnyRef,
+  A17 <: AnyRef,
+  A18 <: AnyRef,
+  A19 <: AnyRef,
+  A20 <: AnyRef,
+  A21 <: AnyRef,
+  A22 <: AnyRef,
+  A23 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+
+  type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23)
+
+  lazy val arity: Int = 23
+  lazy val size: Int = matches.size
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match {
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+    a8, a9, a10, a11, a12, a13, a14,
+    a15, a16, a17, a18, a19, a20, a21, a22, a23) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+        a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20],
+        a21.asInstanceOf[A21], a22.asInstanceOf[A22], a23.asInstanceOf[A23])
+  }
+}
+
+case class Relation24[
+  A1 <: AnyRef,
+  A2 <: AnyRef,
+  A3 <: AnyRef,
+  A4 <: AnyRef,
+  A5 <: AnyRef,
+  A6 <: AnyRef,
+  A7 <: AnyRef,
+  A8 <: AnyRef,
+  A9 <: AnyRef,
+  A10 <: AnyRef,
+  A11 <: AnyRef,
+  A12 <: AnyRef,
+  A13 <: AnyRef,
+  A14 <: AnyRef,
+  A15 <: AnyRef,
+  A16 <: AnyRef,
+  A17 <: AnyRef,
+  A18 <: AnyRef,
+  A19 <: AnyRef,
+  A20 <: AnyRef,
+  A21 <: AnyRef,
+  A22 <: AnyRef,
+  A23 <: AnyRef,
+  A24 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+
+  type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24)
+
+  lazy val arity: Int = 24
+  lazy val size: Int = matches.size
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match {
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+    a8, a9, a10, a11, a12, a13, a14,
+    a15, a16, a17, a18, a19, a20, a21, a22, a23, a24) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+        a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20],
+        a21.asInstanceOf[A21], a22.asInstanceOf[A22], a23.asInstanceOf[A23], a24.asInstanceOf[A24])
+  }
+}
+
+case class Relation25[
+  A1 <: AnyRef,
+  A2 <: AnyRef,
+  A3 <: AnyRef,
+  A4 <: AnyRef,
+  A5 <: AnyRef,
+  A6 <: AnyRef,
+  A7 <: AnyRef,
+  A8 <: AnyRef,
+  A9 <: AnyRef,
+  A10 <: AnyRef,
+  A11 <: AnyRef,
+  A12 <: AnyRef,
+  A13 <: AnyRef,
+  A14 <: AnyRef,
+  A15 <: AnyRef,
+  A16 <: AnyRef,
+  A17 <: AnyRef,
+  A18 <: AnyRef,
+  A19 <: AnyRef,
+  A20 <: AnyRef,
+  A21 <: AnyRef,
+  A22 <: AnyRef,
+  A23 <: AnyRef,
+  A24 <: AnyRef,
+  A25 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+
+  type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24, A25)
+
+  lazy val arity: Int = 25
+  lazy val size: Int = matches.size
+  lazy val entries: Iterable[Tuple] = matches.map(unflattenEntry)
+
+  override def unflattenEntry(entry: Seq[Any]): Tuple = entry match {
+    case Seq(a1, a2, a3, a4, a5, a6, a7,
+    a8, a9, a10, a11, a12, a13, a14,
+    a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25) =>
+      (a1.asInstanceOf[A1], a2.asInstanceOf[A2], a3.asInstanceOf[A3], a4.asInstanceOf[A4], a5.asInstanceOf[A5], a6.asInstanceOf[A6], a7.asInstanceOf[A7],
+        a8.asInstanceOf[A8], a9.asInstanceOf[A9], a10.asInstanceOf[A10], a11.asInstanceOf[A11], a12.asInstanceOf[A12], a13.asInstanceOf[A13], a14.asInstanceOf[A14],
+        a15.asInstanceOf[A15], a16.asInstanceOf[A16], a17.asInstanceOf[A17], a18.asInstanceOf[A18], a19.asInstanceOf[A19], a20.asInstanceOf[A20],
+        a21.asInstanceOf[A21], a22.asInstanceOf[A22], a23.asInstanceOf[A23], a24.asInstanceOf[A24], a25.asInstanceOf[A25])
+  }
+}
