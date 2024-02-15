@@ -5,6 +5,7 @@ import inca.ir.*
 import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
+import scala.reflect.ClassTag
 
 // We assume that every variable that is used is introduced beforehand (left-to-right)
 trait BaseIRTypechecker extends BaseIRTypeContext:
@@ -179,7 +180,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  protected def checkCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], atom: Atom, mode: Mode): Unit =
+  protected def checkCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], atom: Atom, mode: Mode)(implicit tag: ClassTag[R]): Unit =
     val paramTys = inferRelationRef(ref, atom)
     ref.target.foreach(addCallDependency(_, !mode.isBinding))
     if (paramTys.size != args.size)
@@ -199,12 +200,17 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation): Seq[Type] = ref match
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] = ref match
     case RefByName(name) => lookupModuleEntry(name) match
       case Some(rel@Relation(_, params, _)) =>
+        if (!tag.runtimeClass.isInstance(rel))
+          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
         ref.resolved(rel.asInstanceOf[R])
         params.map(_.ty)
       case Some(rel@ExtensionalRelation(_, params)) =>
+        // This might e.g. happen if we perform a call on an extensional relation
+        if (!tag.runtimeClass.isInstance(rel))
+          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
         ref.resolved(rel.asInstanceOf[R])
         params.map(_.ty)
       case None =>
