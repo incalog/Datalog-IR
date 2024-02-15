@@ -1,4 +1,4 @@
-package inca.souffle.frontend
+package inca.souffle.frontend.compile
 
 import inca.ir.Hint
 import inca.ir.Hint.Key

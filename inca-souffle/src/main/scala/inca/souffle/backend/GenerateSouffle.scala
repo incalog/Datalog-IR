@@ -5,8 +5,7 @@ import inca.ir.{RefByName, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
-import inca.souffle.frontend.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
-import inca.souffle.frontend.compile.GenerateIR
+import inca.souffle.frontend.compile.{GenerateIR, SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
 

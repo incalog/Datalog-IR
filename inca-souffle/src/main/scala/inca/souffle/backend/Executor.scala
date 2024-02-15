@@ -84,7 +84,7 @@ object Executor extends IRExecutor:
     // TODO support data
     private def souffleifyTupleEntry(s: Any): String = s match
       case i: Int => i.toString
-      case s: String => s.toString
+      case s: String => s
       case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
 
     private def cast(el: String, attr: Attribute): Any = attr match
@@ -114,7 +114,7 @@ object Executor extends IRExecutor:
           cast(el, attr)
         }
       }.toList
-      val params = (0 until size).map(idx => s"param_${idx}")
+      val params = (0 until size).map(idx => s"param_$idx")
       Relation.from(directive.names.head.toString, params, tuples)
 
     // TODO we just use the defaults currently

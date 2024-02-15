@@ -50,7 +50,7 @@ object Parser:
     P.product01(P.charsWhile0(c => c != '*').void, P.string("*/") | P.char('*') ~ rec).void
   )
   val comment: P[Unit] = lineComment | blockComment
-  val whitespace: P[Unit] = (P.charIn(" \t\r\n").void | comment)
+  val whitespace: P[Unit] = P.charIn(" \t\r\n").void | comment
   val whitespaces0: P0[Unit] = whitespace.rep0.void
 
   def spaced[A](p: P[A]): P[A] =
@@ -87,7 +87,7 @@ object Parser:
   val qualifiedIdentifier: P[QualifiedName] =
     spaced(id ~ (P.char('.') *> id).rep0).map((a, bs) => QualifiedName(a :: bs))
 
-  val intnum: P[Int] =
+  private val intnum: P[Int] =
     spaced(Numbers.signedIntString).map(_.toInt)
 
   def inParens[A](p: P0[A]): P[A] =
@@ -96,7 +96,7 @@ object Parser:
   def inBraces[A](p: P0[A]): P[A] =
     op('{') *> p <* op('}')
 
-  def inAngles[A](p: P0[A]): P[A] =
+  private def inAngles[A](p: P0[A]): P[A] =
     op('<') *> p <* op('>')
 
   def inBrackets[A](p: P0[A]): P[A] =
@@ -127,7 +127,7 @@ object Parser:
   /* Terms */
 
   val intLit: P[Term] =
-    intnum.mapWithLoc(s => Term.NumberLit(s.toInt))
+    intnum.mapWithLoc(s => Term.NumberLit(s))
 
   val doubleLit: P[Term] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
@@ -142,16 +142,16 @@ object Parser:
 
   val wildcard: P[Term] = op("_").mapWithLoc(_ => Term.Var("_"))
 
-  val variable: P[Term] = varidentifier.mapWithLoc(Term.Var.apply) | wildcard
+  private val variable: P[Term] = varidentifier.mapWithLoc(Term.Var.apply) | wildcard
 
   val typ: P[Type] =
     oneOperator(List(Type.Number, Type.Symbol, Type.Unsigned, Type.Float)) |
     qualifiedIdentifier.map(Type.Name.apply)
 
 
-  lazy val term = P.defer(termRec)
+  lazy val term: P[Term] = P.defer(termRec)
 
-  val aggregator: P[Aggregator] = P.fail
+  private val aggregator: P[Aggregator] = P.fail
 
   val intrinsicFunctor: P[IntrinsicFunctor] =
     import IntrinsicFunctor.*
@@ -168,7 +168,7 @@ object Parser:
       Min,
     ))
 
-  val unop: P[UnOp] =
+  private val unop: P[UnOp] =
     import UnOp.*
     oneOperator(List(Neg, Bnot, Lnot))
 
@@ -208,7 +208,7 @@ object Parser:
       Bshru,
     ))
 
-  lazy val termRec: P[Term] =
+  private lazy val termRec: P[Term] =
     (atomicTerm ~ (binop ~ term).?).mapWithLoc {
       case (t, None) => t
       case (t1, Some((op, t2))) => Term.Binary(t1, op, t2)
@@ -253,7 +253,7 @@ object Parser:
 //    } |
 //      literal.mapWithLoc(Param.Constant.apply)
 
-  val atomList: P[List[Atom]] = atom.repSep(op(',')).map(_.toList)
+  private val atomList: P[List[Atom]] = atom.repSep(op(',')).map(_.toList)
 
   val plan: P[QueryPlan] =
     op(".plan") *>
@@ -270,7 +270,7 @@ object Parser:
     (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Fact(name, args))
 
   val attribute: P[Attribute] = ((varidentifier <* op(':')) ~ typ).map((name, ty) => Attribute(name, ty))
-  val qualifier: P[Qualifier] =
+  private val qualifier: P[Qualifier] =
     import Qualifier.*
     oneOperator(List(
       EqRel,
@@ -286,10 +286,10 @@ object Parser:
   val decl: P[RelationDecl] =
     // TODO choice domain
     (op(".decl") *> identifier.repSep(op(',')) ~ inParens(attribute.repSep0(op(','))) ~ qualifier.rep0).mapWithLoc {
-      case ((names, attrs), quals) => RelationDecl(names.toList, attrs.toList, quals, None)
+      case ((names, attrs), quals) => RelationDecl(names.toList, attrs, quals, None)
     }
 
-  val typeDeclConstraint: P[TypeDeclConstraint] =
+  private val typeDeclConstraint: P[TypeDeclConstraint] =
     import TypeDeclConstraint.*
     (op("<:") *> typ).map(SubType.apply) |
     (op("=") *> typ).map(EqType.apply)
@@ -297,7 +297,7 @@ object Parser:
   val typeDecl: P[TypeDecl] =
     (op(".type") *> identifier ~ typeDeclConstraint).mapWithLoc((name, con) => TypeDecl(name, con))
 
-  val directiveValue: P[DirectiveValue] =
+  private val directiveValue: P[DirectiveValue] =
     stringLit.map(DirectiveValue.StringLit.apply) |
     identifier.map(DirectiveValue.Id.apply) |
     intnum.map(s => DirectiveValue.Number(s)) |
@@ -315,7 +315,7 @@ object Parser:
   val compType: P[ComponentType] =
     (identifier ~ inAngles(identifier.repSep(op(','))).?).map((name, args) => ComponentType(name, args.map(_.toList).getOrElse(List())))
 
-  val componentContent: P[ProgramContent] =
+  private val componentContent: P[ProgramContent] =
     P.defer(programContent).filter(_ => true)
 
   val component: P[ComponentDecl] =
@@ -323,10 +323,10 @@ object Parser:
       case ((c, sups), content) => ComponentDecl(c, sups.map(_.toList).getOrElse(List()), content)
     }
 
-  val componentInit: P[ComponentInit] =
+  private val componentInit: P[ComponentInit] =
     (op(".init") *> identifier ~ (op('=') *> compType)).mapWithLoc((name, ty) => ComponentInit(name, ty))
 
-  lazy val programContent: P[ProgramContent] =
+  private lazy val programContent: P[ProgramContent] =
     rule | fact | decl | typeDecl | directive | component | componentInit
 
   val program: P0[Program] =

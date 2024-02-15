@@ -3,20 +3,22 @@ package inca.souffle.frontend.compile
 import inca.souffle.syntax.ProgramContent.*
 import inca.souffle.syntax.{ADTConstructor, ComponentType, QualifiedName, TypeDeclConstraint}
 
+import scala.annotation.tailrec
+
 
 trait SouffleContext:
 
-  var relDecls: Map[String, RelationDecl] = Map()
-  var compDecls: Map[ComponentType, ComponentDecl] = Map()
-  var typeDecls: Map[String, TypeDecl] = Map()
-  var adtConstrs: Map[String, TypeDecl] = Map()
-  var compInits: Map[String, ComponentInit] = Map()
-  var currentNestedComponent: Seq[ComponentType] = Seq()
+  private var relDecls: Map[String, RelationDecl] = Map()
+  private var compDecls: Map[ComponentType, ComponentDecl] = Map()
+  private var typeDecls: Map[String, TypeDecl] = Map()
+  private var adtConstrs: Map[String, TypeDecl] = Map()
+  private var compInits: Map[String, ComponentInit] = Map()
+  private var currentNestedComponent: Seq[ComponentType] = Seq()
 
-  var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
-  var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
-  var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
-  var componentTypeToRelDecl: Map[Seq[ComponentType], Map[String, RelationDecl]] = Map()
+  private var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
+  private var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
+  private var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
+  private var componentTypeToRelDecl: Map[Seq[ComponentType], Map[String, RelationDecl]] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val declsSaved = relDecls
@@ -38,7 +40,7 @@ trait SouffleContext:
 
   def bindRelationDecl(decl: RelationDecl): Unit =
     val relMap = decl.names.map { name =>
-      (name -> decl)
+      name -> decl
     }.toMap
     relDecls ++= relMap
     val updatedRelMap = componentTypeToRelDecl.getOrElse(currentNestedComponent, Map()) ++ relMap
@@ -51,6 +53,7 @@ trait SouffleContext:
     else
       lookupRelationDeclHelper(currentNestedComponent, qn.ns)
 
+  @tailrec
   private def lookupRelationDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[RelationDecl] =
     if (qn.size == 1)
       componentTypeToRelDecl.get(compPath) match
@@ -95,6 +98,7 @@ trait SouffleContext:
     else
       lookupTypeDeclHelper(currentNestedComponent, qn.ns)
 
+  @tailrec
   private def lookupTypeDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
     if (qn.size == 1)
       componentTypeToTypeDecl.get(compPath) match
@@ -125,6 +129,7 @@ trait SouffleContext:
     else
       lookupADTConstructorHelper(currentNestedComponent, qn.ns)
 
+  @tailrec
   private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
     if (qn.size == 1)
       componentTypeToADTConstr.get(compPath) match

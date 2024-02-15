@@ -7,7 +7,7 @@ import java.awt.Component
 
 
 trait NameResolution:
-  val ctx = new SouffleContext {}
+  val ctx: SouffleContext = new SouffleContext {}
 
   def resolveProgram(prog: Program): Unit =
     // register decls, componentdecls and typedecls
@@ -23,7 +23,7 @@ trait NameResolution:
       case init: ProgramContent.ComponentInit => ctx.bindComponentInit(init)
       case _ => ()
 
-  def resolveProgramContent(content: ProgramContent): Unit = content match
+  private def resolveProgramContent(content: ProgramContent): Unit = content match
     case ProgramContent.Rule(heads, body, queryPlan) =>
       heads.foreach(resolveAtom)
       resolveAtom(body)
@@ -61,7 +61,7 @@ trait NameResolution:
     case ProgramContent.FunctorDecl(name, params, retType, stateful) => // do nothing
     case ProgramContent.Pragma(option, arg) => // do nothing
 
-  def resolveTypeDeclConstraint(tyDeclConstraint: TypeDeclConstraint): Unit = tyDeclConstraint match
+  private def resolveTypeDeclConstraint(tyDeclConstraint: TypeDeclConstraint): Unit = tyDeclConstraint match
     case TypeDeclConstraint.DefType() => // do nothing
     case TypeDeclConstraint.EqType(ty) => resolveType(ty)
     case TypeDeclConstraint.SubType(ty) => resolveType(ty)
@@ -78,7 +78,7 @@ trait NameResolution:
         }
       }
 
-  def resolveType(ty: Type): Unit = ty match
+  private def resolveType(ty: Type): Unit = ty match
     case tyName@Type.Name(qualName) =>
       ctx.lookupTypeDeclDecl(qualName) match
         case Some(typeDecl) =>  tyName.resolved(typeDecl)
@@ -88,7 +88,7 @@ trait NameResolution:
     case Type.Unsigned => // do nothing
     case Type.Float => // do nothin
 
-  def resolveAtom(atom: Atom): Unit = atom match
+  private def resolveAtom(atom: Atom): Unit = atom match
     case call@Atom.Call(qualifiedName, args) =>
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => call.resolved(relDecl)
@@ -107,7 +107,7 @@ trait NameResolution:
     case Atom.True => // do nothing
     case Atom.False => // do nothing
 
-  def resolveTerm(t: Term): Unit = t match
+  private def resolveTerm(t: Term): Unit = t match
     case constr@Term.Constr(qualifiedName, args) =>
       ctx.lookupADTConstructor(qualifiedName) match {
         case Some(typeDecl) => constr.resolved(typeDecl)
@@ -132,7 +132,7 @@ trait NameResolution:
     case Term.Nil() =>
     case Term.List(s) =>
 
-  def resolveAggregator(agg: Aggregator): Unit = agg match
+  private def resolveAggregator(agg: Aggregator): Unit = agg match
     case Aggregator.Max(t, atoms) =>
       resolveTerm(t)
       atoms.foreach(resolveAtom)

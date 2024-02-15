@@ -96,7 +96,7 @@ trait Relation {
         s"$name: $value"
       }.mkString("(", ", ", ")")
     }.mkString("{", ", ", "}")
-    s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS})"
+    s"${getClass.getSimpleName}(name: $name, size: $size, entries: $entriesS)"
   }
 
   def asTable: String = Tabulator.format(s"$name - $size", parameterNames, matches.toSeq)
