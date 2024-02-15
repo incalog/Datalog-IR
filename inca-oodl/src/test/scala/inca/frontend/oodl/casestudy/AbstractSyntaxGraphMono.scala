@@ -239,7 +239,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   ).addHint(MainHint)
 
 
-  private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaAgg.IR,
+  private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaAgg.IR + incaBool.IR,
     datas ++
       Seq(
         edgesDefs,
