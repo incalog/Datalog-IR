@@ -14,17 +14,19 @@ class DatalogColumnsTest extends AnyFunSuite:
   val exec: IRExecutor = new inca.viatra.Executor()
 
   test("Path") {
+    // Note: Deactivate optimizations before experiments
+
     // Config
-    val numExec = 1
+    val numExec = 10
     val numNodes = 100
-    val numUnusedParams = 22
+    val numUnusedParams = 400
 
     val additionalParams =
       for i <- 0.until(numUnusedParams) yield
         base.Param(s"p$i", irarith.TInt)
     val additionalParamEqs =
       for i <- 0.until(numUnusedParams) yield
-        base.Eq(base.Var(s"p$i"), irarith.Mul(base.Var("x"), irarith.IntNum(2)))
+        base.Eq(base.Var(s"p$i"), base.Var("x"))
 
     val mod = base.Module(
       "PathModule",
@@ -68,5 +70,4 @@ class DatalogColumnsTest extends AnyFunSuite:
     }
 
     println(s"Execution time ${dts.sum/dts.size}ms")
-
   }
