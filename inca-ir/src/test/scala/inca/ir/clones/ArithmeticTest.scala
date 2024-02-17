@@ -1265,4 +1265,54 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("params bound in calls with arithmetic laws") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var(Name("H1")), Add(Var("a"), IntNum(2))),
+            Eq(Var(Name("H2")), Add(IntNum(2), Var("a"))),
+            Eq(Add(Var("H1"), Var("H2")), Var(Name("H3"))),
+            Call(Name("S"), Seq(TermArg(Var("b")))),
+            Eq(Var(Name("H4")), Mul(IntNum(2), Add(Var(Name("H3")), IntNum(3)))),
+            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("result")), Var(Name("H5")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var(Name("H1")), Add(IntNum(2), Var("a"))),
+//            Eq(Var(Name("H2")), Add(IntNum(2), Var("a"))),
+            Eq(Var(Name("H3")), Mul(IntNum(2), Var("H1"))),
+            Call(Name("S"), Seq(TermArg(Var("b")))),
+            Eq(Var(Name("H4")), Add(IntNum(6), Mul(IntNum(2), Var(Name("H3"))))),
+//            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("result")), Var(Name("H4")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 }

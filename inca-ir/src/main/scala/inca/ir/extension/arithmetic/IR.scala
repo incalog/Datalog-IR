@@ -19,7 +19,7 @@ case class DoubleNum(value: Double) extends Term:
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def toString: String =
     if (analysis.isEmpty)
-      s"$lhs $op $rhs"
+      s"($lhs $op $rhs)"
     else
       s"($lhs $op $rhs)" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
