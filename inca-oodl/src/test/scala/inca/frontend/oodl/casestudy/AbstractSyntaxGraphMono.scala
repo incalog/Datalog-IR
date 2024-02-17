@@ -6,7 +6,7 @@ import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, strin
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
-import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
+import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -73,12 +73,12 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
-        Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
+        Deconstruct(v("def"), "Def", Seq(v("tmp"), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("to"))),
         Eq(v("from"), v("def")),
       )),
       Body(Seq(
-        Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
+        Deconstruct(v("def"), "Def", Seq(v("tmp"), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("trg"))),
         WriteMono(Var("mono"), TupleLit(Seq(Var("def"), Var("trg")))),
         Call("edgesDef", Seq(v("defs"), v("trg"), v("mono")))
@@ -117,13 +117,13 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     Seq(
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Deconstruct(v("hd"), "Def", Seq(v("defname"), WildcardArg())),
+        Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
         Eq(v("defname"), v("name")),
         Eq(v("def"), v("hd"))
       )),
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Deconstruct(v("hd"), "Def", Seq(v("defname"), WildcardArg())),
+        Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
         Eq(v("defname"), v("name"), neg = true),
         Call("findDef", Seq(v("tl"), v("name"), v("def")))
       ))
@@ -239,7 +239,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   ).addHint(MainHint)
 
 
-  private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaBool.IR + incaAgg.IR,
+  private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaAgg.IR + incaBool.IR,
     datas ++
       Seq(
         edgesDefs,
@@ -259,8 +259,8 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     override val ir: Module = mod
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
-      opt.irLogging.logLowerings = true
-      opt.irLogging.logTypeInformation = true
+      opt.irLogging.logLowerings = false
+      opt.irLogging.logTypeInformation = false
       opt
     }
     override def typechecker: BaseIRTypechecker = new IRTypechecker with primitive.Typechecker
@@ -283,6 +283,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       () => new incaTuple.Lowering {},
       () => new blockLowering {},
       () => new incaDisj.Lowering {},
+      () => new not.Lowering {},
       () => new demandLowering {},
     ))
 
@@ -340,5 +341,21 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         println(s"${r.name}: ${r.size}")
       }
       println(relation1.asTable)*/
+      assertResult(57)(relation1.entries.size)
     }
+  }
+
+  test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation - Souffle") {
+    val compiled = new Compiled(true)
+
+    val engine = inca.souffle.backend.Executor.instantiate(compiled)
+    val start = System.currentTimeMillis()
+    val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+    val end = System.currentTimeMillis()
+
+    //println(s"Execution time: ${end - start}ms")
+    //println(relation1.asTable)
+
+    assertResult(57)(relation1.entries.size)
   }

@@ -121,14 +121,15 @@ lazy val inca_viatra = (project in file("inca-viatra"))
 
 lazy val inca_souffle = (project in file("inca-souffle"))
   .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_viatra % "test->test")
   .settings(
     scalaVersion := scalaVersionString,
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
-      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
-      ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
 
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
       // Additional data structures, such as MultiDict

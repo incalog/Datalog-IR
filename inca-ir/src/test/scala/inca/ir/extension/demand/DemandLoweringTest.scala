@@ -11,7 +11,7 @@ import inca.ir.string2name
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class DemandLoweringTest extends AnyFunSuiteLike:
-  def module(relations: Relation*): Module =
+  def module(relations: ModuleEntry*): Module =
     val typecheckerBefore = new IRTypechecker
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
@@ -34,11 +34,11 @@ class DemandLoweringTest extends AnyFunSuiteLike:
       val errorsAfter = typecheckerAfter.getErrors
       if (errorsBefore.nonEmpty) {
         //println("Type errors in original code:")
-        //errorsBefore.foreach(println)
+        errorsBefore.foreach(println)
       }
       if (errorsAfter.nonEmpty) {
         //println("Type errors in lowered code:")
-        //errorsAfter.foreach(println)
+        errorsAfter.foreach(println)
       }
     }
 

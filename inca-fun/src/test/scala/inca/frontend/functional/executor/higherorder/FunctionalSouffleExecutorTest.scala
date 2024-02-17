@@ -3,12 +3,13 @@ package inca.frontend.functional.executor.higherorder
 import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.Relation
+import inca.souffle.backend.Executor
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalSouffleExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(inca.souffle.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(Executor)
 
   test("Apply") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Apply.finca")

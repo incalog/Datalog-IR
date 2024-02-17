@@ -13,7 +13,7 @@ trait Typechecker extends BaseIRTypechecker:
 
       val aggregands: Seq[Type] = args.zipAll(paramTys, null, null).flatMap {
         case (AggregateColumnArg(t), pty) => // skip
-          checkTerm(t,op.resultType, mode)
+          checkTerm(t, op.resultType, mode)
           Some(pty)
         case (TermArg(t), null) => // missing param
           inferTerm(t, Mode.Bound)

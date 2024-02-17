@@ -413,7 +413,7 @@ class Examples {
             )
         )*/
 
-    //TODO: Functions are faste then values. Why ?
+    //TODO: Functions are faster than values. Why ?
     def simpleAssignments(): Stm =
         new Sequence(
             new ValDef("n", new Num(5)),
