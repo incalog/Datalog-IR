@@ -30,9 +30,19 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var VNBodies: Map[String, ValNum] = Map()
   var hashTableBodies: Map[Hashed, ValNum] = Map()
 
+  // maps for relations
+  var VNRelations: Map[String, ValNum] = Map()
+  var hashTableRelations: Map[Hashed, ValNum] = Map()
+
 
   def valueNumbering(module: ir.Module): ir.Module = {
     visitModule(module)
+  }
+
+  override def visitModule(module: Module): Module = {
+    VNRelations = Map()
+    hashTableRelations = Map()
+    super.visitModule(module)
   }
 
   // TODO dont use scala`s hashing function
@@ -42,6 +52,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     case _ => elem.hashCode()
   }
   protected def getHashCode(body: Body): Hashed = body.hashCode()
+  
+  protected def getHashCode(relation: Relation): Hashed = (relation.params ++ relation.bodies).hashCode()  // -> name of relation irrelevant 
 
 
   private var relationParams: Seq[Name] = Seq()
@@ -51,7 +63,27 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     relationParams = relation.params.map(_.name)
     VNBodies = Map()
     hashTableBodies = Map()
-    super.visitRelation(relation)
+    valueNumberRelations(relation)
+  }
+
+  private def valueNumberRelations(relation: Relation): Seq[Relation] = {
+    val newRelation = super.visitRelation(relation).head
+    val x = newRelation.toString
+
+    val relationHash: Hashed = getHashCode(newRelation)
+    if (hashTableRelations.contains(relationHash)) {
+      val v: ValNum = hashTableRelations(relationHash)
+      VNRelations += (x, v)
+      // remove redundant body
+      Seq()
+    }
+    else {
+      val v = x
+      VNRelations += (x, v)
+      hashTableRelations += (relationHash, v)
+
+      Seq(newRelation)
+    }
   }
 
   override def visitBody(body: Body): Seq[Body] = {
