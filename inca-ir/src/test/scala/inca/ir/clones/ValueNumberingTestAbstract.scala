@@ -19,13 +19,17 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
     typecheckerBefore.checkProgram(Seq(input))
     println(s"before VN: \n$input\n")
     val result = VN.valueNumbering(input)
+    println(s"after VN: \n$result")
     val typecheckerAfter = new Typechecker {}
     typecheckerAfter.checkProgram(Seq(result))
-    println(s"after VN: \n$result")
     assertResult(expected)(result)
     println("#"*100)
   }
 
+  implicit def containDollar(name: String): String = {
+    if name.contains("$") then name
+    else name + "$0"
+  }
 
 }
 
