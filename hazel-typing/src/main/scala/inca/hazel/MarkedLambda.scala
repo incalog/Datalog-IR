@@ -1,6 +1,7 @@
 package inca.hazel
 
 import inca.ir.*
+import inca.ir.execution.{RelationUpdateListener, UnitRelation}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
@@ -688,6 +689,13 @@ object MarkedLambda extends App:
     engine.feed.processEditScript(t1.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
 
+    val query = engine.read(UnitRelation("mainSynMark"))
+    
+    engine.addUpdateListener(new RelationUpdateListener(query) {
+      override def tupleAdded(tup: rel.Tuple): Unit = println(s"Added: $tup")
+      override def tupleRemoved(tup: rel.Tuple): Unit = println(s"Removed: $tup")
+    })
+    
     println(s"Replace by $t2")
     val (edits12, newT2) = t1.compareTo(t2)
     edits12.print()
