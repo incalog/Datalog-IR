@@ -1,8 +1,8 @@
-package inca.frontend.oodl.casestudy
+package inca.frontend.oodl.exploration
 
 import inca.frontend.oodl.executor.OODLExecutor
 import inca.ir.*
-import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
+import inca.ir.execution.{Relation as ExecRelation, *}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
