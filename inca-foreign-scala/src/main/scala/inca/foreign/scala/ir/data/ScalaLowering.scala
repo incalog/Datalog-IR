@@ -7,11 +7,14 @@ import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+//import inca.ir.extension.edbdata.TEdbNode
 import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
+    // TODO: Move this to the right place
+    //case TEdbNode(ty) => true
     case _ => super.isTypeSupported(ty)
 
   var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
