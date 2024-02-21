@@ -168,3 +168,29 @@ lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
     )
   )
 
+lazy val inca_casestudy = (project in file("inca-casestudy"))
+  .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_foreign_scala % "compile->compile")
+  .dependsOn(inca_viatra % "compile->compile")
+  .dependsOn(inca_casestudy_diffable % "compile->compile")
+  .settings(
+    scalaVersion := "3.3.0",
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    )
+  )
+
+lazy val inca_casestudy_diffable = (project in file("inca-casestudy-diffable"))
+  .settings(
+    scalaVersion := "2.13.10",
+    scalacOptions += "-Ymacro-annotations",
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
+      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+      ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+    )
+  )
+

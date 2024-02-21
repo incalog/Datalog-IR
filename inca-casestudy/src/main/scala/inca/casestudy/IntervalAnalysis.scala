@@ -1,0 +1,304 @@
+package inca.casestudy
+
+import inca.foreign.scala.ir.primitive.{IR, Typechecker, *}
+import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
+import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4}
+import inca.ir.extension.*
+import inca.ir.extension.arithmetic.*
+import inca.ir.extension.data.{IR as dataIR, *}
+import inca.ir.extension.demand.*
+import inca.ir.extension.edbdata.*
+import inca.ir.extension.impure.Impure
+import inca.ir.extension.map.{MapComprehension, MapLookUp, TMap, IR as mapIR}
+import inca.ir.extension.string.*
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
+import inca.ir.typing.{DependencyGraph, IRTypechecker}
+import inca.ir.util.SourceLocation
+import inca.ir.{Term, string2name, term2Arg, *}
+import inca.util.compileroptions.CompilerOptions
+import inca.viatra.runtime.EnginePool
+import inca.viatra.runtime.context.DataModel
+import inca.casestudy.edb
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
+import inca.ir.extension.edbdata.Link.Parent
+import inca.viatra.Executor
+
+import scala.language.implicitConversions
+
+
+object IntervalAnalysis:
+
+  def q(name: String): String = s"inca.casestudy.edb.$name"
+
+  val edbNodes = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
+
+  val TStmt = TEdbNode(q("Stmt"))
+  val TSkip = TEdbNode(q("Skip"))
+  val TSequence = TEdbNode(q("Sequence"))
+  val TAssign = TEdbNode(q("Assign"))
+  val TExp = TEdbNode(q("Exp"))
+  val TVar = TEdbNode(q("Var"))
+  val TNum = TEdbNode(q("Num"))
+  val TAdd = TEdbNode(q("Add"))
+  val TInterval = TData("Interval")
+
+  val dataDefs = Seq(
+    DataDefinition("Interval"),
+    CaseDefinition("IV", Seq(TInt, TInt), TInterval),
+    CaseDefinition("Top", Seq(), TInterval),
+    CaseDefinition("Bot", Seq(), TInterval)
+  )
+
+  val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
+
+  def mkIv(l: Term, r: Term): Term = Construct("IV", Seq(l, r))
+
+  val initStmt = Relation("initStmt", Seq(
+    Param("stmt", TStmt),
+    Param("out", TStmt)
+  ), Seq(
+    Body(Seq(
+      //EdbDeconstruct(Var("stmt"), "Sequence", "s1" -> Var("s1")),
+      Eq(Var("stmt"), LookupEdbType(TSequence)),
+      Eq(Var("s1"), LookupEdbField(Cast(Var("stmt"), TSequence), "s1")),
+      Call("initStmt", Seq(Var("s1"), Var("out")))
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TSkip)),
+      Eq(Var("out"), Var("stmt"))
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Eq(Var("out"), Var("stmt"))
+    )),
+  ))
+
+  val finalStmt = Relation("finalStmt", Seq(
+    Param("stmt", TStmt),
+    Param("out", TStmt)
+  ), Seq(
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TSequence)),
+      Eq(Var("s2"), LookupEdbField(Cast(Var("stmt"), TSequence), "s2")),
+      Call("finalStmt", Seq(Var("s2"), Var("out")))
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TSkip)),
+      Eq(Var("out"), Var("stmt"))
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Eq(Var("out"), Var("stmt"))
+    )),
+  ))
+
+  val cflow = Relation("cflow", Seq(
+    Param("from", TStmt),
+    Param("to", TStmt)
+  ), Seq(
+    Body(
+      Seq(
+        Eq(Var("seqs"), LookupEdbType(TSequence)),
+        Eq(Var("s1"), LookupEdbField(Cast(Var("seqs"), TSequence), "s1")),
+        Eq(Var("s2"), LookupEdbField(Cast(Var("seqs"), TSequence), "s2")),
+        Call("finalStmt", Seq(Var("s1"), Var("from"))),
+        Call("initStmt", Seq(Var("s2"), Var("to"))),
+      )
+    )
+  ))
+
+  /*val allVars = Relation("allVars", Seq(
+    Param("name", TString)
+  ), Seq(
+    Body(Seq(
+      Eq(Var("s"), LookupEdbType(TAssign)),
+      Eq(Var("name"), Cast(LookupEdbField(Cast(Var("s"), TAssign), "name"), TString))
+    ))
+  ))*/
+
+  val parentOf = Relation("parentOf", Seq(
+    Param("exp", TExp),
+    Param("stmt", TStmt),
+  ), Seq(
+    Body(Seq(
+      Eq(Var("exp"), LookupEdbType(TExp)),
+      Eq(Var("_p"), LookupEdbField(Var("exp"), Parent)),
+      Eq(Cast(Var("_p"), TStmt), LookupEdbType(TStmt)),
+      Eq(Var("stmt"), Cast(Var("_p"), TStmt)),
+    )),
+    Body(Seq(
+      Eq(Var("exp"), LookupEdbType(TExp)),
+      Eq(Var("_p"), LookupEdbField(Var("exp"), Parent)),
+      Eq(Cast(Var("_p"), TExp), LookupEdbType(TExp)),
+      Call("parentOf", Seq(Cast(Var("_p"), TExp), Var("stmt")))
+    ))
+  ))
+
+  val aeval = Relation("aeval",
+    Seq(
+      Param("stmt", TStmt),
+      Param("exp", TExp),
+      Param("iv", TInterval)
+    ),
+    Seq(
+      Body(Seq(
+        Eq(Var("exp"), LookupEdbType(TVar)),
+        Call("parentOf", Seq(Var("exp"), Var("stmt"))),
+        Eq(Var("_name"), LookupEdbField(Cast(Var("exp"), TVar), "name")),
+        Eq(Var("name"), Cast(Var("_name"), TString)),
+        Call("intervalBefore", Seq(Var("stmt"), Var("name"), Var("iv")))
+      )),
+      Body(Seq(
+        Eq(Var("exp"), LookupEdbType(TNum)),
+        Call("parentOf", Seq(Var("exp"), Var("stmt"))),
+        Eq(Var("n"), LookupEdbField(Cast(Var("exp"), TNum), "value")),
+        Eq(Var("iv"), mkIv(Cast(Var("n"), TInt), Cast(Var("n"), TInt)))
+      )),
+      Body(Seq(
+        Eq(Var("exp"), LookupEdbType(TAdd)),
+        Eq(Var("lhs"), LookupEdbField(Cast(Var("exp"), TAdd), "lhs")),
+        Eq(Var("rhs"), LookupEdbField(Cast(Var("exp"), TAdd), "rhs")),
+        Call("aeval", Seq(Var("stmt"), Var("lhs"), Var("iv1"))),
+        Call("aeval", Seq(Var("stmt"), Var("rhs"), Var("iv2"))),
+        Deconstruct(Var("iv1"), "IV", Seq(Var("l1"), Var("l2"))),
+        Deconstruct(Var("iv2"), "IV", Seq(Var("l3"), Var("l4"))),
+        Eq(Var("iv"), mkIv(Add(Var("l1"), Var("l3")), Add(Var("l2"), Var("l4"))))
+      ))
+    )
+  )
+
+
+  val intervalAfter = Relation("intervalAfter",
+    Seq(
+      Param("stmt", TStmt),
+      Param("v", TString),
+      Param("iv", TInterval),
+    ),
+    Seq(
+      Body(Seq(
+        Eq(Var("stmt"), LookupEdbType(TAssign)),
+        Eq(Var("_v"), LookupEdbField(Cast(Var("s"), TAssign), "name")),
+        Eq(Var("v"), Cast(Var("_v"), TString)),
+        Eq(Var("e"), LookupEdbField(Cast(Var("s"), TAssign), "exp")),
+        Call("aeval", Seq(Var("stmt"), Var("e"), Var("iv")))
+      )),
+      Body(Seq(
+        Eq(Var("stmt"), LookupEdbType(TSkip)),
+        Call("intervalBefore", Seq(Var("stmt"), Var("v"), Var("iv")))
+      ))
+    )
+  )
+
+  val predecessorIntervals = Relation("predecessorIntervals",
+    Seq(
+      Param("stmt", TStmt),
+      Param("v", TString),
+      Param("pred", TStmt),
+      Param("iv", TInterval),
+    ),
+    Seq(
+      Body(Seq(
+        Call("cflow", Seq(Var("pred"), Var("stmt"))),
+        Call("intervalAfter", Seq(Var("pred"), Var("v"), Var("iv")))
+      ))
+    )
+  )
+
+  val intervalOp = ScalaAggregationOperator(
+    "JoinInterval",
+    ScalaType("Interval"),
+    "Bot()",
+    addCode = """(st: Interval, a: Interval) => (st, a) match {
+               |    case (Bot(), _) => a
+               |    case (Top(), _) => Top()
+               |    case (_, Top()) => Top()
+               |    case (IV(l1, l2), IV(l3, l4)) => IV(l1.min(l3), l2.max(l4))
+               |}""".stripMargin
+  )
+
+  val intervalBefore = Relation("intervalBefore",
+    Seq(
+      Param("stmt", TStmt),
+      Param("v", TString),
+      Param("iv", TInterval),
+    ),
+    Seq(
+      Body(Seq(
+        Call("predecessorIntervals", Seq(Var("stmt").arg, Var("v").arg, Var("_pred").arg, WildcardArg())),
+        Aggregate(RefByName("predecessorIntervals"), Seq(Var("stmt").arg, Var("v").arg, Var("_pred").arg, AggregateColumnArg(Var("_iv"))), intervalOp),
+        Eq(Var("iv"), Cast(Var("_iv"), TInterval))
+      ))
+    )
+  )
+
+
+  val mod = Module("IntervalAnalysis", BaseIR.language + arithmetic.IR + dataIR + mapIR + demand.IR + string.IR + edbdata.IR,
+    edbNodes ++ dataDefs ++ Seq(
+      //allVars,
+      parentOf,
+      cflow,
+      initStmt,
+      finalStmt,
+      aeval,
+      predecessorIntervals,
+      intervalAfter,
+      intervalBefore
+    )
+  )
+
+
+
+  def compiled = new CompiledModule:
+    override def name: Name = "IntervalAnalysis"
+    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+    override def ir: Module = mod
+    override def compilerOptions: CompilerOptions =
+      val op = CompilerOptions.default
+      op.irLogging.logModule = true
+      op.irLogging.logLowerings = true
+      op
+
+    private trait demandLowering extends demand.Lowering with primitive.Visitor
+    private trait blockLowering extends block.Lowering with primitive.Visitor
+    private trait scalaLowering extends primitive.ScalaLowering
+      with scalaArith.ScalaLowering
+      with scalaData.ScalaLowering
+      with scalaString.ScalaLowering
+    override def typechecker = new IRTypechecker with Typechecker {}
+
+    setPipeline(List(
+      //() => new ConversionElimination {},
+      //() => new impure.Lowering {},
+      //() => new bool.Lowering {},
+      //() => new set.Lowering {},
+      //() => new map.Lowering {},
+      //() => new blockLowering {},
+      //() => new disjunction.Lowering {},
+      //() => new not.Lowering {},
+      //() => new demandLowering {},
+      //() => new tuple.Lowering {}
+    ))
+
+  @main def check() = {
+    println(mod)
+    try
+      compiled.checked
+
+    val exec = new Executor()
+    val engine = exec.instantiate(compiled, dataModel)
+
+
+    val a1 = edb.Assign(
+      "x", edb.Num(4)
+    )
+    val a2 = edb.Assign(
+      "y", edb.Add(edb.Num(5), edb.Var("x"))
+    )
+    val s = edb.Sequence(a1, a2)
+
+    println(s"Loading $s")
+    s.loadEdits.print()
+    engine.feed.processEditScript(s.loadEdits)
+    engine.readAll().map(_.asTable).foreach(println)
+  }
+  

@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -356,7 +356,8 @@ object GeneratePSystem:
     case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
-        case Some(TermType(ety: EdbType, _)) => compileEdbType(ety)
+        case Some(TermType(ety: EdbType, _)) =>
+          compileEdbType(ety)
         case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty of term $t")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
@@ -449,6 +450,7 @@ object GeneratePSystem:
 
   private def compileEdbType(ety: EdbType): Code = ety match
     case _: (TEdbNode | TEdbList) => "truechange.URI"
+    case TEdbValue(TAny) => "truechange.URI" // TODO: This seems off. Fix this in the future
     case TEdbValue(ScalaType(sty)) => sty
 
   private def genEdbTypeKey(ety: EdbType): (String, String) = ety match
