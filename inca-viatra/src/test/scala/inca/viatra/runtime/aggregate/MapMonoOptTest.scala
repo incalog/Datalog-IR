@@ -29,7 +29,11 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 
 case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
-  override def compilerOptions: CompilerOptions = CompilerOptions.default
+  override def compilerOptions: CompilerOptions =
+    val op = CompilerOptions.default
+    op.irLogging.logModule = true
+    op.irLogging.logLowerings = true
+    op
 
   override def name: Name = mod.name
 
@@ -99,7 +103,8 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptModule(mod)
-    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+//    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+    val exec: IRExecutor = new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE)
     exec.instantiate(compiledMod)
 
   private def module(relations: ModuleEntry*): Module =
@@ -146,7 +151,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    //engine.readAll().foreach(res => println(res.asTable))
+    engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(3)(res.entries.head)
@@ -1004,3 +1009,31 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
+
+  test("Map mono basic test 31: 2-level nested map mono "):
+    val mapMono = MapMonoDefinition(TInt, MapMonoDefinition(TInt, SumInt))
+    val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+//      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1))),
+      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1), IntNum(1))),
+    )))).addHint(MainHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+
+
+  test("Map mono basic test 32: 2-level nested map mono "):
+    val mapMono = MapMonoDefinition(TInt, SumInt)
+    val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      Eq(Var("x"), MapLookUp(ReadMono(Var("mono")), IntNum(1))),
+    )))).addHint(MainHint)
+
+    val engine = compile(mainRelation)
+    engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))

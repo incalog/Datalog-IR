@@ -435,4 +435,37 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   }
 
+  test("Top down evaluation: 1"):
+    val mainRelation = Relation("main", Seq(Param("p", TString), Param("q", TString)), Seq(Body(Seq(
+      Eq(Var("p"), StringLit("1")),
+      Call(Name("path"), Seq(Var("p").arg, Var("q").arg))
+    ))))
+
+    val pathRelation = Relation("path", Seq(Param("p", TDemand(TString)), Param("q", TString)), Seq(
+      Body(Seq(
+        ExtensionalCall("edge", Seq(Var("p").arg, Var("q").arg))
+      )),
+      Body(Seq(
+        Call("path", Seq(Var("p").arg, Var("r").arg)),
+        ExtensionalCall("edge", Seq(Var("r").arg, Var("q").arg))
+      ))
+    ))
+
+    val edgeRel: ExtensionalRelation = ExtensionalRelation(
+      "edge", Seq(Param("p", TString), Param("q", TString))
+    )
+
+    val edbBTree: Relation2[Seq[String], Seq[String]] = Relation2(
+      "edge",
+      Seq("p", "q"),
+      Seq(Seq("1", "2"), Seq("2", "3"), Seq("3", "4"), Seq("2", "5"), Seq("4", "2"))
+    )
+
+    val engine = compile(mainRelation, pathRelation, edgeRel)
+    engine.insert(edbBTree)
+    val res = engine.read(UnitRelation("main"))
+    engine.readAll().foreach(res => println(res.asTable))
+
+
+
 }

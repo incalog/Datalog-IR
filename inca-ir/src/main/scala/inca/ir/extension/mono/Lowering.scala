@@ -167,7 +167,8 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
             )
           case vmono =>
             Block(Seq(
-              callAtom, Aggregate(
+              // Note: we remove the call to collection before doing aggregation, since the call might fail if there is no input to the mono
+              Aggregate(
                 RefByName(optCollRel.name),
                 callAtom.args.dropRight(1) :+ AggregateColumnArg(Var(Name("v"))),
                 MonoAggregationOperator(valueMono.get)

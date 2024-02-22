@@ -29,6 +29,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.viatra.Executor
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 
 
 object IntervalAnalysisMono:
@@ -202,14 +203,32 @@ object IntervalAnalysisMono:
   )
 
   val main = Relation("main", Seq(
-    Param("after", TMonoMap),
+//    Param("after", TMonoMap),
+    Param("stmt", TStmt),
+    Param("v", TString),
+    Param("iv", TInterval),
   ), Seq(
     Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("before"), NewMono(mapMono)),
       Eq(Var("after"), NewMono(mapMono)),
-      Call("interval", Seq(Var("before"), Var("after")))
+//      Call("interval", Seq(Var("before"), Var("after"))),
+      Eq(Var("mp"), ReadMono(Var("before"))),
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Call("allVars", Seq(Var("v"))),
+//      Eq(Var("mp1"), Cast(
+//        MapLookUp(Var("mp"), Var("stmt")),
+//        TMap(TString, TInterval)
+//      )),
+//      Eq(Var("iv"), Cast(
+//        M apLookUp(Var("mp1"), Var("v")),
+//        TInterval
+//      ))
+      Eq(Var("iv"), Cast(
+        nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))),
+        TInterval
+      ))
     ))
   )).addHint(MainHint)
 
@@ -239,27 +258,59 @@ object IntervalAnalysisMono:
     ))
   ))
 
-  val allVars = Relation("allVars", Seq(
-    Param("name", TString)
-  ), Seq(
+  val firstStmt = Relation("firstStmt", Seq(Param("stmt", TStmt)), Seq(
     Body(Seq(
-      Eq(Var("s"), LookupEdbType(TAssign)),
-      Eq(Var("name"), Cast(LookupEdbField(Cast(Var("s"), TAssign), "name"), TString))
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Call(Name("cflow"), Seq(WildcardArg(), Var("stmt").arg), neg=true)
     ))
   ))
 
+  val interval1 = Relation("interval", Seq(
+    Param("before", TDemand(TMonoMap)),
+    Param("after", TDemand(TMonoMap)),
+  ), Seq(
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      // First statement is an assign
+      Call("cflow", Seq(WildcardArg(), Var("stmt").arg), true),
+      Eq(Var("exp"), LookupEdbField(Cast(Var("s"), TAssign), "exp")),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("s"), TAssign), "name")),
+      Eq(Var("name"), Cast(Var("_name"), TString)),
+      Eq(Var("mp"), ReadMono(Var("before"))),
+      Eq(Var("varIvMap"), Cast(MapLookUp(Var("mp"), Var("stmt")), TMap(TString, TInterval))),
+      Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq()),
+    ))
+  ))
+
+  /**
+   * Update mapbefore
+   */
   val predecessorIntervals = Relation("predecessorIntervals", Seq(
     Param("stmt", TDemand(TStmt)),
     Param("before", TDemand(TMonoMap)),
-  ), Seq(Body(Seq(
+  ), Seq(
+    Body(Seq(
+      Call("cflow", Seq(Var("pred"), Var("stmt"))),
+      Call("predecessorIntervals", Seq(Var("pred"), Var("before"))),
+    )),
+    Body(Seq(
     Call("cflow", Seq(Var("pred"), Var("stmt"))),
-    Call("predecessorIntervals", Seq(Var("pred"), Var("before"))),
     Call("allVars", Seq(Var("name"))),
     Eq(Var("mp"), ReadMono(Var("before"))),
     Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("pred"), Var("name")))),
     Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
     WriteMono(Var("before"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq())
   ))
+  ))
+  val allVars = Relation("allVars", Seq(
+    Param("name", TString)
+  ), Seq(
+    Body(Seq(
+      Eq(Var("s"), LookupEdbType(TAssign)),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("s"), TAssign), "name")),
+      Eq(Var("name"), Cast(Var("_name"), TString))
+    ))
   ))
 
   val mod = Module("IntervalAnalysis", BaseIR.language + arithmetic.IR + dataIR + mapIR + demand.IR + string.IR + edbdata.IR + mono.IR + tuple.IR + impure.IR,
@@ -272,7 +323,7 @@ object IntervalAnalysisMono:
       aeval,
       predecessorIntervals,
       main,
-      interval
+      interval1
     )
   )
 
@@ -285,7 +336,7 @@ object IntervalAnalysisMono:
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
       op.irLogging.logModule = false
-      op.irLogging.logLowerings = false
+      op.irLogging.logLowerings = true
       val viatraLogging = op("viatra_logging")
       viatraLogging.update("module", true)
       viatraLogging.update("lowerings", true)
@@ -321,7 +372,7 @@ object IntervalAnalysisMono:
     try
       compiled.checked
 
-    val exec = new Executor()
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled, dataModel)
 
 

@@ -43,7 +43,7 @@ object GeneratePSystem:
   def compileModules(modules: Seq[Module], options: CompilerOptions): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
     val a = modules.map(m => compileModule(m, options)(env)).mkString("\n")
-    println(a)
+//    println(a)
     a
   }
 
@@ -158,7 +158,7 @@ object GeneratePSystem:
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
 
-    val nonEmptyRels = relations.values.filter(!_.isEmpty).map {
+    val nonEmptyRels = relations.values.map {
       r => s""""${cleanName(r.name)}" -> (() => ${cleanName(r.name)}.instance)"""
     }
 
