@@ -254,13 +254,13 @@ object FunctionalExecutor {
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
 
-      /*compiled.psystemModule.patterns.foreach { case (k, p) =>
+      compiled.psystemModule.patterns.foreach { case (k, p) =>
         val specification: Specification = p()
         val matcher = specification.getMatcher(engine)
         val rel = Relation.fromMatcher(matcher)
         println(rel.asTable)
         println()
-      }*/
+      }
 
       val outputMatches = mainMatcher.getAllMatches(inputMatch).asScala.map { m =>
         m.toArray.slice(tuple.getSize, arity).toSeq

@@ -349,6 +349,15 @@ object ControlDataFlow {
                 Assign("x", Sub(Var("x"), Num(1)))))))
        """
 
+  val example_2_8 =
+    q"""Sequence(
+          Assign("x", Num(1)),
+          While(GreaterThan(Var("x"), Num(0)),
+            Assign("x", Num(-1))
+          )
+       )
+       """
+
   /*
     x = 2
     y = 2

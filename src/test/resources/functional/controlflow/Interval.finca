@@ -116,7 +116,7 @@ def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
 def widenInterval(iv: Interval): Interval = iv match {
   case TopInterval() => TopInterval()
   case IV(l, h) =>
-    if (`Math.abs`(h - l) <= 10)
+    if (`Math.abs`(h - l) <= 2)
       iv
     else
       TopInterval()

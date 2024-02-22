@@ -58,8 +58,9 @@ class ControlDataFlowTest extends AnyFunSuite {
     val code = FileUtil.readFile("functional/controlflow/Interval.finca")
     val fun = loadFunction(code)
 
-    val prog = fun.input(ControlDataFlow.example_2_7)
+    val prog = fun.input(ControlDataFlow.example_2_8)
     val res = fun.executeInput("final_var", prog)
+    println(res)
     // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
     assert(res.res.size == 2)
   }
