@@ -5,7 +5,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
 import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
@@ -19,7 +19,10 @@ import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
+import inca.util.CSVUtil.{CSV, csvToString}
+import inca.util.FileUtil
 
+import java.io.IOException
 import scala.language.implicitConversions
 
 class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
@@ -216,6 +219,8 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     )
   )
 
+  val inputMain = ExtensionalRelation("input$main", Seq(Param("endNode", TInt), Param("step", TInt)))
+
   def main = Relation("main",
     Seq(
       Param("from", t("TDef")),
@@ -223,10 +228,9 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
+        ExtensionalCall("input$main", Seq(v("endNode"), v("step"))),
         Eq(Var("counter"), IntNum(0)),
         Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-        Eq(v("endNode"), IntNum(50)),
-        Eq(v("step"), IntNum(10)),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Eq(v("mono"), NewMono(SetMonoDefinition(tEdgePair), Seq(), Seq())),
         Call("edgesDefs", Seq(v("defs"), v("mono"))),
@@ -249,7 +253,8 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
         makeProg,
         makeLine,
         concat,
-        main
+        main,
+        inputMain
       )
   )
 
@@ -322,26 +327,64 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     }
   }
 
-  test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation") {
-    for (i <- 0 until 1) {
-      val compiled = new Compiled(true)
-//      val check = new IRTypechecker with primitive.Typechecker
-//      check.checkProgram(Seq(compiled.lowered))
-//      val graph = check.getDependencyGraph
-//      println(graph.filter(_ => true, (_, _, info) => info != DependencyInfo.TypeReference).toGraphViz)
+  private def toCSV(vals: Seq[(String, IndexedSeq[Long])]): CSV = {
+    val header = vals.map(_._1).toIndexedSeq
+    // we assume that each list has same number of elements
+    val rowLength = vals.head._2.size
+    val rows = for (i <- 0 until rowLength) yield vals.map(_._2(i)).toIndexedSeq
+    header +: rows
+  }
 
-      val engine = new inca.viatra.Executor().instantiate(compiled)
-      val start = System.currentTimeMillis()
-      val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
-      val end = System.currentTimeMillis()
-      /*println(s"Execution time ${end - start}ms")
-      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
-      engine.readAll().foreach { r =>
-        println(s"${r.name}: ${r.size}")
+  private def collectGarbage(): Unit = {
+    System.gc()
+    try {
+      Thread.sleep(2000)
+    } catch {
+      case e: IOException => e.printStackTrace()
+    }
+  }
+
+  test("Measure: AbstractSyntaxGraphMono") {
+    val maxNodes = 10
+    val resultPath = "benchmark/mono"
+
+
+    for (opt <- Seq(false, true)) {
+      val suffix = if opt then "_opt" else ""
+
+      val compiled = new Compiled(opt)
+      // Execution
+      val measurements = for (i <- Range.inclusive(10, maxNodes, 10)) yield {
+        // Stats
+        {
+          val engine = new inca.viatra.Executor().instantiate(compiled)
+          engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+          val rels = engine.readAll()
+          val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
+            r.name -> IndexedSeq(r.size.toLong)
+          }
+          FileUtil.writeFile(s"$resultPath/asg/ASG_Mono${suffix}_${i}_stats.csv", csvToString(toCSV(stats)))
+        }
+
+        collectGarbage()
+
+        // Warmup
+        for (k <- 2) {
+          val engine = new inca.viatra.Executor().instantiate(compiled)
+          engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+          val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+        }
+
+        i.toString -> (for (j <- Range.inclusive(1, 5)) yield {
+          val engine = new inca.viatra.Executor().instantiate(compiled)
+          engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+          val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
+          collectGarbage()
+          diff
+        })
       }
-      println(relation1.asTable)*/
-      assertResult(57)(relation1.entries.size)
+
+      FileUtil.writeFile(s"$resultPath/asg/ASG_Mono$suffix.csv", csvToString(toCSV(measurements)))
     }
   }
 

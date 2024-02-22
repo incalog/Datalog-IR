@@ -9,10 +9,13 @@ import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
 import inca.ir.extension.string.*
 import inca.ir.util.SourceLocation
+import inca.util.CSVUtil.{CSV, csvToString}
+import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
 import org.scalatest.funsuite.AnyFunSuiteLike
 
+import java.io.IOException
 import scala.language.implicitConversions
 
 class AbstractSyntaxGraph extends AnyFunSuiteLike:
@@ -208,6 +211,8 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     )
   )
 
+  val inputMain = ExtensionalRelation("input$main", Seq(Param("endNode", TInt), Param("step", TInt)))
+
   val main = Relation("main",
     Seq(
       Param("from", t("TDef")),
@@ -215,8 +220,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
-        Eq(v("endNode"), IntNum(50)),
-        Eq(v("step"), IntNum(10)),
+        ExtensionalCall("input$main", Seq(v("endNode"), v("step"))),
         Call("makeProg", Seq(IntNum(0), v("endNode"), v("step"), v("defs"))),
         Call("edgesDefs", Seq(v("defs"), v("from"), v("to")))
       ))
@@ -234,7 +238,8 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
       makeProg,
       makeLine,
       concat,
-      main
+      main,
+      inputMain
     )
   )
 
@@ -256,22 +261,60 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     //finally println(compiled.lowered)
   }
 
-  test("AbstractSyntaxGraph can be run") {
-    for (i <- 0 until 1) {
-      val engine = new inca.viatra.Executor().instantiate(compiled)
-      val start = System.nanoTime()
-      val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
-      val end = System.nanoTime()
+  private def toCSV(vals: Seq[(String, IndexedSeq[Long])]): CSV = {
+    val header = vals.map(_._1).toIndexedSeq
+    // we assume that each list has same number of elements
+    val rowLength = vals.head._2.size
+    val rows = for (i <- 0 until rowLength) yield vals.map(_._2(i)).toIndexedSeq
+    header +: rows
+  }
 
-      //engine.readAll().foreach(r => println(r.asTable))
-      /*println(s"Execution time ${(end - start) / 1000 / 1000}ms")
-      println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")
-      engine.readAll().foreach { r =>
-        println(s"${r.name}: ${r.size}")
-      }
-      println(relation1.asTable)*/
+
+  private def collectGarbage(): Unit = {
+    System.gc ()
+    try {
+      Thread.sleep (2000)
+    } catch {
+      case e: IOException => e.printStackTrace ()
     }
+  }
+
+
+  test("Measure: AbstractSyntaxGraphMono") {
+    val resultPath = "benchmark/mono"
+    val maxNodes = 10
+    // Execution
+    val measurements = for (i <- Range.inclusive(10, maxNodes, 10)) yield  {
+      // Stats
+      {
+        val engine = new inca.viatra.Executor().instantiate(compiled)
+        engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+        val rels = engine.readAll()
+        val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
+          r.name -> IndexedSeq(r.size.toLong)
+        }
+        FileUtil.writeFile(s"$resultPath/asg/ASG_${i}_stats.csv", csvToString(toCSV(stats)))
+      }
+
+      collectGarbage()
+
+      // Warmup
+      for (k <- 2) {
+        val engine = new inca.viatra.Executor().instantiate(compiled)
+        engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+        val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      }
+
+      i.toString -> (for (j <- Range.inclusive(1, 5)) yield {
+        val engine = new inca.viatra.Executor().instantiate(compiled)
+        engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
+        val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
+        collectGarbage()
+        diff
+      })
+    }
+
+    FileUtil.writeFile(s"$resultPath/asg/ASG_DL.csv", csvToString(toCSV(measurements)))
   }
 
   
