@@ -2,7 +2,7 @@ package inca.casestudy
 
 import inca.casestudy.IntervalAnalysis.{TAdd, TAssign, TExp, TInterval, TNum, TSequence, TSkip, TStmt, TVar, edbNodes, mkIv}
 import inca.ir.{Term, string2name, term2Arg, *}
-import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4}
+import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
@@ -47,6 +47,8 @@ object IntervalAnalysisMono:
   val TNum = TEdbNode(q("Num"))
   val TAdd = TEdbNode(q("Add"))
   val TInterval = TData("Interval")
+  // We need this, because casting a map makes the lookup fail somehow ??
+  val TScalaInterval = ScalaType("Interval")
 
   val dataDefs = Seq(
     DataDefinition("Interval"),
@@ -142,36 +144,9 @@ object IntervalAnalysisMono:
     )
   ))
 
-  /*val allVars = Relation("allVars", Seq(
-    Param("name", TString)
-  ), Seq(
-    Body(Seq(
-      Eq(Var("s"), LookupEdbType(TAssign)),
-      Eq(Var("name"), Cast(LookupEdbField(Cast(Var("s"), TAssign), "name"), TString))
-    ))
-  ))*/
-
-  /*val parentOf = Relation("parentOf", Seq(
-    Param("exp", TExp),
-    Param("stmt", TStmt),
-  ), Seq(
-    Body(Seq(
-      Eq(Var("exp"), LookupEdbType(TExp)),
-      Eq(Var("_p"), LookupEdbField(Var("exp"), Parent)),
-      Eq(Cast(Var("_p"), TStmt), LookupEdbType(TStmt)),
-      Eq(Var("stmt"), Cast(Var("_p"), TStmt)),
-    )),
-    Body(Seq(
-      Eq(Var("exp"), LookupEdbType(TExp)),
-      Eq(Var("_p"), LookupEdbField(Var("exp"), Parent)),
-      Eq(Cast(Var("_p"), TExp), LookupEdbType(TExp)),
-      Call("parentOf", Seq(Cast(Var("_p"), TExp), Var("stmt")))
-    ))
-  ))*/
-
   val aeval = Relation("aeval",
     Seq(
-      Param("m", TDemand(TMap(TString, TInterval))),
+      Param("m", TDemand(TMap(TString, TScalaInterval))),
       Param("exp", TDemand(TExp)),
       Param("iv", TInterval)
     ),
@@ -181,6 +156,7 @@ object IntervalAnalysisMono:
         Eq(Var("_name"), LookupEdbField(Cast(Var("exp"), TVar), "name")),
         Eq(Var("name"), Cast(Var("_name"), TString)),
         //Call("intervalBefore", Seq(Var("stmt"), Var("name"), Var("iv")))
+        //Eq(Var("iv"), Construct("IV", Seq(IntNum(1), IntNum(1))))
         Eq(Var("_iv"), MapLookUp(Var("m"), Var("name"))),
         Eq(Var("iv"), Cast(Var("_iv"), TInterval))
       )),
@@ -203,28 +179,28 @@ object IntervalAnalysisMono:
   )
 
   val main = Relation("main", Seq(
-//    Param("after", TMonoMap),
     Param("stmt", TStmt),
     Param("v", TString),
     Param("iv", TInterval),
   ), Seq(
     Body(Seq(
+      // Create mono maps
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("before"), NewMono(mapMono)),
       Eq(Var("after"), NewMono(mapMono)),
-//      Call("interval", Seq(Var("before"), Var("after"))),
-      Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
+
+      // initial call to interval with head statement
+      Eq(Var("head"), LookupEdbType(TStmt)),
+      Call("cflow", Seq(WildcardArg(), Var("head").arg), true),
+      Call("interval", Seq(Var("head"), Var("before"), Var("after"))),
+
+      // output
+      Eq(Var("stmt"), LookupEdbType(TStmt)),
+      Eq(Var("stmt"), LookupEdbType(TSequence), true),
+
+      Eq(Var("mp"), ReadMono(Var("after"))),
       Call("allVars", Seq(Var("v"))),
-//      Eq(Var("mp1"), Cast(
-//        MapLookUp(Var("mp"), Var("stmt")),
-//        TMap(TString, TInterval)
-//      )),
-//      Eq(Var("iv"), Cast(
-//        M apLookUp(Var("mp1"), Var("v")),
-//        TInterval
-//      ))
       Eq(Var("iv"), Cast(
         nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))),
         TInterval
@@ -233,76 +209,69 @@ object IntervalAnalysisMono:
   )).addHint(MainHint)
 
   val interval = Relation("interval", Seq(
-    Param("before", TDemand(TMonoMap)),
-    Param("after", TDemand(TMonoMap)),
-  ), Seq(
-    Body(Seq(
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-      Eq(Var("exp"), LookupEdbField(Cast(Var("s"), TAssign), "exp")),
-      Eq(Var("_name"), LookupEdbField(Cast(Var("s"), TAssign), "name")),
-      Eq(Var("name"), Cast(Var("_name"), TString)),
-      Call("predecessorIntervals", Seq(Var("stmt"), Var("before"))),
-      Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("varIvMap"), Cast(MapLookUp(Var("mp"), Var("stmt")), TMap(TString, TInterval))),
-      Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
-      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Cast(Var("name"), TString), Var("iv"))))), Seq())
-    )),
-    Body(Seq(
-      Eq(Var("stmt"), LookupEdbType(TSkip)),
-      Call("allVars", Seq(Var("name"))),
-      Call("predecessorIntervals", Seq(Var("stmt"), Var("before"))),
-      Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("name")))),
-      Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
-      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))))
-    ))
-  ))
-
-  val firstStmt = Relation("firstStmt", Seq(Param("stmt", TStmt)), Seq(
-    Body(Seq(
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-      Call(Name("cflow"), Seq(WildcardArg(), Var("stmt").arg), neg=true)
-    ))
-  ))
-
-  val interval1 = Relation("interval", Seq(
-    Param("before", TDemand(TMonoMap)),
-    Param("after", TDemand(TMonoMap)),
-  ), Seq(
-    Body(Seq(
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-      // First statement is an assign
-      Call("cflow", Seq(WildcardArg(), Var("stmt").arg), true),
-      Eq(Var("exp"), LookupEdbField(Cast(Var("s"), TAssign), "exp")),
-      Eq(Var("_name"), LookupEdbField(Cast(Var("s"), TAssign), "name")),
-      Eq(Var("name"), Cast(Var("_name"), TString)),
-      Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("varIvMap"), Cast(MapLookUp(Var("mp"), Var("stmt")), TMap(TString, TInterval))),
-      Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
-      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq()),
-    ))
-  ))
-
-  /**
-   * Update mapbefore
-   */
-  val predecessorIntervals = Relation("predecessorIntervals", Seq(
     Param("stmt", TDemand(TStmt)),
     Param("before", TDemand(TMonoMap)),
+    Param("after", TDemand(TMonoMap)),
   ), Seq(
     Body(Seq(
-      Call("cflow", Seq(Var("pred"), Var("stmt"))),
-      Call("predecessorIntervals", Seq(Var("pred"), Var("before"))),
+      // Check if the stmt is an assignment
+      Eq(Var("_stmt"), LookupEdbType(TAssign)),
+      Eq(Var("_stmt"), Cast(Var("stmt"), TAssign)),
+      // Read fields from assign
+      Eq(Var("exp"), LookupEdbField(Cast(Var("stmt"), TAssign), "exp")),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
+      Eq(Var("name"), Cast(Var("_name"), TString)),
+
+      // Update the after map
+      Eq(Var("mp"), ReadMono(Var("before"))),
+      Eq(Var("varIvMap"), MapLookUp(Var("mp"), Var("stmt"))),
+      Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq()),
+
+      Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
     )),
     Body(Seq(
-    Call("cflow", Seq(Var("pred"), Var("stmt"))),
-    Call("allVars", Seq(Var("name"))),
-    Eq(Var("mp"), ReadMono(Var("before"))),
-    Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("pred"), Var("name")))),
-    Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
-    WriteMono(Var("before"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq())
+      // Check if the stmt is an assignment
+      Eq(Var("_stmt"), LookupEdbType(TAssign)),
+      Eq(Var("_stmt"), Cast(Var("stmt"), TAssign)),
+      // Read fields from assign
+      Eq(Var("exp"), LookupEdbField(Cast(Var("stmt"), TAssign), "exp")),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
+      Eq(Var("name"), Cast(Var("_name"), TString)),
+
+      Call("allVars", Seq(Var("vn"))),
+      Eq(Var("name"), Var("vn"), true),
+
+      // Update the after map
+      Eq(Var("mp"), ReadMono(Var("before"))),
+      Eq(Var("iv"), Cast(nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("vn"))), TInterval)),
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("vn"), Var("iv"))))), Seq()),
+
+      Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
+    ))
   ))
+
+  val successor = Relation("successor", Seq(
+    Param("stmt", TDemand(TStmt)),
+    Param("before", TDemand(TMonoMap)),
+    Param("after", TDemand(TMonoMap)),
+  ), Seq(
+    Body(Seq(
+      Call("cflow", Seq(Var("stmt"), Var("succ"))),
+      Call("allVars", Seq(Var("vn"))),
+      Eq(Var("mp"), ReadMono(Var("after"))),
+      Eq(Var("iv"), Cast(nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("vn"))), TInterval)),
+      WriteMono(Var("before"), TupleLit(Seq(Var("succ"), TupleLit(Seq(Var("vn"), Var("iv"))))), Seq()),
+    )),
+    Body(Seq(
+      Call("cflow", Seq(Var("stmt").arg, WildcardArg()), true),
+    )),
+    Body(Seq(
+      Call("cflow", Seq(Var("stmt"), Var("succ"))),
+      Call("interval", Seq(Var("succ"), Var("before"), Var("after")))
+    ))
   ))
+
   val allVars = Relation("allVars", Seq(
     Param("name", TString)
   ), Seq(
@@ -316,14 +285,13 @@ object IntervalAnalysisMono:
   val mod = Module("IntervalAnalysis", BaseIR.language + arithmetic.IR + dataIR + mapIR + demand.IR + string.IR + edbdata.IR + mono.IR + tuple.IR + impure.IR,
     edbNodes ++ dataDefs ++ Seq(
       allVars,
-      //parentOf,
       cflow,
       initStmt,
       finalStmt,
       aeval,
-      predecessorIntervals,
+      successor,
       main,
-      interval1
+      interval
     )
   )
 
@@ -388,4 +356,8 @@ object IntervalAnalysisMono:
     s.loadEdits.print()
     engine.feed.processEditScript(s.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
+    /*println(engine.read(UnitRelation("main")).asTable)
+    println(engine.read(UnitRelation("interval")).asTable)
+    println(engine.read(UnitRelation("successor")).asTable)
+    println(engine.read(UnitRelation("aeval")).asTable)*/
   }
