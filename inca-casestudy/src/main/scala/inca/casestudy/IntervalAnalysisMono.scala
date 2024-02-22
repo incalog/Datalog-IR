@@ -196,8 +196,7 @@ object IntervalAnalysisMono:
       Call("interval", Seq(Var("head"), Var("before"), Var("after"))),
 
       // output
-      Eq(Var("stmt"), LookupEdbType(TStmt)),
-      Eq(Var("stmt"), LookupEdbType(TSequence), true),
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
 
       Eq(Var("mp"), ReadMono(Var("after"))),
       Call("allVars", Seq(Var("v"))),
@@ -350,7 +349,10 @@ object IntervalAnalysisMono:
     val a2 = edb.Assign(
       "y", edb.Add(edb.Num(5), edb.Var("x"))
     )
-    val s = edb.Sequence(a1, a2)
+    val a3 = edb.Assign(
+      "x", edb.Num(2)
+    )
+    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
 
     println(s"Loading $s")
     s.loadEdits.print()
