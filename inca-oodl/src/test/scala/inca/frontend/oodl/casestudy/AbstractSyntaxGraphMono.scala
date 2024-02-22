@@ -347,7 +347,7 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
   }
 
   test("Measure: AbstractSyntaxGraphMono") {
-    val maxNodes = 10
+    val maxNodes = 100
     val resultPath = "benchmark/mono"
 
 

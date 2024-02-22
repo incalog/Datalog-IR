@@ -282,9 +282,9 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   }
 
 
-  test("Measure: AbstractSyntaxGraphMono") {
+  test("Measure: AbstractSyntaxGraph") {
     val resultPath = "benchmark/mono"
-    val maxNodes = 10
+    val maxNodes = 100
     // Execution
     val measurements = for (i <- Range.inclusive(10, maxNodes, 10)) yield  {
       // Stats
@@ -295,7 +295,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
         val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
           r.name -> IndexedSeq(r.size.toLong)
         }
-        FileUtil.writeFile(s"$resultPath/asg/ASG_${i}_stats.csv", csvToString(toCSV(stats)))
+        FileUtil.writeFile(s"$resultPath/asg/ASG_DL_${i}_stats.csv", csvToString(toCSV(stats)))
       }
 
       collectGarbage()
