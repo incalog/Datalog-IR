@@ -12,6 +12,8 @@ import inca.ir.extension.edbdata.{EdbType, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
+  override def name: String = "DataScalaLowering"
+
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
     case _ => super.isTypeSupported(ty)

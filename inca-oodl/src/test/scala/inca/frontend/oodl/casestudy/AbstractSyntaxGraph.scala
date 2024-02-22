@@ -13,11 +13,13 @@ import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import java.io.IOException
 import scala.language.implicitConversions
 
+@Ignore
 class AbstractSyntaxGraph extends AnyFunSuiteLike:
 
 

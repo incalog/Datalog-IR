@@ -284,8 +284,11 @@ object IntervalAnalysisMono:
     override def ir: Module = mod
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
-      op.irLogging.logModule = true
-      op.irLogging.logLowerings = true
+      op.irLogging.logModule = false
+      op.irLogging.logLowerings = false
+      val viatraLogging = op("viatra_logging")
+      viatraLogging.update("module", true)
+      viatraLogging.update("lowerings", true)
       op
 
 

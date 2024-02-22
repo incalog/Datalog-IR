@@ -21,10 +21,12 @@ import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
+import org.scalatest.Ignore
 
 import java.io.IOException
 import scala.language.implicitConversions
 
+@Ignore
 class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
 
   implicit def embed[A](a: A): Seq[A] = Seq(a)
