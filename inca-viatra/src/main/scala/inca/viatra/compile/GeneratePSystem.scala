@@ -43,7 +43,6 @@ object GeneratePSystem:
   def compileModules(modules: Seq[Module], options: CompilerOptions): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
     val a = modules.map(m => compileModule(m, options)(env)).mkString("\n")
-//    println(a)
     a
   }
 

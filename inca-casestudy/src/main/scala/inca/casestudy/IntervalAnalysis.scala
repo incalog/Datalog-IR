@@ -269,7 +269,7 @@ object IntervalAnalysis:
     setPipeline(List())
 
   @main def check() = {
-    println(mod)
+    //println(mod)
     try
       compiled.checked
 

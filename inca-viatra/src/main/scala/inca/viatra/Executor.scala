@@ -25,7 +25,6 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
 
     override def read(rel: Relation): ViatraRelation =
       val spec = module.patterns(cleanString(rel.name))()
-      println(s"Read: ${cleanString(rel.name)}")
       val matcher = spec.getMatcher(engine)
       new ViatraRelation(rel, spec, matcher)
 
