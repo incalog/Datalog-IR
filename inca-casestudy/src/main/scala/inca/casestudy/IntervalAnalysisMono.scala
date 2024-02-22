@@ -1,6 +1,6 @@
 package inca.casestudy
 
-import inca.casestudy.IntervalAnalysis.{TAdd, TAssign, TExp, TInterval, TNum, TSequence, TSkip, TStmt, TVar, edbNodes, mkIv}
+import inca.casestudy.IntervalAnalysis.{TAdd, TAssign, TExp, TInterval, TNum, TSequence, TSkip, TStmt, TVar, TWhile, edbNodes, mkIv, q}
 import inca.ir.{Term, string2name, term2Arg, *}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
@@ -26,6 +26,7 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
+import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.viatra.Executor
@@ -42,10 +43,12 @@ object IntervalAnalysisMono:
   val TSkip = TEdbNode(q("Skip"))
   val TSequence = TEdbNode(q("Sequence"))
   val TAssign = TEdbNode(q("Assign"))
+  val TWhile = TEdbNode(q("While"))
   val TExp = TEdbNode(q("Exp"))
   val TVar = TEdbNode(q("Var"))
   val TNum = TEdbNode(q("Num"))
   val TAdd = TEdbNode(q("Add"))
+  val TGT = TEdbNode(q("GT"))
   val TInterval = TData("Interval")
   // We need this, because casting a map makes the lookup fail somehow ??
   val TScalaInterval = ScalaType("Interval")
@@ -55,6 +58,8 @@ object IntervalAnalysisMono:
     CaseDefinition("IV", Seq(TInt, TInt), TInterval),
     CaseDefinition("Top", Seq(), TInterval),
     CaseDefinition("Bot", Seq(), TInterval),
+    CaseDefinition("BTrue", Seq(), TInterval),
+    CaseDefinition("BFalse", Seq(), TInterval),
   )
 
   val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
@@ -62,13 +67,18 @@ object IntervalAnalysisMono:
   val intervalMono = ScalaMonoDefinition(
     "IntervalMono",
     initCode = "Bot()",
-    addCode =
-      """(st: Interval, a: Interval) => (st, a) match {
-        |    case (Bot(), _) => a
-        |    case (Top(), _) => Top()
-        |    case (_, Top()) => Top()
-        |    case (IV(l1, l2), IV(l3, l4)) => IV(Math.min(l1, l3), Math.max(l2, l4))
-        |}""".stripMargin,
+    addCode = """(st: Interval, a: Interval) => (st, a) match {
+                |    case (Bot(), _) => a
+                |    case (Top(), _) => Top()
+                |    case (_, Top()) => Top()
+                |    case (BTrue(), BTrue()) => BTrue()
+                |    case (BFalse(), BFalse()) => BFalse()
+                |    case (IV(l1, l2), IV(l3, l4)) =>
+                |      val l = l1.min(l3)
+                |      val h = l2.max(l4)
+                |      if ((h - l).abs <= 2) then IV(l, h) else Top()
+                |    case _ => Top()
+                |}""".stripMargin,
     resultCode = "(st: Interval) => st", // TODO: We could widen here
     constructorParamTypes = Seq(),
     typ = MonoTypes(TInterval, ScalaType("Interval"), ScalaType("Interval"))
@@ -108,6 +118,10 @@ object IntervalAnalysisMono:
       Eq(Var("stmt"), LookupEdbType(TAssign)),
       Eq(Var("out"), Var("stmt"))
     )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TWhile)),
+      Eq(Var("out"), Var("stmt"))
+    )),
   ))
 
   val finalStmt = Relation("finalStmt", Seq(
@@ -127,6 +141,10 @@ object IntervalAnalysisMono:
       Eq(Var("stmt"), LookupEdbType(TAssign)),
       Eq(Var("out"), Var("stmt"))
     )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TWhile)),
+      Eq(Var("out"), Var("stmt"))
+    )),
   ))
 
   val cflow = Relation("cflow", Seq(
@@ -141,6 +159,24 @@ object IntervalAnalysisMono:
         Call("finalStmt", Seq(Var("s1"), Var("from"))),
         Call("initStmt", Seq(Var("s2"), Var("to"))),
       )
+    ),
+    Body(
+      Seq(
+        Eq(Var("whl"), LookupEdbType(TWhile)),
+        Eq(Var("cond"), LookupEdbField(Cast(Var("whl"), TWhile), "cond")),
+        Eq(Var("body"), LookupEdbField(Cast(Var("whl"), TWhile), "body")),
+        Eq(Var("whl"), Var("from")),
+        Call("initStmt", Seq(Var("body"), Var("to"))),
+      )
+    ),
+    Body(
+      Seq(
+        Eq(Var("whl"), LookupEdbType(TWhile)),
+        Eq(Var("cond"), LookupEdbField(Cast(Var("whl"), TWhile), "cond")),
+        Eq(Var("body"), LookupEdbField(Cast(Var("whl"), TWhile), "body")),
+        Call("finalStmt", Seq(Var("body"), Var("from"))),
+        Eq(Var("whl"), Var("to"))
+      )
     )
   ))
 
@@ -152,29 +188,74 @@ object IntervalAnalysisMono:
     ),
     Seq(
       Body(Seq(
-        //Eq(Var("exp"), LookupEdbType(TVar)),
         Eq(Var("_name"), LookupEdbField(Cast(Var("exp"), TVar), "name")),
         Eq(Var("name"), Cast(Var("_name"), TString)),
-        //Call("intervalBefore", Seq(Var("stmt"), Var("name"), Var("iv")))
-        //Eq(Var("iv"), Construct("IV", Seq(IntNum(1), IntNum(1))))
         Eq(Var("_iv"), MapLookUp(Var("m"), Var("name"))),
         Eq(Var("iv"), Cast(Var("_iv"), TInterval))
       )),
       Body(Seq(
-        //Eq(Var("exp"), LookupEdbType(TNum)),
         Eq(Var("n"), LookupEdbField(Cast(Var("exp"), TNum), "value")),
         Eq(Var("iv"), mkIv(Cast(Var("n"), TInt), Cast(Var("n"), TInt)))
       )),
       Body(Seq(
-        //Eq(Var("exp"), LookupEdbType(TAdd)),
         Eq(Var("lhs"), LookupEdbField(Cast(Var("exp"), TAdd), "lhs")),
         Eq(Var("rhs"), LookupEdbField(Cast(Var("exp"), TAdd), "rhs")),
         Call("aeval", Seq(Var("m"), Var("lhs"), Var("iv1"))),
         Call("aeval", Seq(Var("m"), Var("rhs"), Var("iv2"))),
-        Deconstruct(Var("iv1"), "IV", Seq(Var("l1"), Var("l2"))),
-        Deconstruct(Var("iv2"), "IV", Seq(Var("l3"), Var("l4"))),
-        Eq(Var("iv"), mkIv(Add(Var("l1"), Var("l3")), Add(Var("l2"), Var("l4"))))
-      ))
+        Disjunction(Seq(
+          DisjunctionAlternative(
+            Deconstruct(Var("iv1"), "IV", Seq(Var("l1"), Var("l2"))),
+            Deconstruct(Var("iv2"), "IV", Seq(Var("l3"), Var("l4"))),
+            Eq(Var("iv"), mkIv(Add(Var("l1"), Var("l3")), Add(Var("l2"), Var("l4"))))
+          ),
+          DisjunctionAlternative(
+            Deconstruct(Var("iv1"), "Top", Seq()),
+            Eq(Var("iv"), Construct("Top", Seq()))
+          ),
+          DisjunctionAlternative(
+            Deconstruct(Var("iv2"), "Top", Seq()),
+            Eq(Var("iv"), Construct("Top", Seq()))
+          ),
+        )),
+      )),
+      Body(Seq(
+        Eq(Var("lhs"), LookupEdbField(Cast(Var("exp"), TGT), "lhs")),
+        Eq(Var("rhs"), LookupEdbField(Cast(Var("exp"), TGT), "rhs")),
+        Call("aeval", Seq(Var("m"), Var("lhs"), Var("iv1"))),
+        Call("aeval", Seq(Var("m"), Var("rhs"), Var("iv2"))),
+        Deconstruct(Var("iv1"), "IV", Seq(Var("l1"), Var("h1"))),
+        Deconstruct(Var("iv2"), "IV", Seq(Var("l2"), Var("h2"))),
+        Disjunction(Seq(
+          DisjunctionAlternative(
+            GT(Var("l1"), Var("h2")),
+            Eq(Var("iv"), Construct("BTrue", Seq()))
+          ),
+          DisjunctionAlternative(
+            GT(Var("l2"), Var("h1")),
+            Eq(Var("iv"), Construct("BFalse", Seq()))
+          ),
+          DisjunctionAlternative(
+            LE(Var("l1"), Var("h2")),
+            LE(Var("l2"), Var("h1")),
+            Eq(Var("iv"), Construct("Top", Seq()))
+          ),
+        ))
+      )),
+      Body(Seq(
+        Eq(Var("lhs"), LookupEdbField(Cast(Var("exp"), TGT), "lhs")),
+        Eq(Var("rhs"), LookupEdbField(Cast(Var("exp"), TGT), "rhs")),
+        Call("aeval", Seq(Var("m"), Var("lhs"), Var("iv1"))),
+        Call("aeval", Seq(Var("m"), Var("rhs"), Var("iv2"))),
+        Disjunction(Seq(
+          DisjunctionAlternative(
+            Deconstruct(Var("iv1"), "Top", Seq()),
+          ),
+          DisjunctionAlternative(
+            Deconstruct(Var("iv2"), "Top", Seq()),
+          ),
+        )),
+        Eq(Var("iv"), Construct("Top", Seq())),
+      )),
     )
   )
 
@@ -196,8 +277,14 @@ object IntervalAnalysisMono:
       Call("interval", Seq(Var("head"), Var("before"), Var("after"))),
 
       // output
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-
+      Disjunction(Seq(
+        DisjunctionAlternative(
+          Eq(Var("stmt"), LookupEdbType(TAssign))
+        ),
+        DisjunctionAlternative(
+          Eq(Var("stmt"), LookupEdbType(TWhile))
+        ),
+      )),
       Eq(Var("mp"), ReadMono(Var("after"))),
       Call("allVars", Seq(Var("v"))),
       Eq(Var("iv"), Cast(
@@ -207,45 +294,62 @@ object IntervalAnalysisMono:
     ))
   )).addHint(MainHint)
 
+  val assignToVar = Relation("assignToVar", Seq(Param("stmt", TStmt), Param("v", TString)), Seq(
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
+      Eq(Var("v"), Cast(Var("_name"), TString)),
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TAssign)),
+      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
+      Call("allVars", Seq(Var("v"))),
+      Eq(Var("v"), Cast(Var("_name"), TString), true),
+    )),
+//    Body(Seq(
+//      Disjunction(Seq(
+//        DisjunctionAlternative(
+//          Eq(Var("stmt"), LookupEdbType(TWhile)),
+//        ),
+//        DisjunctionAlternative(
+//          Eq(Var("stmt"), LookupEdbType(TSkip)),
+//        ),
+//      )),
+//      Call("allVars", Seq(Var("v"))),
+//    )),
+
+  ))
+
+  /*
+  30c x = 1
+  4be while x > 1
+  bdc   x = -1
+   */
+
   val interval = Relation("interval", Seq(
     Param("stmt", TDemand(TStmt)),
     Param("before", TDemand(TMonoMap)),
     Param("after", TDemand(TMonoMap)),
   ), Seq(
     Body(Seq(
-      // Check if the stmt is an assignment
-      Eq(Var("_stmt"), LookupEdbType(TAssign)),
-      Eq(Var("_stmt"), Cast(Var("stmt"), TAssign)),
-      // Read fields from assign
+      // Check if the stmt is an assignment to variable `name`
+      Call("assignToVar", Seq(Var("stmt"), Var("v"))),
       Eq(Var("exp"), LookupEdbField(Cast(Var("stmt"), TAssign), "exp")),
-      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
-      Eq(Var("name"), Cast(Var("_name"), TString)),
-
       // Update the after map
       Eq(Var("mp"), ReadMono(Var("before"))),
       Eq(Var("varIvMap"), MapLookUp(Var("mp"), Var("stmt"))),
       Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
-      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq()),
-
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("v"), Var("iv"))))), Seq()),
       Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
     )),
     Body(Seq(
-      // Check if the stmt is an assignment
-      Eq(Var("_stmt"), LookupEdbType(TAssign)),
-      Eq(Var("_stmt"), Cast(Var("stmt"), TAssign)),
-      // Read fields from assign
-      Eq(Var("exp"), LookupEdbField(Cast(Var("stmt"), TAssign), "exp")),
-      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
-      Eq(Var("name"), Cast(Var("_name"), TString)),
-
-      Call("allVars", Seq(Var("vn"))),
-      Eq(Var("name"), Var("vn"), true),
-
+      // Check if the assignment stmt does not assign value to `name`
+      Call("allVars", Seq(Var("v"))),
+      Call("assignToVar", Seq(Var("stmt").arg, Var("v").arg), true),
       // Update the after map
       Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("iv"), Cast(nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("vn"))), TInterval)),
-      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("vn"), Var("iv"))))), Seq()),
-
+      Eq(Var("iv"), Cast(nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))), TInterval)),
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("v"), Var("iv"))))), Seq()),
       Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
     ))
   ))
@@ -290,7 +394,8 @@ object IntervalAnalysisMono:
       aeval,
       successor,
       main,
-      interval
+      interval,
+      assignToVar
     )
   )
 
@@ -305,8 +410,9 @@ object IntervalAnalysisMono:
       op.irLogging.logModule = false
       op.irLogging.logLowerings = true
       val viatraLogging = op("viatra_logging")
-      viatraLogging.update("module", true)
-      viatraLogging.update("lowerings", true)
+      viatraLogging.update("module", false)
+      viatraLogging.update("lowerings", false)
+      viatraLogging.update("apply_double_aggregation_rewrite", true)
       op
 
 
@@ -362,4 +468,32 @@ object IntervalAnalysisMono:
     println(engine.read(UnitRelation("interval")).asTable)
     println(engine.read(UnitRelation("successor")).asTable)
     println(engine.read(UnitRelation("aeval")).asTable)*/
+  }
+
+  @main def checkWhile2 = {
+    //println(mod)
+    try
+      compiled.checked
+
+    val exec = new Executor()
+//    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled, dataModel)
+
+
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+
+    val a2 = edb.While(
+      edb.GT(edb.Var("x"), edb.Num(0)),
+      edb.Assign("x", edb.Num(-1))
+    )
+
+    val s = edb.Sequence(a1, a2)
+
+    println(s"Loading $s")
+    s.loadEdits.print()
+    engine.feed.processEditScript(s.loadEdits)
+    engine.readAll().map(_.asTable).foreach(println)
   }

@@ -316,10 +316,6 @@ object IntervalAnalysis:
                |    case (IV(l1, l2), IV(l3, l4)) =>
                |      val l = l1.min(l3)
                |      val h = l2.max(l4)
-               |      println("----------")
-               |      println(s"($l1, $l2), ($l3, $l4)")
-               |      println(s"($l, $h)")
-               |      println("----------")
                |      if ((h - l).abs <= 2) then IV(l, h) else Top()
                |    case _ => Top()
                |}""".stripMargin
@@ -405,7 +401,7 @@ object IntervalAnalysis:
     engine.readAll().map(_.asTable).foreach(println)
   }
 
-  @main def checkWhile = {
+  @main def checkWhileAgg = {
     //println(mod)
     try
       compiled.checked
