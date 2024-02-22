@@ -11,6 +11,7 @@ import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes,
 import inca.ir.extension.block.Block
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
 //import inca.ir.extension.edbdata.TEdbNode
 import inca.ir.extension.map.TMap
 import inca.ir.extension.set.TSet
@@ -32,7 +33,9 @@ object ScalaInca extends ForeignLanguage:
     case TTuple(Seq(ty)) => compileType(ty)
     case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
     case TMap(k, v) => ScalaType(s"Map[${compileType(k).name}, ${compileType(v).name}]")
-    //case TEdbNode(name) => ScalaType(name)
+    case TEdbNode(_) => ScalaType("truechange.URI")
+    case TEdbList(ety) => ScalaType("truechange.URI")
+    case TEdbValue(ty) => compileType(ty)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:

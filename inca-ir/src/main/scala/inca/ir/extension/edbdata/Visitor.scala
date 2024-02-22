@@ -15,7 +15,7 @@ trait Visitor extends BaseIRVisitor:
     case _ => super.visitType(ty)
 
   def visitEdbType(ety: EdbType): EdbType = ety match
-    case TEdbValue(ty) => TEdbValue(visitType(ty))
+    case TEdbValue(ty) => TEdbValue(ty)
     case TEdbNode(name) => TEdbNode(name)
     case TEdbList(ty) => TEdbList(visitEdbType(ty))
 

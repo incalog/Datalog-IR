@@ -8,7 +8,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, TEdbList, TEdbNode, TEdbValue}
@@ -41,7 +41,9 @@ object GeneratePSystem:
 
   def compileModules(modules: Seq[Module], options: CompilerOptions): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
-    modules.map(m => compileModule(m, options)(env)).mkString("\n")
+    val a = modules.map(m => compileModule(m, options)(env)).mkString("\n")
+    println(a)
+    a
   }
 
   protected def printStep(title: String, content: Any): Unit =
@@ -417,9 +419,10 @@ object GeneratePSystem:
 
     case LookupEdbField(srcTerm, link) =>
       val src = compileTerm(srcTerm)
-      val trgTy = t.typ.filter(_.ty.isInstanceOf[EdbType])
-        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
-        .ty.asInstanceOf[EdbType]
+      val trgTy = t.typ.get.ty
+//        .filter(_.ty.isInstanceOf[EdbType])
+//        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
+//        .ty.asInstanceOf[EdbType]
       val trgTyCompiled = compileEdbType(trgTy)
 
       val outName = gensym.fresh("edb_lookup")
@@ -448,10 +451,10 @@ object GeneratePSystem:
     ty.name.replace("[", "$").replace("]", "$") + lit.hashCode.toString.replace("-", "_")
   }
 
-  private def compileEdbType(ety: EdbType): Code = ety match
+  private def compileEdbType(ety: Type): Code = ety match
+    case ScalaType(code) => code
     case _: (TEdbNode | TEdbList) => "truechange.URI"
-    case TEdbValue(TAny) => "truechange.URI" // TODO: This seems off. Fix this in the future
-    case TEdbValue(ScalaType(sty)) => sty
+    case TEdbValue(ty) => ScalaInca.compileType(ty).code
 
   private def genEdbTypeKey(ety: EdbType): (String, String) = ety match
     case TEdbValue(ScalaType(sty)) =>

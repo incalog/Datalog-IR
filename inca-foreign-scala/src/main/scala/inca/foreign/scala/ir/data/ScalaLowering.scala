@@ -7,14 +7,13 @@ import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.edbdata.{EdbType, TEdbList, TEdbNode, TEdbValue}
 //import inca.ir.extension.edbdata.TEdbNode
 import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
-    // TODO: Move this to the right place
-    //case TEdbNode(ty) => true
     case _ => super.isTypeSupported(ty)
 
   var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
@@ -33,7 +32,7 @@ trait ScalaLowering extends BaseScalaLowering:
           val params = args.zipWithIndex.map { case (ty, idx) =>
             val sty = visitType(ty) match
               case t@ScalaType(_) => t
-              case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t in $c")
+              case t => ScalaInca.compileType(t)
             (s"param_$idx", sty)
           }
           caseDef2params += name -> params

@@ -61,6 +61,7 @@ trait Typechecker extends BaseIRTypechecker:
         if (dd1.name != dd2.name)
           error(s"$t of type $ty is not comparable to $outside: $ty and $outside do not share a common supertype", t)
       case _ => // lookup error
+    case (TEdbList(ety1), TEdbList(ety2)) => assertComparable(ety1, ety2, t)
     case _ => super.assertComparable(ty, outside, t)
 
   def inferLinkLookup(srcTy: EdbType, link: Link, locations: SourceLocation*): Type = link match

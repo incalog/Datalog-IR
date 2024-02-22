@@ -51,20 +51,20 @@ object IntervalAnalysisMono:
     DataDefinition("Interval"),
     CaseDefinition("IV", Seq(TInt, TInt), TInterval),
     CaseDefinition("Top", Seq(), TInterval),
-    CaseDefinition("Bot", Seq(), TInterval)
+    CaseDefinition("Bot", Seq(), TInterval),
   )
 
   val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
 
   val intervalMono = ScalaMonoDefinition(
     "IntervalMono",
-    initCode = "Bot",
+    initCode = "Bot()",
     addCode =
       """(st: Interval, a: Interval) => (st, a) match {
-        |    case (Bot, _) => a
-        |    case (Top, _) => Top
-        |    case (_, Top) => Top
-        |    case (IV(l1, l2), IV(l3, l4)) => IV(min(l1, l3), max(l2, l4))
+        |    case (Bot(), _) => a
+        |    case (Top(), _) => Top()
+        |    case (_, Top()) => Top()
+        |    case (IV(l1, l2), IV(l3, l4)) => IV(Math.min(l1, l3), Math.max(l2, l4))
         |}""".stripMargin,
     resultCode = "(st: Interval) => st", // TODO: We could widen here
     constructorParamTypes = Seq(),
@@ -226,7 +226,7 @@ object IntervalAnalysisMono:
       Eq(Var("mp"), ReadMono(Var("before"))),
       Eq(Var("varIvMap"), Cast(MapLookUp(Var("mp"), Var("stmt")), TMap(TString, TInterval))),
       Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
-      WriteMono(Var("after"), TupleLit(Seq(Cast(Var("stmt"), TStmt), TupleLit(Seq(Cast(Var("name"), TString), Var("iv"))))), Seq())
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Cast(Var("name"), TString), Var("iv"))))), Seq())
     )),
     Body(Seq(
       Eq(Var("stmt"), LookupEdbType(TSkip)),
@@ -235,7 +235,7 @@ object IntervalAnalysisMono:
       Eq(Var("mp"), ReadMono(Var("before"))),
       Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("name")))),
       Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
-      WriteMono(Var("after"), TupleLit(Seq(Cast(Var("stmt"), TStmt), TupleLit(Seq(Var("name"), Var("iv"))))))
+      WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))))
     ))
   ))
 
@@ -257,7 +257,7 @@ object IntervalAnalysisMono:
     Eq(Var("mp"), ReadMono(Var("before"))),
     Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("name")))),
     Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
-    WriteMono(Var("before"), TupleLit(Seq(Cast(Var("stmt"), TStmt), TupleLit(Seq(Var("name"), Var("iv"))))), Seq())
+    WriteMono(Var("before"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq())
   ))
   ))
 
