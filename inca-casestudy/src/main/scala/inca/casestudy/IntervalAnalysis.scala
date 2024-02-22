@@ -266,18 +266,7 @@ object IntervalAnalysis:
       with scalaString.ScalaLowering
     override def typechecker = new IRTypechecker with Typechecker {}
 
-    setPipeline(List(
-      //() => new ConversionElimination {},
-      //() => new impure.Lowering {},
-      //() => new bool.Lowering {},
-      //() => new set.Lowering {},
-      //() => new map.Lowering {},
-      //() => new blockLowering {},
-      //() => new disjunction.Lowering {},
-      //() => new not.Lowering {},
-      //() => new demandLowering {},
-      //() => new tuple.Lowering {}
-    ))
+    setPipeline(List())
 
   @main def check() = {
     println(mod)
@@ -294,7 +283,10 @@ object IntervalAnalysis:
     val a2 = edb.Assign(
       "y", edb.Add(edb.Num(5), edb.Var("x"))
     )
-    val s = edb.Sequence(a1, a2)
+    val a3 = edb.Assign(
+      "x", edb.Num(2)
+    )
+    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
 
     println(s"Loading $s")
     s.loadEdits.print()

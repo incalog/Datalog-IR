@@ -150,7 +150,7 @@ object IntervalAnalysisMono:
     ))
   ))*/
 
-  val parentOf = Relation("parentOf", Seq(
+  /*val parentOf = Relation("parentOf", Seq(
     Param("exp", TExp),
     Param("stmt", TStmt),
   ), Seq(
@@ -166,7 +166,7 @@ object IntervalAnalysisMono:
       Eq(Cast(Var("_p"), TExp), LookupEdbType(TExp)),
       Call("parentOf", Seq(Cast(Var("_p"), TExp), Var("stmt")))
     ))
-  ))
+  ))*/
 
   val aeval = Relation("aeval",
     Seq(
@@ -253,9 +253,10 @@ object IntervalAnalysisMono:
     Param("before", TDemand(TMonoMap)),
   ), Seq(Body(Seq(
     Call("cflow", Seq(Var("pred"), Var("stmt"))),
+    Call("predecessorIntervals", Seq(Var("pred"), Var("before"))),
     Call("allVars", Seq(Var("name"))),
     Eq(Var("mp"), ReadMono(Var("before"))),
-    Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("name")))),
+    Eq(Var("_iv"), nmapLookUp(Var("mp"), Seq(Var("pred"), Var("name")))),
     Eq(Var("iv"), Cast(Var("_iv"), TInterval)),
     WriteMono(Var("before"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("name"), Var("iv"))))), Seq())
   ))
@@ -264,7 +265,7 @@ object IntervalAnalysisMono:
   val mod = Module("IntervalAnalysis", BaseIR.language + arithmetic.IR + dataIR + mapIR + demand.IR + string.IR + edbdata.IR + mono.IR + tuple.IR + impure.IR,
     edbNodes ++ dataDefs ++ Seq(
       allVars,
-      parentOf,
+      //parentOf,
       cflow,
       initStmt,
       finalStmt,
