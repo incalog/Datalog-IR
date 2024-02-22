@@ -21,6 +21,10 @@ import inca.util.Gensym
 object ScalaInca extends ForeignLanguage:
   type Code = String
 
+  def cleanString(name: String): String = name.replace(".", "_").replace("@", "__")
+  
+  def cleanName(name: Name): Name = Name(cleanString(name.name))
+
   def compileType(ty: Type): ScalaType = ty match
     case sty@ScalaType(_) => sty
     case TAny => ScalaType.any
@@ -28,7 +32,7 @@ object ScalaInca extends ForeignLanguage:
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
-    case TData(RefByName(name)) => ScalaType(name)
+    case TData(RefByName(name)) => ScalaType(cleanName(name))
     case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
     case TTuple(Seq(ty)) => compileType(ty)
     case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
@@ -49,7 +53,7 @@ object ScalaType:
   def double: ScalaType = ScalaType("Double")
   def bool: ScalaType = ScalaType("Boolean")
 
-case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
+case class ScalaTerm(code: String, ty: Type, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -59,7 +63,7 @@ case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolea
       case _ => throw IllegalStateException(s"Untyped argument $a")
     ScalaInca.compileType(tty)
   }
-  override def outTypes: Seq[ScalaType] = Seq(ty)
+  override def outTypes: Seq[ScalaType] = Seq(ScalaInca.compileType(ty))
   override def visitArgs(f: Term => Seq[Term]): Seq[Term] =
     Seq(this.copy(args = args.flatMap(f)))
   override def toString: String =

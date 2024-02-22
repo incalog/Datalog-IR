@@ -5,6 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"

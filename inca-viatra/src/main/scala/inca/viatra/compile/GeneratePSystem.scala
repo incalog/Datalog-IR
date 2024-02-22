@@ -7,6 +7,7 @@ import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanName
 import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
@@ -158,7 +159,7 @@ object GeneratePSystem:
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
 
     val nonEmptyRels = relations.values.filter(!_.isEmpty).map {
-      r => s""""${r.name}" -> (() => ${r.name}.instance)"""
+      r => s""""${cleanName(r.name)}" -> (() => ${cleanName(r.name)}.instance)"""
     }
 
     // collect all external scala definitions
@@ -220,8 +221,10 @@ object GeneratePSystem:
   var pVar2Code: Map[String, (Option[String], Code)] = Map()
   val atomCode: ListBuffer[Code] = ListBuffer.empty
 
+
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = gensym.scoped {
-    val qname = s"${moduleName}_${relation.name}"
+    val relName = cleanName(relation.name)
+    val qname = s"${moduleName}_${relName}"
 
     val allVars = relation.bodies.flatMap(_.atoms.flatMap(_.vars))
     gensym.register(allVars.map(_.name.name))
@@ -263,7 +266,7 @@ object GeneratePSystem:
     val bodiesS = bodies.mkString("{", "}, {", "}")
 
     s"""
-     |object ${relation.name} {
+     |object ${relName} {
      |  lazy val instance: Specification = new Specification(generatedPQuery)
      |
      |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
@@ -282,19 +285,19 @@ object GeneratePSystem:
     case Call(RefByName(name), args, false) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(name)}.instance.getInternalQueryRepresentation"
       atomCode += s"new PositivePatternCall(body, $argTuple, $callQuery)"
     case Call(RefByName(name), args, true) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(name)}.instance.getInternalQueryRepresentation"
       atomCode += s"new NegativePatternCall(body, $argTuple, $callQuery)"
     case ExtensionalCall(RefByName(name), args, false) =>
-      val key = s"""NamedRelationKey("$name", ${args.size})"""
+      val key = s"""NamedRelationKey("${cleanName(name)}", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       atomCode += s"new TypeConstraint(body, $tuple, $key)"
     case ExtensionalCall(RefByName(name), args, true) =>
-      val key = s"""NotNamedRelationIndex.Key("$name", ${args.size})"""
+      val key = s"""NotNamedRelationIndex.Key("${cleanName(name)}", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       atomCode += s"new TypeFilterConstraint(body, $tuple, $key)"
     case Eq(lhs, rhs, false) =>
@@ -310,7 +313,7 @@ object GeneratePSystem:
       val result = compileTerm(outTerm)
       val module = env.getOrElse(rel.name, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${argTerms.mkString(",")})"
-      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(rel.name)}.instance.getInternalQueryRepresentation"
 
       val code = op match
         case ScalaAggregationOperator(Name("Count"), scalaTy, initCode, addCode) =>
@@ -358,8 +361,7 @@ object GeneratePSystem:
     case Var(RefByName(name)) =>
       val ty = t.typ match
         case Some(TermType(ScalaType(sty), _)) => sty
-        case Some(TermType(ety: EdbType, _)) =>
-          compileEdbType(ety)
+        case Some(TermType(ety: EdbType, _)) => compileEdbType(ety)
         case Some(TermType(ty, _)) => throw IllegalStateException(s"Can not compile none scala type $ty of term $t")
         case _ => throw IllegalStateException(s"Untyped term $t")
       val pvarName = s"$VARPREFIX$name"
@@ -375,7 +377,8 @@ object GeneratePSystem:
       val pvarName = s"$LITPREFIX${genLiteralVarName(code, ty)}"
       pVar2Code += (pvarName -> (None, code))
       pvarName
-    case scalaTerm@primitive.ScalaTerm(termCode, sty, args, isApp) =>
+    case scalaTerm@primitive.ScalaTerm(termCode, ty, args, isApp) =>
+      val sty = ScalaInca.compileType(ty)
       val compiledArgs = args.map(compileTerm)
       val tyCode = sty.name
 

@@ -1,5 +1,6 @@
 package inca.viatra
 
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
 import inca.ir.CompiledModule
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
 import inca.util.ScalaCompiler
@@ -17,13 +18,14 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, module: PSystem.Module) extends ExecutorEngine:
 
     def measure(rel: Relation): Long =
-      val spec = module.patterns(rel.name)()
+      val spec = module.patterns(cleanString(rel.name))()
       val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)
       System.nanoTime() - start
 
     override def read(rel: Relation): ViatraRelation =
-      val spec = module.patterns(rel.name)()
+      val spec = module.patterns(cleanString(rel.name))()
+      println(s"Read: ${cleanString(rel.name)}")
       val matcher = spec.getMatcher(engine)
       new ViatraRelation(rel, spec, matcher)
 
@@ -44,12 +46,12 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       }
 
     override def addUpdateListener(up: RelationUpdateListener): Unit =
-      val spec = module.patterns(up.rel.name)()
+      val spec = module.patterns(cleanString(up.rel.name))()
       val matcher = spec.getMatcher(engine)
       engine.addMatchUpdateListener(matcher, ViatraUpdateListener(up), false)
 
     override def removeUpdateListener(up: RelationUpdateListener): Unit =
-      val spec = module.patterns(up.rel.name)()
+      val spec = module.patterns(cleanString(up.rel.name))()
       val matcher = spec.getMatcher(engine)
       engine.removeMatchUpdateListener(matcher, ViatraUpdateListener(up))
 
