@@ -309,13 +309,21 @@ trait BodyAwareVisitor extends IRVisitor:
 /** Transitively collect all relations affected by impurities */
 class CollectImpurityAffectedRelations extends IRVisitor:
   var affectedRelations: Map[ImpurityKind, Set[Name]] = Map()
+  private var affectedMainRelations: Map[ImpurityKind, Set[Name]] = Map()
   private var currentRelation: Relation = _
 
   private def addAffectedRelation(rel: Name, kind: ImpurityKind): Unit =
     val previousAffectedRelations = affectedRelations.getOrElse(kind, Set())
     affectedRelations += kind -> (previousAffectedRelations + rel)
 
+  private def addAffectedMainRelation(rel: Name, kind: ImpurityKind): Unit =
+    val previousAffectedRelations = affectedMainRelations.getOrElse(kind, Set())
+    affectedMainRelations += kind -> (previousAffectedRelations + rel)
+
   override def visitModule(module: ir.Module): ir.Module =
+    affectedRelations = Map()
+    affectedMainRelations = Map()
+
     var previousAffectedRelations: Map[ImpurityKind, Set[Name]] = Map()
     val mod: ir.Module = super.visitModule(module)
     // fixpoint computation
@@ -323,6 +331,8 @@ class CollectImpurityAffectedRelations extends IRVisitor:
       previousAffectedRelations = affectedRelations
       super.visitModule(module)
     }
+    // Main relations are affected, but not transitively
+    affectedRelations ++= affectedMainRelations
     mod
 
   override def visitRelation(relation: Relation): Seq[Relation] =
@@ -332,6 +342,10 @@ class CollectImpurityAffectedRelations extends IRVisitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case Impure(_, _, _, kind) if !currentRelation.hasHint(MainHint) =>
       addAffectedRelation(currentRelation.name, kind)
+      super.visitAtom(atom)
+
+    case Impure(_, _, _, kind) if currentRelation.hasHint(MainHint) =>
+      addAffectedMainRelation(currentRelation.name, kind)
       super.visitAtom(atom)
 
     case Call(RefByName(name), args, neg) =>
