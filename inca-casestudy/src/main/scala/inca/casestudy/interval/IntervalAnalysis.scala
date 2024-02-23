@@ -1,14 +1,19 @@
-package inca.casestudy
+package inca.casestudy.interval
 
-import inca.casestudy.IntervalAnalysisMono.TAssign
+import inca.casestudy.interval
+import inca.casestudy.interval.IntervalAnalysisMono.TAssign
+import inca.casestudy.interval.edb.{Assign, Num, Sequence, While}
 import inca.foreign.scala.ir.primitive.{IR, Typechecker, *}
 import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4}
 import inca.ir.extension.*
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.{IR as dataIR, *}
 import inca.ir.extension.demand.*
+import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.*
+import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.Impure
 import inca.ir.extension.map.{MapComprehension, MapLookUp, TMap, IR as mapIR}
 import inca.ir.extension.string.*
@@ -17,20 +22,16 @@ import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.{Term, string2name, term2Arg, *}
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
-import inca.casestudy.edb
-import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
-import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
-import inca.ir.extension.edbdata.Link.Parent
-import inca.viatra.Executor
 
 import scala.language.implicitConversions
 
 
 object IntervalAnalysis:
 
-  def q(name: String): String = s"inca.casestudy.edb.$name"
+  def q(name: String): String = s"inca.casestudy.interval.edb.$name"
 
   val edbNodes = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
   edbNodes.foreach(println(_))
@@ -384,16 +385,16 @@ object IntervalAnalysis:
     val engine = exec.instantiate(compiled, dataModel)
 
 
-    val a1 = edb.Assign(
-      "x", edb.Num(4)
+    val a1 = Assign(
+      "x", Num(4)
     )
-    val a2 = edb.Assign(
-      "y", edb.Add(edb.Num(5), edb.Var("x"))
+    val a2 = interval.edb.Assign(
+      "y", interval.edb.Add(interval.edb.Num(5), interval.edb.Var("x"))
     )
-    val a3 = edb.Assign(
-      "x", edb.Num(2)
+    val a3 = interval.edb.Assign(
+      "x", interval.edb.Num(2)
     )
-    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
+    val s = Sequence(interval.edb.Sequence(a1, a2), a3)
 
     println(s"Loading $s")
     s.loadEdits.print()
@@ -410,16 +411,16 @@ object IntervalAnalysis:
     val engine = exec.instantiate(compiled, dataModel)
 
 
-    val a1 = edb.Assign(
-      "x", edb.Num(1)
+    val a1 = interval.edb.Assign(
+      "x", interval.edb.Num(1)
     )
 
-    val a2 = edb.While(
-      edb.GT(edb.Var("x"), edb.Num(0)),
-      edb.Assign("x", edb.Num(-1))
+    val a2 = While(
+      interval.edb.GT(interval.edb.Var("x"), interval.edb.Num(0)),
+      interval.edb.Assign("x", interval.edb.Num(-1))
     )
 
-    val s = edb.Sequence(a1, a2)
+    val s = interval.edb.Sequence(a1, a2)
 
     println(s"Loading $s")
     s.loadEdits.print()

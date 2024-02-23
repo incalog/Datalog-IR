@@ -1,9 +1,10 @@
-package inca.casestudy
+package inca.casestudy.interval
 
-import inca.casestudy.IntervalAnalysis.{TAdd, TAssign, TExp, TInterval, TNum, TSequence, TSkip, TStmt, TVar, TWhile, edbNodes, mkIv, q}
+import inca.casestudy.interval.edb
 import inca.ir.{Term, string2name, term2Arg, *}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
@@ -18,6 +19,7 @@ import inca.viatra.runtime.EnginePool
 
 import scala.language.implicitConversions
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaAggregationOperator, ScalaMonoDefinition, ScalaType, Typechecker}
+import inca.ir.extension.disjunction.DisjunctionAlternative
 import inca.ir.extension.edbdata.{EdbDataModuleEntry, EdbDeconstruct, EdbFieldDefinition, EdbNodeDefinition, LookupEdbField, LookupEdbType, TEdbNode, TEdbValue}
 import inca.ir.extension.map.{MapComprehension, MapLookUp, TMap, IR as mapIR}
 import inca.viatra.runtime.context.DataModel
@@ -30,12 +32,16 @@ import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.viatra.Executor
+import inca.viatra.runtime.EnginePool
+import inca.viatra.runtime.context.DataModel
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+
+import scala.language.implicitConversions
 
 
 object IntervalAnalysisMono:
 
-  def q(name: String): String = s"inca.casestudy.edb.$name"
+  def q(name: String): String = s"inca.casestudy.interval.edb.$name"
 
   val edbNodes = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
 
@@ -459,7 +465,7 @@ object IntervalAnalysisMono:
     val a3 = edb.Assign(
       "z", edb.Num(2)
     )
-    val s = edb.Sequence(a1, a2)
+    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
 
     println(s"Loading $s")
     s.loadEdits.print()

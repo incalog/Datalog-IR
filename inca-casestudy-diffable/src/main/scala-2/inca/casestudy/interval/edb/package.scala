@@ -1,4 +1,4 @@
-package inca.casestudy
+package inca.casestudy.interval
 
 import truechange.NodeMetaInfo
 

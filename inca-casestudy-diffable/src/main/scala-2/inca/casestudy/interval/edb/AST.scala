@@ -1,4 +1,4 @@
-package inca.casestudy.edb
+package inca.casestudy.interval.edb
 
 import truediff.Diffable
 import truediff.macros.diffable
