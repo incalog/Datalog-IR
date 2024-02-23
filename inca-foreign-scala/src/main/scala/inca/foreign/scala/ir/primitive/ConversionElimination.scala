@@ -9,6 +9,7 @@ import inca.ir.extension.*
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.data.TData
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode}
 import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap}
 import inca.ir.extension.string.TString
@@ -128,6 +129,10 @@ trait ConversionElimination extends BaseLowering:
       visitTerm(map)
     case ConvertForeignIR(term, ScalaType("Any"), TAny) =>
       Seq(Cast(term, TAny))
+    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbNode(name)) =>
+      Seq(Cast(term, ety))
+    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbList(_)) =>
+      Seq(Cast(term, ety))
     case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
       throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
 
@@ -218,6 +223,10 @@ trait ConversionElimination extends BaseLowering:
         aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(map)), term.arg), op),
         Var(map)
       ))
+    case ConvertIRForeign(term, TEdbNode(_), sty@ScalaType("truechange.URI")) =>
+      Seq(Cast(term, sty))
+    case ConvertIRForeign(term, TEdbList(_), sty@ScalaType("truechange.URI")) =>
+      Seq(Cast(term, sty))
     case ConvertIRForeign(term, ty1, ScalaType(ty2)) =>
       throw new UnsupportedOperationException(s"Cannot convert $ty1 to ScalaType $ty2")
 

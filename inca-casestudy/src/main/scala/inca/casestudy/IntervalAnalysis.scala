@@ -414,7 +414,6 @@ object IntervalAnalysis:
       "x", edb.Num(1)
     )
 
-
     val a2 = edb.While(
       edb.GT(edb.Var("x"), edb.Num(0)),
       edb.Assign("x", edb.Num(-1))

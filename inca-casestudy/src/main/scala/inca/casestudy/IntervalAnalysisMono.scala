@@ -300,12 +300,12 @@ object IntervalAnalysisMono:
       Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
       Eq(Var("v"), Cast(Var("_name"), TString)),
     )),
-    Body(Seq(
+    /*Body(Seq(
       Eq(Var("stmt"), LookupEdbType(TAssign)),
       Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
       Call("allVars", Seq(Var("v"))),
       Eq(Var("v"), Cast(Var("_name"), TString), true),
-    )),
+    )),*/
 //    Body(Seq(
 //      Disjunction(Seq(
 //        DisjunctionAlternative(
@@ -340,7 +340,7 @@ object IntervalAnalysisMono:
       Eq(Var("varIvMap"), MapLookUp(Var("mp"), Var("stmt"))),
       Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("iv"))),
       WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("v"), Var("iv"))))), Seq()),
-      Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
+      Call("transfer", Seq(Var("stmt"), Var("before"), Var("after")))
     )),
     Body(Seq(
       // Check if the assignment stmt does not assign value to `name`
@@ -350,11 +350,11 @@ object IntervalAnalysisMono:
       Eq(Var("mp"), ReadMono(Var("before"))),
       Eq(Var("iv"), Cast(nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))), TInterval)),
       WriteMono(Var("after"), TupleLit(Seq(Var("stmt"), TupleLit(Seq(Var("v"), Var("iv"))))), Seq()),
-      Call("successor", Seq(Var("stmt"), Var("before"), Var("after")))
+      Call("transfer", Seq(Var("stmt"), Var("before"), Var("after")))
     ))
   ))
 
-  val successor = Relation("successor", Seq(
+  val transfer = Relation("transfer", Seq(
     Param("stmt", TDemand(TStmt)),
     Param("before", TDemand(TMonoMap)),
     Param("after", TDemand(TMonoMap)),
@@ -392,7 +392,7 @@ object IntervalAnalysisMono:
       initStmt,
       finalStmt,
       aeval,
-      successor,
+      transfer,
       main,
       interval,
       assignToVar
@@ -425,7 +425,7 @@ object IntervalAnalysisMono:
     override def typechecker = new IRTypechecker with Typechecker {}
 
     setPipeline(List(
-      () => new mono.Lowering(true) {},
+      () => new mono.Lowering(false) {},
       () => new MonoScalaLowering {},
       () => new ConversionElimination {},
       () => new impure.Lowering {},
@@ -445,7 +445,8 @@ object IntervalAnalysisMono:
     try
       compiled.checked
 
-    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val exec = new Executor()
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled, dataModel)
 
 
@@ -456,27 +457,28 @@ object IntervalAnalysisMono:
       "y", edb.Add(edb.Num(5), edb.Var("x"))
     )
     val a3 = edb.Assign(
-      "x", edb.Num(2)
+      "z", edb.Num(2)
     )
-    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
+    val s = edb.Sequence(a1, a2)
 
     println(s"Loading $s")
     s.loadEdits.print()
     engine.feed.processEditScript(s.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
+    println(s.toStringWithURI)
     /*println(engine.read(UnitRelation("main")).asTable)
     println(engine.read(UnitRelation("interval")).asTable)
-    println(engine.read(UnitRelation("successor")).asTable)
+    println(engine.read(UnitRelation("transfer")).asTable)
     println(engine.read(UnitRelation("aeval")).asTable)*/
   }
 
   @main def checkWhile2 = {
-    //println(mod)
+    println(mod)
     try
       compiled.checked
 
     val exec = new Executor()
-//    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled, dataModel)
 
 
@@ -496,4 +498,5 @@ object IntervalAnalysisMono:
     s.loadEdits.print()
     engine.feed.processEditScript(s.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
+    println(s.toStringWithURI)
   }
