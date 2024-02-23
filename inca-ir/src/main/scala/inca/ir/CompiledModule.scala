@@ -10,6 +10,7 @@ import inca.util.CompilationMessage
 import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
+import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 trait CompiledModule:
   def compilerOptions: CompilerOptions
@@ -103,7 +104,9 @@ trait CompiledModule:
     if (logOptimizations)
       printStep(s"Optimized: ", p2)
 
-    postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
+    val p3 = valueNumbering(p2)
+
+    postProcessingPipeline.foldLeft(p3.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
@@ -122,6 +125,24 @@ trait CompiledModule:
     val checker = typechecker
     checker.checkProgram(po)
     po
+
+  
+  var valueNumberingResult: Seq[Module] = Seq() // for Testing 
+  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN()): Seq[Module] =
+    valueNumberingResult = p.map { input =>
+      valueNumbering(input,config)
+    }
+    valueNumberingResult
+
+  def valueNumbering(p: Module, config: ConfigVN): Module = {
+    val VN = new ValueNumbering(config)
+    println(s"before VN: \n$p\n") // TODO use printstep
+    val result = VN.valueNumbering(p)
+    println(s"after VN: \n$result")
+    result
+  }
+
+
 
 
 object CompiledModule:
