@@ -1,6 +1,5 @@
-package inca.frontend.oodl.casestudy
+package inca.casestudy.asg
 
-import inca.frontend.oodl.executor.OODLExecutor
 import inca.ir.*
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.*
@@ -13,15 +12,11 @@ import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.runtime.EnginePool
-import org.scalatest.Ignore
-import org.scalatest.funsuite.AnyFunSuiteLike
 
 import java.io.IOException
 import scala.language.implicitConversions
 
-@Ignore
-class AbstractSyntaxGraph extends AnyFunSuiteLike:
-
+object AbstractSyntaxGraph:
 
   def t(s: String) = TData(s)
   def v(s: String) = Var(s)
@@ -71,12 +66,12 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     ),
     Seq(
       Body(Seq(
-        Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
+        Deconstruct(v("def"), "Def", Seq(v("tmp"), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("to"))),
         Eq(v("from"), v("def"))
       )),
       Body(Seq(
-        Deconstruct(v("def"), "Def", Seq(WildcardArg(), v("e"))),
+        Deconstruct(v("def"), "Def", Seq(v("tmp"), v("e"))),
         Call("target", Seq(v("defs"), v("e"), v("trg"))),
         Call("edgesDef", Seq(v("defs"), v("trg"), v("from"), v("to")))
       ))
@@ -114,13 +109,13 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     Seq(
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Deconstruct(v("hd"), "Def", Seq(v("defname"), WildcardArg())),
+        Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
         Eq(v("defname"), v("name")),
         Eq(v("def"), v("hd"))
       )),
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Deconstruct(v("hd"), "Def", Seq(v("defname"), WildcardArg())),
+        Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
         Eq(v("defname"), v("name"), neg = true),
         Call("findDef", Seq(v("tl"), v("name"), v("def")))
       ))
@@ -249,19 +244,13 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
-    override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
+    override def compilerOptions: CompilerOptions = {
+      val opt = CompilerOptions.default
+      opt.irLogging.logLowerings = false
+      opt.irLogging.logTypeInformation = false
+      opt
+    }
     setPipeline(List(() => new demand.Lowering {}))
-
-  test("AbstractSyntaxGraph is well-typed") {
-    //println(mod)
-    try compiled.checked
-    //finally println(mod)
-  }
-
-  test("AbstractSyntaxGraph can be lowered") {
-    try compiled.lowered
-    //finally println(compiled.lowered)
-  }
 
   private def toCSV(vals: Seq[(String, IndexedSeq[Long])]): CSV = {
     val header = vals.map(_._1).toIndexedSeq
@@ -282,7 +271,7 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
   }
 
 
-  test("Measure: AbstractSyntaxGraph") {
+  @main def benchmarkAsg() = {
     val resultPath = "benchmark/mono"
     val maxNodes = 100
     // Execution
@@ -317,6 +306,13 @@ class AbstractSyntaxGraph extends AnyFunSuiteLike:
     }
 
     FileUtil.writeFile(s"$resultPath/asg/ASG_DL.csv", csvToString(toCSV(measurements)))
+  }
+
+  @main def runAsgUsingSouffle() = {
+    val engine = inca.souffle.backend.Executor.instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(50, 10))))
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(rel.asTable)
   }
 
   

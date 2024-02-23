@@ -173,6 +173,7 @@ lazy val inca_casestudy = (project in file("inca-casestudy"))
   .dependsOn(inca_foreign_scala % "compile->compile")
   .dependsOn(inca_viatra % "compile->compile")
   .dependsOn(inca_casestudy_diffable % "compile->compile")
+  .dependsOn(inca_souffle % "compile->compile")
   .settings(
     scalaVersion := "3.3.0",
 

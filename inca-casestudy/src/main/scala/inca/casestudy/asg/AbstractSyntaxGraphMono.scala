@@ -1,33 +1,29 @@
-package inca.frontend.oodl.casestudy
+package inca.casestudy.asg
 
+import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ScalaMonoDefinition}
-import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
+import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation2, Relation4}
-import inca.ir.extension.arithmetic.{Add, GE, IntNum, LT, TInt}
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
-import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
-import inca.ir.util.SourceLocation
-import inca.util.compileroptions.CompilerOptions
-import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
-import inca.ir.extension.set.{SetMember, TSet}
-import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.extension.arithmetic.*
+import inca.ir.extension.data.*
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.extension.mono.*
+import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
+import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
-import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
+import inca.ir.util.SourceLocation
+import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
-import org.scalatest.Ignore
+import inca.util.compileroptions.CompilerOptions
 
 import java.io.IOException
 import scala.language.implicitConversions
 
-@Ignore
-class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
+object AbstractSyntaxGraphMono:
 
   implicit def embed[A](a: A): Seq[A] = Seq(a)
 
@@ -294,41 +290,6 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
       () => new demandLowering {},
     ))
 
-  test("AbstractSyntaxGraph is well-typed: Set Mono Aggregation") {
-    val compiled = new Compiled(false)
-    try compiled.checked
-    //finally println(compiled.ir)
-  }
-
-  test("AbstractSyntaxGraph can be lowered without optimization: Set Mono Aggregation") {
-    new Compiled(false).lowered
-  }
-
-  test("AbstractSyntaxGraph can be lowered with optimization: Set Mono Aggregation") {
-    new Compiled(true).lowered
-  }
-
-  test("AbstractSyntaxGraph can be run without optimization: Set Mono Aggregation") {
-    for (i <- 0 until 5) {
-      val compiled = new Compiled(false)
-
-//      println(compiled.dependencyGraph.toGraphViz)
-//      val check = new IRTypechecker with primitive.Typechecker
-//      check.checkProgram(Seq(compiled.lowered))
-//      val graph = check.getDependencyGraph
-//      println(graph.filter(_ => true, (_, _, info) => info != DependencyInfo.TypeReference).toGraphViz)
-//      graph.cycles.foreach(c => println(graph.prettyPrintCycle(c)))
-
-      val engine = new inca.viatra.Executor().instantiate(compiled)
-      val start = System.currentTimeMillis()
-      val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
-      val end = System.currentTimeMillis()
-      //println(s"Execution time ${end - start}ms")
-      //println(relation1.asTable)
-    }
-  }
-
   private def toCSV(vals: Seq[(String, IndexedSeq[Long])]): CSV = {
     val header = vals.map(_._1).toIndexedSeq
     // we assume that each list has same number of elements
@@ -346,17 +307,16 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     }
   }
 
-  test("Measure: AbstractSyntaxGraphMono") {
-    val maxNodes = 100
+  @main def benchmarkAsgMono() = {
+    val maxNodes = 260
     val resultPath = "benchmark/mono"
-
 
     for (opt <- Seq(false, true)) {
       val suffix = if opt then "_opt" else ""
 
       val compiled = new Compiled(opt)
       // Execution
-      val measurements = for (i <- Range.inclusive(10, maxNodes, 10)) yield {
+      val measurements = for (i <- Range.inclusive(10, maxNodes, 50)) yield {
         // Stats
         {
           val engine = new inca.viatra.Executor().instantiate(compiled)
@@ -390,17 +350,12 @@ class AbstractSyntaxGraphMono extends AnyFunSuiteLike:
     }
   }
 
-  test("AbstractSyntaxGraph can be run with optimization: Set Mono Aggregation - Souffle") {
+  @main def runAsgMonoUsingSouffle() = {
+    // Will only work with optimizations on, since souffle does not support recursive and user-defined aggregation
     val compiled = new Compiled(true)
 
     val engine = inca.souffle.backend.Executor.instantiate(compiled)
-    val start = System.currentTimeMillis()
-    val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-    //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
-    val end = System.currentTimeMillis()
-
-    //println(s"Execution time: ${end - start}ms")
-    //println(relation1.asTable)
-
-    assertResult(57)(relation1.entries.size)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(50, 10))))
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(rel.asTable)
   }
