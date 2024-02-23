@@ -316,13 +316,13 @@ class CollectImpurityAffectedRelations extends IRVisitor:
     val previousAffectedRelations = affectedRelations.getOrElse(kind, Set())
     affectedRelations += kind -> (previousAffectedRelations + rel)
 
-  private def addAffectedMainRelation(rel: Name, kind: ImpurityKind): Unit =
+  /*private def addAffectedMainRelation(rel: Name, kind: ImpurityKind): Unit =
     val previousAffectedRelations = affectedMainRelations.getOrElse(kind, Set())
-    affectedMainRelations += kind -> (previousAffectedRelations + rel)
+    affectedMainRelations += kind -> (previousAffectedRelations + rel)*/
 
   override def visitModule(module: ir.Module): ir.Module =
     affectedRelations = Map()
-    affectedMainRelations = Map()
+    //affectedMainRelations = Map()
 
     var previousAffectedRelations: Map[ImpurityKind, Set[Name]] = Map()
     val mod: ir.Module = super.visitModule(module)
@@ -332,7 +332,7 @@ class CollectImpurityAffectedRelations extends IRVisitor:
       super.visitModule(module)
     }
     // Main relations are affected, but not transitively
-    affectedRelations ++= affectedMainRelations
+    //affectedRelations ++= affectedMainRelations
     mod
 
   override def visitRelation(relation: Relation): Seq[Relation] =
@@ -340,13 +340,13 @@ class CollectImpurityAffectedRelations extends IRVisitor:
     super.visitRelation(relation)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Impure(_, _, _, kind) if !currentRelation.hasHint(MainHint) =>
+    case Impure(_, _, _, kind) =>//if !currentRelation.hasHint(MainHint) =>
       addAffectedRelation(currentRelation.name, kind)
       super.visitAtom(atom)
 
-    case Impure(_, _, _, kind) if currentRelation.hasHint(MainHint) =>
+    /*case Impure(_, _, _, kind) if currentRelation.hasHint(MainHint) =>
       addAffectedMainRelation(currentRelation.name, kind)
-      super.visitAtom(atom)
+      super.visitAtom(atom)*/
 
     case Call(RefByName(name), args, neg) =>
       affectedRelations.foreach { (kind, rels) =>
