@@ -309,7 +309,7 @@ trait BodyAwareVisitor extends IRVisitor:
 /** Transitively collect all relations affected by impurities */
 class CollectImpurityAffectedRelations extends IRVisitor:
   var affectedRelations: Map[ImpurityKind, Set[Name]] = Map()
-  private var currentRelation: Name = _
+  private var currentRelation: Relation = _
 
   private def addAffectedRelation(rel: Name, kind: ImpurityKind): Unit =
     val previousAffectedRelations = affectedRelations.getOrElse(kind, Set())
@@ -326,25 +326,25 @@ class CollectImpurityAffectedRelations extends IRVisitor:
     mod
 
   override def visitRelation(relation: Relation): Seq[Relation] =
-    currentRelation = relation.name
+    currentRelation = relation
     super.visitRelation(relation)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Impure(_, _, _, kind) =>
-      addAffectedRelation(currentRelation, kind)
+    case Impure(_, _, _, kind) if !currentRelation.hasHint(MainHint) =>
+      addAffectedRelation(currentRelation.name, kind)
       super.visitAtom(atom)
 
     case Call(RefByName(name), args, neg) =>
       affectedRelations.foreach { (kind, rels) =>
         if (rels.contains(name))
-          addAffectedRelation(currentRelation, kind)
+          addAffectedRelation(currentRelation.name, kind)
       }
       super.visitAtom(atom)
 
     case Aggregate(RefByName(name), args, op) =>
       affectedRelations.foreach { (kind, rels) =>
         if (rels.contains(name))
-          addAffectedRelation(currentRelation, kind)
+          addAffectedRelation(currentRelation.name, kind)
       }
       super.visitAtom(atom)
 

@@ -43,23 +43,23 @@ object IntervalAnalysisMono:
 
   def q(name: String): String = s"inca.casestudy.interval.edb.$name"
 
-  val edbNodes = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
+  val edbNodes: Seq[EdbDataModuleEntry] = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
 
-  val TStmt = TEdbNode(q("Stmt"))
-  val TSkip = TEdbNode(q("Skip"))
-  val TSequence = TEdbNode(q("Sequence"))
-  val TAssign = TEdbNode(q("Assign"))
-  val TWhile = TEdbNode(q("While"))
-  val TExp = TEdbNode(q("Exp"))
-  val TVar = TEdbNode(q("Var"))
-  val TNum = TEdbNode(q("Num"))
-  val TAdd = TEdbNode(q("Add"))
-  val TGT = TEdbNode(q("GT"))
-  val TInterval = TData("Interval")
+  val TStmt: TEdbNode = TEdbNode(q("Stmt"))
+  val TSkip: TEdbNode = TEdbNode(q("Skip"))
+  val TSequence: TEdbNode = TEdbNode(q("Sequence"))
+  val TAssign: TEdbNode = TEdbNode(q("Assign"))
+  val TWhile: TEdbNode = TEdbNode(q("While"))
+  val TExp: TEdbNode = TEdbNode(q("Exp"))
+  val TVar: TEdbNode = TEdbNode(q("Var"))
+  val TNum: TEdbNode = TEdbNode(q("Num"))
+  val TAdd: TEdbNode = TEdbNode(q("Add"))
+  val TGT: TEdbNode = TEdbNode(q("GT"))
+  val TInterval: TData = TData("Interval")
   // We need this, because casting a map makes the lookup fail somehow ??
-  val TScalaInterval = ScalaType("Interval")
+  private val TScalaInterval = ScalaType("Interval")
 
-  val dataDefs = Seq(
+  val dataDefs: Seq[DataModuleEntry] = Seq(
     DataDefinition("Interval"),
     CaseDefinition("IV", Seq(TInt, TInt), TInterval),
     CaseDefinition("Top", Seq(), TInterval),
@@ -70,7 +70,7 @@ object IntervalAnalysisMono:
 
   val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
 
-  val intervalMono = ScalaMonoDefinition(
+  private val intervalMono = ScalaMonoDefinition(
     "IntervalMono",
     initCode = "Bot()",
     addCode = """(st: Interval, a: Interval) => (st, a) match {
@@ -89,8 +89,8 @@ object IntervalAnalysisMono:
     constructorParamTypes = Seq(),
     typ = MonoTypes(TInterval, ScalaType("Interval"), ScalaType("Interval"))
   )
-  val mapMono = MapMonoDefinition(TStmt, MapMonoDefinition(TString, intervalMono))
-  val TMonoMap = TMono(TTuple(Seq(TStmt, TTuple(Seq(TString, TInterval)))), TMap(TStmt, TMap(TString, ScalaType("Interval"))), Seq())
+  private val mapMono = MapMonoDefinition(TStmt, MapMonoDefinition(TString, intervalMono))
+  private val TMonoMap = TMono(TTuple(Seq(TStmt, TTuple(Seq(TString, TInterval)))), TMap(TStmt, TMap(TString, ScalaType("Interval"))), Seq())
 
 
   private def makeTp[T](K: Seq[T] => T, ts: T*): T =
@@ -106,7 +106,7 @@ object IntervalAnalysisMono:
   def mkIv(l: Term, r: Term): Term = Construct("IV", Seq(l, r))
 
 
-  val initStmt = Relation("initStmt", Seq(
+  val initStmt: Relation = Relation("initStmt", Seq(
     Param("stmt", TStmt),
     Param("out", TStmt)
   ), Seq(
@@ -269,6 +269,7 @@ object IntervalAnalysisMono:
     Param("stmt", TStmt),
     Param("v", TString),
     Param("iv", TInterval),
+    //Param("m", TMap(TString, TScalaInterval))
   ), Seq(
     Body(Seq(
       // Create mono maps
@@ -297,6 +298,9 @@ object IntervalAnalysisMono:
         nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))),
         TInterval
       ))
+      // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
+      //Eq(Var("m"), MapLookUp(Var("mp"), Var("stmt"))),
+      //Eq(Var("iv"), Cast(MapLookUp(Var("m"), Var("v")), TInterval)),
     ))
   )).addHint(MainHint)
 
@@ -407,7 +411,7 @@ object IntervalAnalysisMono:
 
 
 
-  def compiled = new CompiledModule:
+  def compiled(opt: Boolean) = new CompiledModule:
     override def name: Name = "IntervalAnalysis"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
@@ -418,7 +422,8 @@ object IntervalAnalysisMono:
       val viatraLogging = op("viatra_logging")
       viatraLogging.update("module", false)
       viatraLogging.update("lowerings", false)
-      viatraLogging.update("apply_double_aggregation_rewrite", true)
+      val viatraOptions = op("viatra_options")
+      viatraOptions.update("apply_double_aggregation_rewrite", true)
       op
 
 
@@ -431,7 +436,7 @@ object IntervalAnalysisMono:
     override def typechecker = new IRTypechecker with Typechecker {}
 
     setPipeline(List(
-      () => new mono.Lowering(false) {},
+      () => new mono.Lowering(opt) {},
       () => new MonoScalaLowering {},
       () => new ConversionElimination {},
       () => new impure.Lowering {},
@@ -447,13 +452,9 @@ object IntervalAnalysisMono:
     ))
 
   @main def check2() = {
-    println(mod)
-    try
-      compiled.checked
-
     val exec = new Executor()
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled, dataModel)
+    val engine = exec.instantiate(compiled(true), dataModel)
 
 
     val a1 = edb.Assign(
@@ -479,19 +480,14 @@ object IntervalAnalysisMono:
   }
 
   @main def checkWhile2 = {
-    println(mod)
-    try
-      compiled.checked
-
     val exec = new Executor()
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled, dataModel)
+    val engine = exec.instantiate(compiled(true), dataModel)
 
 
     val a1 = edb.Assign(
       "x", edb.Num(1)
     )
-
 
     val a2 = edb.While(
       edb.GT(edb.Var("x"), edb.Num(0)),

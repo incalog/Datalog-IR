@@ -59,11 +59,12 @@ class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
       throw IllegalStateException("At most one aggregation over lattice values can occur in a pattern!")
     case agg: Aggregate =>
       numberOfAggregations += 1
+      val allSCCs = scc.filter(_.contains(currentRelation.name.name))
+                       .filter(_.contains(agg.rel.name))
       // only if we aggregate over a relation in the same strongly connected component
-      scc.find(_.contains(currentRelation.name.name)) match
-        case Some(currentScc) if currentScc.contains(agg.rel.name) =>
-          createDoubleAggregation(currentScc, currentRelation, agg)
-        case _ => // nothing
+      allSCCs.foreach { currentScc =>
+        createDoubleAggregation(currentScc, currentRelation, agg)
+      }
       super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 
