@@ -1,0 +1,14 @@
+Edge(Int, Int).
+Edge(1,2).
+Edge(2,2).
+Edge(2,3).
+Edge(3,5).
+Edge(3,4).
+Edge(5,4).
+Edge(6,4).
+Edge(6,4).
+
+PathTwoTwo(Int, Int).
+PathTwoTwo(X,Y) :- Edge(X,Y), X == 2, Y == 2
+          :- Edge(X,Z1), Edge(Z1,Z2), Edge(Z2,Y), Z1 == 2, Z2 == 2.
+

@@ -8,17 +8,24 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
   override def visitTerm(term: Term): Seq[Term] = term match { // TODO could use isConst(term)
     case IntNum(_) | DoubleNum(_) => Seq(term) // otherwise occurrences of such trivial exps are also replaced by a Var
+    case binOp@BinOp(lhs, rhs, op) => if valueUnknown.contains(lhs) || valueUnknown.contains(rhs) then valueUnknown = valueUnknown + binOp
+      super.visitTerm(term)
+    case unOp@UnOp(t, op) => if valueUnknown.contains(t) then valueUnknown = valueUnknown + unOp
+      super.visitTerm(term)
     case _ => super.visitTerm(term)
   }
 
-  //  override def visitAtom(atom: Atom): Seq[Atom] = {
-  //    val newAtom = super.visitAtom(atom)
-  //    if newAtom.isEmpty then return newAtom
-  //    
-  //    newAtom.head match {
-  //      case BinCompare(lhs, rhs, "<") => 
-  //    }
-  //  }
+    override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
+      if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
+
+      // TODO
+//      newAtomSeq.head match {
+//        case BinCompare(lhs, rhs, "<") if isConst(lhs) && isConst(rhs) => (lhs,rhs) match{
+//          case (IntNum(l),IntNum(r)) => if l < r then Seq() else newAtomSeq
+//        }
+//      }
+      super.removeAtomIfTrue(newAtomSeq)
+    }
 
   // TODO add more cases (e.g. more rules) ? Preserve type of term ?
   // probably no recursive call needed here in the beginning since called in visitTerm

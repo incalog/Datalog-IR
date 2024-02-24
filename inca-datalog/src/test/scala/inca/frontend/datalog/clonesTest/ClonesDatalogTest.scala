@@ -111,11 +111,11 @@ class ClonesDatalogTest extends AnyFunSuite {
         Relation(Name("a"), Seq(Param(Name("param$0"), TInt), Param(Name("param$1"), TInt)),
           Seq(
             Body(Seq(Eq(Var(Name("param$0")), IntNum(1)), Eq(Var(Name("param$1")), IntNum(2))))
-          )),
-        Relation(Name("b"), Seq(Param(Name("param$0"), TInt), Param(Name("param$1"), TInt)),  // TODO remove redundant relation
-          Seq(
-            Body(Seq(Eq(Var(Name("param$0")), IntNum(1)), Eq(Var(Name("param$1")), IntNum(2))))
-          ))
+          )) //,
+//        Relation(Name("b"), Seq(Param(Name("param$0"), TInt), Param(Name("param$1"), TInt)),  // TODO remove redundant relation
+//          Seq(
+//            Body(Seq(Eq(Var(Name("param$0")), IntNum(1)), Eq(Var(Name("param$1")), IntNum(2))))
+//          ))
       ))
 
     performTest("datalog/clones/RelationRedundant.dl", expected, 1, "a", Seq(1, ?))
@@ -211,5 +211,43 @@ class ClonesDatalogTest extends AnyFunSuite {
 
     performTest("datalog/clones/ExprRedundantInEq.dl", expected, 1, "a", Seq(1,2,?))
   }
+
+  test("PathTwoTwo") {
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("Edge"), Seq(Param(Name("param$0"), TInt), Param(Name("param$1"), TInt)),
+          Seq(
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(1)), Eq(Var(Name("param$1")), IntNum(2)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(2)), Eq(Var(Name("param$1")), IntNum(2)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(2)), Eq(Var(Name("param$1")), IntNum(3)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(3)), Eq(Var(Name("param$1")), IntNum(5)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(3)), Eq(Var(Name("param$1")), IntNum(4)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(5)), Eq(Var(Name("param$1")), IntNum(4)))),
+            Body(Seq(Eq(Var(Name("param$0")), IntNum(6)), Eq(Var(Name("param$1")), IntNum(4)))),
+            //            Body(Seq(Eq(Var(Name("param$0")),IntNum(6)), Eq(Var(Name("param$1")),IntNum(4))))   // remove duplicated Body
+          )),
+        Relation(Name("PathTwoTwo"), Seq(Param(Name("param$0"), TInt), Param(Name("param$1"), TInt)),
+          Seq(
+            Body(Seq(
+              Call(Name("Edge"), Seq(Var(Name("X")), Var(Name("Y")))),
+              Eq(Var(Name("X")), IntNum(2)),
+              Eq(Var(Name("Y")), IntNum(2)),
+              Eq(Var(Name("param$0")), Var(Name("X"))),
+              Eq(Var(Name("param$1")), Var(Name("X")))
+            )),
+            Body(Seq(
+              Call(Name("Edge"), Seq(Var(Name("X")), Var(Name("Z1")))),
+              Call(Name("Edge"), Seq(Var(Name("Z1")), Var(Name("Z2")))),
+              Call(Name("Edge"), Seq(Var(Name("Z2")), Var(Name("Y")))),
+              Eq(Var(Name("Z1")), IntNum(2)),
+              Eq(Var(Name("Z2")), IntNum(2)),
+              Eq(Var(Name("param$0")), Var(Name("X"))),
+              Eq(Var(Name("param$1")), Var(Name("Y")))
+            ))
+          ))
+      ))
+    performTest("datalog/clones/PathTwoTwo.dl", expected, 4, "PathTwoTwo", Seq(?, ?)) // (1,2) (1,3) (2,2) (2,3)
+  }
+
 
 }
