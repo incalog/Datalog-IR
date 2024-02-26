@@ -25,6 +25,7 @@ import inca.util.compileroptions.CompilerOptions
 import inca.viatra.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 
 import scala.language.implicitConversions
 
@@ -255,8 +256,26 @@ object IntervalAnalysis:
     )
   )
 
+  val intervalOp = ScalaAggregationOperator(
+    "JoinInterval",
+    ScalaType("Interval"),
+    "Bot()",
+    addCode =
+      """(st: Interval, a: Interval) => (st, a) match {
+        |    case (Bot(), _) => a
+        |    case (Top(), _) => Top()
+        |    case (_, Top()) => Top()
+        |    case (BTrue(), BTrue()) => BTrue()
+        |    case (BFalse(), BFalse()) => BFalse()
+        |    case (IV(l1, l2), IV(l3, l4)) =>
+        |      val l = l1.min(l3)
+        |      val h = l2.max(l4)
+        |      if ((h - l).abs <= 2) then IV(l, h) else Top()
+        |    case _ => Top()
+        |}""".stripMargin
+  )
 
-  val intervalAfter = Relation("intervalAfter",
+  val _intervalAfter = Relation("_intervalAfter",
     Seq(
       Param("stmt", TStmt),
       Param("v", TString),
@@ -289,6 +308,20 @@ object IntervalAnalysis:
     )
   )
 
+  val intervalAfter = Relation("intervalAfter",
+    Seq(
+      Param("stmt", TStmt),
+      Param("v", TString),
+      Param("iv", TInterval),
+    ),
+    Seq(
+      Body(Seq(
+        Call("_intervalAfter", Seq(Var("stmt").arg, Var("v").arg, WildcardArg())),
+        Aggregate(RefByName("_intervalAfter"), Seq(Var("stmt").arg, Var("v").arg, AggregateColumnArg(Var("_iv"))), intervalOp),
+        Eq(Var("iv"), Cast(Var("_iv"), TInterval))
+      ))
+    ))
+
   val predecessorIntervals = Relation("predecessorIntervals",
     Seq(
       Param("stmt", TStmt),
@@ -299,27 +332,9 @@ object IntervalAnalysis:
     Seq(
       Body(Seq(
         Call("cflow", Seq(Var("pred"), Var("stmt"))),
-        Call("intervalAfter", Seq(Var("pred"), Var("v"), Var("iv")))
+        Call("_intervalAfter", Seq(Var("pred"), Var("v"), Var("iv")))
       ))
     )
-  )
-
-  val intervalOp = ScalaAggregationOperator(
-    "JoinInterval",
-    ScalaType("Interval"),
-    "Bot()",
-    addCode = """(st: Interval, a: Interval) => (st, a) match {
-               |    case (Bot(), _) => a
-               |    case (Top(), _) => Top()
-               |    case (_, Top()) => Top()
-               |    case (BTrue(), BTrue()) => BTrue()
-               |    case (BFalse(), BFalse()) => BFalse()
-               |    case (IV(l1, l2), IV(l3, l4)) =>
-               |      val l = l1.min(l3)
-               |      val h = l2.max(l4)
-               |      if ((h - l).abs <= 2) then IV(l, h) else Top()
-               |    case _ => Top()
-               |}""".stripMargin
   )
 
   val intervalBefore = Relation("intervalBefore",
@@ -330,6 +345,8 @@ object IntervalAnalysis:
     ),
     Seq(
       Body(Seq(
+        //Eq(Var("stmt"), LookupEdbType(TStmt)),
+        //Call("allVars", Seq(Var("v"))),
         Call("predecessorIntervals", Seq(Var("stmt").arg, Var("v").arg, WildcardArg(), WildcardArg())),
         Aggregate(RefByName("predecessorIntervals"), Seq(Var("stmt").arg, Var("v").arg, WildcardArg(), AggregateColumnArg(Var("_iv"))), intervalOp),
         Eq(Var("iv"), Cast(Var("_iv"), TInterval))
@@ -348,6 +365,7 @@ object IntervalAnalysis:
       aeval,
       predecessorIntervals,
       intervalAfter,
+      _intervalAfter,
       intervalBefore
     )
   )
@@ -362,8 +380,9 @@ object IntervalAnalysis:
       val op = CompilerOptions.default
       op.irLogging.logModule = true
       op.irLogging.logLowerings = true
-      val viatraOptions = op("viatra_options")
-      viatraOptions.update("apply_double_aggregation_rewrite", true)
+      // Does not work, because cycles are detected incorrectly
+      //val viatraOptions = op("viatra_options")
+      //viatraOptions.update("apply_double_aggregation_rewrite", true)
       op
 
     private trait demandLowering extends demand.Lowering with primitive.Visitor
@@ -410,6 +429,7 @@ object IntervalAnalysis:
       compiled.checked
 
     val exec = new Executor()
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled, dataModel)
 
 
