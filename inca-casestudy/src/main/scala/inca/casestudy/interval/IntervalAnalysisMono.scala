@@ -275,11 +275,11 @@ object IntervalAnalysisMono:
   )
 
   val main = Relation("main", Seq(
-    Param("last", TStmt),
+    Param("exit", TStmt),
     Param("x", TString),
     Param("x_iv", TInterval),
-    Param("m", TMap(TString, TScalaInterval)),
-    Param("mp", mapMono.monoType(Seq()).output)
+//    Param("m", TMap(TString, TScalaInterval)),
+//    Param("mp", mapMono.monoType(Seq()).output)
   ), Seq(
     Body(Seq(
       // output
@@ -287,7 +287,7 @@ object IntervalAnalysisMono:
       Call("traverse", Seq(Var("exit"), Var("before"))),
       Eq(Var("mp"), ReadMono(Var("before"))),
       // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
-      Eq(Var("m"), MapLookUp(Var("mp"), Var("last"))),
+      Eq(Var("m"), MapLookUp(Var("mp"), Var("exit"))),
       Call("allVars", Seq(Var("x"))),
       Eq(Var("x_iv"), Cast(MapLookUp(Var("m"), Var("x")), TInterval)),
     ))
