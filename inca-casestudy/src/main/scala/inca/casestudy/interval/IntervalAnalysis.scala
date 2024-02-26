@@ -362,6 +362,8 @@ object IntervalAnalysis:
       val op = CompilerOptions.default
       op.irLogging.logModule = true
       op.irLogging.logLowerings = true
+      val viatraOptions = op("viatra_options")
+      viatraOptions.update("apply_double_aggregation_rewrite", true)
       op
 
     private trait demandLowering extends demand.Lowering with primitive.Visitor
@@ -417,7 +419,7 @@ object IntervalAnalysis:
 
     val a2 = While(
       interval.edb.GT(interval.edb.Var("x"), interval.edb.Num(0)),
-      interval.edb.Assign("x", interval.edb.Num(-1))
+      edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1)))
     )
 
     val s = interval.edb.Sequence(a1, a2)
@@ -426,4 +428,5 @@ object IntervalAnalysis:
     s.loadEdits.print()
     engine.feed.processEditScript(s.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
+    println(s.toStringWithURI)
   }

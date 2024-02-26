@@ -269,7 +269,7 @@ object IntervalAnalysisMono:
     Param("stmt", TStmt),
     Param("v", TString),
     Param("iv", TInterval),
-    //Param("m", TMap(TString, TScalaInterval))
+    Param("m", TMap(TString, TScalaInterval))
   ), Seq(
     Body(Seq(
       // Create mono maps
@@ -294,13 +294,13 @@ object IntervalAnalysisMono:
       )),
       Eq(Var("mp"), ReadMono(Var("after"))),
       Call("allVars", Seq(Var("v"))),
-      Eq(Var("iv"), Cast(
+      /*Eq(Var("iv"), Cast(
         nmapLookUp(Var("mp"), Seq(Var("stmt"), Var("v"))),
         TInterval
-      ))
+      ))*/
       // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
-      //Eq(Var("m"), MapLookUp(Var("mp"), Var("stmt"))),
-      //Eq(Var("iv"), Cast(MapLookUp(Var("m"), Var("v")), TInterval)),
+      Eq(Var("m"), MapLookUp(Var("mp"), Var("stmt"))),
+      Eq(Var("iv"), Cast(MapLookUp(Var("m"), Var("v")), TInterval)),
     ))
   )).addHint(MainHint)
 
@@ -310,24 +310,6 @@ object IntervalAnalysisMono:
       Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
       Eq(Var("v"), Cast(Var("_name"), TString)),
     )),
-    /*Body(Seq(
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
-      Call("allVars", Seq(Var("v"))),
-      Eq(Var("v"), Cast(Var("_name"), TString), true),
-    )),*/
-//    Body(Seq(
-//      Disjunction(Seq(
-//        DisjunctionAlternative(
-//          Eq(Var("stmt"), LookupEdbType(TWhile)),
-//        ),
-//        DisjunctionAlternative(
-//          Eq(Var("stmt"), LookupEdbType(TSkip)),
-//        ),
-//      )),
-//      Call("allVars", Seq(Var("v"))),
-//    )),
-
   ))
 
   /*
@@ -491,7 +473,7 @@ object IntervalAnalysisMono:
 
     val a2 = edb.While(
       edb.GT(edb.Var("x"), edb.Num(0)),
-      edb.Assign("x", edb.Num(-1))
+      edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1)))
     )
 
     val s = edb.Sequence(a1, a2)
