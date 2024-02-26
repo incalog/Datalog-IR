@@ -8,7 +8,7 @@ package object edb {
   )
 
   val stmtNodes: Seq[NodeMetaInfo] = Seq(
-    Stmt, Assign, Skip, Sequence, While
+    Stmt, Assign, Skip, Sequence, While, Exit
   )
 
   val allNodes: Seq[NodeMetaInfo] = expNodes ++ stmtNodes

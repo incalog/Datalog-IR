@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.block.Block
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Term, Type, Var, WildcardArg}
+import inca.ir.{Atom, BaseIR, Body, Call, Cast, Eq, Name, Param, RefByName, Relation, TAny, Term, Type, Var, WildcardArg}
 import inca.ir.extension.aggregate
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, DataModuleEntry, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.{DemandIgnoreCallHint, TDemand, IR as demandIR}
@@ -13,7 +13,7 @@ import inca.ir.extension.impure.{Impure, IR as impureIR}
 import inca.ir.extension.map.{MapComprehension, MapFun}
 import inca.ir.extension.set.SetComprehension
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.extension.tuple.{Project, TTuple}
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
 
 trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
@@ -39,7 +39,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
     val data = DataDefinition(monoDataType(tm).ref.name)
     val cases = monos.map(mono =>
-      CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.constructorParamTypes, TData(data.name))
+      CaseDefinition(monoDataConstructor(mono, tm.keys), TAny +: TString +: mono.constructorParamTypes, TData(data.name))
     )
     data +: cases
 
@@ -217,10 +217,18 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
       val dataConstr = monoDataConstructor(mono, vkeys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
-      val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+      val constr = Construct(RefByName(dataConstr), Cast(Var(stVar), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
       val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
       val block = Block(imp, mVar)
       Seq(block)
+    case NewMonoFor(mono, keys, args, uniqueFor) =>
+      // TODO: Visit types in keys ?
+      val vkeys = keys.map(visitType)
+      monoDefs += (mono, vkeys)
+      monoTypes += mono.monoType(vkeys)
+      val dataConstr = monoDataConstructor(mono, vkeys)
+      val constr = Construct(RefByName(dataConstr), Cast(TupleLit.make(uniqueFor), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+      Seq(constr)
     case ReadMono(m) =>
       val tm = m.typ.get.ty.asInstanceOf[TMono]
       val output = Name(gensym.fresh("output"))

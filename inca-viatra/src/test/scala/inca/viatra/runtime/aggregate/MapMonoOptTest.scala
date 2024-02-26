@@ -664,6 +664,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(2024-1946)(res.entries.head)
+    engine.readAll().map(_.asTable).foreach(println)
 
 
   test("Map mono basic test 19: 2-level map mono with non-primitive key types"):

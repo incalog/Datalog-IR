@@ -226,6 +226,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case ExtensionalCall(ref, args, false) => checkCall(ref, args, atom, mode)
     case ExtensionalCall(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
 
+    case Eq(lhs@Var(x), rhs, false) if !lookupVar(x).exists(_.mode == VarMode.Bound) =>
+      // special case to avoid backtracking for ubiquitous `x = e`  
+      val rty = inferTerm(rhs, Mode.Bound).ty
+      checkTerm(lhs, rty, mode)
     case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match

@@ -74,8 +74,8 @@ trait Lowering extends BaseLowering:
       case Cast(t, ty) =>
         val terms = visitTerm(t)
         val ttys = visitType(ty).flatten
-        //if (terms.size != ttys.size)
-        //  throw IllegalStateException(s"Can not lower cast $term")
+        if (terms.size != ttys.size)
+          throw IllegalStateException(s"Can not lower cast $term")
         terms.zip(ttys).map((t, ty) => Cast(t, ty))
       case Project(t, idx) =>
         val tupleTy: TTuple = t.typ match {

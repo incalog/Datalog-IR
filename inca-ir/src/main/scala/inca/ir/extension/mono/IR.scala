@@ -30,6 +30,10 @@ case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) exten
 object NewMono:
   def apply(mono: MonoDefinition) : NewMono = NewMono(mono, Seq(), Seq())
 
+case class NewMonoFor(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term], uniqueFor: Seq[Term]) extends Term:
+  override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def toString: String = s"new ${mono.name}(${args.mkString(", ")}, $uniqueFor)@{${keys.mkString(",")}}"
+
 case class ReadMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
   override def toString: String = s"$m.get"

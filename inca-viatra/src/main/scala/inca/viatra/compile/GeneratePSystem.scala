@@ -475,7 +475,8 @@ object GeneratePSystem:
   private def genEdbLinkKey(link: edbdata.Link, srcType: Type, trgType: Type): String = link match
     case Link.Field(Name(name)) => srcType match
       case TEdbNode(Name(ty)) => trgType match
-        case _: TEdbValue => s"""LinkPrimitiveKey(("$ty", "$name"))"""
+        // TODO ScalaType should not occur here
+        case _: TEdbValue | _: ScalaType => s"""LinkPrimitiveKey(("$ty", "$name"))"""
         case _ => s"""LinkNodeKey(("$ty", "$name"))"""
       case _ => throw new IllegalArgumentException(s"Cannot read edb field $name from $srcType")
     case Link.Parent => srcType match

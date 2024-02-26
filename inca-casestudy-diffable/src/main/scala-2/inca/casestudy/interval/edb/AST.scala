@@ -14,3 +14,4 @@ import truediff.macros.diffable
 @diffable case class Skip() extends Stmt
 @diffable case class Sequence(s1: Stmt, s2: Stmt) extends Stmt
 @diffable case class While(cond: Exp, body: Stmt) extends Stmt
+@diffable case class Exit() extends Stmt
