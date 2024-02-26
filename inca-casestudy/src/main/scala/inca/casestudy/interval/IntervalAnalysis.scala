@@ -397,56 +397,118 @@ object IntervalAnalysis:
       () => new disjunction.Lowering {}
     ))
 
-  @main def check1 = {
-    //println(mod)
+  private def run(prog: Sequence): Any =
     try
       compiled.checked
 
     val exec = new Executor()
     val engine = exec.instantiate(compiled, dataModel)
 
-
-    val a1 = Assign(
-      "x", Num(4)
-    )
-    val a2 = interval.edb.Assign(
-      "y", interval.edb.Add(interval.edb.Num(5), interval.edb.Var("x"))
-    )
-    val a3 = interval.edb.Assign(
-      "x", interval.edb.Num(2)
-    )
-    val s = Sequence(interval.edb.Sequence(a1, a2), a3)
-
-    println(s"Loading $s")
-    s.loadEdits.print()
-    engine.feed.processEditScript(s.loadEdits)
+    println(s"Loading $prog")
+    prog.loadEdits.print()
+    engine.feed.processEditScript(prog.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
+    println(prog.toStringWithURI)
+
+  @main def dlCheck1 = {
+    run(Benchmark.example1)
   }
 
-  @main def checkWhileAgg = {
-    //println(mod)
-    try
-      compiled.checked
+  @main def dlCheck2 = {
+    run(Benchmark.example2)
+  }
 
-    val exec = new Executor()
-    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled, dataModel)
+  @main def dlCheck3 = {
+    run(Benchmark.example3)
+  }
+
+  @main def dlCheck4 = {
+    run(Benchmark.example4)
+  }
 
 
-    val a1 = interval.edb.Assign(
-      "x", interval.edb.Num(1)
-    )
+  @main def dlCheck5 = {
+    run(Benchmark.example5)
+  }
 
-    val a2 = While(
-      interval.edb.GT(interval.edb.Var("x"), interval.edb.Num(0)),
-      edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1)))
-    )
+  @main def dlCheck6 = {
+    run(Benchmark.example6)
+  }
 
-    val s = interval.edb.Sequence(a1, a2)
+  @main def dlCheck7 = {
+    run(Benchmark.example7)
+  }
 
-    println(s"Loading $s")
-    s.loadEdits.print()
-    engine.feed.processEditScript(s.loadEdits)
-    engine.readAll().map(_.asTable).foreach(println)
-    println(s.toStringWithURI)
+  @main def dlCheck8 = {
+    run(Benchmark.example8)
+  }
+
+
+  @main def dlCheck9 = {
+    run(Benchmark.example9)
+  }
+
+  @main def dlCheck10 = {
+    run(Benchmark.example10)
+  }
+
+  @main def dlCheck11 = {
+    run(Benchmark.example11)
+  }
+
+  @main def dlCheck12 = {
+    run(Benchmark.example12)
+  }
+
+
+  @main def dlCheck13 = {
+    run(Benchmark.example13)
+  }
+
+  @main def dlCheck14 = {
+    run(Benchmark.example14)
+  }
+
+  @main def dlCheck15 = {
+    run(Benchmark.example15)
+  }
+
+  @main def dlCheck16 = {
+    run(Benchmark.example16)
+  }
+
+
+  @main def dlCheck17 = {
+    run(Benchmark.example17)
+  }
+
+  @main def dlCheck18 = {
+    run(Benchmark.example18)
+  }
+
+  @main def dlCheck19 = {
+    run(Benchmark.example19)
+  }
+
+  @main def dlCheck20 = {
+    run(Benchmark.example20)
+  }
+
+  @main def dlCheck21 = {
+    run(Benchmark.example21)
+  }
+
+  @main def dlCheck22 = {
+    run(Benchmark.example22)
+  }
+
+  @main def dlCheck23 = {
+    run(Benchmark.example23)
+  }
+
+  @main def dlCheck24 = {
+    run(Benchmark.example24)
+  }
+  @main def dlCheck25 = {
+    run(Benchmark.example25)
   }
