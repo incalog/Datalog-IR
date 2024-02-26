@@ -95,6 +95,9 @@ trait Typechecker extends BaseIRTypechecker:
     case _ => super.inferTermExtend(term, mode)
 
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+    case NotInEdbType(t, ety) =>
+      checkEdbType(ety, atom)
+      checkTerm(t, ety, Mode.Bound)
     case UndefEdbType(ety) =>
       checkEdbType(ety, atom)
     case UndefEdbField(src, link) =>

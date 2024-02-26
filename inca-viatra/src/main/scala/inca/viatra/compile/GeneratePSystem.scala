@@ -12,7 +12,7 @@ import inca.foreign.scala.ir.string
 import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
-import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, TEdbList, TEdbNode, TEdbValue}
+import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, NotInEdbType, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
@@ -342,6 +342,11 @@ object GeneratePSystem:
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
         case _ => throw IllegalArgumentException(s"Unexpected aggregation operator $op")
       atomCode += code
+    case NotInEdbType(t, ety) =>
+      val sty = compileEdbType(ety)
+      val arg = compileTerm(t)
+      val (sort, key) = genNotEdbTypeKey(ety)
+      atomCode += s"new TypeFilterConstraint(body, Tuples.staticArityFlatTupleOf($arg), $key)"
 
   private def compileArg(a: Arg): Code = a match
     case TermArg(t) =>
@@ -471,6 +476,17 @@ object GeneratePSystem:
       val sort = s"truechange.ListType(${genEdbTypeKey(ety)._1})"
       val key = s"NodeTypeKey($sort)"
       (sort, key)
+
+  private def genNotEdbTypeKey(ety: EdbType): (String, String) = ety match
+    case TEdbNode(name) =>
+      val sort = s"truechange.SortType(\"${name.name}\")"
+      val key = s"NotNodeTypeIndex.Key($sort)"
+      (sort, key)
+    case TEdbList(ety) =>
+      val sort = s"truechange.ListType(${genEdbTypeKey(ety)._1})"
+      val key = s"NotNodeTypeIndex.Key($sort)"
+      (sort, key)
+
 
   private def genEdbLinkKey(link: edbdata.Link, srcType: Type, trgType: Type): String = link match
     case Link.Field(Name(name)) => srcType match

@@ -6,6 +6,8 @@ import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Atom, Body, Call, Name, Param, RefByName, Relation, Var}
 import inca.ir.visitors.IRVisitor
 import inca.util.{DependencyGraph, Gensym}
+import inca.ir.extension.edbdata
+
 
 class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with primitive.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match

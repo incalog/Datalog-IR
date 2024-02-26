@@ -20,6 +20,7 @@ trait Visitor extends BaseIRVisitor:
     case TEdbList(ty) => TEdbList(visitEdbType(ty))
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case NotInEdbType(t, ety) => visitTerm(t).map(NotInEdbType(_, visitEdbType(ety)))
     case UndefEdbType(ety) => Seq(UndefEdbType(visitEdbType(ety)))
     case UndefEdbField(t, link) => visitTerm(t).map(UndefEdbField(_, link))
     case _ => super.visitAtom(atom)

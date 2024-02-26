@@ -3,6 +3,7 @@ package inca.ir.analysis
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.*
+import inca.ir.extension.edbdata.NotInEdbType
 
 trait EqOps[V, B]:
   def equ(v1: V, v2: V): B
@@ -122,6 +123,9 @@ trait BaseAbstractInterpreter[V, B]:
     case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
     case Call(ref, args, _) => evalCall(ref, args)
     case ExtensionalCall(ref, args, _) => evalCall(ref, args)
+    case NotInEdbType(t, ty) => 
+      evalTerm(t)
+      AtomResult(topBool, trueBool)
 
   final def evalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg]): AtomResult =
     val vs = args.map {

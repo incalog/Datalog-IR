@@ -20,7 +20,7 @@ import inca.viatra.runtime.EnginePool
 import scala.language.implicitConversions
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaAggregationOperator, ScalaMonoDefinition, ScalaType, Typechecker}
 import inca.ir.extension.disjunction.DisjunctionAlternative
-import inca.ir.extension.edbdata.{EdbDataModuleEntry, EdbDeconstruct, EdbFieldDefinition, EdbNodeDefinition, LookupEdbField, LookupEdbType, TEdbNode, TEdbValue}
+import inca.ir.extension.edbdata.{EdbDataModuleEntry, EdbDeconstruct, EdbFieldDefinition, EdbNodeDefinition, LookupEdbField, LookupEdbType, NotInEdbType, TEdbNode, TEdbValue}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap, IR as mapIR}
 import inca.viatra.runtime.context.DataModel
 import inca.ir.extension.data.IR as dataIR
@@ -293,24 +293,8 @@ object IntervalAnalysisMono:
     ))
   )).addHint(MainHint)
 
-//  val assignToVar = Relation("assignToVar", Seq(Param("stmt", TStmt), Param("v", TString)), Seq(
-//    Body(Seq(
-//      Eq(Var("stmt"), LookupEdbType(TAssign)),
-//      Eq(Var("_name"), LookupEdbField(Cast(Var("stmt"), TAssign), "name")),
-//      Eq(Var("v"), Cast(Var("_name"), TString)),
-//    )),
-//  ))
-
-  /*
-  30c x = 1
-  4be while x > 1
-  bdc   x = -1
-   */
-
   val transfer = Relation("transfer", Seq(
-    Param("stmt", TStmt),
-    Param("x", TString),
-    Param("x_iv", TInterval),
+    Param("stmt", TStmt)
   ), Seq(
     Body(Seq(
       Call("traverse", Seq(Var("stmt"), Var("before"))),
@@ -330,9 +314,19 @@ object IntervalAnalysisMono:
     )),
     Body(Seq(
       Call("traverse", Seq(Var("stmt"), Var("before"))),
+
       // Check if the assignment stmt does not assign value to `name`
-      Eq(Var("stmt"), LookupEdbType(TAssign)),
-      Eq(Var("name"), Cast(LookupEdbField(Cast(Var("stmt"), TAssign), "name"), TString)),
+      Disjunction(
+        Seq(
+          Eq(Var("stmt"), LookupEdbType(TAssign)),
+          Eq(Var("name"), Cast(LookupEdbField(Cast(Var("stmt"), TAssign), "name"), TString)),
+        )
+        , Seq(
+          Eq(Var("stmt"), LookupEdbType(TStmt)),
+          NotInEdbType(Var("stmt"), TAssign),
+          Eq(Var("name"), StringLit(""))
+        )
+      ),
 
       // Fetch value of x
       Eq(Var("mp"), ReadMono(Var("before"))),
@@ -405,7 +399,7 @@ object IntervalAnalysisMono:
       viatraLogging.update("module", false)
       viatraLogging.update("lowerings", false)
       val viatraOptions = op("viatra_options")
-      viatraOptions.update("apply_double_aggregation_rewrite", true)
+      viatraOptions.update("apply_double_aggregation_rewrite", false)
       op
 
 
