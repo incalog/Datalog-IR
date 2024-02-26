@@ -74,7 +74,6 @@ trait MonoDefinition:
   def name: Name
   def constructorParamTypes: Seq[Type]
   def typ: MonoTypes
-  def resultTerm(state: Term, gensym: Gensym): Term
   final def monoType(keys: Seq[Type]): TMono =
     val MonoTypes(input, _, output) = typ
     TMono(input, output, keys)
@@ -102,22 +101,17 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
     case Count | CountFrom => MonoTypes(TAny, TInt, TInt)
     case SumDouble | MaxDouble => MonoTypes(TDouble, TDouble, TDouble)
     case SumToPair => MonoTypes(TInt, TInt, TTuple(Seq(TInt, TString)))
-  override def resultTerm(state: Term, gensym: Gensym): Term = this match
-    case MaxInt | MaxDouble | Min | SumInt | SumDouble | Count | CountFrom => state
-    case SumToPair => TupleLit(Seq(state, StringLit("this should be a string")))
 
 
-case class StringMonoDefinition() extends BuiltInMonoDefinition:
+case class StringConcatMonoDefinition() extends BuiltInMonoDefinition:
   override def name: Name = "StringConcatMono"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TString, TString, TString)
-  override def resultTerm(state: Term, gensym: Gensym): Term = state
 
 case class DisjMonoDefinition() extends BuiltInMonoDefinition:
   override def name: Name = "DisjMono"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TBoolean, TBoolean, TBoolean)
-  override def resultTerm(state: Term, gensym: Gensym): Term = state
 
 /*
  *  T ::= TInt | TBool | TTuple(T,T) | TSet(T)
@@ -139,17 +133,9 @@ case class SetMonoDefinition(ty: Type) extends BuiltInMonoDefinition:
   override def name: Name = s"SetMonoDef_$ty"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(ty, TSet(ty), TSet(ty))
-  override def resultTerm(state: Term, gensym: Gensym): Term = state
 
 
 case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInMonoDefinition:
   override def name: Name = s"MapMonoDef_${keyTy}_${mono.name}"
   override def constructorParamTypes: Seq[Type] = Seq()
   override def typ: MonoTypes = MonoTypes(TTuple(Seq(keyTy, mono.typ.in)), TMap(keyTy, mono.typ.state), TMap(keyTy, mono.typ.out))
-  override def resultTerm(state: Term, gensym: Gensym): Term = 
-    val k = gensym.freshName("k")
-    val v = gensym.freshName("v")
-    MapFun(
-      Seq(Param(k, keyTy)),
-      mono.resultTerm(MapLookUp(state, Var(k)), gensym)
-    )

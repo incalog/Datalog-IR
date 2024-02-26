@@ -9,36 +9,37 @@ import scala.jdk.CollectionConverters.*
 case class AggState[ST,A](var st: ST, as: mutable.Set[A])
 
 /** An aggregator for operations that are associative and commutative */
-class AggregatorMono[ST, A](val agg: MonoAggregation[ST, A]) extends IMultisetAggregationOperator[A, AggState[ST,A], ST] {
+class AggregatorMono[ST, In, Out](val mono: MonoAggregation[ST, In, Out]) extends IMultisetAggregationOperator[In, AggState[ST,In], Out] {
 
-  override def getShortDescription: String = agg.name
-  override def getName: String = agg.name
+  override def getShortDescription: String = mono.name
+  override def getName: String = mono.name
 
-  override def createNeutral(): AggState[ST,A] = AggState(agg.init, mutable.Set())
-  override def isNeutral(acc: AggState[ST,A]): Boolean = acc.as.isEmpty
+  override def createNeutral(): AggState[ST,In] = AggState(mono.init, mutable.Set())
+  override def isNeutral(acc: AggState[ST,In]): Boolean = acc.as.isEmpty
 
-  override def contains(value: A, accumulator: AggState[ST, A]): Boolean = accumulator.as.contains(value)
+  override def contains(value: In, accumulator: AggState[ST, In]): Boolean = accumulator.as.contains(value)
 
-  override def clone(original: AggState[ST, A]): AggState[ST, A] =
+  override def clone(original: AggState[ST, In]): AggState[ST, In] =
     AggState(original.st, original.as.clone())
 
-  override def update(acc: AggState[ST,A], a: A, isInsertion: Boolean): AggState[ST,A] = {
+  override def update(acc: AggState[ST,In], a: In, isInsertion: Boolean): AggState[ST,In] = {
     if (isInsertion) {
-      acc.st = agg.add(acc.st, a)
+      acc.st = mono.add(acc.st, a)
       acc.as += a
     } else {
       acc.as -= a
-      acc.st = acc.as.foldRight(agg.init)((a,st) => agg.add(st,a))
+      acc.st = acc.as.foldRight(mono.init)((a, st) => mono.add(st,a))
     }
     acc
   }
 
-  override def combine(left: ST, right: AggState[ST, A]): ST =
-    right.as.foldLeft(left)(agg.add)
+  override def combine(left: Out, right: AggState[ST, In]): Out =
+    mono.combine(left, mono.result(right.st))
 
-  override def getAggregate(acc: AggState[ST, A]): ST =
-    acc.st
+  override def getAggregate(acc: AggState[ST, In]): Out =
+    mono.result(acc.st)
 
-  override def aggregateStream(str: stream.Stream[A]): ST =
-    str.iterator().asScala.foldLeft(agg.init)(agg.add)
+  override def aggregateStream(str: stream.Stream[In]): Out =
+    val st = str.iterator().asScala.foldLeft(mono.init)(mono.add)
+    mono.result(st)
 }

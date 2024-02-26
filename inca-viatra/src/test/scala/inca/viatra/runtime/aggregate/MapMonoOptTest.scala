@@ -9,7 +9,7 @@ import inca.ir.extension.arithmetic.{Add, DoubleNum, GT, IntNum, Max, Mul, Sub, 
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.foreign.ConvertForeignIR
+import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
@@ -411,6 +411,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       initCode = "Set[Any]()",
       addCode = "(st: Set[Any], a: Any) => st + a",
       resultCode = "(st: Set[Any]) => st.size",
+      combineCode = s"(o1: Int, o2: Int) => o1 + o2",
       constructorParamTypes = Seq(),
       typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
     )
@@ -420,10 +421,10 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("mono"), NewMono(MapMonoDefinition(TTuple(Seq(TString, TInt)), SetSizeMono))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(1), StringLit("1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(1), StringLit("1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(-1), StringLit("-1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(-1), StringLit("-1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       Eq(Var("map"), ReadMono(Var("mono"))),
       Eq(Var("size"), Cast(
@@ -730,6 +731,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       initCode = "Set[Any]()",
       addCode = "(st: Set[Any], a: Any) => st + a",
       resultCode = "(st: Set[Any]) => st.size",
+      combineCode = s"(o1: Int, o2: Int) => o1 + o2",
       constructorParamTypes = Seq(),
       typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
     )

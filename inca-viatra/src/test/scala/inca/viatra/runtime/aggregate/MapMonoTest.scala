@@ -8,7 +8,7 @@ import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation3, Unit
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.foreign.ConvertForeignIR
+import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
@@ -27,7 +27,11 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 
 case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
-  override def compilerOptions: CompilerOptions = CompilerOptions.default
+  override def compilerOptions: CompilerOptions =
+    val opts = CompilerOptions.default
+    opts.irLogging.logLowerings = true
+    opts
+
 
   override def name: Name = mod.name
 
@@ -98,6 +102,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoModule(mod)
+    println(compiledMod.checked)
     val exec: IRExecutor = inca.viatra.Executor()
     exec.instantiate(compiledMod)
 
@@ -113,6 +118,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Eq(Var("foo"), MapLookUp(Var("map2"), IntNum(1)))
     ))))
 
+    println(mainRelation)
     val engine = compile(mainRelation)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
@@ -427,6 +433,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       initCode = "Set[Any]()",
       addCode = "(st: Set[Any], a: Any) => st + a",
       resultCode = "(st: Set[Any]) => st.size",
+      combineCode = s"(o1: Int, o2: Int) => o1 + o2",
       constructorParamTypes = Seq(),
       typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
     )
@@ -436,10 +443,10 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("mono"), NewMono(MapMonoDefinition(TTuple(Seq(TString, TInt)), SetSizeMono))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(1), StringLit("1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(1), StringLit("1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(-1), StringLit("-1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(1), StringLit("-1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       Eq(Var("map"), ReadMono(Var("mono"))),
       Eq(Var("size"), ConvertForeignIR(

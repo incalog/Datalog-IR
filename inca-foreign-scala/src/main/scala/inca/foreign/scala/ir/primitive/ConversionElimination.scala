@@ -166,10 +166,13 @@ trait ConversionElimination extends BaseLowering:
       )
       val op = ScalaMonoAggregationOperator(
         Name(s"ScalaSetMono$$$fty"),
+        ScalaType(s"Set[$fty]"),
         ScalaType(fty),
         ScalaType(s"Set[$fty]"),
         initCode = s"Set[$fty]()",
-        addCode = s"(st: Set[$fty], a: $fty) => st + a"
+        addCode = s"(st: Set[$fty], a: $fty) => st + a",
+        resultCode = s"(st: Set[$fty]) => st",
+        combineCode = s"(s1: Set[$fty], s2: Set[$fty]) => s1 ++ s2"
       )
       scalasetMembershipRelations += TSet(irty) -> memRel
       val elem = Name(gensym.fresh("elem"))
@@ -187,6 +190,16 @@ trait ConversionElimination extends BaseLowering:
       val args = argsWithConvert.flatMap(visitTerm)
       Seq(
         ScalaTerm(s"$params => $tuple", stup, args)
+      )
+    case ConvertIRForeign(term, TTuple(tys), ScalaType("Any")) =>
+      //      val stys = styStr.split(',').toSeq.map(_.trim)
+      val stys = tys.map(ty => ScalaInca.compileType(ty).name)
+      val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
+      val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
+      val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
+      val args = argsWithConvert.flatMap(visitTerm)
+      Seq(
+        ScalaTerm(s"$params => $tuple", ScalaType.any, args)
       )
     case ConvertIRForeign(term, TMap(irkTy, irvTy), smap@ScalaType(s"Map[$fkTy, $fvTy]")) =>
       val mapTy = s"Map[$fkTy, $fvTy]"
@@ -212,10 +225,13 @@ trait ConversionElimination extends BaseLowering:
       val smapTy = s"Map[$fkTy, $fvTy]"
       val op = ScalaMonoAggregationOperator(
         Name(s"ScalaMapMono$$$fkTy$$$fvTy"),
+        ScalaType(smapTy),
         ScalaType(skvTy),
         ScalaType(smapTy),
         initCode = s"$smapTy()",
-        addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)"
+        addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)",
+        resultCode = s"(st: $smapTy) => st",
+        combineCode = "throw new UnsupportedOperationException()"
       )
       scalamapMembershipRelations += TMap(irkTy, irvTy) -> memRel
       val map = Name(gensym.fresh("map"))

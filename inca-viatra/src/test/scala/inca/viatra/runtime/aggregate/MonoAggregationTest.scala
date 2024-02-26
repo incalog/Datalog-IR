@@ -15,7 +15,7 @@ import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
-import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringConcatMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
@@ -77,7 +77,8 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
+    val opts = CompilerOptions.default
+    val compiledMod = CompiledMonoModule(mod, opts)
     val exec: IRExecutor = new inca.viatra.Executor
     exec.instantiate(compiledMod)
 
@@ -259,7 +260,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val mainRelation = Relation("main", Seq(Param("s", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(StringMonoDefinition(), Seq(), Seq())),
+      Eq(Var("m"), NewMono(StringConcatMonoDefinition(), Seq(), Seq())),
       WriteMono(Var("m"), StringLit("1+1"), Seq()),
       Eq(Var("s"), ReadMono(Var("m")))
     )))).addHint(MainHint)
@@ -275,6 +276,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     "0.0", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: Double, a: Int) => st + a",
     "(st: Double) => st.toString",
+    s"(o1: String, o2: String) => o1 + o2",
     Seq(),
     MonoTypes(TInt, TDouble, ScalaType.string)
   )
@@ -284,6 +286,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     """"0.0"""", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: String, a: Int) => (st.toDouble + a).toString",
     "(st: String) => st.toDouble",
+    s"(o1: Double, o2: Double) => o1 + o2",
     Seq(),
     MonoTypes(TInt, TString, ScalaType.double)
   )
@@ -338,6 +341,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     initCode = "Set[Any]()",
     addCode = "(st: Set[Any], a: Any) => st + a",
     resultCode = "(st: Set[Any]) => st.size",
+    combineCode=  s"(o1: Int, o2: Int) => o1 + o2",
     constructorParamTypes = Seq(),
     typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
   )
@@ -426,6 +430,16 @@ class MonoAggregationTest extends AnyFunSuiteLike {
         |      st + (a._1 -> Set(a._2))
         |""".stripMargin,
     resultCode = "(st : Map[String, Set[String]] => st",
+    combineCode =
+      s"""(map1: Map[String, Set[String]], map2: Map[String, Set[String]]) =>
+         |  var result = map1
+         |  for ((k, v1) <- map2)
+         |    val v = map1.get(k) match
+         |      case None => v1
+         |      case Some(v2) => v1 ++ v2
+         |    result += k -> v
+         |  result
+         |""".stripMargin,
     Seq(),
     typ = MonoTypes(TTuple(Seq(TString, TString)), TMap(TString, TSet(TString)), TMap(TString, TSet(TString)))
   )

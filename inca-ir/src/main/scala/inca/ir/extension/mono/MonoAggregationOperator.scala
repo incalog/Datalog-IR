@@ -6,7 +6,7 @@ import inca.ir.extension.demand.TDemand
 
 
 case class MonoAggregationOperator(mono: MonoDefinition) extends AggregationOperatorUserDefined:
-  override def resultType: Type = mono.typ.state
+  override def resultType: Type = mono.typ.out
   override def typecheck(in: Seq[Type]): Option[String] = in match
     case Seq(input) if input == mono.typ._1 => None
     case Seq(TDemand(input)) if input == mono.typ._1 => None

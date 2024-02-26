@@ -94,10 +94,13 @@ case class ScalaAggregationOperator(name: Name, ty: Type, initCode: String, addC
   def typecheck(in: Seq[Type]): Option[String] = None
 
 case class ScalaMonoAggregationOperator(name: Name,
+                                        stateTy: Type,
                                         inputTy: Type,
                                         outputTy: Type,
                                         initCode: String,
-                                        addCode: String
+                                        addCode: String,
+                                        resultCode: String,
+                                        combineCode: String
                                        )
   extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
@@ -116,12 +119,11 @@ case class ScalaMonoDefinition(name: Name,
                                initCode: String,
                                addCode: String,
                                resultCode: String,
+                               combineCode: String,
                                constructorParamTypes: Seq[Type],
                                typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
   def typecheck(in: Seq[Type]): Option[String] = None
-  override def resultTerm(state: Term, gensym: Gensym): Term =
-    ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
 
   override def toString: String =
     s"""
@@ -132,8 +134,8 @@ case class ScalaMonoDefinition(name: Name,
        |}""".stripMargin
 
 object ScalaMonoDefinition:
-  def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String): ScalaMonoDefinition =
-    ScalaMonoDefinition(mono.name, initCode, addCode, resultCode, mono.constructorParamTypes, mono.typ)
+  def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String, combineCode: String): ScalaMonoDefinition =
+    ScalaMonoDefinition(mono.name, initCode, addCode, resultCode, combineCode, mono.constructorParamTypes, mono.typ)
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"

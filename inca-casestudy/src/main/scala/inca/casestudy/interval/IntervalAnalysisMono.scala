@@ -83,10 +83,22 @@ object IntervalAnalysisMono:
                 |    case (IV(l1, l2), IV(l3, l4)) =>
                 |      val l = l1.min(l3)
                 |      val h = l2.max(l4)
-                |      if ((h - l).abs <= 2) then IV(l, h) else Top()
+                |      if ((h - l).abs <= 5) then IV(l, h) else Top()
                 |    case _ => Top()
                 |}""".stripMargin,
     resultCode = "(st: Interval) => st", // TODO: We could widen here
+    combineCode = """(st: Interval, a: Interval) => (st, a) match {
+                    |    case (Bot(), _) => a
+                    |    case (Top(), _) => Top()
+                    |    case (_, Top()) => Top()
+                    |    case (BTrue(), BTrue()) => BTrue()
+                    |    case (BFalse(), BFalse()) => BFalse()
+                    |    case (IV(l1, l2), IV(l3, l4)) =>
+                    |      val l = l1.min(l3)
+                    |      val h = l2.max(l4)
+                    |      if ((h - l).abs <= 2) then IV(l, h) else Top()
+                    |    case _ => Top()
+                    |}""".stripMargin,
     constructorParamTypes = Seq(),
     typ = MonoTypes(TInterval, ScalaType("Interval"), ScalaType("Interval"))
   )
@@ -294,7 +306,9 @@ object IntervalAnalysisMono:
   )).addHint(MainHint)
 
   val transfer = Relation("transfer", Seq(
-    Param("stmt", TStmt)
+    Param("stmt", TStmt),
+    Param("x", TString),
+    Param("x_iv", TInterval)
   ), Seq(
     Body(Seq(
       Call("traverse", Seq(Var("stmt"), Var("before"))),
@@ -399,7 +413,7 @@ object IntervalAnalysisMono:
       viatraLogging.update("module", false)
       viatraLogging.update("lowerings", false)
       val viatraOptions = op("viatra_options")
-      viatraOptions.update("apply_double_aggregation_rewrite", true)
+      viatraOptions.update("apply_double_aggregation_rewrite", false)
       op
 
 
@@ -461,7 +475,7 @@ object IntervalAnalysisMono:
   }
 
   @main def checkWhile2 = {
-    val exec = new Executor()
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(true), dataModel)
 

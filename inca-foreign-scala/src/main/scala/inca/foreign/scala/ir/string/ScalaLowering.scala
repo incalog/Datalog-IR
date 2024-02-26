@@ -8,7 +8,7 @@ import inca.ir.extension.string.*
 import inca.ir.extension.string
 import inca.ir.*
 import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.mono.{MonoAggregationOperator, StringMonoDefinition}
+import inca.ir.extension.mono.{MonoAggregationOperator, StringConcatMonoDefinition}
 
 trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "StringScalaLowering"

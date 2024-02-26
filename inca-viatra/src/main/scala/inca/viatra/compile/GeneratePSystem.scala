@@ -329,13 +329,15 @@ object GeneratePSystem:
                |""".stripMargin
           val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-        case ScalaMonoAggregationOperator(name, ScalaType(inTy), ScalaType(stateTy), initCode, addCode) =>
+        case ScalaMonoAggregationOperator(name, ScalaType(stateTy), ScalaType(inTy), ScalaType(outputTy), initCode, addCode, resultCode, combineCode) =>
           val code =
             s"""
-               | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
+               | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy, $outputTy] {
                |   override val name: String = "$name"
                |   override def init: $stateTy = $initCode
                |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
+               |   override def result(st: $stateTy): $outputTy = ($resultCode)(st)
+               |   override def combine(o1: $outputTy, o2: $outputTy): $outputTy = ($combineCode)(o1, o2)
                | }.aggregator
                |""".stripMargin
           val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"

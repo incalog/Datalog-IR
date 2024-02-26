@@ -496,12 +496,15 @@ class GenerateIR:
 
     val resultMethod = classDef.methods.filter(_.name.name == "result").head
     val resultCode = genClosure(resultMethod)
+    
+    val combineCode = "throw new UnsupportedOperationException()"
 
     val monoDef = new irscala.ScalaMonoDefinition(
       monoName,
       initCode,
       addCode,
       resultCode,
+      combineCode,
       Seq(),
       irmono.MonoTypes(compileType(inTy), compileType(stateTy), irscala.ScalaType(genScala.transType(outTy)))
     )

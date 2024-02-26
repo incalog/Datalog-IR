@@ -18,11 +18,12 @@ trait Visitor extends BaseIRVisitor with aggregate.Visitor:
     case ScalaAggregationOperator(name, ty, initCode, addCode) =>
       val vty = visitType(ty)
       ScalaAggregationOperator(name, vty, initCode, addCode)
-    case ScalaMonoAggregationOperator(name, inputTy, stateTy, initCode, addCode) =>
+    case ScalaMonoAggregationOperator(name, stateTy, inputTy, outputTy, initCode, addCode, resultCode, combineCode) =>
       ScalaMonoAggregationOperator(name,
-        visitType(inputTy),
         visitType(stateTy),
-        initCode, addCode
+        visitType(inputTy),
+        visitType(outputTy),
+        initCode, addCode, resultCode, combineCode
       )
     case _ =>
       super.visitAggregationOperator(op)

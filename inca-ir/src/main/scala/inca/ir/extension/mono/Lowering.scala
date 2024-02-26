@@ -63,12 +63,11 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
         case m: MapMonoDefinition if optimizeMono => optimizeMapMono(tm, m)
         case _ =>
           val keyArgs = tm.keys.map(_ => WildcardArg())
-          val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("state")))
+          val aggArgs = Var(Name("m")).arg +: keyArgs :+ AggregateColumnArg(Var(Name("output")))
 
           val op = MonoAggregationOperator(mono)
           val aggregate = Aggregate(RefByName(monoCollectName(tm)), aggArgs, op).addHint(DemandIgnoreCallHint)
-          val project = Eq(Var(Name("output")), mono.resultTerm(Var(Name("state")), gensym))
-          Seq(aggregate, project)
+          Seq(aggregate)
       Body(destruct +: atoms)
     }
     Relation(monoAggregateName(tm), params, bodies)
@@ -176,7 +175,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
       else createMapFun(i + 1)
       MapFun(Seq(param), tm)
 
-    val project = m.resultTerm(createMapFun(0), gensym)
+    val project = createMapFun(0)
     Seq(Eq(project, Var(Name("output"))))
 
 

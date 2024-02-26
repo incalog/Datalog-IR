@@ -79,7 +79,7 @@ trait Typechecker extends BaseIRTypechecker:
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case MapContains(map, key) =>
       val TMap(tyK, _) = inferMapTerm(map, Mode.Bound)._1
-      checkTerm(key, tyK, Mode.Bound)
+      checkTerm(key, tyK, mode)
     case _ => super.checkAtom(atom, mode)
 
   private def inferMapTerm(t: Term, mode: Mode): (TMap, Mode) = inferTerm(t, mode) match
