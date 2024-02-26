@@ -475,7 +475,7 @@ object IntervalAnalysisMono:
       edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1)))
     )
 
-    val s = edb.Sequence(a1, a2)
+    val s = edb.Sequence(edb.Sequence(a1, a2), edb.Exit())
 
     println(s"Loading $s")
     s.loadEdits.print()
