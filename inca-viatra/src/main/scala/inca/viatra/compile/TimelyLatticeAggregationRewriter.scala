@@ -29,7 +29,7 @@ class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with 
  *  2.2 Redirect all calls to `R` in the scc to `R$Wrapped`
  *  2.3 Introduce a new relation `R` that queries and aggregates over `R$Wrapped`
  */
-class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
+class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor with primitive.Visitor:
   val gensym: Gensym = Gensym()
 
   var scc: Seq[Seq[String]] = Seq()

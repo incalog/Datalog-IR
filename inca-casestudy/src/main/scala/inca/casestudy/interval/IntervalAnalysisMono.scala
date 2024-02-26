@@ -399,7 +399,7 @@ object IntervalAnalysisMono:
       viatraLogging.update("module", false)
       viatraLogging.update("lowerings", false)
       val viatraOptions = op("viatra_options")
-      viatraOptions.update("apply_double_aggregation_rewrite", false)
+      viatraOptions.update("apply_double_aggregation_rewrite", true)
       op
 
 
