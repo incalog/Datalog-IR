@@ -2,16 +2,14 @@ package inca.foreign.scala.ir.arithmetic
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.{Atom, BaseIR, Eq, Term, Type}
+import inca.ir.{Atom, Eq, Term, Type}
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
-import inca.ir.extension.block
 import inca.ir.extension.aggregate
-import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
 import inca.ir.string2name
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "ArithmeticScalaLowering"

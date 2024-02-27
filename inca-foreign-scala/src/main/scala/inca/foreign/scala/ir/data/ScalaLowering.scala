@@ -1,16 +1,12 @@
 package inca.foreign.scala.ir.data
 
 import inca.foreign.scala.ir.primitive.ScalaInca.cleanName
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, Var, WildcardArg, name2string}
+import inca.ir.{Atom, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, Var, WildcardArg, name2string}
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
-import inca.ir.extension.edbdata.{EdbType, TEdbList, TEdbNode, TEdbValue}
-//import inca.ir.extension.edbdata.TEdbNode
-import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "DataScalaLowering"
