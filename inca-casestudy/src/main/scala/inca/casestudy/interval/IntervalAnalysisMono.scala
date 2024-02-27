@@ -26,6 +26,7 @@ import inca.viatra.runtime.context.DataModel
 import inca.ir.extension.data.IR as dataIR
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
 import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
@@ -76,6 +77,7 @@ object IntervalAnalysisMono:
     initCode = "Bot()",
     addCode = """(st: Interval, a: Interval) => (st, a) match {
                 |    case (Bot(), _) => a
+                |    case (_,Bot()) => st
                 |    case (Top(), _) => Top()
                 |    case (_, Top()) => Top()
                 |    case (BTrue(), BTrue()) => BTrue()
@@ -89,6 +91,7 @@ object IntervalAnalysisMono:
     resultCode = "(st: Interval) => st", // TODO: We could widen here
     combineCode = """(st: Interval, a: Interval) => (st, a) match {
                     |    case (Bot(), _) => a
+                    |    case (_,Bot()) => st
                     |    case (Top(), _) => Top()
                     |    case (_, Top()) => Top()
                     |    case (BTrue(), BTrue()) => BTrue()
@@ -307,8 +310,8 @@ object IntervalAnalysisMono:
 
   val transfer = Relation("transfer", Seq(
     Param("stmt", TStmt),
-    Param("x", TString),
-    Param("x_iv", TInterval)
+//    Param("x", TString),
+//    Param("x_iv", TInterval)
   ), Seq(
     Body(Seq(
       Call("traverse", Seq(Var("stmt"), Var("before"))),
@@ -408,7 +411,7 @@ object IntervalAnalysisMono:
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
       op.irLogging.logModule = false
-      op.irLogging.logLowerings = true
+      op.irLogging.logLowerings = false
       val viatraLogging = op("viatra_logging")
       viatraLogging.update("module", false)
       viatraLogging.update("lowerings", false)
@@ -496,4 +499,61 @@ object IntervalAnalysisMono:
     engine.feed.processEditScript(s.loadEdits)
     engine.readAll().map(_.asTable).foreach(println)
     println(s.toStringWithURI)
+  }
+
+  @main def checkBigWhile = {
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled(true), dataModel)
+
+    val nestings = 500
+    val repetitions = 500
+
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+    def nestedWhile(levels: Int): edb.Stmt =
+      if (levels == 0)
+        edb.Sequence(
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1))),
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(1)))
+        )
+      else
+        edb.While(
+          edb.GT(edb.Var("x"), edb.Num(0)),
+          nestedWhile(levels - 1)
+        )
+
+    def sequence(s: () => edb.Stmt, counts: Int): edb.Stmt =
+      if (counts == 0)
+        s()
+      else
+        edb.Sequence(s(), sequence(s, counts - 1))
+
+    val s = edb.Sequence(
+      edb.Assign("x", edb.Num(1)),
+      edb.Sequence(
+        sequence(() => nestedWhile(nestings), repetitions),
+        edb.Exit()))
+
+    val startLoad = System.nanoTime()
+    engine.feed.processEditScript(s.loadEdits)
+    val endLoad = System.nanoTime()
+    val loadTimeMs = (endLoad - startLoad) / 1000000
+
+    val startProp = System.nanoTime()
+    val spec = engine.module.patterns(cleanString("main"))()
+    val matcher = spec.getMatcher(engine.engine)
+    val endProp = System.nanoTime()
+    val propTimeMs = (endProp - startProp) / 1000000
+
+
+    val mainRel = engine.read(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+    println(mainRel.asTable)
+    val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+    println(s"${cflowRel.size} cflow entries")
+
+    println(s"Load time ${loadTimeMs}ms")
+    println(s"Propagation time ${propTimeMs}ms")
   }

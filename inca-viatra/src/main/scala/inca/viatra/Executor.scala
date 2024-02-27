@@ -15,7 +15,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
-  class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, module: PSystem.Module) extends ExecutorEngine:
+  class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, val module: PSystem.Module) extends ExecutorEngine:
 
     def measure(rel: Relation): Long =
       val spec = module.patterns(cleanString(rel.name))()
@@ -60,7 +60,6 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
   def instantiate(m: CompiledModule, dataModel: DataModel): Engine =
     val options = m.compilerOptions
     val code = GeneratePSystem.compileModules(Seq(m.lowered), options)
-    println(code)
     val loadSource = s"$code;\n${m.name}"
     val compiler = new ScalaCompiler(options)
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)
