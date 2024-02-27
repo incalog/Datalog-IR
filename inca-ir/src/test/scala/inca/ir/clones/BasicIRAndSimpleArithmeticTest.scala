@@ -1015,6 +1015,47 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input, ConfigVN(true))
   }
 
+  test("Redundant Relation with Call of removed Relation") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("c"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true))
+  }
+
   test("Call and check for Equality") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
