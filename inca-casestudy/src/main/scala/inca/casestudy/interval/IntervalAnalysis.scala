@@ -1,8 +1,9 @@
 package inca.casestudy.interval
 
 import inca.casestudy.interval
-import inca.casestudy.interval.IntervalAnalysisMono.TAssign
+import inca.casestudy.interval.IntervalAnalysisMono.{TAssign, TExit}
 import inca.casestudy.interval.edb.{Assign, Num, Sequence, While}
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
 import inca.foreign.scala.ir.primitive.{IR, Typechecker, *}
 import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4}
@@ -20,7 +21,7 @@ import inca.ir.extension.string.*
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
-import inca.ir.{Term, string2name, term2Arg, *}
+import inca.ir.{Body, Term, string2name, term2Arg, *}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.Executor
 import inca.viatra.runtime.EnginePool
@@ -42,6 +43,7 @@ object IntervalAnalysis:
   val TSequence = TEdbNode(q("Sequence"))
   val TAssign = TEdbNode(q("Assign"))
   val TWhile = TEdbNode(q("While"))
+  val TExit: TEdbNode = TEdbNode(q("Exit"))
   val TExp = TEdbNode(q("Exp"))
   val TVar = TEdbNode(q("Var"))
   val TNum = TEdbNode(q("Num"))
@@ -84,6 +86,10 @@ object IntervalAnalysis:
       Eq(Var("stmt"), LookupEdbType(TWhile)),
       Eq(Var("out"), Var("stmt"))
     )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TExit)),
+      Eq(Var("out"), Var("stmt"))
+    )),
   ))
 
   val finalStmt = Relation("finalStmt", Seq(
@@ -105,6 +111,10 @@ object IntervalAnalysis:
     )),
     Body(Seq(
       Eq(Var("stmt"), LookupEdbType(TWhile)),
+      Eq(Var("out"), Var("stmt"))
+    )),
+    Body(Seq(
+      Eq(Var("stmt"), LookupEdbType(TExit)),
       Eq(Var("out"), Var("stmt"))
     )),
   ))
@@ -260,19 +270,19 @@ object IntervalAnalysis:
     "JoinInterval",
     ScalaType("Interval"),
     "Bot()",
-    addCode =
-      """(st: Interval, a: Interval) => (st, a) match {
-        |    case (Bot(), _) => a
-        |    case (Top(), _) => Top()
-        |    case (_, Top()) => Top()
-        |    case (BTrue(), BTrue()) => BTrue()
-        |    case (BFalse(), BFalse()) => BFalse()
-        |    case (IV(l1, l2), IV(l3, l4)) =>
-        |      val l = l1.min(l3)
-        |      val h = l2.max(l4)
-        |      if ((h - l).abs <= 2) then IV(l, h) else Top()
-        |    case _ => Top()
-        |}""".stripMargin
+    addCode = """(st: Interval, a: Interval) => (st, a) match {
+                |    case (Bot(), _) => a
+                |    case (_,Bot()) => st
+                |    case (Top(), _) => Top()
+                |    case (_, Top()) => Top()
+                |    case (BTrue(), BTrue()) => BTrue()
+                |    case (BFalse(), BFalse()) => BFalse()
+                |    case (IV(l1, l2), IV(l3, l4)) =>
+                |      val l = l1.min(l3)
+                |      val h = l2.max(l4)
+                |      if ((h - l).abs <= 5) then IV(l, h) else Top()
+                |    case _ => Top()
+                |}""".stripMargin,
   )
 
   val _intervalAfter = Relation("_intervalAfter",
@@ -303,6 +313,10 @@ object IntervalAnalysis:
       )),
       Body(Seq(
         Eq(Var("stmt"), LookupEdbType(TWhile)),
+        Call("intervalBefore", Seq(Var("stmt"), Var("v"), Var("iv")))
+      )),
+      Body(Seq(
+        Eq(Var("stmt"), LookupEdbType(TExit)),
         Call("intervalBefore", Seq(Var("stmt"), Var("v"), Var("iv")))
       ))
     )
@@ -353,6 +367,19 @@ object IntervalAnalysis:
       ))
     )
   )
+  val main = Relation("main", Seq(
+    Param("exit", TStmt),
+    Param("x", TString),
+    Param("x_iv", TInterval)
+  ), Seq(
+    Body(Seq(
+      // output
+      Eq(Var("exit"), LookupEdbType(TExit)),
+      // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
+      Call("allVars", Seq(Var("x"))),
+      Call("intervalAfter", Seq(Var("exit"), Var("x"), Var("x_iv")))
+    ))
+  ))
 
 
   val mod = Module("IntervalAnalysis", BaseIR.language + arithmetic.IR + dataIR + mapIR + demand.IR + string.IR + edbdata.IR + disjunction.IR,
@@ -366,7 +393,8 @@ object IntervalAnalysis:
       predecessorIntervals,
       intervalAfter,
       _intervalAfter,
-      intervalBefore
+      intervalBefore,
+      main
     )
   )
 
@@ -400,15 +428,35 @@ object IntervalAnalysis:
   private def run(prog: Sequence): Any =
     try
       compiled.checked
-
-    val exec = new Executor()
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled, dataModel)
 
-    println(s"Loading $prog")
-    prog.loadEdits.print()
+    val startLoad = System.nanoTime()
     engine.feed.processEditScript(prog.loadEdits)
-    engine.readAll().map(_.asTable).foreach(println)
-    println(prog.toStringWithURI)
+    val endLoad = System.nanoTime()
+    val loadTimeMs = (endLoad - startLoad) / 1000000
+
+    val startProp = System.nanoTime()
+    val spec = engine.module.patterns(cleanString("main"))()
+    val matcher = spec.getMatcher(engine.engine)
+    val endProp = System.nanoTime()
+    val propTimeMs = (endProp - startProp) / 1000000
+
+
+    val mainRel = engine.read(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+    println(mainRel.asTable)
+    val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+    println(s"${cflowRel.size} cflow entries")
+
+    println(s"Load time ${loadTimeMs}ms")
+    println(s"Propagation time ${propTimeMs}ms")
+//    println(prog.toStringWithURI)
+
+
+  @main def dlCheckBigWhile = {
+    run(Benchmark.example26(500, 500))
+
+  }
 
   @main def dlCheck1 = {
     run(Benchmark.example1)

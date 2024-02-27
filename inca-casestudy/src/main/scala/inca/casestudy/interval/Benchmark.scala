@@ -444,5 +444,33 @@ object Benchmark:
             )
           )
         )
-       
+
+  def example26(nestings: Int, repetitions: Int): edb.Sequence =
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+    def nestedWhile(levels: Int): edb.Stmt =
+      if (levels == 0)
+        edb.Sequence(
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1))),
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(1)))
+        )
+      else
+        edb.While(
+          edb.GT(edb.Var("x"), edb.Num(0)),
+          nestedWhile(levels - 1)
+        )
+
+    def sequence(s: () => edb.Stmt, counts: Int): edb.Stmt =
+      if (counts == 0)
+        s()
+      else
+        edb.Sequence(s(), sequence(s, counts - 1))
+
+    edb.Sequence(
+      edb.Assign("x", edb.Num(1)),
+      edb.Sequence(
+        sequence(() => nestedWhile(nestings), repetitions),
+        edb.Exit()))
 
