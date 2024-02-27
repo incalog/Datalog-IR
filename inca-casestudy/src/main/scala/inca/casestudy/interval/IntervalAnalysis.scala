@@ -325,7 +325,7 @@ object IntervalAnalysis:
     )
   )
 
-  val intervalAfter = Relation("intervalAfter",
+  /*val intervalAfter = Relation("intervalAfter",
     Seq(
       Param("stmt", TStmt),
       Param("v", TString),
@@ -337,7 +337,7 @@ object IntervalAnalysis:
         Aggregate(RefByName("_intervalAfter"), Seq(Var("stmt").arg, Var("v").arg, AggregateColumnArg(Var("_iv"))), intervalOp),
         Eq(Var("iv"), Cast(Var("_iv"), TInterval))
       ))
-    ))
+    ))*/
 
   val predecessorIntervals = Relation("predecessorIntervals",
     Seq(
@@ -380,7 +380,7 @@ object IntervalAnalysis:
       Eq(Var("exit"), LookupEdbType(TExit)),
       // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
       Call("allVars", Seq(Var("x"))),
-      Call("intervalAfter", Seq(Var("exit"), Var("x"), Var("x_iv")))
+      Call("_intervalAfter", Seq(Var("exit"), Var("x"), Var("x_iv")))
     ))
   ))
 
@@ -394,7 +394,7 @@ object IntervalAnalysis:
       finalStmt,
       aeval,
       predecessorIntervals,
-      intervalAfter,
+      //intervalAfter,
       _intervalAfter,
       intervalBefore,
       main
@@ -456,13 +456,13 @@ object IntervalAnalysis:
   @main def measureBigWhile = {
     val resultPath = "benchmark/mono"
 
-    val warmups = 1
-    val runs = 1
+    val warmups = 3
+    val runs = 10
 
-    val start = 10
-    val maxRep = 20
-    val step = 10
-    val nestings = 5
+    val start = 100
+    val maxRep = 1000
+    val step = 100
+    val nestings = 500
 
     val measurements = for (reps <- Range.inclusive(start, maxRep, step)) yield {
       // input program
@@ -492,7 +492,9 @@ object IntervalAnalysis:
       for (k <- Range.inclusive(1, warmups)) {
         val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled, dataModel)
         engine.feed.processEditScript(s.loadEdits)
-        val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+        engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+
+        collectGarbage()
       }
 
       // Measurement run

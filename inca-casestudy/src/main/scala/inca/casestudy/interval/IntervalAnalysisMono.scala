@@ -103,7 +103,7 @@ object IntervalAnalysisMono:
                     |    case (IV(l1, l2), IV(l3, l4)) =>
                     |      val l = l1.min(l3)
                     |      val h = l2.max(l4)
-                    |      if ((h - l).abs <= 2) then IV(l, h) else Top()
+                    |      if ((h - l).abs <= 5) then IV(l, h) else Top()
                     |    case _ => Top()
                     |}""".stripMargin,
     constructorParamTypes = Seq(),
@@ -777,15 +777,15 @@ object IntervalAnalysisMono:
     val opt = true // opt = false is waaaayyy to slow
     val suffix = if opt then "_opt" else ""
 
-    val warmups = 1
-    val runs = 1
-    
-    val start = 10
-    val maxReps = 20
-    val step = 10
-    val nestings = 5
+    val warmups = 3
+    val runs = 10
 
-    val measurements = for (reps <- Range.inclusive(start, maxReps, step)) yield {
+    val start = 100
+    val maxRep = 1000
+    val step = 100
+    val nestings = 500
+
+    val measurements = for (reps <- Range.inclusive(start, maxRep, step)) yield {
       // input program
       val s = nestedWhileProgram(nestings, reps)
 
@@ -813,7 +813,9 @@ object IntervalAnalysisMono:
       for (k <- Range.inclusive(1, warmups)) {
         val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled(opt), dataModel)
         engine.feed.processEditScript(s.loadEdits)
-        val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+        engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+
+        collectGarbage()
       }
 
       // Measurement run
