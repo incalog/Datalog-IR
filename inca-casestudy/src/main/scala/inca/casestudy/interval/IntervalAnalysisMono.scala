@@ -770,30 +770,32 @@ object IntervalAnalysisMono:
   }
 
   @main def measureBigWhile = {
-    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled(true), dataModel)
-
     val nestings = 50
-    val repetitions = 50
 
-    val res = for (reps <- Range.inclusive(50, 500, 50)) yield {
-      val s = nestedWhileProgram(nestings, reps)
+    for (opt <- Seq(false, true)) {
+      println()
+      println(s"------------ $opt -------------")
+      val res = for (reps <- Range.inclusive(10, 100, 10)) yield {
+        val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+        val engine = exec.instantiate(compiled(opt), dataModel)
 
-      val startLoad = System.nanoTime()
-      engine.feed.processEditScript(s.loadEdits)
-      val endLoad = System.nanoTime()
-      val loadTimeMs = (endLoad - startLoad) / 1000000
+        // input edb facts
+        val s = nestedWhileProgram(nestings, reps)
 
-      val propTimeMs = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
-      val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
-      //println(s"${cflowRel.size} cflow entries")
+        val startLoad = System.nanoTime()
+        engine.feed.processEditScript(s.loadEdits)
+        val endLoad = System.nanoTime()
+        val loadTime = (endLoad - startLoad)
 
-      //println(s"Load time ${loadTimeMs}ms")
-      //println(s"Propagation time ${propTimeMs}ms")
+        val propTime = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+        val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+        println(s"${cflowRel.size} cflow entries")
 
-      cflowRel.size -> (loadTimeMs, propTimeMs)
+        println(s"Load time ${loadTime / 1000000}ms")
+        println(s"Propagation time ${propTime / 1000000}ms")
+        println()
+
+        cflowRel.size -> (loadTime, propTime)
+      }
     }
-
-    println(res)
   }
