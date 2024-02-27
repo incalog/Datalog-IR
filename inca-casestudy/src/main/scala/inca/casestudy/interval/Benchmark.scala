@@ -444,12 +444,8 @@ object Benchmark:
             )
           )
         )
-
-  def example26(nestings: Int, repetitions: Int): edb.Sequence =
-    val a1 = edb.Assign(
-      "x", edb.Num(1)
-    )
-
+  
+  def nestedWhileProgram(nestings: Int, repetitions: Int): edb.Stmt ={
     def nestedWhile(levels: Int): edb.Stmt =
       if (levels == 0)
         edb.Sequence(
@@ -473,4 +469,5 @@ object Benchmark:
       edb.Sequence(
         sequence(() => nestedWhile(nestings), repetitions),
         edb.Exit()))
+  }
 

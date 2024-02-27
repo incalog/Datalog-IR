@@ -1,5 +1,6 @@
 package inca.casestudy.interval
 
+import inca.casestudy.interval.Benchmark.nestedWhileProgram
 import inca.casestudy.interval.edb
 import inca.ir.{Term, string2name, term2Arg, *}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
@@ -301,7 +302,7 @@ object IntervalAnalysisMono:
       Eq(Var("exit"), LookupEdbType(TExit)),
       Call("traverse", Seq(Var("exit"), Var("before"))),
       Eq(Var("mp"), ReadMono(Var("before"))),
-      // Comment this in to verify that we only read from one map. Is it the double aggregation bug again ?
+
       Eq(Var("m"), MapLookUp(Var("mp"), Var("exit"))),
       Call("allVars", Seq(Var("x"))),
       Eq(Var("x_iv"), Cast(MapLookUp(Var("m"), Var("x")), TInterval)),
@@ -454,7 +455,7 @@ object IntervalAnalysisMono:
   @main def check2() = {
 //    val exec = new Executor()
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled(true), dataModel)
+    val engine = exec.instantiate(compiled(false), dataModel)
 
 
     val a1 = edb.Assign(
@@ -680,10 +681,10 @@ object IntervalAnalysisMono:
     println(s"Propagation time ${propTimeMs}ms")
   }
 
-  @main def checkBigWhileUnstable = {
+  @main def checkBigWhile = {
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-    val engine = exec.instantiate(compiled(true), dataModel)
+    val engine = exec.instantiate(compiled(false), dataModel)
 
     val nestings = 100
     val repetitions = 100
@@ -745,33 +746,7 @@ object IntervalAnalysisMono:
     val nestings = 100
     val repetitions = 100
 
-    val a1 = edb.Assign(
-      "x", edb.Num(1)
-    )
-
-    def nestedWhile(levels: Int): edb.Stmt =
-      if (levels == 0)
-        edb.Sequence(
-          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1))),
-          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(2)))
-        )
-      else
-        edb.While(
-          edb.GT(edb.Var("x"), edb.Num(0)),
-          nestedWhile(levels - 1)
-        )
-
-    def sequence(s: () => edb.Stmt, counts: Int): edb.Stmt =
-      if (counts == 0)
-        s()
-      else
-        edb.Sequence(s(), sequence(s, counts - 1))
-
-    val s = edb.Sequence(
-      edb.Assign("x", edb.Num(1)),
-      edb.Sequence(
-        sequence(() => nestedWhile(nestings), repetitions),
-        edb.Exit()))
+    val s = nestedWhileProgram(nestings, repetitions)
 
     val startLoad = System.nanoTime()
     engine.feed.processEditScript(s.loadEdits)
@@ -792,4 +767,33 @@ object IntervalAnalysisMono:
 
     println(s"Load time ${loadTimeMs}ms")
     println(s"Propagation time ${propTimeMs}ms")
+  }
+
+  @main def measureBigWhile = {
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled(true), dataModel)
+
+    val nestings = 50
+    val repetitions = 50
+
+    val res = for (reps <- Range.inclusive(50, 500, 50)) yield {
+      val s = nestedWhileProgram(nestings, reps)
+
+      val startLoad = System.nanoTime()
+      engine.feed.processEditScript(s.loadEdits)
+      val endLoad = System.nanoTime()
+      val loadTimeMs = (endLoad - startLoad) / 1000000
+
+      val propTimeMs = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+      val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+      //println(s"${cflowRel.size} cflow entries")
+
+      //println(s"Load time ${loadTimeMs}ms")
+      //println(s"Propagation time ${propTimeMs}ms")
+
+      cflowRel.size -> (loadTimeMs, propTimeMs)
+    }
+
+    println(res)
   }

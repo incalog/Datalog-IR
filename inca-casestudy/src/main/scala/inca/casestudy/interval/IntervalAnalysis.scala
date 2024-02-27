@@ -425,7 +425,7 @@ object IntervalAnalysis:
       () => new disjunction.Lowering {}
     ))
 
-  private def run(prog: Sequence): Any =
+  private def run(prog: edb.Stmt): Any =
     try
       compiled.checked
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
@@ -454,7 +454,7 @@ object IntervalAnalysis:
 
 
   @main def dlCheckBigWhile = {
-    run(Benchmark.example26(500, 500))
+    run(Benchmark.nestedWhileProgram(500, 500))
 
   }
 
