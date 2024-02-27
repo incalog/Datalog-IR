@@ -558,13 +558,70 @@ object IntervalAnalysisMono:
     println(s"Propagation time ${propTimeMs}ms")
   }
 
+  @main def checkBigWhileStableNoOpt = {
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled(false), dataModel)
+
+    val nestings = 50
+    val repetitions = 50
+
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+    def nestedWhile(levels: Int): edb.Stmt =
+      if (levels == 0)
+        edb.Sequence(
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1))),
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(1)))
+        )
+      else
+        edb.While(
+          edb.GT(edb.Var("x"), edb.Num(0)),
+          nestedWhile(levels - 1)
+        )
+
+    def sequence(s: () => edb.Stmt, counts: Int): edb.Stmt =
+      if (counts == 0)
+        s()
+      else
+        edb.Sequence(s(), sequence(s, counts - 1))
+
+    val s = edb.Sequence(
+      edb.Assign("x", edb.Num(1)),
+      edb.Sequence(
+        sequence(() => nestedWhile(nestings), repetitions),
+        edb.Exit()))
+
+    val startLoad = System.nanoTime()
+    engine.feed.processEditScript(s.loadEdits)
+    val endLoad = System.nanoTime()
+    val loadTimeMs = (endLoad - startLoad) / 1000000
+
+    val startProp = System.nanoTime()
+    val spec = engine.module.patterns(cleanString("main"))()
+    val matcher = spec.getMatcher(engine.engine)
+    val endProp = System.nanoTime()
+    val propTimeMs = (endProp - startProp) / 1000000
+
+
+    val mainRel = engine.read(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+    println(mainRel.asTable)
+    val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+    println(s"${cflowRel.size} cflow entries")
+
+    println(s"Load time ${loadTimeMs}ms")
+    println(s"Propagation time ${propTimeMs}ms")
+  }
+
   @main def checkBigWhileUnstable = {
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(true), dataModel)
 
-    val nestings = 50
-    val repetitions = 50
+    val nestings = 100
+    val repetitions = 100
 
     val a1 = edb.Assign(
       "x", edb.Num(1)
