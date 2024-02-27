@@ -90,7 +90,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   private def valueNumberRelations(relation: Relation): Seq[Relation] = {
-//    val newRelation = super.visitRelation(relation).head
+    // TODO fix (removes correctly but references need to be changed -> currently leads to errors in typechecker)
+//    super.visitRelation(relation)
+    //    val newRelation = super.visitRelation(relation).head
     val x = relation.toString
 
     val relationHash: Hashed = getHashCode(relation)
@@ -110,9 +112,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     valueNumberRelations(relation)
   }
 
-  private def valueNumberRelations(relation: Relation): Seq[Relation] = {
-    // TODO fix (removes correctly but references need to be changed -> currently leads to errors in typechecker)
-    super.visitRelation(relation)
+//  private def valueNumberRelations(relation: Relation): Seq[Relation] = {
+
 //    val newRelation = super.visitRelation(relation).head
 //    val x = newRelation.toString
 //
@@ -130,7 +131,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //
 //      Seq(newRelation)
 //    }
-  }
+//  }
 
   override def visitBody(body: Body): Seq[Body] = {
     VNGlobal = VNGlobal ++ VN
@@ -177,13 +178,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   override def visitTerm(term: Term): Seq[Term] = term match {
     case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
     case v@Var(RefByName(Name(name))) if VN.contains(name) =>
-      var newName = name //  TODO refactor
-      while(VN.contains(newName)){
-        if const.contains(VN(name)) && this.config.propagateConstants then return Seq(const(VN(name)))
-        if VN(newName) == newName then return Seq(newVar(VN(newName),term.typ))
-        newName = VN(newName)
-      }
-      Seq(newVar(VN(newName),term.typ))
+      var newName = VN(name) //  TODO refactor
+//      while(VN.contains(newName)){
+//        if const.contains(VN(name)) && this.config.propagateConstants then return Seq(const(VN(name)))
+//        if VN(newName) == newName then return Seq(newVar(VN(newName),term.typ))
+//        newName = VN(newName)
+//      }
+//      Seq(newVar(VN(newName),term.typ))
 //      Seq(
 //        if const.contains(VN(name)) && this.config.propagateConstants then
 //          const(VN(name))
@@ -219,10 +220,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       treatComparisonEq(x,e) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
     case Eq(e, vari@Var(RefByName(Name(x))), false) =>
       treatComparisonEq(x,e)
-    case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>   // use vari.mode.isBinding so that next case is chosen correctly
-      treatBindingInEq(x,e)
-    case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>   // TODO here too? if renaming used then yes
-      treatBindingInEq(x,e)
+//    case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>   // use vari.mode.isBinding so that next case is chosen correctly
+//      treatBindingInEq(x,e)
+//    case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>   // TODO here too? if renaming used then yes
+//      treatBindingInEq(x,e)
 //    case Eq(Var(RefByName(Name(l))), Var(RefByName(Name(r))), false) =>
 //      treatBindingInEq(x,e)
     case Eq(l, r, false) =>
