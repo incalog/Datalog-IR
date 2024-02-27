@@ -21,7 +21,7 @@ import scala.language.implicitConversions
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaAggregationOperator, ScalaMonoDefinition, ScalaType, Typechecker}
 import inca.ir.extension.disjunction.DisjunctionAlternative
 import inca.ir.extension.edbdata.{EdbDataModuleEntry, EdbDeconstruct, EdbFieldDefinition, EdbNodeDefinition, LookupEdbField, LookupEdbType, NotInEdbType, TEdbNode, TEdbValue}
-import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap, IR as mapIR}
+import inca.ir.extension.map.{MapComprehension, MapContains, MapLit, MapLookUp, TMap, IR as mapIR}
 import inca.viatra.runtime.context.DataModel
 import inca.ir.extension.data.IR as dataIR
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
@@ -321,8 +321,15 @@ object IntervalAnalysisMono:
       Eq(Var("exp"), LookupEdbField(Cast(Var("stmt"), TAssign), "exp")),
 
       // compute new value of x
-      Eq(Var("mp"), ReadMono(Var("before"))),
-      Eq(Var("varIvMap"), MapLookUp(Var("mp"), Var("stmt"))),
+      Disjunction(
+        Seq(
+          Eq(Var("mp"), ReadMono(Var("before"))),
+          Eq(Var("varIvMap"), MapLookUp(Var("mp"), Var("stmt"))),
+        ),
+        Seq(
+          Eq(Var("varIvMap"), Cast(MapLit.empty, TMap(TString, TScalaInterval))),
+        )
+      ),
       Call("aeval", Seq(Var("varIvMap"), Var("exp"), Var("x_iv"))),
 
       // Update the map before the successor
@@ -477,10 +484,68 @@ object IntervalAnalysisMono:
     println(engine.read(UnitRelation("aeval")).asTable)*/
   }
 
+  @main def check2NoOpt() = {
+    //    val exec = new Executor()
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val module = compiled(false)
+    println(module.lowered)
+    val engine = exec.instantiate(module, dataModel)
+
+    val a1 = edb.Assign(
+      "x", edb.Num(4)
+    )
+    val a2 = edb.Assign(
+      "y", edb.Var("x")
+    )
+    val a3 = edb.Assign(
+      "z1", edb.Num(2)
+    )
+    val a4 = edb.Assign(
+      "z2", edb.Num(1)
+    )
+    //    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
+    val s = edb.Sequence(edb.Sequence(edb.Sequence(a1, a2), edb.Sequence(a3, a4)), edb.Exit())
+    //    val s = edb.Sequence(a1, a2)
+
+    println(s"Loading $s")
+    s.loadEdits.print()
+    engine.feed.processEditScript(s.loadEdits)
+    engine.readAll().map(_.asTable).foreach(println)
+    println(s.toStringWithURI)
+    /*println(engine.read(UnitRelation("main")).asTable)
+    println(engine.read(UnitRelation("interval")).asTable)
+    println(engine.read(UnitRelation("transfer")).asTable)
+    println(engine.read(UnitRelation("aeval")).asTable)*/
+  }
+
   @main def checkWhile2 = {
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(true), dataModel)
+
+
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+    val a2 = edb.While(
+      edb.GT(edb.Var("x"), edb.Num(0)),
+      edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1)))
+    )
+
+    val s = edb.Sequence(edb.Sequence(a1, a2), edb.Exit())
+
+    println(s"Loading $s")
+    s.loadEdits.print()
+    engine.feed.processEditScript(s.loadEdits)
+    engine.readAll().map(_.asTable).foreach(println)
+    println(s.toStringWithURI)
+  }
+
+  @main def checkWhile2NoOpt = {
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled(false), dataModel)
 
 
     val a1 = edb.Assign(
@@ -506,8 +571,8 @@ object IntervalAnalysisMono:
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(true), dataModel)
 
-    val nestings = 500
-    val repetitions = 500
+    val nestings = 50
+    val repetitions = 50
 
     val a1 = edb.Assign(
       "x", edb.Num(1)
@@ -619,6 +684,63 @@ object IntervalAnalysisMono:
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(true), dataModel)
+
+    val nestings = 100
+    val repetitions = 100
+
+    val a1 = edb.Assign(
+      "x", edb.Num(1)
+    )
+
+    def nestedWhile(levels: Int): edb.Stmt =
+      if (levels == 0)
+        edb.Sequence(
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(-1))),
+          edb.Assign("x", edb.Add(edb.Var("x"), edb.Num(2)))
+        )
+      else
+        edb.While(
+          edb.GT(edb.Var("x"), edb.Num(0)),
+          nestedWhile(levels - 1)
+        )
+
+    def sequence(s: () => edb.Stmt, counts: Int): edb.Stmt =
+      if (counts == 0)
+        s()
+      else
+        edb.Sequence(s(), sequence(s, counts - 1))
+
+    val s = edb.Sequence(
+      edb.Assign("x", edb.Num(1)),
+      edb.Sequence(
+        sequence(() => nestedWhile(nestings), repetitions),
+        edb.Exit()))
+
+    val startLoad = System.nanoTime()
+    engine.feed.processEditScript(s.loadEdits)
+    val endLoad = System.nanoTime()
+    val loadTimeMs = (endLoad - startLoad) / 1000000
+
+    val startProp = System.nanoTime()
+    val spec = engine.module.patterns(cleanString("main"))()
+    val matcher = spec.getMatcher(engine.engine)
+    val endProp = System.nanoTime()
+    val propTimeMs = (endProp - startProp) / 1000000
+
+
+    val mainRel = engine.read(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+    println(mainRel.asTable)
+    val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+    println(s"${cflowRel.size} cflow entries")
+
+    println(s"Load time ${loadTimeMs}ms")
+    println(s"Propagation time ${propTimeMs}ms")
+  }
+
+  @main def checkBigWhileUnstableNoOpt = {
+    val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    //val exec = new Executor(DRedReteBackendFactory.INSTANCE)
+    val engine = exec.instantiate(compiled(false), dataModel)
 
     val nestings = 100
     val repetitions = 100
