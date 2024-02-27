@@ -2,6 +2,7 @@ package inca.casestudy.interval
 
 import inca.casestudy.interval.Benchmark.nestedWhileProgram
 import inca.casestudy.interval.edb
+import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.ir.{Term, string2name, term2Arg, *}
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
@@ -33,6 +34,8 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
+import inca.util.CSVUtil.csvToString
+import inca.util.FileUtil
 import inca.viatra.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
@@ -769,18 +772,55 @@ object IntervalAnalysisMono:
     println(s"Propagation time ${propTimeMs}ms")
   }
 
-  @main def measureBigWhile = {
-    val nestings = 50
+  @main def measureBigWhile2 = {
+    val resultPath = "benchmark/mono"
+    val opt = true // opt = false is waaaayyy to slow
+    val suffix = if opt then "_opt" else ""
 
-    for (opt <- Seq(false, true)) {
-      println()
-      println(s"------------ $opt -------------")
-      val res = for (reps <- Range.inclusive(10, 100, 10)) yield {
-        val exec = new Executor(DRedReteBackendFactory.INSTANCE)
-        val engine = exec.instantiate(compiled(opt), dataModel)
+    val warmups = 1
+    val runs = 1
+    
+    val start = 10
+    val maxReps = 20
+    val step = 10
+    val nestings = 5
 
-        // input edb facts
-        val s = nestedWhileProgram(nestings, reps)
+    val measurements = for (reps <- Range.inclusive(start, maxReps, step)) yield {
+      // input program
+      val s = nestedWhileProgram(nestings, reps)
+
+      var cflowSize = 0
+      // Stats
+      {
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled(opt), dataModel)
+        engine.feed.processEditScript(s.loadEdits)
+
+        val rels = engine.readAll()
+        val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
+          r.name -> IndexedSeq(r.size.toLong)
+        }
+        val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+        cflowSize = cflowRel.size
+
+        FileUtil.writeFile(s"$resultPath/interval/Interval_Mono${suffix}_${cflowSize}_stats.csv", csvToString(toCSV(stats)))
+      }
+
+      assert(cflowSize != 0)
+
+      collectGarbage()
+
+      // Warmup
+      for (k <- Range.inclusive(1, warmups)) {
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled(opt), dataModel)
+        engine.feed.processEditScript(s.loadEdits)
+        val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      }
+
+      // Measurement run
+      cflowSize.toString -> (for (j <- Range.inclusive(1, runs)) yield {
+        collectGarbage()
+
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled(opt), dataModel)
 
         val startLoad = System.nanoTime()
         engine.feed.processEditScript(s.loadEdits)
@@ -789,13 +829,15 @@ object IntervalAnalysisMono:
 
         val propTime = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
         val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
-        println(s"${cflowRel.size} cflow entries")
 
+        println(s"${cflowRel.size} cflow entries")
         println(s"Load time ${loadTime / 1000000}ms")
         println(s"Propagation time ${propTime / 1000000}ms")
         println()
 
-        cflowRel.size -> (loadTime, propTime)
-      }
+        propTime
+      })
     }
+
+    FileUtil.writeFile(s"$resultPath/interval/Interval_Mono$suffix.csv", csvToString(toCSV(measurements)))
   }

@@ -1,8 +1,10 @@
 package inca.casestudy.interval
 
 import inca.casestudy.interval
+import inca.casestudy.interval.Benchmark.nestedWhileProgram
 import inca.casestudy.interval.IntervalAnalysisMono.{TAssign, TExit}
 import inca.casestudy.interval.edb.{Assign, Num, Sequence, While}
+import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
 import inca.foreign.scala.ir.primitive.{IR, Typechecker, *}
 import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
@@ -22,6 +24,8 @@ import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.{Body, Term, string2name, term2Arg, *}
+import inca.util.CSVUtil.csvToString
+import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.Executor
 import inca.viatra.runtime.EnginePool
@@ -36,7 +40,6 @@ object IntervalAnalysis:
   def q(name: String): String = s"inca.casestudy.interval.edb.$name"
 
   val edbNodes = EdbDataModuleEntry.fromNodeMetaInfos(edb.allNodes)
-  edbNodes.foreach(println(_))
 
   val TStmt = TEdbNode(q("Stmt"))
   val TSkip = TEdbNode(q("Skip"))
@@ -406,11 +409,8 @@ object IntervalAnalysis:
     override def ir: Module = mod
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
-      op.irLogging.logModule = true
-      op.irLogging.logLowerings = true
-      // Does not work, because cycles are detected incorrectly
-      //val viatraOptions = op("viatra_options")
-      //viatraOptions.update("apply_double_aggregation_rewrite", true)
+      op.irLogging.logModule = false
+      op.irLogging.logLowerings = false
       op
 
     private trait demandLowering extends demand.Lowering with primitive.Visitor
@@ -453,9 +453,72 @@ object IntervalAnalysis:
 //    println(prog.toStringWithURI)
 
 
-  @main def dlCheckBigWhile = {
-    run(Benchmark.nestedWhileProgram(500, 500))
+  @main def measureBigWhile = {
+    val resultPath = "benchmark/mono"
 
+    val warmups = 1
+    val runs = 1
+
+    val start = 10
+    val maxRep = 20
+    val step = 10
+    val nestings = 5
+
+    val measurements = for (reps <- Range.inclusive(start, maxRep, step)) yield {
+      // input program
+      val s = nestedWhileProgram(nestings, reps)
+
+      var cflowSize = 0
+      // Stats
+      {
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled, dataModel)
+        engine.feed.processEditScript(s.loadEdits)
+
+        val rels = engine.readAll()
+        val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
+          r.name -> IndexedSeq(r.size.toLong)
+        }
+        val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+        cflowSize = cflowRel.size
+
+        FileUtil.writeFile(s"$resultPath/interval/Interval_DL_${cflowSize}_stats.csv", csvToString(toCSV(stats)))
+      }
+
+      assert(cflowSize != 0)
+
+      collectGarbage()
+
+      // Warmup
+      for (k <- Range.inclusive(1, warmups)) {
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled, dataModel)
+        engine.feed.processEditScript(s.loadEdits)
+        val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+      }
+
+      // Measurement run
+      cflowSize.toString -> (for (j <- Range.inclusive(1, runs)) yield {
+        collectGarbage()
+
+        val engine = new Executor(DRedReteBackendFactory.INSTANCE).instantiate(compiled, dataModel)
+
+        val startLoad = System.nanoTime()
+        engine.feed.processEditScript(s.loadEdits)
+        val endLoad = System.nanoTime()
+        val loadTime = (endLoad - startLoad)
+
+        val propTime = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
+        val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
+
+        println(s"${cflowRel.size} cflow entries")
+        println(s"Load time ${loadTime / 1000000}ms")
+        println(s"Propagation time ${propTime / 1000000}ms")
+        println()
+
+        propTime
+      })
+    }
+
+    FileUtil.writeFile(s"$resultPath/interval/Interval_DL.csv", csvToString(toCSV(measurements)))
   }
 
   @main def dlCheck1 = {

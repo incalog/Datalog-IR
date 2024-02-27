@@ -1,5 +1,6 @@
 package inca.casestudy.asg
 
+import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.ir.*
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.*
@@ -252,24 +253,6 @@ object AbstractSyntaxGraph:
     }
     setPipeline(List(() => new demand.Lowering {}))
 
-  private def toCSV(vals: Seq[(String, IndexedSeq[Long])]): CSV = {
-    val header = vals.map(_._1).toIndexedSeq
-    // we assume that each list has same number of elements
-    val rowLength = vals.head._2.size
-    val rows = for (i <- 0 until rowLength) yield vals.map(_._2(i)).toIndexedSeq
-    header +: rows
-  }
-
-
-  private def collectGarbage(): Unit = {
-    System.gc ()
-    try {
-      Thread.sleep (2000)
-    } catch {
-      case e: IOException => e.printStackTrace ()
-    }
-  }
-
 
   @main def benchmarkAsg() = {
     val resultPath = "benchmark/mono"
@@ -290,7 +273,7 @@ object AbstractSyntaxGraph:
       collectGarbage()
 
       // Warmup
-      for (k <- 2) {
+      for (k <- Range.inclusive(1, 5)) {
         val engine = new inca.viatra.Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
