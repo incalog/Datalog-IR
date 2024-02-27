@@ -11,33 +11,33 @@ import inca.ir.string2name
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class DemandLoweringTest extends AnyFunSuiteLike:
-  def module(relations: Relation*): Module =
+  def module(relations: ModuleEntry*): Module =
     val typecheckerBefore = new IRTypechecker
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
 
     val mod = Module("M", BaseIR.language+demand.IR, relations)
-    var printedMod = false
+    //var printedMod = false
     var lowered: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
-      println(mod)
-      printedMod = true
+      //println(mod)
+      //printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
       typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
-      if (!printedMod)
-        println(mod)
-      println(lowered)
+      //if (!printedMod)
+      //  println(mod)
+      //println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors
       if (errorsBefore.nonEmpty) {
-        println("Type errors in original code:")
+        //println("Type errors in original code:")
         errorsBefore.foreach(println)
       }
       if (errorsAfter.nonEmpty) {
-        println("Type errors in lowered code:")
+        //println("Type errors in lowered code:")
         errorsAfter.foreach(println)
       }
     }

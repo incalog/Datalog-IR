@@ -1,5 +1,7 @@
 module AvailableExpressions
 
+// TODO: Not working, Datalog typechecker fails
+/*
 data Exp = Var(String) |
            Num(Int) |
            GreaterThan(Exp, Exp) |
@@ -145,3 +147,4 @@ def exit_AE(stm: Stm, prog: Stm): Set[Exp] =
   {(s, e) | s in assignments(prog), e in entry_AE(s, prog)}
 @main def allExits_AE(prog: Stm): Set[(Stm, Exp)] =
   {(s, e) | s in assignments(prog), e in exit_AE(s, prog)}
+*/

@@ -11,7 +11,7 @@ import inca.ir.extension.aggregate
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, MonoAggregationOperator}
 import inca.ir.string2name
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 
 trait ScalaLowering extends BaseScalaLowering:
   override def isTypeSupported(ty: Type): Boolean = ty match
@@ -98,10 +98,17 @@ trait ScalaLowering extends BaseScalaLowering:
           case ((_, lty), (_, rty)) =>
             throw IllegalStateException(s"Can not apply `$op` to incompatible types: $lty and $rty")
         }
+      case UnOp(term, "abs") =>
+        typedParams(term).map { case (t, ty) =>
+          val sty = compileType(ty)
+          val lambdaCode = s"(arg: $sty) => arg.abs"
+          ScalaTerm(lambdaCode, sty, Seq(t))
+        }
       case UnOp(term, op) =>
         typedParams(term).map { case (t, ty) =>
           val sty = compileType(ty)
-          createScalaUnOp(op, sty, t -> sty)
+          val lambdaCode = s"(arg: $sty) => ${op}arg"
+          ScalaTerm(lambdaCode, sty, Seq(t))
         }
       case _ =>
         super.visitTerm(term)

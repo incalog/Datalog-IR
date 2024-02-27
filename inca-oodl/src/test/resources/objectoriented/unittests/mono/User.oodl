@@ -1,0 +1,59 @@
+module UserDefinedMonoTest
+
+
+class Sign {
+  def joined(that: Sign): Sign = this
+  def add(that: Sign): Sign = this
+  def sub(that: Sign): Sign = this
+  def mul(that: Sign): Sign = this
+  def gt(that: Sign): Sign = this
+}
+
+case class Bot extends Sign {
+  override def joined(that: Sign): Sign = that
+}
+
+case class Top extends Sign {
+  override def joined(that: Sign): Sign = this
+}
+
+case class Pos extends Sign {
+  override def joined(that: Sign): Sign = {
+    if (that.isInstanceOf[Pos] || that.isInstanceOf[Bot])
+      return this
+    else
+      return new Top()
+  }
+}
+
+case class Neg extends Sign {
+  override def joined(that: Sign): Sign = {
+    if (that.isInstanceOf[Neg] || that.isInstanceOf[Bot])
+      return this
+    else
+      return new Top()
+  }
+}
+
+case class Zero extends Sign {
+  override def joined(that: Sign): Sign = {
+    if (that.isInstanceOf[Zero] || that.isInstanceOf[Bot])
+      return this
+    else
+      return new Top()
+  }
+}
+
+class MSign extends mono.Type[Sign, Sign, Sign] {
+  def init: Sign = new Bot()
+  def +=(state: Sign, v: Sign): Sign = state.joined(v)
+  def result(state: Sign): Sign = state
+}
+
+@main def main(): Sign = {
+  val m = new MSign()
+  m += new Bot()
+  m += new Pos()
+  m += new Bot()
+  return m.result()
+}

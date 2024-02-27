@@ -26,11 +26,11 @@ trait ScalaLowering extends BaseScalaLowering:
   override def visitModule(module: ir.Module): ir.Module =
     for (moduleEntry <- module.contents)
       moduleEntry match
-        case CaseDefinition(name, args, _) =>
+        case c@CaseDefinition(name, args, _) =>
           val params = args.zipWithIndex.map { case (ty, idx) =>
             val sty = visitType(ty) match
               case t@ScalaType(_) => t
-              case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t")
+              case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t in $c")
             (s"param_$idx", sty)
           }
           caseDef2params += name -> params

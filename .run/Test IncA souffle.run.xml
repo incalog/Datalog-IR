@@ -7,6 +7,13 @@
       <list />
     </option>
     <option name="testKind" value="All in package" />
+    <option name="classBuf">
+      <list>
+        <option value="inca.souffle.frontend.compile.GenerateIRTest" />
+        <option value="inca.souffle.frontend.syntax.ParserTest" />
+        <option value="inca.souffle.compile.backend.GenerateSouffleTest" />
+      </list>
+    </option>
     <option name="shortenClasspath" value="NONE" />
     <option name="testPackagePath" value="inca.souffle" />
     <method v="2">

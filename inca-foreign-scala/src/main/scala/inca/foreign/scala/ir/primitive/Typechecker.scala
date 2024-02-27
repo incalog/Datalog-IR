@@ -12,17 +12,6 @@ trait Typechecker extends BaseIRTypechecker:
     case ScalaDefnModuleEntry(_, _) => // nothing
     case _ => super.checkModuleEntry(moduleEntry)
 
-  // this is wrong, scala and datalog types are not compatible
-//  override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit =
-//    // ScalaTypes and their corresponding type are the same
-//    val areEqual = (ty, outside) match
-//      case (ScalaType(_), ScalaType(_)) => ty == outside
-////      case (ScalaType(_), _) => ty == ScalaInca.compileType(outside)
-////      case (_, ScalaType(_)) => ScalaInca.compileType(ty) == outside
-//      case (_, _) => ty == outside
-//    if (!areEqual)
-//      error(s"$t of type $ty is not comparable to $outside", t)
-
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case ScalaTerm(_, ty, args, _) =>
       args.foreach(inferTerm(_, Mode.Bound))

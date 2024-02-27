@@ -2,12 +2,10 @@ package inca.frontend.datalog.compile
 
 import inca.frontend.datalog.syntax.Module
 import inca.frontend.datalog.typecheck.Typechecker
+import inca.ir.extension.*
 import inca.ir.util.SourceLocation
-import inca.ir.{CompiledModule, Name, Module as IRModule}
-import inca.viatra.compile.{GeneratePSystem, PSystem}
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
-import inca.util.compileroptions.CompilerOptions
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 
 case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
 

@@ -11,7 +11,7 @@ class BlockBoundednessTest extends AnyFunSuiteLike:
 
   def module(relations: Relation*)(using typechecker: BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
-    println(mod)
+    //println(mod)
     typechecker.checkProgram(Seq(mod))
     mod
 

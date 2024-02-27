@@ -1,0 +1,6 @@
+module TypeCast
+data Nat = Zero() | Succ(Nat)
+data Bool = True() | False()
+
+@main def main(x: Any): Nat =
+  let nat = x.as[Nat] in nat

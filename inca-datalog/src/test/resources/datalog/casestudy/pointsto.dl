@@ -1,0 +1,62 @@
+edb new(Int, String, Int).
+edb store(Int, String, String, String).
+edb load(Int, String, String, String).
+edb assign(Int, String, String).
+
+edb if(Int, Any, Int, Int).
+edb next(Int, Int).
+
+
+// hack because we cannot negate edb relations
+idbif(Int, Any, Int, Int).
+idbif(l1, c, l2, l3) :- if(l1, c, l2, l3).
+
+cflow(Int, Int).
+cflow(l1, l2) :- next(l1, l2), not idbif(l1, c, lt, le).
+cflow(l1, l2) :- if(l1, c, l2, l3).
+cflow(l1, l3) :- if(l1, c, l2, l3).
+cflow(l4, l5) :- if(l1, c, l2, l3), last(l2, l4), next(l1, l5).
+cflow(l4, l5) :- if(l1, c, l2, l3), last(l3, l4), next(l1, l5).
+
+last(Int, Int).
+last(l1, l3) :- next(l1, l2), last(l2, l3).
+last(l1, l1) :- location(l1), not hasNext(l1).
+
+location(Int).
+location(l1) :- next(l1, l2).
+location(l2) :- next(l1, l2).
+location(l1) :- if(l1, c, l2, l3).
+location(l2) :- if(l1, c, l2, l3).
+location(l3) :- if(l1, c, l2, l3).
+
+hasNext(Int).
+hasNext(l1) :- next(l1, l2).
+
+cpath(Int, Int).
+cpath(l1, l2) :- cflow(l1, l2).
+cpath(l1, l3) :- cflow(l1, l2), cpath(l2, l3).
+
+pointsto(String, Int).
+pointsto(x, obj) :- new(_, x, obj).
+pointsto(to, obj) :- assign(_, to, from), pointsto(from, obj).
+pointsto(to, obj) :- load(_, to, base, f),
+                     pointsto(base, baseobj),
+                     fieldpointsto(baseobj, f, obj).
+
+fieldpointsto(Int, String, Int).
+fieldpointsto(baseobj, f, obj) :- store(_, base, f, from), pointsto(base, baseobj), pointsto(from, obj).
+
+
+cpointsto(Int, String, Int).
+cpointsto(loc, x, obj) :- new(loc, x, obj).
+cpointsto(loc2, to, obj) :- assign(loc2, to, from), cpointsto(loc1, from, obj), cpath(loc1, loc2).
+cpointsto(loc3, to, obj) :- load(loc3, to, base, f),
+                     cpointsto(loc1, base, baseobj),
+                     cfieldpointsto(loc2, baseobj, f, obj),
+                     cpath(loc1, loc3), cpath(loc2, loc3).
+
+cfieldpointsto(Int, Int, String, Int).
+cfieldpointsto(loc3, baseobj, f, obj) :- store(loc3, base, f, from),
+                                         cpointsto(loc1, base, baseobj),
+                                         cpointsto(loc2, from, obj),
+                                         cpath(loc1, loc3), cpath(loc2, loc3).

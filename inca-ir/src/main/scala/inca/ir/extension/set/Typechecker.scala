@@ -47,7 +47,7 @@ trait Typechecker extends BaseIRTypechecker:
       error(s"Expected set type but got $ty", t)
       (TSet(TNothing), m)
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case SetMember(mem, s) =>
       val (TSet(ty),_) = inferSetTerm(s, Mode.Bound)
       checkTerm(mem, ty, mode)

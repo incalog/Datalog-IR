@@ -130,6 +130,18 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     assertResult(Set(("A", 2), ("C", 2)))(res.toSet)
   }
 
+  test("Set comprehension Unit") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehensionUnit.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 2)
+    assertResult(Set(1,2,3))(res.toSet)
+  }
+
   test("Constant set") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetConst.oodl")
     val compiled = exec.compileOODL(code, options)

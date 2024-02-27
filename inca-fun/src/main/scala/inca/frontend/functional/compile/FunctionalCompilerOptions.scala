@@ -29,13 +29,10 @@ final class FunctionalCompilerOptions private(defaults: Seq[(String, Seq[(String
       case _ => FunctionalLoggingSection("fun_logging", Map())
 
   override def setDefaults(): Unit =
-    irLogging.logTypeInformation = true
-    irLogging.logModule = true
-    irLogging.logLowerings = false
-    irLogging.logOptimizations = false
+    super.setDefaults()
 
-    funLogging.logTypeInformation = true
-    funLogging.logModule = true
+    funLogging.logTypeInformation = false
+    funLogging.logModule = false
     funLogging.logNormalizedModule = false
     funLogging.verboseOutput = false
 

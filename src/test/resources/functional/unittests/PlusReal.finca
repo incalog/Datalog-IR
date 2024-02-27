@@ -1,0 +1,9 @@
+module PlusReal
+
+data Nat = Zero() | Succ(Nat)
+
+def plus(m: Nat, n: Nat): Nat = m match {
+  case Zero() => n
+  case Succ(pred) => Succ(plus(pred, n))
+}
+@main def main(m: Nat, n: Nat): Nat = plus(m, n)

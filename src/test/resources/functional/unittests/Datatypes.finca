@@ -1,0 +1,5 @@
+module Datatypes
+
+data Interval = IV(Int, Int) | TopInterval()
+data Bool = True() | False() | TopBool()
+data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()

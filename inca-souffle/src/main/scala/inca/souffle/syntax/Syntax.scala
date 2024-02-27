@@ -1,29 +1,43 @@
 package inca.souffle.syntax
 
-case class Program(content: Seq[ProgramContent]):
+import inca.ir.typing.Resolvable
+import inca.ir.util.SourceLocation
+import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl}
+
+case class Program(content: Seq[ProgramContent]) extends SourceLocation:
   override def toString: String = content.mkString("\n")
 
-enum ProgramContent:
+var nextId: Int = 0
+
+enum ProgramContent extends SourceLocation:
   case TypeDecl(name: String, rhs: TypeDeclConstraint)
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
-  case Rule(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan])
-  case Fact(name: String, args: Seq[Term])
-  case Directive(dirQualifier: DirectiveQualifier, name: QualifiedName, attrs: Map[String, DirectiveValue])
+  case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan])
+  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[RelationDecl]
+  case Directive(dirQualifier: DirectiveQualifier, names: List[QualifiedName], attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
-  case ComponentInit(n: String, compType: ComponentType)
+  case ComponentInit(n: String, compType: ComponentType) extends ProgramContent, Resolvable[ComponentDecl]
   // can only be within component decl
   case Override(n: String)
   // cannot be within component decl
   case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
   case Pragma(option: String, arg: Option[String])
 
+  val id: Int = nextId
+  nextId += 1
+
+  override def equals(obj: Any): Boolean = obj match
+    case that: ProgramContent => this.id == that.id
+    case _ => false
+  override def hashCode(): Int = id
+
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
       val queryPlanStr = queryPlan match
-        case Some(queryPlan) => queryPlan.toString
+        case Some(queryPlan) => "\n" + queryPlan.toString
         case None => ""
-      s"${heads.mkString(", ")} :- ${body.mkString(", ")}.$queryPlanStr"
-    case Fact(name, args) => s"$name(${args.mkString(", ")})."
+      s"${heads.mkString(", ")} :- $body.$queryPlanStr"
+    case fact@Fact(name, args) => s"$name(${args.mkString(", ")})." // -> ${fact.target.get}
     case RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       val qualifiersStr =
         if (qualifiers.isEmpty) ""
@@ -33,21 +47,21 @@ enum ProgramContent:
         case None => ""
       s".decl ${names.mkString(", ")}(${attrs.mkString(", ")})$qualifiersStr$choiceDomainStr"
     case TypeDecl(name, rhs) => s".type $name $rhs"
-    case Directive(dirQual, name, attrs) =>
+    case dir@Directive(dirQual, names, attrs) =>
       val attrsStr =
         if(attrs.isEmpty) ""
         else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
-      s"$dirQual $name$attrsStr"
+      s"$dirQual ${names.mkString(",")}$attrsStr" //  -> ${dir.target.get}
     case ComponentDecl(ty, superTys, contents) =>
       val superTysStr =
         if (superTys.isEmpty) ""
         else s": ${superTys.mkString(", ")}"
-      s""".comp $ty$superTys {
+      s""".comp $ty$superTysStr {
          |${contents.mkString("\n")}
          |}
          |""".stripMargin
-    case ComponentInit(n, componentType) =>
-      s".init $n = $componentType"
+    case init@ComponentInit(n, componentType) =>
+      s".init $n = $componentType" // -> ${init.target.get}
     case Override(n) => ".override $n"
     case FunctorDecl(name, attrs, retty, stateful) =>
       val statefulStr = if (stateful) " stateful" else ""
@@ -58,25 +72,33 @@ enum ProgramContent:
         case None => ""
       s".pragma $option$argStr"
 
+object ProgramContent:
+  object Rule:
+    def apply(heads: Seq[Atom], body: Seq[Atom], queryPlan: Option[QueryPlan]): ProgramContent.Rule =
+      new ProgramContent.Rule(heads, Atom.Disjunction(Seq(body)), queryPlan)
 
 enum TypeDeclConstraint:
+  case DefType()
+  case EqType(ty: Type)
   case SubType(ty: Type)
   case UnionType(alts: Seq[Type])
   case RecordType(alts: Record)
   case ADTType(alts: Seq[ADTConstructor])
 
   override def toString: String = this match
+    case DefType() => ""
+    case EqType(ty) => s"= $ty"
     case SubType(ty) => s"<: $ty"
     case UnionType(alts) => s"= ${alts.mkString(" | ")}"
     case RecordType(rec) => s"= $rec"
     case ADTType(alts) => s"= ${alts.mkString(" | ")}"
 
-enum Type:
+enum Type extends SourceLocation:
   case Number
   case Symbol
   case Unsigned
   case Float
-  case Name(qualName: QualifiedName)
+  case Name(qualName: QualifiedName) extends Type, Resolvable[ProgramContent.TypeDecl]
 
   override def toString: String = this match
     case Number => "number"
@@ -95,18 +117,29 @@ case class ADTConstructor(name: String, attrs: Seq[Attribute]):
 case class Attribute(name: String, ty: Type):
   override def toString: String = s"$name: $ty"
 
-case class Conjunction(atoms: Seq[Atom])
 
-enum Atom:
+enum Comparator:
+  case LT
+  case LE
+  case GT
+  case GE
+  case EQ
+  case NEQ
+
+  override def toString: String = this match
+    case Comparator.LT => "<"
+    case Comparator.LE => "<="
+    case Comparator.GT => ">"
+    case Comparator.GE => ">="
+    case Comparator.EQ => "="
+    case Comparator.NEQ => "!="
+
+
+enum Atom extends SourceLocation:
   case Not(atom: Atom)
-  case Call(qualifiedName: QualifiedName, args: Seq[Term])
-  case Disjunction(bodys: Seq[Conjunction])
-  case LessThan(t1: Term, t2: Term)
-  case LessThanEqual(t1: Term, t2: Term)
-  case GreaterThan(t1: Term, t2: Term)
-  case GreaterThanEqual(t1: Term, t2: Term)
-  case Equal(t1: Term, t2: Term)
-  case Unequal(t1: Term, t2: Term)
+  case Call(qualifiedName: QualifiedName, args: Seq[Term]) extends Atom, Resolvable[RelationDecl]
+  case Disjunction(bodys: Seq[Seq[Atom]])
+  case Compare(t1: Term, comp: Comparator, t2: Term)
   case Match(t1: Term, t2: Term)
   case Contains(t1: Term, t2: Term)
   case True
@@ -114,19 +147,13 @@ enum Atom:
 
   override def toString: String = this match
     case Not(atom: Atom) => s"!$atom"
-    case Call(qualName, args) => s"$qualName(${args.mkString(", ")})"
-    case Disjunction(bodys) => ""
-    case LessThan(t1, t2) => s"$t1 < $t2"
-    case LessThanEqual(t1, t2) => s"$t1 <= $t2"
-    case GreaterThan(t1, t2) => s"$t1 > $t2"
-    case GreaterThanEqual(t1, t2) => s"$t1 >= $t2"
-    case Equal(t1, t2) => s"$t1 = $t2"
-    case Unequal(t1, t2) => s"$t1 != $t2"
+    case call@Call(qualName, args) => s"$qualName(${args.mkString(", ")})" // -> ${call.target.get}
+    case Disjunction(alts) => alts.map(_.mkString(",")).mkString(";")
+    case Compare(t1, op, t2) => s"$t1 $op $t2"
     case Match(t1, t2) => s"match($t1, $t2)"
     case Contains(t1, t2) => s"contains($t1, $t2)"
     case True => "true"
     case False => "false"
-
 
 enum BinOp:
   case Add
@@ -173,16 +200,15 @@ enum UnOp:
     case Lnot => "lnot"
 
 
-enum Term:
+enum Term extends SourceLocation:
   case Var(name: String)
   case StringLit(s: String)
   case NumberLit(n: Int)
   case UnsignedLit(n: Long)
-  case FloatLit(f: Float)
-  case Nil
+  case FloatLit(f: Double)
+  case Nil()
   case List(s: Seq[Term])
-  case Constr(name: String, args: Seq[Term])
-  case Parens(t: Term)
+  case Constr(qualifiedName: QualifiedName, args: Seq[Term]) extends Term, Resolvable[ProgramContent.TypeDecl]
   case TypeCast(t: Term, ty: Type)
   case AggregatorTerm(agg: Aggregator)
   case IntrinsicFunctorApp(f: IntrinsicFunctor, args: Seq[Term])
@@ -196,12 +222,11 @@ enum Term:
     case NumberLit(n) => n.toString
     case UnsignedLit(n) => n.toString
     case FloatLit(f) => f.toString
-    case Nil => "nil"
+    case Nil() => "nil"
     case List(s) => s"[${s.mkString(", ")}]"
     case Constr(name, args) =>
       val argList = s"(${args.mkString(", ")})"
       s"$$$name$argList"
-    case Parens(t) => s"(t)"
     case TypeCast(t, ty) => s"as($t, $ty)"
     case AggregatorTerm(agg) => agg.toString
     case IntrinsicFunctorApp(f, args) => s"$f(${args.mkString(", ")})"
@@ -280,8 +305,8 @@ case class ChoiceDomain():
   override def toString: String = ""
 
 // TODO query plan
-case class QueryPlan():
-  override def toString: String = s".plan "
+case class QueryPlan(plans: List[(Int, List[Int])]):
+  override def toString: String = s".plan " + plans.map((v, is) => s"$v : ${is.mkString("(", ",", ")")}").mkString(", ")
 
 enum DirectiveQualifier:
   case Input
@@ -310,7 +335,7 @@ enum DirectiveValue:
     case False => "false"
 
 
-case class ComponentType(n: String, argTypes: Seq[String]):
+case class ComponentType(n: String, argTypes: Seq[String]) extends Resolvable[ComponentDecl]:
   override def toString: String =
     val argTypesStr =
       if (argTypes.isEmpty) ""

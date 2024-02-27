@@ -14,7 +14,7 @@ import inca.util.compileroptions.CompilerOptions
 import scala.io.Codec
 
 
-// TODO: Neither the current implementation, nor the alternative in the comment work with sbt... why ?
+// Only use dotty interface classes
 /*
 import dotty.tools.dotc.interfaces.{CompilerCallback, Diagnostic, SimpleReporter, SourceFile}
 

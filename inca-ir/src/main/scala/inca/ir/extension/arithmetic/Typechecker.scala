@@ -34,7 +34,7 @@ trait Typechecker extends BaseIRTypechecker:
     case DoubleNum(_) => TDouble.bound
     case _ => super.inferTermExtend(term, mode)
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case BinCompare(lhs, rhs, op) => inferInfixOpType(lhs, rhs, atom)
     case _ => super.checkAtom(atom, mode)
 

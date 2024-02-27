@@ -19,8 +19,8 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
     typecheckerBefore.checkProgram(Seq(input))
     println(s"before VN: \n$input\n")
     val result = VN.valueNumbering(input)
-    println(s"after VN: \n$result")
     val typecheckerAfter = new Typechecker {}
+    println(s"after VN: \n$result")
     typecheckerAfter.checkProgram(Seq(result))
     assertResult(expected)(result)
     println("#"*100)

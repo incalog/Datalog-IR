@@ -71,7 +71,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         resultType.bound
     case _ => super.inferTermExtend(term, mode)
 
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Deconstruct(t, ref, args, neg) => lookupConstruct(ref, atom) match
       case None =>
         error(s"Unknown constructor $ref", atom)

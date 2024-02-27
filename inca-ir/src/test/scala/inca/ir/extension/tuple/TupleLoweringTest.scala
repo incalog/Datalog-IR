@@ -191,7 +191,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
 
     typechecker.checkProgram(Seq(mod))
     typechecker.failOnError()
-    println(mod)
+    //println(mod)
     assertResult(expectedMod)(lowering.lower(mod))
   }
 

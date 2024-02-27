@@ -4,12 +4,13 @@ import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCom
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
+import inca.souffle.backend.Executor
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalSouffleExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(inca.souffle.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(Executor)
 
   // Unittests
 

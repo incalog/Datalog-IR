@@ -6,7 +6,7 @@ import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.string2name
 
 trait Typechecker extends BaseIRTypechecker:
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case imp@Impure(v, atoms, up, kind) => scopedVariables(Set(v.name)) {
       if (lookupVar(v).isEmpty)
         registerVar(v.name, imp, kind.ty)

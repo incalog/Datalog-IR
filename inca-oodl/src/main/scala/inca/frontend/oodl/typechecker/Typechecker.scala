@@ -3,6 +3,8 @@ package inca.frontend.oodl.typechecker
 // TODO: Support generics. Currently this is pretty hacked, incomplete and not working correctly
 // TODO: assign variables to method calls that return unit is not allowed
 // TODO: Check that each path (e.g. in an if statement) returns
+// TODO: Mono support is pretty hacky
+// TODO: Support custom mono types outside of mono.Map
 
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
@@ -18,15 +20,24 @@ class Typechecker extends TypeContext with TypeIO:
         ConstructorDef(Seq(), None, Seq(), Seq())
       )),
       // Monos
+      ClassDef(Seq(MonoClassAnno()), None, "mono.Type", Seq(ParametricType(Name("I")), ParametricType(Name("S")), ParametricType(Name("R"))), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq()),
+      )),
       ClassDef(Seq(MonoClassAnno()), None, "mono.Count", Seq(), Seq(), Seq(
         ConstructorDef(Seq(), None, Seq(), Seq()),
-        FieldDef(Seq(), None, "result", TInt, None, true),
+        MethodDef(Seq(), None, "result", Seq(), Seq(), TInt, Seq()),
         MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TAny)), TUnit, Seq())
       )),
       ClassDef(Seq(MonoClassAnno()), None, "mono.Set", Seq(ParametricType(Name("T"))), Seq(), Seq(
         ConstructorDef(Seq(), None, Seq(), Seq()),
         //FieldDef(Seq(), None, "result", TName(Name("T"), Seq()), None, true),
         MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TName(Name("T"), Seq()))), TUnit, Seq())
+      )),
+      ClassDef(Seq(MonoClassAnno()), None, "mono.Map", Seq(ParametricType(Name("K")), ParametricType(Name("V"))), Seq(), Seq(
+        ConstructorDef(Seq(), None, Seq(), Seq()),
+        //FieldDef(Seq(), None, "result", TName(Name("T"), Seq()), None, true),
+        //MethodDef(Seq(), None, "+=", Seq(), Seq(Param("el", TName(Name("K"), Seq()))), TUnit, Seq()),
+        //MethodDef(Seq(), None, "get", Seq(), Seq(Param("el", TName(Name("T"), Seq()))), TUnit, Seq())
       ))
     )
   )
@@ -70,8 +81,10 @@ class Typechecker extends TypeContext with TypeIO:
     // resolve all parent class refs before typechecking any and thereby check the inheritance
     module.classes.foreach { cls =>
       cls.parentCls.foreach { pCls =>
-        resolveNamedType(pCls) match
-          case Some(_ : ClassDef) => // nothing
+        typecheckTy(pCls)
+        pCls match
+          case t: TName if t.target.exists(_.isInstanceOf[ClassDef]) =>
+            // nothing
           case _ =>
             error(s"Class ${cls.name} can not inherit from none class type $pCls", cls)
       }
@@ -161,8 +174,6 @@ class Typechecker extends TypeContext with TypeIO:
     case (t1: TName, t2: TName) if t1.isBuiltIn => false
     case (t1: TName, t2: TName) if t2.isBuiltIn => false
     case (t1: TName, t2: TName) =>
-      resolveNamedType(t1)
-      resolveNamedType(t2)
       (t1.target, t2.target) match
         case (Some(p1: ParametricType), Some(p2: ParametricType)) =>
           p1.name == p2.name
@@ -243,8 +254,7 @@ class Typechecker extends TypeContext with TypeIO:
         inferred
     val a = expected match
       case Some(ty) =>
-        resolveNamedType(ty)
-        resolveNamedType(inferred)
+        typecheckTy(ty)
         if (subtype(inferred, ty) && inferred != ty)
           ty match
             case t: TName if t.target.exists(_.isInstanceOf[ParametricType]) =>
@@ -501,7 +511,8 @@ class Typechecker extends TypeContext with TypeIO:
     case StringLit(s) => TString
     case NullLit() => TNull
     case TupleExp(exps) if exps.isEmpty => TUnit
-    case TupleExp(exps) => TTuple(exps.map(typecheckExp(_, None)))
+    case TupleExp(exps) =>
+      TTuple(exps.map(typecheckExp(_, None)))
     case UnOp("-", e) =>
       val eTy = typecheckExp(e, None)
       if (!subtype(eTy, TInt) && !subtype(eTy, TDouble))
@@ -704,9 +715,103 @@ class Typechecker extends TypeContext with TypeIO:
             case _ =>
               error(s"Unsupported function $fun on primitive type", expression)
               TAny
+        case t@TName(Name("mono.Map"), _) if fun.name == "+=" =>
+          if (args.size != 1)
+            error("Add operation on mono.Map requires a single tuple argument", expression)
+            return TAny
+
+          val argTys = args.flatMap(typecheckExp(_, None).flatten)
+          val keyArgTys = argTys.dropRight(1)
+          val resultArgTy = argTys.last
+
+          // Typecheck nested mono maps
+          var currentTy = t
+          for (aTy <- keyArgTys.dropRight(1))
+            val newTy = currentTy.tyArgs(1) match
+              case mt@TName(Name("mono.Map"), _) =>
+                mt
+              case tt =>
+                error(s"Expected nested mono.Map, but got $tt", expression)
+                return TAny
+            if (currentTy.tyArgs.size != 2)
+              error("Missing type argument in mono.Map for get call", expression)
+              return TAny
+            assertSubtype(aTy, currentTy.tyArgs.head, expression)
+            currentTy = newTy
+
+          // Check last key argument
+          assertSubtype(keyArgTys.last, currentTy.tyArgs.head, expression)
+
+          // Check the result argument
+          val outMonoType = currentTy.tyArgs.last match
+            case t@TName(Name("mono.Set"), _) =>
+              // Allow nested mono.Sets in mono.Maps
+              TSet(currentTy.tyArgs.head)
+            case t@TName(name, _) => lookupClass(name) match
+              case Some(clsDef) if clsDef.isMonoClass =>
+                // Get the result type of the nested mono.Type
+                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls
+                resultTy
+              case _ =>
+                error("Expected mono.Type as mono.Map result type.")
+                return TAny
+            case _ =>
+              error("Expected mono.Type as mono.Map result type.")
+              return TAny
+
+          assertSubtype(resultArgTy, outMonoType, expression)
+
+          TUnit
+        case t@TName(Name("mono.Map"), _) if fun.name == "get" =>
+          val argTys = args.map(typecheckExp(_, None))
+
+          // Typecheck nested mono maps
+          var currentTy = t
+          for (aTy <- argTys.dropRight(1))
+            val newTy = currentTy.tyArgs(1) match
+              case mt@TName(Name("mono.Map"), _) =>
+                 mt
+              case tt =>
+                error(s"Expected nested mono.Map, but got $tt", expression)
+                return TAny
+            if (currentTy.tyArgs.size != 2)
+              error("Missing type argument in mono.Map for get call", expression)
+              return TAny
+            assertSubtype(aTy, currentTy.tyArgs.head, expression)
+            currentTy = newTy
+
+          // Check last argument
+          assertSubtype(argTys.last, currentTy.tyArgs.head, expression)
+
+          // Get the result type
+          val outMonoType = currentTy.tyArgs.last match
+            case t@TName(Name("mono.Set"), _) =>
+              // Allow nested mono.Sets in mono.Maps
+              TSet(currentTy.tyArgs.head)
+            case t@TName(name, _) => lookupClass(name) match
+              case Some(clsDef) if clsDef.isMonoClass =>
+                // Get the result type of the nested mono.Type
+                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls
+                resultTy
+              case _ =>
+                error("Expected mono.Type as mono.Map result type.")
+                return TAny
+            case _ =>
+              error("Expected mono.Type as mono.Map result type.")
+              return TAny
+          outMonoType
         case t: TName if !t.isBuiltIn =>
           val argTys = args.map(typecheckExp(_, None))
           t.target match
+            case Some(cls: ClassDef) if cls.isMonoClass && cls.parentCls.nonEmpty =>
+              fun match
+                case Name("+=") =>
+                  val Seq(TName(Name("mono.Type"), Seq(inTy, _, _))) = cls.parentCls
+                  assertSubtype(argTys.head, inTy, expression)
+                  TUnit
+                case Name("result") =>
+                  val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+                  outTy
             case Some(cls: ClassDef) => lookupMethod(cls, fun, argTys) match
               case None => TAny
               case Some((clsDef, methodDef)) =>
@@ -716,7 +821,8 @@ class Typechecker extends TypeContext with TypeIO:
                 resolveTarget(methodCallExpr)((clsDef, methodDef))
                 typecheckTy(methodDef.outType)
                 methodDef.outType
-            case _ => TAny
+            case trg =>
+              TAny
         case typ =>
           error(s"Can not lookup method '$fun' for expression of type '$typ'", expression)
           TAny
@@ -780,24 +886,31 @@ class Typechecker extends TypeContext with TypeIO:
         tys.foreach(resolveNamedType)
         t.target
       case t@TName(name, tys) =>
-        val (cls, _) = withErrors {
+        val (clsOption, _) = withErrors {
           lookupClass(name).map { classDef =>
             resolveTarget(t)(classDef)
-            // Resolve nested generics
-            tys.foreach(resolveNamedType)
             classDef
           }
         }
 
-        if (cls.isDefined)
-          cls
-        else
-          val pTy = lookupTyVar(name).map { tyParam =>
+        val trg = clsOption match
+          case Some(_) =>
+            clsOption
+          case _ => lookupTyVar(name).map { tyParam =>
             resolveTarget(t)(tyParam)
-            tys.foreach(resolveNamedType)
             tyParam
           }
-          pTy
-      case _ => None
+
+        tys.foreach(resolveNamedType)
+        trg
+      case TTuple(tys) =>
+        tys.foreach(resolveNamedType)
+        None
+      case TSet(ty) =>
+        resolveNamedType(ty)
+        None
+      case _ =>
+        println(s"Can not do anything for $ty")
+        None
     res
   }

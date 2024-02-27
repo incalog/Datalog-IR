@@ -19,29 +19,29 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
     val lowering = new Lowering {}
 
     val mod = Module("M", BaseIR.language + IR + arithmetic.IR + string.IR + tuple.IR + data.IR, entries)
-    var printedMod = false
+    //var printedMod = false
     var lowered: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
-      println(mod)
-      printedMod = true
+      //println(mod)
+      //printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
-      println("Lowered:\n" + lowered)
+      //println("Lowered:\n" + lowered)
       typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
-      if (!printedMod)
-        println(mod)
-      println(lowered)
+      //if (!printedMod)
+      //  println(mod)
+      //println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors
       if (errorsBefore.nonEmpty) {
-        println("Type errors in original code:")
-        errorsBefore.foreach(println)
+        //println("Type errors in original code:")
+        //errorsBefore.foreach(println)
       }
       if (errorsAfter.nonEmpty) {
-        println("Type errors in lowered code:")
-        errorsAfter.foreach(println)
+        //println("Type errors in lowered code:")
+        //errorsAfter.foreach(println)
       }
     }
 

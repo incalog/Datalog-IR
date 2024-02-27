@@ -4,7 +4,7 @@ import inca.ir.{Atom, Name, Param, Relation, TAny, Term, TermArg, TermType, Type
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, Mode}
 
 trait Typechecker extends BaseIRTypechecker:
-  override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Aggregate(ref, args, op) =>
       val paramTys = inferRelationRef(ref, atom)
       ref.target.foreach(addDependency(currentEntry, _, DependencyInfo.AggregationCall))
@@ -13,7 +13,7 @@ trait Typechecker extends BaseIRTypechecker:
 
       val aggregands: Seq[Type] = args.zipAll(paramTys, null, null).flatMap {
         case (AggregateColumnArg(t), pty) => // skip
-          checkTerm(t,op.resultType, mode)
+          checkTerm(t, op.resultType, mode)
           Some(pty)
         case (TermArg(t), null) => // missing param
           inferTerm(t, Mode.Bound)

@@ -1,18 +1,17 @@
 package inca.ir.extension.edbdata
 
-import inca.ir.extension.arithmetic.{IntNum, TInt}
-import inca.ir.extension.string.{StringLit, TString}
+import inca.ir.extension.arithmetic.TInt
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.string.TString
 import inca.ir.typing.IRTypechecker
-import inca.ir.{Body, Eq, Language, Module, Param, Relation, TNothing, Var, string2name, ModuleEntry}
+import inca.ir.{Body, Eq, Language, Module, ModuleEntry, Param, Relation, Var, string2name}
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 class EdbDataTest extends AnyFunSuiteLike:
   def module(relations: ModuleEntry*): Module =
     val typechecker = new IRTypechecker {}
     val mod = Module("M", Language(IR), relations)
-    try typechecker.checkProgram(Seq(mod))
-    finally println(mod)
+    typechecker.checkProgram(Seq(mod))
     mod
 
   test("Peano schema"){

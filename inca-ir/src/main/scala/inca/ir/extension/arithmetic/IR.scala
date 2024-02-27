@@ -40,6 +40,7 @@ def Remainder(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "%")
 def Min(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "min")
 def Max(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "max")
 def Abs(t: Term): UnOp = UnOp(t, "abs")
+def Neg(t: Term): UnOp = UnOp(t, "-")
 
 def LT(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<")
 def LE(lhs: Term, rhs: Term): BinCompare = BinCompare(lhs, rhs, "<=")
