@@ -192,7 +192,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
              |""".stripMargin,
         resultCode = s"(st: $stateMMSTy) => st.mapValues(($resultCode)).toMap",
         combineCode =
-          s"""(map1: $outputMMSTy, map2: $outputMMSTy) =>
+          s"""(map1: $outputMMSTy, map2: $outputMMSTy) => {
              |  var result = map1
              |  for ((k, v1) <- map2)
              |    val v = map1.get(k) match
@@ -200,7 +200,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
              |      case Some(v2) => ($combineCode)(v1, v2)
              |    result += k -> v
              |  result
-             |""".stripMargin
+             |}""".stripMargin
       )
     // user-defined mono
     case MonoAggregationOperator(ScalaMonoDefinition(name, initCode, addCode, resultCode, combineCode, constructorParamTypes, typ)) =>

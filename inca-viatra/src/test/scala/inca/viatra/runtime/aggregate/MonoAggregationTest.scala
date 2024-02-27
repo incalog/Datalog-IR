@@ -431,7 +431,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
         |""".stripMargin,
     resultCode = "(st : Map[String, Set[String]] => st",
     combineCode =
-      s"""(map1: Map[String, Set[String]], map2: Map[String, Set[String]]) =>
+      s"""(map1: Map[String, Set[String]], map2: Map[String, Set[String]]) => {
          |  var result = map1
          |  for ((k, v1) <- map2)
          |    val v = map1.get(k) match
@@ -439,7 +439,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
          |      case Some(v2) => v1 ++ v2
          |    result += k -> v
          |  result
-         |""".stripMargin,
+         |}""".stripMargin,
     Seq(),
     typ = MonoTypes(TTuple(Seq(TString, TString)), TMap(TString, TSet(TString)), TMap(TString, TSet(TString)))
   )
