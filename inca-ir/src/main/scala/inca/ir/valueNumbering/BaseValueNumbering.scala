@@ -175,7 +175,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       Seq(
         if const.contains(VN(name)) && this.config.propagateConstants then
           const(VN(name))
-        else newVar(VN(name),term.typ,valueUnknown.contains(term))
+        else newVar(VN(name),v.typ,valueUnknown.contains(term))
       )
     case _ =>
       val newTerm = super.visitTerm(term).head
@@ -187,13 +187,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match{
     case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>
-      treatBindingInEq(x,e, dontRemove = isParam(x))  // in case a redundant binding is found it will be removed unless it belongs to parameter
+      treatBindingInEq(x,e, dontRemove = isParam(x), vari.typ)  // in case a redundant binding is found it will be removed unless it belongs to parameter
     case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>
-      treatBindingInEq(x,e, dontRemove = isParam(x))
+      treatBindingInEq(x,e, dontRemove = isParam(x), vari.typ)
     case Eq(vari@Var(RefByName(Name(x))), e, false) =>
-      treatComparisonEq(x,e) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+      treatComparisonEq(x,e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
     case Eq(e, vari@Var(RefByName(Name(x))), false) =>
-      treatComparisonEq(x,e)
+      treatComparisonEq(x,e, vari.typ)
 
 
     case call@Call(_, _, false) =>
@@ -222,7 +222,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def isConst(term: Term): Boolean = false
 
-  private def treatBindingInEq(x: String, e: Term, dontRemove: Boolean = false): Seq[Atom] = {
+  private def treatBindingInEq(x: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
     val newTerm = visitTerm(e).head
 
     val exprHash: Hashed = getHashCode(newTerm)
@@ -238,7 +238,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       // remove "Assignment" or replace term
       if dontRemove then {
         // also remember the new Eq but dont remove it
-        valueNumberAtoms(Eq(newVar(x, e.typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
+        valueNumberAtoms(Eq(newVar(x, typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
       } // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       else Seq()
     }
@@ -259,7 +259,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //      }
 
       // remove "Assignment" or replace term
-      return Seq(Eq(newVar(v,e.typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm // TODO valueNumberAtom ?
+      return Seq(Eq(newVar(v,typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm // TODO valueNumberAtom ?
     }
 
     else {
@@ -276,12 +276,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       // return with newTerm
       // also remember the new Eq; it might be removed
-        valueNumberAtoms(Eq(newVar(x, e.typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
+        valueNumberAtoms(Eq(newVar(x, typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
     }
   }
 
-  def treatComparisonEq(x: String, e: Term): Seq[Atom] = {
-    val atomSeq = treatBindingInEq(x, e, dontRemove = true) // not removed by value numbering of terms but may be removed if duplicate of other Eq below
+  def treatComparisonEq(x: String, e: Term, typ: Option[TermType]): Seq[Atom] = {
+    val atomSeq = treatBindingInEq(x, e, dontRemove = true, typ) // not removed by value numbering of terms but may be removed if duplicate of other Eq below
     if atomSeq.isEmpty then return atomSeq
 
     val newAtom = atomSeq.head
