@@ -29,6 +29,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   var valueUnknown: Set[Term] = Set() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
 
+  // maps for atoms
+  var VNAtoms: Map[String, ValNum] = Map() // String is a Name
+  var hashTableAtoms: Map[Hashed, ValNum] = Map()
+
   // maps for bodies
   var VNBodies: Map[String, ValNum] = Map()
   var hashTableBodies: Map[Hashed, ValNum] = Map()
@@ -68,15 +72,22 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   // TODO dont use scala`s hashing function
   // Type of argument -> changed from Term to Analyzable since need to Hash Atoms like Calls too
-  protected def getHashCode(elem: Analyzable): Hashed = elem match {
+  protected def getHashCode(elem: Term): Hashed = elem match {
     case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
 
-//  protected def getHashCode(call: Call, withoutArg: String): Hashed = Call(call.ref,call.args.filter {
-//    case TermArg(Var(Name(x))) => x == withoutArg
-//    case _ => false
-//  }, call.neg).hashCode()
+  // bindingArg is passed if hash is used for Var with this name and NOT for the atom
+  protected def getHashCode(atom: Atom, bindigArg: Option[String] = None): Hashed = atom match {
+    case Call(ref,args,neg) => bindigArg match {
+      case Some(withoutArg) =>(Seq(ref) ++ args.filter { // there should be no false positive caused by removal because no relation name used twice
+          case TermArg(Var(Name(x))) => x == withoutArg
+          case _ => false
+        } ++ Seq(neg)).hashCode()
+      case None => (Seq(ref) ++ args ++ Seq(neg)).hashCode()
+    }
+    case _ => atom.hashCode()
+  }
 
 
   protected def getHashCode(body: Body): Hashed = body.hashCode()
@@ -122,6 +133,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     VN = Map()
     hashTable = Map()
     const = Map()
+
+    VNAtoms = Map()
+    hashTableAtoms = Map()
     valueNumberBodies(body)
   }
 
@@ -184,7 +198,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     case call@Call(_, _, false) =>
       super.visitAtom(atom).head match{
-        case call@Call(ref, args, false) => valueNumberAtoms(call, args)
+        case call@Call(ref, args, false) => treatBindingsInCall(call,args)
       }
 
     // TODO can equivalence of two vars not be concluded from calls?
@@ -198,7 +212,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     case call@ExtensionalCall(_, _, false) =>
       super.visitAtom(atom).head match{
-        case call@ExtensionalCall(ref, args, false) => valueNumberAtoms(call, args)
+        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
       }
 
 
@@ -245,7 +259,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //      }
 
       // remove "Assignment" or replace term
-      return Seq(Eq(newVar(v,e.typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+      return Seq(Eq(newVar(v,e.typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm // TODO valueNumberAtom ?
     }
 
     else {
@@ -290,40 +304,56 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
+    val atomHash: Hashed = getHashCode(call)
+    val newArgs: Seq[Arg] = args.map {
+      case t@TermArg(term) => term match {
 
-  private def valueNumberAtoms(atom: Atom, callArgs: Seq[Arg] = Seq(), dontRemove: Boolean = false): Seq[Atom] = { // callArgs only given to function if atom is a call
+        case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => // add binding vars to maps
+          val bindingCallHash = getHashCode(call, Some(variName))
+
+          // same calls except currently binding var should have same ValNum in different Relations
+          if (hashTableGlobal.contains(bindingCallHash)) {
+            val v: ValNum = hashTableGlobal(bindingCallHash)
+            VN += (variName, v)
+            hashTable += (bindingCallHash, v)
+            valueUnknown = valueUnknown + Var(v)
+            TermArg(newVar(v, term.typ, true))
+          } else {
+            VN += (variName, variName)
+            hashTable += (bindingCallHash, variName)
+            valueUnknown = valueUnknown + Var(variName)
+            t
+          }
+
+        case _ => t
+      }
+      case t => t
+    }
+    val newCall = call match{
+      case Call(ref,_,neg) => Call(ref,newArgs,neg)
+      case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
+    }
+    valueNumberAtoms(newCall)
+  }
+
+  private def valueNumberAtoms(atom: Atom, dontRemove: Boolean = false): Seq[Atom] = { // callArgs only given to function if atom is a call
 //    val newAtom = super.visitAtom(atom).head
     val newAtom = atom
     val atomHash: Hashed = getHashCode(newAtom)
     val x = atom.toString
 
-    if (hashTable.contains(atomHash)) { // TODO other Maps for Atoms or okay like this ?
-      val v: ValNum = hashTable(atomHash)
-      VN += (x, v)
+    if (hashTableAtoms.contains(atomHash)) {
+      val v: ValNum = hashTableAtoms(atomHash)
+      VNAtoms += (x, v)
       // remove Call or replace args
       if dontRemove then Seq(newAtom)
       else Seq()
     }
     else {
       val v = x
-      VN += (x, v)
-      hashTable += (atomHash, v)
-
-      callArgs.foreach { t => t match {  // if there are callArgs passed we already now atom is a Call or an ExtCall TODO refactor?
-        case TermArg(t2) => t2 match { // add binding vars to maps
-          case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding =>
-            VN += (variName, variName)
-            hashTable += (atomHash, variName)   // TODO same calls except current bounding var should have same ValNum in different Relations
-          // count += (atomHash, 1)
-            valueUnknown = valueUnknown + Var(variName)
-
-          //        case Var(RefByName(Name(variName))) =>
-          //          VN(variName)
-          //          count = count.updated(atomHash, count(atomHash) + 1)
-          case _ =>
-        }
-        case _ =>
-      }}
+      VNAtoms += (x, v)
+      hashTableAtoms += (atomHash, v)
 
       Seq(newAtom)
     }
