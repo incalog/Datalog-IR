@@ -37,6 +37,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var VNRelations: Map[String, ValNum] = Map()
   var hashTableRelations: Map[Hashed, ValNum] = Map()
 
+  // global Maps for terms
+  var VNGlobal: Map[String, ValNum] = Map() // String is a Name
+  var hashTableGlobal: Map[Hashed, ValNum] = Map()
+
 
   def valueNumbering(module: ir.Module): ir.Module = {
     // ugly fix for changing references from removed relations  // TODO refactor / rewrite so that relations are processed in different order
@@ -68,6 +72,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
+
+//  protected def getHashCode(call: Call, withoutArg: String): Hashed = Call(call.ref,call.args.filter {
+//    case TermArg(Var(Name(x))) => x == withoutArg
+//    case _ => false
+//  }, call.neg).hashCode()
+
+
   protected def getHashCode(body: Body): Hashed = body.hashCode()
 
   protected def getHashCode(relation: Relation): Hashed = (relation.params ++ relation.bodies).hashCode()  // -> name of relation irrelevant
@@ -105,6 +116,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   override def visitBody(body: Body): Seq[Body] = {
+    VNGlobal = VNGlobal ++ VN
+    hashTableGlobal = hashTableGlobal ++ hashTable
+
     VN = Map()
     hashTable = Map()
     const = Map()
@@ -214,6 +228,26 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       } // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       else Seq()
     }
+    else if (hashTableGlobal.contains(exprHash) && !isParam(x)) {
+      val v: ValNum = newTerm match {
+        case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
+        case _ => hashTableGlobal(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
+      }
+      VN += (x, v)
+      VN += (v, v)
+      hashTable += (exprHash,v)
+
+      //count = count.updated(exprHash, count(exprHash) + 1)
+
+//      if(isParam(x) && !isParam(v)){ // when replacing a variable that is a parameter we also need to replace it in the list of parameters
+//        val temp = relationParams.diff(Seq(Name(x)))
+//        relationParams = temp.appended(v)
+//      }
+
+      // remove "Assignment" or replace term
+      return Seq(Eq(newVar(v,e.typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+    }
+
     else {
       val v = x
       VN += (x, v)
@@ -275,11 +309,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       VN += (x, v)
       hashTable += (atomHash, v)
 
-      callArgs.foreach { t => t match {
-        case TermArg(t) => t match { // add binding vars to maps
+      callArgs.foreach { t => t match {  // if there are callArgs passed we already now atom is a Call or an ExtCall TODO refactor?
+        case TermArg(t2) => t2 match { // add binding vars to maps
           case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding =>
             VN += (variName, variName)
-            hashTable += (atomHash, variName)
+            hashTable += (atomHash, variName)   // TODO same calls except current bounding var should have same ValNum in different Relations
           // count += (atomHash, 1)
             valueUnknown = valueUnknown + Var(variName)
 

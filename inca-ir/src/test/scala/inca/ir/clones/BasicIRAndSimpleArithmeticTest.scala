@@ -225,24 +225,24 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X$0")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("Y$0")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("H1$0")), Div(Mul(Var("Y$0"), Var("X$0")), IntNum(2))),
-            Eq(Var(Name("H2$0")), Div(Mul(Var("X$0"), Var("Y$0")), IntNum(2))),
-            Eq(Var(Name("Z$0")), Sub(Var("H1$0"), Mul(Var("H2$0"), IntNum(3)))),
-            Eq(Var(Name("param$0")), Var(Name("X$0"))),
-            Eq(Var(Name("param$1")), Var(Name("Y$0"))),
-            Eq(Var(Name("param$2")), Var(Name("Z$0")))
+            Eq(Var(Name("X")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("H1")), Div(Mul(Var("Y"), Var("X")), IntNum(2))),
+            Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
+            Eq(Var(Name("Z")), Sub(Var("H1"), Mul(Var("H2"), IntNum(3)))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
           )),
           Body(Seq(
-            Eq(Var(Name("X$0")), Mul(IntNum(2), IntNum(2))),
-            Eq(Var(Name("Y$0")), Mul(IntNum(2), IntNum(2))),
-            Eq(Var(Name("A$0")), Div(Var(Name("X$0")), Var(Name("Y$0")))),
-            Eq(Var(Name("B$0")), Div(Mul(Var("Y$0"), Var("X$0")), IntNum(2))),  // should not be replaced with H1 from other body
-            Eq(Var(Name("Z$0")), Add(Var(Name("X$0")), Add(Var(Name("A$0")),Var(Name("B$0"))))),
-            Eq(Var(Name("param$0")), Var(Name("X$0"))),
-            Eq(Var(Name("param$1")), Var(Name("Y$0"))),
-            Eq(Var(Name("param$2")), Var(Name("Z$0")))
+            Eq(Var(Name("X")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("A")), Div(Var(Name("X")), Var(Name("Y")))),
+            Eq(Var(Name("B")), Div(Mul(Var("Y"), Var("X")), IntNum(2))),  // should not be replaced with H1 from other body
+            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")),Var(Name("B"))))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
       ))
@@ -250,24 +250,25 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X$0")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("X")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
             //Eq(Var(Name("Y")), Mul(IntNum(1), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("H1$0")), Div(Mul(Var("X$0"), Var("X$0")), IntNum(2))),
+            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))),
             //Eq(Var(Name("H2")), Div(Mul(Var("X"), Var("Y")), IntNum(2))),
-            Eq(Var(Name("Z$0")), Sub(Var("H1$0"), Mul(Var("H1$0"), IntNum(3)))),
-            Eq(Var(Name("param$0")), Var(Name("X$0"))),
-            Eq(Var(Name("param$1")), Var(Name("X$0"))),
-            Eq(Var(Name("param$2")), Var(Name("Z$0")))
+            Eq(Var(Name("Z")), Sub(Var("H1"), Mul(Var("H1"), IntNum(3)))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("X"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
           )),
           Body(Seq(
-            Eq(Var(Name("X$0")), Mul(IntNum(2), IntNum(2))),
+            Eq(Var(Name("X")), Mul(IntNum(2), IntNum(2))),
             //Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
-            Eq(Var(Name("A$0")), Div(Var(Name("X$0")), Var(Name("X$0")))),
-            Eq(Var(Name("B$0")), Div(Mul(Var("X$0"), Var("X$0")), IntNum(2))), // should not be replaced with H1 from other body
-            Eq(Var(Name("Z$0")), Add(Var(Name("X$0")), Add(Var(Name("A$0")), Var(Name("B$0"))))),
-            Eq(Var(Name("param$0")), Var(Name("X$0"))),
-            Eq(Var(Name("param$1")), Var(Name("X$0"))),
-            Eq(Var(Name("param$2")), Var(Name("Z$0")))
+            Eq(Var(Name("A")), Div(Var(Name("X")), Var(Name("X")))),
+//            Eq(Var(Name("B")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // should not be replaced with H1 from other body
+            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // -> but they do compute the same value -> with global scope given same name
+            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("H1"))))),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("X"))),
+            Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
       ))
@@ -299,7 +300,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 //            Eq(Var(Name("B")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("B")),
 //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A")), Var("A")),   // can be removed too
+            Eq(Var(Name("A")), Var("A")),   // can be removed too 
 //            Eq(Var(Name("E")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
@@ -315,15 +316,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("A$0")), IntNum(1)),
-            Eq(Var(Name("B$0")), IntNum(1)),
-            Eq(Var(Name("C$0")), Var("B$0")),
-            Eq(Var(Name("D$0")), Var("A$0")),
-            Eq(Var(Name("C$0")), Var("D$0")),
-            Eq(Var(Name("E$0")), Mul(IntNum(1), IntNum(1))),  // remove even if Equality known later? But its actually already known here... Would that always be the case (with Calls etc)
-            Eq(Var(Name("A$0")), Var("E$0")),
-            Eq(Var(Name("param$0")), Var(Name("C$0"))),
-            Eq(Var(Name("param$1")), Var(Name("E$0")))
+            Eq(Var(Name("A")), IntNum(1)),
+            Eq(Var(Name("B")), IntNum(1)),
+            Eq(Var(Name("C")), Var("B")),
+            Eq(Var(Name("D")), Var("A")),
+            Eq(Var(Name("C")), Var("D")),
+            Eq(Var(Name("E")), Mul(IntNum(1), IntNum(1))),  // remove even if Equality known later? But its actually already known here... Would that always be the case (with Calls etc)
+            Eq(Var(Name("A")), Var("E")),
+            Eq(Var(Name("param$0")), Var(Name("C"))),
+            Eq(Var(Name("param$1")), Var(Name("E")))
           ))
         ))
       ))
@@ -331,14 +332,14 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("A$0")), IntNum(1)),
+            Eq(Var(Name("A")), IntNum(1)),
             //            Eq(Var(Name("B")), IntNum(1)),
             //            Eq(Var(Name("C")), Var("B")),
             //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A$0")), Var("A$0")),
+            Eq(Var(Name("A")), Var("A")),
             //            Eq(Var(Name("C")), Var("E")),
-            Eq(Var(Name("param$0")), Var(Name("A$0"))),
-            Eq(Var(Name("param$1")), Var(Name("A$0")))
+            Eq(Var(Name("param$0")), Var(Name("A"))),
+            Eq(Var(Name("param$1")), Var(Name("A")))
           ))
         ))
       ))
@@ -619,7 +620,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var(Name("X")))), false),
-            //Call(Name("b"), Seq(TermArg(Var(Name("Y"))), false),
+            //Call(Name("b"), Seq(TermArg(Var(Name("Y"))), false),  // TODO is that correct if b has multiple bodies ???
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X")))
           ))
@@ -852,16 +853,16 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X1$0"), IntNum(32)),
-            Eq(Var("X1$0"), Var("X2$0")),
-            Eq(Var("X2$0"), Var("X1$0")),
-            GE(Var("X1$0"),IntNum(2)),
-            GE(Var("X2$0"),IntNum(2)),
-            LT(Var("X1$0"), IntNum(64)),
-            LT(Var("X2$0"), IntNum(64)),
-            Eq(Var("X1$0"), IntNum(4), true),
-            Eq(Var("X2$0"), IntNum(4), true),
-            Eq(Var(Name("param$0")), Var(Name("X2$0")))
+            Eq(Var("X1"), IntNum(32)),
+            Eq(Var("X1"), Var("X2")),
+            Eq(Var("X2"), Var("X1")),
+            GE(Var("X1"),IntNum(2)),
+            GE(Var("X2"),IntNum(2)),
+            LT(Var("X1"), IntNum(64)),
+            LT(Var("X2"), IntNum(64)),
+            Eq(Var("X1"), IntNum(4), true),
+            Eq(Var("X2"), IntNum(4), true),
+            Eq(Var(Name("param$0")), Var(Name("X2")))
           ))
         ))
       ))
@@ -869,16 +870,16 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X1$0"), IntNum(32)),
+            Eq(Var("X1"), IntNum(32)),
 //            Eq(Var("X1"), Var("X2")),
-            Eq(Var("X1$0"), Var("X1$0")),
-            GE(Var("X1$0"), IntNum(2)),
+            Eq(Var("X1"), Var("X1")),
+            GE(Var("X1"), IntNum(2)),
 //            GE(Var("X2"), IntNum(2)),
-            LT(Var("X1$0"), IntNum(64)),
+            LT(Var("X1"), IntNum(64)),
 //            LT(Var("X2"), IntNum(64)),
-            Eq(Var("X1$0"), IntNum(4), true),
+            Eq(Var("X1"), IntNum(4), true),
 //            Eq(Var("X2"), IntNum(4), true),
-            Eq(Var(Name("param$0")), Var(Name("X1$0")))
+            Eq(Var(Name("param$0")), Var(Name("X1")))
           ))
         ))
       ))
@@ -987,28 +988,28 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
   test("Redundant Relation with renaming") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("n$0", TInt), Param("result$0", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("n$0")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            GT(Var(Name("n$0")), IntNum(0)),
-            Eq(Var(Name("result$0")), Add(Var("n$0"), IntNum(1)))
+            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
           ))
         )),
-        Relation(Name("b"), Seq(Param("m$0", TInt), Param("result$0", TInt)), Seq(
+        Relation(Name("b"), Seq(Param("m", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("m$0")), IntNum(10)),
-            GT(Var(Name("m$0")), IntNum(0)),
-            Eq(Var(Name("result$0")), Add(Var("m$0"), IntNum(1)))
+            Eq(Var(Name("m")), IntNum(10)),
+            GT(Var(Name("m")), IntNum(0)),
+            Eq(Var(Name("result")), Add(Var("m"), IntNum(1)))
           ))
         ))
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("n$0", TInt), Param("result$0", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("n$0")), IntNum(10)),
-            GT(Var(Name("n$0")), IntNum(0)),
-            Eq(Var(Name("result$0")), Add(IntNum(1), Var("n$0")))
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
           ))
         ))
       ))
@@ -1157,7 +1158,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
-            Eq(Var(Name("Z")), IntNum(12)), // TODO could this be removed?
+            Eq(Var(Name("Z")), IntNum(12)), // TODO could this be removed? -> would need to figure out order again or iterate(?)
             Eq(Var(Name("X")), IntNum(12)),
             Eq(Var(Name("param$0")), Var(Name("Z"))),
             Eq(Var(Name("param$1")), Var(Name("Y")))
@@ -1172,5 +1173,125 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Repeated Atoms in different Relations") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true))
+  }
+
+  test("Repeated Atoms in different Relations 2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(IntNum(2),Var("B1"))),
+            Eq(Var(Name("m")), Mul(Var("B1"),Var("n"))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1"))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
+            Eq(Var(Name("m")), Mul(Var("A1"),Var("n"))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true))
+  }
+
+
+  test("Repeated Atoms in different Relations with Calls") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("c"), Seq(TermArg(Var("A1")))),
+            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"),Var("A2"))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("c"), Seq(TermArg(Var("B1")))),
+            Eq(Var(Name("B2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"),Var("B2"))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("n"), IntNum(11))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10)),
+            GT(Var(Name("n")), IntNum(0)),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("n")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("n"), IntNum(11))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(true))
+  }
 
 }
