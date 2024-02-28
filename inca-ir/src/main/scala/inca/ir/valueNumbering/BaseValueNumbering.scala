@@ -117,7 +117,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     if (config.attemptAlphaEquivalence) {
       paramSubst = Map()
-      relationParams.indices.foreach(i => paramSubst += (relationParams(i), substParamNames(i))) // TODO
+      relationParams.zip(substParamNames).foreach(paramSubst += (_, _))
     }
       valueNumberRelations(relation)
   }
