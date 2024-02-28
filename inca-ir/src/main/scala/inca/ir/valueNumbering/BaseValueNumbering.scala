@@ -3,6 +3,7 @@ package inca.ir.valueNumbering
 import inca.ir
 import inca.ir.*
 import inca.ir.analysis.Analyzable
+import inca.util.Gensym
 //import inca.ir.extension.arithmetic.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.IRVisitor
@@ -12,7 +13,9 @@ import inca.ir.visitors.IRVisitor
 case class ConfigVN(simplifyArithmetic: Boolean = false,
                     propagateConstants: Boolean = false,
                     removeTrueAtoms: Boolean = false,
-                    occurrencesBeforeRemoved: Int = 0)
+                    occurrencesBeforeRemoved: Int = 0,
+                    attemptAlphaEquivalence: Boolean = false,
+                   )
 
 /** for value numbering constructs from BaseIR */
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
@@ -41,6 +44,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var VNRelations: Map[String, ValNum] = Map()
   var hashTableRelations: Map[Hashed, ValNum] = Map()
 
+  var gensym: Gensym = Gensym()
+  var substParamNames: Seq[String] = Seq()
+
   // global Maps for terms
   var VNGlobal: Map[String, ValNum] = Map() // String is a Name
   var hashTableGlobal: Map[Hashed, ValNum] = Map()
@@ -67,6 +73,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   override def visitModule(module: Module): Module = {
     VNRelations = Map()
     hashTableRelations = Map()
+    if (config.attemptAlphaEquivalence){
+      gensym = Gensym(module.relations.values.flatMap(rel => rel.params.map(_.name.name).concat(rel.bodies.flatMap(_.vars.map(_.name.name)))))
+      val maxNumParams = module.relations.values.map(_.params.length).max
+      (0 until maxNumParams).foreach( _ => substParamNames = substParamNames.appended(gensym.fresh("param")))
+    }
     super.visitModule(module)
   }
 
@@ -98,11 +109,22 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   private var relationParams: Seq[Name] = Seq()
   private def isParam(x: String): Boolean = relationParams.map(_.name).contains(x)
 
+  var paramSubst: Map[String,String] = Map()
   override def visitRelation(relation: Relation): Seq[Relation] = {
     relationParams = relation.params.map(_.name)
     VNBodies = Map()
     hashTableBodies = Map()
-    valueNumberRelations(relation)
+
+    if (config.attemptAlphaEquivalence) {
+      paramSubst = Map()
+      relationParams.zip(substParamNames).foreach(paramSubst += (_, _))
+    }
+      valueNumberRelations(relation)
+  }
+
+  override def visitParam(param: Param): Seq[Param] = {
+    if paramSubst.contains(param.name.name) then Seq(Param(paramSubst(param.name.name), param.ty))
+    else Seq(param)
   }
 
   private def valueNumberRelations(relation: Relation): Seq[Relation] = {
@@ -170,6 +192,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
+    case v@Var(RefByName(Name(name))) if paramSubst.contains(name) && config.attemptAlphaEquivalence => visitTerm(newVar(paramSubst(name),v.typ,valueUnknown.contains(term)))
     case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
     case v@Var(RefByName(Name(name))) if VN.contains(name) =>
       Seq(
@@ -222,8 +245,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def isConst(term: Term): Boolean = false
 
-  private def treatBindingInEq(x: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
+  private def treatBindingInEq(varName: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
     val newTerm = visitTerm(e).head
+    val x = if paramSubst.contains(varName) && config.attemptAlphaEquivalence then paramSubst(varName) else varName
 
     val exprHash: Hashed = getHashCode(newTerm)
     if (hashTable.contains(exprHash)) {

@@ -999,7 +999,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input, ConfigVN(true))
   }
 
-  test("Redundant Relation with renaming") {
+  test("Redundant Relation with renaming") { // TODO
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
@@ -1019,15 +1019,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+            Eq(Var(Name("param$0")), IntNum(10)),
+            GT(Var(Name("param$0")), IntNum(0)),
+            Eq(Var(Name("param$1")), Add(IntNum(1), Var("param$0")))
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true))
+    performTest(expected, input, ConfigVN(simplifyArithmetic = true, attemptAlphaEquivalence = true))
   }
 
   test("Redundant Relation with Call of removed Relation") {
