@@ -263,7 +263,8 @@ object AbstractSyntaxGraphMono:
     override val ir: Module = mod
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
-      opt.irLogging.logLowerings = false
+      opt.irLogging.logModule = true
+      opt.irLogging.logLowerings = true
       opt.irLogging.logTypeInformation = false
       opt
     }

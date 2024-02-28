@@ -231,7 +231,7 @@ trait ConversionElimination extends BaseLowering:
         initCode = s"$smapTy()",
         addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)",
         resultCode = s"(st: $smapTy) => st",
-        combineCode = "throw new UnsupportedOperationException()"
+        combineCode = s"(st1: $smapTy, st2: $smapTy) => throw new UnsupportedOperationException()"
       )
       scalamapMembershipRelations += TMap(irkTy, irvTy) -> memRel
       val map = Name(gensym.fresh("map"))

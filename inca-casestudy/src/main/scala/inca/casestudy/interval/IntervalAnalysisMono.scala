@@ -774,16 +774,16 @@ object IntervalAnalysisMono:
 
   @main def measureBigWhile2 = {
     val resultPath = "benchmark/mono"
-    val opt = true // opt = false is waaaayyy to slow
+    val opt = false // opt = false is waaaayyy to slow
     val suffix = if opt then "_opt" else ""
 
     val warmups = 3
-    val runs = 10
+    val runs = 5
 
-    val start = 100
-    val maxRep = 1000
-    val step = 100
-    val nestings = 500
+    val start = 10
+    val maxRep = 50
+    val step = 5
+    val nestings = 5
 
     val measurements = for (reps <- Range.inclusive(start, maxRep, step)) yield {
       // input program

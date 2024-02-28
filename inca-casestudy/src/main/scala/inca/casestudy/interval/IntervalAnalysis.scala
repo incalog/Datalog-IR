@@ -457,12 +457,12 @@ object IntervalAnalysis:
     val resultPath = "benchmark/mono"
 
     val warmups = 3
-    val runs = 10
+    val runs = 5
 
-    val start = 100
-    val maxRep = 1000
-    val step = 100
-    val nestings = 500
+    val start = 10
+    val maxRep = 50
+    val step = 5
+    val nestings = 5
 
     val measurements = for (reps <- Range.inclusive(start, maxRep, step)) yield {
       // input program
