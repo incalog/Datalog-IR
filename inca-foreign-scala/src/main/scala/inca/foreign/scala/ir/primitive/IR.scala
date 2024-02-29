@@ -1,7 +1,7 @@
 package inca.foreign.scala.ir.primitive
 
 import inca.ir.*
-import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignAtom, ForeignLanguage, ForeignModuleEntry, ForeignMonoDefinition, ForeignTerm, ForeignType}
+import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignAtom, ForeignLanguage, ForeignMakeUID, ForeignModuleEntry, ForeignMonoDefinition, ForeignTerm, ForeignType}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
@@ -43,6 +43,7 @@ object ScalaType:
   def int: ScalaType = ScalaType("Int")
   def double: ScalaType = ScalaType("Double")
   def bool: ScalaType = ScalaType("Boolean")
+  def uid: ScalaType = ScalaType("inca.foreign.scala.data.StructuralUID")
 
 case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
   override val lang: ScalaInca.type = ScalaInca
@@ -63,6 +64,25 @@ case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolea
     else
       s"""`$code`"""
 
+case class ScalaMakeUID(constr: String, args: Seq[Term]) extends ForeignMakeUID(args):
+  override val lang: ScalaInca.type = ScalaInca
+  override val code: ScalaInca.Code =
+    //if (args.isEmpty)
+      //s"${ScalaType.uid.name}($constr)"
+    //else
+      ScalaType.uid.name
+  override def vars: Seq[Var] = args.flatMap(_.vars)
+
+  override def inTypes: Seq[ScalaType] = args.map { a =>
+    val tty = a.typ match
+      case Some(TermType(ty, _)) => ty
+      case _ => throw IllegalStateException(s"Untyped argument $a")
+    ScalaInca.compileType(tty)
+  }
+  override def outTypes: Seq[ScalaType] = Seq(ScalaType.uid)
+  override def visitArgs(f: Term => Seq[Term]): Seq[Term] =
+    Seq(this.copy(args = args.flatMap(f)))
+  override def toString: String = s"""`$code`"""
 
 // Note: We do want to have this type for performance reasons
 case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Seq()):

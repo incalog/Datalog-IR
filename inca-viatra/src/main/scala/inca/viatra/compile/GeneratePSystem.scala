@@ -372,6 +372,11 @@ object GeneratePSystem:
       val pvarName = s"$LITPREFIX${genLiteralVarName(code, ty)}"
       pVar2Code += (pvarName -> (None, code))
       pvarName
+    case mkUID@primitive.ScalaMakeUID(constr, args) =>
+      val constrTerm = primitive.ScalaConstantTerm(s""""$constr"""", ScalaType.string)
+      constrTerm.typed(ScalaType.string.bound)
+      val scalaTerm = primitive.ScalaTerm(mkUID.code, ScalaType.uid, constrTerm +: args, true)
+      compileTerm(scalaTerm)
     case scalaTerm@primitive.ScalaTerm(termCode, sty, args, isApp) =>
       val compiledArgs = args.map(compileTerm)
       val tyCode = sty.name

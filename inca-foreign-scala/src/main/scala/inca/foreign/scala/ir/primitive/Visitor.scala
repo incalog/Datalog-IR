@@ -31,6 +31,7 @@ trait Visitor extends BaseIRVisitor with aggregate.Visitor:
     term match
       case ScalaTerm(code, ty, args, isApp) => Seq(ScalaTerm(code, ty, args.flatMap(visitTerm), isApp))
       case ScalaConstantTerm(code, ty) => Seq(ScalaConstantTerm(code, ty))
+      case ScalaMakeUID(const, args) => Seq(ScalaMakeUID(const, args.flatMap(visitTerm)))
       case _ => super.visitTerm(term)
   }
 

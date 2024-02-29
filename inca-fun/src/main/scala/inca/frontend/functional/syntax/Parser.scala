@@ -46,7 +46,7 @@ object Parser:
     "import",
     "private",
     "def",
-    "data",
+    "inca/foreign/scala/data",
     "if",
     "let",
     "in",
@@ -320,7 +320,7 @@ object Parser:
 
   val dataDef: P[DataDef] =
     ((annotation.rep0 ~ visibility.?).with1 ~
-      keyword("data") ~ identifier ~ typeParams ~
+      keyword("inca/foreign/scala/data") ~ identifier ~ typeParams ~
       op("=") ~ dataConstructor.repSep(op('|'))).mapWithLoc {
       case ((((((annos, vis), _), name), tyParams), _), constrs) => DataDef(annos, vis, name, tyParams, constrs.toList)
     }

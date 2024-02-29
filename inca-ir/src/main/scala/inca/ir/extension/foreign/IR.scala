@@ -36,6 +36,17 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
+// TODO do we need args?
+trait ForeignMakeUID(args: Seq[Term]) extends Term:
+  val lang: ForeignLanguage
+  val code: lang.Code
+
+  def inTypes: Seq[Type]
+  def outTypes: Seq[Type]
+  def visitArgs(f: Term => Seq[Term]): Seq[Term]
+
+  override def vars: Seq[Var] = args.flatMap(_.vars)
+
 case class ConvertIRForeign(term: Term, irType: Type, foreignType: Type) extends Term:
   override def toString: String = s"$term as $foreignType"
   override def vars: Seq[Var] = term.vars

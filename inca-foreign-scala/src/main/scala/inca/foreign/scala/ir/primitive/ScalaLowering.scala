@@ -62,7 +62,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     else
       super.visitType(ty)  
   }
-
+  
   protected def createRelName(name: String): Name =
     gensym.freshName(
       Seq("(", ")", "[", "]", ", ").foldLeft(name)((s, t) => s.replace(t, "$"))
