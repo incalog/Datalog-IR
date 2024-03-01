@@ -11,6 +11,8 @@ project/plugins/project/
 .cache
 .lib/
 
+inca-ascent/ascent_project
+
 # vs code
 .vscode/*
 *.code-workspace
