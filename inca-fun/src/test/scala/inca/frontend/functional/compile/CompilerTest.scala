@@ -29,6 +29,8 @@ class CompilerTest extends AnyFunSuite {
       //println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
+      // FIXME: For some reason the ReachingDefintions Test will fail sometimes non-determininstically
+      //  because it detects a negative cycle. No idea why this happens...
       if (p.toString.endsWith(".finca")) {
         test(s"Compile functional IncA file ${p.getFileName}") {
           val file = Source.fromURI(p.toUri)
