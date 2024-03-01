@@ -19,6 +19,7 @@ project/plugins/project/
 .metals/
 .bloop/
 project/
+benchmark/
 
 # intellij idea
 *.log
