@@ -53,9 +53,9 @@ msToS <- function(ms) {
 }
 
 
-asgDL <- colMeans(readTime("Bak/Interval_DL.csv"))
-#asgMono <- colMeans(readTime("Interval_Mono.csv"))
-asgMonoOpt <- colMeans(readTime("Bak/Interval_Mono_opt.csv"))
+asgDL <- colMeans(readTime("700000_edges/Interval_DL.csv"))
+#asgMono <- colMeans(readTime("613_edges/Interval_Mono.csv"))
+asgMonoOpt <- colMeans(readTime("700000_edges/Interval_Mono_opt.csv"))
 
 pdf(file = paste(graphpath, "Interval.pdf", sep="/"))
 plot(data.matrix(asgDL),
@@ -63,7 +63,7 @@ plot(data.matrix(asgDL),
      type = "o",
      col = color5,
      ylab = "Running time (s)",
-     xlab = "Number of cfg edges",
+     xlab = "Number of CFG edges",
      xaxt = "n",
      ylim = c(0, 85), # TODO change regarding upper bound of measurevalues
      lwd = 1.5
@@ -73,6 +73,7 @@ lines(data.matrix(asgMonoOpt), type = "o", col = color7, lwd = 1.5)
 #axis(1, at = c(1:9), labels = seq(133, 650, by = 60))
 axis(1, at = c(1:7), labels = seq(100000, 710000, by = 100000))
 #legend("topleft", legend=c("Datalog", "Mono", "Mono Opt"),
+#       col=c(color5, color6, color7), lty=1:1, lwd = 3)
 legend("topleft", legend=c("Datalog", "Mono Opt"),
        col=c(color5, color7), lty=1:1, lwd = 3)
 dev.off()
