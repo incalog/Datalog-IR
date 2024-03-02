@@ -298,4 +298,11 @@ object AbstractSyntaxGraph:
     println(rel.asTable)
   }
 
+  @main def runAsgUsingAscent() = {
+    val engine = inca.ascent.backend.Executor.instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(rel.asTable)
+  }
+
   

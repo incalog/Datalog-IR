@@ -35,6 +35,7 @@ lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_viatra % "test->test")
   .dependsOn(inca_souffle % "test->test")
+  .dependsOn(inca_ascent % "test->test")
   .dependsOn(inca_foreign_scala % "compile->compile")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
@@ -73,6 +74,7 @@ lazy val inca_datalog = (project in file("inca-datalog"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_viatra % "compile->compile; test->test")
   .dependsOn(inca_souffle % "test->test")
+  .dependsOn(inca_ascent % "test->test")
   .settings(
     scalaVersion := scalaVersionString,
 
@@ -147,7 +149,7 @@ lazy val hazel_typing = (project in file("hazel-typing"))
   .dependsOn(inca_viatra % "compile->compile")
   .dependsOn(hazel_typing_diffable % "compile->compile")
   .settings(
-    scalaVersion := "3.3.0",
+    scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -174,8 +176,9 @@ lazy val inca_casestudy = (project in file("inca-casestudy"))
   .dependsOn(inca_viatra % "compile->compile")
   .dependsOn(inca_casestudy_diffable % "compile->compile")
   .dependsOn(inca_souffle % "compile->compile")
+  .dependsOn(inca_ascent % "compile->compile")
   .settings(
-    scalaVersion := "3.3.0",
+    scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
@@ -192,6 +195,24 @@ lazy val inca_casestudy_diffable = (project in file("inca-casestudy-diffable"))
     libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
       ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
+    )
+  )
+
+lazy val inca_ascent = (project in file("inca-ascent"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := scalaVersionString,
+
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
     )
   )
 
