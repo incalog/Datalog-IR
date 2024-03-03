@@ -3,6 +3,8 @@ package inca.ascent.syntax
 import inca.ascent.syntax.Term.{StringLit, Var}
 import inca.ascent.syntax.Aggregation.Count
 
+// TODO: Add support to gitlab cl for Ascent
+// TODO: Cleanup aggreagtion
 
 // Rust wrapper around f32 to support eq and hash
 val f32Wrapper =
@@ -139,9 +141,9 @@ enum ProgramContent:
             case Atom.Aggregator(atomp, Aggregation.Mean(_), _) => Term.Var(atomp) == p
             case _ => false
           }) {
-            s"$p.clone() as ${FormatType.Custom(x)}"
+            s"$p as ${FormatType.Custom(x)}"
           } else {
-            s"$p.clone()"
+            s"$p"
           }
         case (p, ty) =>
           if (body.exists {
@@ -157,20 +159,18 @@ enum ProgramContent:
       s"$name(${params.mkString(", ")}) <-- ${body.mkString(", ")};"
     case Fact(name, param) =>
       val params = param.map {
-        case p => if (p == Term.StringLit) s"$p.into()" else p.toString()
+        case p@Term.StringLit(_) => s"$p.into()"
+        case p => p.toString()
       }
       s"$name(${params.mkString(", ")});"
     case CustomType(dataName, cases) =>
       val param = cases.map {
-        case (casename, casetypes) =>
-          val casetype = casetypes.map { p =>
-            if (p == FormatType.Custom(dataName))
-              s"Box<$p>"
-            else
-              p.toString
+        case (caseName, caseTypes) =>
+          val caseType = caseTypes.map {
+            case p@FormatType.Custom(`dataName`) => s"Box<$p>"
+            case p => p.toString
           }
-
-          s"$casename(${casetype.mkString(",")})"
+          s"$caseName(${caseType.mkString(",")})"
       }
       val enumDestructors = cases.map {
         case (name, paramTys) =>
@@ -180,21 +180,19 @@ enum ProgramContent:
                 val size = pty.size
                 val paramVars = (0 until size).map(idx => s"param_${idx}")
                 val paramVars2 = paramVars.zip(paramTys).map {
+                  case (p, FormatType.Custom(`dataName`)) => s"*$p"
                   case (p, FormatType.Symbol) => s"$p.to_string()"
-                  case (p, FormatType.Custom(cname)) if (cname == dataName) => s"*$p"
-                  case (p, FormatType.Custom(cname))  => s"$p"
                   case (p, _) => p
                 }
                 if (paramVars2.length == 1) {
-                  s"$dataName::$pname(${paramVars.mkString(", ")})=>Some(${paramVars2.mkString(", ")})"
+                  s"$dataName::$pname(${paramVars.mkString(", ")}) => Some(${paramVars2.mkString(", ")})"
                 } else {
-                  s"$dataName::$pname(${paramVars.mkString(", ")})=>Some((${paramVars2.mkString(", ")}))"
+                  s"$dataName::$pname(${paramVars.mkString(", ")}) => Some((${paramVars2.mkString(", ")}))"
                 }
               } else {
                 val size2 = pty.size
                 val paramvars3 = (0 until size2).map(idx => s"_")
-
-                s"$dataName::$pname(${paramvars3.mkString(", ")})=> None"
+                s"$dataName::$pname(${paramvars3.mkString(", ")}) => None"
               }
           }
           if (paramTys.length == 1) {
@@ -213,7 +211,6 @@ enum ProgramContent:
          |""".stripMargin
   }
 
-
 enum Aggregation:
   case Min(t: Term)
   case Sum(t: Term)
@@ -231,210 +228,81 @@ enum Aggregation:
     case Percentile(p, t) => s"(percentile($p))($t)"
   }
 
-
 enum Term:
-  case Binary(t1: Term, op: BinOp, t2: Term, calval: Seq[Term.Var])
+  case Binary(t1: Term, op: BinOp, t2: Term)
   case Var(name: String)
-  case Tuple(names: Seq[Term])
+  case DeRef(t: Term)
+  case Clone(t: Term)
   case Unary(op: Unop, t: Term)
   case StringLit(s: String)
   case NumberLit(n: Int)
   case FloatLit(d: Float)
-  case BooleanLit(b: Condition)
   case Wildcard
-  case Ref(v: Term)
-  //case Range(start: Int, end: Int)
-  //case ListLit(s: Seq[Term])
   case TypeCast(t: Term, ty: FormatType)
-  case CustomLit(dataName: String, caseName: String, paramEnum: Seq[FormatType], param: Seq[Term], callVal: Seq[Term.Var])
+  case CustomLit(dataName: String, caseName: String, paramEnum: Seq[FormatType], param: Seq[Term])
   case Concat(t: Seq[Term])
   case ToString(t: Term)
 
   override def toString: String = this match {
-    case Binary(t1, op, t2, callval) => (t1, t2) match {
-      case (Term.Var(x), Term.Var(y)) =>
-        if (callval.contains(t1) && callval.contains(t2)) {
-          s"*$t1 $op *$t2"
-        } else if (callval.contains(t1)) {
-          s"*$t1 $op $t2"
-        } else if (callval.contains(t2)) {
-          s"$t1 $op *$t2"
-        } else {
-          s"$t1 $op $t2"
-        }
-
-      case (Term.Var(x), _) =>
-        if (callval.contains(t1)) {
-          s"*$t1 $op $t2"
-        } else {
-          s"$t1 $op $t2"
-        }
-      case (_, Term.Var(y)) =>
-        if (callval.contains(t2)) {
-          s"$t1 $op *$t2"
-        } else {
-          s"$t1 $op $t2"
-        }
-      case (_) => s"$t1 $op $t2"
-    }
-    /*case CompareOp(t) => t.toString*/
+    case Binary(t1, op, t2) => s"$t1 $op $t2"
     case Unary(op, t) => s"$op$t"
     case Var(name) => name
-    case Tuple(names) => if (names.length == 1) {
-      s"${names.mkString(", ")}"
-    } else {
-      s"(${names.mkString(", ")})"
-    }
-    case CustomLit(dataName, caseName, paramEnum, param, callval) =>
+    case DeRef(t) => s"*$t"
+    case Clone(t) => s"$t.clone()"
+    case CustomLit(dataName, caseName, paramEnum, param) =>
       val enumTypes = paramEnum
       val params = param.zip(enumTypes).map {
-        case (t@Term.CustomLit(dataName2, caseName2, pty, pTerm, callval), ty) =>
-          if (dataName2 == dataName) {
-            s"Box::new(${t})"
-          } else if (ty == FormatType.Custom(dataName2)) {
-            t.toString
-          } else {
-            throw IllegalArgumentException("Not the right parametertype")
-          }
-        case (Term.Var(x), pty) => pty match {
-          case FormatType.Custom(dataName2) =>
-            if (dataName2 == dataName) {
-              s"Box::new(${Term.Var(x)}.clone())"
-            } else {
-              s"${Term.Var(x)}.clone()"
-            }
-          case FormatType.Symbol =>
-            if (callval.contains(Term.Var(x))) {
-              s"*${Term.Var(x)}.to_string()"
-            } else {
-              s"${Term.Var(x)}.to_string()"
-            }
-          case _ =>
-            if (callval.contains(Term.Var(x))) {
-              s"*${Term.Var(x)}"
-            } else {
-              s"${Term.Var(x)}"
-            }
+        case (t, pty) => pty match {
+          case FormatType.Custom(dataName2) if dataName2 == dataName => s"Box::new($t)"
+          case FormatType.Symbol => s"$t.to_string()"
+          case _ => t.toString
         }
-        case (p, _) => p.toString
       }
       s"$dataName::$caseName(${params.mkString(",")})"
+    case Wildcard => "_"
     case NumberLit(n) => n.toString
     case FloatLit(d) => s"Float($d)"
-    case BooleanLit(b) => b.toString
-    case Wildcard => "_"
     case StringLit(s) => s"""<&str as Into<String>>::into("$s")"""
     case ToString(t) => s"$t.to_string()"
-    case Ref(v) => s"&$v"
-    //case Range(start, end) => start.toString + ".." + end.toString
-    //case ListLit(s) => s"vec![${s.mkString(", ")}]"
     case TypeCast(t, ty) => s"$t as $ty"
     case Concat(t) =>
       val s = "{}".repeat(t.size)
       s"format!(\"$s\",${t.mkString(",")})"
   }
 
-
 enum Atom:
   case Call(name: String, param: Seq[Term])
   case Let(v: (Term, FormatType), expr: Term)
-  case For(v: Term.Var, expr: Term)
-  case ConditionalClause(cond: Condition)
   case Aggregator(name: String, agg: Aggregation, dom: Atom)
   case Not(atom: Atom)
   case Deconstruct(t: Term, c: String, tmp: String, arg: Seq[Term], neg: Boolean)
 
+  case Equal(t1: Term, t2: Term, aggColumnArg: Boolean = false)
+  case NotEqual(t1: Term, t2: Term)
+  case GreaterThan(t1: Term, t2: Term)
+  case LesserThan(t1: Term, t2: Term)
+  case GreaterThanEqual(t1: Term, t2: Term)
+  case LesserThanEqual(t1: Term, t2: Term)
 
   override def toString: String = this match {
     case Call(name, param) => s"$name(${param.mkString(", ")})"
     case Let(v, expr) =>
       val expr1 = expr match
-        case Var(n) => v._2 match
-          case FormatType.Custom(x) => s"${Term.Var(n)}.clone()"
-          case p => expr.toString
-        case StringLit(s) => s"\"$s\""
+        case StringLit(s) => s""""$s""""
         case p => p.toString
       s"let ${v._1} = $expr1"
-    case For(v, expr) => s"for $v in $expr"
-    case ConditionalClause(cond) => s"if $cond"
-    case Aggregator(name, agg, dom) =>
-      s"agg $name =$agg in $dom"
+    case Aggregator(name, agg, dom) => s"agg $name = $agg in $dom"
     case Not(atom) => s"!$atom"
-    case Deconstruct(t, c, tmp, arg, neg) =>
-      val cond = if (neg) {
-        s"if $tmp.is_none()"
-      } else {
-        s"if !$tmp.is_none()"
-      }
-      if (arg.length == 1) {
-        s"let $tmp = destruct_$c($t.clone()), $cond, let ${arg.mkString(",")}=$tmp.unwrap()"
-      } else {
-        s"let $tmp = destruct_$c($t.clone()), $cond, let (${arg.mkString(",")})=$tmp.unwrap()"
-      }
-
-  }
-
-enum Condition:
-  case Equal(t1: Term, t2: Term, t_agg: Boolean = false)
-  case NotEqual(t1: Term, t2: Term)
-  case GreaterThan(t1: Term, t2: Term)
-  case LesserThan(t1: Term, t2: Term)
-  case GreaterTHanEqual(t1: Term, t2: Term)
-  case LesserThanEqual(t1: Term, t2: Term)
-  case Not(t: Term)
-  case Tru
-  case Fls
-
-  override def toString: String = this match {
-    case Equal(t1, t2, t_agg) =>
-      (t1, t2, t_agg) match {
-        case (Term.Var(_), Term.Var(_), _) => s"*$t1 == *$t2"
-        case (Term.Var(_), _, false) => s"*$t1 == $t2"
-        case (Term.Var(_), _, true) => s"$t1 == $t2"
-        case (_, Term.Var(_), false) => s"$t1 == *$t2"
-        case (_, Term.Var(_), true) => s"$t1 == $t2"
-        case (_, _, _) => s"$t1 == $t2"
-      }
-    case NotEqual(t1, t2) =>
-      (t1, t2) match {
-        case (Term.Var(_), Term.Var(_)) => s"*$t1 != *$t2"
-        case (Term.Var(_), _) => s"*$t1 != $t2"
-        case (_, Term.Var(_)) => s"$t1 != *$t2"
-        case (_, _) => s"$t1 != $t2"
-      }
-    case GreaterThan(t1, t2) =>
-      (t1, t2) match {
-        case (Term.Var(_), Term.Var(_)) => s"*$t1 > *$t2"
-        case (Term.Var(_), _) => s"*$t1 > $t2"
-        case (_, Term.Var(_)) => s"$t1 > *$t2"
-        case (_, _) => s"$t1 > $t2"
-      }
-    case LesserThan(t1, t2) =>
-      (t1, t2) match {
-        case (Term.Var(_), Term.Var(_)) => s"*$t1 < *$t2"
-        case (Term.Var(_), _) => s"*$t1 < $t2"
-        case (_, Term.Var(_)) => s"$t1 < *$t2"
-        case (_, _) => s"$t1 < $t2"
-      }
-
-    case GreaterTHanEqual(t1, t2) =>
-      (t1, t2) match {
-        case (Term.Var(_), Term.Var(_)) => s"*$t1 >= *$t2"
-        case (Term.Var(_), _) => s"*$t1 >= $t2"
-        case (_, Term.Var(_)) => s"$t1 >= *$t2"
-        case (_, _) => s"$t1 >= $t2"
-      }
-    case LesserThanEqual(t1, t2) =>
-      (t1, t2) match {
-        case (Term.Var(_), Term.Var(_)) => s"*$t1 <= *$t2"
-        case (Term.Var(_), _) => s"*$t1 <= $t2"
-        case (_, Term.Var(_)) => s"$t1 <= *$t2"
-        case (_, _) => s"$t1 <= $t2"
-      }
-    case Not(t) => s"!$t"
-    case Tru => "true"
-    case Fls => "false"
-
+    case Deconstruct(t, c, tmp, args, neg) =>
+      val cond = if (neg) s"if $tmp.is_none()" else s"if !$tmp.is_none()"
+      val unpack = if (args.length == 1) args.mkString(", ") else args.mkString("(", ", ", ")")
+      s"let $tmp = destruct_$c($t), $cond, let $unpack=$tmp.unwrap()"
+    case Equal(t1, t2, t_agg) => s"if $t1 == $t2"
+    case NotEqual(t1, t2) => s"if $t1 != $t2"
+    case GreaterThan(t1, t2) => s"if $t1 > $t2"
+    case LesserThan(t1, t2) => s"if $t1 < $t2"
+    case GreaterThanEqual(t1, t2) => s"if $t1 >= $t2"
+    case LesserThanEqual(t1, t2) => s"if $t1 <= $t2"
   }
 
 enum BinOp:
@@ -477,6 +345,5 @@ enum FormatType:
     case Float => "Float"
     case Symbol => "String"
     case Unsigned => "u32"
-    case Custom(name) => s"$name"
+    case Custom(name) => name
   }
-
