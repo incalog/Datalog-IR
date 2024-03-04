@@ -68,12 +68,13 @@ object Executor extends IRExecutor:
       facts
     }
 
-    def createRustString(contents: Seq[ProgramContent], inputFacts: Seq[ProgramContent]): String = 
+    def createRustString(contents: Seq[ProgramContent], inputFacts: Seq[ProgramContent]): String =
       Program(contents ++ inputFacts, outputs).toString()
 
-  def createRustFile(s: String, filepath: String): Unit = {
+  private def createRustFile(s: String, filepath: String): Unit = {
     val newPath = filepath + "/src/main.rs"
     val newFile = new File(newPath)
+    newFile.getParentFile.mkdirs()
     val pw = new PrintWriter(newFile)
     pw.write(s)
     pw.close()
