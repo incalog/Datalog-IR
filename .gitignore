@@ -12,6 +12,7 @@ project/plugins/project/
 .lib/
 
 inca-ascent/ascent_project
+*.lock
 
 # vs code
 .vscode/*
