@@ -10,9 +10,9 @@ before_script:
   - apt update
   - apt install -y souffle
   - popd
+  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   - sbt sbtVersion
   - sbt update
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
 
 test:
   stage: test
