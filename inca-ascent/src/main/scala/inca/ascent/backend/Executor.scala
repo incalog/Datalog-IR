@@ -81,18 +81,20 @@ object Executor extends IRExecutor:
   }
 
   def instantiate(m: CompiledModule): Engine = {
-    val projectDir = new File("./").getCanonicalPath
-    val rust_filepath = projectDir + "/inca-ascent/ascent_project"
-
+    var projectDir = new File("./").getCanonicalPath
+    // we might be running inside the inca-ascent project when we execute with sbt
+    if (!projectDir.endsWith("/inca-ascent"))
+      projectDir += "/inca-ascent"
+    val rustProjectDir = projectDir + "/ascent_project"
     val contents = (new GenerateAscent).compileModule(m.lowered)
 
-    val process = stringToProcess(s"cargo run --manifest-path $projectDir/inca-ascent/ascent_project/Cargo.toml")
+    val process = stringToProcess(s"cargo run --manifest-path $rustProjectDir/Cargo.toml")
 
     // all outputs
     val outputs = contents.collect {
       case relDecl@ProgramContent.RelDecl(k, v) => relDecl
     }
-    new Engine(rust_filepath, process, contents, outputs)
+    new Engine(rustProjectDir, process, contents, outputs)
   }
 
   private def relToFact(edb: Relation): Seq[ProgramContent] = {

@@ -7,10 +7,11 @@ before_script:
   - pushd /tmp
   - wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/keyrings/souffle-archive-keyring.gpg
   - echo "deb [signed-by=/usr/share/keyrings/souffle-archive-keyring.gpg] https://souffle-lang.github.io/ppa/ubuntu/ stable main" | tee /etc/apt/sources.list.d/souffle.list
-  - apt update
+  - apt update && apt upgrade -y
   - apt install -y souffle
   - popd
   - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  - export PATH="$HOME/.cargo/bin:$PATH"
   - sbt sbtVersion
   - sbt update
 
