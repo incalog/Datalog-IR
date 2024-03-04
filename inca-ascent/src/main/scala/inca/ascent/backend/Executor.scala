@@ -81,7 +81,7 @@ object Executor extends IRExecutor:
   }
 
   def instantiate(m: CompiledModule): Engine = {
-    var currentDir = new File("./").getAbsoluteFile
+    var currentDir = new File("./").getCanonicalFile
 
     // we might be in a subproject when running with sbt
     while (currentDir.getName != "inca-scala") {

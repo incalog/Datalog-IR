@@ -29,7 +29,7 @@ class CompilerTest extends AnyFunSuite {
       //println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
-      if (p.toString.endsWith("ReachingDefinition.inca")){
+      if (p.getFileName.toString == "ReachingDefinition.finca"){
         // FIXME: For some reason the ReachingDefintions Test will fail sometimes non-determininstically
         //  because it detects a negative cycle. No idea why this happens... until we fix this, I comment it out
       } else if (p.toString.endsWith(".finca")) {
