@@ -1,11 +1,5 @@
 package inca.ascent.syntax
 
-import inca.ascent.syntax.Term.{StringLit, Var}
-import inca.ascent.syntax.Aggregation.Count
-
-// TODO: Add support to gitlab cl for Ascent
-// TODO: Cleanup aggreagtion
-
 // Rust wrapper around f32 to support eq and hash
 val f32Wrapper =
   """
@@ -163,51 +157,53 @@ enum ProgramContent:
         case p => p.toString()
       }
       s"$name(${params.mkString(", ")});"
+
     case CustomType(dataName, cases) =>
-      val param = cases.map {
+      // construct one destruct function for each case of this data type
+      val paramS = cases.map {
         case (caseName, caseTypes) =>
           val caseType = caseTypes.map {
             case p@FormatType.Custom(`dataName`) => s"Box<$p>"
             case p => p.toString
           }
           s"$caseName(${caseType.mkString(",")})"
-      }
+      }.mkString("  ", ",\n", "")
+
       val enumDestructors = cases.map {
         case (name, paramTys) =>
-          val casesn = cases.map {
-            case (pname, pty) =>
-              if (pname == name) {
-                val size = pty.size
-                val paramVars = (0 until size).map(idx => s"param_${idx}")
-                val paramVars2 = paramVars.zip(paramTys).map {
-                  case (p, FormatType.Custom(`dataName`)) => s"*$p"
-                  case (p, FormatType.Symbol) => s"$p.to_string()"
-                  case (p, _) => p
-                }
-                if (paramVars2.length == 1) {
-                  s"$dataName::$pname(${paramVars.mkString(", ")}) => Some(${paramVars2.mkString(", ")})"
-                } else {
-                  s"$dataName::$pname(${paramVars.mkString(", ")}) => Some((${paramVars2.mkString(", ")}))"
-                }
-              } else {
-                val size2 = pty.size
-                val paramvars3 = (0 until size2).map(idx => s"_")
-                s"$dataName::$pname(${paramvars3.mkString(", ")}) => None"
+          val caseNames = cases.map {
+            case (`name`, pty) =>
+              val size = pty.size
+              val paramVars = (0 until size).map(idx => s"param_${idx}")
+              val destrArgs = paramVars.zip(paramTys).map {
+                case (p, FormatType.Custom(`dataName`)) => s"*$p"
+                case (p, FormatType.Symbol) => s"$p.to_string()"
+                case (p, _) => p
               }
-          }
-          if (paramTys.length == 1) {
-            s"fn destruct_$name(obj: $dataName) ->Option<${paramTys.mkString(", ")}>{\n return match obj{\n${casesn.mkString(s",\n")}\n};\n}"
-          } else {
-            s"fn destruct_$name(obj: $dataName) ->Option<(${paramTys.mkString(", ")})>{\n return match obj{\n${casesn.mkString(s",\n")}\n};\n}"
-          }
-      }
+              val argS = if (destrArgs.length == 1) destrArgs.mkString(", ") else destrArgs.mkString("(", ", ", ")")
+              s"$dataName::$name(${paramVars.mkString(", ")}) => Some($argS)"
+            case (pname, pty) =>
+              val size2 = pty.size
+              val wildcardArgs = (0 until size2).map(idx => "_").mkString(", ")
+              s"$dataName::$pname($wildcardArgs) => None"
+          }.mkString("    ", ",\n    ", "")
+
+          val paramS = if (paramTys.length == 1) paramTys.mkString(", ") else paramTys.mkString("(", ", ", ")")
+          s"""
+             |fn destruct_$name(obj: $dataName) -> Option<$paramS>{
+             |  return match obj {
+             |$caseNames
+             |  };
+             |}""".stripMargin
+      }.mkString("\n")
+
       s"""
          |#[derive(Debug, Eq, PartialEq, Clone, Hash)]
          |pub enum $dataName{
-         |${param.mkString("  ", ",\n", "")}
+         |$paramS
          |}
          |
-         |${enumDestructors.mkString("\n")}
+         |$enumDestructors
          |""".stripMargin
   }
 
@@ -239,9 +235,10 @@ enum Term:
   case FloatLit(d: Float)
   case Wildcard
   case TypeCast(t: Term, ty: FormatType)
-  case CustomLit(dataName: String, caseName: String, paramEnum: Seq[FormatType], param: Seq[Term])
+  case CustomLit(dataName: String, caseName: String, param: Seq[Term])
   case Concat(t: Seq[Term])
   case ToString(t: Term)
+  case Box(t: Term)
 
   override def toString: String = this match {
     case Binary(t1, op, t2) => s"$t1 $op $t2"
@@ -249,16 +246,8 @@ enum Term:
     case Var(name) => name
     case DeRef(t) => s"*$t"
     case Clone(t) => s"$t.clone()"
-    case CustomLit(dataName, caseName, paramEnum, param) =>
-      val enumTypes = paramEnum
-      val params = param.zip(enumTypes).map {
-        case (t, pty) => pty match {
-          case FormatType.Custom(dataName2) if dataName2 == dataName => s"Box::new($t)"
-          case FormatType.Symbol => s"$t.to_string()"
-          case _ => t.toString
-        }
-      }
-      s"$dataName::$caseName(${params.mkString(",")})"
+    case Box(t) => s"Box::new($t)"
+    case CustomLit(dataName, caseName, params) => s"$dataName::$caseName(${params.mkString(",")})"
     case Wildcard => "_"
     case NumberLit(n) => n.toString
     case FloatLit(d) => s"Float($d)"
@@ -272,12 +261,12 @@ enum Term:
 
 enum Atom:
   case Call(name: String, param: Seq[Term])
-  case Let(v: (Term, FormatType), expr: Term)
+  case Let(v: Term, expr: Term)
   case Aggregator(name: String, agg: Aggregation, dom: Atom)
   case Not(atom: Atom)
   case Deconstruct(t: Term, c: String, tmp: String, arg: Seq[Term], neg: Boolean)
 
-  case Equal(t1: Term, t2: Term, aggColumnArg: Boolean = false)
+  case Equal(t1: Term, t2: Term)
   case NotEqual(t1: Term, t2: Term)
   case GreaterThan(t1: Term, t2: Term)
   case LesserThan(t1: Term, t2: Term)
@@ -286,18 +275,14 @@ enum Atom:
 
   override def toString: String = this match {
     case Call(name, param) => s"$name(${param.mkString(", ")})"
-    case Let(v, expr) =>
-      val expr1 = expr match
-        case StringLit(s) => s""""$s""""
-        case p => p.toString
-      s"let ${v._1} = $expr1"
+    case Let(v, expr) => s"let $v = $expr"
     case Aggregator(name, agg, dom) => s"agg $name = $agg in $dom"
     case Not(atom) => s"!$atom"
     case Deconstruct(t, c, tmp, args, neg) =>
       val cond = if (neg) s"if $tmp.is_none()" else s"if !$tmp.is_none()"
       val unpack = if (args.length == 1) args.mkString(", ") else args.mkString("(", ", ", ")")
       s"let $tmp = destruct_$c($t), $cond, let $unpack=$tmp.unwrap()"
-    case Equal(t1, t2, t_agg) => s"if $t1 == $t2"
+    case Equal(t1, t2) => s"if $t1 == $t2"
     case NotEqual(t1, t2) => s"if $t1 != $t2"
     case GreaterThan(t1, t2) => s"if $t1 > $t2"
     case LesserThan(t1, t2) => s"if $t1 < $t2"

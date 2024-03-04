@@ -17,7 +17,7 @@ import inca.util.Gensym
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{MaxDouble, MaxInt, MinDouble, MinInt, SumDouble, SumInt, Count as CountAgg}
 import inca.ir.typing.Mode.{Binding, Bound, Collapse}
 
-// Based on Sarah Hauschildts
+// Based on Sarah Hauschildts Bachelor thesis
 
 object GenerateAscent:
   def cleanName(name: ir.Name): String = name.name.replace("$", "_")
@@ -35,6 +35,8 @@ class GenerateAscent:
       this.varRefs = oldRefs
     }
   }
+
+  private def freshTmpName(): String = cleanName(gensym.fresh("_tmp"))
 
   def compileModule(module: ir.Module): Seq[ProgramContent] = {
     val compileableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR, agg.IR)
@@ -82,7 +84,11 @@ class GenerateAscent:
   }
 
 
-  private def compileBody(body: ir.Body): Seq[Atom] = body.atoms.flatMap(p => compileAtom(p))
+  private def compileBody(body: ir.Body): Seq[Atom] = gensym.scoped {
+    val allVars = body.atoms.flatMap(_.vars.map(_.name.name))
+    gensym.register(allVars)
+    body.atoms.flatMap(p => compileAtom(p))
+  }
 
   private def compileAggOp(op: AggregationOperator, aggregatorVar: ir.Var): Aggregation = op match
     case MinInt | MinDouble => Aggregation.Min(compileTerm(aggregatorVar))
@@ -103,9 +109,9 @@ class GenerateAscent:
           case (Bound, Bound) =>
             Seq(Atom.Equal(compileTerm(lhs), compileTerm(rhs)))
           case (Bound, Binding) =>
-            Seq(Atom.Let((compileTerm(rhs, noClone = true), compileType(ty2)), compileTerm(lhs, true)))
+            Seq(Atom.Let(compileTerm(rhs, noClone = true), compileTerm(lhs, noDeref = true)))
           case (Binding, Bound) =>
-            Seq(Atom.Let((compileTerm(lhs, noClone = true), compileType(ty1)), compileTerm(rhs, true)))
+            Seq(Atom.Let(compileTerm(lhs, noClone = true), compileTerm(rhs, noDeref = true)))
           case _ =>
             throw new RuntimeException(s"Unexpected binding for terms: $lhs and $rhs")
         }
@@ -123,67 +129,57 @@ class GenerateAscent:
       Seq(Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs)))
     case ir.Call(name, args, false) =>
       varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, true, true))
+      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
       Seq(Atom.Call(cleanName(name.name), argParam))
     case ir.ExtensionalCall(name, args, false) =>
       varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, true, true))
+      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
       Seq(Atom.Call(cleanName(name.name), argParam))
     case ir.Call(name, args, true) =>
       varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, true, true))
+      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
       Seq(Atom.Not(Atom.Call(cleanName(name.name), argParam)))
     case ir.ExtensionalCall(name, args, true) =>
       varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, true, true))
+      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
       Seq(Atom.Not(Atom.Call(cleanName(name.name), argParam)))
     case data.Deconstruct(t, name, args, neg) =>
-      val tmp = cleanName(gensym.fresh("tmp"))
-      val arg = args.map(p => compileArg(p, noClone = true))
-      val obj = compileTerm(t, true)
-      Seq(Atom.Deconstruct(obj, cleanName(name.name), tmp, arg, neg))
+      val tmp = freshTmpName()
+      val compiledArgs = args.map(p => compileArg(p, noClone = true))
+      Seq(Atom.Deconstruct(compileTerm(t, noDeref = true), cleanName(name.name), tmp, compiledArgs, neg))
 
     case agg.Aggregate(name, args, op) =>
-      val result = args.zipWithIndex.collect {
+      val Some((agg.AggregateColumnArg(aggColTerm), resultIdx)) = args.zipWithIndex.collectFirst {
         case (col: agg.AggregateColumnArg, idx) => col -> idx
       }
-      val (aggregationColumn, resultIdx) = result.head
-
-      val aggregatorVar = ir.Var(cleanName(gensym.fresh("x")))
-      val replacedArgs = args.patch(resultIdx, Seq(TermArg(aggregatorVar)), 1)
-      val replacedArgsforCount = args.patch(resultIdx, Seq(WildcardArg()), 1)
+      val aggregatorVar = ir.Var(cleanName(gensym.fresh("agg")))
       val ascentAgg = compileAggOp(op, aggregatorVar)
-      val callArgs = ascentAgg match
-        case Aggregation.Count() => replacedArgsforCount.map(t => compileArg(t))
-        case _ => replacedArgs.map(t => compileArg(t))
-      val refname = name.name
-      val aggrcontent = aggregationColumn match {
-        case agg.AggregateColumnArg(res@ir.Var(resultVar)) =>
-          res.typ match
-            case Some(ir.TermType(ty, m)) => m match
-              case Bound =>
-                val tmpName = cleanName(gensym.fresh("tmp"))
-                Seq(
-                  Atom.Aggregator(cleanName(tmpName), ascentAgg, Atom.Call(cleanName(refname), callArgs)),
-                  Atom.Equal(Term.Var(tmpName), Term.Var(cleanName(resultVar.name)))
-                )
-              case Binding =>
-                Seq(
-                  Atom.Aggregator(cleanName(resultVar.name), ascentAgg, Atom.Call(cleanName(refname), callArgs))
-                )
-              case Collapse =>
-                throw new RuntimeException("Unexpected collapsed term as aggregation output!")
-            case ty =>
-              throw new RuntimeException("Untyped aggregation output!")
-        case agg.AggregateColumnArg(t) =>
-          val tmpName = cleanName(gensym.fresh("tmp"))
+      val aggArgs = (ascentAgg match
+        case Aggregation.Count() => args.patch(resultIdx, Seq(WildcardArg()), 1)
+        case _ => args.patch(resultIdx, Seq(TermArg(aggregatorVar)), 1)
+      ).map(a => compileArg(a))
+
+      val aggRelName = cleanName(name.name)
+      val aggColMode = aggColTerm.typ match
+        case Some(ir.TermType(ty, m)) => m
+        case _ => throw new RuntimeException("Untyped aggregation output!")
+
+      aggColMode match
+        case Binding =>
+          val resultName = aggColTerm match
+            case v@ir.Var(_) => cleanName(v.name)
+            case _ => throw IllegalStateException(s"Found unexpected binding term in aggregation: $aggColTerm")
           Seq(
-            Atom.Aggregator(cleanName(tmpName), ascentAgg, Atom.Call(cleanName(refname), callArgs)),
-            Atom.Equal(Term.Var(tmpName), compileTerm(t), aggColumnArg = true)
+            Atom.Aggregator(resultName, ascentAgg, Atom.Call(aggRelName, aggArgs))
           )
-        case _ => throw new IllegalArgumentException(s"No Aggregation column")
-      }
-      aggrcontent
+        case Bound =>
+          val tmpName = freshTmpName()
+          Seq(
+            Atom.Aggregator(tmpName, ascentAgg, Atom.Call(aggRelName, aggArgs)),
+            Atom.Equal(Term.DeRef(Term.Var(tmpName)), compileTerm(aggColTerm))
+          )
+        case Collapse =>
+          throw new RuntimeException("Unexpected collapsed term as aggregation output!")
   }
 
   private def compileArg(arg: ir.Arg, noDeref: Boolean = false, noClone: Boolean = false): Term = arg match
@@ -200,21 +196,16 @@ class GenerateAscent:
     case "%" => BinOp.Rem
     case _ => throw new RuntimeException("Unsupported binary operation: " + op)
 
-  // Function arguments are never dereferenced
-  // We need to clone enums (they can not implement copy, because they are boxed), except when on the lhs of a let
+  // Function arguments are never dereferenced.
+  // We need to clone enums, except when on the lhs of a let.
+  // Note, we need clone since enums can not implement copy, because they are boxed
   private def compileTerm(t: ir.Term, noDeref: Boolean = false, noClone: Boolean = false): Term = t match {
     case ir.Var(name) =>
-      val isRef = varRefs.contains(name.name.name)
       val varTerm = Term.Var(cleanName(name.name))
+      val isRef = varRefs.contains(name.name.name)
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
-      val derefTerm = if (isRef && !isData && !noDeref)
-        Term.DeRef(varTerm)
-      else
-        varTerm
-      if (isData && !noClone)
-        Term.Clone(derefTerm)
-      else
-        derefTerm
+      val derefTerm = if (isRef && !isData && !noDeref) Term.DeRef(varTerm) else varTerm
+      if (isData && !noClone) Term.Clone(derefTerm) else derefTerm
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t, noDeref), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)
@@ -227,9 +218,15 @@ class GenerateAscent:
       val caseDef = ref.target.get
       val dataDef = caseDef.data.ref.target.get
       val dataName = cleanName(dataDef.name)
-      val pty = caseDef.args.map(compileType)
-      val compiledArgs = args.map(p => compileTerm(p))
-      Term.CustomLit(dataName, cleanName(caseDef.name), pty, compiledArgs)
+      val compiledArgs = args.map { t =>
+        val compiledTerm = compileTerm(t)
+        val compiledTy = compileType(t.typ.get.ty)
+        compiledTy match
+          case FormatType.Custom(`dataName`) => Term.Box(compiledTerm) // Box recursive types
+          case FormatType.Symbol => Term.ToString(compiledTerm) // convert strings
+          case _ => compiledTerm
+      }
+      Term.CustomLit(dataName, cleanName(caseDef.name), compiledArgs)
   }
 
   private def compileType(ty: ir.Type): FormatType = ty match
