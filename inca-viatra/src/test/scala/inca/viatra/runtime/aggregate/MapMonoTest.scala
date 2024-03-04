@@ -29,7 +29,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 case class CompiledScalaMapMonoModule(mod: Module) extends CompiledModule:
   override def compilerOptions: CompilerOptions =
     val opts = CompilerOptions.default
-    opts.irLogging.logLowerings = true
+    opts.irLogging.logLowerings = false
     opts
 
 
