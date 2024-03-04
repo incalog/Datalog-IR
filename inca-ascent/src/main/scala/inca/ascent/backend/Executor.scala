@@ -81,10 +81,13 @@ object Executor extends IRExecutor:
   }
 
   def instantiate(m: CompiledModule): Engine = {
-    var projectDir = new File("./").getCanonicalPath
-    // we might be running inside the inca-ascent project when we execute with sbt
-    if (!projectDir.endsWith("/inca-ascent"))
-      projectDir += "/inca-ascent"
+    var currentDir = new File("./").getAbsoluteFile
+
+    // we might be in a subproject when running with sbt
+    while (currentDir.getName != "inca-scala") {
+      currentDir = currentDir.getParentFile
+    }
+    val projectDir = currentDir.getCanonicalPath + "/inca-ascent"
     val rustProjectDir = projectDir + "/ascent_project"
     val contents = (new GenerateAscent).compileModule(m.lowered)
 
