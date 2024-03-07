@@ -4,7 +4,8 @@ import inca.ir
 import inca.ir.*
 import inca.ir.analysis.Analyzable
 import inca.util.Gensym
-//import inca.ir.extension.arithmetic.*
+
+import scala.collection.mutable
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.IRVisitor
 
@@ -15,6 +16,9 @@ case class ConfigVN(simplifyArithmetic: Boolean = false,
                     removeTrueAtoms: Boolean = false,
                     occurrencesBeforeRemoved: Int = 0,
                     attemptAlphaEquivalence: Boolean = false,
+                    outline: Boolean = false,
+                    occurrencesBeforeOutlined: Int = 1,
+                    minSizeOutline: Int = 2
                    )
 
 /** for value numbering constructs from BaseIR */
@@ -33,11 +37,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var valueUnknown: Set[Term] = Set() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
 
   // maps for atoms
-  var VNAtoms: Map[String, ValNum] = Map() // String is a Name
-  var hashTableAtoms: Map[Hashed, ValNum] = Map()
+//  var VNAtoms: Map[String, ValNum] = Map() // String is a Name
+  var hashTableAtoms: Map[Hashed, (Atom,Int)] = Map()
 
   // maps for bodies
-  var VNBodies: Map[String, ValNum] = Map()
+//  var VNBodies: Map[String, ValNum] = Map()
   var hashTableBodies: Map[Hashed, ValNum] = Map()
 
   // maps for relations
@@ -50,6 +54,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // global Maps for terms
   var VNGlobal: Map[String, ValNum] = Map() // String is a Name
   var hashTableGlobal: Map[Hashed, ValNum] = Map()
+
+  // global Maps for atoms:  atomHash -> atom in body at index Int in relation with name
+  var hashTableAtomsGlobal: mutable.Map[Hashed, mutable.Seq[AtomInfo]] = mutable.Map() // TODO use less space ?
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
@@ -66,7 +73,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
 
     val newModule = visitModule(module)
-    new CallsFix().fixCalls(newModule)
+    val fixed = new CallsFix().fixCalls(newModule)
+    new Outlining().outlineCommonAtoms(fixed)
 
   }
 
@@ -106,20 +114,25 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   protected def getHashCode(relation: Relation): Hashed = (relation.params ++ relation.bodies).hashCode()  // -> name of relation irrelevant
 
 
+  private var currentRelationName: Name = _ // TODO refactor Option away
   private var relationParams: Seq[Name] = Seq()
   private def isParam(x: String): Boolean = relationParams.map(_.name).contains(x)
 
-  var paramSubst: Map[String,String] = Map()
+  private var paramSubst: Map[String,String] = Map()
+  private var currentBodyIndex: Int = -1
   override def visitRelation(relation: Relation): Seq[Relation] = {
+    currentRelationName = relation.name
     relationParams = relation.params.map(_.name)
-    VNBodies = Map()
+//    VNBodies = Map()
     hashTableBodies = Map()
 
     if (config.attemptAlphaEquivalence) {
       paramSubst = Map()
       relationParams.zip(substParamNames).foreach(paramSubst += (_, _))
     }
-      valueNumberRelations(relation)
+
+    currentBodyIndex = -1
+    valueNumberRelations(relation)
   }
 
   override def visitParam(param: Param): Seq[Param] = {
@@ -148,6 +161,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  private var currentAtomIndex: Int = -1   // TODO prettier solution ?
   override def visitBody(body: Body): Seq[Body] = {
     VNGlobal = VNGlobal ++ VN
     hashTableGlobal = hashTableGlobal ++ hashTable
@@ -156,9 +170,17 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     hashTable = Map()
     const = Map()
 
-    VNAtoms = Map()
     hashTableAtoms = Map()
-    valueNumberBodies(body)
+    currentAtomIndex = -1
+    currentBodyIndex += 1
+    val newBodySeq = valueNumberBodies(body)
+    if newBodySeq.nonEmpty then
+      hashTableAtoms.foreach {
+        case (hash, (atom, idx)) => hashTableAtomsGlobal.updateWith(hash) {
+          _ => Some(hashTableAtomsGlobal.getOrElse(hash, mutable.Seq()).appended(AtomInfo(atom, currentRelationName, currentBodyIndex, idx)))
+        }
+      }
+    newBodySeq
   }
 
   private def valueNumberBodies(body: Body): Seq[Body] = {
@@ -168,13 +190,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val bodyHash: Hashed = getHashCode(newBody)
     if (hashTableBodies.contains(bodyHash)) {
       val v: ValNum = hashTableBodies(bodyHash)
-      VNBodies += (x, v)
+//      VNBodies += (x, v)
       // remove redundant body
       Seq()
     }
     else {
       val v = x
-      VNBodies += (x, v)
+//      VNBodies += (x, v)
       hashTableBodies += (bodyHash, v)
 
       Seq(newBody)
@@ -208,20 +230,20 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match{
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match {
     case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>
-      treatBindingInEq(x,e, dontRemove = isParam(x), vari.typ)  // in case a redundant binding is found it will be removed unless it belongs to parameter
+      treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
     case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>
-      treatBindingInEq(x,e, dontRemove = isParam(x), vari.typ)
+      treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ)
     case Eq(vari@Var(RefByName(Name(x))), e, false) =>
-      treatComparisonEq(x,e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+      treatComparisonEq(x, e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
     case Eq(e, vari@Var(RefByName(Name(x))), false) =>
-      treatComparisonEq(x,e, vari.typ)
+      treatComparisonEq(x, e, vari.typ)
 
 
     case call@Call(_, _, false) =>
-      super.visitAtom(atom).head match{
-        case call@Call(ref, args, false) => treatBindingsInCall(call,args)
+      super.visitAtom(atom).head match {
+        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
       }
 
     // TODO can equivalence of two vars not be concluded from calls?
@@ -234,7 +256,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     //        }
 
     case call@ExtensionalCall(_, _, false) =>
-      super.visitAtom(atom).head match{
+      super.visitAtom(atom).head match {
         case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
       }
 
@@ -283,7 +305,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //      }
 
       // remove "Assignment" or replace term
-      return Seq(Eq(newVar(v,typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm // TODO valueNumberAtom ?
+//      currentAtomIndex += 1
+      return valueNumberAtoms(Eq(newVar(v,typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
     }
 
     else {
@@ -368,19 +391,149 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val x = atom.toString
 
     if (hashTableAtoms.contains(atomHash)) {
-      val v: ValNum = hashTableAtoms(atomHash)
-      VNAtoms += (x, v)
+//      val v: ValNum = hashTableAtoms(atomHash)
+//      VNAtoms += (x, v)
       // remove Call or replace args
       if dontRemove then Seq(newAtom)
       else Seq()
     }
     else {
       val v = x
-      VNAtoms += (x, v)
-      hashTableAtoms += (atomHash, v)
+//      VNAtoms += (x, v)
+      currentAtomIndex += 1
+      hashTableAtoms += (atomHash, (atom,currentAtomIndex))
 
       Seq(newAtom)
     }
+  }
+
+
+  case class AtomInfo(atom: Atom, name: Name, bodyIdx: Int, atomIdx: Int) {
+    override def toString: String = s"$atom | ${name.name} | $bodyIdx | $atomIdx"
+//    override def hashCode(): Int = atom.hashCode()
+  }
+  class Outlining{ // TODO
+
+    type candidateBody = Seq[AtomInfo]
+
+    type atomIndices = Seq[(Int,Int)]
+
+    var bodyInfo: Map[Body,Seq[AtomInfo]] = Map()
+
+    def outlineCommonAtoms(module: Module): Module = {
+      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
+        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
+//      println(commonAtoms)
+
+      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
+//      println(candidateAtoms)
+
+      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name,aI.bodyIdx)).toSeq.map(_._2.sortWith((l,r) => l.atomIdx <= r.atomIdx))
+//      println(atomsPerBody)
+
+      // TODO make sure there is no jump in indices between atoms in original body
+
+      val newBodiesWithInfosAboutOriginalAtoms: Seq[(Body,Seq[AtomInfo])] = findCommonAtomsInARow(atomsPerBody)
+      val (newBodies,infos) = newBodiesWithInfosAboutOriginalAtoms.unzip
+
+      val usedRelNames = module.relations.keys
+      gensym.register(usedRelNames.map(_.name))
+
+      val newRelations = newBodiesWithInfosAboutOriginalAtoms.flatMap { case (newBody, atomInfos) =>
+        val paramsWithTypes = getNeededParameters(newBody)
+        val (params, _) = paramsWithTypes.unzip
+        val newRel = generateNewRelation(params, newBody)
+
+        val newCall = generateNewCall(newRel, paramsWithTypes)
+
+        val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
+        val changedRelations = relBodiesToChange.map{case ((name,bodyIdx),atomInfoSeq) =>
+          changeRelation(module.relations(name), bodyIdx, atomInfoSeq.map(_.atomIdx), newCall)}
+
+        changedRelations ++ Seq(newRel)
+      }
+
+      Module(module.name, module.lang, newRelations ++ module.relations.filter(rel => !newRelations.exists(newRel => newRel.name.name == rel._1)).values) // TODO other moduleEntries
+
+      //module
+    }
+
+    private def findCommonAtomsInARow(atomsPerBody: Seq[Seq[AtomInfo]]): Seq[(Body,Seq[AtomInfo])] = {
+      var bodiesTable: Seq[(candidateBody,Seq[AtomInfo])] = Seq()
+      (config.minSizeOutline to atomsPerBody.map(_.size).max).foreach { k =>
+        val hashtable: mutable.Map[Hashed, mutable.Seq[candidateBody]] = mutable.Map()
+        val candidatesK: Seq[candidateBody] = atomsPerBody.flatMap(_.grouped(k).toSeq)
+//        println(candidatesK)
+        /* TODO determine max size clones
+         *   1. place current subset in hashtable
+         *   2. check whether enough occurrences in different bodies are equal / in same bucket
+         *   3. if then save subset in table
+         *   4. and remove smaller subsets that are contained in current
+         *   5. -> table should contain the cloned subsets with maximum size
+         *
+         * */
+        candidatesK.map(cand =>
+          val hash = hashCandidate(cand)
+          hashtable.updateWith(hash) {
+          _ => Some(hashtable.getOrElse(hash, mutable.Seq()).appended(cand))
+        })
+
+        val candidateEntries = hashtable.values
+        val filteredCandidates = candidateEntries.filter(_.size > config.occurrencesBeforeOutlined)
+//        val candidateBodies: Seq[Seq[AtomInfo]] = filteredCandidates.map(_.head).toSeq
+        filteredCandidates.foreach(candidate => bodiesTable = bodiesTable.appended((candidate.head,candidate.flatten.toSeq)))
+      }
+
+      val newBodies: Seq[Body] = bodiesTable.map{ case (cBody,atomInfos) => cBody.map(_.atom)}.map(Body(_))
+//      val atomInfos: Seq[AtomInfo] = bodiesTable.map(atomInfoSeq => atomInfoSeq.flatten)
+      val (_,atomInfos) = bodiesTable.unzip
+      newBodies.zip(atomInfos)
+    }
+
+    def hashCandidate(candidate: candidateBody): Hashed = candidate.map{
+      case AtomInfo(atom, name, bodyIdx, atomIdx) => atom
+    }.hashCode()
+
+    private def getNeededParameters(body: Body): Seq[(Param,TermType)] = (body.atoms.flatMap(_.vars) //++ atoms.flatMap {  // TODO vars missing?
+//      case Eq(v@Var(_), rhs, false) if v.mode.isBinding => Seq(v)
+//      case Eq(lhs, v@Var(_), false) if v.mode.isBinding => Seq(v)
+//      case Call(rel,args,neg) => args.filter { case TermArg(v@Var(_) ) => v.mode.isBinding }.map{ case TermArg(v@Var(_) ) => v }
+//      case ExtensionalCall(rel, args, neg) => args.filter { case TermArg(v@Var(_)) => v.mode.isBinding }.map { case TermArg(v@Var(_)) => v }}
+      ).distinct.map(v => (Param(v.name, v.typ.get.ty), v.typ.get))
+
+    private def generateNewRelation(params: Seq[Param], body: Body): Relation = {
+      val name = gensym.freshName("R")
+      Relation(name, params, Seq(body))
+    }
+
+    private def generateNewCall(relation: Relation, parametersWithType: Seq[(Param,TermType)]): Call = {
+      val args: Seq[Arg] = parametersWithType.map{ case (Param(name, ty), termType) => TermArg(newVar(name, Some(termType)))} // TODO mode of type correct ?
+      Call(relation.name, args)
+    }
+
+    private def changeRelation(rel: Relation, bodyIdx: Int, removedIdc: Seq[Int], newCall: Call): Relation = {  // TODO what if two calls need to be inserted in same body?
+      val newBody = removeOutlinedAtomsAndInsertCall(rel.bodies(bodyIdx), removedIdc, newCall)
+      val newBodies = rel.bodies.diff(Seq(rel.bodies(bodyIdx))) ++ Seq(newBody)
+      Relation(rel.name,rel.params,newBodies)
+    }
+
+    private def removeOutlinedAtomsAndInsertCall(oldBody: Body, removed: Seq[Int], call: Call): Body = {
+      var newAtoms: Seq[Atom] = Seq() //body.atoms.filter{ atom => removed.contains(atom) }
+      var inserted = false
+      (0 until oldBody.atoms.size).foreach { i =>
+        if(!removed.contains(i)) {
+          val atom = oldBody.atoms(i)
+          newAtoms = newAtoms.appended(atom)
+        }
+        else if (!inserted) {
+          newAtoms = newAtoms.appended(call)
+          inserted = true
+        }
+      }
+      Body(newAtoms)
+    }
+
+
   }
 
 
