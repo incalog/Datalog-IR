@@ -10,7 +10,9 @@ import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 class OutlineClones extends ValueNumberingTestAbstract {
 
-  test("Repeated Atoms in different Relations") {
+  override val config: ConfigVN = ConfigVN(simplifyArithmetic=true, outline=true)
+
+  test("2 repeated atoms in different relations") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
@@ -51,7 +53,324 @@ class OutlineClones extends ValueNumberingTestAbstract {
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic=true))
+    performTest(expected, input)
+  }
+
+  test("2 repeated atoms in 3 different relations") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+            Eq(Var(Name("m")), Mul(Var("B1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("C1")), Mul(IntNum(5), IntNum(3))),
+            Eq(Var(Name("C2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("C2"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("C1")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3), Var("A1"))),
+            Eq(Var(Name("result")), Add(Var("m"), Var("n")))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("C1")), IntNum(15)),
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(Var("C1"),Var("n")))
+          ))
+        )),
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("2 repeated atoms in different relations (equality based on prev VN)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A2"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+            Eq(Var(Name("m")), Mul(Var("B1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3), Var("A1"))),
+            Eq(Var(Name("result")), Add(Var("m"), Var("n")))
+          ))
+        )),
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("3 repeated atoms in different relations") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("A2")), Mul(IntNum(10), Add(IntNum(3), IntNum(5)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("B2")), Mul(IntNum(10), Add(IntNum(3), IntNum(5)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), Var("B2"))),
+            Eq(Var(Name("m")), Mul(Var("B1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("A2")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3), Var("A1"))),
+            Eq(Var(Name("result")), Add(Var("m"), Var("n")))
+          ))
+        )),
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("A2")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("A2")), IntNum(150)),
+            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("2 repeated atoms in different bodies (same relation)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          )),
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+            Eq(Var(Name("m")), Mul(Var("B1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3), Var("A1"))),
+            Eq(Var(Name("result")), Add(Var("m"), Var("n")))
+          )),
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+          ))
+        )),
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("2 * 2 repeated atoms in different relations") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+            Eq(Var(Name("m")), Mul(Var("B1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("C1")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("n")), IntNum(2)),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("d"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("D1")), Add(IntNum(2), IntNum(3))),
+            Eq(Var(Name("n")), IntNum(2)),
+            Eq(Var(Name("m")), Mul(Var("D1"), IntNum(3))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3),Var("A1"))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        )),
+        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$1"), Seq(TermArg(Var("C1")), TermArg(Var("n")))),
+            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+          ))
+        )),
+        Relation(Name("d"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("R$1"), Seq(TermArg(Var("C1")), TermArg(Var("n")))),
+            Eq(Var(Name("m")), Mul(IntNum(3),Var("C1"))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        )),
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1")))
+          ))
+        )),
+        Relation(Name("R$1"), Seq(Param("C1", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("C1")), IntNum(5)),
+            Eq(Var(Name("n")), IntNum(2)),
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+//  test("2*2 repeated atoms in same relations") { // will be treated like test with 'gap' below
+//    ???
+//  }
+
+  test("repeated atoms with 'gap' in equality") { // TODO 
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("A2")), IntNum(5)),
+            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("A2")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("A2")), IntNum(1)),
+            Eq(Var(Name("n")), Mul(Var("B1"), Var("A2"))),
+            Eq(Var(Name("m")), Mul(Var("B1"),  Var("A2"))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("A2")), IntNum(5)),
+            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
+            Eq(Var(Name("result")), Add(Var("A2"),Var("n")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("A1")), IntNum(10)),
+            Eq(Var(Name("B2")), IntNum(1)),
+            Eq(Var(Name("n")), Mul(Var("A1"), Var("B2"))),
+            Eq(Var(Name("m")), Mul(Var("A1"),  Var("B2"))),
+            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
 
 }
