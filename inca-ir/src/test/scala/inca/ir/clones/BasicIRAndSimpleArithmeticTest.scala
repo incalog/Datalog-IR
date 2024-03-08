@@ -9,7 +9,7 @@ import inca.ir.*
 import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 
-// TODO add Tests with DoubleNum
+// tests with DoubleNum are in ArithmeticTest.scala
 
 class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 
@@ -934,6 +934,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input, ConfigVN(true))
   }
 
+  // This does not work, since currently not known whether the order of atoms can be switched without changing the meaning of the program
   test("Redundant bodies 2") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(

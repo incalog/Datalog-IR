@@ -72,7 +72,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     val newModule = visitModule(module)
     val fixed = new CallsFix().fixCalls(newModule)
-    new Outlining().outlineCommonAtoms(fixed)
+    if config.outline then new Outlining().outlineCommonAtoms(fixed) else fixed
 
   }
 
@@ -408,70 +408,69 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     type candidateBody = Seq[AtomInfo]
 
-    type atomIndices = Seq[(Int,Int)]
-
-    var bodyInfo: Map[Body,Seq[AtomInfo]] = Map()
+    private def preprocessCollectedData(): Seq[Seq[AtomInfo]] = {
+      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
+        // makes sure that no atoms -> bodies -> relations are looked at that are known to not contain relevant duplicates
+        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
+      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
+      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name, aI.bodyIdx)).toSeq.map(_._2.sortWith((l, r) => l.atomIdx <= r.atomIdx))
+      atomsPerBody
+    }
 
     def outlineCommonAtoms(module: Module): Module = {
-      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
-        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
-
-      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
-
-      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name,aI.bodyIdx)).toSeq.map(_._2.sortWith((l,r) => l.atomIdx <= r.atomIdx))
-
-      // TODO make sure there is no jump in indices between atoms in original body (see test)
+      val atomsPerBody = preprocessCollectedData()
 
       val newBodiesWithInfosAboutOriginalAtoms: Seq[(Body,Seq[AtomInfo])] = findCommonAtomsInARow(atomsPerBody)
-      val (newBodies,infos) = newBodiesWithInfosAboutOriginalAtoms.unzip
 
       val usedRelNames = module.relations.keys
       gensym.register(usedRelNames.map(_.name))
 
-      val newRelations = newBodiesWithInfosAboutOriginalAtoms.flatMap { case (newBody, atomInfos) =>
-        val paramsWithTypes = getNeededParameters(newBody)
-        val (params, _) = paramsWithTypes.unzip
-        val newRel = generateNewRelation(params, newBody)
-
-        val newCall = generateNewCall(newRel, paramsWithTypes)
-
-        val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
-        val changedRelations = relBodiesToChange.map{case ((name,bodyIdx),atomInfoSeq) =>
-          changeRelation(module.relations(name), bodyIdx, atomInfoSeq.map(_.atomIdx), newCall)}
-
-        changedRelations ++ Seq(newRel)
-      }
-
-      Module(module.name, module.lang, newRelations ++ module.relations.filter(rel => !newRelations.exists(newRel => newRel.name.name == rel._1)).values) // TODO other moduleEntries
+      val newRelations = updateRelations(module.relations,newBodiesWithInfosAboutOriginalAtoms)
+      val otherEntries = module.entries.filterNot(_._2.isInstanceOf[Relation]) // TODO test and refactor (?)
+      Module(module.name, module.lang, newRelations ++ otherEntries.values)
     }
 
     private def findCommonAtomsInARow(atomsPerBody: Seq[Seq[AtomInfo]]): Seq[(Body,Seq[AtomInfo])] = {
+      def noIndexJumps(candidate: candidateBody): Boolean = { // TODO refactor...
+        // make sure there is no jump in indices between atoms in original body
+        val idc = candidate.map(_.atomIdx)
+        var prev = idc(0)
+        (1 until idc.size).map{ i =>
+          val current = idc(i)
+          val result = current - prev == 1
+          prev = current
+          result
+        }.forall(_==true)
+      }
+
       var bodiesTable: Seq[(candidateBody,Seq[AtomInfo])] = Seq()
+
       (config.minSizeOutline to atomsPerBody.map(_.size).max).foreach { k =>
         val hashtable: mutable.Map[Hashed, mutable.Seq[candidateBody]] = mutable.Map()
-        val candidatesK: Seq[candidateBody] = atomsPerBody.flatMap(_.grouped(k).toSeq)
-        /* TODO determine max size clones
+        val candidatesK: Seq[candidateBody] = atomsPerBody.flatMap(_.grouped(k).toSeq).filter(candidate => candidate.size == k && noIndexJumps(candidate))
+        /* determine max size clones
          *   1. place current subset in hashtable
          *   2. check whether enough occurrences in different bodies are equal / in same bucket
          *   3. if then save subset in table
          *   4. and remove smaller subsets that are contained in current
          *   5. -> table should contain the cloned subsets with maximum size
-         *
          * */
         candidatesK.map(cand =>
           val hash = hashCandidate(cand)
           hashtable.updateWith(hash) {
           _ => Some(hashtable.getOrElse(hash, mutable.Seq()).appended(cand))
         })
-
         val candidateEntries = hashtable.values
         val filteredCandidates = candidateEntries.filter(_.size > config.occurrencesBeforeOutlined)
-        filteredCandidates.foreach(candidate => bodiesTable = bodiesTable.appended((candidate.head,candidate.flatten.toSeq)))
+        filteredCandidates.foreach { candidateSeq =>
+          val candidate = candidateSeq.head
+          bodiesTable = bodiesTable.filter{case (candBody,atomInfoSeq) => candidate.intersect(candBody).isEmpty} // remove smaller clones
+          bodiesTable = bodiesTable.appended((candidate, candidateSeq.flatten.toSeq)) // need to remember all the original locations to change them in the next step
+        }
       }
 
       val (candBodies,atomInfos) = bodiesTable.unzip
       val newBodies: Seq[Body] = candBodies.map{ cBody => cBody.map(_.atom)}.map(Body(_))
-
       newBodies.zip(atomInfos)
     }
 
@@ -486,6 +485,29 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //      case ExtensionalCall(rel, args, neg) => args.filter { case TermArg(v@Var(_)) => v.mode.isBinding }.map { case TermArg(v@Var(_)) => v }}
       ).distinct.map(v => (Param(v.name, v.typ.get.ty), v.typ.get))
 
+    private def updateRelations(oldRelations: Map[String, Relation], newBodiesWithInfosAboutOriginalAtoms: Seq[(Body, Seq[AtomInfo])]): Seq[Relation] = {
+      var relations = oldRelations
+
+      val newRelations = newBodiesWithInfosAboutOriginalAtoms.flatMap { case (newBody, atomInfos) =>
+        // generate new relation
+        val paramsWithTypes = getNeededParameters(newBody)
+        val (params, _) = paramsWithTypes.unzip
+        val newRel = generateNewRelation(params, newBody)
+
+        // insert call into existing relations
+        val newCall = generateNewCall(newRel, paramsWithTypes)
+        val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
+        relBodiesToChange.foreach { case ((name, bodyIdx), atomInfoSeq) =>
+          val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atomIdx), newCall)
+          relations = relations.updated(changedRel.name, changedRel)
+          changedRel
+        }
+
+        Seq(newRel)
+      }
+      newRelations ++ relations.values
+    }
+
     private def generateNewRelation(params: Seq[Param], body: Body): Relation = {
       val name = gensym.freshName("R")
       Relation(name, params, Seq(body))
@@ -496,9 +518,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       Call(relation.name, args)
     }
 
-    private def changeRelation(rel: Relation, bodyIdx: Int, removedIdc: Seq[Int], newCall: Call): Relation = {  // TODO what if two calls need to be inserted in same body?
+    private def changeRelation(rel: Relation, bodyIdx: Int, removedIdc: Seq[Int], newCall: Call): Relation = {
       val newBody = removeOutlinedAtomsAndInsertCall(rel.bodies(bodyIdx), removedIdc, newCall)
-      val newBodies = rel.bodies.diff(Seq(rel.bodies(bodyIdx))) ++ Seq(newBody)
+//      val newBodies = rel.bodies.diff(Seq(rel.bodies(bodyIdx))) ++ Seq(newBody)
+      val newBodies = rel.bodies.patch(bodyIdx, Seq(newBody), 1)
       Relation(rel.name,rel.params,newBodies)
     }
 
