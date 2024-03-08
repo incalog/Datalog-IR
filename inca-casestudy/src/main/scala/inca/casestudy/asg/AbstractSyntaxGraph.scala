@@ -255,10 +255,13 @@ object AbstractSyntaxGraph:
 
 
   @main def benchmarkAsg() = {
+    val warmups = 0
+    val runs = 1
     val resultPath = "benchmark/mono"
     val maxNodes = 100
+    val step = 10
     // Execution
-    val measurements = for (i <- Range.inclusive(10, maxNodes, 10)) yield  {
+    val measurements = for (i <- Range.inclusive(10, maxNodes, step)) yield  {
       // Stats
       {
         val engine = new inca.viatra.Executor().instantiate(compiled)
@@ -273,13 +276,13 @@ object AbstractSyntaxGraph:
       collectGarbage()
 
       // Warmup
-      for (k <- Range.inclusive(1, 5)) {
+      for (k <- Range.inclusive(1, warmups)) {
         val engine = new inca.viatra.Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       }
 
-      i.toString -> (for (j <- Range.inclusive(1, 5)) yield {
+      i.toString -> (for (j <- Range.inclusive(1, runs)) yield {
         val engine = new inca.viatra.Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
