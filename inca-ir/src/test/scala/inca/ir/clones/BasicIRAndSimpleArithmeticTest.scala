@@ -1072,6 +1072,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input, ConfigVN(true))
   }
 
+  // TODO how to let these tests pass and not break the 'Bus Station' Test ??? (for this commented out call of treatBindingInEq(...) in treatComparisonEq
   test("Call and check for Equality") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(

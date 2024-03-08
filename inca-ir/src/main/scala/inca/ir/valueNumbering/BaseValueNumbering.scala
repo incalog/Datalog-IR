@@ -3,6 +3,7 @@ package inca.ir.valueNumbering
 import inca.ir
 import inca.ir.*
 import inca.ir.analysis.Analyzable
+import inca.ir.extension.aggregate.Aggregate
 import inca.util.Gensym
 
 import scala.collection.mutable
@@ -65,14 +66,15 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
       override def visitAtom(atom: Atom): Seq[Atom] = atom match {
         case Call(ref, args, neg) => Seq(Call(VNRelations(ref.name.name), args, neg))
-//        case ExtensionalCall(ref, args, neg) => Seq(ExtensionalCall(VNRelations(ref.name.name), args, neg)) // TODO can Ext relations be analyzed?
+        case Aggregate(rel, args, op) => Seq(Aggregate(RefByName(Name(VNRelations(rel.name.name))),args,op)) // TODO move in separate aggregate file
+//        case ExtensionalCall(ref, args, neg) => Seq(ExtensionalCall(VNRelations(ref.name.name), args, neg))
         case _ => Seq(atom) // no further descend in AST
       }
     }
 
     val newModule = visitModule(module)
     val fixed = new CallsFix().fixCalls(newModule)
-    if config.outline then new Outlining().outlineCommonAtoms(fixed) else fixed
+    if config.outline then return new Outlining().outlineCommonAtoms(fixed) else return fixed
 
   }
 
@@ -97,10 +99,21 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // bindingArg is passed if hash is used for Var with this name and NOT for the atom
   protected def getHashCode(atom: Atom, bindigArg: Option[String] = None): Hashed = atom match {
     case Call(ref,args,neg) => bindigArg match {
-      case Some(withoutArg) =>(Seq(ref) ++ args.filter { // there should be no false positive caused by removal because no relation name used twice
-          case TermArg(Var(Name(x))) => x == withoutArg
+      case Some(withoutArg) =>
+        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice
+          case TermArg(Var(RefByName(Name(x)))) => x == withoutArg
           case _ => false
-        } ++ Seq(neg)).hashCode()
+        }
+        (Seq(ref) ++ argsFiltered ++ Seq(neg)).hashCode()
+      case None => (Seq(ref) ++ args ++ Seq(neg)).hashCode()
+    }
+    case ExtensionalCall(ref,args,neg) => bindigArg match {
+      case Some(withoutArg) =>
+        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice
+          case TermArg(Var(RefByName(Name(x)))) => x == withoutArg
+          case _ => false
+        }
+        (Seq(ref) ++ argsFiltered ++ Seq(neg)).hashCode()
       case None => (Seq(ref) ++ args ++ Seq(neg)).hashCode()
     }
     case _ => atom.hashCode()
@@ -158,6 +171,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  private var currentBodyVars: Seq[Var] = Seq()
+  private def isUsedInBody(x: String): Boolean = currentBodyVars.map(_.name.name).contains(x) // TODO like this or use gensym?
+
   private var currentAtomIndex: Int = -1   // TODO prettier solution ?
   override def visitBody(body: Body): Seq[Body] = {
     VNGlobal = VNGlobal ++ VN
@@ -170,6 +186,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     hashTableAtoms = Map()
     currentAtomIndex = -1
     currentBodyIndex += 1
+    currentBodyVars = body.vars
     val newBodySeq = valueNumberBodies(body)
     if newBodySeq.nonEmpty then
       hashTableAtoms.foreach {
@@ -288,20 +305,28 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
         case _ => hashTableGlobal(exprHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
       }
-      VN += (x, v)
-      VN += (v, v)
-      hashTable += (exprHash,v)
+      if (!isUsedInBody(v)) {
+        VN += (x, v)
+        VN += (v, v)
+        hashTable += (exprHash, v)
 
       //count = count.updated(exprHash, count(exprHash) + 1)
 
-//      if(isParam(x) && !isParam(v)){ // when replacing a variable that is a parameter we also need to replace it in the list of parameters
-//        val temp = relationParams.diff(Seq(Name(x)))
-//        relationParams = temp.appended(v)
-//      }
+      //      if(isParam(x) && !isParam(v)){ // when replacing a variable that is a parameter we also need to replace it in the list of parameters
+      //        val temp = relationParams.diff(Seq(Name(x)))
+      //        relationParams = temp.appended(v)
+      //      }
 
       // remove "Assignment" or replace term
-//      currentAtomIndex += 1
-      return valueNumberAtoms(Eq(newVar(v,typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+      //      currentAtomIndex += 1
+        return valueNumberAtoms(Eq(newVar(v, typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+      }
+      else{ // TODO refactor
+        val v = x
+        VN += (x, v)
+        hashTable += (exprHash, v)
+        return valueNumberAtoms(Eq(newVar(v, typ), newTerm))
+      }
     }
 
     else {
@@ -323,7 +348,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   def treatComparisonEq(x: String, e: Term, typ: Option[TermType]): Seq[Atom] = {
-    val atomSeq = treatBindingInEq(x, e, dontRemove = true, typ) // not removed by value numbering of terms but may be removed if duplicate of other Eq below
+    val atomSeq = Seq(Eq(newVar(x, typ), e)) //TODO ??? treatBindingInEq(x, e, dontRemove = true, typ) // not removed by value numbering of terms but may be removed if duplicate of other Eq below
     if atomSeq.isEmpty then return atomSeq
 
     val newAtom = atomSeq.head
@@ -347,7 +372,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
-    val atomHash: Hashed = getHashCode(call)
+//    val atomHash: Hashed = getHashCode(call)
     val newArgs: Seq[Arg] = args.map {
       case t@TermArg(term) => term match {
 
@@ -355,12 +380,20 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
           val bindingCallHash = getHashCode(call, Some(variName))
 
           // same calls except currently binding var should have same ValNum in different Relations
-          if (hashTableGlobal.contains(bindingCallHash)) {
+          if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
             val v: ValNum = hashTableGlobal(bindingCallHash)
-            VN += (variName, v)
-            hashTable += (bindingCallHash, v)
-            valueUnknown = valueUnknown + Var(v)
-            TermArg(newVar(v, term.typ, true))
+            if (!isUsedInBody(v)) {
+              VN += (variName, v)
+              hashTable += (bindingCallHash, v)
+              valueUnknown = valueUnknown + Var(v)
+              TermArg(newVar(v, term.typ, true))
+            }
+            else {
+              VN += (variName, variName)
+              hashTable += (bindingCallHash, variName)
+              valueUnknown = valueUnknown + Var(variName)
+              t
+            }
           } else {
             VN += (variName, variName)
             hashTable += (bindingCallHash, variName)
