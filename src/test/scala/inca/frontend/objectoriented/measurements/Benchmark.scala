@@ -10,22 +10,22 @@ object Benchmark {
     val runs = 1
 
     // Micro-benchmark Interpreter - Section 3
-    val pathBenchmark = PathBenchmark(warmups, runs)
+    /*val pathBenchmark = PathBenchmark(warmups, runs)
     pathBenchmark.run("left")
     pathBenchmark.run("right")
 
     // Micro-benchmark - Section 3 (different representations of the mutation counter)
     val mutationBenchmark = MutationBenchmark(warmups, runs)
-    mutationBenchmark.run()
+    mutationBenchmark.run()*/
 
     // Dependency Analysis - Section 8
     val asgBenchmark = ASGBenchmark(warmups, runs)
     asgBenchmark.run()
 
     // Sign + Constant Analysis - Section 8
-    val fsBenchmark = FSAnalysisBenchmark(warmups, runs)
+    /*val fsBenchmark = FSAnalysisBenchmark(warmups, runs)
     fsBenchmark.runSign()
-    fsBenchmark.runConstant()
+    fsBenchmark.runConstant()*/
 
     /** Outdated */
     //val cfgBenchmark = CFGBenchmark(warmups, runs)
