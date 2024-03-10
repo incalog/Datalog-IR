@@ -2,7 +2,7 @@ package inca.frontend.objectoriented.measurements
 
 import inca.backend.optimize.EliminateNonproductiveRelations
 import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.ir.{EDBChange, Relation, Relation2, Datalog => DatalogAPI}
+import inca.frontend.ir.{EDBChange, Relation, Relation2, UnitRelation, Datalog => DatalogAPI}
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.ObjectOrientedDatalog
 import inca.frontend.objectoriented.interpreter._
@@ -39,7 +39,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     header +: rows
   }
 
-  private def measureDatalog(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
+  private def measureOODL(c: Config, prog: String, edb: Seq[Relation], args: Seq[Term]): IndexedSeq[Long] = {
     val code = FileUtil.readFile(prog)
     val module = Compiler.compileObject(code, options)
 
@@ -47,7 +47,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
     //System.exit(1)
 
     for (i <- 0 until c.warmup) yield {
-      println(s"Warmup Datalog ${c.name}: ${i + 1}")
+      println(s"Warmup OODL ${c.name}: ${i + 1}")
       val datalog = new ObjectOrientedDatalog(module)
       datalog.measure("ProgEntry", "main", edb, args:_*)
 
@@ -55,7 +55,7 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
       MemoryUtil.collectGarbage()
     }
     for (i <- 0 until c.runs) yield {
-      println(s"Run Datalog ${c.name}: ${i + 1}")
+      println(s"Run OODL ${c.name}: ${i + 1}")
 
       val datalog = new ObjectOrientedDatalog(module)
 
@@ -70,6 +70,34 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
 
       //val start = System.nanoTime()
       val diff = datalog.measure("ProgEntry", "main", edb, args:_*)
+      //val diff = System.nanoTime() - start
+      println("diff: " + diff.toDouble/1000000000d)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
+
+      diff
+    }
+  }
+
+  private def measureDatalog(c: Config, edb: Seq[Relation], args: Seq[Any]): IndexedSeq[Long] = {
+    val module = ASGIRModule.module
+
+    for (i <- 0 until c.warmup) yield {
+      println(s"Warmup Datalog ${c.name}: ${i + 1}")
+      val datalog: DatalogAPI = new DatalogAPI(module)
+      val edb = EDBChange.insertions(Seq(Relation.from("ext_input$main$bb", Seq("endNode", "step"), Seq(args))))
+      datalog.measure("main", edb)
+
+      EnginePool.disposeAllEngines()
+      MemoryUtil.collectGarbage()
+    }
+    for (i <- 0 until c.runs) yield {
+      println(s"Run Datalog ${c.name}: ${i + 1}")
+
+      val datalog: DatalogAPI = new DatalogAPI(module)
+      val edb = EDBChange.insertions(Seq(Relation.from("ext_input$main$bb", Seq("endNode", "step"), Seq(args))))
+      val diff = datalog.measure("main", edb)
       //val diff = System.nanoTime() - start
       println("diff: " + diff.toDouble/1000000000d)
 
@@ -131,22 +159,28 @@ case class ASGBenchmark(warmups: Int, runs: Int) {
       ASGConfig(warmups, runs, s"ASG", i, 10)
     }*/
 
-    val configs = for (i <- 10 until 101 by 10) yield {
+    val configs = for (i <- 10 until 111 by 50) yield {
       ASGConfig(warmups, runs, s"ASG", i, 10)
     }
 
     val prog = progFolder + s"AbstractSyntaxGraph.oinca"
 
     // OODL
-    val datalogMeasurements = for (c <- configs) yield {
-      c.endNode -> measureDatalog(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.step)))
+    /*val oodlMeasurements = for (c <- configs) yield {
+      c.endNode -> measureOODL(c, prog, Seq(), Seq(meta.Lit.Int(c.endNode), meta.Lit.Int(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/asg/ASG_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Datalog.csv", csvToString(toCSV(oodlMeasurements)))
 
     // OODL - Interp
     val interpreterMeasurements = for (c <- configs) yield {
       c.endNode -> measureInterpreter(c, prog, Map(), Seq(ScalaValue(c.endNode), ScalaValue(c.step)))
     }
-    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Interpreter.csv", csvToString(toCSV(interpreterMeasurements)))*/
+
+    // Pure Datalog
+    val datalogMeasurements = for (c <- configs) yield {
+      c.endNode -> measureDatalog(c, Seq(), Seq(c.endNode, c.step))
+    }
+    FileUtil.writeFile(s"$resultPath/asg/ASG_Pure_Datalog.csv", csvToString(toCSV(datalogMeasurements)))
   }
 }

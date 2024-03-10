@@ -4,7 +4,7 @@ import inca.backend.hints.MagicSetHints
 import inca.backend.hints.MagicSetHints.NoInputRelation
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{Call, Eq, IntConstant, Neq, TScala, TScalaBoolean, TScalaInt, TScalaString}
-import inca.backend.optimize.{InlineSimpleRelations, Optimization}
+import inca.backend.optimize.{ConstantPropagation, EliminateAliases, EliminateClones, EliminateNonproductiveRelations, EvalFusion, ExtractLargeBodies, FoldConstantAtoms, InferVarTypes, InlineSimpleRelations, Optimization}
 import inca.backend.transform.Transformation
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.{CompiledModule, Options, SourceLocation}
@@ -473,10 +473,11 @@ object ASGIRModule {
   def run(): Unit = {
     val datalog: DatalogAPI = new DatalogAPI(module)
     val start = System.nanoTime()
-    val edb = EDBChange.insertions(Seq(Relation.from("ext_input$main$bb", Seq("endNode", "step"), Seq(Seq(100, 10)))))
-    datalog.update(edb)
-    val mainRel = datalog.read(UnitRelation("main"))
-    println(mainRel.asTable)
+    val edb = EDBChange.insertions(Seq(Relation.from("ext_input$main$bb", Seq("endNode", "step"), Seq(Seq(10, 10)))))
+    //datalog.update(edb)
+    //val mainRel = datalog.read(UnitRelation("main"))
+    datalog.measure("main", edb)
+    //println(mainRel.asTable)
     val diff = System.nanoTime() - start
     println("diff: " + diff.toDouble/1000000d)
   }
