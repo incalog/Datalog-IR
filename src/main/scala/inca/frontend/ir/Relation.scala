@@ -100,7 +100,7 @@ trait Relation {
     s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS})"
   }
 
-  def asTable: String = Tabulator.format(name, parameterNames, matches.toSeq)
+  def asTable: String = Tabulator.format(s"$name - $size", parameterNames, matches.toSeq)
 }
 
 case class UnitRelation(name: RelationName) extends Relation {
