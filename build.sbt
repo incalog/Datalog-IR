@@ -216,3 +216,21 @@ lazy val inca_ascent = (project in file("inca-ascent"))
     )
   )
 
+lazy val inca_bddbddb = (project in file("inca-bddbddb"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := scalaVersionString,
+
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+    )
+  )
+
