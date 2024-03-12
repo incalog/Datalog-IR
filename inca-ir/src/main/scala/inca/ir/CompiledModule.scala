@@ -134,10 +134,10 @@ trait CompiledModule:
     }
     valueNumberingResult
 
-  def valueNumbering(p: Module, config: ConfigVN): Module = {
+  def valueNumbering(module: Module, config: ConfigVN): Module = {
     val VN = new ValueNumbering(config)
-    println(s"before VN: \n$p\n") // TODO use printstep
-    val result = VN.valueNumbering(p)
+    println(s"before VN: \n$module\n") // TODO use printstep
+    val result = VN.valueNumbering(module)
     println(s"after VN: \n$result")
     result
   }
