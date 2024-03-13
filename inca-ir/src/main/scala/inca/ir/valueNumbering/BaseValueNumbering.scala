@@ -431,15 +431,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     type candidateBody = Seq[AtomInfo]
 
-    private def preprocessCollectedData(): Seq[Seq[AtomInfo]] = {
-      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
-        // makes sure that no atoms -> bodies -> relations are looked at that are known to not contain relevant duplicates
-        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
-      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
-      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name, aI.bodyIdx)).toSeq.map(_._2.sortWith((l, r) => l.atomIdx <= r.atomIdx))
-      atomsPerBody
-    }
-
     def outlineCommonAtoms(module: Module): Module = {
       val atomsPerBody = preprocessCollectedData()
 
@@ -449,11 +440,22 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       gensym.register(usedRelNames.map(_.name))
 
       val newRelations = updateRelations(module.relations,newBodiesWithInfosAboutOriginalAtoms)
-      val otherEntries = module.entries.filterNot(_._2.isInstanceOf[Relation]) // TODO test and refactor (?)
+      val otherEntries = module.entries.filterNot(_._2.isInstanceOf[Relation])
       Module(module.name, module.lang, newRelations ++ otherEntries.values)
     }
 
+    private def preprocessCollectedData(): Seq[Seq[AtomInfo]] = {
+      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
+        // makes sure that no atoms -> bodies -> relations are looked at that are known to not contain relevant duplicates
+        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
+      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
+      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name, aI.bodyIdx)).toSeq.map(_._2.sortWith((l, r) => l.atomIdx <= r.atomIdx))
+      atomsPerBody
+    }
+
     private def findCommonAtomsInARow(atomsPerBody: Seq[Seq[AtomInfo]]): Seq[(Body,Seq[AtomInfo])] = {
+      if atomsPerBody.isEmpty then return Seq()
+
       def noIndexJumps(candidate: candidateBody): Boolean = { // TODO refactor...
         // make sure there is no jump in indices between atoms in original body
         val idc = candidate.map(_.atomIdx)
@@ -466,9 +468,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         }.forall(_==true)
       }
 
-      var bodiesTable: Seq[(candidateBody,Seq[AtomInfo])] = Seq()
+      var bodiesTable: Seq[(Body,Seq[AtomInfo])] = Seq()
+      val maxSize = atomsPerBody.map(_.size).max
 
-      (config.minSizeOutline to atomsPerBody.map(_.size).max).foreach { k =>
+      (config.minSizeOutline to maxSize).foreach { k =>
         val hashtable: mutable.Map[Hashed, mutable.Seq[candidateBody]] = mutable.Map()
         val candidatesK: Seq[candidateBody] = atomsPerBody.flatMap(_.grouped(k).toSeq).filter(candidate => candidate.size == k && noIndexJumps(candidate))
         /* determine max size clones
@@ -478,28 +481,27 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
          *   4. and remove smaller subsets that are contained in current
          *   5. -> table should contain the cloned subsets with maximum size
          * */
-        candidatesK.map(cand =>
-          val hash = hashCandidate(cand)
+        val candidateBodiesK: Seq[Body] = candidatesK.map(cand =>
+          val candBody = Body(cand.map{ case AtomInfo(atom, name, bodyIdx, atomIdx) => atom })
+          val hash = candBody.hashCode()
           hashtable.updateWith(hash) {
           _ => Some(hashtable.getOrElse(hash, mutable.Seq()).appended(cand))
-        })
+          }
+          candBody
+        )
         val candidateEntries = hashtable.values
         val filteredCandidates = candidateEntries.filter(_.size > config.occurrencesBeforeOutlined)
         filteredCandidates.foreach { candidateSeq =>
-          val candidate = candidateSeq.head
-          bodiesTable = bodiesTable.filter{case (candBody,atomInfoSeq) => candidate.intersect(candBody).isEmpty} // remove smaller clones
+          val candidate = Body(candidateSeq.head.map{case AtomInfo(atom, _, _, _) => atom})
+          bodiesTable = bodiesTable.filter{case (candBody,atomInfoSeq) => candidate.atoms.intersect(candBody.atoms).isEmpty } // remove smaller clones
           bodiesTable = bodiesTable.appended((candidate, candidateSeq.flatten.toSeq)) // need to remember all the original locations to change them in the next step
         }
       }
-
-      val (candBodies,atomInfos) = bodiesTable.unzip
-      val newBodies: Seq[Body] = candBodies.map{ cBody => cBody.map(_.atom)}.map(Body(_))
-      newBodies.zip(atomInfos)
+        // TODO how to make sure that there is no "Ill-typed equation"
+        //  i.e. handle cases in which binding of a Var is different (-> not in new body)
+        bodiesTable
     }
 
-    def hashCandidate(candidate: candidateBody): Hashed = candidate.map{
-      case AtomInfo(atom, name, bodyIdx, atomIdx) => atom
-    }.hashCode()
 
     private def getNeededParameters(body: Body): Seq[(Param,TermType)] =
       body.atoms.flatMap(_.vars).distinct.map(v => (Param(v.name, v.typ.get.ty), v.typ.get)) // TODO to many vars ?
