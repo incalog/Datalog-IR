@@ -14,7 +14,7 @@ import scala.reflect.ClassTag
 
 class ParserTest extends AnyFunSuite {
 
-  val uri = classOf[ParserTest].getResource("/inca/bddbddb").toURI;
+  val uri = classOf[ParserTest].getResource("/inca/bddbddb").toURI
 
   test("Parse all bddbddb Datalog files") {
     Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {

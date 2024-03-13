@@ -33,7 +33,7 @@ object Parser:
       }
   }
 
-  def parseModule(source: String): Module =
+  def parseModule(source: String): Program =
     (whitespaces0 *> module <* P.end).parseAll(source) match
       case Right(p) => p
       case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset+10)}: $err")
@@ -130,10 +130,10 @@ object Parser:
 
   val call: P[Atom.Call] =
     (op("!").?.with1 ~ identifier ~ inParens(term.repSep0(op(',')))).mapWithLoc {
-      case ((not, name), args) => Atom.Call(RefByName(name), args, not.isDefined)
+      case ((not, name), args) => Atom.Call(name, args, not.isDefined)
     }
 
-  val comparator: P[String] = oneOperator(List("=>", "!=", "=", ">", "<"))
+  val comparator: P[String] = oneOperator(List("=>", "!=", "=", ">", "<", ">=", "<="))
 
   val compare: P[Atom.Compare] =
     (term ~ comparator ~ term).mapWithLoc {
@@ -192,8 +192,8 @@ object Parser:
 
   val domain: P[Domain] = identifier.mapWithLoc(Domain.apply)
 
-  val param: P[Param] = ((identifier <* op(':')) ~ domain).mapWithLoc {
-    case (name, domain) => Param(name, domain)
+  val param: P[Attribute] = ((identifier <* op(':')) ~ domain).mapWithLoc {
+    case (name, domain) => Attribute(name, domain)
   }
 
   val constraintRelationOption: P[RelationOption] =
@@ -230,7 +230,7 @@ object Parser:
 
   val domainDecl: P[ProgramContent.DomainDecl] =
     (identifier ~ spaced(Numbers.nonNegativeIntString) ~ qualifiedIdentifier.?).mapWithLoc {
-      case ((name, size), fileName) => ProgramContent.DomainDecl(name, size.toInt, fileName)
+      case ((name, size), fileName) => ProgramContent.DomainDecl(name, size.toLong, fileName)
     }
 
   val simpleRuleOption: P[RuleOption] = P.oneOf(List(
@@ -279,12 +279,12 @@ object Parser:
   val moduleEntry: P[Option[ProgramContent]] =
     (directive.backtrack | relationDecl.backtrack | domainDecl.backtrack | rule).map(c => Some(c))
 
-  val module: P0[Module] =
+  val module: P0[Program] =
     (
-      (whitespaces0.with1 <* newLine).map(_ => None) |
+      (whitespaces0.with1 <* newLine).backtrack.map(_ => None) |
       (whitespaces0.with1 *> moduleEntry <* newLine).backtrack |
-      (whitespaces0.with1 *> moduleEntry) | // File ends with a module entry
+      (whitespaces0.with1 *> moduleEntry).backtrack | // File ends with a module entry
       whitespace.rep(1).map(_ => None) // File ends with a comment
     ).rep0.map { contentOptions =>
-      Module(contentOptions.flatten)
+      Program(contentOptions.flatten)
     }

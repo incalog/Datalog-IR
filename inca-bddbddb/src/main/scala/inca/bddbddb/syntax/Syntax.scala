@@ -6,8 +6,8 @@ import inca.ir.util.SourceLocation
 
 // See: https://sourceforge.net/p/bddbddb/code/HEAD/tree/trunk/bddbddb/net/sf/bddbddb/DatalogParser.java
 
-case class Module(relations: Seq[ProgramContent]) extends SourceLocation:
-  override def toString: String = relations.mkString("\n")
+case class Program(content: Seq[ProgramContent]) extends SourceLocation:
+  override def toString: String = content.mkString("\n")
 
 case class QualifiedName(ns: Seq[String])  extends SourceLocation:
   override def toString: String = ns.mkString(".")
@@ -32,7 +32,7 @@ enum DirectiveQualifier extends SourceLocation:
   case Incremental(value: String)
   case Dot(graph: String) // Used for dat graph annotations
 
-  override def toString: String = "." + (this match
+  override def toString: String = this match
     case DirectiveQualifier.Include(filename) => s"include $filename"
     case DirectiveQualifier.BaseDir(path) => s"basedir $path"
     case DirectiveQualifier.BddVarOrder(order) => s"bddvarorder $order"
@@ -47,7 +47,7 @@ enum DirectiveQualifier extends SourceLocation:
     case DirectiveQualifier.Trace(flag) => s"trace $flag"
     case DirectiveQualifier.FindBestOrder(order) => s"findbestorder $order"
     case DirectiveQualifier.Incremental(value) => s"incremental $value"
-    case DirectiveQualifier.Dot(graph) => s"dot $graph")
+    case DirectiveQualifier.Dot(graph) => s"dot $graph"
 
 enum RelationOption extends SourceLocation:
   case Output
@@ -97,24 +97,25 @@ enum RuleOption extends SourceLocation:
 
 enum ProgramContent extends SourceLocation:
   case Directive(dirQualifier: DirectiveQualifier)
-  case DomainDecl(name: Name, size: Int, qualifiedFileName: Option[QualifiedName])
-  case RelationDecl(name: Name, params: Seq[Param], options: Seq[RelationOption])
-  case Rule(name: Name, param: Seq[Term], body: Seq[Atom], options: Seq[RuleOption])
+  case DomainDecl(name: Name, size: Long, qualifiedFileName: Option[QualifiedName])
+  case RelationDecl(name: Name, attrs: Seq[Attribute], options: Seq[RelationOption])
+  case Rule(name: Name, params: Seq[Term], body: Seq[Atom], options: Seq[RuleOption])
 
   override def toString: String = this match
     case ProgramContent.Directive(dirQualifier) => s".$dirQualifier"
-    case ProgramContent.DomainDecl(name, size, qualifiedFileName) => s"$name $size $qualifiedFileName"
-    case ProgramContent.RelationDecl(name, params, options) => s"""$name ${params.mkString(",")} ${options.mkString(",")}"""
-    case ProgramContent.Rule(name, param, body, options) => s"""$name(${param.mkString(",")}) :- ${body.mkString(",")}. ${options.mkString(",")}"""
+    case ProgramContent.DomainDecl(name, size, Some(qualifiedFileName)) => s"$name $size $qualifiedFileName"
+    case ProgramContent.DomainDecl(name, size, None) => s"$name $size"
+    case ProgramContent.RelationDecl(name, params, options) => s"""$name ${params.mkString("(", ", ", ")")} ${options.mkString(" ")}"""
+    case ProgramContent.Rule(name, params, body, options) => s"""$name(${params.mkString(",")}) :- ${body.mkString(", ")}. ${options.mkString(" ")}"""
 
 case class Domain(name: Name) extends SourceLocation:
   override def toString: String = name.toString
 
-case class Param(name: Name, domain: Domain) extends SourceLocation:
+case class Attribute(name: Name, domain: Domain) extends SourceLocation:
   override def toString: String = s"$name: $domain"
 
 enum Atom extends SourceLocation:
-  case Call(ref: Ref[ProgramContent.RelationDecl], args: Seq[Term], not: Boolean)
+  case Call(rel: Name, args: Seq[Term], neg: Boolean)
   case Compare(lhs: Term, op: String, rhs: Term)
 
   override def toString: String = this match
@@ -131,3 +132,4 @@ enum Term extends SourceLocation:
   override def toString: String = this match
     case Var(name) => name.toString
     case NumberLit(value) => value.toString
+    case StringLit(value) => s""""$value""""
