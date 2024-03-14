@@ -19,12 +19,12 @@ class ParserTest extends AnyFunSuite {
   test("Parse all bddbddb Datalog files") {
     Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {
       override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
-        println(s"Entering ${dir.getFileName}")
+        //ln(s"Entering ${dir.getFileName}")
         FileVisitResult.CONTINUE
 
       override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
         if (p.toString.endsWith(".datalog")) {
-          println(s"Parsing $p")
+          //println(s"Parsing $p")
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")
           file.close()
@@ -40,13 +40,6 @@ class ParserTest extends AnyFunSuite {
         FileVisitResult.CONTINUE
     })
   }
-
-  private def testSuccess[T](parser: P[T]): (String, T) => Assertion =
-    (input: String, cmp: T) => {
-      parser.parseAll(input) match
-        case Left(value) => assert(false, explainParseError(value))
-        case Right(value) => assertResult(cmp)(value)
-    }
 
   def explainParseError(e: P.Error): String =
     val input = e.input.getOrElse("")
@@ -65,10 +58,5 @@ class ParserTest extends AnyFunSuite {
         case Right(value) =>
           if (!silent) println(value)
           assert(true)
-    }
-
-  private def testFailure[T <: AnyRef](parser: P[Any])(using ClassTag[T]): String => Unit =
-    (input: String) => {
-      assertThrows[T](parser.parseAll(input))
     }
 }

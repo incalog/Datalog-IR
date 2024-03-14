@@ -59,8 +59,8 @@ protectedMethods(m) :- methodAccess(m, 2).
 packageMethods(m) :- methodAccess(m, 3).
 
 # Anything returned/thrown by a public method when it is called externally.
-nH(h) :- publicMethod(m), Mret(m,v), cvP(0,v,h).
-nH(h) :- publicMethod(m), Mthr(m,v), cvP(0,v,h).
+nH(h) :- publicMethods(m), Mret(m,v), cvP(0,v,h).
+nH(h) :- publicMethods(m), Mthr(m,v), cvP(0,v,h).
 # Anything reachable via a public field from a necessary object.
 nH(h) :- nH(h0), hP(h0,f,h), publicFields(f).
 # Anything written into a public static field.

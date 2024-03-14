@@ -70,7 +70,7 @@ unlockedType(calleem,calleec,t) :- mI(callerm, invoke, _), \
 #sometimesUnlocked(m,h) :- !locked(m,c,h), mC(m,c).
 sometimesUnlockedType(m,t) :- unlockedType(m,c,t), mC(m,c).
 #alwaysLocked(m,h) :- !sometimesUnlocked(m,h), mC(m,_).
-alwaysLockedType(m,t) :- !sometimesUnlockedType(m,t), mC(m,_).
+alwaysLockedType(m,t) :- mC(m,_), !sometimesUnlockedType(m,t).
 externalLockType(m,t) :- alwaysLockedType(m,t), \
                          formal(m,0,v), \
                          vT(v,this), \

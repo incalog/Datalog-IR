@@ -1,7 +1,7 @@
 package inca.bddbddb.syntax
 
 import inca.ir.{Name, Ref}
-import inca.ir.typing.Typeable
+import inca.ir.typing.{Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 
 // See: https://sourceforge.net/p/bddbddb/code/HEAD/tree/trunk/bddbddb/net/sf/bddbddb/DatalogParser.java
@@ -110,8 +110,11 @@ enum ProgramContent extends SourceLocation:
 
 case class Domain(name: Name) extends SourceLocation:
   override def toString: String = name.toString
+  lazy val canonicalName: Name = Name(name.toString.replaceAll("\\d+$", ""))
 
-case class Attribute(name: Name, domain: Domain) extends SourceLocation:
+case class Attribute(name: Name, domain: Domain) extends SourceLocation  with Resolvable[Domain]:
+  this.target = Some(this.domain)
+
   override def toString: String = s"$name: $domain"
 
 enum Atom extends SourceLocation:
@@ -124,12 +127,14 @@ enum Atom extends SourceLocation:
       s"$prefix$name(${args.mkString(",")})"
     case Compare(lhs, op, rhs) => s"$lhs $op $rhs"
 
-enum Term extends SourceLocation:
+enum Term extends SourceLocation with Resolvable[Domain]:
   case Var(name: Name)
   case NumberLit(value: Int)
   case StringLit(value: String)
 
+  private def domainSuffix: String = target.map(d => s": $d").getOrElse("")
+
   override def toString: String = this match
-    case Var(name) => name.toString
-    case NumberLit(value) => value.toString
-    case StringLit(value) => s""""$value""""
+    case Var(name) => name.toString + domainSuffix
+    case NumberLit(value) => value.toString + domainSuffix
+    case StringLit(value) => s""""$value"""" + domainSuffix

@@ -50,6 +50,7 @@ IE (invoke:I0, target:M0, ic0:H2, mc0:H3) output
 # Initial points-to relations.
 roots (method:M0) input
 mV (method:M0, v:V0) input
+
 reachable(m,c) :- IE(_,m,_,c).
 reachable(m,0) :- roots(m).
 ovP(c,v,h) :- vP0(v,h), mV(m,v), reachable(m,c).
