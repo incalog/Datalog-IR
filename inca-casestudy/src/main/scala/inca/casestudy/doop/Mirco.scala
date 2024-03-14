@@ -27,13 +27,14 @@ object Mirco:
       val res = engine.read(rel)
       println(res.name -> res.size)
     }
-  
+
   @main
   def runMicroDlSouffle(): Unit = {
     runMicroDL(compiled => inca.souffle.backend.Executor.instantiate(compiled))
   }
-  
-  @main 
+
+  // TODO: Needs way too much memory
+  @main
   def runMicroDlInca(): Unit = {
     runMicroDL(compiled => inca.viatra.Executor().instantiate(compiled))
   }
