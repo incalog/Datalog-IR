@@ -401,30 +401,30 @@ class OutlineClonesTest extends ValueNumberingTestAbstract {
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("R$0"), Seq(Param("C1", TInt), Param("n2", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("C1")), IntNum(5)),
-            Eq(Var(Name("n2")), IntNum(2)),
-          ))
-        )),
-        Relation(Name("R$1"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
+        Relation(Name("R$0"), Seq(Param("A1", TInt), Param("n", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("A1")), IntNum(10)),
             Eq(Var(Name("n")), Mul(IntNum(2), Var("A1"))),
           ))
         )),
+        Relation(Name("R$1"), Seq(Param("C1", TInt), Param("n2", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("C1")), IntNum(5)),
+            Eq(Var(Name("n2")), IntNum(2)),
+          ))
+        )),
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Call(Name("R$1"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
             Eq(Var(Name("A2")), IntNum(1010)),
-            Call(Name("R$0"), Seq(TermArg(Var("C1")), TermArg(Var("n2")))),
+            Call(Name("R$1"), Seq(TermArg(Var("C1")), TermArg(Var("n2")))),
             Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
           ))
         )),
         Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Call(Name("R$1"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
-            Call(Name("R$0"), Seq(TermArg(Var("C1")), TermArg(Var("n2")))),
+            Call(Name("R$0"), Seq(TermArg(Var("A1")), TermArg(Var("n")))),
+            Call(Name("R$1"), Seq(TermArg(Var("C1")), TermArg(Var("n2")))),
             Eq(Var(Name("m")), Mul(IntNum(3), Var("A1"))),
             Eq(Var(Name("result")), Add(Var("m"), Var("n")))
           ))

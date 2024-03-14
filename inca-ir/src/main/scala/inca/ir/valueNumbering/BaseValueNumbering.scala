@@ -388,7 +388,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       case t@TermArg(term) => term match {
 
         case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => // add binding vars to maps
-          val bindingCallHash = getHashCode(call, Some(variName))
+          val bindingCallHash = getHashCode(call, Some(variName))   // TODO is this okay?
 
           // same calls except currently binding var should have same ValNum in different Relations
           if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
@@ -536,7 +536,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         val newCall = generateNewCall(newRel, paramsWithTypes)
         val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
         relBodiesToChange.foreach { case ((name, bodyIdx), atomInfoSeq) =>
-          val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atomIdx), newCall)
+          val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atom), newCall)
           relations = relations.updated(changedRel.name, changedRel)
           changedRel
         }
@@ -556,18 +556,18 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       Call(relation.name, args)
     }
 
-    private def changeRelation(rel: Relation, bodyIdx: Int, removedIdc: Seq[Int], newCall: Call): Relation = {
-      val newBody = removeOutlinedAtomsAndInsertCall(rel.bodies(bodyIdx), removedIdc, newCall)
+    private def changeRelation(rel: Relation, bodyIdx: Int, removed: Seq[Atom], newCall: Call): Relation = {
+      val newBody = removeOutlinedAtomsAndInsertCall(rel.bodies(bodyIdx), removed, newCall)
       val newBodies = rel.bodies.patch(bodyIdx, Seq(newBody), 1)
       Relation(rel.name,rel.params,newBodies)
     }
 
-    private def removeOutlinedAtomsAndInsertCall(oldBody: Body, removed: Seq[Int], call: Call): Body = {
+    private def removeOutlinedAtomsAndInsertCall(oldBody: Body, removed: Seq[Atom], call: Call): Body = {
       var newAtoms: Seq[Atom] = Seq()
       var inserted = false
       (0 until oldBody.atoms.size).foreach { i =>
-        if(!removed.contains(i)) {
-          val atom = oldBody.atoms(i)
+        val atom = oldBody.atoms(i)
+        if(!removed.contains(atom)) { // TODO does that always work?
           newAtoms = newAtoms.appended(atom)
         }
         else if (!inserted) {
