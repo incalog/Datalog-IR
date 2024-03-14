@@ -4,10 +4,10 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module as IRModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir.extension.arithmetic.*
+import inca.ir.extension.arithmetic
 import inca.ir.*
 import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
-
+import inca.ir.typing.Typechecker
 
 abstract class ValueNumberingTestAbstract extends AnyFunSuite{
 
