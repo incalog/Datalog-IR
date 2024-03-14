@@ -4,6 +4,22 @@ import inca.ir.*
 
 import scala.language.implicitConversions
 
+case class DataDefinitionImport(name: Name) extends ModuleImport:
+  def withExtendedName(suffix: String): DataDefinitionImport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""import data $name"""
+
+case class CaseDefinitionImport(name: Name, args: Seq[Type], data: Ref[DataDefinitionImport]) extends ModuleImport:
+  def withExtendedName(suffix: String): CaseDefinitionImport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""import case $name(${args.mkString(",")}): $data"""
+
+case class DataDefinitionExport(name: Name) extends ModuleExport:
+  def withExtendedName(suffix: String): DataDefinitionExport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""export data $name"""
+
+case class CaseDefinitionExport(name: Name, args: Seq[Type], data: Ref[DataDefinitionExport]) extends ModuleExport:
+  def withExtendedName(suffix: String): CaseDefinitionExport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"""export case $name(${args.mkString(",")}): $data"""
+
 case class TData(ref: Ref[DataDefinition]) extends Type:
   override def toString: String = s"$ref"
 object TData:

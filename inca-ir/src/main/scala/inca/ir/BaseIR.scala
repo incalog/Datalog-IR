@@ -22,6 +22,28 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
   }
   lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
+  lazy val imports: Map[Name,ModuleImport] = contents.collect { case i: ModuleImport => (i.name,i) }.toMap
+  lazy val exports: Map[Name,ModuleExport] = contents.collect { case e: ModuleExport => (e.name,e) }.toMap
+
+trait ModuleImport extends ModuleEntry
+
+trait ModuleExport extends ModuleEntry
+
+case class RelationImport(name: Name, types: Seq[Type]) extends ModuleImport:
+  def withExtendedName(suffix: String): RelationImport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"import $name${types.mkString("(", ", ", ")")}"
+
+case class ExtensionalRelationImport(name: Name, types: Seq[Type]) extends ModuleImport:
+  def withExtendedName(suffix: String): ExtensionalRelationImport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"import ext $name${types.mkString("(", ", ", ")")}"
+
+case class RelationExport(name: Name, types: Seq[Type]) extends ModuleExport:
+  def withExtendedName(suffix: String): RelationExport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"export $name${types.mkString("(", ", ", ")")}"
+
+case class ExtensionalRelationExport(name: Name, types: Seq[Type]) extends ModuleExport:
+  def withExtendedName(suffix: String): ExtensionalRelationExport = this.copy(name = Name(name.name + suffix))
+  override def toString: String = s"export ext $name${types.mkString("(", ", ", ")")}"
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
