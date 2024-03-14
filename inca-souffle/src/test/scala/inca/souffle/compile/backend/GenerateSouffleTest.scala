@@ -1,18 +1,19 @@
 package inca.souffle.compile.backend
 
 import inca.ir.*
+import inca.ir.Module as irModule
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.data
-import inca.ir.execution.Relation as Rel
+import inca.ir.execution.{IRExecutor, Relation as Rel}
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.util.SourceLocation
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
-import inca.ir.visitors.BaseIRVisitor
+import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.souffle.backend.{Executor, GenerateSouffle}
-import inca.souffle.frontend.compile.CompiledSouffleModule
-import inca.souffle.syntax.Parser
+import inca.souffle.frontend.compile.{CompiledSouffleModule, SouffleInputHint}
+import inca.souffle.syntax.{DirectiveValue, Parser}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions.default
 import inca.util.compileroptions.CompilerOptions
@@ -147,16 +148,17 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def ir: Module = irModule
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
+    println(irModule)
     val engine = Executor.instantiate(compiledModule)
     val rels = engine.readAll()
-    //println(rels)
+    println(rels)
   }
   
   test("process test 2") {
     val irModule = Module("PathExample", Language.Datalog, Seq(pathRel, edgeRel))
     val compiledModule = new CompiledModule:
       override def name: Name = "PathExample"
-      override def sourceLocation: SourceLocation = ???
+      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
       override def ir: Module = irModule
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
@@ -195,17 +197,6 @@ class GenerateSouffleTest extends AnyFunSuite:
 //    val rels = engine.readAll()
 //    println(rels)
 //  }
-
-
-
-  test("run micro.dl") {
-    val source = Source.fromResource("inca/souffle/doop/micro.dl")
-    val compiled = CompiledSouffleModule.fromSource("micro", source)
-    
-    /*val engine = Executor.instantiate(compiled)
-    val rels = engine.readAll()
-    rels.foreach(r => println(r.asTable))*/
-  }
 
   /*test("lowering micro.dl times") {
     val code = Source.fromResource("inca/souffle/doop/micro.dl").getLines().mkString("\n")

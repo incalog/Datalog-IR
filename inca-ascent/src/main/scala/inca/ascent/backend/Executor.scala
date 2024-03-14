@@ -14,15 +14,13 @@ import scala.util.{Failure, Success, Try}
 
 object Executor extends IRExecutor:
   class Engine(rustFilePath: String, executable: ProcessBuilder, contents: Seq[ProgramContent], outputs: Seq[ProgramContent.RelDecl]) extends ExecutorEngine:
-    var inputDirty = false
+    var inputDirty = true
     var inputs: Seq[ProgramContent] = Seq()
     var cachedResult: Option[Seq[Relation]] = None
 
-    def execute(): String = {
+    private def execute(): String = {
       val progString = createRustString(contents, inputs)
       createRustFile(progString, rustFilePath)
-      inputDirty = false
-      // if (inputDirty)
       executable.!!
     }
 
@@ -44,6 +42,7 @@ object Executor extends IRExecutor:
         val output = execute()
         val result = OutputParser.parse(output)
         cachedResult = Some(result)
+        inputDirty = false
         result
     }
 

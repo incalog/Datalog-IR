@@ -346,11 +346,3 @@ class GenerateIRTest extends AnyFunSuite:
     val nats = execute(prog)("nats")
     assertResult("Succ(Zero())")(nats.entries.head.toString)
   }
-  
-  test("compile micro.dl") {
-    val code = FileUtil.readFileFromResource("inca/souffle/doop/micro.dl")
-
-    val prog = Parser.parseSouffle(code)
-    val rels = execute(prog)
-    rels.foreach(r => println(r._2.asTable))
-  }

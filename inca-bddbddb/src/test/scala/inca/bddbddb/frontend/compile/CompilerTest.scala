@@ -1,9 +1,8 @@
 package inca.bddbddb.frontend.compile
 
-import cats.parse.{Parser as P, Parser0 as P0}
+import cats.parse.{Parser as P}
 import inca.bddbddb.syntax.Parser
 import inca.ir.typing.IRTypechecker
-import inca.util.FileUtil
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -23,6 +22,7 @@ class CompilerTest extends AnyFunSuite:
 
       override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
         // We don't support the mapping (=>) feature yet, since it's not clear what it should do
+        // and its also not documented in the original paper(s)
         if (p.toString.endsWith("testMap.datalog"))
           return FileVisitResult.CONTINUE
 

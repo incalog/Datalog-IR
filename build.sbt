@@ -124,6 +124,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
 lazy val inca_souffle = (project in file("inca-souffle"))
   .dependsOn(inca_ir % "compile->compile")
   .dependsOn(inca_viatra % "test->test")
+  //.dependsOn(inca_ascent % "test->test")
   .settings(
     scalaVersion := scalaVersionString,
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",

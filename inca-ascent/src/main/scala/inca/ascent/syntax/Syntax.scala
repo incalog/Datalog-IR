@@ -251,7 +251,7 @@ enum Term:
     case Wildcard => "_"
     case NumberLit(n) => n.toString
     case FloatLit(d) => s"Float($d)"
-    case StringLit(s) => s"""<&str as Into<String>>::into("$s")"""
+    case StringLit(s) => s"""<&str as Into<String>>::into(r###"$s"###)"""
     case ToString(t) => s"$t.to_string()"
     case TypeCast(t, ty) => s"$t as $ty"
     case Concat(t) =>

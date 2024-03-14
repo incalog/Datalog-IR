@@ -17,12 +17,13 @@ import scala.util.{Failure, Success, Try}
 object Executor extends IRExecutor:
 
   class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
-    private var inputDirty = false
+    private var inputDirty = true
     private var cachedResult: Option[Seq[Relation]] = None
 
     private def execute(): Unit =
-      // if (inputDirty)
+      if (inputDirty)
         executable.!
+        inputDirty = false
 
     // Create empty input files for all input relations
     // This is necessary if a module has more than one main function
@@ -130,8 +131,6 @@ object Executor extends IRExecutor:
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
-
-    //println(souffleProg)
 
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile

@@ -46,8 +46,9 @@ object GenerateSouffle:
           Attribute(cleanName(p.name), compileType(p.ty))
         }
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
-        val directiveAttrs = edb.getHint[SouffleInputHint](SouffleInputHint).map(_.attrs).getOrElse(Map())
-        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), directiveAttrs)
+        //val directiveAttrs = edb.getHint[SouffleInputHint](SouffleInputHint).map(_.attrs).getOrElse(Map())
+        //val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), directiveAttrs)
+        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), Map())
         Seq(relDecl, inputDirective)
       case data.DataDefinition(name) =>
         val cases = module.contents.collect {

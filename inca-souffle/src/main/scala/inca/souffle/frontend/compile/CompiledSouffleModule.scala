@@ -2,11 +2,13 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.extension.{block, bool, datamatch, disjunction, not, set}
-import inca.ir.{CompiledModule, Module, Name}
+import inca.ir.{Atom, CompiledModule, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation}
 import inca.ir.util.SourceLocation
-import inca.ir.visitors.BaseIRVisitor
-import inca.souffle.syntax.{Parser, Program}
+import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
+import inca.souffle.backend.GenerateSouffle
+import inca.souffle.syntax.{DirectiveValue, Parser, Program, ProgramContent}
 import inca.util.compileroptions.CompilerOptions
+import inca.ir.execution.{UnitRelation, Relation as ExecutionRelation}
 
 import scala.io.Source
 
@@ -25,6 +27,49 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
   override def ir: Module =
     val genIR = new GenerateIR
     genIR.compileProgram(program, name.name)
+
+  private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[Any]] =
+    val io = attrs.getOrElse("IO", DirectiveValue.StringLit("file"))
+    io match
+      case DirectiveValue.StringLit("file") =>
+        val filename = attrs.get("filename") match
+          case Some(DirectiveValue.StringLit(fn)) => fn
+          case _ => throw new RuntimeException(s"Invalid or missing filename!")
+        val delimiter = attrs.get("delimiter") match
+          case Some(DirectiveValue.StringLit(d)) => d
+          case _ => "\t"
+        val file = Source.fromResource(s"$baseDir/$filename")
+        val lines = file.getLines().map(_.split(delimiter).toSeq).toSeq
+        file.close()
+        lines
+      case _ => throw new RuntimeException(s"Unsupported IO type: $io")
+
+  // Load all relations we want to output
+  lazy val outputRelations: Seq[ExecutionRelation] =
+    var outputs: Seq[ExecutionRelation] = Seq()
+    new IRVisitor {
+      override def visitRelation(relation: Relation): Seq[Relation] =
+        relation.getHint(SouffleOutputHint) match
+          case Some(_) => outputs = outputs :+ UnitRelation(relation.name.name)
+          case _ => // nothing
+        super.visitRelation(relation)
+    }.visitModule(this.ir)
+    outputs
+
+  // Load all input directives into a relation
+  def loadEdbInputs(baseDir: String): Seq[ExecutionRelation] =
+    var inputs: Map[String, (Seq[Param], Map[String, DirectiveValue])] = Map()
+    new IRVisitor {
+      override def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] =
+        relation.getHint[SouffleInputHint](SouffleInputHint) match
+          case Some(SouffleInputHint(attrs)) => inputs += relation.name.name -> (relation.params, attrs)
+          case _ => // nothing
+        super.visitExtensionalRelation(relation)
+    }.visitModule(this.ir)
+
+    inputs.map { case (name, (params, attrs)) =>
+      ExecutionRelation.from(name, params.map(_.name.name), loadEdbFactsFromFile(baseDir, attrs))
+    }.toSeq
 }
 
 object CompiledSouffleModule:
