@@ -282,7 +282,30 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   protected def isConst(term: Term): Boolean = false
 
   private def treatBindingInEq(varName: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
-    val newTerm = visitTerm(e).head
+    val newEqSeq = valueNumberingTerm(varName,e,dontRemove,typ)
+    if newEqSeq.isEmpty then return Seq()
+
+    val newEq = newEqSeq.head
+    valueNumberAtoms(newEq,dontRemove=dontRemove)
+  }
+
+  private def treatComparisonEq(x: String, t: Term, typ: Option[TermType]): Seq[Atom] = {
+    val newEqSeq = valueNumberingTerm(x, t, dontRemove = true, typ)
+    if newEqSeq.isEmpty then return Seq()
+
+    val newEq = newEqSeq.head
+    val newAtomSeq = {
+      if (valueUnknown.contains(Var(x))) {
+        if (!valueUnknown.contains(t)) then valueUnknown = valueUnknown.removedAll(Seq(Var(x)))
+        valueNumberAtoms(newEq, dontRemove = true)
+      }
+      else valueNumberAtoms(super.visitAtom(newEq).head) // allowed to remove comparison since value of variable is known before -> wont reduce set of results
+    }
+    removeAtomIfTrue(newAtomSeq)
+  }
+
+  private def valueNumberingTerm(varName: String, t: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Eq] = {
+    val newTerm = visitTerm(t).head
     val x = if paramSubst.contains(varName) && config.attemptAlphaEquivalence then paramSubst(varName) else varName
 
     val termHash: Hashed = getHashCode(newTerm)
@@ -293,17 +316,17 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
       VN += (x, v)
 
-      //count = count.updated(termHash, count(termHash) + 1)
+      //count = count.updated(termHash, count (termHash) + 1)
 
       // remove "Assignment" or replace term
       if dontRemove then {
         // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
         // also remember the new Eq but dont remove it
-        valueNumberAtoms(Eq(newVar(x, typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
+        Seq( Eq(newVar(x, typ, valueUnknown.contains(t)), newTerm) )
       }
       else Seq()
     }
-    else if (hashTableGlobal.contains(termHash) && !isParam(x)) {
+    else if (hashTableGlobal.contains(termHash) && !dontRemove) {
       val v: ValNum = newTerm match {
         case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
         case _ => hashTableGlobal(termHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
@@ -313,16 +336,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         VN += (v, v)
         hashTable += (termHash, v)
 
-      //count = count.updated(termHash, count(termHash) + 1)
-
-      // remove "Assignment" or replace term
-        return valueNumberAtoms(Eq(newVar(v, typ), newTerm)) // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+        // replace term
+        return Seq( Eq(newVar(v, typ), newTerm) )  // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
       }
       else{ // TODO refactor
         val v = x
         VN += (x, v)
         hashTable += (termHash, v)
-        return valueNumberAtoms(Eq(newVar(v, typ), newTerm))
+        return Seq( Eq(newVar(v, typ), newTerm) )
       }
     }
 
@@ -340,24 +361,18 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       // return with newTerm
       // also remember the new Eq; it might be removed
-        valueNumberAtoms(Eq(newVar(x, typ, valueUnknown.contains(e)), newTerm), dontRemove = dontRemove)
+      Seq( Eq(newVar(x, typ, valueUnknown.contains(t)), newTerm) )
     }
   }
 
-  def treatComparisonEq(x: String, e: Term, typ: Option[TermType]): Seq[Atom] = {
-    val atomSeq = Seq(Eq(newVar(x, typ), e)) //TODO ??? treatBindingInEq(x, e, dontRemove = true, typ) // not removed by value numbering of terms but may be removed if duplicate of other Eq below
-    if atomSeq.isEmpty then return atomSeq
+//  private def rememberEquality(x: String, v: ValNum, hash: Option[Hashed] = None): Unit = {
+//    VN += (x,v)
+//    if (hash.isDefined) {
+//      hashTable += (hash.get, v)
+//    }
+//  }
 
-    val newAtom = atomSeq.head
-    val newAtomSeq = {
-      if (valueUnknown.contains(Var(x))) {
-        if (!valueUnknown.contains(e)) then valueUnknown = valueUnknown.removedAll(Seq(Var(x)))
-        valueNumberAtoms(newAtom, dontRemove = true)
-      }
-      else valueNumberAtoms(super.visitAtom(newAtom).head) // dontRemove = newAtom.vars.exists(arg => isParam(arg.toString))
-    }
-    removeAtomIfTrue(newAtomSeq)
-  }
+
 
   protected def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
     if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
@@ -423,9 +438,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
+
+
   case class AtomInfo(atom: Atom, name: Name, bodyIdx: Int, atomIdx: Int) {
     override def toString: String = s"$atom | ${name.name} | $bodyIdx | $atomIdx"
-//    override def hashCode(): Int = atom.hashCode()
+
   }
   class Outlining{ // TODO refactor (?)
 
