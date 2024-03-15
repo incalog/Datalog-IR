@@ -85,6 +85,7 @@ object Executor extends IRExecutor:
     // TODO support data
     private def souffleifyTupleEntry(s: Any): String = s match
       case i: Int => i.toString
+      case f: Float => f.toString
       case s: String => s
       case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
 

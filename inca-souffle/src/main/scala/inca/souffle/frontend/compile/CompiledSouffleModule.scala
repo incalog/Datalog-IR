@@ -9,6 +9,7 @@ import inca.souffle.backend.GenerateSouffle
 import inca.souffle.syntax.{DirectiveValue, Parser, Program, ProgramContent}
 import inca.util.compileroptions.CompilerOptions
 import inca.ir.execution.{UnitRelation, Relation as ExecutionRelation}
+import inca.ir.extension.arithmetic.{TDouble, TInt}
 
 import scala.io.Source
 
@@ -28,7 +29,7 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
     val genIR = new GenerateIR
     genIR.compileProgram(program, name.name)
 
-  private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[Any]] =
+  private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =
     val io = attrs.getOrElse("IO", DirectiveValue.StringLit("file"))
     io match
       case DirectiveValue.StringLit("file") =>
@@ -44,7 +45,10 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
         lines
       case _ => throw new RuntimeException(s"Unsupported IO type: $io")
 
-  // Load all relations we want to output
+  /**
+   * Get all relations marked as output in the souffle program
+   * @return A sequence of relations used for output
+   */
   lazy val outputRelations: Seq[ExecutionRelation] =
     var outputs: Seq[ExecutionRelation] = Seq()
     new IRVisitor {
@@ -56,7 +60,12 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
     }.visitModule(this.ir)
     outputs
 
-  // Load all input directives into a relation
+  /**
+   * Load all facts marked as input in the souffle program
+   * @param baseDir The base directory to load input files from
+   *                (relative to the resources directory)
+   * @return A sequence of relations used for edb inputs
+   */
   def loadEdbInputs(baseDir: String): Seq[ExecutionRelation] =
     var inputs: Map[String, (Seq[Param], Map[String, DirectiveValue])] = Map()
     new IRVisitor {
@@ -68,7 +77,18 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
     }.visitModule(this.ir)
 
     inputs.map { case (name, (params, attrs)) =>
-      ExecutionRelation.from(name, params.map(_.name.name), loadEdbFactsFromFile(baseDir, attrs))
+      val tys = params.map(_.ty)
+      ExecutionRelation.from(
+        name,
+        params.map(_.name.name),
+        loadEdbFactsFromFile(baseDir, attrs).map {
+          ss => ss.zip(tys).map {
+            case (s, TInt) => s.toInt
+            case (s, TDouble) => s.toFloat
+            case (s, _) => s
+          }
+        }
+      )
     }.toSeq
 }
 

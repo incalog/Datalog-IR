@@ -41,7 +41,7 @@ class CompilerTest extends AnyFunSuite:
               // Only typecheck, since we need no lowering
               val typechecker = new IRTypechecker
               typechecker.checkProgram(Seq(mod))
-              typechecker.printTypeIO()
+              typechecker.failOnError()
         }
         FileVisitResult.CONTINUE
 
