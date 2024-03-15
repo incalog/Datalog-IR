@@ -213,7 +213,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.readAll()
-    assertResult(7)(rels.size)
+    assertResult(6)(rels.size)
   }
 
   test("test negation") {
@@ -229,7 +229,7 @@ class GenerateAscentTest extends AnyFunSuite:
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(2), Seq(3), Seq(6), Seq(7))))
     engine.insert(Rel.from("m", Seq("x"), Seq(Seq(1), Seq(3), Seq(7))))
     val rels = engine.readAll()
-    assertResult(3)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -245,7 +245,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(4)(rels.size)
+    assertResult(3)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -261,7 +261,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(6)(rels.size)
+    assertResult(5)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -282,7 +282,7 @@ class GenerateAscentTest extends AnyFunSuite:
       Body(Seq(ExtensionalCall("edge", Seq(Var("x"), Var("y"))), Eq(Var("x"), Var("y"), neg = true))))
   )
 
-  test("test Comparison ") {
+  test("test Comparison") {
     val irModule = Module("ComparisonExample", Language.Datalog, Seq(edgeRel, greater, lesser, lesserEqual, greaterEqual, notEqual))
     val compiledModule = new CompiledModule:
       override def name: Name = "ComparisonExample"
@@ -294,7 +294,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(3, 3), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(6)(rels.size)
+    assertResult(5)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -310,7 +310,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(2)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -327,7 +327,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(2)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -343,7 +343,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor.instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 2), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
-    assertResult(2)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -360,7 +360,7 @@ class GenerateAscentTest extends AnyFunSuite:
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("1"), Seq("3"), Seq("7"))))
     print("engine", engine)
     val rels = engine.readAll()
-    assertResult(2)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -377,7 +377,7 @@ class GenerateAscentTest extends AnyFunSuite:
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("x"), Seq("3"), Seq("7"))))
 
     val rels = engine.readAll()
-    assertResult(2)(rels.size)
+    assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }
 
@@ -456,6 +456,6 @@ class GenerateAscentTest extends AnyFunSuite:
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(31), Seq(4))))
 
     val rels = engine.readAll()
-    assertResult(6)(rels.size)
+    assertResult(5)(rels.size)
     rels.foreach(r => assert(r.size != 0))
   }

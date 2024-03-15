@@ -3,7 +3,7 @@ package inca.ascent.syntax
 // Rust wrapper around f32 to support eq and hash
 val f32Wrapper =
   """
-    |#[derive(Debug, Clone, Copy)]
+    |#[derive(Debug, Clone, Copy, Serialize)]
     |pub struct Float(f32);
     |impl Hash for Float {
     |    fn hash<H: Hasher>(&self, state: &mut H) {
@@ -19,6 +19,13 @@ val f32Wrapper =
     |    }
     |}
     |impl Eq for Float {}
+    |impl FromStr for Float {
+    |    type Err = std::num::ParseFloatError;
+    |    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    |        let parsed = s.parse::<f32>()?;
+    |        Ok(Float(parsed))
+    |    }
+    |}
     |impl ops::Add for Float {
     |    type Output = Float;
     |    fn add(self, other: Float) -> Float {
@@ -77,21 +84,73 @@ val f32Wrapper =
     |}
     |""".stripMargin
 
+def read_edb_template(size: Int): String =
+  val tyArgs = (1 until size+1).map(i => s"T$i").mkString(", ") + ","
+  val tyParamS = (1 until size+1).map(i => s"T$i: FromStr").mkString(", ")
+  val tyArgConstraintS = (1 until size+1).map(i => s"    <T$i as FromStr>::Err: std::fmt::Debug").mkString(",\n")
+  val tyFieldS = (1 until size+1).map {
+    i => s"            let field$i = record[${i-1}].parse::<T$i>().expect(&format_error_msg!($i));"
+  }.mkString("\n")
+  val tyFillVec = (1 until size+1).map(i => s"field$i").mkString(", ")  + ","
+  s"""
+     |fn parse_tsv_$size<$tyParamS>(file_path: &str) -> Vec<($tyArgs)>
+     |where
+     |$tyArgConstraintS
+     |{
+     |    let mut records: Vec<($tyArgs)> = Vec::new();
+     |    let file = File::open(file_path).expect("Failed to open file");
+     |    let mut reader = csv::ReaderBuilder::new().has_headers(false).delimiter(b'\\t').from_reader(file);
+     |
+     |    for result in reader.records() {
+     |        let record = result.expect("Failed to read record");
+     |        if record.len() == $size {
+     |$tyFieldS
+     |            records.push(($tyFillVec));
+     |        } else {
+     |            panic!("Invalid number of fields in record: {:?}", record);
+     |        }
+     |    }
+     |    records
+     |}
+     |
+     |""".stripMargin
+
 
 case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.RelDecl]):
   override def toString: String =
-    val (enums, ascentContent) = content.partition {
+    val (enums, ascentContentWithEdb) = content.partition {
       case _: ProgramContent.CustomType => true
       case _ => false
     }
 
+    val edbRelDecls = content.collect { case decl: ProgramContent.RelDecl if decl.isEdb => decl }
+    val edbReadHelper = edbRelDecls.map(_.arg.size).distinct.map(read_edb_template).mkString("\n")
+
+    val (edbFilesContent, ascentContent) = ascentContentWithEdb.partition {
+      case ProgramContent.EDBFile(name, path) => true
+      case _ => false
+    }
+    val edbFiles = edbFilesContent.map {
+      case ProgramContent.EDBFile(name, path) => name -> path
+    }.toMap
+
+    val fillEdbs = edbRelDecls.flatMap { decl =>
+      val name = decl.name
+      val size = decl.arg.size
+      edbFiles.get(name) match
+        case Some(file) => Some(s"""  prog.$name = parse_tsv_$size::<${decl.arg.mkString(", ")}>("$file");""")
+        case None => None
+    }.mkString("\n")
+
     val out = outputRels.map { decl =>
       val name = decl.name
-      s"  println!(\"$name: {:?}\", prog.$name);"
+      s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string(&prog.$name).unwrap());"""
     }.mkString("\n")
+
     val main = s"""
        |fn main() {
        |  let mut prog = AscentProgram::default();
+       |$fillEdbs
        |  prog.run();
        |
        |$out
@@ -99,11 +158,24 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |""".stripMargin
 
     s"""
+      |#![allow(warnings)] // suppress all warnings
+      |
       |use ascent::ascent;
       |use ascent::aggregators::{max,min,sum,count};
       |use std::hash::{Hash,Hasher};
       |use std::ops;
       |use std::cmp::Ordering;
+      |use std::fs::File;
+      |use std::str::FromStr;
+      |use serde::Serialize;
+      |
+      |macro_rules! format_error_msg {
+      |    ($$($$args:expr),*) => {
+      |        format!("Failed to parse field {} into expected type", $$($$args),*)
+      |    };
+      |}
+      |
+      |$edbReadHelper
       |
       |$f32Wrapper
       |
@@ -118,14 +190,14 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
 
 
 enum ProgramContent:
-  case RelDecl(name: String, arg: Seq[FormatType])
+  case EDBFile(name: String, path: String)
+  case RelDecl(name: String, arg: Seq[FormatType], isEdb: Boolean = false)
   case Rule(name: String, param: Seq[(Term, FormatType)], body: Seq[Atom])
   case Fact(name: String, param: Seq[Term])
   case CustomType(enumName: String, cases: Seq[(String, Seq[FormatType])])
 
-
   override def toString: String = this match {
-    case RelDecl(name, arg) =>
+    case RelDecl(name, arg, _) =>
       s"relation $name(${arg.mkString(", ")});"
     case Rule(name, param, body) =>
       val params = param.map {
@@ -198,7 +270,7 @@ enum ProgramContent:
       }.mkString("\n")
 
       s"""
-         |#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+         |#[derive(Debug, Eq, PartialEq, Clone, Hash, Serialize)]
          |pub enum $dataName{
          |$paramS
          |}

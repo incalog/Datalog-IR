@@ -1,8 +1,8 @@
 package inca.casestudy.doop
 
-import inca.ir.string2name
-import inca.ir.CompiledModule
+import inca.ir.{CompiledModule, SimpleAliasElimination, string2name}
 import inca.ir.execution.IRExecutor
+import inca.ir.extension.{block, bool, disjunction, not}
 import inca.souffle.frontend.compile.CompiledSouffleModule
 
 import scala.io.Source
@@ -13,6 +13,13 @@ object Mirco:
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + "micro.dl")
     val compiled = CompiledSouffleModule.fromSource("micro", source)
+    compiled.setPipeline(List(
+      () => new bool.Lowering {},
+      () => new block.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      () => new SimpleAliasElimination {}
+    ))
 
     println("Load edb from files...")
     val edbFacts = compiled.loadEdbInputs(baseDir + "minijavac")
@@ -33,15 +40,11 @@ object Mirco:
     runMicroDL(compiled => inca.souffle.backend.Executor.instantiate(compiled))
   }
 
-  // TODO: Needs way too much memory
   @main
   def runMicroDlInca(): Unit = {
     runMicroDL(compiled => inca.viatra.Executor().instantiate(compiled))
   }
 
-  // TODO: Produces a 500MB Ascent file... This does of course not compile aka compiles to slow
-  //  The reason for this is, because we write edb facts directly into the file
-  //  Figure out a way to read them from disk instead
   @main
   def runMicroDlAscent(): Unit = {
     runMicroDL(compiled => inca.ascent.backend.Executor.instantiate(compiled))

@@ -296,7 +296,7 @@ object AbstractSyntaxGraph:
 
   @main def runAsgUsingSouffle() = {
     val engine = inca.souffle.backend.Executor.instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(50, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }

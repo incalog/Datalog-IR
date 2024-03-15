@@ -12,6 +12,7 @@ import inca.ir.extension.{string, aggregate as agg, arithmetic as arith}
 import inca.ir.{Arg, TermArg, WildcardArg}
 import inca.ir.extension.data
 import inca.ir.extension.data.*
+import inca.ir.extension.string.TString
 import inca.ir.{Name, name2string, string2name}
 import inca.util.Gensym
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{MaxDouble, MaxInt, MinDouble, MinInt, SumDouble, SumInt, Count as CountAgg}
@@ -68,7 +69,7 @@ class GenerateAscent:
 
       case ir.ExtensionalRelation(name, params) =>
         val param_type = params.map { p => compileType(p.ty) }
-        Seq(ProgramContent.RelDecl(cleanName(name), param_type))
+        Seq(ProgramContent.RelDecl(cleanName(name), param_type, true))
 
       case data.DataDefinition(name) =>
         val compiledCases = caseDefs(name).map {
@@ -157,7 +158,7 @@ class GenerateAscent:
       val aggArgs = (ascentAgg match
         case Aggregation.Count() => args.patch(resultIdx, Seq(WildcardArg()), 1)
         case _ => args.patch(resultIdx, Seq(TermArg(aggregatorVar)), 1)
-      ).map(a => compileArg(a))
+      ).map(a => compileArg(a, noClone = true))
 
       val aggRelName = cleanName(name.name)
       val aggColMode = aggColTerm.typ match
@@ -204,8 +205,15 @@ class GenerateAscent:
       val varTerm = Term.Var(cleanName(name.name))
       val isRef = varRefs.contains(name.name.name)
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
-      val derefTerm = if (isRef && !isData && !noDeref) Term.DeRef(varTerm) else varTerm
-      if (isData && !noClone) Term.Clone(derefTerm) else derefTerm
+      val isString = t.typ.exists(_.ty == TString)
+      val derefTerm = if (isRef && !isData && !noDeref)
+        Term.DeRef(varTerm)
+      else
+        varTerm
+      if ((isString || isData) && !noClone)
+        Term.Clone(derefTerm)
+      else
+        derefTerm
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t, noDeref), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)
