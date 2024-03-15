@@ -264,8 +264,9 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
             Eq(Var(Name("A")), Div(Var(Name("X")), Var(Name("X")))),
 //            Eq(Var(Name("B")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // should not be replaced with H1 from other body
-            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // -> but they do compute the same value -> with global scope given same name
-            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("H1"))))),
+//            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // -> but they do compute the same value -> with global scope given same name
+            Eq(Var(Name("B")), Div(Mul(Var("X"), Var("X")), IntNum(2))),  // not the same value only syntactically equal
+            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("B"))))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))

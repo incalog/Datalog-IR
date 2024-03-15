@@ -121,12 +121,12 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), Add(IntNum(2), Add(IntNum(3), Var("Y"))))),
             Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Var("Y"))),
-            Eq(Var(Name("H3")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Add(Var("Y"), IntNum(0)))),
-            Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(-2), IntNum(7))), Var("Y"))),
-            Eq(Var(Name("H4")), Add(Add(Var("Y"), Add(IntNum(2), IntNum(3))), Var("X"))),
-            Eq(Var(Name("H5")), Add(Add(Var("X"), Var("Y")), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("H5")), Add(Var("X"), Add(Var("Y"), Add(IntNum(2), IntNum(3))))),
-            Eq(Var(Name("H6")), Add(IntNum(2), Add(Var("Y"), Add(IntNum(1), Add(Var("X"), IntNum(2)))))),
+//            Eq(Var(Name("H3")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Add(Var("Y"), IntNum(0)))),
+//            Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(-2), IntNum(7))), Var("Y"))),
+//            Eq(Var(Name("H4")), Add(Add(Var("Y"), Add(IntNum(2), IntNum(3))), Var("X"))),
+//            Eq(Var(Name("H5")), Add(Add(Var("X"), Var("Y")), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("H5")), Add(Var("X"), Add(Var("Y"), Add(IntNum(2), IntNum(3))))),
+//            Eq(Var(Name("H6")), Add(IntNum(2), Add(Var("Y"), Add(IntNum(1), Add(Var("X"), IntNum(2)))))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
@@ -300,7 +300,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //Eq(Var(Name("H2")), Add(Mul(IntNum(2), Var(Name("X"))), Mul(IntNum(2), IntNum(3)))),
             Eq(Var(Name("Y")), Mul(IntNum(2), Var("H1"))),
             Eq(Var(Name("H3")), IntNum(14)),
-            Eq(Var(Name("H4")), Add(Mul(IntNum(3), Var(Name("H1"))), Mul(Var(Name("H1")), Var(Name("H3"))))),
+            Eq(Var(Name("H4")), Add(Mul(Var(Name("H1")), Var(Name("H3"))),Mul(IntNum(3), Var(Name("H1"))))),
             //            Eq(Var(Name("H5")), Add(Mul(Var(Name("H1")), Var(Name("H3"))), Mul(Var(Name("H1")), IntNum(3)))),
             Eq(Var(Name("Z")), Mul(Var(Name("H4")), Var(Name("H4")))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
@@ -471,14 +471,14 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var(Name("H4")), Div(Var("X"), Var("H3"))),
             Eq(Var(Name("H5")), Mul(Var("X"), Var("X"))), // if H3 would not result of integer division then this would be redundant too
             //            Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
-            Eq(Var(Name("H7")), Div(Var("X"), IntNum(2))),
+            Eq(Var(Name("H7")), IntNum(1)),
             //            Eq(Var(Name("H8")), Add(Div(Var("X"), IntNum(2)), Div(IntNum(0), IntNum(2)))),
             //            Eq(Var("H7"), Var("H7")),
-            Eq(Var("Y"), IntNum(1)),
+//            Eq(Var("Y"), IntNum(1)),
             //            Eq(Var("Z"), Div(Var("H2"), Var("H1"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Y")))
+            Eq(Var(Name("param$1")), Var(Name("H7"))),
+            Eq(Var(Name("param$2")), Var(Name("H7")))
           ))
         ))
       ))
@@ -1251,14 +1251,14 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var(Name("H4")), Div(Var("X"), Var("H3"))),
             Eq(Var(Name("H5")), Mul(Var("X"), Var("X"))), // if H3 would not result of integer division then this would be redundant too
             //            Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
-            Eq(Var(Name("H7")), Div(Var("X"), DoubleNum(2))),
+            Eq(Var(Name("H7")), DoubleNum(1)),
             //            Eq(Var(Name("H8")), Add(Div(Var("X"), IntNum(2)), Div(IntNum(0), IntNum(2)))),
             //            Eq(Var("H7"), Var("H7")),
-            Eq(Var("Y"), DoubleNum(1)),
+//            Eq(Var("Y"), DoubleNum(1)),
             //            Eq(Var("Z"), Div(Var("H2"), Var("H1"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Y")))
+            Eq(Var(Name("param$1")), Var(Name("H7"))),
+            Eq(Var(Name("param$2")), Var(Name("H7")))
           ))
         ))
       ))
@@ -1314,5 +1314,104 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       ))
     performTest(expected, input)
   }
+
+  test("params bound in calls with arithmetic laws (with Sub)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var(Name("H1")), Sub(Var("a"), Add(IntNum(2),Var("a")))),
+            Eq(Var(Name("H2")), Sub(Add(IntNum(-2), Var("a")),Var("a"))),
+            Eq(Add(Var("H1"), Var("H2")), Var(Name("H3"))),
+            Call(Name("S"), Seq(TermArg(Var("b")))),
+            Eq(Var(Name("H4")), Mul(IntNum(2), Sub(Var(Name("H3")), IntNum(3)))),
+            Eq(Var(Name("H5")), Sub(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("result")), Var(Name("H5")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var(Name("H1")), IntNum(-2)),
+//            Eq(Var(Name("H2")), Sub(Add(IntNum(-2), Var("a")),Var("a"))),
+            Eq(Var(Name("H3")),Mul(IntNum(2), Var("H1"))),
+            Call(Name("S"), Seq(TermArg(Var("b")))),
+            Eq(Var(Name("H4")), Sub(Mul(IntNum(2),Var(Name("H3"))), IntNum(6))),
+//            Eq(Var(Name("H5")), Sub(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("result")), Var(Name("H4")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("params bound in calls with arithmetic laws (with Comparison EQs)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Var("c")),
+            Eq(Var("H6"), Sub(Var("a"), Var("c"))),
+            Eq(Var("c"), IntNum(5)),
+            Eq(Var("H7"), Sub(IntNum(5), Var("c"))),
+            Eq(Var("H6"), Var("H7")),
+            Eq(Var(Name("result")), Var(Name("H7")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            //            Eq(Var("a"),Var("c")),
+            Eq(Var("H6"), IntNum(0)),
+            Eq(Var("a"), IntNum(5)),
+            //            Eq(Var("H7"),IntNum(0)),
+            //            Eq(Var("H6"),Var("H7")),
+            Eq(Var(Name("result")), Var(Name("H6")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 
 }

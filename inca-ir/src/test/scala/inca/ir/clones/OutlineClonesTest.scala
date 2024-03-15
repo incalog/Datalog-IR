@@ -449,7 +449,7 @@ class OutlineClonesTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("A2")), IntNum(1)),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
-            Eq(Var(Name("m")), Mul(IntNum(10),  Var("A2"))),
+            Eq(Var(Name("m")), Mul(IntNum(11),  Var("A2"))),
             Eq(Var(Name("result")), Add(Var("n"), Var("m")))
           ))
         ))
@@ -469,7 +469,7 @@ class OutlineClonesTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("A1")), IntNum(10)),
             Eq(Var(Name("A2")), IntNum(1)),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
-            Eq(Var(Name("m")), Mul(IntNum(10),  Var("A2"))),
+            Eq(Var(Name("m")), Mul(IntNum(11),  Var("A2"))),
             Eq(Var(Name("result")), Add(Var("m"),Var("n")))
           ))
         ))

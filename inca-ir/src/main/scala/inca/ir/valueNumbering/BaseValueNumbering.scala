@@ -95,7 +95,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // TODO dont use scala`s hashing function
   // TODO save hashes
   protected def getHashCode(elem: Term): Hashed = elem match {
-    case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) => hashTable.find(_._2 == name).head._1
+    case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) =>
+      // TODO In case of calls and a following Eq there are two hash values for one Var how to make sure that thw right one is chosen
+//      hashTable.find(_._2 == name).head._1
+      hashTable.filter(_._2 == name).last._1  // used hash hash that was added last
     case _ => elem.hashCode()
   }
 
@@ -267,10 +270,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
     case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>
       treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ)
-    case Eq(vari@Var(RefByName(Name(x))), e, false) =>
-      treatComparisonEq(x, e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-    case Eq(e, vari@Var(RefByName(Name(x))), false) =>
-      treatComparisonEq(x, e, vari.typ)
+    case Eq(vari@Var(RefByName(Name(_))), e, false) =>
+      visitTerm(vari).head match
+        case Var(RefByName(Name(x))) => treatComparisonEq(x, e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+        case _ => ??? // TODO happens when propagating constants -> how to treat? (same below)
+    case Eq(e, vari@Var(RefByName(Name(_))), false) =>
+      visitTerm(vari).head match
+        case Var(RefByName(Name(x))) => treatComparisonEq(x, e, vari.typ)
+        case _ => ???
 
 
     case call@Call(_, _, false) =>
@@ -313,7 +320,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val newEq = newEqSeq.head
     val newAtomSeq = {
       if (valueUnknown.contains(Var(x))) {
-        if (!valueUnknown.contains(t)) then valueUnknown = valueUnknown.removedAll(Seq(Var(x)))
+        if (!valueUnknown.contains(t)) then valueUnknown = valueUnknown.removedAll(Seq(Var(x))) // TODO remove all that where unknown because of x (?)
         valueNumberAtoms(newEq, dontRemove = true)
       }
       else valueNumberAtoms(super.visitAtom(newEq).head) // allowed to remove comparison since value of variable is known before -> wont reduce set of results
@@ -367,7 +374,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     else {
       val v = x
       VN += (x, v)
-      hashTable += (termHash, v)
+      hashTable += (termHash, v)    // In case of calls and a following Eq there are two hash values for one Var
 
       //count += (termHash,1)
 
@@ -378,7 +385,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       // return with newTerm
       // also remember the new Eq; it might be removed
-      Seq( Eq(newVar(x, typ, valueUnknown.contains(t)), newTerm) )
+      Seq( Eq(newVar(x, typ, valueUnknown.contains(newTerm)), newTerm) )
     }
   }
 
