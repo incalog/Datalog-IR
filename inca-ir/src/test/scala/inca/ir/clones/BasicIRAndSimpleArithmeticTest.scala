@@ -300,7 +300,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 //            Eq(Var(Name("B")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("B")),
 //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A")), Var("A")),   // can be removed too 
+//            Eq(Var(Name("A")), Var("A")),   // can be removed too -> recognized by using hash of terms when hashing atom
 //            Eq(Var(Name("E")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
@@ -336,7 +336,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //            Eq(Var(Name("B")), IntNum(1)),
             //            Eq(Var(Name("C")), Var("B")),
             //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A")), Var("A")),
+//            Eq(Var(Name("A")), Var("A")),
             //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("A")))
@@ -886,7 +886,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var("X1"), IntNum(32)),
 //            Eq(Var("X1"), Var("X2")),
-            Eq(Var("X1"), Var("X1")),
+//            Eq(Var("X1"), Var("X1")),
             GE(Var("X1"), IntNum(2)),
 //            GE(Var("X2"), IntNum(2)),
             LT(Var("X1"), IntNum(64)),
@@ -1317,7 +1317,6 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Call(Name("c"), Seq(TermArg(Var("A1")))),
-//            Call(Name("c"), Seq(TermArg(Var("A3")))),
             Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
             Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
@@ -1343,7 +1342,6 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Call(Name("c"), Seq(TermArg(Var("A1")))),
-//            Call(Name("c"), Seq(TermArg(Var("A3")))),
             Eq(Var(Name("A2")), IntNum(10)),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
             Eq(Var(Name("result")), Add(IntNum(1),Var("n")))

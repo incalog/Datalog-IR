@@ -11,7 +11,7 @@ import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 class ArithmeticTest extends ValueNumberingTestAbstract{
 
-  override val config: ConfigVN = ConfigVN(simplifyArithmetic = true, removeTrueAtoms = true)
+  override val config: ConfigVN = ConfigVN(simplifyArithmetic = true)
 
 
   test("Add (Commutativity)") {

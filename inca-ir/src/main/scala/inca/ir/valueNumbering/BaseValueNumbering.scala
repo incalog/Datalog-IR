@@ -93,37 +93,54 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
   // TODO dont use scala`s hashing function
+  // TODO save hashes
   protected def getHashCode(elem: Term): Hashed = elem match {
     case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) => hashTable.find(_._2 == name).head._1
     case _ => elem.hashCode()
   }
 
-  // bindingArg is passed if hash is used for Var with this name and NOT for the atom
-  protected def getHashCode(atom: Atom, bindigArg: Option[String] = None): Hashed = atom match {
-    case Call(ref,args,neg) => bindigArg match {
-      case Some(withoutArg) =>
-        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice
-          case TermArg(Var(RefByName(Name(x)))) => x == withoutArg
+  // hash is used for Var with name bindingArg and NOT for the atom
+  protected def getHashCode(atom: Atom, bindigArg: String): Hashed = atom match {
+    case Call(ref,args,neg) =>
+        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice TODO okay ?
+          case TermArg(Var(RefByName(Name(x)))) => x == bindigArg
           case _ => false
         }
-        (Seq(ref) ++ argsFiltered ++ Seq(neg)).hashCode()
-      case None => (Seq(ref) ++ args ++ Seq(neg)).hashCode()
-    }
-    case ExtensionalCall(ref,args,neg) => bindigArg match {
-      case Some(withoutArg) =>
+        getHashCode(Call(ref,argsFiltered,neg))
+    case ExtensionalCall(ref,args,neg) =>
         val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice
-          case TermArg(Var(RefByName(Name(x)))) => x == withoutArg
+          case TermArg(Var(RefByName(Name(x)))) => x == bindigArg
           case _ => false
         }
-        (Seq(ref) ++ argsFiltered ++ Seq(neg)).hashCode()
-      case None => (Seq(ref) ++ args ++ Seq(neg)).hashCode()
-    }
+        getHashCode(ExtensionalCall(ref,argsFiltered,neg))
+    case _ => getHashCode(atom)
+  }
+
+  protected def getHashCode(atom: Atom): Hashed = atom match{
+    case Eq(lhs,rhs,neg) => Seq(Eq,getHashCode(lhs),getHashCode(rhs),neg).hashCode()
+    case Call(ref,args,neg) =>
+      val argsHashed = args.map{
+        case TermArg(t) => getHashCode(t)
+        case w@WildcardArg() => w.hashCode()
+      }
+      Seq(Call,ref,argsHashed,neg).hashCode()
+    case ExtensionalCall(ref,args,neg) =>
+      val argsHashed = args.map{
+        case TermArg(t) => getHashCode(t)
+        case w@WildcardArg() => w.hashCode()
+      }
+      Seq(ExtensionalCall,ref,argsHashed,neg).hashCode()
     case _ => atom.hashCode()
   }
 
-  protected def getHashCode(body: Body): Hashed = body.hashCode()
+  protected def getHashCode(body: Body): Hashed =
+    body.atoms.map(atom =>
+      val hashed = getHashCode(atom)
+      hashed
+  ).hashCode()
 
-  protected def getHashCode(relation: Relation): Hashed = (relation.params ++ relation.bodies).hashCode()  // -> name of relation irrelevant
+  protected def getHashCode(relation: Relation): Hashed = // TODO hash params differently?
+    (relation.params ++ relation.bodies.map(getHashCode(_))).hashCode()  // -> name of relation irrelevant
 
 
   private var currentRelationName: Name = _
@@ -383,19 +400,24 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
+    var isBinding = false
     val newArgs: Seq[Arg] = args.map {
       case t@TermArg(term) => term match {
 
         case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => // add binding vars to maps
-          val bindingCallHash = getHashCode(call, Some(variName))   // TODO is this okay?
+          isBinding = true
+          val bindingCallHash = getHashCode(call, variName)   // TODO is this okay?
+//          val termValHash = getHashCode(vari)
 
           // same calls except currently binding var should have same ValNum in different Relations
           if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
             val v: ValNum = hashTableGlobal(bindingCallHash)
             if (!isUsedInBody(v)) {
-              VN += (variName, v)
-              hashTable += (bindingCallHash, v)
+              VN += (variName,v)
+              VN += (v,v)
+              hashTable += (bindingCallHash,v)
               valueUnknown = valueUnknown + Var(v)
               TermArg(newVar(v, term.typ, true))
             }
@@ -420,14 +442,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       case Call(ref,_,neg) => Call(ref,newArgs,neg)
       case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
     }
-    valueNumberAtoms(newCall)
+    valueNumberAtoms(newCall,dontRemove = isBinding) // TODO || exists isParam(_)
   }
 
   private def valueNumberAtoms(atom: Atom, dontRemove: Boolean = false): Seq[Atom] = {
     // remove if redundant
     val atomHash: Hashed = getHashCode(atom)
     if (hashTableAtoms.contains(atomHash)) {
-      if dontRemove then Seq(atom)
+      if dontRemove then Seq(atom) // TODO currentAtomIndex += 1 ???
       else Seq()
     }
     else {
@@ -536,9 +558,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         val newCall = generateNewCall(newRel, paramsWithTypes)
         val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
         relBodiesToChange.foreach { case ((name, bodyIdx), atomInfoSeq) =>
-          val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atom), newCall)
-          relations = relations.updated(changedRel.name, changedRel)
-          changedRel
+          if (relations.contains(name)) {
+            val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atom), newCall)
+            relations = relations.updated(changedRel.name, changedRel)
+            changedRel
+          }
         }
 
         Seq(newRel)
