@@ -135,7 +135,7 @@ object Executor extends IRExecutor:
     val rustProjectDir = projectDir + "/ascent_project"
     val contents = (new GenerateAscent).compileModule(m.lowered)
 
-    val process = stringToProcess(s"cargo run --manifest-path $rustProjectDir/Cargo.toml")
+    val process = stringToProcess(s"cargo run --manifest-path $rustProjectDir/Cargo.toml --release")
 
     // all outputs
     val outputs = contents.collect {

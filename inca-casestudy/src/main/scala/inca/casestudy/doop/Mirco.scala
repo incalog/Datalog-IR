@@ -41,7 +41,7 @@ object Mirco:
   }
 
   @main
-  def runMicroDlInca(): Unit = {
+  def runMicroDlViatra(): Unit = {
     runMicroDL(compiled => inca.viatra.Executor().instantiate(compiled))
   }
 

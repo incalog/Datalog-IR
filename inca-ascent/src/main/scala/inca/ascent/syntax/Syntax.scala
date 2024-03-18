@@ -1,5 +1,33 @@
 package inca.ascent.syntax
 
+// Support serialization of ascent::boxcar::Vec (used by ascent_par)
+val vecSerializeWrapper =
+  """
+    |pub struct VecWrapper<T>(Vec<T>);
+    |
+    |impl<T> VecWrapper<T> {
+    |    pub fn new(inner_vec: Vec<T>) -> Self {
+    |        VecWrapper(inner_vec)
+    |    }
+    |}
+    |
+    |impl<T> Serialize for VecWrapper<T>
+    |where
+    |    T: Serialize,
+    |{
+    |    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    |    where
+    |        S: Serializer,
+    |    {
+    |        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+    |        for item in &self.0 {
+    |            seq.serialize_element(item)?;
+    |        }
+    |        seq.end()
+    |    }
+    |}
+    |""".stripMargin
+
 // Rust wrapper around f32 to support eq and hash
 val f32Wrapper =
   """
@@ -144,7 +172,7 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
 
     val out = outputRels.map { decl =>
       val name = decl.name
-      s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string(&prog.$name).unwrap());"""
+      s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string(&VecWrapper::new(prog.$name)).unwrap());"""
     }.mkString("\n")
 
     val main = s"""
@@ -158,16 +186,22 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |""".stripMargin
 
     s"""
-      |#![allow(warnings)] // suppress all warnings
+      |// suppress all warnings
+      |#![allow(warnings)]
       |
-      |use ascent::ascent;
+      |use ascent::ascent_par;
       |use ascent::aggregators::{max,min,sum,count};
+      |// used by ascent_par
+      |use ascent::boxcar::Vec;
+      |
       |use std::hash::{Hash,Hasher};
       |use std::ops;
       |use std::cmp::Ordering;
       |use std::fs::File;
       |use std::str::FromStr;
-      |use serde::Serialize;
+      |// Used for serialization to and from JSON
+      |use serde::{Serialize, Serializer};
+      |use serde::ser::SerializeSeq;
       |
       |macro_rules! format_error_msg {
       |    ($$($$args:expr),*) => {
@@ -177,11 +211,13 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
       |
       |$edbReadHelper
       |
+      |$vecSerializeWrapper
+      |
       |$f32Wrapper
       |
       |${enums.mkString("\n")}
       |
-      |ascent!{
+      |ascent_par!{
       |${ascentContent.mkString("\n")}
       |}
       |
