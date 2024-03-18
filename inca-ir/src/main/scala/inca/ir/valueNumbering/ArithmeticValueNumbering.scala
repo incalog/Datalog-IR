@@ -21,9 +21,12 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
   override def visitTerm(term: Term): Seq[Term] = term match { // TODO could use isConst(term)
     case IntNum(_) | DoubleNum(_) => Seq(term) // otherwise occurrences of such trivial exps are also replaced by a Var
-    case binOp@BinOp(lhs, rhs, op) => if valueUnknown.contains(lhs) || valueUnknown.contains(rhs) then valueUnknown = valueUnknown + binOp
+    case binOp@BinOp(lhs, rhs, op) =>
+//      getReasonsForUnknown(lhs).foreach(valueIsUnknown(binOp,_))
+//      getReasonsForUnknown(rhs).foreach(valueIsUnknown(binOp,_))
       super.visitTerm(term)
-    case unOp@UnOp(t, op) => if valueUnknown.contains(t) then valueUnknown = valueUnknown + unOp
+    case unOp@UnOp(t, op) =>
+//      getReasonsForUnknown(t).foreach(valueIsUnknown(unOp,_))
       super.visitTerm(term)
     case _ => super.visitTerm(term)
   }

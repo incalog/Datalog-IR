@@ -1413,5 +1413,53 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("propagate constants: params bound in calls with arithmetic laws (with Comparison EQs)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Var("c")),
+            Eq(Var("H6"), Sub(Var("a"), Var("c"))),
+            Eq(Var("c"), IntNum(5)),
+            Eq(Var("H7"), Sub(IntNum(5), Var("c"))),
+            Eq(Var("H6"), Var("H7")),
+            Eq(Var(Name("result")), Var(Name("H7")))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S"), Seq(TermArg(Var("a")))),
+            //            Eq(Var("a"),Var("c")),
+//            Eq(Var("H6"), IntNum(0)),
+            Eq(Var("a"), IntNum(5)),
+            //            Eq(Var("H7"),IntNum(0)),
+            //            Eq(Var("H6"),Var("H7")),
+            Eq(Var(Name("result")), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input, ConfigVN(simplifyArithmetic = true, propagateConstants = true))
+  }
+
 
 }

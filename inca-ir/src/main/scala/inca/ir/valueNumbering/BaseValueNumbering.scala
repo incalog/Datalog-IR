@@ -35,7 +35,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
 //  var count: Map[Hashed, Int] = Map()   // remembers how often term with hash has occurred
 
-  var valueUnknown: Set[Term] = Set() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
+  var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
 
   // maps for atoms
   var hashTableAtoms: Map[Hashed, (Atom,Int)] = Map()
@@ -59,7 +59,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
-    // ugly fix for changing references from removed relations  // TODO refactor / rewrite so that relations are processed in different order
+    // ugly fix for changing references from removed relations  // TODO refactor / rewrite so that relations are processed in different order (?)
     class CallsFix extends IRVisitor {
       def fixCalls(module: Module): Module = {
         super.visitModule(module)
@@ -96,9 +96,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // TODO save hashes
   protected def getHashCode(elem: Term): Hashed = elem match {
     case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) =>
-      // TODO In case of calls and a following Eq there are two hash values for one Var how to make sure that thw right one is chosen
-//      hashTable.find(_._2 == name).head._1
-      hashTable.filter(_._2 == name).last._1  // used hash hash that was added last
+      // In case of calls and a following Eq there are two hash values for one Var -> make sure that the right one is chosen
+      hashTable.find(_._2 == name).head._1
+//      hashTable.filter(_._2 == name).last._1  // used hash that was added last
     case _ => elem.hashCode()
   }
 
@@ -238,30 +238,46 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
-  private def newVar(nameStr: String, ty: Option[TermType] = None, valUnkown: Boolean = false): Var = {
+  private def newVar(nameStr: String, ty: Option[TermType] = None, valUnkownBecauseOf: Set[Var] = Set()): Var = {
     val v = Var(RefByName(Name(nameStr)))
     v.typ = ty
-    if valUnkown then valueUnknown = valueUnknown + v
+    if (valUnkownBecauseOf.nonEmpty){
+      valUnkownBecauseOf.foreach(valueIsUnknown(v,_))
+      valueIsUnknown(v)
+    }
     v
   }
+
+  private def valueIsUnknown(v: Var): Unit = valueUnknown.update(v, valueUnknown.getOrElse(v, mutable.Set()).union(Set(v)))
+  private def valueIsUnknown(v: Var, becauseOf: Var): Unit =
+    valueUnknown.update(becauseOf, valueUnknown.getOrElse(becauseOf, mutable.Set()).union(Set(v)))
+  private def valueIsKnown(v: Var): Unit =
+    val removed = valueUnknown.remove(v).getOrElse(Seq()).toSeq
+    valueUnknown = valueUnknown.map((key,seq) => (key,seq.filter(vari => vari.name != v.name && !removed.contains(vari))))
+    removed.foreach(valueIsKnown(_))
+  private def isValueUnknown(t: Term): Boolean = valueUnknown.values.flatten.toSeq.contains(t)
+  private def getReasonsForUnknown(t: Term): Set[Var] =
+    val varis = t.vars.toSet
+    valueUnknown.filter((_,set) => set.intersect(varis).nonEmpty).keys.toSet
+
 
   protected def simplify(term: Term): Term
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(RefByName(Name(name))) if paramSubst.contains(name) && config.attemptAlphaEquivalence => visitTerm(newVar(paramSubst(name),v.typ,valueUnknown.contains(term)))
+    case v@Var(RefByName(Name(name))) if paramSubst.contains(name) && config.attemptAlphaEquivalence => visitTerm(newVar(paramSubst(name),v.typ,getReasonsForUnknown(term)))
     case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
     case v@Var(RefByName(Name(name))) if VN.contains(name) =>
       Seq(
         if const.contains(VN(name)) && this.config.propagateConstants then
           const(VN(name))
-        else newVar(VN(name),v.typ,valueUnknown.contains(term))
+        else newVar(VN(name),v.typ,getReasonsForUnknown(term))
       )
     case _ =>
       val newTerm = super.visitTerm(term).head
       if term.typ.nonEmpty then newTerm.typed(term.typ.get) // TODO okay ?
       val termHash: Hashed = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash),term.typ,valueUnknown.contains(term)) else simplify(newTerm))
+      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash),term.typ,getReasonsForUnknown(term)) else simplify(newTerm))
   }
 
 
@@ -270,15 +286,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
     case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>
       treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ)
-    case Eq(vari@Var(RefByName(Name(_))), e, false) =>
-      visitTerm(vari).head match
-        case Var(RefByName(Name(x))) => treatComparisonEq(x, e, vari.typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-        case _ => ??? // TODO happens when propagating constants -> how to treat? (same below)
+    case Eq(vari@Var(_), e, false) =>
+      // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality and remove if duplicate of other Eq
+      treatComparisonEq(vari, e, vari.typ)
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      visitTerm(vari).head match
-        case Var(RefByName(Name(x))) => treatComparisonEq(x, e, vari.typ)
-        case _ => ???
-
+      treatComparisonEq(vari, e, vari.typ)
 
     case call@Call(_, _, false) =>
       super.visitAtom(atom).head match {
@@ -313,19 +325,25 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     valueNumberAtoms(newEq,dontRemove=dontRemove)
   }
 
-  private def treatComparisonEq(x: String, t: Term, typ: Option[TermType]): Seq[Atom] = {
-    val newEqSeq = valueNumberingTerm(x, t, dontRemove = true, typ)
-    if newEqSeq.isEmpty then return Seq()
+  private def treatComparisonEq(vari: Var, t: Term, typ: Option[TermType]): Seq[Atom] = {
+    val newEqSeq = visitTerm(vari).head match // vari might need to be replaced when Eq is a comparision
+      case Var(RefByName(Name(x))) => valueNumberingTerm(x, t, dontRemove = true, typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+      case const => t match {
+        case vari2@Var(_) => treatComparisonEq(vari2,const,typ) // t might be a Var if first case was taken in visitAtom
+        case _ => if !isValueUnknown(vari) then Seq( Eq(const,t) ) else valueNumberingTerm(vari.name.name, t, dontRemove = true, typ)
+      } // happens when propagating constants
 
+    if newEqSeq.isEmpty then return Seq()
     val newEq = newEqSeq.head
     val newAtomSeq = {
-      if (valueUnknown.contains(Var(x))) {
-        if (!valueUnknown.contains(t)) then valueUnknown = valueUnknown.removedAll(Seq(Var(x))) // TODO remove all that where unknown because of x (?)
+      if (valueUnknown.contains(vari)) {
+        if (!isValueUnknown(t)) then valueIsKnown(vari) // remove all that where unknown because of vari
         valueNumberAtoms(newEq, dontRemove = true)
       }
       else valueNumberAtoms(super.visitAtom(newEq).head) // allowed to remove comparison since value of variable is known before -> wont reduce set of results
     }
     removeAtomIfTrue(newAtomSeq)
+
   }
 
   private def valueNumberingTerm(varName: String, t: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Eq] = {
@@ -346,9 +364,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       if dontRemove then {
         // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
         // also remember the new Eq but dont remove it
-        Seq( Eq(newVar(x, typ, valueUnknown.contains(t)), newTerm) )
+        Seq( Eq(newVar(x, typ, getReasonsForUnknown(t)), newTerm) )
       }
-      else Seq()
+      else {
+        newVar(x, typ, getReasonsForUnknown(t)) // TODO refactor
+        Seq()
+      }
     }
     else if (hashTableGlobal.contains(termHash) && !dontRemove) {
       val v: ValNum = newTerm match {
@@ -385,7 +406,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       // return with newTerm
       // also remember the new Eq; it might be removed
-      Seq( Eq(newVar(x, typ, valueUnknown.contains(newTerm)), newTerm) )
+      Seq( Eq(newVar(x, typ, getReasonsForUnknown(newTerm)), newTerm) )
     }
   }
 
@@ -425,19 +446,20 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
               VN += (variName,v)
               VN += (v,v)
               hashTable += (bindingCallHash,v)
-              valueUnknown = valueUnknown + Var(v)
-              TermArg(newVar(v, term.typ, true))
+              val newVari = newVar(v, term.typ)
+              valueIsUnknown(newVari)
+              TermArg(newVari)
             }
             else {
               VN += (variName, variName)
               hashTable += (bindingCallHash, variName)
-              valueUnknown = valueUnknown + Var(variName)
+              valueIsUnknown(Var(variName))
               t
             }
           } else {
             VN += (variName, variName)
             hashTable += (bindingCallHash, variName)
-            valueUnknown = valueUnknown + Var(variName)
+            valueIsUnknown(Var(variName))
             t
           }
 
@@ -449,7 +471,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       case Call(ref,_,neg) => Call(ref,newArgs,neg)
       case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
     }
-    valueNumberAtoms(newCall,dontRemove = isBinding) // TODO || exists isParam(_)
+    valueNumberAtoms(newCall,dontRemove = isBinding) // TODO || exists isParam(_) ?
   }
 
   private def valueNumberAtoms(atom: Atom, dontRemove: Boolean = false): Seq[Atom] = {
@@ -543,8 +565,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
           bodiesTable = bodiesTable.appended((candidate, candidateSeq.flatten.toSeq)) // need to remember all the original locations to change them in the next step
         }
       }
-        // TODO how to make sure that there is no "Ill-typed equation"
-        //  i.e. handle cases in which binding of a Var is different (-> not in new body)
         bodiesTable
     }
 
@@ -565,10 +585,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         val newCall = generateNewCall(newRel, paramsWithTypes)
         val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
         relBodiesToChange.foreach { case ((name, bodyIdx), atomInfoSeq) =>
-          if (relations.contains(name)) {
+          if (relations.contains(name)) { // otherwise relation was previously removed
             val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atom), newCall)
             relations = relations.updated(changedRel.name, changedRel)
-            changedRel
           }
         }
 
