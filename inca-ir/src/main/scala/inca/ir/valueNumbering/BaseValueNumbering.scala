@@ -455,7 +455,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
               valueIsUnknown(Var(variName))
               t
             }
-          } else {
+          }
+          else {
             VN += (variName, variName)
             hashTable += (bindingCallHash, variName)
             valueIsUnknown(Var(variName))
