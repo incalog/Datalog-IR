@@ -40,8 +40,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   // maps for atoms
   var hashTableAtoms: Map[Hashed, (Atom,Int)] = Map()
 
-  // maps for bodies
-  var hashTableBodies: Map[Hashed, ValNum] = Map()
+  // for bodies
+  var hashedBodies: Seq[Hashed] = Seq()
 
   // maps for relations
   var VNRelations: Map[String, ValNum] = Map()
@@ -158,7 +158,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
     relationParams = relation.params.map(_.name)
-    hashTableBodies = Map()
+    hashedBodies = Seq()
 
     if (config.attemptAlphaEquivalence) { // TODO include?  and if save correct relationParams
       paramSubst = Map()
@@ -228,12 +228,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     // remove if redundant
     val bodyHash: Hashed = getHashCode(newBody)
-    if (hashTableBodies.contains(bodyHash)) {
+    if (hashedBodies.contains(bodyHash)) {
       Seq()
     }
     else {
-      val x = newBody.toString // TODO save space
-      hashTableBodies += (bodyHash, x)
+      hashedBodies = hashedBodies.appended(bodyHash)
       Seq(newBody)
     }
   }
