@@ -40,10 +40,20 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
   protected def checkModule(module: Module): Unit = scopedTypeContext {
-    module.contents.sorted.foreach(bindModuleEntry)
-    module.contents.sorted.foreach { entry =>
+    val contentsNoExport = module.contents.filterNot(m => module.exports.contains(m))
+    contentsNoExport.sorted.foreach(bindModuleEntry)
+    contentsNoExport.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
+    }
+    module.exports.foreach { exp => exp match
+      case relationExport: RelationExport =>
+        entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+          case relation: Relation => relationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+      case extRelationExport: ExtensionalRelationExport =>
+        entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+          case relation: Relation => extRelationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+      case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
     }
   }
 
