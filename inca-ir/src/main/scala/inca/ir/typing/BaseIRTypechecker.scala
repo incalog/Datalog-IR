@@ -53,6 +53,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case relation: Relation => scopedTypeContext { checkRelation(relation) }
     case relation: ExtensionalRelation => // nothing
+    case moduleimport: ModuleImport => // nothing
+    case moduleexport: ModuleExport => // nothing
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
 
   protected def checkRelation(relation: Relation): Unit = {
@@ -213,6 +215,11 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
         ref.resolved(rel.asInstanceOf[R])
         params.map(_.ty)
+      case Some(rel@RelationImport(_, types))  =>
+        //if (!tag.runtimeClass.isInstance(rel))
+        //  error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationImport", s)
+        ref.resolved(rel.asInstanceOf[R])
+        types
       case None =>
         error(s"Undefined relation $name", s)
         Seq()
