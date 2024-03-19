@@ -46,16 +46,17 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       currentEntry = entry
       checkModuleEntry(entry)
     }
-    module.exports.foreach { exp => exp match
-      case relationExport: RelationExport =>
-        entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
-          case relation: Relation => relationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
-      case extRelationExport: ExtensionalRelationExport =>
-        entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
-          case relation: Relation => extRelationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
-      case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
-    }
+    module.exports.foreach { exp => checkExport(exp) }
   }
+
+  protected def checkExport(exp: ModuleExport): Unit = exp match
+    case relationExport: RelationExport =>
+      entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+        case relation: Relation => relationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+    case extRelationExport: ExtensionalRelationExport =>
+      entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+        case relation: Relation => extRelationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+    case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
 
   protected def bindModuleEntry(entry: ModuleEntry): Unit =
     registerModuleEntry(entry)
