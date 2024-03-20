@@ -16,7 +16,7 @@ import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
 
 enum ThreadCount:
-  case Auto // Use the maximum available threads
+  case Auto // Use the maximum number of available threads
   case Fixed(n: Int)
 
   def requiresParallelExec: Boolean = this match
@@ -30,9 +30,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     var inputDirty = true
     var cachedResult: Option[Seq[Relation]] = None
 
-    private def execute(): String = {
-      executable.!!
-    }
+    private def execute(): String = executable.!!
 
     def insert(edb: Relation): Unit = {
       inputDirty = true
@@ -164,11 +162,4 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case _ => Seq()
     val runProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
     new Engine(runProcess, fileInputs.map(i => (i.name, i)).toMap)
-  }
-
-  private def ascentifyTupleEntry(s: Any): Term = s match {
-    case i: Int => Term.NumberLit(i)
-    case s: String => Term.StringLit(s)
-    case d: Double => Term.FloatLit(d.toFloat)
-    case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
   }
