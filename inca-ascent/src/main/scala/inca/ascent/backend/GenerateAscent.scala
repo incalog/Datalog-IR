@@ -21,11 +21,10 @@ import inca.ir.typing.Mode.{Binding, Bound, Collapse}
 // Based on Sarah Hauschildts Bachelor thesis
 
 object GenerateAscent:
-  def cleanName(name: ir.Name): String = name.name.replace("$", "_")
-
-class GenerateAscent:
   private val gensym = new Gensym()
   private var varRefs: Set[String] = Set()
+
+  def cleanName(name: ir.Name): String = name.name.replace("$", "_")
 
   def scoped[A](f: => A): A = gensym.scoped {
     val oldRefs = this.varRefs
@@ -39,7 +38,7 @@ class GenerateAscent:
 
   private def freshTmpName(): String = cleanName(gensym.fresh("_tmp"))
 
-  def compileModule(module: ir.Module): Seq[ProgramContent] = {
+  def compileModule(module: ir.Module): Seq[ProgramContent] = gensym.scoped {
     val compileableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR, agg.IR)
     val illegalFeatures = module.lang.features -- compileableFeatures
 

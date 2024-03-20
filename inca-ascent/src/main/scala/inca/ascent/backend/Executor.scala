@@ -129,14 +129,14 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     }
     val projectDir = currentDir.getCanonicalPath + "/inca-ascent"
     val rustProjectDir = projectDir + "/ascent_project"
-    val contents = (new GenerateAscent).compileModule(m.lowered)
+    val contents = GenerateAscent.compileModule(m.lowered)
 
     // all inputs and outputs
     val (inputs, outputs) = contents.collect {
       case relDecl@ProgramContent.RelDecl(k, v, _) => relDecl
     }.partition(_.isEdb)
 
-    // Create edb inputs
+    // create edb inputs
     val fileInputs: Seq[ProgramContent.EDBFile] = inputs.map { i =>
       val name = cleanName(Name(i.name))
       val edbFile = Files.createTempFile(name, ".facts")
@@ -155,7 +155,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case _ => throw IllegalStateException("Failed to build rust project")
     }
 
-    // Create the engine
+    // create the engine
     val env = numThreads match
       case ThreadCount.Auto => Seq()
       case ThreadCount.Fixed(n) if n > 1 => Seq("RAYON_NUM_THREADS" -> n.toString)
