@@ -18,30 +18,22 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
     case _ => super.getHashCode(term)
   }
 
-
-  override def visitTerm(term: Term): Seq[Term] = term match { // TODO could use isConst(term)
-    case IntNum(_) | DoubleNum(_) => Seq(term) // otherwise occurrences of such trivial exps are also replaced by a Var
-    case binOp@BinOp(lhs, rhs, op) =>
-//      getReasonsForUnknown(lhs).foreach(valueIsUnknown(binOp,_))
-//      getReasonsForUnknown(rhs).foreach(valueIsUnknown(binOp,_))
-      super.visitTerm(term)
-    case unOp@UnOp(t, op) =>
-//      getReasonsForUnknown(t).foreach(valueIsUnknown(unOp,_))
-      super.visitTerm(term)
-    case _ => super.visitTerm(term)
+  override def isConst(term: Term): Boolean = term match {
+    case IntNum(_) | DoubleNum(_) => true
+    case _ => super.isConst(term)
   }
 
-    override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
-      if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
+  override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
+    if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
 
-      // TODO
+    // TODO
 //      newAtomSeq.head match {
 //        case BinCompare(lhs, rhs, "<") if isConst(lhs) && isConst(rhs) => (lhs,rhs) match{
 //          case (IntNum(l),IntNum(r)) => if l < r then Seq() else newAtomSeq
 //        }
 //      }
-      super.removeAtomIfTrue(newAtomSeq)
-    }
+    super.removeAtomIfTrue(newAtomSeq)
+  }
 
   // TODO add more cases (e.g. more rules) ? Preserve type of term ?
   // probably no recursive call needed here in the beginning since called in visitTerm
@@ -191,10 +183,5 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
   private def distributivity(factor: Term, lhs: Term, rhs: Term, opOuter: (Term, Term) => BinOp, opInner: (Term, Term) => BinOp): Term =
     simplify(opOuter(simplify(opInner(lhs,factor)), simplify(opInner(rhs,factor))))
 
-
-  override def isConst(term: Term): Boolean = term match {
-    case IntNum(_) | DoubleNum(_) => true
-    case _ => super.isConst(term)
-  }
 
 }

@@ -272,6 +272,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
           const(VN(name))
         else newVar(VN(name),v.typ,getReasonsForUnknown(term))
       )
+    case _ if isConst(term) => Seq(term) // dont replace constant terms with a var and no need to simplify them 
     case _ =>
       val newTerm = super.visitTerm(term).head
       if term.typ.nonEmpty then newTerm.typed(term.typ.get) // TODO okay ?
