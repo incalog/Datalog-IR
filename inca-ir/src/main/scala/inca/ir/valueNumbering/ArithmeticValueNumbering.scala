@@ -6,24 +6,24 @@ import inca.ir.typing.Mode.Bound
 
 trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
-  override def getHashCode(atom: Atom): Hashed = atom match{
+  protected override def getHashCode(atom: Atom): Hashed = atom match{
     case BinCompare(lhs, rhs, op) => Seq(BinCompare,getHashCode(lhs),getHashCode(rhs),op).hashCode()
     case _ => super.getHashCode(atom)
   }
 
-  override def getHashCode(term: Term): Hashed = term match {
+  protected override def getHashCode(term: Term): Hashed = term match {
     case BinOp(lhs,rhs,op) => Seq(BinOp,getHashCode(lhs),getHashCode(rhs),op).hashCode()
     case UnOp(t, op) => Seq(UnOp,getHashCode(t),op).hashCode()
     case IntNum(_) | DoubleNum(_) => super.getHashCode(term)
     case _ => super.getHashCode(term)
   }
 
-  override def isConst(term: Term): Boolean = term match {
+  protected override def isConst(term: Term): Boolean = term match {
     case IntNum(_) | DoubleNum(_) => true
     case _ => super.isConst(term)
   }
 
-  override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
+  protected override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
     if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
 
     // TODO
@@ -37,7 +37,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
   // TODO add more cases (e.g. more rules) ? Preserve type of term ?
   // probably no recursive call needed here in the beginning since called in visitTerm
-  protected def simplify(term: Term): Term = {
+  protected override def simplify(term: Term): Term = {
     if !this.config.simplifyArithmetic then return term
     val typ: Type = term.typ match { // assumed that program was typechecked before and every term thus has a type
       case Some(termType: TermType) => termType.ty
@@ -78,7 +78,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
         case s => term
       }
       case BinOp(lhs, rhs, op) => BinOp(simplify(lhs), simplify(rhs), op)
-      case _ => term
+      case _ => super.simplify(term)
     }
     newTerm.typ = term.typ // TODO needed?
     newTerm

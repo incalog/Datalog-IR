@@ -260,7 +260,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     valueUnknown.filter((_,set) => set.intersect(varis).nonEmpty).keys.toSet
 
 
-  protected def simplify(term: Term): Term
+  protected def simplify(term: Term): Term = term 
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
