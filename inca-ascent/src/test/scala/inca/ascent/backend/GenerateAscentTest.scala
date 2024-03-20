@@ -125,7 +125,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
     val res = engine.read(UnitRelation("path"))
     assertResult(Set((2, 3), (3, 4), (1, 2), (1, 3), (2, 4), (1, 4)))(res.toSet)
@@ -170,7 +170,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.read(UnitRelation("path"))
     assertResult(Set((2.8,4.0), (4.0,3.0), (1.13,4.0), (1.13,3.0), (1.13,2.8), (2.8,3.0)))(rels.toSet)
@@ -210,7 +210,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.readAll()
     assertResult(6)(rels.size)
@@ -225,7 +225,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(2), Seq(3), Seq(6), Seq(7))))
     engine.insert(Rel.from("m", Seq("x"), Seq(Seq(1), Seq(3), Seq(7))))
     val rels = engine.readAll()
@@ -242,7 +242,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(3)(rels.size)
@@ -258,7 +258,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(5)(rels.size)
@@ -291,7 +291,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(3, 3), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(5)(rels.size)
@@ -307,7 +307,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(1)(rels.size)
@@ -324,7 +324,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(1)(rels.size)
@@ -340,7 +340,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 2), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
     assertResult(1)(rels.size)
@@ -356,7 +356,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("1"), Seq("3"), Seq("7"))))
     print("engine", engine)
     val rels = engine.readAll()
@@ -373,7 +373,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("x"), Seq("3"), Seq("7"))))
 
     val rels = engine.readAll()
@@ -386,7 +386,7 @@ class GenerateAscentTest extends AnyFunSuite:
       data.CaseDefinition(Name("Nil"), Seq(), data.TData(Name("List"))),
       data.CaseDefinition(Name("Cons"), Seq(arith.TInt, data.TData(Name("List"))), data.TData(Name("List")))
     )
-    val module = Module("ADTTest", (data.IR.language ++ demand.IR.language.features), listADT ++ Seq(
+    val module = Module("ADTTest", data.IR.language ++ demand.IR.language.features, listADT ++ Seq(
       Relation("main", Seq(Param("out", arith.TInt)), Seq(
         Body(Seq(
           Call("createADT", Seq(arith.IntNum(10), Var("obj"))),
@@ -413,7 +413,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = module
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     val rels = engine.readAll()
     assertResult(3)(rels.size)
     rels.foreach(r => assert(r.size != 0))
@@ -452,7 +452,7 @@ class GenerateAscentTest extends AnyFunSuite:
       override def ir: Module = irModule
 
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(31), Seq(4))))
 
     val rels = engine.readAll()

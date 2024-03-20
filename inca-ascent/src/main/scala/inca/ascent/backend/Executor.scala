@@ -1,57 +1,60 @@
 package inca.ascent.backend
 
 import inca.ascent.backend.GenerateAscent.cleanName
+import inca.ascent.backend.ThreadCount.{Auto, Fixed}
 import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation}
-import inca.ir.extension.data.Construct
 import inca.ir.{CompiledModule, Name}
-import inca.util.FileUtil
-import ujson.{Arr, Bool, Null, Num, Obj, Str}
+import ujson.{Arr, Num, Obj}
 
 import java.io.{File, PrintWriter}
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import scala.io.Source
+import java.nio.file.{Files, Path}
 import scala.sys.process.*
-import scala.util.{Failure, Success, Try}
+import scala.sys.process.ProcessBuilder
+import scala.language.implicitConversions
 
-object Executor extends IRExecutor:
-  class Engine(rustFilePath: String, executable: ProcessBuilder, contents: Seq[ProgramContent], outputs: Seq[ProgramContent.RelDecl]) extends ExecutorEngine:
+enum ThreadCount:
+  case Auto // Use the maximum available threads
+  case Fixed(n: Int)
+
+  def requiresParallel: Boolean = this match
+    case Auto => true
+    case Fixed(n) => n > 1
+
+implicit def int2ThreadCount(n: Int): ThreadCount = ThreadCount.Fixed(n)
+
+class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
+  class Engine(executable: ProcessBuilder, inputs: Map[String, ProgramContent.EDBFile]) extends ExecutorEngine:
     var inputDirty = true
-    //var inputs: Seq[ProgramContent] = Seq()
-    var inputs: Map[String, ProgramContent.EDBFile] = Map()
     var cachedResult: Option[Seq[Relation]] = None
 
     private def execute(): String = {
-      //val progString = createRustString(contents, inputs)
-      val progString = createRustString(contents)
-      createRustFile(progString, rustFilePath)
       executable.!!
     }
 
     def insert(edb: Relation): Unit = {
       inputDirty = true
-      //val content = relToFact(edb)
-      //inputs = inputs ++ content
 
       val content = edb.entries
         .map(t => edb.flattenEntry(t).mkString("\t")).mkString("\n")
       val name = cleanName(Name(edb.name))
-      val edbFile = Files.createTempFile(name, ".facts")
+
+      // Reuse existing file if it exists, so we don't have to recompile the rust project
+      val edbFile = inputs.get(name) match
+        case Some(ProgramContent.EDBFile(name, path)) => Path.of(path)
+        case None => throw IllegalStateException(s"Edb input $name not found in inputs map")
+
       Files.write(edbFile, content.getBytes(StandardCharsets.UTF_8))
-      //edbFile.toFile.deleteOnExit()
-      inputs += name -> ProgramContent.EDBFile(name, edbFile.toAbsolutePath.toString)
+      edbFile.toFile.deleteOnExit()
     }
 
-    def addUpdateListener(up: inca.ir.execution.RelationUpdateListener): Unit = ???
+    def remove(edb: inca.ir.execution.Relation): Unit = throw new UnsupportedOperationException()
 
-    def remove(edb: inca.ir.execution.Relation): Unit =
-      inputDirty = true
-      val name = cleanName(Name(edb.name))
-      inputs -= name
+    def addUpdateListener(up: inca.ir.execution.RelationUpdateListener): Unit = throw new UnsupportedOperationException()
 
-    def removeUpdateListener(up: inca.ir.execution.RelationUpdateListener): Unit = ???
+    def removeUpdateListener(up: inca.ir.execution.RelationUpdateListener): Unit = throw new UnsupportedOperationException()
 
     // Generate a string representation of objects
     private def valuefyObject(v: ujson.Value): Any = v match
@@ -109,12 +112,6 @@ object Executor extends IRExecutor:
       facts
     }
 
-    def createRustString(contents: Seq[ProgramContent]): String =
-      Program(contents ++ inputs.values, outputs).toString()
-
-    //def createRustString(contents: Seq[ProgramContent], inputFacts: Seq[ProgramContent]): String =
-    //  Program(contents ++ inputFacts, outputs).toString()
-
   private def createRustFile(s: String, filepath: String): Unit = {
     val newPath = filepath + "/src/main.rs"
     val newFile = new File(newPath)
@@ -124,6 +121,7 @@ object Executor extends IRExecutor:
     pw.close()
   }
 
+  // Rust compilation is slow, therefore we compile once on instantiate
   def instantiate(m: CompiledModule): Engine = {
     var currentDir = new File("./").getCanonicalFile
 
@@ -135,23 +133,35 @@ object Executor extends IRExecutor:
     val rustProjectDir = projectDir + "/ascent_project"
     val contents = (new GenerateAscent).compileModule(m.lowered)
 
-    val process = stringToProcess(s"cargo run --manifest-path $rustProjectDir/Cargo.toml --release")
+    // all inputs and outputs
+    val (inputs, outputs) = contents.collect {
+      case relDecl@ProgramContent.RelDecl(k, v, _) => relDecl
+    }.partition(_.isEdb)
 
-    // all outputs
-    val outputs = contents.collect {
-      case relDecl@ProgramContent.RelDecl(k, v, false) => relDecl
+    // Create edb inputs
+    val fileInputs: Seq[ProgramContent.EDBFile] = inputs.map { i =>
+      val name = cleanName(Name(i.name))
+      val edbFile = Files.createTempFile(name, ".facts")
+      ProgramContent.EDBFile(name, edbFile.toAbsolutePath.toString)
     }
-    new Engine(rustProjectDir, process, contents, outputs)
-  }
 
-  /*private def relToFact(edb: Relation): Seq[ProgramContent] = {
-    val name = cleanName(Name(edb.name))
-    edb.entries.map { t =>
-      val entry = edb.flattenEntry(t)
-      val e = entry.map(p => ascentifyTupleEntry(p))
-      ProgramContent.Fact(name, e)
-    }.toSeq
-  }*/
+    // create the rust program file
+    val parallel = numThreads.requiresParallel
+    val progString = Program(contents ++ fileInputs, outputs, parallel).toString()
+    createRustFile(progString, rustProjectDir)
+
+    // build the rust project
+    val buildProcess = stringToProcess(s"cargo build --manifest-path $rustProjectDir/Cargo.toml --release")
+    buildProcess.! match {
+      case 0 => // nothing
+      case _ => throw IllegalStateException("Failed to build rust project")
+    }
+
+    // Create the engine
+    val env = if (parallel) Seq("RAYON_NUM_THREADS" -> numThreads.toString) else Seq()
+    val runProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
+    new Engine(runProcess, fileInputs.map(i => (i.name, i)).toMap)
+  }
 
   private def ascentifyTupleEntry(s: Any): Term = s match {
     case i: Int => Term.NumberLit(i)

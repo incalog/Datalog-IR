@@ -11,7 +11,7 @@ import scala.collection.immutable.Seq
 
 class FunctionalAscentExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(inca.ascent.backend.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(inca.ascent.backend.Executor())
 
   test("Apply") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Apply.finca")

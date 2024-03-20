@@ -47,7 +47,7 @@ object Mirco:
 
   @main
   def runMicroDlAscent(): Unit = {
-    runMicroDL(compiled => inca.ascent.backend.Executor.instantiate(compiled))
+    runMicroDL(compiled => inca.ascent.backend.Executor().instantiate(compiled))
   }
 
 

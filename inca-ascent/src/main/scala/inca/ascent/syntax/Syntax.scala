@@ -126,7 +126,13 @@ def read_edb_template(size: Int): String =
      |$tyArgConstraintS
      |{
      |    let mut records: Vec<($tyArgs)> = Vec::new();
-     |    let file = File::open(file_path).expect("Failed to open file");
+     |    let file = match File::open(file_path) {
+     |       Ok(file) => file,
+     |       Err(err) => {
+     |           eprintln!("Failed to open file: {}", err);
+     |           return records;
+     |       }
+     |    };
      |    let mut reader = csv::ReaderBuilder::new().has_headers(false).delimiter(b'\\t').from_reader(file);
      |
      |    for result in reader.records() {
@@ -144,7 +150,7 @@ def read_edb_template(size: Int): String =
      |""".stripMargin
 
 
-case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.RelDecl]):
+case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.RelDecl], parallel: Boolean):
   override def toString: String =
     val (enums, ascentContentWithEdb) = content.partition {
       case _: ProgramContent.CustomType => true
@@ -172,7 +178,8 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
 
     val out = outputRels.map { decl =>
       val name = decl.name
-      s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string(&VecWrapper::new(prog.$name)).unwrap());"""
+      val jsonObject = if (parallel) s"&VecWrapper::new(prog.$name)" else s"&prog.$name"
+      s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string($jsonObject).unwrap());"""
     }.mkString("\n")
 
     val main = s"""
@@ -185,14 +192,15 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |}
        |""".stripMargin
 
+    val ascentCmd = if parallel then "ascent_par" else "ascent"
+
     s"""
       |// suppress all warnings
       |#![allow(warnings)]
       |
-      |use ascent::ascent_par;
+      |use ascent::$ascentCmd;
       |use ascent::aggregators::{max,min,sum,count};
-      |// used by ascent_par
-      |use ascent::boxcar::Vec;
+      |${if parallel then "use ascent::boxcar::Vec;" else ""}
       |
       |use std::hash::{Hash,Hasher};
       |use std::ops;
@@ -211,13 +219,13 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
       |
       |$edbReadHelper
       |
-      |$vecSerializeWrapper
+      |${if parallel then vecSerializeWrapper else ""}
       |
       |$f32Wrapper
       |
       |${enums.mkString("\n")}
       |
-      |ascent_par!{
+      |$ascentCmd!{
       |${ascentContent.mkString("\n")}
       |}
       |
@@ -282,7 +290,7 @@ enum ProgramContent:
           val caseNames = cases.map {
             case (`name`, pty) =>
               val size = pty.size
-              val paramVars = (0 until size).map(idx => s"param_${idx}")
+              val paramVars = (0 until size).map(idx => s"param_$idx")
               val destrArgs = paramVars.zip(paramTys).map {
                 case (p, FormatType.Custom(`dataName`)) => s"*$p"
                 case (p, FormatType.Symbol) => s"$p.to_string()"

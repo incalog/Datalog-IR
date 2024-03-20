@@ -108,7 +108,7 @@ class GenerateAscent:
       case (Some(ir.TermType(ty1, m1)), Some(ir.TermType(ty2, m2))) =>
         (m1, m2) match {
           case (Bound, Bound) =>
-            Seq(Atom.Equal(compileTerm(lhs), compileTerm(rhs)))
+            Seq(Atom.Equal(compileTerm(lhs, noClone = true), compileTerm(rhs, noClone = true)))
           case (Bound, Binding) =>
             Seq(Atom.Let(compileTerm(rhs, noClone = true), compileTerm(lhs, noDeref = true)))
           case (Binding, Bound) =>

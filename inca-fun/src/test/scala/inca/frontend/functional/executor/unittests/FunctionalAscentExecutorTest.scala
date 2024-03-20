@@ -9,7 +9,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalAscentExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(inca.ascent.backend.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(inca.ascent.backend.Executor())
 
   // Unittests
 
