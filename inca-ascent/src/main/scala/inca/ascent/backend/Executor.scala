@@ -19,7 +19,7 @@ enum ThreadCount:
   case Auto // Use the maximum available threads
   case Fixed(n: Int)
 
-  def requiresParallel: Boolean = this match
+  def requiresParallelExec: Boolean = this match
     case Auto => true
     case Fixed(n) => n > 1
 
@@ -146,19 +146,22 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     }
 
     // create the rust program file
-    val parallel = numThreads.requiresParallel
+    val parallel = numThreads.requiresParallelExec
     val progString = Program(contents ++ fileInputs, outputs, parallel).toString()
     createRustFile(progString, rustProjectDir)
 
     // build the rust project
     val buildProcess = stringToProcess(s"cargo build --manifest-path $rustProjectDir/Cargo.toml --release")
     buildProcess.! match {
-      case 0 => // nothing
+      case 0 => // ok
       case _ => throw IllegalStateException("Failed to build rust project")
     }
 
     // Create the engine
-    val env = if (parallel) Seq("RAYON_NUM_THREADS" -> numThreads.toString) else Seq()
+    val env = numThreads match
+      case ThreadCount.Auto => Seq()
+      case ThreadCount.Fixed(n) if n > 1 => Seq("RAYON_NUM_THREADS" -> n.toString)
+      case _ => Seq()
     val runProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
     new Engine(runProcess, fileInputs.map(i => (i.name, i)).toMap)
   }
