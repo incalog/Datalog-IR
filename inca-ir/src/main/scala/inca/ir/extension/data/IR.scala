@@ -16,7 +16,7 @@ case class DataDefinitionExport(name: Name) extends ModuleExport:
   def withExtendedName(suffix: String): DataDefinitionExport = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"""export data $name"""
 
-case class CaseDefinitionExport(name: Name, args: Seq[Type], data: Ref[DataDefinitionExport]) extends ModuleExport:
+case class CaseDefinitionExport(name: Name, args: Seq[Type], data: TData) extends ModuleExport:
   def withExtendedName(suffix: String): CaseDefinitionExport = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"""export case $name(${args.mkString(",")}): $data"""
 

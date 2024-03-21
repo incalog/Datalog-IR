@@ -3,7 +3,7 @@ package inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.{Atom, ModuleEntry, ModuleImport, ModuleExport, Name, Ref, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeSubst, TypeVar}
 
@@ -39,6 +39,15 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       checkType(data)
       args.foreach(checkType)
     case _ => super.checkModuleEntry(moduleEntry)
+
+  protected override def checkExport(exp: ModuleExport): Unit = exp match
+    case dataExport: DataDefinitionExport =>
+      entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+        case dataDefinition: DataDefinition => // do nothing
+    case caseExport: CaseDefinitionExport =>
+      entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
+        case caseDefinition: CaseDefinition => caseExport.args.zip(caseDefinition.args).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $caseDefinition"))
+    case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case Construct(ref, args) => lookupConstruct(ref, term) match
