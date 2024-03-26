@@ -137,13 +137,13 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
 
-    // Souffle crashes when it automatically guesses the thread count
+    // Souffle 2.4.1 crashes when it automatically guesses the thread count
     val flags = numThreads match
       case ThreadCount.Auto => s"-j ${ThreadCount.numberOfAvailableThreads()}"
       case ThreadCount.Fixed(n) if n > 1 => s"-j $n"
       case _ => ""
-    
-    val process = Process(s"souffle $flags --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath} --no-warn")
+
+    val process = Process(s"souffle $flags --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath}")
     // collect input and output directives
     val inputFiles = souffleProg.content.flatMap {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, names, _) => names.map { n => n.toString -> d }

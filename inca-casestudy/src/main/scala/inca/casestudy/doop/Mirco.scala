@@ -1,7 +1,7 @@
 package inca.casestudy.doop
 
 import inca.ir.{CompiledModule, SimpleAliasElimination, string2name}
-import inca.ir.execution.{IRExecutor, UnitRelation}
+import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, not}
 import inca.souffle.frontend.compile.CompiledSouffleModule
@@ -10,9 +10,9 @@ import scala.io.Source
 
 object Mirco:
 
-  private def runMicroDL(createEngine: (compiled: CompiledModule) => IRExecutor#Engine): Unit =
+  private def runMicroDL(createEngine: (compiled: CompiledModule) => IRExecutor#Engine, file: String = "micro.dl"): Unit =
     val baseDir = "doop/"
-    val source = Source.fromResource(baseDir + "micro.dl")
+    val source = Source.fromResource(baseDir + file)
     val compiled = CompiledSouffleModule.fromSource("micro", source)
     compiled.setPipeline(List(
       () => new bool.Lowering {},
@@ -31,20 +31,28 @@ object Mirco:
     edbFacts.foreach(engine.insert)
 
     println("Execute...")
-    /*val execTime = outputRels.map { rel =>
+    val execTime = outputRels.map { rel =>
       val start = System.currentTimeMillis()
       val res = engine.read(rel)
       val end = System.currentTimeMillis()
       println(res.name -> res.size)
       end - start
-    }.sum*/
+    }.sum
 
-    val start = System.currentTimeMillis()
+    /*val start = System.currentTimeMillis()
     engine.read(UnitRelation("VarPointsTo"))
     val end = System.currentTimeMillis()
-    val execTime = end - start
+    val execTime = end - start*/
 
     println(execTime / 1000.0)
+
+  @main
+  def runMicroDlSouffleOriginal(): Unit = {
+    runMicroDL(
+      compiled => inca.souffle.backend.Executor(Fixed(1)).instantiate(compiled),
+      "micro-original.dl"
+    )
+  }
 
   @main
   def runMicroDlSouffle(): Unit = {
