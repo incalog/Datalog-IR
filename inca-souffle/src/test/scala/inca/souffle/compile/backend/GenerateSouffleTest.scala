@@ -149,7 +149,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
     println(irModule)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     val rels = engine.readAll()
     println(rels)
   }
@@ -162,7 +162,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       override def ir: Module = irModule
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
-    val engine = Executor.instantiate(compiledModule)
+    val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("X", "Y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
     val rels = engine.readAll()
     //println(rels)

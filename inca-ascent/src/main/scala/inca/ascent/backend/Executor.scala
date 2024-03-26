@@ -1,10 +1,10 @@
 package inca.ascent.backend
 
 import inca.ascent.backend.GenerateAscent.cleanName
-import inca.ascent.backend.ThreadCount.{Auto, Fixed}
 import inca.ascent.syntax.*
 import inca.ir
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation}
+import inca.ir.execution.ThreadCount.Auto
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, ThreadCount}
 import inca.ir.{CompiledModule, Name}
 import ujson.{Arr, Num, Obj}
 
@@ -14,16 +14,6 @@ import java.nio.file.{Files, Path}
 import scala.sys.process.*
 import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
-
-enum ThreadCount:
-  case Auto // Use the maximum number of available threads
-  case Fixed(n: Int)
-
-  def requiresParallelExec: Boolean = this match
-    case Auto => true
-    case Fixed(n) => n > 1
-
-implicit def int2ThreadCount(n: Int): ThreadCount = ThreadCount.Fixed(n)
 
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
   class Engine(executable: ProcessBuilder, inputs: Map[String, ProgramContent.EDBFile]) extends ExecutorEngine:

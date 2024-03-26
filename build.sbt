@@ -108,6 +108,9 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
       ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
+      // Get logging information from viatra
+      "org.apache.logging.log4j" %% "log4j-api-scala" % "13.1.0",
+
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",

@@ -9,10 +9,26 @@ import inca.viatra.runtime.Query.Specification
 import inca.viatra.runtime.{EnginePool, Query}
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import inca.viatra.runtime.db.Database
+import org.apache.log4j.{BasicConfigurator, Level}
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil
+
+object Executor:
+  def initializeLogging(): Unit =
+    BasicConfigurator.configure()
+    setLogLevel(Level.OFF)
+
+  def enableDebugLogging(): Unit =
+    setLogLevel(Level.DEBUG)
+
+  def disableLogging(): Unit =
+    setLogLevel(Level.OFF)
+
+  private def setLogLevel(level: Level): Unit =
+    ViatraQueryLoggingUtil.getDefaultLogger.setLevel(level)
 
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, val module: PSystem.Module) extends ExecutorEngine:

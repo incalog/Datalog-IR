@@ -408,8 +408,8 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
         Superinterface(?t, ?s).
     SubtypeOf(?s, ?t) :-
         isInterfaceType(?s),
-        ?t = "java.lang.Object",
-        isType(?t).
+        isType(?t),
+        ?t = "java.lang.Object".
     SubtypeOf(?s, ?s) :-
         isInterfaceType(?s).
     SubtypeOf(?s, ?t) :-
@@ -420,12 +420,11 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
         ?t = "java.lang.Object",
         isType(?t).
     SubtypeOf(?s, ?t) :-
+        ComponentType(?s, ?sc),
+        ComponentType(?t, ?tc),
         isReferenceType(?sc),
         isReferenceType(?tc),
-        SubtypeOf(?sc, ?tc),
-        ComponentType(?s, ?sc),
-        ComponentType(?t, ?tc).
-// .plan 1:(4,5,3,2,1)
+        SubtypeOf(?sc, ?tc).
     SubtypeOf(?s, ?t) :-
         isArrayType(?s),
         ?t = "java.lang.Cloneable",
@@ -547,9 +546,9 @@ VarPointsTo(?heap, ?to) :-
 VarPointsTo(?heap, ?to) :-
     Reachable(?method),
     AssignCast(?type, ?from, ?to, ?method),
-    VarPointsTo(?heap, ?from),
     basic.SupertypeOf(?type, ?heaptype),
-    HeapAllocation_Type(?heap, ?heaptype).
+    HeapAllocation_Type(?heap, ?heaptype),
+    VarPointsTo(?heap, ?from).
  //.plan 1:(5,2,1,4,3)
 ArrayIndexPointsTo(?baseheap, ?heap) :-
     Reachable(?inmethod),
@@ -567,10 +566,6 @@ VarPointsTo(?heap, ?to) :-
     ArrayIndexPointsTo(?baseheap, ?heap),
     Var_Type(?to, ?type),
     HeapAllocation_Type(?baseheap, ?baseheaptype),
-    // Fast for Ascent, but slow for Viatra
-    //basic.SupertypeOf(?type, ?basecomponenttype),
-    //ComponentType(?baseheaptype, ?basecomponenttype).
-    // Fast for Viatra, but slow for Ascent
     ComponentType(?baseheaptype, ?basecomponenttype),
     basic.SupertypeOf(?type, ?basecomponenttype).
  //.plan 1:(3,2,1,4,5,6,7,8), 2:(4,3,2,1,5,6,7,8)
@@ -593,8 +588,8 @@ StaticFieldPointsTo(?heap, ?fld) :-
     StoreStaticField(?from, ?fld, ?inmethod),
     VarPointsTo(?heap, ?from).
 VarPointsTo(?heap, ?this) :-
-    ThisVar(?toMethod, ?this),
-    InterProc0(_, ?heap, ?toMethod).
+    InterProc0(_, ?heap, ?toMethod),
+    ThisVar(?toMethod, ?this).
 // .plan 1:(4,3,2,1,5,6,7,8,9)
 Reachable(?toMethod),
 CallGraphEdge(?invocation, ?toMethod) :-

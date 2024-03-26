@@ -9,7 +9,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class DatalogSouffleExecutorTest extends AnyFunSuite:
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
-  val exec: DatalogExecutor = new DatalogExecutor(Executor)
+  val exec: DatalogExecutor = new DatalogExecutor(Executor())
 
   test("Path") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")

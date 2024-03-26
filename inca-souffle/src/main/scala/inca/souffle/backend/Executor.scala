@@ -1,6 +1,7 @@
 package inca.souffle.backend
 
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
+import inca.ir.execution.ThreadCount.Auto
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener, ThreadCount}
 import inca.ir.{CompiledModule, string2name}
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, QualifiedName, Type}
 import inca.util.FileUtil
@@ -14,7 +15,7 @@ import scala.util.{Failure, Success, Try}
 // tab is default delimiter
 // outputs are in <name>.csv of directory
 // tab is default delimiter
-object Executor extends IRExecutor:
+class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
   class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
     private var inputDirty = true
@@ -135,8 +136,14 @@ object Executor extends IRExecutor:
 
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
-    // create process
-    val process = Process(s"souffle --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath}")
+
+    // Souffle crashes when it automatically guesses the thread count
+    val flags = numThreads match
+      case ThreadCount.Auto => s"-j ${ThreadCount.numberOfAvailableThreads()}"
+      case ThreadCount.Fixed(n) if n > 1 => s"-j $n"
+      case _ => ""
+    
+    val process = Process(s"souffle $flags --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath} --no-warn")
     // collect input and output directives
     val inputFiles = souffleProg.content.flatMap {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, names, _) => names.map { n => n.toString -> d }
