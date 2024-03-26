@@ -9,7 +9,7 @@ import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, Type
 
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  private def lookupDataDefinition(ref: Ref[DataDefinition], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
+  private def lookupDataDefinition(ref: Ref[DataDefinitionGeneral], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
     entries.get(ref.name) match
       case Some(dd: DataDefinition) =>
         ref.resolved(dd)
@@ -21,7 +21,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         error(s"Could not find data type ${ref.name}", s)
         None
 
-  def lookupConstruct(ref: Ref[CaseDefinition], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
+  def lookupConstruct(ref: Ref[CaseDefinitionGeneral], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
     entries.get(ref.name) match
       case Some(cd: CaseDefinition) =>
         ref.resolved(cd)
@@ -47,7 +47,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case caseExport: CaseDefinitionExport =>
       entries.getOrElse(exp.name, throw IllegalArgumentException(s"The exported relation: $exp is not defined")) match
         case caseDefinition: CaseDefinition => caseExport.args.zip(caseDefinition.args).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $caseDefinition"))
-    case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
+    case _ => super.checkExport(exp)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case Construct(ref, args) => lookupConstruct(ref, term) match
@@ -99,7 +99,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         }
     case _ => super.checkAtom(atom, mode)
 
-  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinition], s: SourceLocation): Map[Name, Type] = matcheeType match
+  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinitionGeneral], s: SourceLocation): Map[Name, Type] = matcheeType match
     case TData(matcheeRef) =>
       if (matcheeRef.name != dataRef.name)
         error(s"Constructor ${dataRef.name} does not belong to matchee's data type ${matcheeRef.name}", matcheeRef)
