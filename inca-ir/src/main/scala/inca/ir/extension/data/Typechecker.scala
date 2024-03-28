@@ -9,11 +9,14 @@ import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, Type
 
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  private def lookupDataDefinition(ref: Ref[DataDefinitionGeneral], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
+  private def lookupDataDefinition(ref: Ref[DataDefinitionGeneral], s: SourceLocation): Option[(Seq[Name], DataDefinitionGeneral)] =
     entries.get(ref.name) match
       case Some(dd: DataDefinition) =>
         ref.resolved(dd)
         Some((Seq(), dd))
+      case Some(ddi: DataDefinitionImport) =>
+        ref.resolved(ddi)
+        Some((Seq(), ddi))
       case Some(ParametricModuleEntry(tyParams, dd: DataDefinition)) =>
         ref.resolved(dd)
         Some((tyParams, dd))
@@ -21,11 +24,14 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         error(s"Could not find data type ${ref.name}", s)
         None
 
-  def lookupConstruct(ref: Ref[CaseDefinitionGeneral], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
+  def lookupConstruct(ref: Ref[CaseDefinitionGeneral], locations: SourceLocation*): Option[(Seq[Name], CaseDefinitionGeneral)] =
     entries.get(ref.name) match
       case Some(cd: CaseDefinition) =>
         ref.resolved(cd)
         Some((Seq(), cd))
+      case Some(cdi: CaseDefinitionImport) =>
+        ref.resolved(cdi)
+        Some(Seq(), cdi)
       case Some(ParametricModuleEntry(tyParams, cd: CaseDefinition)) =>
         ref.resolved(cd)
         Some((tyParams, cd))
@@ -78,6 +84,30 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         }
         val resultType = tySubst.visitType(data)
         resultType.bound
+      case Some((typeParams, cd@CaseDefinitionImport(_, params, data))) =>
+        addTypeDependency(cd)
+        if (args.size != params.size)
+          error(s"Expected ${params.size} arguments but got: ${args.size}", term)
+        val tyArgs = ref match
+          case RefByName(name) =>
+            if (typeParams.nonEmpty)
+              error(s"Missing type arguments $typeParams for constructor $name", term)
+            Seq()
+          case TypeApplication(name, tyArgs) =>
+            if (typeParams.size != tyArgs.size)
+              error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", term)
+            tyArgs
+        val tySubst = new TypeSubst(typeParams.zip(tyArgs).toMap)
+        args.zip(params).foreach { case (t, ty) =>
+          if (tySubst.subst.isEmpty)
+            checkTerm(t, ty, Mode.Bound)
+          else {
+            val tyInst = tySubst.visitType(ty)
+            checkTerm(t, tyInst, Mode.Bound)
+          }
+        }
+        val resultType = tySubst.visitType(data)
+        resultType.bound
     case _ => super.inferTermExtend(term, mode)
 
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
@@ -85,6 +115,19 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       case None =>
         error(s"Unknown constructor $ref", atom)
       case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+        addTypeDependency(cd)
+        if (args.size != params.size)
+          error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
+
+        val ty = inferTerm(t, Mode.Bound).ty
+        val substMap = checkDeconstruct(ty, data.ref, t)
+        val subst = new TypeSubst(substMap)
+        val substedParams = params.map(subst.visitType)
+        args.zip(substedParams).foreach {
+          case (TermArg(v), ty) => checkTerm(v, ty, mode)
+          case (wildcard@WildcardArg(), ty) => wildcard.typed(ty.collapsed, force = true)
+        }
+      case Some((typeParams, cd@CaseDefinitionImport(_, params, data))) =>
         addTypeDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
