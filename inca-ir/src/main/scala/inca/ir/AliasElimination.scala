@@ -7,36 +7,23 @@ import inca.ir.visitors.IRVisitor
 /**
  * TODO: We need to restructure the optimizations (including the one with the abstract interpreter)
  *  into a better package structure
- *
- * Note: We currently need this because the DependencyAnalysis becomes to big. We need to make the
- * file size smaller by removing aliases.
- *
- * For now this optimization eliminates simple variables aliases, where both the left
- * and right hand side are variables.
- * Only execute this after all other lowerings have been applied.
- *
- * E.g
- *
- * b == 4
- * a == b
- * c == a
- * R(c)
- *
- * ~>
- *
- * b == 4
- * R(b)
- *
  */
 
 trait AliasElimination extends IRVisitor:
   case class BodyMustFail(atom: Atom) extends Exception
 
-  override def name: String = "SimpleAliasElimination"
+  override def name: String = "AliasElimination"
 
   enum Phase:
+    // Remove simple variable aliases (Note: this ignores equalities that contain a parameter)
+    //   e.g. a == 1, b: >< == a: <>, c: >< == b: <>, R(c)  ~>  a == 1, R(a)
     case RemoveVariableAliases
-    case RemoveParameterAliases
+    // Replace variables with a parameter, if a corresponding equality exists
+    //   e.g. Q(x) :- a: >< == 1, x: >< == a: <>  ~>  Q(x) :- x == 1
+    case ReplaceVariablesByParameters
+    // Remove equalities where lhs == rhs or lhs != rhs, but lhs is the same var as rhs
+    //  e.g. Q(a) :- a == a, R(a)  ~>  R(a)
+    //  e.g. Q(a) :- a != a, R(a)  ~>  Q(a) :- .
     case SimplifyEqualities
 
   private var phase: Phase = _
@@ -69,7 +56,7 @@ trait AliasElimination extends IRVisitor:
   private def lookupAlias(alias: Name): Option[Name] = phase match
     case Phase.RemoveVariableAliases =>
       aliases.get(alias)
-    case Phase.RemoveParameterAliases =>
+    case Phase.ReplaceVariablesByParameters =>
       val resolvedAlias = aliases.getOrElse(alias, alias)
       paramAliases.get(resolvedAlias)
     case _ => None
@@ -88,7 +75,7 @@ trait AliasElimination extends IRVisitor:
     scoped {
       phase = Phase.RemoveVariableAliases
       val Seq(b1) = super.visitBody(body)
-      phase = Phase.RemoveParameterAliases
+      phase = Phase.ReplaceVariablesByParameters
       val Seq(b2) = super.visitBody(b1)
       phase = Phase.SimplifyEqualities
 
@@ -127,7 +114,7 @@ trait AliasElimination extends IRVisitor:
         case _ =>
           super.visitAtom(atom)
       case _ => super.visitAtom(atom)
-    case Phase.RemoveParameterAliases =>
+    case Phase.ReplaceVariablesByParameters =>
       super.visitAtom(atom)
     case Phase.SimplifyEqualities => atom match
       case Eq(v1: Var, v2: Var, false) if v1.name == v2.name =>

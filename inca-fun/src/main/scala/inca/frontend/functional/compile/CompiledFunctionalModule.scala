@@ -6,7 +6,7 @@ import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.ir.{AliasElimination, CompiledModule, Name, Module as IRModule}
 
 case class CompiledFunctionalModule(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
   extends CompiledModule:
@@ -119,5 +119,6 @@ object CompiledFunctionalModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new tuple.Lowering {},
+    () => new AliasElimination {}
   ) // arith + string + data

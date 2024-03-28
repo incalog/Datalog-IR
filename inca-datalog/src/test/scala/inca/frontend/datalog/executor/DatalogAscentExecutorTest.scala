@@ -1,6 +1,6 @@
 package inca.frontend.datalog.executor
 
-import inca.frontend.datalog.compile.DatalogCompilerOptions
+import inca.frontend.datalog.compile.{CompiledDatalogModule, DatalogCompilerOptions}
 import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.ascent.backend.Executor
 import inca.util.FileUtil
@@ -14,7 +14,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
   test("Path") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("Path", Seq(?, ?))
@@ -51,7 +51,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
   test("Sum Aggregation") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeSum", Seq("A", ?))
@@ -64,7 +64,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
   test("Max Aggregation") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMax", Seq("A", ?))
@@ -77,7 +77,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
   test("Min Aggregation") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMin", Seq("A", ?))
@@ -90,7 +90,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
   test("Count Aggregation") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeCount", Seq("A", ?))

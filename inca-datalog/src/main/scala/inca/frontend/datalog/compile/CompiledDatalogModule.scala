@@ -5,7 +5,7 @@ import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.extension.*
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.ir.{AliasElimination, CompiledModule, Name, Module as IRModule}
 
 case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
 
@@ -50,5 +50,6 @@ object CompiledDatalogModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new tuple.Lowering {},
+    () => new AliasElimination {}
   ) // arith + string + data
