@@ -105,17 +105,13 @@ trait LoweringWithOutlining extends BaseLowering:
 
   private val currentPrefixAtoms: ListBuffer[Atom] = ListBuffer()
 
-  @tailrec
-  private def visitBody(head: Seq[Atom], tail: Seq[Atom]): Body = tail match
-    case Nil => Body(head)
-    case a :: tl =>
-      val as = visitAtom(a)
-      currentPrefixAtoms += a
-      visitBody(head ++ as, tl)
-
   override def visitBody(body: Body): Seq[Body] =
     currentPrefixAtoms.clear()
-    Seq(visitBody(Seq(), body.atoms))
+    body.atoms.foreach { a =>
+      visitAtom(a)
+      currentPrefixAtoms += a
+    }
+    Seq(Body(currentPrefixAtoms.toSeq))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
@@ -133,8 +129,9 @@ trait LoweringWithOutlining extends BaseLowering:
             val caller = currentRelation.name
             val callee = rel.name
             val prefixName = gensym.freshName(s"${caller}_$callee")
-            
+
             val relevantVars = currentPrefixAtoms.flatMap(_.vars).distinct.toSeq
+            // TODO: This might make problems when we cast variables to different types
             val params = relevantVars.map(v => Param(v.name, v.typ.get.ty))
 
             addDemandPrefixRule(rel, prefixName, params, currentPrefixAtoms.toSeq)
@@ -145,6 +142,7 @@ trait LoweringWithOutlining extends BaseLowering:
             currentPrefixAtoms += prefixCall
 
           super.visitAtom(atom)
+        // TODO: Comment this in, if everything is working again
         /*case Aggregate(rel, args, op) =>
           val params = currentModule.relations.get(rel.name.name) match
             case None => Seq()
