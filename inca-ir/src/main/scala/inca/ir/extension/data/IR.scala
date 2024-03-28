@@ -4,9 +4,9 @@ import inca.ir.*
 
 import scala.language.implicitConversions
 
-trait DataDefinitionGeneral
+trait DataDefinitionGeneral extends DataModuleEntry
 
-trait CaseDefinitionGeneral
+trait CaseDefinitionGeneral extends DataModuleEntry
 
 case class DataDefinitionImport(name: Name) extends ModuleImport with DataDefinitionGeneral:
   def withExtendedName(suffix: String): DataDefinitionImport = this.copy(name = Name(name.name + suffix))
@@ -31,11 +31,11 @@ object TData:
 
 trait DataModuleEntry extends ModuleEntry
 
-case class DataDefinition(name: Name) extends DataModuleEntry with DataDefinitionGeneral:
+case class DataDefinition(name: Name) extends DataDefinitionGeneral:
   def withExtendedName(suffix: String): DataDefinition = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"""data $name"""
 
-case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends DataModuleEntry with CaseDefinitionGeneral:
+case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionGeneral:
   def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 

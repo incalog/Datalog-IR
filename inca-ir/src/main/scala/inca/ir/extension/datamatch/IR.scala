@@ -2,12 +2,12 @@ package inca.ir.extension.datamatch
 
 import inca.ir.{Atom, BaseIR, Language, Name, Ref, Term, Var}
 import inca.ir.extension.data
-import inca.ir.extension.data.CaseDefinition
+import inca.ir.extension.data.CaseDefinitionGeneral
 import inca.ir.extension.disjunction
 import inca.ir.util.SourceLocation
 
 // TODO: Support wildcards here ?
-case class Case(name: Ref[CaseDefinition], patVars: Seq[Var], body: Seq[Atom]) extends SourceLocation:
+case class Case(name: Ref[CaseDefinitionGeneral], patVars: Seq[Var], body: Seq[Atom]) extends SourceLocation:
   override def toString: String = s"case $name(${patVars.mkString(", ")}) => ${body.mkString(", ")}"
   def vars: Seq[Var] = patVars.flatMap(_.vars) ++ body.flatMap(_.vars)
 

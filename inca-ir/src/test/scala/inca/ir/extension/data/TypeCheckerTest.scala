@@ -35,3 +35,10 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
       CaseDefinitionExport("addition", Seq(TNothing, TInt), TData("testdata")))
     }
   }
+
+  test("simple caseimport test") {
+    implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
+    assertThrows[TypeErrorException] {
+      // TODO
+    }
+  }
