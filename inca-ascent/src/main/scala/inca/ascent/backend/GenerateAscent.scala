@@ -56,6 +56,8 @@ object GenerateAscent:
         val ps = param.map {
           case ir.Param(name, ty@TData(_)) =>
             (Term.Clone(Term.Var(cleanName(name))), compileType(ty))
+          case ir.Param(name, ty@TString) =>
+            (Term.Clone(Term.Var(cleanName(name))), compileType(ty))
           case ir.Param(name, ty) =>
             (Term.Var(cleanName(name)), compileType(ty))
         }

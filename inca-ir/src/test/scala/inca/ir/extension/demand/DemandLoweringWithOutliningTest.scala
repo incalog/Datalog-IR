@@ -1,7 +1,7 @@
 package inca.ir.extension.demand
 
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, Module, ModuleEntry, Param, Relation, TAny, Var, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, Eq, Module, ModuleEntry, Param, Relation, AliasElimination, TAny, Var, string2name, term2Arg}
 import inca.ir.extension.demand
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}
@@ -11,18 +11,25 @@ class DemandLoweringWithOutliningTest extends AnyFunSuiteLike:
 
   def module(relations: ModuleEntry*): Module =
     val typecheckerBefore = new IRTypechecker
-    val typecheckerAfter = new IRTypechecker
+    val typecheckerLowered = new IRTypechecker
+    val typecheckerOptimized = new IRTypechecker
     val lowering = new demand.LoweringWithOutlining {}
 
     val mod = Module("M", BaseIR.language + demand.IR + arithmetic.IR, relations)
     var printedMod = false
     var lowered: Module = null
+    var optimized: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
       println(mod)
       printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
-      typecheckerAfter.checkProgram(Seq(lowered))
+      typecheckerLowered.checkProgram(Seq(lowered))
+
+      val optimization = new AliasElimination {}
+      optimized = optimization.visitProgram(Seq(lowered)).head
+      typecheckerOptimized.checkProgram(Seq(lowered))
+
       lowered
     } finally {
       if (!printedMod)
@@ -30,15 +37,24 @@ class DemandLoweringWithOutliningTest extends AnyFunSuiteLike:
       println()
       println("Lowered:")
       println(lowered)
+
+      println()
+      println("Optimized:")
+      println(optimized)
       val errorsBefore = typecheckerBefore.getErrors
-      val errorsAfter = typecheckerAfter.getErrors
+      val errorsLowered = typecheckerLowered.getErrors
+      val errorsOptimized = typecheckerOptimized.getErrors
       if (errorsBefore.nonEmpty) {
         println("Type errors in original code:")
         errorsBefore.foreach(println)
       }
-      if (errorsAfter.nonEmpty) {
+      if (errorsLowered.nonEmpty) {
         println("Type errors in lowered code:")
-        errorsAfter.foreach(println)
+        errorsLowered.foreach(println)
+      }
+      if (errorsOptimized.nonEmpty) {
+        println("Type errors in optimized code:")
+        errorsOptimized.foreach(println)
       }
     }
 
@@ -77,9 +93,10 @@ class DemandLoweringWithOutliningTest extends AnyFunSuiteLike:
       Relation("Q", Seq(Param("x", TDemand(TInt)), Param("y", TDemand(TInt))), Seq(Body(Seq(
         Call("R", Seq(Var("x"), Var("x"))),
         Eq(Var("a"), IntNum(1)),
+        Call("S", Seq(Var("a"))),
         Call("R", Seq(Var("y"), Var("a")))
       )))),
-      Relation("R", Seq(Param("p1", TDemand(TInt)), Param("p2", TDemand(TInt))), Seq(Body(Seq(
-      ))))
+      Relation("R", Seq(Param("p1", TDemand(TInt)), Param("p2", TDemand(TInt))), Seq(Body(Seq()))),
+      Relation("S", Seq(Param("p1", TDemand(TInt))), Seq(Body(Seq())))
     )
   }

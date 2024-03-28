@@ -1,10 +1,11 @@
 package inca.casestudy.doop
 
-import inca.ir.{CompiledModule, SimpleAliasElimination, string2name}
+import inca.ir.{AliasElimination, CompiledModule, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, not}
 import inca.souffle.frontend.compile.CompiledSouffleModule
+import inca.util.compileroptions.CompilerOptions
 
 import scala.io.Source
 
@@ -13,13 +14,15 @@ object Mirco:
   private def runMicroDL(createEngine: (compiled: CompiledModule) => IRExecutor#Engine, file: String = "micro.dl"): Unit =
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + file)
-    val compiled = CompiledSouffleModule.fromSource("micro", source)
+    val options = CompilerOptions.default
+    //options.irLogging.logLowerings = true
+    val compiled = CompiledSouffleModule.fromSource("micro", source, options)
     compiled.setPipeline(List(
       () => new bool.Lowering {},
       () => new block.Lowering {},
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
-      () => new SimpleAliasElimination {}
+      () => new AliasElimination {}
     ))
 
     println("Load edb from files...")
