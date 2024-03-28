@@ -9,6 +9,7 @@ import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 
+// This lowering is expected to be run after the disjunction lowering!
 trait Lowering extends BaseLowering:
   override val name: String = "Demand"
   override val loweredIRs: Set[BaseIR] = Set(IR)
