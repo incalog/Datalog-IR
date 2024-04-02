@@ -219,7 +219,7 @@ class GenerateIR:
         ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("ty").arg)),
         ir.Call(subtypeRelationName, Seq(ir.Var("ty").arg, ir.Var("ty2").arg))
       )) :+ ir.Body(Seq(
-        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("_$0").arg)),
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.WildcardArg())),
         ir.Eq(ir.Var("ty2"), ir.Var("ty1"))
       ))
     )

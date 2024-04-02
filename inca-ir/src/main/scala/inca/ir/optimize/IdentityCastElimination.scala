@@ -10,5 +10,6 @@ trait IdentityCastElimination extends IRVisitor:
   override def visitTerm(term: Term): Seq[Term] = term match
     case Cast(t, ty) => t.typ match
       case Some(TermType(tty, mode)) if ty == tty => super.visitTerm(t)
-      case _ => throw IllegalStateException(s"Untyped expression $term")
+      case Some(TermType(tty, mode)) => super.visitTerm(term)
+      case _ => throw IllegalStateException(s"Untyped expression $t")
     case _ => super.visitTerm(term)
