@@ -55,7 +55,9 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
       DataDefinitionImport("testdata"),
       CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
       RelationImport("Q", Seq(TInt, TInt)),
+      RelationImport("Bind", Seq(TData("testdata"))),
       Relation("R", Seq(Param("test", TData("testdata"))), Seq(Body(Seq(
+        Call("Bind", Seq(Var("test"))),
         Deconstruct(Var("test"), "addition", Seq(Var("x"), Var("y"))),
         Call("Q", Seq(Var("x"), Var("y")))
       ))))
@@ -69,7 +71,9 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
         DataDefinitionImport("testdata"),
         CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
         RelationImport("Q", Seq(TNothing, TNothing)),
+        RelationImport("Bind", Seq(TData("testdata"))),
         Relation("R", Seq(Param("test", TData("testdata"))), Seq(Body(Seq(
+          Call("Bind", Seq(Var("test"))),
           Deconstruct(Var("test"), "addition", Seq(Var("x"), Var("y"))),
           Call("Q", Seq(Var("x"), Var("y")))
         ))))
@@ -82,7 +86,9 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
     module(
       DataDefinitionImport("testdata"),
       CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
+      RelationImport("Bind", Seq(TInt, TInt)),
       Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Call("Bind", Seq(Var("x"), Var("y"))),
         Eq(Construct("addition", Seq(Var("x"), Var("x"))), Construct("addition", Seq(Var("y"), Var("y"))))
       ))))
     )
@@ -94,7 +100,9 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
       module(
         DataDefinitionImport("testdata"),
         CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
+        RelationImport("Bind", Seq(TInt, TInt)),
         Relation("R", Seq(Param("x", TInt), Param("y", TNothing)), Seq(Body(Seq(
+          Call("Bind", Seq(Var("x"), Var("y"))),
           Eq(Construct("addition", Seq(Var("x"), Var("x"))), Construct("addition", Seq(Var("y"), Var("y"))))
         ))))
       )
