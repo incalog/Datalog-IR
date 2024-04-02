@@ -5,6 +5,8 @@ import inca.ir.optimize.BaseIROptimizer
 import inca.ir.{Atom, Cast, Term}
 
 trait Optimizer extends BaseIROptimizer:
+  override val name: String = "String optimizer"
+
   override def visitTerm(term: Term): Seq[Term] =
     if (!term.typ.get.mode.isBinding)
       (term, termResult(term)) match

@@ -1,7 +1,5 @@
 package inca.ir.analysis
 
-import inca.ir.Name
-
 enum Value:
   case Top
   case Int(i: scala.Int)
@@ -57,7 +55,7 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
       case True => False
       case False => True
 
-  override val eqOps: EqOps[Value, VBool] = new EqOps:
+  override val eqOps: EqOps[Value, VBool] = new EqOps[Value, VBool]:
     override def equ(v1: Value, v2: Value): VBool = (v1, v2) match
       case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 == i2)
       case (Value.Double(d1), Value.Double(d2)) => boolOps.boolLit(d1 == d2)
@@ -133,7 +131,9 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
 
   override val stringOps: StringOps[Value] = new StringOps[Value]:
     override def stringLit(s: String): Value = Value.String(s)
-    override def toString(v: Value): Value = Value.String(v.toString)
+    override def toString(v: Value): Value = v match
+      case Value.Top => Value.Top
+      case _ => Value.String(v.toString)
     override def concat(v1: Value, v2: Value): Value = (v1, v2) match
       case (Value.String(s1), Value.String(s2)) => Value.String(s1 + s2)
       case _ => Value.Top

@@ -5,6 +5,8 @@ import inca.ir.analysis.{VBool, Value}
 import inca.ir.optimize.BaseIROptimizer
 
 trait Optimizer extends BaseIROptimizer:
+  override val name: String = "Arithmetic optimizer"
+  
   override def visitTerm(term: Term): Seq[Term] =
     if (!term.typ.get.mode.isBinding)
       (term, termResult(term)) match
