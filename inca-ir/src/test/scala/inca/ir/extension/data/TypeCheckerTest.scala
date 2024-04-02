@@ -19,15 +19,28 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
     }
     mod
 
-  test("very simple dataexport test") {
+  test("very simple dataexport success") {
     implicit val typechecker = () => new Typechecker {}
-    assertThrows[IllegalArgumentException] {
+    module(DataDefinition("testdata"),
+    DataDefinitionExport("testdata"))
+  }
+
+  test("very simple dataexport fail") {
+    implicit val typechecker = () => new Typechecker {}
+    assertThrows[TypeErrorException] {
       module(DataDefinition("testdata"),
       DataDefinitionExport("nottestdata"))
     }
   }
 
-  test("simple caseexport test") {
+  test("simple caseexport success") {
+    implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
+    module(DataDefinition("testdata"),
+    CaseDefinition("addition", Seq(TInt, TInt), TData("testdata")),
+    CaseDefinitionExport("addition", Seq(TInt, TInt), TData("testdata")))
+  }
+
+  test("simple caseexport fail") {
     implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException] {
       module(DataDefinition("testdata"),
@@ -36,7 +49,20 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  test("caseimport deconstruct test") {
+  test("caseimport deconstruct success") {
+    implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
+    module(
+      DataDefinitionImport("testdata"),
+      CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
+      RelationImport("Q", Seq(TInt, TInt)),
+      Relation("R", Seq(Param("test", TData("testdata"))), Seq(Body(Seq(
+        Deconstruct(Var("test"), "addition", Seq(Var("x"), Var("y"))),
+        Call("Q", Seq(Var("x"), Var("y")))
+      ))))
+    )
+  }
+
+  test("caseimport deconstruct fail") {
     implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException] {
       module(
@@ -51,7 +77,18 @@ class DataTypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  test("caseimport construct test") {
+  test("caseimport construct success") {
+    implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
+    module(
+      DataDefinitionImport("testdata"),
+      CaseDefinitionImport("addition", Seq(TInt, TInt), TData("testdata")),
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Construct("addition", Seq(Var("x"), Var("x"))), Construct("addition", Seq(Var("y"), Var("y"))))
+      ))))
+    )
+  }
+
+  test("caseimport construct fail") {
     implicit val typechecker = () => new Typechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException] {
       module(

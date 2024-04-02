@@ -254,7 +254,16 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  test("import type test") {
+  test("import type success") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    module(
+      RelationImport("Q", Seq(TInt, TInt)),
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Call("Q", Seq(Var("x"), Var("y")))))))
+    )
+  }
+
+  test("import type fail") {
     implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException] {
       module(
@@ -265,7 +274,17 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  test("export type test") {
+  test("export type success") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    module(
+      RelationImport("Q", Seq(TNothing, TNothing)),
+      Relation("R", Seq(Param("x", TNothing), Param("y", TNothing)), Seq(Body(Seq(
+        Call("Q", Seq(Var("x"), Var("y"))))))),
+      RelationExport("R", Seq(TNothing, TNothing))
+    )
+  }
+
+  test("export type fail") {
     implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
     assertThrows[TypeErrorException] {
       module(
