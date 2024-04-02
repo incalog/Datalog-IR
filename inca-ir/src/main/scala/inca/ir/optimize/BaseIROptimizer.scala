@@ -1,6 +1,7 @@
-package inca.ir.analysis
+package inca.ir.optimize
 
 import inca.ir.*
+import inca.ir.analysis.{IRAbstractInterpreter, VBool, Value}
 import inca.ir.extension.*
 import inca.ir.visitors.IRVisitor
 
@@ -46,5 +47,7 @@ trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
       //
       super.visitAtom(atom)
 
-class IROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis) with arithmetic.Optimizer
+class IROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis) 
+  with arithmetic.Optimizer
+  with string.Optimizer
 

@@ -1,9 +1,10 @@
 package inca.casestudy.doop
 
-import inca.ir.{AliasElimination, CompiledModule, string2name}
+import inca.ir.{CompiledModule, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, not}
+import inca.ir.optimize.AliasElimination
 import inca.souffle.frontend.compile.CompiledSouffleModule
 import inca.util.compileroptions.CompilerOptions
 

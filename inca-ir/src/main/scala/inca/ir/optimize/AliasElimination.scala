@@ -1,17 +1,10 @@
-package inca.ir
+package inca.ir.optimize
 
 import inca.ir.typing.Mode
-import inca.ir.{Atom, Body, Eq, Name, RefByName, Term, TermType, Var}
 import inca.ir.visitors.IRVisitor
-
-/**
- * TODO: We need to restructure the optimizations (including the one with the abstract interpreter)
- *  into a better package structure
- */
+import inca.ir.*
 
 trait AliasElimination extends IRVisitor:
-  case class BodyMustFail(atom: Atom) extends Exception
-
   override def name: String = "AliasElimination"
 
   enum Phase:
@@ -82,7 +75,7 @@ trait AliasElimination extends IRVisitor:
       try {
         super.visitBody(b2)
       } catch {
-        case BodyMustFail(_) => Seq()
+        case FailedBody => Seq()
       }
     }
 
@@ -120,5 +113,5 @@ trait AliasElimination extends IRVisitor:
       case Eq(v1: Var, v2: Var, false) if v1.name == v2.name =>
         Seq()
       case Eq(v1: Var, v2: Var, true) if v1.name == v2.name =>
-        throw BodyMustFail(atom)
+        throw FailedBody
       case _ => super.visitAtom(atom)

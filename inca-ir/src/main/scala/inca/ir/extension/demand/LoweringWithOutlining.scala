@@ -142,9 +142,9 @@ trait LoweringWithOutlining extends BaseLowering:
             currentPrefixAtoms += prefixCall
 
           super.visitAtom(atom)
-        // TODO: Comment this in, if everything is working again
-        /*case Aggregate(rel, args, op) =>
-          val params = currentModule.relations.get(rel.name.name) match
+
+        case Aggregate(RefByName(rel), args, op) =>
+          val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
@@ -156,8 +156,22 @@ trait LoweringWithOutlining extends BaseLowering:
             case _ => None
           }
           if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
-            addDemandRule(rel.name, bodyPrefix.toList, demandedArgs)
-          super.visitAtom(atom)*/
+            val caller = currentRelation.name
+            val callee = rel.name
+            val prefixName = gensym.freshName(s"${caller}_$callee")
+
+            val relevantVars = currentPrefixAtoms.flatMap(_.vars).distinct.toSeq
+            // TODO: This might make problems when we cast variables to different types
+            val params = relevantVars.map(v => Param(v.name, v.typ.get.ty))
+
+            addDemandPrefixRule(rel, prefixName, params, currentPrefixAtoms.toSeq)
+            addDemandRule(rel, prefixName, relevantVars, demandedArgs)
+
+            val prefixCall = Call(prefixName, relevantVars.map(_.arg))
+            currentPrefixAtoms.clear()
+            currentPrefixAtoms += prefixCall
+
+          super.visitAtom(atom)
         case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }

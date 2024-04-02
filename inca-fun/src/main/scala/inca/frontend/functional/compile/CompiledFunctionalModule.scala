@@ -4,9 +4,10 @@ import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
+import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{AliasElimination, CompiledModule, Name, Module as IRModule}
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 
 case class CompiledFunctionalModule(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
   extends CompiledModule:

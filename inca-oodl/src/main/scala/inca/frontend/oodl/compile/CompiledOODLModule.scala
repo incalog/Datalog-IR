@@ -3,13 +3,15 @@ package inca.frontend.oodl.compile
 import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{BaseIR, CompiledModule, Name, AliasElimination, Module as IRModule}
+import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
+import inca.ir.extension.demand.LoweringWithOutlining
+import inca.ir.optimize.AliasElimination
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
 case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
@@ -90,6 +92,7 @@ object CompiledOODLModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
+    //() => new LoweringWithOutlining {},
     () => new tuple.Lowering {},
     () => new AliasElimination {}
   ) // arith + string + data

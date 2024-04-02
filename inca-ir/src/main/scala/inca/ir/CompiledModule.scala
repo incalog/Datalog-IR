@@ -1,8 +1,9 @@
 package inca.ir
 
 import inca.ir.extension.*
-import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
+import inca.ir.analysis.IRAbstractInterpreter
 import inca.ir.lowering.BaseLowering
+import inca.ir.optimize.{BaseIROptimizer, IROptimizer}
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}

@@ -3,9 +3,10 @@ package inca.frontend.datalog.compile
 import inca.frontend.datalog.syntax.Module
 import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.extension.*
+import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{AliasElimination, CompiledModule, Name, Module as IRModule}
+import inca.ir.{CompiledModule, Name, Module as IRModule}
 
 case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
 
