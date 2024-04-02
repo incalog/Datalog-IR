@@ -11,7 +11,7 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.extension.demand.LoweringWithOutlining
-import inca.ir.optimize.AliasElimination
+import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
 case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
@@ -30,7 +30,7 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCom
     () => new foreign.Lowering(typed)
   )
 
-  lazy val typed: Module = {
+  lazy val typed: Module =
     val logMod = oodlLogging.logModule
     if (logMod && !logTyped)
       printStep("OODL-Module", fun)
@@ -45,9 +45,8 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCom
     messages ++= typer.getWarnings
     stopIfNeeded()
     fun
-  }
 
-  lazy val ssa: Module = {
+  lazy val ssa: Module =
     val compiler = new SSA
     val module = compiler.compileModule(typed)
 
@@ -65,13 +64,16 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCom
     messages ++= typer.getWarnings
     stopIfNeeded()
     module
-  }
 
-  lazy val ir: IRModule = {
+  lazy val ir: IRModule =
     val compiler = new GenerateIR
     val module = compiler.compileModule(ssa)
     module
-  }
+
+  /*override lazy val lowered: IRModule =
+    val low = super.lowered
+    println(low)
+    low*/
 
 object CompiledOODLModule:
   // Important:
@@ -94,5 +96,7 @@ object CompiledOODLModule:
     () => new demand.Lowering {},
     //() => new LoweringWithOutlining {},
     () => new tuple.Lowering {},
-    () => new AliasElimination {}
+
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {}
   ) // arith + string + data

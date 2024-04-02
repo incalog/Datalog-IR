@@ -4,7 +4,7 @@ import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
-import inca.ir.optimize.AliasElimination
+import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
@@ -121,5 +121,7 @@ object CompiledFunctionalModule:
     () => new not.Lowering {},
     () => new demand.Lowering {},
     () => new tuple.Lowering {},
-    () => new AliasElimination {}
+
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {}
   ) // arith + string + data

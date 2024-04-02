@@ -1,0 +1,14 @@
+package inca.ir.optimize
+
+import inca.ir.*
+import inca.ir.typing.Mode
+import inca.ir.visitors.IRVisitor
+
+trait IdentityCastElimination extends IRVisitor:
+  override def name: String = "IdentityCastElimination"
+
+  override def visitTerm(term: Term): Seq[Term] = term match
+    case Cast(t, ty) => t.typ match
+      case Some(TermType(tty, mode)) if ty == tty => super.visitTerm(t)
+      case _ => throw IllegalStateException(s"Untyped expression $term")
+    case _ => super.visitTerm(term)
