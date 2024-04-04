@@ -9,7 +9,7 @@ import inca.ir.*
 import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 
-// TODO add Tests with DoubleNum
+// tests with DoubleNum are in ArithmeticTest.scala
 
 class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 
@@ -264,8 +264,9 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //Eq(Var(Name("Y")), Mul(IntNum(2), IntNum(2))),
             Eq(Var(Name("A")), Div(Var(Name("X")), Var(Name("X")))),
 //            Eq(Var(Name("B")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // should not be replaced with H1 from other body
-            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // -> but they do compute the same value -> with global scope given same name
-            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("H1"))))),
+//            Eq(Var(Name("H1")), Div(Mul(Var("X"), Var("X")), IntNum(2))), // -> but they do compute the same value -> with global scope given same name
+            Eq(Var(Name("B")), Div(Mul(Var("X"), Var("X")), IntNum(2))),  // not the same value only syntactically equal
+            Eq(Var(Name("Z")), Add(Var(Name("X")), Add(Var(Name("A")), Var(Name("B"))))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))
@@ -300,7 +301,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 //            Eq(Var(Name("B")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("B")),
 //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A")), Var("A")),   // can be removed too 
+//            Eq(Var(Name("A")), Var("A")),   // can be removed too -> recognized by using hash of terms when hashing atom
 //            Eq(Var(Name("E")), IntNum(1)),
 //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
@@ -336,7 +337,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //            Eq(Var(Name("B")), IntNum(1)),
             //            Eq(Var(Name("C")), Var("B")),
             //            Eq(Var(Name("D")), Var("A")),
-            Eq(Var(Name("A")), Var("A")),
+//            Eq(Var(Name("A")), Var("A")),
             //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("A")))
@@ -886,7 +887,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var("X1"), IntNum(32)),
 //            Eq(Var("X1"), Var("X2")),
-            Eq(Var("X1"), Var("X1")),
+//            Eq(Var("X1"), Var("X1")),
             GE(Var("X1"), IntNum(2)),
 //            GE(Var("X2"), IntNum(2)),
             LT(Var("X1"), IntNum(64)),
@@ -934,6 +935,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input, ConfigVN(true))
   }
 
+  // This does not work, since currently not known whether the order of atoms can be switched without changing the meaning of the program
   test("Redundant bodies 2") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1187,6 +1189,50 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Call and check for Equality with unknown val of var learned later") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("Y")))),
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
+            Eq(Var("W"), Add(Var("X"),IntNum(3))),
+            Eq(IntNum(12), Var(Name("X"))), // now value of X is known -> W also known
+            Eq(Var("V"), Add(Var("X"),IntNum(3))), // to see redundancy the hash of first introduction of X is needed
+            Eq(IntNum(12), Var(Name("Z"))),        // and here the second one (works because only tested whether hash contained in hashtable)
+//            Eq(Var("V"), Var("Z")),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("Y")))),
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
+            Eq(Var("W"), Add(Var("X"),IntNum(3))),
+//            Eq(Var(Name("Z")), IntNum(12))
+            Eq(Var(Name("X")), IntNum(12)),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Repeated Atoms in different Relations") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1315,7 +1361,6 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Call(Name("c"), Seq(TermArg(Var("A1")))),
-//            Call(Name("c"), Seq(TermArg(Var("A3")))),
             Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
             Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
@@ -1341,7 +1386,6 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Call(Name("c"), Seq(TermArg(Var("A1")))),
-//            Call(Name("c"), Seq(TermArg(Var("A3")))),
             Eq(Var(Name("A2")), IntNum(10)),
             Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
             Eq(Var(Name("result")), Add(IntNum(1),Var("n")))

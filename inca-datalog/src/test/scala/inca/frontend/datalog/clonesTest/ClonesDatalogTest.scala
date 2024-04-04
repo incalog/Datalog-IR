@@ -199,7 +199,7 @@ class ClonesDatalogTest extends AnyFunSuite {
           Body(Seq(
             Eq(Var(Name("X")),IntNum(1)),
             Eq(Var(Name("Y")),IntNum(2)),
-            Eq(Var(Name("H1")), Add(IntNum(2), Var("X"))),
+            Eq(Var(Name("H1")), Add(Var("X"),IntNum(2))),
 //            Eq(Var(Name("H2")), Var(Name("H1"))),
             Eq(Var(Name("Z")), Add(Var("H1"),Var("H1"))),
             Eq(Var(Name("param$0")),Var(Name("X"))),

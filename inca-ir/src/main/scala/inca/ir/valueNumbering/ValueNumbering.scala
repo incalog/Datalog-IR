@@ -10,5 +10,8 @@ import inca.ir.*
  *
  *************************************************************************/
 
-class ValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueNumbering(config) with ArithmeticValueNumbering(config)
+class ValueNumbering(config: ConfigVN = ConfigVN()) 
+  extends BaseValueNumbering(config) 
+    with ArithmeticValueNumbering(config)
+    with StringValueNumbering(config) 
 
