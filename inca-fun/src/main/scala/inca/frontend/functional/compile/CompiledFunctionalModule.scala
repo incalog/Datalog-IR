@@ -120,6 +120,7 @@ object CompiledFunctionalModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
+    //() => new demand.LoweringWithOutlining {},
     () => new tuple.Lowering {},
 
     () => new optimize.IdentityCastElimination {},

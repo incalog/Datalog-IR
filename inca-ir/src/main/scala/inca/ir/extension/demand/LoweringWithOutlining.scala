@@ -29,7 +29,7 @@ trait LoweringWithOutlining extends BaseLowering:
 
   private def deriveDemandPrefixRelations(): Seq[Relation] =
     for ((prefix, (rel, ats, params)) <- demandPrefix.toSeq) yield {
-      Relation(prefix, params, Seq(Body(ats)))
+      Relation(prefix, params, Set(Body(ats)).toSeq)
     }
 
   private var demandRules: Map[Name, ListBuffer[(Name, Seq[Var], Seq[Term])]] = Map()
@@ -54,7 +54,7 @@ trait LoweringWithOutlining extends BaseLowering:
           Eq(Var(pname), arg)
         }
         Body(prefixCall +: eqs)
-      }
+      }.distinct
 
       Relation(demandRelationName(rel), params, bodies)
     }
@@ -128,7 +128,7 @@ trait LoweringWithOutlining extends BaseLowering:
           if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
             val caller = currentRelation.name
             val callee = rel.name
-            val prefixName = gensym.freshName(s"${caller}_$callee")
+            val prefixName = gensym.freshGlobal(s"${caller}_$callee")
 
             val relevantVars = currentPrefixAtoms.flatMap(_.vars).distinct.toSeq
             // TODO: This might make problems when we cast variables to different types

@@ -96,10 +96,10 @@ trait CompiledModule:
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
     if (logStatsAfterOptimization)
-      printStatistics(p1.head, s"before optimization")
+      printStatistics(p1.head, s"after first optimization")
     val p2 = optimize(p1)
     if (logStatsAfterOptimization)
-      printStatistics(p2.head, s"before optimization")
+      printStatistics(p2.head, s"after second optimization")
 
     if (logOptimizations)
       printStep(s"Optimized: ", p2)

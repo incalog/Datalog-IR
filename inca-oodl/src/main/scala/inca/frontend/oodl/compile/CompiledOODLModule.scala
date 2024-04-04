@@ -10,7 +10,6 @@ import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
-import inca.ir.extension.demand.LoweringWithOutlining
 import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
@@ -94,7 +93,7 @@ object CompiledOODLModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    //() => new LoweringWithOutlining {},
+    //() => new demand.LoweringWithOutlining {},
     () => new tuple.Lowering {},
 
     () => new optimize.IdentityCastElimination {},
