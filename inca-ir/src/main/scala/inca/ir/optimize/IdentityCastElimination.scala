@@ -4,6 +4,9 @@ import inca.ir.*
 import inca.ir.typing.Mode
 import inca.ir.visitors.IRVisitor
 
+/**
+ * If a cast is from a type to itself, remove it.
+ */
 trait IdentityCastElimination extends IRVisitor:
   override def name: String = "IdentityCastElimination"
 
