@@ -310,3 +310,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       }
       this.vars = varsAfter
     }
+
+  def checkImportExport(imp: ModuleImport, exp: ModuleExport): Unit = imp match
+    case relImp: RelationImport => exp match
+      case relExp: RelationExport => if relImp.types != relExp.types then error(s"Types of $relImp and $relExp do not match")
+      case _ => throw IllegalStateException("Can not typecheck unknown Export")
+    case _ => throw IllegalStateException("Can not typecheck unknown Import")

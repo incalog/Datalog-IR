@@ -167,3 +167,13 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
             error(s"Type application has ${args.size} arguments, but $name requires ${tyParams.size} arguments: $entry", ty)
           args.foreach(checkType)
     case _ => super.checkType(ty)
+
+  override def checkImportExport(imp: ModuleImport, exp: ModuleExport): Unit = imp.match
+    case dataImp: DataDefinitionImport => exp match
+      case dataExp: DataDefinitionExport => // all good
+      case _ => error(s"Incompatible Import $imp to Export $exp")
+    case caseImp: CaseDefinitionImport => exp match
+      case caseExp: CaseDefinitionExport => if caseImp.args != caseExp.args then error(s"Types of $caseImp and $caseExp do not match")
+      case _ => error(s"Incompatible Import $imp to Export $exp")
+    case _ => super.checkImportExport(imp, exp)
+    
