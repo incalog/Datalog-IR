@@ -161,7 +161,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
     }
 
     for r <- super.visitRelation(relation) yield
-      r.copy(r.name, r.params ++ impurityParams, r.bodies)
+      preserveHints(r)(r.copy(r.name, r.params ++ impurityParams, r.bodies))
   }
 
   override def exitEnclosure(enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Unit =
