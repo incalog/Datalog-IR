@@ -31,6 +31,7 @@ import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
 import inca.foreign.scala.ir.primitive as  irscala
+import inca.ir.optimize
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
@@ -137,7 +138,7 @@ class GenerateIR:
 
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember
-    ))).addHint(impure.MainHint)
+    ))).addHint(impure.MainHint, optimize.NoInlineHint)
 
   /**
    * We represent objects and structural objects as ADTs:

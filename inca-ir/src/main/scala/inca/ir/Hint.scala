@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 trait Hints {
   private val hints: mutable.Map[Hint.Key, Hint] = mutable.Map()
+
   def addHint(hint: Hint*): this.type = {
     hint.foreach(h => hints += h.key -> h)
     this
