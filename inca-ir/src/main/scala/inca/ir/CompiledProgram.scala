@@ -1,4 +1,4 @@
-package inca.ir
+package inca.ir.CompiledProgram
 import inca.ir
 import inca.ir.*
 import inca.ir.extension.*
@@ -16,14 +16,14 @@ case class Link(fromModule: Name, exportEntry: Name, toModule: Name, importEntry
 
 trait CompiledProgram:
   val linkSet: Set[Link]
-  val modules: Seq[Module] 
-  var tempLinkedModules: Seq[Module] = Seq()
-  val linkedModule: Module
+  val modules: Seq[CompiledModule]
+  var tempLinkedModules: Seq[CompiledModule] = Seq()
+  val linkedModule: Module = ???
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
   def getModule(name: Name): Module =
-    (tempLinkedModules ++ modules).find(m => m.name == name) match
+    (tempLinkedModules ++ modules).find(m => m.ir.name == name) match
       case Some(module: Module) => module
       case None => throw IllegalArgumentException(s"Module $name not found")
 
@@ -38,26 +38,39 @@ trait CompiledProgram:
       )
   
   object ReplaceImport extends IRVisitor:
-   var currentModule: Module = Module("", BaseIR.language, Seq())
+    var currentModule: Module = Module("", BaseIR.language, Seq())
 
-   override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-     modules.map(m => 
-       currentModule = m
-       visitModule(m))
+    override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+      modules.map(m => 
+        currentModule = m
+        visitModule(m))
 
-   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
-     case mImp: ModuleImport => Seq()
-     case _ => super.visitModuleEntry(moduleEntry)
-   })
+    override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
+      case mImp: ModuleImport => Seq()
+      case _ => super.visitModuleEntry(moduleEntry)
+    })
 
-   override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
-     case RefByName(name) => RefByName(name) match
-       case mImport: ModuleImport => 
-         linkSet.find(link => link.toModule == currentModule && link.importEntry == mImport) match
-           case Some(curlink) => getExportRef[Target](curlink.fromModule, curlink.exportEntry)
-           case None => throw IllegalArgumentException(s"Imported entry does not exist")
+    override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
+      case RefByName(name) => RefByName(name) match
+        case mImport: ModuleImport => 
+          linkSet.find(link => link.toModule == currentModule && link.importEntry == mImport) match
+            case Some(curlink) => getExportRef[Target](curlink.fromModule, curlink.exportEntry)
+            case None => throw IllegalArgumentException(s"Imported entry does not exist")
 
-     case _ => super.visitRef(ref)
-   )
+      case _ => super.visitRef(ref)
+    )
 
-   def getExportRef[Target](module: Name, exportEntry: Name): Ref[Target] = ???
+  def getExportRef[Target](module: Name, exportEntry: Name): Ref[Target] = {
+   val targetModule = getModule(module)
+
+   val originalEntry = targetModule.contents.find { entry =>
+     entry.name == exportEntry && !entry.isInstanceOf[ModuleExport]
+   }
+
+   originalEntry match {
+     case Some(entry) =>
+       RefByName[Target](entry.name)
+     case None =>
+       throw new IllegalArgumentException(s"Original definition for export $exportEntry not found in module $module")
+   }
+  }
