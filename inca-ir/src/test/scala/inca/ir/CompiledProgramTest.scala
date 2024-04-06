@@ -1,6 +1,7 @@
 package inca.ir.CompiledProgram
 
 import inca.ir.*
+import inca.ir.CompiledProgram.CompiledProgram
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
