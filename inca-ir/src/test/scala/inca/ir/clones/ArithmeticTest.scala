@@ -300,7 +300,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //Eq(Var(Name("H2")), Add(Mul(IntNum(2), Var(Name("X"))), Mul(IntNum(2), IntNum(3)))),
             Eq(Var(Name("Y")), Mul(IntNum(2), Var("H1"))),
             Eq(Var(Name("H3")), IntNum(14)),
-            Eq(Var(Name("H4")), Add(Mul(IntNum(3), Var(Name("H1"))),Mul(Var(Name("H1")), Var(Name("H3"))))),
+            Eq(Var(Name("H4")), Add(Mul(Var(Name("H1")), Var(Name("H3"))),Mul(IntNum(3), Var(Name("H1"))))),
             //            Eq(Var(Name("H5")), Add(Mul(Var(Name("H1")), Var(Name("H3"))), Mul(Var(Name("H1")), IntNum(3)))),
             Eq(Var(Name("Z")), Mul(Var(Name("H4")), Var(Name("H4")))),
             Eq(Var(Name("param$0")), Var(Name("X"))),

@@ -30,7 +30,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   type Hashed = Int
 
   // maps for terms
-  var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
+  var VN: Map[Name, ValNum] = Map() 
   var hashTable: Map[Hashed, ValNum] = Map()
   var const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
 //  var count: Map[Hashed, Int] = Map()   // remembers how often term with hash has occurred
@@ -51,13 +51,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var substParamNames: Seq[String] = Seq()
 
   // global Maps for terms
-  var VNGlobal: Map[String, ValNum] = Map() // String is a Name
+  var VNGlobal: Map[Name, ValNum] = Map() // String is a Name
   var hashTableGlobal: Map[Hashed, ValNum] = Map()
 
   // global Maps for atoms:  remembers info about atom with hash
   var hashTableAtomsGlobal: mutable.Map[Hashed, mutable.Seq[AtomInfo]] = mutable.Map() // TODO use less space ?
 
-  var hashFunction: mutable.Map[Term,Hashed] = mutable.Map()
+//  var hashFunction: mutable.Map[Term,Hashed] = mutable.Map()
 //  def constructHashFunction(module: ir.Module): Module = {
 //    class ConstructHashFunction extends IRVisitor {
 //      private var currentId = 0 // TODO
@@ -77,6 +77,50 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //    }
 //    ConstructHashFunction().construct(module)
 //  }
+  type ValueId = Int // TODO
+
+  class ValueIds { // table from term to id
+    private val ids: mutable.Map[Term, ValueId] = mutable.Map()
+    private val atomIds: mutable.Map[Atom, ValueId] = mutable.Map()
+    private var currentId: ValueId = 0
+
+    private def nextId(): ValueId =
+      currentId += 1
+      currentId
+
+    def getIdOf(t: Term): ValueId = ids.getOrElse(t, {
+      ids.update(t, nextId())
+      ids(t)
+    })
+
+    // TODO needed? <- can equivalence of terms be concluded from calls?
+    private def getIdOf(atom: Atom): ValueId = atomIds.getOrElse(atom, {
+      atomIds.update(atom, nextId())
+      atomIds(atom)
+    })
+
+    def getIdOf(atom: Atom, bindingVar: Var): ValueId = /*ids.getOrElse(bindingVar,*/ {
+      case class bindingArg() extends Term { // serves as a marker which argument is currently binding
+        override def vars: Seq[Var] = Seq()
+      }
+      //ids.update(bindingVar,
+        atom match {
+          case Call(ref, args, neg) =>
+            val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
+            getIdOf(Call(ref, argsFiltered, neg))
+          case ExtensionalCall(ref, args, neg) =>
+            val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
+            getIdOf(ExtensionalCall(ref, argsFiltered, neg))
+          case _ => throw new IllegalArgumentException("This should not happen")
+        }//)
+       //ids(bindingVar)
+    }//)
+
+    override def toString: String = ids.toString() + "\n" + atomIds.toString()
+
+  }
+  val valueIds: ValueIds = new ValueIds()
+
 
   def valueNumbering(module: ir.Module): ir.Module = {
     // ugly fix for changing references from removed relations  // TODO refactor / rewrite so that relations are processed in different order (?)
@@ -94,9 +138,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //    val simplifiedModule = constructHashFunction(module)
 //    println(hashFunction)
     val newModule = visitModule(module)
+    println(valueIds)
     val fixed = new CallsFix().fixCalls(newModule)
     if config.outline then return new Outlining().outlineCommonAtoms(fixed) else return fixed
-
   }
 
   override def visitModule(module: Module): Module = {
@@ -120,25 +164,25 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       // In case of calls and a following Eq there are two hash values for one Var -> make sure that the right one is chosen
 //      hashTable.find(_._2 == name).head._1
       hashTable.filter(_._2 == name).last._1  // used hash that was added last
-    case _ => hashFunction.getOrElse(elem, {
-      hashFunction.update(elem, hashFunction.size + 1); hashFunction(elem)
-    }) //elem.hashCode()
+    case _ => valueIds.getIdOf(elem) //hashFunction.getOrElse(elem, {
+//      hashFunction.update(elem, hashFunction.size + 1); hashFunction(elem)
+//    }) //elem.hashCode()
   }
 
   // hash is used for Var with name bindingArg and NOT for the atom
-  protected def getHashCode(atom: Atom, bindigArg: String): Hashed =
-    case class bindingArg() extends Term{
-      override def vars: Seq[Var] = Seq()
-    }
-    atom match {
-    case Call(ref,args,neg) =>
-        val argsFiltered = args.patch(args.indexOf(TermArg(Var(RefByName(Name(bindigArg))))),Seq(TermArg(bindingArg())),1)
-        getHashCode(Call(ref,argsFiltered,neg))
-    case ExtensionalCall(ref,args,neg) =>
-      val argsFiltered = args.patch(args.indexOf(TermArg(Var(RefByName(Name(bindigArg))))),Seq(TermArg(bindingArg())),1)
-      getHashCode(ExtensionalCall(ref,argsFiltered,neg))
-    case _ => getHashCode(atom)
-  }
+  protected def getHashCode(atom: Atom, bindigArg: Var): Hashed = valueIds.getIdOf(atom,bindigArg)
+//    case class bindingArg() extends Term{
+//      override def vars: Seq[Var] = Seq()
+//    }
+//    atom match {
+//    case Call(ref,args,neg) =>
+//        val argsFiltered = args.patch(args.indexOf(TermArg(Var(RefByName(Name(bindigArg))))),Seq(TermArg(bindingArg())),1)
+//        getHashCode(Call(ref,argsFiltered,neg))
+//    case ExtensionalCall(ref,args,neg) =>
+//      val argsFiltered = args.patch(args.indexOf(TermArg(Var(RefByName(Name(bindigArg))))),Seq(TermArg(bindingArg())),1)
+//      getHashCode(ExtensionalCall(ref,argsFiltered,neg))
+//    case _ => getHashCode(atom)
+//  }
 
   protected def getHashCode(atom: Atom): Hashed = atom match{
     case Eq(lhs,rhs,neg) => Seq(Eq,getHashCode(lhs),getHashCode(rhs),neg).hashCode()
@@ -314,8 +358,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       treatComparisonEq(vari, e, vari.typ)
 
     case call@Call(_, _, false) =>
-      super.visitAtom(atom).head match {
-        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
+      println("init call: " + call)
+      val superVisited = super.visitAtom(atom).head
+      println("superVisited: " + superVisited)
+      superVisited match {
+        case call@Call(ref, args, false) =>
+          val newCall = treatBindingsInCall(call, args)
+          println("newCall: " + newCall)
+          newCall
       }
 
     // TODO can equivalence of two vars not be concluded from calls?
@@ -457,7 +507,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
         case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => // add binding vars to maps
           isBinding = true
-          val bindingCallHash = getHashCode(call, variName)   // TODO is this okay?
+          val bindingCallHash = getHashCode(call, vari)   // TODO is this okay?
 //          val termValHash = getHashCode(vari)
 
           // same calls except currently binding var should have same ValNum in different Relations
