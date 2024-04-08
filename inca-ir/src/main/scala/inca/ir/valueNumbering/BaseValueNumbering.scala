@@ -7,25 +7,34 @@ import inca.ir.visitors.IRVisitor
 import scala.collection.mutable
 
 
-type Id = Int // TODO
+type ValueId = Int // TODO
 
-class Ids{ // table from term to id
-  private val ids: mutable.Map[Term,Id] = mutable.Map()
-  private val atomIds: mutable.Map[Atom,Id] = mutable.Map()
-  private var currentId: Id = 0
-  private def nextId(): Id =
+class ValueIds{ // table from term to id
+  private val ids: mutable.Map[Term,ValueId] = mutable.Map()
+  private val atomIds: mutable.Map[Atom,ValueId] = mutable.Map()
+
+  private var currentId: ValueId = 0
+  private def nextId(): ValueId = {
     currentId += 1
     currentId
-  protected def getIdOf(t: Term): Id = ids.getOrElse(t,{
+  }
+
+  def getIdOf(t: Term): ValueId = ids.getOrElse(t,{
     ids.update(t,nextId())
     ids(t)
   })
+  def apply(t: Term): ValueId = getIdOf(t)
+
+  def contains(t: Term): Boolean = ids.contains(t)
+
+  def update(t: Term, valueId: ValueId): Unit = ids.update(t, valueId)
+
   // TODO needed? <- can equivalence of terms be concluded from calls?
-  private def getIdOf(atom: Atom): Id = atomIds.getOrElse(atom,{
+  private def getIdOf(atom: Atom): ValueId = atomIds.getOrElse(atom,{
     atomIds.update(atom,nextId())
     atomIds(atom)
   })
-  protected def getIdOf(atom: Atom, bindingVar: Var): Id = ids.getOrElse(bindingVar,{
+  def getIdOf(atom: Atom, bindingVar: Var): ValueId = ids.getOrElse(bindingVar,{
     case class bindingArg() extends Term { // serves as a marker which argument is currently binding
       override def vars: Seq[Var] = Seq()
     }
@@ -41,31 +50,64 @@ class Ids{ // table from term to id
     })
     ids(bindingVar)
   })
+}
+
+case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, contents: Seq[Term]) // contents just saved for debugging and presentation
+
+
+
+trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
+  /* def valueNumberTerm(term): Term
+
+
+   */
+  /* for each term in body:
+        normalizedTerm = normalize(term)
+        termId = getIdOf(normalizedTerm)   // -> adds normalizedTerm to ValueIds if not present before
+        if termId in CongrClasses then
+            congrClass = congrClasses(termId)
+            replace term with congrClass.leader
+        else:
+            add normalizedTerm with termId to congrClasses
+   */
+  /* for each Eq(lhs,rhs,true) in which lhs is a binding Var:  // same if rhs is binding
+          normalizedTerm = normalize(rhs) // also potentially replace subterms
+          termId = getIdOf(normalizedTerm)
+          if termId in CongrClasses then
+              add lhs to CongrClasses(termId)
+              valueNumbers.update(lhs, termId)
+              remove Eq
+          else:
+              newCongrClass = new CongruenceClass(termId, lhs, rhs, Seq(lhs,rhs))
+              add newCongrClass to CongrClasses(termId)
+              leave Eq in program
+   */
+
+  private val congrClasses: mutable.Map[ValueId,CongruenceClass] = mutable.Map()
+  private val valueNumbers: ValueIds = new ValueIds() // Map[Term, ValueId]
+
+  def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  def getReplacementTerm(t: Term): Term = getCongrClassOf(t).leader
+
+  type CongrClassLeader = String
+
+  /* VN(x) -> congrClasses(valueNumbers(x)).leader -> getReplacementTerm(x)
+  *  VN += (x, v) -> valueNumbers.update(x, valueNumbers(v)) -> ??? update congruence class if x is a const
+  * */
+  var VN: Map[Name, CongrClassLeader] = Map()
+  /* hashTable(n) -> congrClasses(n).leader
+     hashTable += (termId,v) -> change leader or create new congruence class
+            -> congrClasses(termId).leader = v;  congrClasses.update(termId, new CongruenceClass(termId,v,v,Seq(v)) )
+   */
+  var hashTable: Map[ValueId, CongrClassLeader] = Map() // idTable: Map[ValueId, CongrClassLeader]
+
+//  var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
+
+
+  def valueNumbering(module: ir.Module): ir.Module = {
+    visitModule(module)
+  }
+
 
 
 }
-
-//class ValNumTable{
-//  private def table: mutable.Map[Id,CongruenceClass] = mutable.Map()
-//
-//}
-
-//trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
-//
-//  type ValNum = String
-//  type Hashed = Int
-//
-//  var VN: Map[Name, ValNum] = Map()
-//  var hashTable: Map[Hashed, ValNum] = Map()
-//
-//  var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
-//
-//  var hashFunction: mutable.Map[Term,Hashed] = mutable.Map()
-//
-//  def valueNumbering(module: ir.Module): ir.Module = {
-//    visitModule(module)
-//  }
-//
-
-
-//}

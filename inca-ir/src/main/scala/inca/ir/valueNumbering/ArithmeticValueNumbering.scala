@@ -6,12 +6,12 @@ import inca.ir.typing.Mode.Bound
 
 trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
-  protected override def getHashCode(atom: Atom): Hashed = atom match{
+  protected override def getHashCode(atom: Atom): ValueId = atom match{
     case BinCompare(lhs, rhs, op) => Seq(BinCompare,getHashCode(lhs),getHashCode(rhs),op).hashCode()
     case _ => super.getHashCode(atom)
   }
 
-  protected override def getHashCode(term: Term): Hashed = term match {
+  protected override def getHashCode(term: Term): ValueId = term match {
     case BinOp(lhs,rhs,op) => Seq(BinOp,getHashCode(lhs),getHashCode(rhs),op).hashCode()
     case UnOp(t, op) => Seq(UnOp,getHashCode(t),op).hashCode()
     case IntNum(_) | DoubleNum(_) => super.getHashCode(term)

@@ -4,7 +4,7 @@ import inca.ir.{Atom, Term}
 
 trait StringValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
-  protected override def getHashCode(term: Term): Hashed = term match {
+  protected override def getHashCode(term: Term): ValueId = term match {
     case StringLit(s) => s.hashCode()
     case StringConcat(lhs, rhs) => Seq(StringConcat,getHashCode(lhs),getHashCode(rhs)).hashCode()
     case ToString(t) => Seq(ToString,getHashCode(t)).hashCode()
