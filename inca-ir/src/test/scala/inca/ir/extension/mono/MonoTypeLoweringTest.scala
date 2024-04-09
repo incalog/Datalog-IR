@@ -28,7 +28,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
 
   def module(relations: ModuleEntry*): Module =
     val mod = Module("M", BaseIR.language + demand.IR + mono.IR + impure.IR + data.IR, relations)
-    println("Original program\n" + mod + "\n\n")
+    //println("Original program\n" + mod + "\n\n")
     var lowered = mod
     {
       val typechecker = new IRTypechecker {}
@@ -40,9 +40,9 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       val typechecker = new IRTypechecker {}
       try typechecker.checkProgram(Seq(lowered))
       finally {
-        println(s"<><><><><><><> After $name lowering, program becomes: <><><><><><><>\n" + lowered)
-        typechecker.getErrors.foreach(println)
-        println("\n\n\n")
+        //println(s"<><><><><><><> After $name lowering, program becomes: <><><><><><><>\n" + lowered)
+        //typechecker.getErrors.foreach(println)
+        //println("\n\n\n")
       }
     }
     lowered

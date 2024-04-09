@@ -1,6 +1,6 @@
 # Update Container Registry 
 
-Use the `Dockerfile` in this folder  to build a linux docker image with inca-scala and all Datalog backends installed.
+Use the `Dockerfile` in this folder  to build a linux docker image with all dependencies for inca-scala and all Datalog backends installed.
 This image can be uploaded to gitlabs Container Registry, which is then used by the CI pipeline.  
 To update / upload an imgae in the Container Registry perform the following steps:
 

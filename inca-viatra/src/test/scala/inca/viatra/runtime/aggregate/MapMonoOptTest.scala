@@ -1024,7 +1024,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
 
 
@@ -1038,5 +1038,5 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))

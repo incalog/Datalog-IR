@@ -1,33 +1,33 @@
-image: sbtscala/scala-sbt:eclipse-temurin-focal-17.0.9_9_1.9.8_3.3.1
-
-stages:
-  - test
-
-before_script:
-  - pushd /tmp
-  - wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/keyrings/souffle-archive-keyring.gpg
-  - echo "deb [signed-by=/usr/share/keyrings/souffle-archive-keyring.gpg] https://souffle-lang.github.io/ppa/ubuntu/ stable main" | tee /etc/apt/sources.list.d/souffle.list
-  - apt update && apt upgrade -y
-  - apt install -y souffle
-  - popd
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  - export PATH="$HOME/.cargo/bin:$PATH"
-  - sbt sbtVersion
-  - sbt update
-
-test:
-  stage: test
-  script:
-    - sbt clean test
-
-
-
-#image: registry.gitlab.rlp.net/plmz/inca-scala:latest
+#image: sbtscala/scala-sbt:eclipse-temurin-focal-17.0.9_9_1.9.8_3.3.1
 #
 #stages:
 #  - test
+#
+#before_script:
+#  - pushd /tmp
+#  - wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/keyrings/souffle-archive-keyring.gpg
+#  - echo "deb [signed-by=/usr/share/keyrings/souffle-archive-keyring.gpg] https://souffle-lang.github.io/ppa/ubuntu/ stable main" | tee /etc/apt/sources.list.d/souffle.list
+#  - apt update && apt upgrade -y
+#  - apt install -y souffle
+#  - popd
+#  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+#  - export PATH="$HOME/.cargo/bin:$PATH"
+#  - sbt sbtVersion
+#  - sbt update
 #
 #test:
 #  stage: test
 #  script:
 #    - sbt clean test
+
+
+
+image: registry.gitlab.rlp.net/plmz/inca-scala:latest
+
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - sbt clean test
