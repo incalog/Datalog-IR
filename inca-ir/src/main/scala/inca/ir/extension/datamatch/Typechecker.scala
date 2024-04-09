@@ -11,7 +11,7 @@ import inca.ir.typing.Mode
 trait Typechecker extends data.Typechecker with typeparam.Typechecker:
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Match(matchee, cases) =>
-      val mathceeType = inferTerm(matchee, mode.inverted).ty
+      val matcheeType = inferTerm(matchee, mode.inverted).ty
 
       checkAlternatives(cases) { case c@Case(ref, patVars, body) =>
         val params = lookupConstruct(ref, c) match
@@ -19,7 +19,7 @@ trait Typechecker extends data.Typechecker with typeparam.Typechecker:
             addTypeDependency(cd)
             val substMap0 = matchRef(ref, typeParams, c)
 
-            val substMap = checkDeconstruct(mathceeType, data.ref, matchee)
+            val substMap = checkDeconstruct(matcheeType, data.ref, matchee)
             val subst = new TypeSubst(substMap)
             params.map(subst.visitType)
           case None => Seq()
