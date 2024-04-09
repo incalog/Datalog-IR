@@ -266,7 +266,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(println)
+    //engine.readAll().foreach(println)
 
 
   }
@@ -309,7 +309,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relationUserDefinedMono1)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    println(res.entries.head)
+    //println(res.entries.head)
     assertResult("0.0")(res.entries.head)
   }
 
@@ -411,12 +411,12 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val res = mutable.Set[String]()
     for (i <- 0 until 30)
       val k = Random.nextInt(comb.length)
-      println("Generate random number " + k)
+      //println("Generate random number " + k)
       if !set.contains(k) then
         val p = s"""Seq("${comb(k)._1}", "${comb(k)._2}")"""
         res += p
         set += k
-    println(res.mkString(", "))
+    //println(res.mkString(", "))
 
 
   private lazy val multiMapMono = ScalaMonoDefinition(
@@ -478,7 +478,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(mainRelation, pathRelation, edgeRel)
     engine.insert(edbBTree)
     val res = engine.read(UnitRelation("main"))
-    engine.readAll().foreach(res => println(res.asTable))
+    //engine.readAll().foreach(res => println(res.asTable))
 
 
 

@@ -102,7 +102,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoModule(mod)
-    println(compiledMod.checked)
+    //println(compiledMod.checked)
     val exec: IRExecutor = inca.viatra.Executor()
     exec.instantiate(compiledMod)
 
@@ -118,7 +118,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
       Eq(Var("foo"), MapLookUp(Var("map2"), IntNum(1)))
     ))))
 
-    println(mainRelation)
+    //println(mainRelation)
     val engine = compile(mainRelation)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
