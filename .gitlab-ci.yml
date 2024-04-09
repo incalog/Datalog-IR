@@ -19,3 +19,15 @@ test:
   stage: test
   script:
     - sbt clean test
+
+
+
+#image: registry.gitlab.rlp.net/plmz/inca-scala:latest
+#
+#stages:
+#  - test
+#
+#test:
+#  stage: test
+#  script:
+#    - sbt clean test

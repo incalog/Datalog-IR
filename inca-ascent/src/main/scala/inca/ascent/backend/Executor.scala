@@ -114,6 +114,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     var currentDir = new File("./").getCanonicalFile
 
     // we might be in a subproject when running with sbt
+    println(currentDir)
     while (currentDir.getName != "inca-scala") {
       currentDir = currentDir.getParentFile
     }
