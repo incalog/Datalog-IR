@@ -26,13 +26,19 @@ import inca.ir.visitors.IRVisitor
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
 trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  type CongrClassLeader = Var // TODO Term so that a const can be used
+  private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  private val valueNumbers: ValueIds = new ValueIds() // Map[Term, ValueId]
+
+  def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  def getReplacementTerm(t: Term): Term = getCongrClassOf(t).leader
+
+//  type CongrClassLeader = Var
   type ValueId = Int
 
   // maps for terms
-  var VN: Map[Name, CongrClassLeader] = Map()
-  var hashTable: Map[ValueId, CongrClassLeader] = Map()
-  var const: Map[Name, Term] = Map() // remembers constant term assigned to Var with name string
+//  var VN: Map[Name, CongrClassLeader] = Map()
+//  var hashTable: Map[ValueId, CongrClassLeader] = Map()
+//  var const: Map[Name, Term] = Map() // remembers constant term assigned to Var with name string
 //  var count: Map[Hashed, Int] = Map()   // remembers how often term with hash has occurred
 
   var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
@@ -51,53 +57,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   var substParamNames: Seq[String] = Seq()
 
   // global Maps for terms
-  var VNGlobal: Map[Name, CongrClassLeader] = Map() // String is a Name
-  var hashTableGlobal: Map[ValueId, CongrClassLeader] = Map()
+//  var VNGlobal: Map[Name, CongrClassLeader] = Map() // String is a Name
+//  var hashTableGlobal: Map[ValueId, CongrClassLeader] = Map()
+    val congrClassesGlobal: mutable.Map[ValueId,CongruenceClass] = mutable.Map()
 
   // global Maps for atoms:  remembers info about atom with hash
   var hashTableAtomsGlobal: mutable.Map[ValueId, mutable.Seq[AtomInfo]] = mutable.Map() // TODO use less space ?
 
-  class ValueIds { // table from term to id
-    private val ids: mutable.Map[Term, ValueId] = mutable.Map()
-    private val atomIds: mutable.Map[Atom, ValueId] = mutable.Map()
-    private var currentId: ValueId = 0
-
-    private def nextId(): ValueId =
-      currentId += 1
-      currentId
-
-    def getIdOf(t: Term): ValueId = ids.getOrElse(t, {
-      ids.update(t, nextId())
-      ids(t)
-    })
-
-    // TODO needed? <- can equivalence of terms be concluded from calls?
-    private def getIdOf(atom: Atom): ValueId = atomIds.getOrElse(atom, {
-      atomIds.update(atom, nextId())
-      atomIds(atom)
-    })
-
-    def getIdOf(atom: Atom, bindingVar: Var): ValueId = /*ids.getOrElse(bindingVar,*/ {
-      case class bindingArg() extends Term { // serves as a marker which argument is currently binding
-        override def vars: Seq[Var] = Seq()
-      }
-      //ids.update(bindingVar,
-        atom match {
-          case Call(ref, args, neg) =>
-            val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
-            getIdOf(Call(ref, argsFiltered, neg))
-          case ExtensionalCall(ref, args, neg) =>
-            val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
-            getIdOf(ExtensionalCall(ref, argsFiltered, neg))
-          case _ => throw new IllegalArgumentException("This should not happen")
-        }//)
-       //ids(bindingVar)
-    }//)
-
-    override def toString: String = ids.toString() + "\n" + atomIds.toString()
-
-  }
-  val valueIds: ValueIds = new ValueIds()
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
@@ -116,7 +82,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //    val simplifiedModule = constructHashFunction(module)
 //    println(hashFunction)
     val newModule = visitModule(module)
-    println(valueIds)
+    println(valueNumbers)
+    println(congrClasses)
     val fixed = new CallsFix().fixCalls(newModule)
     if config.outline then return new Outlining().outlineCommonAtoms(fixed) else return fixed
   }
@@ -135,20 +102,18 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
-  // TODO dont use scala`s hashing function
-  // TODO save hashes
-  protected def getHashCode(elem: Term): ValueId = elem match {
-    case Var(RefByName(name)) if VN.contains(name) && hashTable.exists(_._2.name == name) =>
-      // In case of calls and a following Eq there are two hash values for one Var -> make sure that the right one is chosen
-//      hashTable.find(_._2 == name).head._1
-      hashTable.filter(_._2.name == name).last._1  // used hash that was added last
-    case _ => valueIds.getIdOf(elem) //hashFunction.getOrElse(elem, {
+  protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t) //t match {
+//    case vari@Var(RefByName(name)) if valueNumbers.contains(vari) && hashTable.exists(_._2.name == name) =>
+//      // In case of calls and a following Eq there are two hash values for one Var -> make sure that the right one is chosen
+////      hashTable.find(_._2 == name).head._1
+//      hashTable.filter(_._2.name == name).last._1  // used hash that was added last
+//    case _ =>  hashFunction.getOrElse(elem, {
 //      hashFunction.update(elem, hashFunction.size + 1); hashFunction(elem)
 //    }) //elem.hashCode()
-  }
+//  }
 
   // hash is used for Var with name bindingArg and NOT for the atom
-  protected def getHashCode(atom: Atom, bindigArg: Var): ValueId = valueIds.getIdOf(atom,bindigArg)
+  protected def getIdOf(atom: Atom, bindigArg: Var): ValueId = valueNumbers.getIdOf(atom,bindigArg)
 //    case class bindingArg() extends Term{
 //      override def vars: Seq[Var] = Seq()
 //    }
@@ -163,16 +128,16 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //  }
 
   protected def getHashCode(atom: Atom): ValueId = atom match{
-    case Eq(lhs,rhs,neg) => Seq(Eq,getHashCode(lhs),getHashCode(rhs),neg).hashCode()
+    case Eq(lhs,rhs,neg) => Seq(Eq,getIdOf(lhs),getIdOf(rhs),neg).hashCode()
     case Call(ref,args,neg) =>
       val argsHashed = args.map{
-        case TermArg(t) => getHashCode(t)
+        case TermArg(t) => getIdOf(t)
         case w@WildcardArg() => w.hashCode()
       }
       Seq(Call,ref,argsHashed,neg).hashCode()
     case ExtensionalCall(ref,args,neg) =>
       val argsHashed = args.map{
-        case TermArg(t) => getHashCode(t)
+        case TermArg(t) => getIdOf(t)
         case w@WildcardArg() => w.hashCode()
       }
       Seq(ExtensionalCall,ref,argsHashed,neg).hashCode()
@@ -245,12 +210,17 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   private var currentAtomIndex: Int = -1   // TODO prettier solution ?
 
   override def visitBody(body: Body): Seq[Body] = {
-    VNGlobal = VNGlobal ++ VN
-    hashTableGlobal = hashTableGlobal ++ hashTable
+//    VNGlobal = VNGlobal ++ valueNumbers.getAllKeys.map{k => (k,getReplacementTerm(k)) match
+//      case ()
+//    }
+//    hashTableGlobal = hashTableGlobal ++ hashTable
+    congrClasses.foreach((k,congrClass) => congrClassesGlobal.update(k,congrClass)) // TODO merge congrClass
 
-    VN = Map()
-    hashTable = Map()
-    const = Map()
+//    VN = Map()
+//    hashTable = Map()
+//    const = Map()
+    // reset congrClasses (otherwise not known when variables are unbound)
+    congrClasses.clear()
 
     hashTableAtoms = Map()
     currentAtomIndex = -1
@@ -303,24 +273,28 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     valueUnknown.filter((_,set) => set.intersect(varis).nonEmpty).keys.toSet
 
 
-  protected def simplify(term: Term): Term = term
+  protected def normalize(term: Term): Term = term
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = term match {
     case v@Var(RefByName(Name(name))) if paramSubst.contains(name) && config.attemptAlphaEquivalence => visitTerm(newVar(paramSubst(name),v.typ,getReasonsForUnknown(term)))
-    case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
-    case v@Var(RefByName(Name(name))) if VN.contains(name) =>
-      Seq(
-        if const.contains(VN(name).name) && this.config.propagateConstants then
-          const(VN(name).name)
-        else newVar(VN(name).name,v.typ,getReasonsForUnknown(term))
-      )
+//    case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
+//    case v@Var(RefByName(Name(name))) if valueNumbers.contains(v) =>
+//      Seq(
+//        newVar(valueNumbers(v).name,v.typ,getReasonsForUnknown(term))
+//      )
+
     case _ if isConst(term) => Seq(term) // dont replace constant terms with a var and no need to simplify them
     case _ =>
       val newTerm = super.visitTerm(term).head
-      if term.typ.nonEmpty then newTerm.typed(term.typ.get) // TODO okay ?
-      val termHash: ValueId = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash).name,term.typ,getReasonsForUnknown(term)) else simplify(newTerm))
+      if term.typ.nonEmpty then newTerm.typed(term.typ.get)
+      val termId: ValueId = valueNumbers(newTerm)
+      if congrClasses.contains(termId) then {
+        val res = Seq(congrClasses(termId).leader)
+        res
+      }
+      else Seq(normalize(newTerm)) // TODO add to congrClass (?)
+//      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash).name,term.typ,getReasonsForUnknown(term)) else normalize(newTerm))
   }
 
 
@@ -336,13 +310,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       treatComparisonEq(vari, e, vari.typ)
 
     case call@Call(_, _, false) =>
-      println("init call: " + call)
       val superVisited = super.visitAtom(atom).head
-      println("superVisited: " + superVisited)
       superVisited match {
         case call@Call(ref, args, false) =>
           val newCall = treatBindingsInCall(call, args)
-          println("newCall: " + newCall)
           newCall
       }
 
@@ -361,12 +332,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
 
     case _ => val newAtomSeq = valueNumberAtoms(super.visitAtom(atom).head)
-      removeAtomIfTrue(newAtomSeq)
+      newAtomSeq
   }
 
   protected def isConst(term: Term): Boolean = false
 
-  private def treatBindingInEq(varName: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
+  private def treatBindingInEq(varName: Name, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
     val newEqSeq = valueNumberingTerm(varName,e,dontRemove,typ)
     if newEqSeq.isEmpty then return Seq()
 
@@ -391,7 +362,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
       else valueNumberAtoms(super.visitAtom(newEq).head) // allowed to remove comparison since value of variable is known before -> wont reduce set of results
     }
-    removeAtomIfTrue(newAtomSeq)
+    newAtomSeq
 
   }
 
@@ -399,15 +370,17 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val newTerm = visitTerm(t).head
     val x = if paramSubst.contains(varName) && config.attemptAlphaEquivalence then paramSubst(varName) else varName
 
-    val termHash: ValueId = getHashCode(newTerm)
-    if (hashTable.contains(termHash)) {
-      val v: CongrClassLeader = newTerm match {
-        case vari@Var(_) => vari // then term was already replaced in visitTerm
-        case _ => hashTable(termHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
-      }
-      VN += (x, v)
-
-      //count = count.updated(termHash, count (termHash) + 1)
+    val termId: ValueId = getIdOf(newTerm)
+    if (congrClasses.contains(termId)) {
+      val v = newTerm //match {
+//        case vari@Var(_) => vari // then term was already replaced in visitTerm
+//        case _ => hashTable(termId) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
+//      }
+//      VN += (x, v)
+      valueNumbers.update(Var(x),termId)
+      // update CongruenceClass.contents but not necessary (see comment on class CongruenceClass)
+      congrClasses(termId).contents = congrClasses(termId).contents.appended(Var(x))
+      //count = count.updated(termId, count (termId) + 1)
 
       // remove "Assignment" or replace term
       if dontRemove then {
@@ -420,41 +393,49 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         Seq()
       }
     }
-    else if (hashTableGlobal.contains(termHash) && !dontRemove) {
-      val v: CongrClassLeader = newTerm match {
-        case vari@Var(_) => vari // then term was already replaced in visitTerm
-        case _ => hashTableGlobal(termHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
-      }
-      if (!isUsedInBody(v)) {
-        VN += (x, v)
-        VN += (v.name, v)
-        hashTable += (termHash, v)
-
-        // replace term
-        return Seq( Eq(newVar(v.name, typ), newTerm) )  // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
-      }
-      else{ // TODO refactor
-        val v = newVar(x,typ)
-        VN += (x, v)
-        hashTable += (termHash, v)
-        return Seq( Eq(v, newTerm) )
-      }
-    }
+//    else if (hashTableGlobal.contains(termId) && !dontRemove) {
+//      val v: CongrClassLeader = newTerm match {
+//        case vari@Var(_) => vari // then term was already replaced in visitTerm
+//        case _ => hashTableGlobal(termId) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
+//      }
+//      if (!isUsedInBody(v)) {
+////        VN += (x, v)
+//        valueNumbers.update(Var(x), termId)
+////        VN += (v.name, v)
+//        valueNumbers.update(v,termId)
+//        hashTable += (termId, v)
+//
+//        // replace term
+//        return Seq( Eq(newVar(v.name, typ), newTerm) )  // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
+//      }
+//      else{ // TODO refactor
+//        val v = newVar(x,typ)
+////        VN += (x, v)
+//        valueNumbers.update(Var(x), termId)
+//        hashTable += (termId, v)
+//        return Seq( Eq(v, newTerm) )
+//      }
+//    }
 
     else {
       val v = newVar(x,typ,getReasonsForUnknown(t))
-      VN += (x, v)
-      hashTable += (termHash, v)    // In case of calls and a following Eq there are two hash values for one Var
-
-      //count += (termHash,1)
-
-      if (isConst(newTerm) && this.config.propagateConstants) {
-        const += (x, newTerm)
+//      VN += (x, v)
+      valueNumbers.update(Var(x), termId)
+//      hashTable += (termId, v)    // In case of calls and a following Eq there are two hash values for one Var
+      if isConst(newTerm) && this.config.propagateConstants then { // TODO probably always do this if it is a const (?)
+        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm, Seq(v, newTerm))) // TODO include old term t ?
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
+      else congrClasses.update(termId,CongruenceClass(termId,v,newTerm,Seq(v,newTerm)))
+
+      //count += (termId,1)
+
+//      if (isConst(newTerm) && this.config.propagateConstants) {
+//        const += (x, newTerm)
+//        if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
+//      }
 
       // return with newTerm
-      // also remember the new Eq; it might be removed
       Seq( Eq(newVar(x, typ, getReasonsForUnknown(newTerm)), newTerm) )
     }
   }
@@ -468,14 +449,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
 
-  protected def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
-    if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
-
-    newAtomSeq.head match {
-      case Eq(rhs, lhs, false) if rhs == lhs => Seq()
-      case _ => newAtomSeq
-    }
-  }
+//  protected def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
+//    if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
+//
+//    newAtomSeq.head match {
+//      case Eq(rhs, lhs, false) if rhs == lhs => Seq()
+//      case _ => newAtomSeq
+//    }
+//  }
 
 
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
@@ -485,32 +466,39 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
         case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
           isBinding = true
-          val bindingCallHash = getHashCode(call, vari)
+          val bindingCallHash = getIdOf(call, vari)
 
           // same calls except currently binding var should have same ValNum in different Relations
-          if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
-            val v: CongrClassLeader = hashTableGlobal(bindingCallHash)
-            if (!isUsedInBody(v)) {
-              VN += (variName,v)
-              VN += (v.name,v)
-              hashTable += (bindingCallHash,v)
-              val newVari = newVar(v.name, term.typ)
-              valueIsUnknown(newVari)
-              TermArg(newVari)
-            }
-            else {
-              VN += (variName, vari)
-              hashTable += (bindingCallHash, vari)
-              valueIsUnknown(Var(variName))
-              t
-            }
-          }
-          else {
-            VN += (variName, vari)
-            hashTable += (bindingCallHash, vari)
+//          if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
+//            val v: CongrClassLeader = hashTableGlobal(bindingCallHash)
+//            if (!isUsedInBody(v)) {
+////              VN += (variName,v)
+//              valueNumbers.update(Var(variName), valueNumbers(v))
+////              VN += (v.name,v)
+////              valueNumbers.update(v, valueNumbers(v))
+//              hashTable += (bindingCallHash,v)
+//              val newVari = newVar(v.name, term.typ)
+//              valueIsUnknown(newVari)
+//              TermArg(newVari)
+//            }
+//            else {
+////              VN += (variName, vari)
+//              hashTable += (bindingCallHash, vari)
+//              valueIsUnknown(Var(variName))
+//              t
+//            }
+//          }
+//          else {
+//            VN += (variName, vari)
+//            hashTable += (bindingCallHash, vari)
+
+//            congrClasses.update(bindingCallHash,CongruenceClass(bindingCallHash,vari,vari,Seq(vari))) // TODO check whether already known (?) -> in general wrong to conclude equality (in same body)
+//            valueNumbers.update(vari,bindingCallHash)
+            val id = valueNumbers.getIdOf(vari)
+            congrClasses.update(id, CongruenceClass(id, vari, vari, Seq(vari)))
             valueIsUnknown(Var(variName))
             t
-          }
+//          }
 
         case _ => t
       }
@@ -538,6 +526,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
+
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////
 
 
   case class AtomInfo(atom: Atom, name: Name, bodyIdx: Int, atomIdx: Int) {
