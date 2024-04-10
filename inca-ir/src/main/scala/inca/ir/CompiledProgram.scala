@@ -15,16 +15,18 @@ import inca.ir.Hint.preserveHints
 case class Link(fromModule: Name, exportEntry: Name, toModule: Name, importEntry: Name)
 
 trait CompiledProgram:
-  val linkSet: Set[Link]
+  val linkSet: Seq[Link]
   val modules: Seq[CompiledModule]
-  var tempLinkedModules: Seq[CompiledModule] = Seq()
-  val linkedModule: Module = ???
+  def rootModule: Module = modules.find(m => linkSet.forall(l => l.fromModule != m.ir.name)) match
+    case Some(module: CompiledModule) => module.ir
+    case None => throw IllegalArgumentException(s"No root module could be found for linkset $linkSet")
+  def linkedModule: Module = ApplyLinking.visitModule(rootModule)
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
   def getModule(name: Name): Module =
-    (tempLinkedModules ++ modules).find(m => m.ir.name == name) match
-      case Some(module: Module) => module
+    modules.find(m => m.ir.name == name) match
+      case Some(module: CompiledModule) => module.ir
       case None => throw IllegalArgumentException(s"Module $name not found")
 
   def intraTypecheck: Unit =
@@ -37,30 +39,37 @@ trait CompiledProgram:
         case _ => throw IllegalArgumentException(s"${link.exportEntry} is not a valid Export")
       )
   
-  object ReplaceImport extends IRVisitor:
+  object ApplyLinking extends IRVisitor:
     var currentModule: Module = Module("", BaseIR.language, Seq())
 
-    override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-      modules.map(m => 
-        currentModule = m
-        visitModule(m))
+    override def visitModule(module: Module): Module = 
+      currentModule = module
+      Module(module.name, module.lang, module.contents.flatMap(visitModuleEntry))
 
-    override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
-      case mImp: ModuleImport => Seq()
-      case _ => super.visitModuleEntry(moduleEntry)
-    })
+    override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = 
+      val tempCurrentModule = currentModule
+      val processedExportModules = linkSet.flatMap(l => if l.toModule == tempCurrentModule.name
+        then {
+          currentModule = getModule(l.fromModule)
+          visitModuleEntry(getExportEntry(l.fromModule, l.exportEntry)).map(m => m.withExtendedName(s"_${l.fromModule}"))
+        } else Seq())
+      currentModule = tempCurrentModule
+      preserveHints(moduleEntry)(moduleEntry match {
+        case mImp: ModuleImport => Seq()
+        case _ => processedExportModules ++ super.visitModuleEntry(moduleEntry)
+      })
 
     override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
-      case RefByName(name) => RefByName(name) match
-        case mImport: ModuleImport => 
-          linkSet.find(link => link.toModule == currentModule && link.importEntry == mImport) match
-            case Some(curlink) => getExportRef[Target](curlink.fromModule, curlink.exportEntry)
+      case RefByName(name) => currentModule.entries.get(name) match
+        case Some(mImport: ModuleImport) => 
+          linkSet.find(link => link.toModule == currentModule.name && link.importEntry == mImport.name) match
+            case Some(curlink) => RefByName[Target](getExportEntry(curlink.fromModule, curlink.exportEntry).name + s"_${curlink.fromModule}")
             case None => throw IllegalArgumentException(s"Imported entry does not exist")
-
+        case None => super.visitRef(ref)
       case _ => super.visitRef(ref)
     )
 
-  def getExportRef[Target](module: Name, exportEntry: Name): Ref[Target] = {
+  def getExportEntry(module: Name, exportEntry: Name): ModuleEntry = {
    val targetModule = getModule(module)
 
    val originalEntry = targetModule.contents.find { entry =>
@@ -69,7 +78,7 @@ trait CompiledProgram:
 
    originalEntry match {
      case Some(entry) =>
-       RefByName[Target](entry.name)
+        entry
      case None =>
        throw new IllegalArgumentException(s"Original definition for export $exportEntry not found in module $module")
    }
