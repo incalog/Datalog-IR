@@ -24,6 +24,9 @@
 
 image: registry.gitlab.rlp.net/plmz/inca-scala:latest
 
+before_script:
+  - export PATH="$HOME/.cargo/bin:$PATH"
+
 stages:
   - test
 

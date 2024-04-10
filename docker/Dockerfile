@@ -14,8 +14,7 @@ RUN wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/key
     rm -rf /var/lib/apt/lists/*
     
 # Install Rust for Ascent
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-	export PATH="$HOME/.cargo/bin:$PATH"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Update sbt
 RUN sbt sbtVersion && \

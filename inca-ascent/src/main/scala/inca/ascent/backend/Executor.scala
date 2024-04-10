@@ -6,14 +6,18 @@ import inca.ir
 import inca.ir.execution.ThreadCount.Auto
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, ThreadCount}
 import inca.ir.{CompiledModule, Name}
+import inca.util.FileUtil
 import ujson.{Arr, Num, Obj}
 
 import java.io.{File, PrintWriter}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import scala.sys.process.*
 import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
+
+object Executor:
+  lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
 
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
   class Engine(executable: ProcessBuilder, inputs: Map[String, ProgramContent.EDBFile]) extends ExecutorEngine:
@@ -111,14 +115,13 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
   // Rust compilation is slow, therefore we compile once on instantiate
   def instantiate(m: CompiledModule): Engine = {
-    var currentDir = new File("./").getCanonicalFile
+    // Create project structure
+    val rustProjectDir = Executor.ascentProjectPath.toFile.getCanonicalPath
+    Files.createDirectories(Paths.get(rustProjectDir, "src"))
+    val cargoFile = FileUtil.readFileFromResource("Cargo.toml")
+    val cargoFilePath = Paths.get(rustProjectDir, "Cargo.toml")
+    FileUtil.writeFile(cargoFilePath.toFile.getCanonicalPath, cargoFile)
 
-    // we might be in a subproject when running with sbt
-    while (currentDir.getName != "inca-scala") {
-      currentDir = currentDir.getParentFile
-    }
-    val projectDir = currentDir.getCanonicalPath + "/inca-ascent"
-    val rustProjectDir = projectDir + "/ascent_project"
     val contents = GenerateAscent.compileModule(m.lowered)
 
     // all inputs and outputs

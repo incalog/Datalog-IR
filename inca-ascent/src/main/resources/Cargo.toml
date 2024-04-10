@@ -1,3 +1,5 @@
+# This Cargo.toml file is copied and used for all Ascent projects
+
 [package]
 name = "ascent_project"
 version = "0.1.0"
