@@ -12,19 +12,19 @@ import inca.ir.visitors.IRVisitor
 
 
 /** wraps parameters for value numbering */
-case class ConfigVN(simplifyArithmetic: Boolean = false,
-                    propagateConstants: Boolean = false,
-                    removeTrueAtoms: Boolean = false,
-//                    occurrencesBeforeRemoved: Int = 0,
-                    attemptAlphaEquivalence: Boolean = false,
-                    outline: Boolean = false,
-                    occurrencesBeforeOutlined: Int = 1,
-                    minSizeOutline: Int = 2
+case class ConfigVNOld(simplifyArithmetic: Boolean = false,
+                       propagateConstants: Boolean = false,
+                       removeTrueAtoms: Boolean = false,
+                       //                    occurrencesBeforeRemoved: Int = 0,
+                       attemptAlphaEquivalence: Boolean = false,
+                       outline: Boolean = false,
+                       occurrencesBeforeOutlined: Int = 1,
+                       minSizeOutline: Int = 2
                    )
 
 /** for value numbering constructs from BaseIR */
 //class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
-trait BaseValueNumberingOld(config: ConfigVN = ConfigVN()) extends IRVisitor {
+trait BaseValueNumberingOld(config: ConfigVNOld = ConfigVNOld()) extends IRVisitor {
 
   type ValNum = String
   type Hashed = Int

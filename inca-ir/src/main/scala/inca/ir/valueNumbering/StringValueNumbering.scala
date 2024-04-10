@@ -19,7 +19,7 @@ trait StringValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 //  protected override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = super.removeAtomIfTrue(newAtomSeq) // TODO include ?
 
   protected override def normalize(term: Term): Term = // TODO more cases? with ToString?
-    if !this.config.simplifyArithmetic then return term // TODO move in BaseVN
+    if !this.config.normalize then return term // TODO move in BaseVN
     term match {
       case StringLit(s) => term
       case StringConcat(lhs, rhs) => (lhs,rhs) match {

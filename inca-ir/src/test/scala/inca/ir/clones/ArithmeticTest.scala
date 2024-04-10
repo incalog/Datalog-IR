@@ -11,7 +11,7 @@ import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 class ArithmeticTest extends ValueNumberingTestAbstract{
 
-  override val config: ConfigVN = ConfigVN(simplifyArithmetic = true)
+  override val config: ConfigVN = ConfigVN(normalize = true)
 
 
   test("Add (Commutativity)") {
@@ -941,7 +941,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic = true, propagateConstants = true, removeTrueAtoms = true))
+    performTest(expected, input, ConfigVN(normalize = true, propagateConstants = true/*, removeTrueAtoms = true*/))
   }
 
   test("propagate constants: Two Bodies") {
@@ -1458,7 +1458,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic = true, propagateConstants = true))
+    performTest(expected, input, ConfigVN(normalize = true, propagateConstants = true))
   }
 
 

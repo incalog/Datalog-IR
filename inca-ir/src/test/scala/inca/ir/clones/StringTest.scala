@@ -97,7 +97,7 @@ class StringTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var("H"), StringLit("Hello")),
             Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
-            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), // need to implement simplify function for this
+            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), // need to implement normalize function for this
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("B")))
           ))
@@ -115,7 +115,7 @@ class StringTest extends ValueNumberingTestAbstract {
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic=true))
+    performTest(expected, input, ConfigVN(normalize=true))
   }
 
 }

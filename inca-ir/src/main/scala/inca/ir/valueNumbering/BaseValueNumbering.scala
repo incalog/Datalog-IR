@@ -53,7 +53,16 @@ class ValueIds{ // table from term to id
     //ids(bindingVar)
   }//)
 
-  override def toString: String = ids.toString() + "\n" + atomIds.toString()
+  override def toString: String = "IDs: \t\t\t" + ids.mkString(";  ") + "\natomIDs: \t\t" + atomIds.mkString(";\t ")
+  // just for printing and debugging (constructing congrClasses like this every time is too computationally complex)
+  private def congrClasses: Map[ValueId,Seq[Term]] = ids.groupBy(_._2).map((id,m) => id -> m.keys.toSeq)
+  def printCongrClasses(): Unit = println("CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t"))
+  def printResults(): Unit = {
+    println("VN Results: ")
+    println(this)
+    printCongrClasses()
+    println("")
+  }
 }
 
 
@@ -61,7 +70,7 @@ case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Ter
 
 
 
-trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
+trait BaseValueNumberingNew(config: ConfigVNOld = ConfigVNOld()) extends IRVisitor {
   /* def valueNumberTerm(term): Term
 
 
@@ -91,8 +100,12 @@ trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
     visitModule(module)
   }
 
-  // reset congrClasses (otherwise would need to make sure that globally every Var has a different name)
-  override def visitBody(body: Body): Seq[Body] = super.visitBody(body)
+  // reset congrClasses (otherwise not known when variables are unbound)
+  // TODO pass over body a second time with prev results
+  override def visitBody(body: Body): Seq[Body] = {
+    congrClasses.clear()
+    super.visitBody(body)
+  }
 
   /* for each Eq(lhs,rhs,true) in which lhs is a binding Var:  // same if rhs is binding
           normalizedTerm = normalize(rhs) // also potentially replace subterms
@@ -118,6 +131,8 @@ trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
            add normalizedTerm with termId to congrClasses
   */
   override def visitTerm(term: Term): Seq[Term] = super.visitTerm(term)
+
+//  private def valueNumberVar(vari: Var, t: Term, ???): ??? = ???
 
   def normalize(term: Term): Term = term
 

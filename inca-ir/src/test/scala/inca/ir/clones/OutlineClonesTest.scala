@@ -10,7 +10,7 @@ import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
 
 class OutlineClonesTest extends ValueNumberingTestAbstract {
 
-  override val config: ConfigVN = ConfigVN(simplifyArithmetic=true, outline=true)
+  override val config: ConfigVN = ConfigVN(normalize=true, outline=true)
 
   test("2 repeated atoms in different relations") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -660,7 +660,7 @@ class OutlineClonesTest extends ValueNumberingTestAbstract {
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic=true, outline=true, attemptAlphaEquivalence=true))
+    performTest(expected, input, ConfigVN(normalize=true, outline=true, attemptAlphaEquivalence=true))
   }
   // TODO when both relations are alpha equiv. then the removed is still counted for occurences of atoms
 

@@ -38,7 +38,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
   // TODO add more cases (e.g. more rules) ? Preserve type of term ?
   // probably no recursive call needed here in the beginning since called in visitTerm
   protected override def normalize(term: Term): Term = {
-    if !this.config.simplifyArithmetic then return term
+    if !this.config.normalize then return term
     val typ: Type = term.typ match { // assumed that program was typechecked before and every term thus has a type
       case Some(termType: TermType) => termType.ty
       case _ => TAny // below only tested whether TInt or TDouble

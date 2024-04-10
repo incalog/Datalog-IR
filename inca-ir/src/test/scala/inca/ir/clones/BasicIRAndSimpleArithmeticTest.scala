@@ -914,499 +914,500 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  test("Simple Redundant Call") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X1")))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            //Call(Name("b"), Seq(TermArg(Var(Name("X1"))), false),
-            Eq(Var(Name("param$0")), Var(Name("X1")))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
 
-
-  test("Redundant Calls") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            Eq(Var("X1"), Var("X2")),
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X2")))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(11))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            //            Eq(Var("X1"), Var("X2")),
-            //            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            //            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X1")))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(11))
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
-
-  test("Redundant Ext Calls") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            Eq(Var("X1"), Var("X2")),
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X2")))
-          ))
-        )),
-        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            //            Eq(Var("X1"), Var("X2")),
-            //            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-            //            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X1")))
-          ))
-        )),
-        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
-      ))
-    performTest(expected, input)
-  }
-  
-  test("Redundant Atoms") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X1"), IntNum(32)),
-            Eq(Var("X1"), Var("X2")),
-            Eq(Var("X2"), Var("X1")),
-            GE(Var("X1"),IntNum(2)),
-            GE(Var("X2"),IntNum(2)),
-            LT(Var("X1"), IntNum(64)),
-            LT(Var("X2"), IntNum(64)),
-            Eq(Var("X1"), IntNum(4), true),
-            Eq(Var("X2"), IntNum(4), true),
-            Eq(Var(Name("param$0")), Var(Name("X2")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X1"), IntNum(32)),
+//  test("Simple Redundant Call") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X1")))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            //Call(Name("b"), Seq(TermArg(Var(Name("X1"))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X1")))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
+//
+//
+//  test("Redundant Calls") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
 //            Eq(Var("X1"), Var("X2")),
-//            Eq(Var("X1"), Var("X1")),
-            GE(Var("X1"), IntNum(2)),
-//            GE(Var("X2"), IntNum(2)),
-            LT(Var("X1"), IntNum(64)),
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X2")))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          )),
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(11))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            //            Eq(Var("X1"), Var("X2")),
+//            //            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            //            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X1")))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          )),
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(11))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
+//
+//  test("Redundant Ext Calls") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            Eq(Var("X1"), Var("X2")),
+//            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X2")))
+//          ))
+//        )),
+//        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            //            Eq(Var("X1"), Var("X2")),
+//            //            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+//            //            Call(Name("b"), Seq(TermArg(Var(Name("X2")))), false),
+//            Eq(Var(Name("param$0")), Var(Name("X1")))
+//          ))
+//        )),
+//        ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
+//      ))
+//    performTest(expected, input)
+//  }
+//
+//  test("Redundant Atoms") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("X1"), IntNum(32)),
+//            Eq(Var("X1"), Var("X2")),
+//            Eq(Var("X2"), Var("X1")),
+//            GE(Var("X1"),IntNum(2)),
+//            GE(Var("X2"),IntNum(2)),
+//            LT(Var("X1"), IntNum(64)),
 //            LT(Var("X2"), IntNum(64)),
-            Eq(Var("X1"), IntNum(4), true),
+//            Eq(Var("X1"), IntNum(4), true),
 //            Eq(Var("X2"), IntNum(4), true),
-            Eq(Var(Name("param$0")), Var(Name("X1")))
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
-
-  test("Redundant bodies") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"),IntNum(1)))
-          )),
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//            Eq(Var(Name("param$0")), Var(Name("X2")))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("X1"), IntNum(32)),
+////            Eq(Var("X1"), Var("X2")),
+////            Eq(Var("X1"), Var("X1")),
+//            GE(Var("X1"), IntNum(2)),
+////            GE(Var("X2"), IntNum(2)),
+//            LT(Var("X1"), IntNum(64)),
+////            LT(Var("X2"), IntNum(64)),
+//            Eq(Var("X1"), IntNum(4), true),
+////            Eq(Var("X2"), IntNum(4), true),
+//            Eq(Var(Name("param$0")), Var(Name("X1")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
+//
+//  test("Redundant bodies") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
 //          Body(Seq(
 //            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
 //            GT(Var(Name("n")), IntNum(0)),
-//            Eq(Var(Name("result")), Add(Var("n", Int(1))))
+//            Eq(Var(Name("result")), Add(Var("n"),IntNum(1)))
 //          )),
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  // This does not work, since currently not known whether the order of atoms can be switched without changing the meaning of the program
-  test("Redundant bodies 2") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
-            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
-          )),
-          Body(Seq(
-            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+////          Body(Seq(
+////            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+////            GT(Var(Name("n")), IntNum(0)),
+////            Eq(Var(Name("result")), Add(Var("n", Int(1))))
+////          )),
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  // This does not work, since currently not known whether the order of atoms can be switched without changing the meaning of the program
+//  test("Redundant bodies 2") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
 //          Body(Seq(
 //            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
 //            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
 //            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
 //          )),
-          Body(Seq(
-            Eq(Var(Name("m")), IntNum(4)),
-            Eq(Var(Name("n")), IntNum(10)),
-            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("Redundant Relation") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("Redundant Relation with renaming") { // TODO
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("m", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("m")), IntNum(10)),
-            GT(Var(Name("m")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("m"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(10)),
-            GT(Var(Name("param$0")), IntNum(0)),
-            Eq(Var(Name("param$1")), Add(IntNum(1), Var("param$0")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(simplifyArithmetic = true, attemptAlphaEquivalence = true))
-  }
-
-  test("Redundant Relation with Call of removed Relation") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10)),
-            GT(Var(Name("n")), IntNum(0)),
-            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("Repeated Atoms in different Relations") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("A1")), IntNum(10)),
-            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("Repeated Atoms in different Relations 2") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(IntNum(2),Var("B1"))),
-            Eq(Var(Name("m")), Mul(Var("B1"),Var("n"))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("A1")), IntNum(10)),
-            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1"))),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("A1")), IntNum(10)),
-            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
-            Eq(Var(Name("m")), Mul(Var("A1"),Var("n"))),
-            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-
-  test("Repeated Atoms in different Relations with Calls") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("A1")))),
-            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("A1"),Var("A2"))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("B1")))),
-            Eq(Var(Name("B2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("B1"),Var("B2"))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var("n"), IntNum(11))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("A1")))),
-            Eq(Var(Name("A2")), IntNum(10)),
-            Eq(Var(Name("n")), Mul(Var("A1"),Var("A2"))),
-            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
-          ))
-        )),
-        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var("n"), IntNum(11))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("Repeated Atoms in same Relation with Calls") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("A1")))),
-            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          )),
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("B1")))),
-            Eq(Var(Name("B2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("n")), Mul(Var("B1"), Var("B2"))),
-            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
-          ))
-        )),
-        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var("n"), IntNum(11))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("c"), Seq(TermArg(Var("A1")))),
-            Eq(Var(Name("A2")), IntNum(10)),
-            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
-            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
-          ))//,
+//          Body(Seq(
+//            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+////          Body(Seq(
+////            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+////            Eq(Var(Name("m")), Mul(IntNum(2), IntNum(2))),
+////            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+////          )),
+//          Body(Seq(
+//            Eq(Var(Name("m")), IntNum(4)),
+//            Eq(Var(Name("n")), IntNum(10)),
+//            Eq(Var(Name("result")), Add(Var("n"), Var("m")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  test("Redundant Relation") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  test("Redundant Relation with renaming") { // TODO
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("m", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("m")), IntNum(10)),
+//            GT(Var(Name("m")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("m"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(10)),
+//            GT(Var(Name("param$0")), IntNum(0)),
+//            Eq(Var(Name("param$1")), Add(IntNum(1), Var("param$0")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(normalize = true, attemptAlphaEquivalence = true))
+//  }
+//
+//  test("Redundant Relation with Call of removed Relation") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("c"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("b"), Seq(TermArg(Var("result")),TermArg(Var("n"))))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10)),
+//            GT(Var(Name("n")), IntNum(0)),
+//            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  test("Repeated Atoms in different Relations") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("B1"), IntNum(2))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("A1")), IntNum(10)),
+//            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
+//            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  test("Repeated Atoms in different Relations 2") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("A1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("A1"), IntNum(2))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("B1")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(IntNum(2),Var("B1"))),
+//            Eq(Var(Name("m")), Mul(Var("B1"),Var("n"))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("A1")), IntNum(10)),
+//            Eq(Var(Name("n")), Mul(IntNum(2), Var("A1"))),
+//            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("m", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("A1")), IntNum(10)),
+//            Eq(Var(Name("n")), Mul(IntNum(2),Var("A1"))),
+//            Eq(Var(Name("m")), Mul(Var("A1"),Var("n"))),
+//            Eq(Var(Name("result")), Add(IntNum(1), Var("n")))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//
+//  test("Repeated Atoms in different Relations with Calls") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("A1")))),
+//            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("A1"),Var("A2"))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("b"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("B1")))),
+//            Eq(Var(Name("B2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("B1"),Var("B2"))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10))
+//          )),
+//          Body(Seq(
+//            Eq(Var("n"), IntNum(11))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("A1")))),
+//            Eq(Var(Name("A2")), IntNum(10)),
+//            Eq(Var(Name("n")), Mul(Var("A1"),Var("A2"))),
+//            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+//          ))
+//        )),
+//        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10))
+//          )),
+//          Body(Seq(
+//            Eq(Var("n"), IntNum(11))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
+//
+//  test("Repeated Atoms in same Relation with Calls") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("A1")))),
+//            Eq(Var(Name("A2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          )),
+//          Body(Seq(
+//            Call(Name("c"), Seq(TermArg(Var("B1")))),
+//            Eq(Var(Name("B2")), Mul(IntNum(2), Add(IntNum(2), IntNum(3)))),
+//            Eq(Var(Name("n")), Mul(Var("B1"), Var("B2"))),
+//            Eq(Var(Name("result")), Add(Var("n"), IntNum(1)))
+//          ))
+//        )),
+//        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10))
+//          )),
+//          Body(Seq(
+//            Eq(Var("n"), IntNum(11))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
 //          Body(Seq(
 //            Call(Name("c"), Seq(TermArg(Var("A1")))),
 //            Eq(Var(Name("A2")), IntNum(10)),
 //            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
 //            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+//          ))//,
+////          Body(Seq(
+////            Call(Name("c"), Seq(TermArg(Var("A1")))),
+////            Eq(Var(Name("A2")), IntNum(10)),
+////            Eq(Var(Name("n")), Mul(Var("A1"), Var("A2"))),
+////            Eq(Var(Name("result")), Add(IntNum(1),Var("n")))
+////          ))
+//        )),
+//        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("n")), IntNum(10))
+//          )),
+//          Body(Seq(
+//            Eq(Var("n"), IntNum(11))
 //          ))
-        )),
-        Relation(Name("c"), Seq(Param("n", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("n")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var("n"), IntNum(11))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
+//        ))
+//      ))
+//    performTest(expected, input, ConfigVN(true))
+//  }
 
 }

@@ -12,7 +12,7 @@ import inca.ir.extension.arithmetic.{Add, GT, IntNum, LE, Mul, Sub, TInt}
 import ir.{Body, Call, Eq, Param, Relation, Var}
 import inca.ir.term2Arg
 
-import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
+import inca.ir.valueNumbering.{ConfigVNOld, ValueNumbering}
 
 // TODO fill in missing expected results below
 
@@ -20,7 +20,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
   val exec: FunctionalExecutor = new FunctionalExecutor(new inca.viatra.Executor)
 
-  def performTest(path: String, expectedVNResult: IRModule, expectedExecResult: Any, argsExec: Seq[Any] = Seq(), functionName: String = "main", config: ConfigVN = ConfigVN()): Unit = {
+  def performTest(path: String, expectedVNResult: IRModule, expectedExecResult: Any, argsExec: Seq[Any] = Seq(), functionName: String = "main", config: ConfigVNOld = ConfigVNOld()): Unit = {
     val code = FileUtil.readFileFromResource(path)
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalModule.pipeline)
@@ -84,7 +84,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
         ExtensionalRelation(Name("ext_main$input"), Seq(Param(Name("z"), TInt)))
       )
     )
-    performTest("functional/clones/letAddition.finca", expected, 33, Seq(1), config = ConfigVN(true))
+    performTest("functional/clones/letAddition.finca", expected, 33, Seq(1), config = ConfigVNOld(true))
   }
 
   test("let with addition (commutativity)") {
@@ -104,7 +104,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
         ExtensionalRelation(Name("ext_main$input"), Seq(Param(Name("z"), TInt)))
       )
     )
-    performTest("functional/clones/letAddCommutativ.finca", expected, 33, Seq(1), config = ConfigVN(true))
+    performTest("functional/clones/letAddCommutativ.finca", expected, 33, Seq(1), config = ConfigVNOld(true))
   }
 
   test("let with addition (associativity)") {
@@ -124,7 +124,7 @@ class ClonesFunctionalTest extends AnyFunSuite{
         ExtensionalRelation(Name("ext_main$input"), Seq(Param(Name("z"), TInt)))
       )
     )
-    performTest("functional/clones/letAddAssociative.finca", expected, 36, Seq(1), config = ConfigVN(true))
+    performTest("functional/clones/letAddAssociative.finca", expected, 36, Seq(1), config = ConfigVNOld(true))
   }
 
 
