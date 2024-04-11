@@ -17,7 +17,7 @@ import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
 
 object Executor:
-  lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
+  private lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
 
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
   class Engine(executable: ProcessBuilder, inputs: Map[String, ProgramContent.EDBFile]) extends ExecutorEngine:
@@ -77,7 +77,6 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
           }.toSeq)
           Relation.from(rel, 0.until(size).map(i => s"Param$i"), elements)
         }
-
         cachedResult = Some(result)
         inputDirty = false
         result
@@ -153,6 +152,6 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case ThreadCount.Auto => Seq()
       case ThreadCount.Fixed(n) if n > 1 => Seq("RAYON_NUM_THREADS" -> n.toString)
       case _ => Seq()
-    val runProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
-    new Engine(runProcess, fileInputs.map(i => (i.name, i)).toMap)
+    val execProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
+    new Engine(execProcess, fileInputs.map(i => (i.name, i)).toMap)
   }

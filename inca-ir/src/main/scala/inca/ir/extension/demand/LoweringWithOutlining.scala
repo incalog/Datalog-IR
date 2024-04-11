@@ -9,11 +9,12 @@ import inca.ir.typing.Mode.Binding
 import inca.util.Gensym
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{AbstractSeq, LinearSeq}
+import scala.collection.immutable.{AbstractSeq, LinearSeq, ListSet}
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 trait LoweringWithOutlining extends BaseLowering:
-  override val name: String = "Demand"
+  override val name: String = "Demand With Outlining"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
@@ -104,13 +105,19 @@ trait LoweringWithOutlining extends BaseLowering:
     case _ => super.visitType(ty)
 
   private val currentPrefixAtoms: ListBuffer[Atom] = ListBuffer()
+  private val currentSuffixAtoms: ListBuffer[Atom] = ListBuffer()
 
   override def visitBody(body: Body): Seq[Body] =
     currentPrefixAtoms.clear()
-    body.atoms.foreach { a =>
-      visitAtom(a)
-      currentPrefixAtoms += a
+    currentSuffixAtoms.clear()
+    currentSuffixAtoms.addAll(body.atoms)
+
+    while (currentSuffixAtoms.nonEmpty) {
+      val atom = currentSuffixAtoms.remove(0)
+      visitAtom(atom)
+      currentPrefixAtoms += atom
     }
+
     Seq(Body(currentPrefixAtoms.toSeq))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
@@ -130,11 +137,28 @@ trait LoweringWithOutlining extends BaseLowering:
             val callee = rel.name
             val prefixName = gensym.freshGlobal(s"${caller}_$callee")
 
-            val relevantVars = currentPrefixAtoms.flatMap(_.vars).distinct.toSeq
-            // TODO: This might make problems when we cast variables to different types
-            val params = relevantVars.map(v => Param(v.name, v.typ.get.ty))
+            val paramVars = currentRelation.params.map(p => Var(p.name).typed(p.ty.bound))
+            val prefixVars = ListSet.from(currentPrefixAtoms.flatMap(_.vars))
+            val suffixVars = (currentSuffixAtoms.flatMap(_.vars) ++ atom.vars ++ paramVars).toSet
+            val relevantVars = prefixVars.intersect(suffixVars).toSeq
 
-            addDemandPrefixRule(rel, prefixName, params, currentPrefixAtoms.toSeq)
+            /*
+            fromTo$0(start: TDemand(TInt), end: TDemand(TInt), fromTo_result$1: TInt) {
+              fromTo(start, end, fromTo_result$0)
+              Set$TInt$enum(fromTo_result$0, fromTo_result$1)
+            }
+             */
+            println("---------------")
+            println(prefixName)
+            //println(paramVars)
+            println(prefixVars)
+            println(suffixVars)
+            println(relevantVars)
+
+            // TODO: This might make problems when we cast variables to different types?
+            val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
+
+            addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)
 
             val prefixCall = Call(prefixName, relevantVars.map(_.arg))
@@ -160,11 +184,15 @@ trait LoweringWithOutlining extends BaseLowering:
             val callee = rel.name
             val prefixName = gensym.freshName(s"${caller}_$callee")
 
-            val relevantVars = currentPrefixAtoms.flatMap(_.vars).distinct.toSeq
-            // TODO: This might make problems when we cast variables to different types
-            val params = relevantVars.map(v => Param(v.name, v.typ.get.ty))
+            val paramVars = currentRelation.params.map(p => Var(p.name).typed(p.ty.bound))
+            val prefixVars = ListSet.from(currentPrefixAtoms.flatMap(_.vars))
+            val suffixVars = (currentSuffixAtoms.flatMap(_.vars) ++ atom.vars ++ paramVars).toSet
+            val relevantVars = prefixVars.intersect(suffixVars).toSeq
 
-            addDemandPrefixRule(rel, prefixName, params, currentPrefixAtoms.toSeq)
+            // TODO: This might make problems when we cast variables to different types
+            val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
+
+            addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)
 
             val prefixCall = Call(prefixName, relevantVars.map(_.arg))
