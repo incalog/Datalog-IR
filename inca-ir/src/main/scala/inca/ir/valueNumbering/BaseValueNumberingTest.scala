@@ -9,7 +9,7 @@ import inca.ir.visitors.IRVisitor
 
 
 /** wraps parameters for value numbering */
-case class ConfigVN(normalize: Boolean = false,  // TODO fix problem (see FunctionalTests)
+case class ConfigVN(normalize: Boolean = false,
                     propagateConstants: Boolean = true,
 //                    occurrencesBeforeRemoved: Int = 0,
                    )
@@ -19,7 +19,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   // TODO currently equal terms do not all get the same id e.g. a-a -> 3 but 0 -> 4 ?
   private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
-  private val valueNumbers: ValueIds = new ValueIds() // Map[Term, ValueId]
+  private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
 
   def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
   def getReplacementTerm(t: Term): Term = getCongrClassOf(t).leader
@@ -68,23 +68,22 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     super.visitRelation(relation)
   }
 
-  
+
 
   private var currentBodyVars: Seq[Var] = Seq()
 //  private def isUsedInBody(t: Term): Boolean = currentBodyVars.map(_.name.name).contains(t) // TODO like this or use gensym?
 
-  private var currentAtomIndex: Int = -1
 
   override def visitBody(body: Body): Seq[Body] = {
     congrClasses.foreach((k,congrClass) => congrClassesGlobal.update(k,congrClass)) // TODO merge congrClass
 
-    currentAtomIndex = -1
     currentBodyIndex += 1
     currentBodyVars = body.vars
     val newBodySeq2 = super.visitBody(body)
 //    val newBodySeq2 = super.visitBody(body)
 
     // reset congrClasses (otherwise not known when variables are unbound)
+    println(s"CongruenceClasses from Relation $currentRelationName body $currentBodyIndex")
     println("\t" + congrClasses.mkString("\n\t") + "\n")
     congrClasses.clear()
     newBodySeq2
@@ -103,36 +102,32 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   protected def normalize(term: Term): Term = term
 
   /** replaces term with Var if possible */
-  override def visitTerm(term: Term): Seq[Term] = term match {
-//    case v@Var(RefByName(Name(name))) if valueNumbers.contains(v) =>
-//      Seq(
-//        newVar(valueNumbers(v).name,v.typ)
-//      )
+  override def visitTerm(term: Term): Seq[Term] = {
+    if isConst(term) then return Seq(term) // dont replace constant terms and no need to normalize them
+    if congrClasses.contains(valueNumbers(term)) then return Seq( getReplacementTerm(term) )
 
-    case _ if isConst(term) => Seq(term) // dont replace constant terms and no need to normalize them
-    case _ =>
-      val newTerm = super.visitTerm(term).head
-      if term.typ.nonEmpty then newTerm.typed(term.typ.get)
-      val termId: ValueId = valueNumbers(newTerm)
-      if (termId != valueNumbers(term)){
-        // ids not equal but terms are equal because newTerm was obtained by rewriting term
-        // -> should have same id
-        valueNumbers.update(term,termId)
-      }
-      if (congrClasses.contains(termId)) {
-        val res = Seq(congrClasses(termId).leader)
-        res
-      }
-      else {
-        val normalizedTerm = normalize(newTerm)
-        valueNumbers.update(normalizedTerm,termId)
-        // add to congrClass (not needed for this to work but maybe change leader ???)
+    val newTerm = super.visitTerm(term).head
+    if term.typ.nonEmpty then newTerm.typed(term.typ.get)
+    val termId: ValueId = valueNumbers(newTerm)
+    if (termId != valueNumbers(term)){
+      // ids not equal but terms are equal because newTerm was obtained by rewriting term
+      // -> should have same id
+      valueNumbers.update(term,termId)
+    }
+    if (congrClasses.contains(termId)) {
+      val res = Seq(congrClasses(termId).leader)
+      res
+    }
+    else {
+      val normalizedTerm = normalize(newTerm)
+      valueNumbers.update(normalizedTerm,termId)
+      // add to congrClass (not needed for this to work but maybe change leader ???)
 //        val normalTermId = valueNumbers(normalizedTerm)
 //        congrClasses.update(normalTermId, {
 //          congrClasses(normalTermId).contents = congrClasses(normalTermId).contents.appended(normalizedTerm); congrClasses(normalTermId)
 //        })
-        Seq(normalizedTerm)
-      }
+      Seq(normalizedTerm)
+    }
   }
 
 
@@ -249,7 +244,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
       case t => t
     }
-    
+
     val newCall = call match{
       case Call(ref,_,neg) => Call(ref,newArgs,neg)
       case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
