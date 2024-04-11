@@ -8,6 +8,9 @@ import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.arithmetic
+import inca.ir.extension.data.*
+import java.{util => ju}
+import inca.ir.typing.TypeErrorException
 
 class CompiledProgramTest extends AnyFunSuite:
 
@@ -53,6 +56,52 @@ class CompiledProgramTest extends AnyFunSuite:
         Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
           Call("R_Module1", Seq(Var("a"), Var("b")))))))
       )
+    )
+  }
+
+  test("simple 2Module relation import wrong linkset") {
+    assertThrows[ju.NoSuchElementException] {
+      val module1: Module = module("Module1", Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), Var("y")))))),
+        RelationExport("R", Seq(TInt, TInt)))
+      val module2: Module = module("Module2", RelationImport("Q", Seq(TInt, TInt)),
+        Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
+          Call("Q", Seq(Var("a"), Var("b")))
+        )))))
+
+      val compiledModule1 = new TestCompiledModule(module1)
+      val compiledModule2 = new TestCompiledModule(module2)
+
+      class testCompiledProgram extends CompiledProgram:
+        override val linkSet = Seq(new Link("Module1", "F", "Module2", "Q"))
+        override val modules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
+      
+      val TestCompiledProgram = new testCompiledProgram
+
+      TestCompiledProgram.intraTypecheck
+    }
+  }
+
+  test("simple 2Module relation import wrong types") {
+    val module1: Module = module("Module1", Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+      Eq(Var("x"), Var("y")))))),
+      RelationExport("R", Seq(TInt, TInt)))
+    val module2: Module = module("Module2", RelationImport("Q", Seq(TNothing, TNothing)),
+      Relation("T", Seq(Param("a", TNothing), Param("b", TNothing)), Seq(Body(Seq(
+        Call("Q", Seq(Var("a"), Var("b")))
+      )))))
+
+    val compiledModule1 = new TestCompiledModule(module1)
+    val compiledModule2 = new TestCompiledModule(module2)
+
+    class testCompiledProgram extends CompiledProgram:
+      override val linkSet = Seq(new Link("Module1", "R", "Module2", "Q"))
+      override val modules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
+    
+    val TestCompiledProgram = new testCompiledProgram
+
+    assertThrows[TypeErrorException](
+      TestCompiledProgram.intraTypecheck
     )
   }
 
@@ -142,4 +191,48 @@ class CompiledProgramTest extends AnyFunSuite:
        Relation("AR", Seq(Param("w", TInt), Param("v", TInt)), Seq(Body(Seq(Call("CR1_ModuleC", Seq(Var("w"), Var("v"))), Call("BR_ModuleB", Seq(Var("w")))))))
     )
   )
+  }
+
+  test("Module Data import") {
+   val module1: Module = module("Module1",
+     DataDefinition("testdata"), 
+     CaseDefinition("addition", Seq(TInt, TInt), TData("testdata")), 
+     DataDefinitionExport("testdata"), 
+     CaseDefinitionExport("addition", Seq(TInt, TInt), TData("testdata")))
+
+   val module2: Module = module("Module2",
+     DataDefinitionImport("testdata2"), 
+     CaseDefinitionImport("addition2", Seq(TInt, TInt), TData("testdata2")), 
+     Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))), 
+     Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+       Call("Bind", Seq(Var("x"), Var("y"))), 
+       Eq(Construct("addition2", Seq(Var("x"), Var("x"))), Construct("addition2", Seq(Var("y"), Var("y"))))
+     ))))
+   )
+
+   val compiledModule1 = new TestCompiledModule(module1)
+   val compiledModule2 = new TestCompiledModule(module2)
+  
+   class testCompiledProgram extends CompiledProgram:
+     override val linkSet = Seq(
+       new Link("Module1", "testdata", "Module2", "testdata2"), 
+       new Link("Module1", "addition", "Module2", "addition2")
+     )
+     override val modules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2)
+
+   val TestCompiledProgram = new testCompiledProgram
+
+
+   TestCompiledProgram.intraTypecheck
+   assert(TestCompiledProgram.linkedModule ==
+     module("Module2",
+       DataDefinition("testdata_Module1"),
+       CaseDefinition("addition_Module1", Seq(TInt, TInt), TData("testdata_Module1")),
+
+       Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+       Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+         Call("Bind", Seq(Var("x"), Var("y"))), Eq(Construct("addition_Module1", Seq(Var("x"), Var("x"))), Construct("addition_Module1", Seq(Var("y"), Var("y"))))
+       ))))
+     )
+   )
   }

@@ -90,6 +90,6 @@ trait CompiledProgram:
           linkSet.find(link => link.toModule == currentModule.name && link.importEntry == mImport.name) match
             case Some(curlink) => RefByName[Target](getExportEntry(curlink.fromModule, curlink.exportEntry).name + s"_${curlink.fromModule}")
             case None => throw IllegalArgumentException(s"Imported entry does not exist")
-        case _ => super.visitRef(ref)
+        case _ => if linkSet.exists(l => l.fromModule == currentModule.name && l.exportEntry == name) then RefByName(name + s"_${currentModule.name}") else super.visitRef(ref)
       case _ => super.visitRef(ref)
     )
