@@ -1,9 +1,9 @@
 module MonoMapWithSetTest
 
 @main def main(): Set[Int] = {
-  val m = new mono.Map[Int, mono.Set[Int]]()
-  m += (0, 1)
-  m += (0, 2)
-  m += (1, 1)
-  return m.get(0)
+  val m = new mono.Map[String, mono.Set[Int]]()
+  m += ("A", 1)
+  m += ("A", 2)
+  m += ("B", 1)
+  return m.get("A")
 }
