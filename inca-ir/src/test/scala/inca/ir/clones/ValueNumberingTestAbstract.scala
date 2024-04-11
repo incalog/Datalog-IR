@@ -26,11 +26,6 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
     println("#"*100)
   }
 
-  implicit def containDollar(name: String): String = {
-    if name.contains("$") then name
-    else name + "$0"
-  }
-
 }
 
 

@@ -29,11 +29,17 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("X")), IntNum(1)),
+//            //Eq(Var(Name("Y")), Var(Name("X"))),
+//            Eq(Var(Name("param$0")), Var(Name("X"))),
+//            Eq(Var(Name("param$1")), Var(Name("X")))
+//          ))
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("X")), IntNum(1)),
             //Eq(Var(Name("Y")), Var(Name("X"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("X")))
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(1))
           ))
         ))
       ))
@@ -903,6 +909,49 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("X")), IntNum(12)),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+  test("Call and check for Equality with unknown val of var learned later2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("Y")))),
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
+            Eq(Var("W"), Add(Var("X"), IntNum(3))),
+            Eq(IntNum(12), Var(Name("X"))), // now value of X is known -> W also known
+            Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the hash of first introduction of X is needed
+            Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether hash contained in hashtable)
+            //            Eq(Var("V"), Var("Z")),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("Y")))),
+            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
+//            Eq(Var("W"), Add(IntNum(12), IntNum(3))),
+            //            Eq(Var(Name("Z")), IntNum(12))
+//            Eq(Var(Name("X")), IntNum(12)),
+            Eq(Var(Name("param$0")), IntNum(12)),
+            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(

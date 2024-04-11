@@ -6,34 +6,10 @@ import inca.ir.typing.Mode.Bound
 
 trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
-//  protected override def getHashCode(atom: Atom): ValueId = atom match{
-//    case BinCompare(lhs, rhs, op) => Seq(BinCompare,getHashCode(lhs),getHashCode(rhs),op).hashCode()
-//    case _ => super.getHashCode(atom)
-//  }
-//
-//  protected override def getHashCode(term: Term): ValueId = term match {
-//    case BinOp(lhs,rhs,op) => Seq(BinOp,getHashCode(lhs),getHashCode(rhs),op).hashCode()
-//    case UnOp(t, op) => Seq(UnOp,getHashCode(t),op).hashCode()
-//    case IntNum(_) | DoubleNum(_) => super.getHashCode(term)
-//    case _ => super.getHashCode(term)
-//  }
-
   protected override def isConst(term: Term): Boolean = term match {
     case IntNum(_) | DoubleNum(_) => true
     case _ => super.isConst(term)
   }
-
-//  protected override def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
-//    if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
-//
-//    // TODO
-////      newAtomSeq.head match {
-////        case BinCompare(lhs, rhs, "<") if isConst(lhs) && isConst(rhs) => (lhs,rhs) match{
-////          case (IntNum(l),IntNum(r)) => if l < r then Seq() else newAtomSeq
-////        }
-////      }
-//    newAtomSeq
-//  }
 
   // TODO add more cases (e.g. more rules) ? Preserve type of term ?
   // probably no recursive call needed here in the beginning since called in visitTerm
@@ -85,8 +61,8 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
   }
 
 
-  // TODO compare hashCodes in the following functions or names of vars ?
-  //  when hashes are used it happens that constants are propagated without the option in Config
+  // TODO compare ids in the following functions or names of vars ?
+  //  when ids are used it happens that constants are propagated without the option in Config
   //  this can lead to other equalities not being found (without the option set to true) (see test "Add nested multiple times"
   private def simplifyAdd(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
       case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs

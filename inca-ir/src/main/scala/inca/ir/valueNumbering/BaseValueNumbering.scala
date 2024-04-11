@@ -70,75 +70,78 @@ case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Ter
 
 
 
-trait BaseValueNumberingNew(config: ConfigVNOld = ConfigVNOld()) extends IRVisitor {
-  /* def valueNumberTerm(term): Term
-
-
-   */
-
-  /* VN(x) -> congrClasses(valueNumbers(x)).leader -> getReplacementTerm(x)
-  *  VN += (x, v) -> valueNumbers.update(x, valueNumbers(v)) -> ??? update congruence class if x is a const
-  * */
-  /* hashTable(n) -> congrClasses(n).leader
-     hashTable += (termId,v) -> change leader or create new congruence class
-            -> congrClasses(termId).leader = v;  congrClasses.update(termId, new CongruenceClass(termId,v,v,Seq(v)) )
-   */
+trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   private val congrClasses: mutable.Map[ValueId,CongruenceClass] = mutable.Map()
   private val valueNumbers: ValueIds = new ValueIds() // Map[Term, ValueId]
 
-  def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
-  def getReplacementTerm(t: Term): Term = getCongrClassOf(t).leader
-
-
-// TODO is that needed if constants are always used as leader and thus propagated when possible?
-//  -> if it is not (replaced by) a constant its value is unknown
-// var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
+  private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  private def getReplacementTerm(t: Term): Term = getCongrClassOf(t).leader
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
-    visitModule(module)
+//    val newModule = ValueNumberingAnalyze().visitModule(module)
+//    ValueNumberingRewrite().visitModule(newModule)
+    super.visitModule(module)
   }
-
-  // reset congrClasses (otherwise not known when variables are unbound)
-  // TODO pass over body a second time with prev results
-  override def visitBody(body: Body): Seq[Body] = {
-    congrClasses.clear()
-    super.visitBody(body)
-  }
-
-  /* for each Eq(lhs,rhs,true) in which lhs is a binding Var:  // same if rhs is binding
-          normalizedTerm = normalize(rhs) // also potentially replace subterms
-          termId = getIdOf(normalizedTerm)
-          if termId in CongrClasses then
-              add lhs to CongrClasses(termId)
-              valueNumbers.update(lhs, termId)
-              remove Eq
-          else:
-              newCongrClass = new CongruenceClass(termId, lhs, rhs, Seq(lhs,rhs))
-              add newCongrClass to CongrClasses(termId)
-              leave Eq in program
-   */
-  override def visitAtom(atom: Atom): Seq[Atom] = super.visitAtom(atom)
-
-  /* for each term in body:
-       normalizedTerm = normalize(term)
-       termId = getIdOf(normalizedTerm)   // -> adds normalizedTerm to ValueIds if not present before
-       if termId in CongrClasses then
-           congrClass = congrClasses(termId)
-           replace term with congrClass.leader
-       else:
-           add normalizedTerm with termId to congrClasses
-  */
-  override def visitTerm(term: Term): Seq[Term] = super.visitTerm(term)
-
-//  private def valueNumberVar(vari: Var, t: Term, ???): ??? = ???
 
   def normalize(term: Term): Term = term
 
   def isConst(term: Term): Boolean = false
 
+  //class ValueNumberingAnalyze extends IRVisitor {
 
+
+    override def visitBody(body: Body): Seq[Body] = {
+      val newBody = super.visitBody(body).head // normalization and analyzation
+      val resBody = ValueNumberingRewrite().rewriteBody(newBody) // rewrite
+      Seq(resBody)
+      // reset congrClasses (otherwise not known when variables are unbound)
+//      congrClasses.clear()
+    }
+
+    /* for each Eq(lhs,rhs,true) in which lhs is a binding Var:  // same if rhs is binding
+            normalizedTerm = normalize(rhs) // also potentially replace subterms
+            termId = getIdOf(normalizedTerm)
+            if termId in CongrClasses then
+                add lhs to CongrClasses(termId)
+                valueNumbers.update(lhs, termId)
+                remove Eq
+            else:
+                newCongrClass = new CongruenceClass(termId, lhs, rhs, Seq(lhs,rhs))
+                add newCongrClass to CongrClasses(termId)
+                leave Eq in program
+     */
+    override def visitAtom(atom: Atom): Seq[Atom] = super.visitAtom(atom)
+
+    /* for each term in body:
+         normalizedTerm = normalize(term)
+         termId = getIdOf(normalizedTerm)   // -> adds normalizedTerm to ValueIds if not present before
+         if termId in CongrClasses then
+             congrClass = congrClasses(termId)
+             replace term with congrClass.leader
+         else:
+             add normalizedTerm with termId to congrClasses
+    */
+    override def visitTerm(term: Term): Seq[Term] = super.visitTerm(term)
+
+    private def valueNumberVar(vari: Var, t: Term): Unit = ???
+
+  //}
+
+  class ValueNumberingRewrite extends IRVisitor{
+//    def rewrite(module: ir.Module): ir.Module = super.visitModule(module)
+
+    //override protected def visitBody(body: Body): Body = ???
+    def rewriteBody(body: Body): Body = super.visitBody(body).head
+
+    //override protected def visitAtom(atom: Atom): Seq[Atom] = ???
+    private def rewriteAtom(atom: Atom): Seq[Atom] = ???
+
+
+    private def rewriteTerm(term: Term): Seq[Term] = ???
+
+  }
 
 
 
