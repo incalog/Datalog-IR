@@ -36,7 +36,7 @@ import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
-import inca.viatra.Executor
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory

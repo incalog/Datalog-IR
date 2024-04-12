@@ -12,6 +12,7 @@ import inca.ir.util.SourceLocation
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.EnginePool
 
 import java.io.IOException
@@ -247,11 +248,14 @@ object AbstractSyntaxGraph:
     override def ir: Module = mod
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
-      opt.irLogging.logLowerings = false
+      opt.irLogging.logLowerings = true
       opt.irLogging.logTypeInformation = false
       opt
     }
-    setPipeline(List(() => new demand.Lowering {}))
+    setPipeline(List(
+      () => new demand.Lowering {}
+      //() => new LoweringWithOutlining {}
+    ))
 
 
   @main def benchmarkAsg() = {
@@ -264,7 +268,7 @@ object AbstractSyntaxGraph:
     val measurements = for (i <- Range.inclusive(10, maxNodes, step)) yield  {
       // Stats
       {
-        val engine = new inca.viatra.Executor().instantiate(compiled)
+        val engine = new Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val rels = engine.readAll()
         val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
@@ -277,13 +281,13 @@ object AbstractSyntaxGraph:
 
       // Warmup
       for (k <- Range.inclusive(1, warmups)) {
-        val engine = new inca.viatra.Executor().instantiate(compiled)
+        val engine = new Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       }
 
       i.toString -> (for (j <- Range.inclusive(1, runs)) yield {
-        val engine = new inca.viatra.Executor().instantiate(compiled)
+        val engine = new Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
         collectGarbage()
@@ -292,6 +296,13 @@ object AbstractSyntaxGraph:
     }
 
     FileUtil.writeFile(s"$resultPath/asg/ASG_DL.csv", csvToString(toCSV(measurements)))
+  }
+
+  @main def runAsgUsingViatra() = {
+    val engine = inca.viatra.backend.Executor().instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(rel.asTable)
   }
 
   @main def runAsgUsingSouffle() = {

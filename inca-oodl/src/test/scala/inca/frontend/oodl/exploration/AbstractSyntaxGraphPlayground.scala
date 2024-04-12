@@ -11,6 +11,7 @@ import inca.ir.extension.string.*
 import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.EnginePool
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -599,7 +600,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
 
     val runs = 1
     val executionTimes = (0 until runs).map { _ =>
-      val engine = new inca.viatra.Executor().instantiate(compiled)
+      val engine = new Executor().instantiate(compiled)
       edbs.foreach(engine.insert)
       //edbs.foreach(e => println(e.asTable))
       val start = System.nanoTime()

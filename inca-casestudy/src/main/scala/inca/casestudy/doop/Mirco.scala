@@ -7,6 +7,8 @@ import inca.ir.extension.{block, bool, disjunction, not}
 import inca.ir.optimize.AliasElimination
 import inca.souffle.frontend.compile.CompiledSouffleModule
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend
+import inca.viatra.backend.Executor
 
 import scala.io.Source
 
@@ -70,10 +72,10 @@ object Mirco:
 
   @main
   def runMicroDlViatra(): Unit = {
-    inca.viatra.Executor.initializeLogging()
+    backend.Executor.initializeLogging()
     //inca.viatra.Executor.enableDebugLogging()
 
-    runMicroDL(compiled => inca.viatra.Executor().instantiate(compiled))
+    runMicroDL(compiled => Executor().instantiate(compiled))
   }
 
   @main

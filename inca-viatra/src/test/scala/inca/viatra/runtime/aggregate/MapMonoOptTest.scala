@@ -23,6 +23,8 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend
+import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -104,7 +106,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptModule(mod)
 //    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
-    val exec: IRExecutor = new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE)
+    val exec: IRExecutor = new Executor(DRedReteBackendFactory.INSTANCE)
     exec.instantiate(compiledMod)
 
   private def module(relations: ModuleEntry*): Module =
@@ -114,7 +116,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptModule(mod)
-    val exec: IRExecutor = inca.viatra.Executor()
+    val exec: IRExecutor = backend.Executor()
     exec.instantiate(compiledMod)
   
   // mono = new MapMono[Int, Int](arithMonoDef)

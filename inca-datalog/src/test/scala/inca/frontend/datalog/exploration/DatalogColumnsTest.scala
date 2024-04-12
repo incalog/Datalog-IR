@@ -8,10 +8,11 @@ import inca.ir.extension.arithmetic as irarith
 import inca.ir.util.SourceLocation
 import inca.ir.{CompiledModule, Name, string2name, term2Arg}
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 
 class DatalogColumnsTest extends AnyFunSuite:
   val options: DatalogCompilerOptions = DatalogCompilerOptions.fromResource("datalog/Options.ini")
-  val exec: IRExecutor = new inca.viatra.Executor()
+  val exec: IRExecutor = new Executor()
 
   test("Path") {
     // Note: Deactivate optimizations before experiments

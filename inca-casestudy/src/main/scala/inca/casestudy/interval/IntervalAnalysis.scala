@@ -27,7 +27,7 @@ import inca.ir.{Body, Term, string2name, term2Arg, *}
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
-import inca.viatra.Executor
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory

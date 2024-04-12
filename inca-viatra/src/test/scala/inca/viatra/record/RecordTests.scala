@@ -10,6 +10,7 @@ import inca.ir.extension.{block, data, record}
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, Name, Param, RefByName, Relation, TermArg, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class RecordTests extends AnyFunSuite:
@@ -44,7 +45,7 @@ class RecordTests extends AnyFunSuite:
 
   test("Simple Record and FieldLookup") {
     val compiled = Compiled(mod1)
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val lit = engine.read(UnitRelation("R")).project(1, 2)
     assertResult(Set(4))(lit.toSet)
   }
@@ -59,7 +60,7 @@ class RecordTests extends AnyFunSuite:
       ))))
     ))
     val compiled = Compiled(input)
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val lit = engine.read(UnitRelation("R"))
     assertResult("Person(green)")(lit.entries.head.toString)
   }
@@ -88,7 +89,7 @@ class RecordTests extends AnyFunSuite:
     )
 
     val compiled = Compiled(input)
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val lit = engine.read(UnitRelation("R"))
     assertResult(Set(("green", 180)))(lit.toSet)
   }
@@ -131,7 +132,7 @@ class RecordTests extends AnyFunSuite:
       ))
     )
     val compiled = Compiled(input)
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val lit = engine.read(UnitRelation("R")).project(0, 2)
     assertResult(Set(("green", 180)))(lit.toSet)
   }

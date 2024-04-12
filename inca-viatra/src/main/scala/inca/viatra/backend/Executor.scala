@@ -1,14 +1,15 @@
-package inca.viatra
+package inca.viatra.backend
 
 import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
 import inca.ir.CompiledModule
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
+import inca.ir.execution.*
 import inca.util.ScalaCompiler
 import inca.viatra.compile.{GeneratePSystem, PSystem}
 import inca.viatra.runtime.Query.Specification
-import inca.viatra.runtime.{EnginePool, Query}
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import inca.viatra.runtime.db.Database
+import inca.viatra.runtime.{EnginePool, Query}
+import inca.viatra.backend.{ViatraRelation, ViatraUpdateListener}
 import org.apache.log4j.{BasicConfigurator, Level}
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory

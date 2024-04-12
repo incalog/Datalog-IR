@@ -21,6 +21,7 @@ import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 
 import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -79,7 +80,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val mod = Module("M", langs, relations)
     val opts = CompilerOptions.default
     val compiledMod = CompiledMonoModule(mod, opts)
-    val exec: IRExecutor = new inca.viatra.Executor
+    val exec: IRExecutor = new Executor
     exec.instantiate(compiledMod)
 
   private lazy val relation1: Relation = Relation(

@@ -3,7 +3,7 @@ package inca.casestudy.interval
 import inca.casestudy.interval
 import inca.casestudy.interval.IntervalAnalysisMono.TAssign
 import inca.casestudy.interval.edb.{Assign, Num, Sequence, While, GT, Add, Var, Skip}
-import inca.ir.{Term, string2name, term2Arg, *}
+import inca.ir.*
 import inca.ir.execution.{Relation1, Relation2, Relation3, Relation4, UnitRelation}
 import inca.ir.extension.*
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
@@ -33,7 +33,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
-import inca.viatra.Executor
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.EnginePool
 import inca.viatra.runtime.context.DataModel
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory

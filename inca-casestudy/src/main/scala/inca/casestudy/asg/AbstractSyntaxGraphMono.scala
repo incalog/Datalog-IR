@@ -20,6 +20,7 @@ import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, Extensi
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 
 import java.io.IOException
 import scala.language.implicitConversions
@@ -304,7 +305,7 @@ object AbstractSyntaxGraphMono:
       val measurements = for (i <- Range.inclusive(10, maxNodes, 50)) yield {
         // Stats
         {
-          val engine = new inca.viatra.Executor().instantiate(compiled)
+          val engine = new Executor().instantiate(compiled)
           engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
           val rels = engine.readAll()
           val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
@@ -317,13 +318,13 @@ object AbstractSyntaxGraphMono:
 
         // Warmup
         for (k <- Range.inclusive(1, 5)) {
-          val engine = new inca.viatra.Executor().instantiate(compiled)
+          val engine = new Executor().instantiate(compiled)
           engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
           val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
         }
 
         i.toString -> (for (j <- Range.inclusive(1, 5)) yield {
-          val engine = new inca.viatra.Executor().instantiate(compiled)
+          val engine = new Executor().instantiate(compiled)
           engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
           val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
           collectGarbage()

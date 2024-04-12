@@ -10,7 +10,7 @@ import inca.ir.extension.edbdata.*
 import inca.ir.extension.map.*
 import inca.ir.extension.not.*
 import inca.ir.extension.string.*
-import inca.viatra.Executor
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.context.DataModel
 
 import scala.collection.mutable.ListBuffer

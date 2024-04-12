@@ -5,6 +5,7 @@ import inca.frontend.datalog.executor.DatalogExecutor
 import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.ir.execution.{Relation, Relation1, Relation2, RelationUpdateListener}
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
@@ -16,7 +17,7 @@ class ControlFlowTest extends AnyFunSuite:
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
   options.irLogging.logModule = false
-  val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
+  val exec: DatalogExecutor = new DatalogExecutor(new Executor(DRedReteBackendFactory.INSTANCE))
 
 
   var nextId: Int = 0

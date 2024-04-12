@@ -19,6 +19,7 @@ import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
@@ -79,7 +80,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     val mod = Module("M", langs, relations)
     //    val compiledMod = CompiledSetMonoModule(mod)
     val compiledMod = CompiledSetMonoOptModule(mod)
-    val exec: IRExecutor = new inca.viatra.Executor
+    val exec: IRExecutor = new Executor
     exec.instantiate(compiledMod)
 
 

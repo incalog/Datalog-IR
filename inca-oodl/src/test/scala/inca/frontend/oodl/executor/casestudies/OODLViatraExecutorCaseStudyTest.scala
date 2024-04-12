@@ -4,13 +4,14 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
   // Timely algorithm fails without a message
-  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new Executor)
 
   test("DependencyAnalysis") {
     val endNode = 50
@@ -52,7 +53,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   // This compiles but is way slower than the old case study... why ?
   // Ideas, constructing a lot of objects is expensive, since we dublicate a lot of constructor calls
   test("Flow sensitive Sign Analysis") {
-    val dRedExec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
+    val dRedExec: OODLExecutor = new OODLExecutor(new Executor(DRedReteBackendFactory.INSTANCE))
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
     val compiled = dRedExec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLModule.pipeline)

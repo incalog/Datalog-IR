@@ -13,6 +13,7 @@ import inca.souffle.syntax.{Atom, ProgramContent, Term, Type, *}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.util.compileroptions.CompilerOptions.default
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
@@ -48,7 +49,7 @@ class GenerateIRTest extends AnyFunSuite:
     val compiled = new Compiled(mod)
     compiled.setPipeline(pipeline)
 
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val rels = engine.readAll()
     rels.map { rel =>
       rel.name -> rel

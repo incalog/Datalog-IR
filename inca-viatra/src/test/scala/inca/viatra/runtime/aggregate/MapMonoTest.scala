@@ -22,6 +22,7 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.aggregate.builtin.arithmetic.SumIntMono
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -103,7 +104,7 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoModule(mod)
     //println(compiledMod.checked)
-    val exec: IRExecutor = inca.viatra.Executor()
+    val exec: IRExecutor = Executor()
     exec.instantiate(compiledMod)
 
 
