@@ -190,6 +190,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(paramTys, null, null).foreach {
+      case (wildcard@WildcardArg(), null) =>
+        // if inferRelationRef fails, we do not want to exit with a null pointer
+        error("Could not infer type for wildcard.", atom)
+        wildcard.typed(TAny.collapsed, force = true)
       case (wildcard@WildcardArg(), ty) =>
         wildcard.typed(ty.collapsed, force = true)
       case (TermArg(t), null) => // missing param
