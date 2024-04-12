@@ -128,7 +128,7 @@ trait CompiledModule:
 
   
   var valueNumberingResult: Seq[Module] = Seq() // for Testing 
-  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN()): Seq[Module] =
+  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
     valueNumberingResult = p.map { input =>
       valueNumbering(input,config)
     }

@@ -10,14 +10,12 @@ import inca.ir.visitors.IRVisitor
 
 /** wraps parameters for value numbering */
 case class ConfigVN(normalize: Boolean = false,
-                    propagateConstants: Boolean = true,
-//                    occurrencesBeforeRemoved: Int = 0,
+                    occurrencesBeforeRemoved: Int = 0,
                    )
 
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  // TODO currently equal terms do not all get the same id e.g. a-a -> 3 but 0 -> 4 ?
   private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
   private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
 
@@ -33,14 +31,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
-    val newModule = visitModule(module)
-    valueNumbers.printResults()
-    println("\t" + congrClasses.mkString("\n\t") + "\n")
-    newModule
-  }
-
-  override def visitModule(module: Module): Module = {
-    super.visitModule(module)
+    visitModule(module)
   }
 
 
@@ -50,8 +41,24 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   protected def getIdOf(atom: Atom, bindigArg: Var): ValueId = valueNumbers.getIdOf(atom,bindigArg)
 
 
+  protected def normalize(term: Term): Term = term
+
+  protected def isConst(term: Term): Boolean = false
 
 
+  def printResults(): Unit = {
+    println(s"Results from Relation $currentRelationName body $currentBodyIndex")
+    println(s"CongruenceClasses:")
+    println("\t" + congrClasses.mkString("\n\t") + "\n")
+    valueNumbers.printResults()
+  }
+
+
+  private def newVar(name: Name, ty: Option[TermType] = None): Var = { // currently not used
+    val v = Var(RefByName(name))
+    v.typ = ty
+    v
+  }
 
   private var currentRelationName: Name = _
 
@@ -63,43 +70,54 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
     relationParams = relation.params.map(_.name)
-
     currentBodyIndex = -1
     super.visitRelation(relation)
   }
 
 
-
-  private var currentBodyVars: Seq[Var] = Seq()
-//  private def isUsedInBody(t: Term): Boolean = currentBodyVars.map(_.name.name).contains(t) // TODO like this or use gensym?
-
+//  private var currentBodyVars: Seq[Var] = Seq()
+//  private def isUsedInBody(t: Term): Boolean = currentBodyVars.map(_.name.name).contains(t) // like this or use gensym?
 
   override def visitBody(body: Body): Seq[Body] = {
-    congrClasses.foreach((k,congrClass) => congrClassesGlobal.update(k,congrClass)) // TODO merge congrClass
+//    congrClasses.foreach((k,congrClass) => congrClassesGlobal.update(k,congrClass)) // TODO merge congrClass
 
     currentBodyIndex += 1
-    currentBodyVars = body.vars
+//    currentBodyVars = body.vars
     val newBodySeq2 = super.visitBody(body)
-//    val newBodySeq2 = super.visitBody(body)
+//    val newBodySeq2 = super.visitBody(body) // TODO repeat (or split analysis and rewriting)
+
+    printResults()
 
     // reset congrClasses (otherwise not known when variables are unbound)
-    println(s"CongruenceClasses from Relation $currentRelationName body $currentBodyIndex")
-    println("\t" + congrClasses.mkString("\n\t") + "\n")
     congrClasses.clear()
+    valueNumbers.clear()
     newBodySeq2
   }
 
 
-  private def newVar(name: Name, ty: Option[TermType] = None): Var = {
-    val v = Var(RefByName(name))
-    v.typ = ty
-    v
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match {
+    case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
+      treatBindingInEq(vari, e, dontRemove = isParam(vari), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
+    case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
+      treatBindingInEq(vari, e, dontRemove = isParam(vari), vari.typ)
+    case Eq(vari@Var(_), e, false) =>
+      // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality and remove if duplicate of other Eq
+      treatComparisonEq(vari, e, vari.typ)
+    case Eq(e, vari@Var(RefByName(Name(_))), false) =>
+      treatComparisonEq(vari, e, vari.typ)
+
+    case call@Call(_, _, false) =>  // TODO when can equivalence of two vars be concluded from calls?
+      super.visitAtom(atom).head match {
+        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
+      }
+    case call@ExtensionalCall(_, _, false) =>
+      super.visitAtom(atom).head match {
+        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
+      }
+
+    case _ => super.visitAtom(atom)
   }
 
-
-
-
-  protected def normalize(term: Term): Term = term
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = {
@@ -115,8 +133,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       valueNumbers.update(term,termId)
     }
     if (congrClasses.contains(termId)) {
-      val res = Seq(congrClasses(termId).leader)
-      res
+      Seq(congrClasses(termId).leader)
     }
     else {
       val normalizedTerm = normalize(newTerm)
@@ -130,44 +147,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
-
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match {
-    case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
-      treatBindingInEq(vari, e, dontRemove = isParam(vari), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
-    case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
-      treatBindingInEq(vari, e, dontRemove = isParam(vari), vari.typ)
-    case Eq(vari@Var(_), e, false) =>
-      // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality and remove if duplicate of other Eq
-      treatComparisonEq(vari, e, vari.typ)
-    case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      treatComparisonEq(vari, e, vari.typ)
-
-    case call@Call(_, _, false) =>
-      val superVisited = super.visitAtom(atom).head
-      superVisited match {
-        case call@Call(ref, args, false) =>
-          val newCall = treatBindingsInCall(call, args)
-          newCall
-      }
-
-    // TODO can equivalence of two vars not be concluded from calls?
-    //  could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1), b(a2) not necessarily implies that a1 == a2
-    //        val otherRelation = ref.target.get
-    //        if (otherRelation.bodies.size <= 1){  // then args which are bound by call have a unique value
-    //          args.map{arg =>
-    //           ???
-    //          }
-    //        }
-
-    case call@ExtensionalCall(_, _, false) =>
-      super.visitAtom(atom).head match {
-        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
-      }
-
-    case _ => super.visitAtom(atom)
-  }
-
-  protected def isConst(term: Term): Boolean = false
 
   private def treatBindingInEq(vari: Var, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
    valueNumberVar(vari,e,dontRemove,typ)
@@ -187,8 +166,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         Seq(newEq)
     }
     newAtomSeq
-
   }
+
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Eq] = {
     val newTerm = visitTerm(t).head
@@ -212,19 +191,20 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
     else {
       valueNumbers.update(vari, termId)
-      if (isConst(newTerm) && this.config.propagateConstants) {
+      //count += (termId,1)
+
+      if (isConst(newTerm)) { // if term is a constant then use it as leader of its congruence class
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm, Seq(vari, newTerm))) // TODO include old term t ?
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
-      else congrClasses.update(termId,CongruenceClass(termId,vari,newTerm,Seq(vari,newTerm)))
-
-      //count += (termId,1)
+      else {
+        congrClasses.update(termId, CongruenceClass(termId, vari, newTerm, Seq(vari, newTerm)))
+      }
 
       // return with newTerm
       Seq( Eq(vari, newTerm) )
     }
   }
-
 
 
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
@@ -251,7 +231,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
     Seq(newCall)
   }
-
 
 
 }

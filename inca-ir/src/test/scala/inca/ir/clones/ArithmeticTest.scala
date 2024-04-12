@@ -742,7 +742,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: zero") {
@@ -778,7 +778,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: Remainder/mod") {
@@ -823,7 +823,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: Min") {
@@ -859,7 +859,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: Max") {
@@ -901,7 +901,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: Abs") {
@@ -941,7 +941,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(normalize = true, propagateConstants = true/*, removeTrueAtoms = true*/))
+    performTest(expected, input, ConfigVN(normalize = true))
   }
 
   test("propagate constants: Two Bodies") {
@@ -995,7 +995,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true,true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("propagate constants: Call replace Args") {
@@ -1051,7 +1051,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true,true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("Redundant Term in Eq: multiple relations") {
@@ -1082,7 +1082,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(true, true))
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("Redundant term in Eq with more Eqs with same Var") {
@@ -1458,7 +1458,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(normalize = true, propagateConstants = true))
+    performTest(expected, input, ConfigVN(normalize = true))
   }
 
 
