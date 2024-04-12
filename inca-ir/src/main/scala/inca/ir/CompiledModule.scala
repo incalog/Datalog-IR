@@ -92,6 +92,7 @@ trait CompiledModule:
       l
     }
 
+    // TODO remove other optimizations
     if (logStatsBeforeOptimization)
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))

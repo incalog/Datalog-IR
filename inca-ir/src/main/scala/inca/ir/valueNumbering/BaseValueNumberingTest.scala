@@ -24,22 +24,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 //  var count: Map[valueId, Int] = Map()   // remembers how often term with id has occurred
 
-//  var gensym: Gensym = Gensym()
-
-  // global Maps for terms
-    val congrClassesGlobal: mutable.Map[ValueId,CongruenceClass] = mutable.Map()
-
 
   def valueNumbering(module: ir.Module): ir.Module = {
     visitModule(module)
   }
 
-
   protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
-
-  // is used for Var with name bindingArg and NOT for the atom
-  protected def getIdOf(atom: Atom, bindigArg: Var): ValueId = valueNumbers.getIdOf(atom,bindigArg)
-
 
   protected def normalize(term: Term): Term = term
 
@@ -60,12 +50,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     v
   }
 
+  // for printing
   private var currentRelationName: Name = _
+  private var currentBodyIndex: Int = -1
+
 
   private var relationParams: Seq[Name] = Seq()
   private def isParam(vari: Var): Boolean = relationParams.contains(vari.name)
 
-  private var currentBodyIndex: Int = -1
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
@@ -75,16 +67,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
-//  private var currentBodyVars: Seq[Var] = Seq()
-//  private def isUsedInBody(t: Term): Boolean = currentBodyVars.map(_.name.name).contains(t) // like this or use gensym?
-
   override def visitBody(body: Body): Seq[Body] = {
-//    congrClasses.foreach((k,congrClass) => congrClassesGlobal.update(k,congrClass)) // TODO merge congrClass
-
     currentBodyIndex += 1
-//    currentBodyVars = body.vars
-    val newBodySeq2 = super.visitBody(body)
-//    val newBodySeq2 = super.visitBody(body) // TODO repeat (or split analysis and rewriting)
+//    val newBodySeq = super.visitBody(body)
+    val newBodySeq2 = super.visitBody(body) // TODO repeat (or split analysis and rewriting)
 
     printResults()
 
@@ -214,7 +200,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
         case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
           isBinding = true
-          val bindingCallId = getIdOf(call, vari)           // same calls except currently binding var should have same ValNum in different Relations
 //            congrClasses.update(bindingCallId,CongruenceClass(bindingCallId,vari,vari,Seq(vari))) // TODO check whether already known (?) -> in general wrong to conclude equality (in same body)
 //            valueNumbers.update(vari,bindingCallId)
           val id = valueNumbers.getIdOf(vari)

@@ -22,7 +22,8 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("X")), IntNum(1)),
             Eq(Var(Name("Y")), IntNum(1)),
             Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$1")), Var(Name("param$0"))) // TODO
           ))
         ))
       ))
@@ -924,10 +925,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
+            Eq(IntNum(12), Var(Name("X"))),
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
             Eq(Var("W"), Add(Var("X"), IntNum(3))),
-            Eq(IntNum(12), Var(Name("X"))), // now value of X is known -> W also known
+             // now value of X is known -> W also known
             Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the hash of first introduction of X is needed
             Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether hash contained in hashtable)
             //            Eq(Var("V"), Var("Z")),
@@ -951,7 +953,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //            Eq(Var(Name("Z")), IntNum(12))
 //            Eq(Var(Name("X")), IntNum(12)),
             Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
+            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2))) // 12
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(

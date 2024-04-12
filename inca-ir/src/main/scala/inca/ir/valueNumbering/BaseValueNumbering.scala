@@ -7,14 +7,16 @@ import inca.ir.visitors.IRVisitor
 import scala.collection.mutable
 
 
-type ValueId = Int // TODO
+type ValueId = Int // TODO BigInt or String but should be okay to use Int (throw an exception if overflow)
 
 class ValueIds[T]{ // table from term to id
   private val ids: mutable.Map[T,ValueId] = mutable.Map()
-  private val atomIds: mutable.Map[Atom,ValueId] = mutable.Map()
 
-  private var currentId: ValueId = 0
+  private var currentId: ValueId = 0 //Int.MinValue
   private def nextId(): ValueId = {
+    if (currentId == Int.MaxValue){
+      throw IllegalStateException("Too many CongruenceClasses: Overflow in ValueIds")
+    }
     currentId += 1
     currentId
   }
@@ -28,20 +30,19 @@ class ValueIds[T]{ // table from term to id
   def contains(t: T): Boolean = ids.contains(t)
 
   def update(t: T, valueId: ValueId): Unit = ids.update(t, valueId)
-  
+
   def clear(): Unit = {
     currentId = 0
     ids.clear()
-    atomIds.clear()
   }
 
-  override def toString: String = "IDs: \t\t\t" + ids.mkString(";  ") + "\natomIDs: \t\t" + atomIds.mkString(";\t ")
-  
+  override def toString: String = "IDs: \t\t\t" + ids.mkString(";  ") + "\natomIDs: \t\t" //+ atomIds.mkString(";\t ")
+
   // just for printing and debugging (constructing congrClasses like this every time is too computationally complex)
   private def congrClasses: Map[ValueId, Seq[T]] = ids.groupBy(_._2).map((id, m) => id -> m.keys.toSeq)
-  
+
   def printCongrClasses(): Unit = println("CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t"))
-  
+
   def printResults(): Unit = {
     println("VN Results: ")
     println(this)
@@ -49,33 +50,10 @@ class ValueIds[T]{ // table from term to id
     println("")
   }
 
-  // TODO needed? <- can equivalence of terms in the same body be concluded from calls?
-  private def getIdOf(atom: Atom): ValueId = atomIds.getOrElse(atom,{
-    atomIds.update(atom,nextId())
-    atomIds(atom)
-  })
-  def getIdOf(atom: Atom, bindingVar: Var): ValueId = /*ids.getOrElse(bindingVar,*/{
-    case class bindingArg() extends Term { // serves as a marker which argument is currently binding
-      override def vars: Seq[Var] = Seq()
-    }
-    //ids.update(bindingVar,
-      atom match {
-        case Call(ref, args, neg) =>
-          val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
-          getIdOf(Call(ref, argsFiltered, neg))
-        case ExtensionalCall(ref, args, neg) =>
-          val argsFiltered = args.patch(args.indexOf(TermArg(bindingVar)), Seq(TermArg(bindingArg())), 1)
-          getIdOf(ExtensionalCall(ref, argsFiltered, neg))
-        case _ => throw new IllegalArgumentException("This should not happen")
-    }//)
-    //ids(bindingVar)
-  }//)
-
-
 }
 
 
-case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, var contents: Seq[Term]) // contents just saved for debugging and presentation
+case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, var contents: Seq[Term]) // contents just saved for debugging
 
 
 

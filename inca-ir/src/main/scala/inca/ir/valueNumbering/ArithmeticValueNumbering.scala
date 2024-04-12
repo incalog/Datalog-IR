@@ -4,6 +4,7 @@ import inca.ir.{Atom, Name, RefByName, TAny, Term, TermType, Type, Var}
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound
 
+
 trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
 
   protected override def isConst(term: Term): Boolean = term match {
@@ -11,8 +12,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
     case _ => super.isConst(term)
   }
 
-  // TODO add more cases (e.g. more rules) ? Preserve type of term ?
-  // probably no recursive call needed here in the beginning since called in visitTerm
+  // in the beginning no recursive call needed here since called in visitTerm ->  all subterms visited already
   protected override def normalize(term: Term): Term = {
     if !this.config.normalize then return term
     val typ: Type = term.typ match { // assumed that program was typechecked before and every term thus has a type
@@ -21,10 +21,10 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
     }
 
     val newTerm = term match {
-      case BinOp(lhs, rhs, "+") => simplifyAdd(lhs, rhs, typ, term)
-      case BinOp(lhs, rhs, "-") => simplifySub(lhs, rhs, typ, term)
-      case BinOp(lhs, rhs, "*") => simplifyMul(lhs, rhs, typ, term)
-      case BinOp(lhs, rhs, "/") => simplifyDiv(lhs, rhs, typ, term)
+      case BinOp(lhs, rhs, "+") => normalizeAdd(lhs, rhs, typ, term)
+      case BinOp(lhs, rhs, "-") => normalizeSub(lhs, rhs, typ, term)
+      case BinOp(lhs, rhs, "*") => normalizeMul(lhs, rhs, typ, term)
+      case BinOp(lhs, rhs, "/") => normalizeDiv(lhs, rhs, typ, term)
       
       case BinOp(lhs, rhs, "%") => (lhs, rhs) match {
         case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
@@ -56,15 +56,11 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
       case BinOp(lhs, rhs, op) => BinOp(normalize(lhs), normalize(rhs), op)
       case _ => super.normalize(term)
     }
-    newTerm.typ = term.typ // TODO needed?
+    newTerm.typ = term.typ
     newTerm
   }
 
-
-  // TODO compare ids in the following functions or names of vars ?
-  //  when ids are used it happens that constants are propagated without the option in Config
-  //  this can lead to other equalities not being found (without the option set to true) (see test "Add nested multiple times"
-  private def simplifyAdd(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
+  private def normalizeAdd(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
       case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
       case (IntNum(0), _) | (DoubleNum(0), _) => rhs
       case (IntNum(l), IntNum(r)) => IntNum(l + r)
@@ -88,7 +84,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
       case (l, r) => term
     }
 
-  private def simplifySub(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
+  private def normalizeSub(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match { // TODO change to add
       case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
       case (IntNum(0), _) | (DoubleNum(0), _) => normalize(Mul(rhs, IntNum(-1)))
 //      case (Var(RefByName(Name(l))), Var(RefByName(Name(r)))) if l == r => if typ == TInt then IntNum(0) else if typ == TDouble then DoubleNum(0) else term
@@ -108,7 +104,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
       case (l, r) => term
     }
 
-  private def simplifyMul(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
+  private def normalizeMul(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
     case (_, IntNum(0)) | (IntNum(0), _) => IntNum(0)
     case (_, DoubleNum(0)) | (DoubleNum(0), _) => DoubleNum(0)
     case (IntNum(1), _) | (DoubleNum(1), _) => rhs
@@ -134,7 +130,7 @@ trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
     case (l, r) => term
   }
 
-  private def simplifyDiv(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
+  private def normalizeDiv(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
     case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
 //    case (vari@Var(RefByName(Name(l))), Var(RefByName(Name(r)))) if l == r => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term
     case (l, r) if getIdOf(l) == getIdOf(r) => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term
