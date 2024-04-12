@@ -23,7 +23,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("Y")), IntNum(1)),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$1")), Var(Name("param$0"))) // TODO
+            Eq(Var(Name("param$1")), Var(Name("param$0")))
           ))
         ))
       ))
@@ -40,7 +40,8 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
 //            Eq(Var(Name("X")), IntNum(1)),
             //Eq(Var(Name("Y")), Var(Name("X"))),
             Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), IntNum(1))
+            Eq(Var(Name("param$1")), IntNum(1)),
+            Eq(IntNum(1),IntNum(1))
           ))
         ))
       ))
@@ -351,7 +352,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           ))
         ))
       ))
-    performTest(expected,input,ConfigVN(true))
+    performTest(expected,input,ConfigVN(true)) // TODO move tests with normalization in other file ?
   }
 
   test("Redundant term in LT") {
@@ -377,7 +378,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //Eq(Var(Name("Y")), Add(IntNum(2), IntNum(1))),
             Eq(Var(Name("Z")), Mul(IntNum(2), IntNum(1))),
             LT(Var(Name("Z")), Var(Name("X"))),
-//            LT(Var(Name("Z")), Var(Name("X"))),
+            LT(Var(Name("Z")), Var(Name("X"))), // redundant atom
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("X")))
           ))
@@ -861,10 +862,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
-            Eq(Var(Name("Z")), IntNum(12)), // TODO could this be removed? -> would need to figure out order again or iterate(?)
-            Eq(Var(Name("X")), IntNum(12)),
-            Eq(Var(Name("param$0")), Var(Name("Z"))),
+            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
+//            Eq(Var(Name("Z")), IntNum(12)),
+//            Eq(Var(Name("X")), IntNum(12)),
+            Eq(Var(Name("param$0")), IntNum(12)),
             Eq(Var(Name("param$1")), Var(Name("Y")))
           ))
         )),
@@ -904,11 +905,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
-            Eq(Var("W"), Add(Var("X"), IntNum(3))),
+            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
+//            Eq(Var("W"), Add(IntNum(12), IntNum(3))),
             //            Eq(Var(Name("Z")), IntNum(12))
-            Eq(Var(Name("X")), IntNum(12)),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
+//            Eq(Var(Name("X")), IntNum(12)),
+            Eq(Var(Name("param$0")), IntNum(12)),
             Eq(Var(Name("param$1")), Var(Name("Y")))
           ))
         )),
@@ -923,7 +924,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
   test("Call and check for Equality with unknown val of var learned later2") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("W", TInt)), Seq(
           Body(Seq(
             Eq(IntNum(12), Var(Name("X"))),
             Call(Name("b"), Seq(TermArg(Var("Y")))),
@@ -945,15 +946,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("W", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-//            Eq(Var("W"), Add(IntNum(12), IntNum(3))),
+            Eq(Var("W"), Add(IntNum(12), IntNum(3))),
             //            Eq(Var(Name("Z")), IntNum(12))
 //            Eq(Var(Name("X")), IntNum(12)),
             Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2))) // 12
+            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(

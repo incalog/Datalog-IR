@@ -36,7 +36,7 @@ class ValueIds[T]{ // table from term to id
     ids.clear()
   }
 
-  override def toString: String = "IDs: \t\t\t" + ids.mkString(";  ") + "\natomIDs: \t\t" //+ atomIds.mkString(";\t ")
+  override def toString: String = "IDs: \t\t\t" + ids.mkString(";  ")
 
   // just for printing and debugging (constructing congrClasses like this every time is too computationally complex)
   private def congrClasses: Map[ValueId, Seq[T]] = ids.groupBy(_._2).map((id, m) => id -> m.keys.toSeq)
@@ -53,11 +53,22 @@ class ValueIds[T]{ // table from term to id
 }
 
 
-case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, var contents: Seq[Term]) // contents just saved for debugging
+
 
 
 
 trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
+
+  case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, var contents: Seq[Term]) { // contents just saved for debugging
+    override def toString: String =
+      s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm, contents = $contents"
+
+    def add(t: Term): Unit = {
+      if (isConst(t)) leader = t
+      contents = contents.appended(t)
+    }
+
+  }
 
   private val congrClasses: mutable.Map[ValueId,CongruenceClass] = mutable.Map()
   private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
