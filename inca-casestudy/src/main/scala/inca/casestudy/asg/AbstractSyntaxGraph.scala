@@ -8,6 +8,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
 import inca.ir.extension.demand.*
 import inca.ir.extension.string.*
+import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
@@ -248,13 +249,14 @@ object AbstractSyntaxGraph:
     override def ir: Module = mod
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
-      opt.irLogging.logLowerings = true
+      opt.irLogging.logLowerings = false
       opt.irLogging.logTypeInformation = false
       opt
     }
     setPipeline(List(
-      () => new demand.Lowering {}
-      //() => new LoweringWithOutlining {}
+      //() => new demand.Lowering {},
+      () => new LoweringWithOutlining {},
+      () => new AliasElimination {}
     ))
 
 
@@ -300,21 +302,21 @@ object AbstractSyntaxGraph:
 
   @main def runAsgUsingViatra() = {
     val engine = inca.viatra.backend.Executor().instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
 
   @main def runAsgUsingSouffle() = {
     val engine = inca.souffle.backend.Executor().instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
 
   @main def runAsgUsingAscent() = {
     val engine = inca.ascent.backend.Executor().instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }

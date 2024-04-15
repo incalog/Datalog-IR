@@ -1,4 +1,5 @@
 package inca.ir.analysis
+import java.lang
 
 enum Value:
   case Top
@@ -15,6 +16,12 @@ enum Value:
     case (Data(name1, args1), Data(name2, args2))
       if name1 == name2 && args1.size == args2.size => Data(name1, args1.zip(args2).map(_.join(_)))
     case _ => Top
+
+  override def toString: lang.String = this match
+    case Int(i) => i.toString
+    case Double(d) => d.toString
+    case String(s) => s
+    case _ => this.toString
 
 enum VBool:
   case Top
