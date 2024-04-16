@@ -40,13 +40,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
   protected def checkModule(module: Module): Unit = scopedTypeContext {
-    val contentsNoExport = module.contents.filterNot(m => module.exports.contains(m))
+    val contentsNoExport = module.contents.filterNot(m => module.exports.values.toSeq.contains(m))
     contentsNoExport.sorted.foreach(bindModuleEntry)
     contentsNoExport.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
     }
-    module.exports.foreach { exp => checkExport(exp) }
+    module.exports.foreach { exp => checkExport(exp._2) }
   }
 
   protected def checkExport(exp: ModuleExport): Unit = exp match

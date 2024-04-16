@@ -237,3 +237,65 @@ class CompiledProgramTest extends AnyFunSuite:
      )
    )
   }
+
+  test("Cycle-Import Test") {
+   case class TestCompiledModule(mod: Module) extends CompiledModule:
+     override def compilerOptions: CompilerOptions = CompilerOptions.default
+     override def name: Name = mod.name
+     override def sourceLocation: SourceLocation = mod.name
+     override def ir: Module = mod
+
+   val module1: Module = module("Module1",
+     RelationImport("Q1", Seq(TInt)),
+     RelationExport("R1", Seq(TInt)),
+     RelationExport("L1", Seq(TInt)),
+     Relation("R1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+     Relation("L1", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Q1", Seq(Var("a")))))))
+   )
+
+   val module2: Module = module("Module2",
+     RelationImport("R2", Seq(TInt)),
+     RelationExport("Q2", Seq(TInt)),
+     RelationExport("T2", Seq(TInt)),
+     Relation("Q2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+     Relation("T2", Seq(Param("a", TInt)), Seq(Body(Seq(Call("R2", Seq(Var("a")))))))
+   )
+
+   val module3: Module = module("Module3",
+     RelationImport("L3", Seq(TInt)),
+     RelationImport("T3", Seq(TInt)),
+     Relation("X3", Seq(Param("a", TInt)), Seq(Body(Seq(Call("L3", Seq(Var("a"))))))),
+     Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("T3", Seq(Var("x")))))))
+   )
+
+   val compiledModule1 = new TestCompiledModule(module1)
+   val compiledModule2 = new TestCompiledModule(module2)
+   val compiledModule3 = new TestCompiledModule(module3)
+
+   class testCompiledProgram extends CompiledProgram:
+     override val linkSet = Seq(
+       new Link("Module1", "R1", "Module2", "R2"),
+       new Link("Module1", "L1", "Module3", "L3"),
+
+       new Link("Module2", "Q2", "Module1", "Q1"),
+       new Link("Module2", "T2", "Module3", "T3"),
+     )
+
+     override val modules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2, compiledModule3)
+
+   val TestCompiledProgram = new testCompiledProgram
+
+   TestCompiledProgram.intraTypecheck
+   assert(TestCompiledProgram.linkedModule ==
+     module("Module3",
+       Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+       Relation("Q2_Module2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+       Relation("L1_Module1", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Q2_Module2", Seq(Var("a"))))))),
+
+       Relation("T2_Module2", Seq(Param("a", TInt)), Seq(Body(Seq(Call("R1_Module1", Seq(Var("a"))))))),
+
+       Relation("X3", Seq(Param("a", TInt)), Seq(Body(Seq(Call("L1_Module1", Seq(Var("a"))))))),
+       Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("T2_Module2", Seq(Var("x")))))))
+     )
+   )
+  }

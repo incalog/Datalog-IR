@@ -33,27 +33,23 @@ trait CompiledProgram:
   //TODO rename to validate linkset
   def intraTypecheck: Unit =
     linkSet.foreach(link =>
-      getModule(link.fromModule).entries(link.exportEntry) match
+      getModule(link.fromModule).exports(link.exportEntry) match
         case mExp: ModuleExport =>
-          getModule(link.toModule).entries(link.importEntry) match
+          getModule(link.toModule).imports(link.importEntry) match
             case mImp: ModuleImport => typechecker.checkImportExport(mImp, mExp)
-            case _ => throw IllegalArgumentException(s"${link.importEntry} is not a valid Import")
-        case _ => throw IllegalArgumentException(s"${link.exportEntry} is not a valid Export")
+            case null => throw IllegalArgumentException(s"${link.importEntry} is not a valid Import")
+        case null => throw IllegalArgumentException(s"${link.exportEntry} is not a valid Export")
       )
   
   def getExportEntry(module: Name, exportEntry: Name): ModuleEntry = {
-   val targetModule = getModule(module)
-
-   val originalEntry = targetModule.contents.find { entry =>
-     entry.name == exportEntry && !entry.isInstanceOf[ModuleExport]
-   }
-
-   originalEntry match {
-     case Some(entry) =>
-        entry
-     case None =>
-       throw new IllegalArgumentException(s"Original definition for export $exportEntry not found in module $module")
-   }
+    val targetModule = getModule(module)
+    val contentsNoExport = targetModule.contents.filterNot(m => targetModule.exports.values.toSeq.contains(m))
+    contentsNoExport.find(e => e.name == exportEntry) match {
+      case Some(entry) =>
+         entry
+      case None =>
+        throw new IllegalArgumentException(s"Original definition for export $exportEntry not found in module $module")
+    }
   }
 
   def nameAlreadyExtended(name: Name): Boolean =
