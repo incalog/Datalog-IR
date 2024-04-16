@@ -243,6 +243,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   def assignType(term: TypeCastable[Type] with SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
     val inferred = computeType
+    typecheckTy(inferred)
 
     val result = term.typ match
       case Some(annotated) =>

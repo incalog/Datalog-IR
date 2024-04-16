@@ -770,6 +770,9 @@ class GenerateIR:
   private def compileOutTypeFromMonoMap(mono: TName): ir.Type =
     val outTy = mono.tyArgs.last match
       case t: TName if t.name.name == "mono.Map" => compileOutTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Set" =>
+        val ty = t.tyArgs.head
+        compileType(TSet(ty))
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
         val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
@@ -780,7 +783,11 @@ class GenerateIR:
 
   private def compileInTypeFromMonoMap(mono: TName): ir.Type =
     val outTy = mono.tyArgs.last match
-      case t: TName if t.name.name == "mono.Map" => compileInTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Map" =>
+        compileInTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Set" =>
+        val ty = t.tyArgs.head
+        compileType(ty)
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
         val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
