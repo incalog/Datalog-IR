@@ -24,11 +24,13 @@ trait CompiledProgram:
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
+  //TODO introduce map
   def getModule(name: Name): Module =
     modules.find(m => m.ir.name == name) match
       case Some(module: CompiledModule) => module.ir
       case None => throw IllegalArgumentException(s"Module $name not found")
 
+  //TODO rename to validate linkset
   def intraTypecheck: Unit =
     linkSet.foreach(link =>
       getModule(link.fromModule).entries(link.exportEntry) match
@@ -58,8 +60,10 @@ trait CompiledProgram:
     val suffix = name.name.reverse.takeWhile(c => c != '_')
     if name.name.exists(c => c == '_') then modules.exists(m => m.name.name == suffix.reverse) else false
 
+  //TODO collect extensions 
   object ApplyLinking extends IRVisitor:
-    var currentModule: Module = Module("", BaseIR.language, Seq())
+    var currentModule: Module = Module("linkedModule", BaseIR.language, Seq())
+    //TODO rename to entries
     var alreadyImportedModules: Seq[(Name, Name)] = Seq() // Seq[(fromModule, exportEntry)]
 
     override def visitModule(module: Module): Module = 

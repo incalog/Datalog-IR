@@ -23,6 +23,7 @@ class CompiledProgramTest extends AnyFunSuite:
     //  println(mod)
     //  checker.getErrors.foreach(println)
     //}
+    println(mod)
     mod
   
   case class TestCompiledModule(mod: Module) extends CompiledModule:
