@@ -144,13 +144,16 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       valueNumbers.update(term,termId) // updating leader shouldnt be necessary since newTerm already processed and should have higher priority to be leader
     }
 
-    if (congrClasses.contains(termId)) {
-      if (newTerm.vars.isEmpty || newTerm.isInstanceOf[Var]){ // prevents terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
+//    if (congrClasses.contains(termId)) {
+//      if (newTerm.vars.isEmpty || newTerm.isInstanceOf[Var]){ // prevents terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
+//        return Seq(congrClasses(termId).leader)
+//      }
+////      else {
+//////        return Seq(newTerm) // might return an un-normalized term
+////      }
+//    }
+    if (congrClasses.contains(termId) && (newTerm.vars.isEmpty || newTerm.isInstanceOf[Var])){ // prevents terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
         return Seq(congrClasses(termId).leader)
-      }
-      else {
-        return Seq(newTerm)
-      }
     }
 
     else {
@@ -203,7 +206,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val newTerm = if (tempTerm == vari && t != vari) then t else tempTerm
     val newVari = if !isParam(vari) then visitTerm(vari).head else vari
 
-    val dontRemove2 = dontRemove || phase == Phase.repetition // TODO for some this fixes error but for others it introduces one -> find out why
+    val dontRemove2 = dontRemove || phase == Phase.repetition
 
     val termId: ValueId = getIdOf(newTerm)
     if (congrClasses.contains(termId)) {

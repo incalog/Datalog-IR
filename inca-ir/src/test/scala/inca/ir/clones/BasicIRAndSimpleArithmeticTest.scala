@@ -931,8 +931,8 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
             Eq(Var("W"), Add(Var("X"), IntNum(3))),
              // now value of X is known -> W also known
-            Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the hash of first introduction of X is needed
-            Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether hash contained in hashtable)
+            Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the id of first introduction of X is needed
+            Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether id contained in map)
             //            Eq(Var("V"), Var("Z")),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
