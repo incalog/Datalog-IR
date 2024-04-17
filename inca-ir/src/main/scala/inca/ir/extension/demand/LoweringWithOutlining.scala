@@ -50,11 +50,16 @@ trait LoweringWithOutlining extends BaseLowering:
       }
 
       val bodies = rules.map { (prefix, prefixCallVars, inputArgs) =>
-        val prefixCall = Call(prefix, prefixCallVars.map(_.arg))
         val eqs = params.zip(inputArgs).map { case (Param(pname, _), arg) =>
           Eq(Var(pname), arg)
         }
-        Body(prefixCall +: eqs)
+        // Only call the prefix if is exists aka. was not empty
+        if (demandPrefix.contains(prefix)) {
+          val prefixCall = Call(prefix, prefixCallVars.map(_.arg))
+          Body(prefixCall +: eqs)
+        } else {
+          Body(eqs)
+        }
       }.distinct
 
       Relation(demandRelationName(rel), params, bodies)
@@ -140,30 +145,22 @@ trait LoweringWithOutlining extends BaseLowering:
             val paramVars = currentRelation.params.map(p => Var(p.name).typed(p.ty.bound))
             val prefixVars = ListSet.from(currentPrefixAtoms.flatMap(_.vars))
             val suffixVars = (currentSuffixAtoms.flatMap(_.vars) ++ atom.vars ++ paramVars).toSet
+            // TODO: We might need to add a dummy variable if relevant vars is empty.
+            //  This should not be a problem for viatra
             val relevantVars = prefixVars.intersect(suffixVars).toSeq
-
-            /*
-            fromTo$0(start: TDemand(TInt), end: TDemand(TInt), fromTo_result$1: TInt) {
-              fromTo(start, end, fromTo_result$0)
-              Set$TInt$enum(fromTo_result$0, fromTo_result$1)
-            }
-             */
-            println("---------------")
-            println(prefixName)
-            //println(paramVars)
-            println(prefixVars)
-            println(suffixVars)
-            println(relevantVars)
 
             // TODO: This might make problems when we cast variables to different types?
             val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
 
-            addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)
 
-            val prefixCall = Call(prefixName, relevantVars.map(_.arg))
-            currentPrefixAtoms.clear()
-            currentPrefixAtoms += prefixCall
+            // Prevent creating empty prefix relations
+            if (currentPrefixAtoms.nonEmpty)
+              addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
+              val prefixCall = Call(prefixName, relevantVars.map(_.arg))
+
+              currentPrefixAtoms.clear()
+              currentPrefixAtoms += prefixCall
 
           super.visitAtom(atom)
 
@@ -189,15 +186,17 @@ trait LoweringWithOutlining extends BaseLowering:
             val suffixVars = (currentSuffixAtoms.flatMap(_.vars) ++ atom.vars ++ paramVars).toSet
             val relevantVars = prefixVars.intersect(suffixVars).toSeq
 
-            // TODO: This might make problems when we cast variables to different types
+            // TODO: This might make problems when we cast variables to different types?
             val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
 
-            addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)
 
-            val prefixCall = Call(prefixName, relevantVars.map(_.arg))
-            currentPrefixAtoms.clear()
-            currentPrefixAtoms += prefixCall
+            if (currentPrefixAtoms.nonEmpty)
+              addDemandPrefixRule(rel, prefixName, prefixRuleParams, currentPrefixAtoms.toSeq)
+              val prefixCall = Call(prefixName, relevantVars.map(_.arg))
+
+              currentPrefixAtoms.clear()
+              currentPrefixAtoms += prefixCall
 
           super.visitAtom(atom)
         case _ => super.visitAtom(atom)
