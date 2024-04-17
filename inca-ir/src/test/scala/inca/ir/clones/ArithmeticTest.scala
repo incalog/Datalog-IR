@@ -21,8 +21,8 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
             Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
-            Eq(Var(Name("H2")), Add(IntNum(2), Var("X"))),
+            Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))), // -> H1 == Y
+            Eq(Var(Name("H2")), Add(IntNum(2), Var("X"))), // -> H2 == H1 (commutativity)
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
@@ -34,14 +34,14 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(IntNum(2), Var("X"))),
+//            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("Y")), IntNum(3)),
+//            Eq(Var(Name("H1")), Add(IntNum(2), Var("X"))),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
-            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
+//            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(3)),
+            Eq(Var(Name("param$2")), IntNum(6))
           ))
         ))
       ))
@@ -68,14 +68,14 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(IntNum(5), Var("X"))),
+//            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("Y")), IntNum(3)),
+//            Eq(Var(Name("H1")), IntNum(6)),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
-            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
+//            Eq(Var(Name("Z")), IntNum(12)),
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(3)),
+            Eq(Var(Name("param$2")), IntNum(12))
           ))
         ))
       ))
@@ -100,12 +100,12 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("X")), IntNum(1)),
             //Eq(Var(Name("H1")), Var(Name("X"))),
             //Eq(Var(Name("H2")), Var(Name("X"))),
-            Eq(Var(Name("Y")), Mul(IntNum(2), Var("X"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+//            Eq(Var(Name("Y")), Mul(IntNum(2), Var("X"))),
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(2))
           ))
         ))
       ))
@@ -121,12 +121,12 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var(Name("Y")), IntNum(3)),
             Eq(Var(Name("H1")), Add(Var("X"), Add(IntNum(2), Add(IntNum(3), Var("Y"))))),
             Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Var("Y"))),
-//            Eq(Var(Name("H3")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Add(Var("Y"), IntNum(0)))),
-//            Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(-2), IntNum(7))), Var("Y"))),
-//            Eq(Var(Name("H4")), Add(Add(Var("Y"), Add(IntNum(2), IntNum(3))), Var("X"))),
-//            Eq(Var(Name("H5")), Add(Add(Var("X"), Var("Y")), Add(IntNum(2), IntNum(3)))),
-//            Eq(Var(Name("H5")), Add(Var("X"), Add(Var("Y"), Add(IntNum(2), IntNum(3))))),
-//            Eq(Var(Name("H6")), Add(IntNum(2), Add(Var("Y"), Add(IntNum(1), Add(Var("X"), IntNum(2)))))),
+            Eq(Var(Name("H3")), Add(Add(Var("X"), Add(IntNum(2), IntNum(3))), Add(Var("Y"), IntNum(0)))),
+            Eq(Var(Name("H2")), Add(Add(Var("X"), Add(IntNum(-2), IntNum(7))), Var("Y"))),
+            Eq(Var(Name("H4")), Add(Add(Var("Y"), Add(IntNum(2), IntNum(3))), Var("X"))),
+            Eq(Var(Name("H5")), Add(Add(Var("X"), Var("Y")), Add(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("H5")), Add(Var("X"), Add(Var("Y"), Add(IntNum(2), IntNum(3))))),
+            Eq(Var(Name("H6")), Add(IntNum(2), Add(Var("Y"), Add(IntNum(1), Add(Var("X"), IntNum(2)))))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y"))),
@@ -138,14 +138,15 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(IntNum(5), Add(Var("X"), Var("Y")))),
-//            Eq(Var(Name("H2")), Add(Add(Var("X"), Add(Var("Y"), IntNum(2))), IntNum(3))),
-            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
+//            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("Y")), IntNum(3)),
+//            Eq(Var(Name("H1")), Add(IntNum(5), Add(Var("X"), Var("Y")))),
+            Eq(IntNum(9), IntNum(9)), // TODO could be removed
+            Eq(IntNum(9), IntNum(9)),
+//            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(3)),
+            Eq(Var(Name("param$2")), IntNum(18))
           ))
         ))
       ))
@@ -491,7 +492,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("n")), Div(IntNum(2), IntNum(1))),
-            Eq(Var("temp"), Mul(Var("n"),Div(IntNum(1),Var("n")))),
+            Eq(Var("temp"), Mul(Var("n"),Div(IntNum(1),Var("n")))), // TODO normalize this to 1 (like arithmetic law) or to 0 (because of 1/2 ~> 0)
             Eq(Var("temp2"), Mul(Var("temp"),Div(IntNum(1),Var("temp")))),
             Eq(Var("temp3"), Mul(Var("temp"),Div(IntNum(3),Var("temp")))),
             Eq(Var("temp4"), Div(Var("temp"),Mul(IntNum(3),Var("temp")))),
@@ -515,7 +516,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("Remainder/mod") { // TODO cases that would not be solved by constant propagation ?
+  test("Remainder/mod") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -541,23 +542,23 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X"), IntNum(2)),
+            //            Eq(Var("X"), IntNum(2)),
             //            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(4)),
-            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
+            //            Eq(Var("Z"), IntNum(4)),
+            //            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
             //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
-            Eq(Var("C"), IntNum(0)),
+            //            Eq(Var("C"), IntNum(0)),
             //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
-            Eq(Var("E"), Mul(Var("A"), Mul(Var("A"), Mul(Var("C"), Var("C"))))),
-            Eq(Var("F"), Remainder(Mul(IntNum(4), Var("Z")), IntNum(2))),
-            Eq(Var("G"), Remainder(Mul(IntNum(4), Var("X")), IntNum(2))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A"))),
-            Eq(Var(Name("param$2")), Var(Name("E")))
+            //            Eq(Var("E"), Mul(Var("A"), Mul(Var("A"), Mul(Var("C"), Var("C"))))),
+            //            Eq(Var("F"), Remainder(Mul(IntNum(4), Var("Z")), IntNum(2))),
+            //            Eq(Var("G"), Remainder(Mul(IntNum(4), Var("X")), IntNum(2))),
+            Eq(Var(Name("param$0")), IntNum(0)),
+            Eq(Var(Name("param$1")), IntNum(0)),
+            Eq(Var(Name("param$2")), IntNum(0))
           ))
         ))
       ))
-    performTest(expected, input)
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("Min") {
@@ -570,7 +571,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("A"), Min(IntNum(16), Var("X"))),
             Eq(Var("B"), Min(IntNum(16), Var("Y"))),
             Eq(Var("C"), Min(Var("Y"), IntNum(16))),
-            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
+            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("B"))),
             Eq(Var(Name("param$2")), Var(Name("C")))
@@ -581,19 +582,19 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X"), IntNum(2)),
+            //            Eq(Var("X"), IntNum(2)),
             //            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("A"), Min(IntNum(16), Var("X"))),
+            //            Eq(Var("A"), Min(IntNum(16), Var("X"))),
             //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
             //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
             //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A"))),
-            Eq(Var(Name("param$2")), Var(Name("A")))
+            Eq(Var(Name("param$0")), IntNum(2)),
+            Eq(Var(Name("param$1")), IntNum(2)),
+            Eq(Var(Name("param$2")), IntNum(2))
           ))
         ))
       ))
-    performTest(expected, input)
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("Max") {
@@ -608,9 +609,11 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("B"), Max(IntNum(16), Var("Y"))),
             Eq(Var("C"), Max(Var("Y"), IntNum(16))),
             Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
+            Eq(Var("E"), Max(Add(Var("Z"), Var("D")), Add(Var("Z"), IntNum(16)))),
+            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("B"))),
-            Eq(Var(Name("param$2")), Var(Name("D")))
+            Eq(Var(Name("param$2")), Var(Name("E")))
           ))
         ))
       ))
@@ -618,20 +621,22 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X"), IntNum(2)),
+            //            Eq(Var("X"), IntNum(2)),
             //            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(5)),
-            Eq(Var("A"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("X"))))),
+            //            Eq(Var("Z"), IntNum(5)),
+            //            Eq(Var("A"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("X"))))),
             //            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
             //            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
             //            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A"))),
-            Eq(Var(Name("param$2")), Var(Name("A")))
+            //            Eq(Var("E"), Max(Add(Var("Z"), Var("D")), Add(Var("Z"), IntNum(16)))),
+            //            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
+            Eq(Var(Name("param$0")), IntNum(16)),
+            Eq(Var(Name("param$1")), IntNum(16)),
+            Eq(Var(Name("param$2")), IntNum(21))
           ))
         ))
       ))
-    performTest(expected, input)
+    performTest(expected, input, ConfigVN(true))
   }
 
   test("Abs") {
@@ -644,8 +649,11 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("Z"), IntNum(-2)),
             Eq(Var("A"), Abs(Var("X"))),
             Eq(Var("B"), Abs(Var("Y"))),
+            Eq(Var("C"), Abs(Var("Z"))),
+            Eq(Var("C"), Abs(Var("A"))),
+            //            Eq(Abs(Var("C")), Var("D")),
             Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("B"))),
+            Eq(Var(Name("param$1")), Var(Name("A"))),
             Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
@@ -654,18 +662,21 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X"), IntNum(2)),
+            //            Eq(Var("X"), IntNum(2)),
             //            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(-2)),
-            Eq(Var("A"), Abs(Var("X"))),
+            //            Eq(Var("Z"), IntNum(-2)),
+            //            Eq(Var("A"), Abs(Var("X"))),
             //            Eq(Var("B"), Abs(Var("Y"))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
+            //            Eq(Var("C"), Abs(Var("Z"))),
+            //            Eq(Var("C"), Abs(Var("A"))),
+            Eq(IntNum(2), IntNum(2)),
+            Eq(Var(Name("param$0")), IntNum(2)),
+            Eq(Var(Name("param$1")), IntNum(2)),
+            Eq(Var(Name("param$2")), IntNum(-2))
           ))
         ))
       ))
-    performTest(expected, input)
+    performTest(expected, input, ConfigVN(normalize = true))
   }
 
   test("Simpsons Example for Hash-Based") {
@@ -692,24 +703,24 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var("X"), IntNum(2)),
+//            Eq(Var("X"), IntNum(2)),
             //            Eq(Var("Y"), Var("X")),
 
-            Eq(Var("A"), IntNum(0)),
+//            Eq(Var("A"), IntNum(0)),
             //            Eq(Var("B"), Var("A")),
             //            Eq(Var("C"), Var("A")),
             //            Eq(Var("D"), Var("A")),
 
-            Eq(Var(Name("param$0")), Var("A")),
-            Eq(Var(Name("param$1")), Var("A")),
-            Eq(Var(Name("param$2")), Var("A"))
+            Eq(Var(Name("param$0")), IntNum(0)),
+            Eq(Var(Name("param$1")), IntNum(0)),
+            Eq(Var(Name("param$2")), IntNum(0))
           ))
         ))
       ))
     performTest(expected, input)
   }
 
-  test("propagate constants") {
+  test("various operations and GT") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -745,7 +756,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, ConfigVN(true))
   }
 
-  test("propagate constants: zero") {
+  test("various operations with zero") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -781,170 +792,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, ConfigVN(true))
   }
 
-  test("propagate constants: Remainder/mod") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X"), IntNum(2)),
-            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(4)),
-            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
-            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
-            Eq(Var("B2"), Remainder(Add(IntNum(6), IntNum(10)), Var("Y"))),
-            Eq(Var("C"), Remainder(IntNum(-16), IntNum(2))),
-            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
-            Eq(Var("E"), Mul(Var("A"), Mul(Var("B"), Mul(Var("C"), Var("D"))))),
-            Eq(Var("F"), Remainder(Mul(Var("Z"), IntNum(4)), IntNum(2))),
-            Eq(Var("G"), Remainder(Mul(Var("X"), IntNum(4)), IntNum(2))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("B"))),
-            Eq(Var(Name("param$2")), Var(Name("E")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-//            Eq(Var("X"), IntNum(2)),
-            //            Eq(Var("Y"), IntNum(2)),
-//            Eq(Var("Z"), IntNum(4)),
-//            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
-            //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
-//            Eq(Var("C"), IntNum(0)),
-            //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
-//            Eq(Var("E"), Mul(Var("A"), Mul(Var("A"), Mul(Var("C"), Var("C"))))),
-//            Eq(Var("F"), Remainder(Mul(IntNum(4), Var("Z")), IntNum(2))),
-//            Eq(Var("G"), Remainder(Mul(IntNum(4), Var("X")), IntNum(2))),
-            Eq(Var(Name("param$0")), IntNum(0)),
-            Eq(Var(Name("param$1")), IntNum(0)),
-            Eq(Var(Name("param$2")), IntNum(0))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("propagate constants: Min") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X"), IntNum(2)),
-            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("A"), Min(IntNum(16), Var("X"))),
-            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
-            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
-            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("B"))),
-            Eq(Var(Name("param$2")), Var(Name("C")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-//            Eq(Var("X"), IntNum(2)),
-            //            Eq(Var("Y"), IntNum(2)),
-//            Eq(Var("A"), Min(IntNum(16), Var("X"))),
-            //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
-            //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
-            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
-            Eq(Var(Name("param$0")), IntNum(2)),
-            Eq(Var(Name("param$1")), IntNum(2)),
-            Eq(Var(Name("param$2")), IntNum(2))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("propagate constants: Max") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X"), IntNum(2)),
-            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(5)),
-            Eq(Var("A"), Max(IntNum(16), Var("X"))),
-            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
-            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
-            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
-            Eq(Var("E"), Max(Add(Var("Z"), Var("D")), Add(Var("Z"), IntNum(16)))),
-            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("B"))),
-            Eq(Var(Name("param$2")), Var(Name("E")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-//            Eq(Var("X"), IntNum(2)),
-//            Eq(Var("Y"), IntNum(2)),
-//            Eq(Var("Z"), IntNum(5)),
-//            Eq(Var("A"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("X"))))),
-//            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
-//            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
-//            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
-//            Eq(Var("E"), Max(Add(Var("Z"), Var("D")), Add(Var("Z"), IntNum(16)))),
-//            Eq(Var("F"), Add(Var("Z"), Max(Var("D"), IntNum(16)))),
-            Eq(Var(Name("param$0")), IntNum(16)),
-            Eq(Var(Name("param$1")), IntNum(16)),
-            Eq(Var(Name("param$2")), IntNum(21))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(true))
-  }
-
-  test("propagate constants: Abs") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("X"), IntNum(2)),
-            Eq(Var("Y"), IntNum(2)),
-            Eq(Var("Z"), IntNum(-2)),
-            Eq(Var("A"), Abs(Var("X"))),
-            Eq(Var("B"), Abs(Var("Y"))),
-            Eq(Var("C"), Abs(Var("Z"))),
-            Eq(Var("C"), Abs(Var("A"))),
-//            Eq(Abs(Var("C")), Var("D")),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A"))),
-            Eq(Var(Name("param$2")), Var(Name("Z")))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-          Body(Seq(
-//            Eq(Var("X"), IntNum(2)),
-//            Eq(Var("Y"), IntNum(2)),
-//            Eq(Var("Z"), IntNum(-2)),
-//            Eq(Var("A"), Abs(Var("X"))),
-//            Eq(Var("B"), Abs(Var("Y"))),
-//            Eq(Var("C"), Abs(Var("Z"))),
-//            Eq(Var("C"), Abs(Var("A"))),
-//            Eq(Abs(Var("A")), Var("D")),
-            Eq(Var(Name("param$0")), IntNum(2)),
-            Eq(Var(Name("param$1")), IntNum(2)),
-            Eq(Var(Name("param$2")), IntNum(-2))
-          ))
-        ))
-      ))
-    performTest(expected, input, ConfigVN(normalize = true))
-  }
-
-  test("propagate constants: Two Bodies") {
+  test("Two Bodies") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
@@ -998,7 +846,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, ConfigVN(true))
   }
 
-  test("propagate constants: Call replace Args") {
+  test("Call replace Args") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -1054,7 +902,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, ConfigVN(true))
   }
 
-  test("Redundant Term in Eq: multiple relations") {
+  test("Multiple Relations") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
@@ -1104,9 +952,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
+            Eq(IntNum(1), IntNum(1)),
             //Eq(Var(Name("Y")), Var(Name("X"))),
-//            Eq(Var(Name("X")), Mul(IntNum(1), IntNum(1))), // TODO gets remembered correctly but could be removed here
+//            Eq(Var(Name("X")), Mul(IntNum(1), IntNum(1))),
             //            Eq(Var(Name("Z1")), Mul(IntNum(1), IntNum(1)))),
             //            Eq(Var(Name("Z2")), IntNum(1)),
             Eq(Var(Name("param$0")), Var(Name("X"))),
@@ -1272,11 +1120,11 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call(Name("S"), Seq(TermArg(Var("a")))),
             Eq(Var(Name("H1")), Add(Var("a"), IntNum(2))),
-            Eq(Var(Name("H2")), Add(IntNum(2), Var("a"))),
+            Eq(Var(Name("H2")), Add(IntNum(2), Var("a"))), // if not removed in 1st then in 2nd: H2 -> H1, 2 + a -> 2 + a (because of a)
             Eq(Add(Var("H1"), Var("H2")), Var(Name("H3"))),
             Call(Name("S"), Seq(TermArg(Var("b")))),
             Eq(Var(Name("H4")), Mul(IntNum(2), Add(Var(Name("H3")), IntNum(3)))),
-            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
+            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))), // 2nd: same as above
             Eq(Var(Name("result")), Var(Name("H5")))
           ))
         )),
@@ -1344,13 +1192,13 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Call(Name("S"), Seq(TermArg(Var("a")))),
-            Eq(Var(Name("H1")), IntNum(-2)),
+//            Eq(Var(Name("H1")), IntNum(-2)),
 //            Eq(Var(Name("H2")), Sub(Add(IntNum(-2), Var("a")),Var("a"))),
-            Eq(Var(Name("H3")),Mul(IntNum(2), Var("H1"))),
+//            Eq(Var(Name("H3")),Mul(IntNum(2), Var("H1"))),
             Call(Name("S"), Seq(TermArg(Var("b")))),
-            Eq(Var(Name("H4")), Sub(Mul(IntNum(2),Var(Name("H3"))), IntNum(6))),
+//            Eq(Var(Name("H4")), Sub(Mul(IntNum(2),Var(Name("H3"))), IntNum(6))),
 //            Eq(Var(Name("H5")), Sub(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("result")), Var(Name("H4")))
+            Eq(Var(Name("result")), IntNum(-14))
           ))
         )),
         Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
@@ -1365,17 +1213,17 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("params bound in calls with arithmetic laws (with Comparison EQs)") {
+  test("param bound in call with arithmetic laws (with Comparison EQs)") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Call(Name("S"), Seq(TermArg(Var("a")))), // 2nd: S(5)
             Eq(Var("a"), Var("c")),
             Eq(Var("H6"), Sub(Var("a"), Var("c"))),
-            Eq(Var("c"), IntNum(5)),
+            Eq(Var("c"), IntNum(5)), // -> a == 5;  not 5 == 5 in 2nd because a is a param
             Eq(Var("H7"), Sub(IntNum(5), Var("c"))),
-            Eq(Var("H6"), Var("H7")),
+            Eq(Var("H6"), Var("H7")), // H6 == H7 -> 0 == 0 TODO could be removed
             Eq(Var(Name("result")), Var(Name("H7")))
           ))
         )),
@@ -1392,60 +1240,12 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Call(Name("S"), Seq(TermArg(Var("a")))),
-            //            Eq(Var("a"),Var("c")),
-            Eq(Var("H6"), IntNum(0)),
-            Eq(Var("a"), IntNum(5)),
-            //            Eq(Var("H7"),IntNum(0)),
-            //            Eq(Var("H6"),Var("H7")),
-            Eq(Var(Name("result")), Var(Name("H6")))
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
-
-  test("propagate constants: params bound in calls with arithmetic laws (with Comparison EQs)") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S"), Seq(TermArg(Var("a")))),
-            Eq(Var("a"), Var("c")),
-            Eq(Var("H6"), Sub(Var("a"), Var("c"))),
-            Eq(Var("c"), IntNum(5)),
-            Eq(Var("H7"), Sub(IntNum(5), Var("c"))),
-            Eq(Var("H6"), Var("H7")),
-            Eq(Var(Name("result")), Var(Name("H7")))
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S"), Seq(TermArg(Var("a")))),
+            Call(Name("S"), Seq(TermArg(IntNum(5)))),
             //            Eq(Var("a"),Var("c")),
 //            Eq(Var("H6"), IntNum(0)),
             Eq(Var("a"), IntNum(5)),
             //            Eq(Var("H7"),IntNum(0)),
-            //            Eq(Var("H6"),Var("H7")),
+            Eq(IntNum(0),IntNum(0)),
             Eq(Var(Name("result")), IntNum(0))
           ))
         )),
@@ -1461,5 +1261,159 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, ConfigVN(normalize = true))
   }
 
+  // TODO more examples with calls
+//  test("Remainder/mod") {
+    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(4)),
+    //            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
+    //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
+    //            Eq(Var("B2"), Remainder(Add(IntNum(6), IntNum(10)), Var("Y"))),
+    //            Eq(Var("C"), Remainder(IntNum(-16), IntNum(2))),
+    //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
+    //            Eq(Var("E"), Mul(Var("A"), Mul(Var("B"), Mul(Var("C"), Var("D"))))),
+    //            Eq(Var("F"), Remainder(Mul(Var("Z"), IntNum(4)), IntNum(2))),
+    //            Eq(Var("G"), Remainder(Mul(Var("X"), IntNum(4)), IntNum(2))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("B"))),
+    //            Eq(Var(Name("param$2")), Var(Name("E")))
+    //          ))
+    //        ))
+    //      ))
+    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(4)),
+    //            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
+    //            //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
+    //            Eq(Var("C"), IntNum(0)),
+    //            //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
+    //            Eq(Var("E"), Mul(Var("A"), Mul(Var("A"), Mul(Var("C"), Var("C"))))),
+    //            Eq(Var("F"), Remainder(Mul(IntNum(4), Var("Z")), IntNum(2))),
+    //            Eq(Var("G"), Remainder(Mul(IntNum(4), Var("X")), IntNum(2))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("A"))),
+    //            Eq(Var(Name("param$2")), Var(Name("E")))
+    //          ))
+    //        ))
+    //      ))
+    //    performTest(expected, input)
+    //  }
+    //
+    //  test("Min") {
+    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("A"), Min(IntNum(16), Var("X"))),
+    //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
+    //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
+    //            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("B"))),
+    //            Eq(Var(Name("param$2")), Var(Name("C")))
+    //          ))
+    //        ))
+    //      ))
+    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("A"), Min(IntNum(16), Var("X"))),
+    //            //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
+    //            //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
+    //            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("A"))),
+    //            Eq(Var(Name("param$2")), Var(Name("A")))
+    //          ))
+    //        ))
+    //      ))
+    //    performTest(expected, input)
+    //  }
+    //
+    //  test("Max") {
+    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(5)),
+    //            Eq(Var("A"), Max(IntNum(16), Var("X"))),
+    //            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
+    //            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
+    //            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("B"))),
+    //            Eq(Var(Name("param$2")), Var(Name("D")))
+    //          ))
+    //        ))
+    //      ))
+    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(5)),
+    //            Eq(Var("A"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("X"))))),
+    //            //            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
+    //            //            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
+    //            //            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("A"))),
+    //            Eq(Var(Name("param$2")), Var(Name("A")))
+    //          ))
+    //        ))
+    //      ))
+    //    performTest(expected, input)
+    //  }
+    //
+    //  test("Abs") {
+    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(-2)),
+    //            Eq(Var("A"), Abs(Var("X"))),
+    //            Eq(Var("B"), Abs(Var("Y"))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("B"))),
+    //            Eq(Var(Name("param$2")), Var(Name("Z")))
+    //          ))
+    //        ))
+    //      ))
+    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+    //      Seq(
+    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
+    //          Body(Seq(
+    //            Eq(Var("X"), IntNum(2)),
+    //            //            Eq(Var("Y"), IntNum(2)),
+    //            Eq(Var("Z"), IntNum(-2)),
+    //            Eq(Var("A"), Abs(Var("X"))),
+    //            //            Eq(Var("B"), Abs(Var("Y"))),
+    //            Eq(Var(Name("param$0")), Var(Name("A"))),
+    //            Eq(Var(Name("param$1")), Var(Name("A"))),
+    //            Eq(Var(Name("param$2")), Var(Name("Z")))
+    //          ))
+    //        ))
+    //      ))
+    //    performTest(expected, input)
+    //  }
 
-}
+
+  }

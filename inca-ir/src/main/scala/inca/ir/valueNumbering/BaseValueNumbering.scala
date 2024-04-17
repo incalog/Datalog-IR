@@ -3,6 +3,7 @@ package inca.ir.valueNumbering
 import inca.ir
 import inca.ir.{Atom, Body, Call, ExtensionalCall, Name, RefByName, Term, TermArg, Var}
 import inca.ir.visitors.IRVisitor
+import inca.util.Tabulator
 
 import scala.collection.mutable
 
@@ -41,12 +42,16 @@ class ValueIds[T]{ // table from term to id
   // just for printing and debugging (constructing congrClasses like this every time is too computationally complex)
   private def congrClasses: Map[ValueId, Seq[T]] = ids.groupBy(_._2).map((id, m) => id -> m.keys.toSeq)
 
-  def printCongrClasses(): Unit = println("CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t"))
+  def congrClassesStr: String = {
+    val c = congrClasses
+//    Tabulator.format("CongrClasses:", c.keys.map(_.toString).toSeq, c.values.toSeq)
+    "CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t")
+  }
 
   def printResults(): Unit = {
     println("VN Results: ")
     println(this)
-    printCongrClasses()
+    println(congrClassesStr)
     println("")
   }
 
@@ -59,13 +64,13 @@ class ValueIds[T]{ // table from term to id
 
 trait BaseValueNumberingNew(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term, var contents: Seq[Term]) { // contents just saved for debugging
+  case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term/*, var contents: Seq[Term]*/) { // contents just saved for debugging
     override def toString: String =
-      s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm, contents = $contents"
+      s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"//, contents = $contents
 
     def add(t: Term): Unit = {
       if (isConst(t)) leader = t
-      contents = contents.appended(t)
+      //contents = contents.appended(t)
     }
 
   }

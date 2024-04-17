@@ -55,11 +55,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var(Name("X")), IntNum(1)),
             Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
-            Eq(Var(Name("H2")), Add(Var("X"), IntNum(2))),
-            Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))), // DONT REMOVE this -> block removal in 2nd phase
+            Eq(Var(Name("H2")), Add(Var("X"), IntNum(2))), // remove because value already available through H1 (1st phase)
+            Eq(Var(Name("Z")), Add(Var("H1"), Var("H2"))), // -> H1 + H1
+            Eq(Var(Name("param$0")), Var(Name("X"))),      // 1
+            Eq(Var(Name("param$1")), Var(Name("Y"))),      // 3
             Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
@@ -68,13 +68,13 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), IntNum(1)),
-            Eq(Var(Name("Y")), IntNum(3)),
-            Eq(Var(Name("H1")), Add(Var("X"), IntNum(2))),
+//            Eq(Var(Name("X")), IntNum(1)),
+//            Eq(Var(Name("Y")), IntNum(3)),
+            Eq(Var(Name("H1")), Add(IntNum(1), IntNum(2))),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
             Eq(Var(Name("Z")), Add(Var("H1"), Var("H1"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y"))),
+            Eq(Var(Name("param$0")), IntNum(1)),
+            Eq(Var(Name("param$1")), IntNum(3)),
             Eq(Var(Name("param$2")), Var(Name("Z")))
           ))
         ))
@@ -838,7 +838,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  test("Call and check for Equality with var bound in call used in term") {
+  test("Call and check for Equality with var bound in call used in term") { // TODO no error but not all equal terms in same congrClass (12 has a var as leader...)
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -884,11 +884,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
-            Eq(Var("W"), Add(Var("X"), IntNum(3))),
-            Eq(IntNum(12), Var(Name("X"))), // now value of X is known -> W also known
-            Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the hash of first introduction of X is needed
-            Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether hash contained in hashtable)
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // 2nd: dont replace lhs because Y still there, replace X with 12
+            Eq(Var("W"), Add(Var("X"), IntNum(3))),       // 2nd: x + 3 -> 12 + 3 -> V
+            Eq(IntNum(12), Var(Name("X"))),               // 1st: now value of X is known -> W also known
+            Eq(Var("V"), Add(Var("X"), IntNum(3))), // whether redundancy recognized in 1st pass determined by which id used (of original term or newTerm with visited subterms)
+            Eq(IntNum(12), Var(Name("Z"))),               // 1st: -> Z == X
             //            Eq(Var("V"), Var("Z")),
             Eq(Var(Name("param$0")), Var(Name("X"))),
             Eq(Var(Name("param$1")), Var(Name("Y")))
