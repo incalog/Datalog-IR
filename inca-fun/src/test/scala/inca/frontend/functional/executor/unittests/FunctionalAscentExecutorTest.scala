@@ -133,7 +133,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
-    assertResult("Succ(Succ(Succ(Succ(Succ(Zero())))))")(res.entries.head.toString)
+    assertResult("Succ(Succ(Succ(Succ(Succ(Zero)))))")(res.entries.head.toString)
   }
 
   test("Set const") {
@@ -235,7 +235,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
-    assertResult("Cons_TBoolean(1,Nil_TBoolean())")(res.entries.head.toString)
+    assertResult("Cons_TBoolean(1, Nil_TBoolean)")(res.entries.head.toString)
   }
 
   // No recursive aggregation support in Souffle + Missing C++ lowering
