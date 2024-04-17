@@ -48,33 +48,15 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     def removeUpdateListener(up: inca.ir.execution.RelationUpdateListener): Unit = throw new UnsupportedOperationException()
 
-    // Generate a string representation of objects
-    private def valuefyObject(v: ujson.Value): Any = v match
-      case obj@Obj(kvs) =>
-        val sb = new StringBuilder
-        kvs.foreach { case (k, v) =>
-          val argS = v match
-            case _: Arr => valuefyObject(v)
-            case _ => "(" + valuefyObject(v) + ")"
-          sb.append(s"$k$argS")
-        }
-        sb.toString
-      case a : Arr => v.arr.map(valuefyObject).mkString("(", ",", ")")
-      case i: Num if i.value.toInt == i.value => i.value.toInt
-      case _ => v.value
-
     def readAll(): Seq[Relation] = cachedResult match {
       case Some(result) if !inputDirty => result
       case _ =>
         val jsonOutput = execute()
-        val result = jsonOutput.split("\n").map { line =>
+        val result = jsonOutput.split("\n").toSeq.map { line =>
           val res = ujson.read(line)
           val rel = res.obj("name").str
           val size = res.obj("size").num.toInt
-          val elements = res.obj("elements").arr.map(_.arr.map {
-            case obj : ujson.Obj => valuefyObject(obj)
-            case j => j.value
-          }.toSeq)
+          val elements = res.obj("elements").arr.map(_.arr.toSeq.map(_.value))
           Relation.from(rel, 0.until(size).map(i => s"Param$i"), elements)
         }
         cachedResult = Some(result)

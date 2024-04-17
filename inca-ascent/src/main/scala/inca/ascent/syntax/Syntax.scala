@@ -28,7 +28,7 @@ val vecSerializeWrapper =
     |}
     |""".stripMargin
 
-// Rust wrapper around f32 to support eq and hash
+// Rust wrapper around f32 to support eq, clone and hash. Otherwise we can not use floats in relations
 val f32Wrapper =
   """
     |#[derive(Debug, Clone, Copy, Serialize)]
@@ -314,12 +314,22 @@ enum ProgramContent:
       }.mkString("\n")
 
       s"""
-         |#[derive(Debug, Eq, PartialEq, Clone, Hash, Serialize)]
-         |pub enum $dataName{
+         |#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+         |pub enum $dataName {
          |$paramS
          |}
          |
          |$enumDestructors
+         |
+         |// Do not serialize custom data types. Otherwise it will get to slow
+         |impl Serialize for $dataName {
+         |    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+         |    where
+         |        S: Serializer,
+         |    {
+         |        serializer.serialize_str(&format!("{:?}", &self))
+         |    }
+         |}
          |""".stripMargin
   }
 
