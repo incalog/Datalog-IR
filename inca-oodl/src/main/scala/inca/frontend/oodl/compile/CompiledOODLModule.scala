@@ -78,24 +78,32 @@ object CompiledOODLModule:
   // Important:
   // 1. Not before block
   // 2. Impure before Disjunction
-  val pipeline: List[() => BaseIRVisitor] = List(
-    () => new mono.Lowering(optimizeMono = true) {},
-    () => new MonoScalaLowering {},
-    () => new ConversionElimination {},
-    () => new aggregateset.Lowering {},
-    () => new set.Lowering {},
-    () => new map.Lowering {},
-    () => new bool.Lowering {},
-    () => new datamatch.Lowering {},
-    () => new not.Lowering {},
-    () => new block.Lowering {},
-    () => new impure.Lowering {},
-    () => new disjunction.Lowering {},
-    () => new not.Lowering {},
-    () => new demand.Lowering {},
-    //() => new demand.LoweringWithOutlining {},
-    () => new tuple.Lowering {},
+  val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
 
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {}
-  ) // arith + string + data
+  def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
+    val demandLowering = () => {
+      if withDemandOutlining then
+        new demand.LoweringWithOutlining {}
+      else
+        new demand.Lowering {}
+    }
+    List(
+      () => new mono.Lowering(optimizeMono = true) {},
+      () => new MonoScalaLowering {},
+      () => new ConversionElimination {},
+      () => new aggregateset.Lowering {},
+      () => new set.Lowering {},
+      () => new map.Lowering {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new not.Lowering {},
+      () => new block.Lowering {},
+      () => new impure.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      demandLowering,
+      () => new tuple.Lowering {},
+
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.AliasElimination {}
+    ) // arith + string + data

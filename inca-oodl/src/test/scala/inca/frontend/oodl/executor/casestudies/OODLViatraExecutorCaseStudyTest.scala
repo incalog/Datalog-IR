@@ -51,7 +51,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   }
 
   // This compiles but is way slower than the old case study... why ?
-  // Ideas, constructing a lot of objects is expensive, since we dublicate a lot of constructor calls
+  // Ideas, constructing a lot of objects is expensive, since we duplicate a lot of constructor calls
   test("Flow sensitive Sign Analysis") {
     val dRedExec: OODLExecutor = new OODLExecutor(new Executor(DRedReteBackendFactory.INSTANCE))
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
