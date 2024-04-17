@@ -44,6 +44,8 @@ trait LoweringWithOutlining extends BaseLowering:
 
       val vars = new ListBuffer[String]()
       val gensym = new Gensym(vars)
+      rules.foreach((_, callVars, _) => gensym.register(callVars.map(_.name.name)))
+      
       val params = currentModule.relations(rel.name).params.flatMap {
         case Param(name,TDemand(ty)) => Some(Param(gensym.freshName(name),ty))
         case _ => None
