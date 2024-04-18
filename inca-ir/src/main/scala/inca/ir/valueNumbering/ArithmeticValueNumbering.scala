@@ -5,7 +5,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound
 
 
-trait ArithmeticValueNumbering(config: ConfigVN) extends BaseValueNumbering {
+trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueNumbering {
 
   protected override def isConst(term: Term): Boolean = term match {
     case IntNum(_) | DoubleNum(_) => true

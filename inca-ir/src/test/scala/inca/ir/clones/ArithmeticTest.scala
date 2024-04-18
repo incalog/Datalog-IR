@@ -472,7 +472,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //            Eq(Var(Name("H1")), IntNum(2)),
             //            Eq(Var(Name("H2")), Div(IntNum(4), IntNum(2))),
 //            Eq(Var(Name("H3")), IntNum(0)),
-            Eq(Div(IntNum(2), IntNum(0)), Div(IntNum(2), IntNum(0))), // -> TODO 2/0...
+//            Eq(Div(IntNum(2), IntNum(0)), Div(IntNum(2), IntNum(0))), // -> TODO 2/0...
 //            Eq(Var(Name("H5")), Mul(Var("X"), Var("X"))), // if H3 would not result of integer division then this would be redundant too
             //            Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
 //            Eq(Var(Name("H7")), IntNum(1)),
