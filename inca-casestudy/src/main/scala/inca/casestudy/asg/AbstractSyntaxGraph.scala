@@ -2,6 +2,7 @@ package inca.casestudy.asg
 
 import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.ir.*
+import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
@@ -243,7 +244,9 @@ object AbstractSyntaxGraph:
     )
   )
 
-  def compiled = new CompiledModule:
+  def compiled = createCompiled(false)
+
+  def createCompiled(outlineDemand: Boolean): CompiledModule = new CompiledModule:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod
@@ -251,11 +254,14 @@ object AbstractSyntaxGraph:
       val opt = CompilerOptions.default
       opt.irLogging.logLowerings = false
       opt.irLogging.logTypeInformation = false
+      opt.irLogging.logStatsAfterOptimizations = true
       opt
     }
     setPipeline(List(
-      //() => new demand.Lowering {},
-      () => new LoweringWithOutlining {},
+      () => if outlineDemand then
+              new LoweringWithOutlining {}
+            else
+              new demand.Lowering {},
       () => new AliasElimination {}
     ))
 
@@ -300,22 +306,46 @@ object AbstractSyntaxGraph:
     FileUtil.writeFile(s"$resultPath/asg/ASG_DL.csv", csvToString(toCSV(measurements)))
   }
 
+
+  @main def compareAsgUsingViatra() = {
+    var engine = inca.viatra.backend.Executor().instantiate(createCompiled(true))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    //val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    val allRelsWithOutlining = engine.readAll().map(r => r.name -> r).toMap
+
+    engine = inca.viatra.backend.Executor().instantiate(createCompiled(false))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    val allRels = engine.readAll()
+
+    allRels.foreach { r =>
+      allRelsWithOutlining.get(r.name) match
+        case Some(r2) =>
+          println(s"Compare ${r.name} and ${r2.name}")
+          assert(r == r2)
+        case _ => // nothing
+    }
+
+    //engine.readAll().foreach { r => println(s"${r.name}: ${r.size}") }
+    //println(s"Total: ${engine.readAll().map(_.size).sum}")
+    //println(rel.asTable)
+  }
+
   @main def runAsgUsingViatra() = {
-    val engine = inca.viatra.backend.Executor().instantiate(compiled)
+    val engine = inca.viatra.backend.Executor().instantiate(createCompiled(false))
     engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
 
   @main def runAsgUsingSouffle() = {
-    val engine = inca.souffle.backend.Executor().instantiate(compiled)
+    val engine = inca.souffle.backend.Executor(Fixed(1)).instantiate(createCompiled(false))
     engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
 
   @main def runAsgUsingAscent() = {
-    val engine = inca.ascent.backend.Executor().instantiate(compiled)
+    val engine = inca.ascent.backend.Executor(Fixed(1)).instantiate(createCompiled(false))
     engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)

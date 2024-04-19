@@ -7,7 +7,7 @@ import inca.ir.execution.ThreadCount.Auto
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, ThreadCount}
 import inca.ir.{CompiledModule, Name}
 import inca.util.FileUtil
-import ujson.{Arr, Num, Obj}
+import ujson._
 
 import java.io.{File, PrintWriter}
 import java.nio.charset.StandardCharsets
@@ -15,6 +15,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.sys.process.*
 import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
+import scala.jdk.OptionConverters._
 
 object Executor:
   private lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
@@ -26,11 +27,15 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     private def execute(): String = executable.!!
 
+    override def measure(rel: Relation): Long =
+      executable.!!.lines().findFirst().toScala match
+        case Some(l) => l.toLong
+        case _ => throw IllegalStateException("Could not read execution time!")
+
     def insert(edb: Relation): Unit = {
       inputDirty = true
 
-      val content = edb.entries
-        .map(t => edb.flattenEntry(t).mkString("\t")).mkString("\n")
+      val content = edb.entries.map(t => edb.flattenEntry(t).mkString("\t")).mkString("\n")
       val name = cleanName(Name(edb.name))
 
       // Reuse existing file if it exists, so we don't have to recompile the rust project
@@ -51,8 +56,9 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     def readAll(): Seq[Relation] = cachedResult match {
       case Some(result) if !inputDirty => result
       case _ =>
-        val jsonOutput = execute()
-        val result = jsonOutput.split("\n").toSeq.map { line =>
+        // Skip the first line, which includes the execution time
+        val jsonOutputs = execute().split("\n").tail.toSeq
+        val result = jsonOutputs.map { line =>
           val res = ujson.read(line)
           val rel = res.obj("name").str
           val size = res.obj("size").num.toInt

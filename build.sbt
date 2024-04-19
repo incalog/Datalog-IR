@@ -140,6 +140,7 @@ lazy val inca_souffle = (project in file("inca-souffle"))
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+      "com.lihaoyi" %% "upickle" % "3.2.0",
     )
   )
 

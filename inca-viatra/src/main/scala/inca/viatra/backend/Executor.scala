@@ -34,7 +34,7 @@ object Executor:
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, val module: PSystem.Module) extends ExecutorEngine:
 
-    def measure(rel: Relation): Long =
+    override def measure(rel: Relation): Long =
       val spec = module.patterns(cleanString(rel.name))()
       val start = System.nanoTime()
       val matcher = spec.getMatcher(engine)

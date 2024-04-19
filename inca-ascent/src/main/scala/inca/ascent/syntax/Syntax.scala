@@ -186,7 +186,11 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |fn main() {
        |  let mut prog = AscentProgram::default();
        |$fillEdbs
+       |  use std::time::Instant;
+       |  let now = Instant::now();
        |  prog.run();
+       |  let elapsed = now.elapsed().as_nanos();
+       |  println!("{}", elapsed); 
        |
        |$out
        |}

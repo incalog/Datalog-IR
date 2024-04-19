@@ -9,6 +9,7 @@ import inca.util.FileUtil
 import java.io.File
 import scala.sys.process.*
 import scala.util.{Failure, Success, Try}
+import ujson._
 
 // TODO we assume that directives use defaults
 // inputs are in <name>.facts of directory
@@ -17,14 +18,58 @@ import scala.util.{Failure, Success, Try}
 // tab is default delimiter
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
-  class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
+  case class ProgramConfig(dirFile: File, progFile: File, flags: Map[String, String]):
+    val dirFilePath: String = dirFile.getAbsolutePath
+    val progFilePath: String = progFile.getAbsolutePath
+    val profileFilePath: String = s"$dirFilePath/profile.log"
+
+    def flagsToString(fls: Map[String, String]): String = fls.map((k, v) => s"-$k $v" ).mkString(" ")
+
+    lazy val process: ProcessBuilder =
+      val fls = flagsToString(flags)
+      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
+
+    lazy val profilingProcess: ProcessBuilder =
+      val fls = flagsToString(flags + ("p" -> profileFilePath))
+      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
+
+
+  class Engine(config: ProgramConfig, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
     private var inputDirty = true
     private var cachedResult: Option[Seq[Relation]] = None
 
     private def execute(): Unit =
       if (inputDirty)
-        executable.!
+        config.process.!!
         inputDirty = false
+
+    // This method measures the pure execution time without any disk I/O.
+    override def measure(rel: Relation): Long =
+      // Read runtime information from a profiling run
+      config.profilingProcess.!!
+      val profileJson = FileUtil.readFile(config.profileFilePath)
+
+      // Get runtime (including savetimes)
+      val res = ujson.read(profileJson)
+      val program = res.obj("root").obj("program")
+      val runtime = program.obj("runtime")
+      val startTimeInUs = runtime.obj("start").num
+      val endTimeInUs = runtime.obj("end").num
+      val runtimeInUs = (endTimeInUs - startTimeInUs).toLong
+
+      // Get savetime aka time spend for disk I/O
+      val savetimeInUs = program.obj("relation").obj.map {
+        // We include the save time for the measured relation
+        // case (relName, _) if relName == GenerateSouffle.cleanName(rel.name) => 0
+        // Only relations with an .output directive have a savetime
+        case (relName, relObj) if relObj.obj.contains("savetime") =>
+          val startTimeInUs = relObj.obj("savetime").obj("start").num
+          val endTimeInUs = relObj.obj("savetime").obj("end").num
+          (endTimeInUs - startTimeInUs).toLong
+        case _ => 0
+      }.sum
+
+      (runtimeInUs - savetimeInUs) * 1000
 
     // Create empty input files for all input relations
     // This is necessary if a module has more than one main function
@@ -120,11 +165,10 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       val params = (0 until size).map(idx => s"param_$idx")
       Relation.from(directive.names.head.toString, params, tuples)
 
-    // TODO we just use the defaults currently
     private def getPath(dir: ProgramContent.Directive): String =
       dir.dirQualifier match
-        case DirectiveQualifier.Input => s"${dirFile.getAbsolutePath}/${dir.names.head}.facts"
-        case DirectiveQualifier.Output => s"${dirFile.getAbsolutePath}/${dir.names.head}.csv"
+        case DirectiveQualifier.Input => s"${config.dirFilePath}/${dir.names.head}.facts"
+        case DirectiveQualifier.Output => s"${config.dirFilePath}/${dir.names.head}.csv"
     private def getSeperator(dir: ProgramContent.Directive): String = dir.dirQualifier match
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"
@@ -139,11 +183,12 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     // Souffle 2.4.1 crashes when it automatically guesses the thread count
     val flags = numThreads match
-      case ThreadCount.Auto => s"-j ${ThreadCount.numberOfAvailableThreads()}"
-      case ThreadCount.Fixed(n) if n > 1 => s"-j $n"
-      case _ => ""
+      case ThreadCount.Auto => Map("j" -> ThreadCount.numberOfAvailableThreads().toString)
+      case ThreadCount.Fixed(n) if n > 1 => Map("j" -> n.toString)
+      case _ => Map()
 
-    val process = Process(s"souffle $flags --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath}")
+    val programConfig = ProgramConfig(dirFile, souffleProgFile, flags)
+
     // collect input and output directives
     val inputFiles = souffleProg.content.flatMap {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, names, _) => names.map { n => n.toString -> d }
@@ -161,6 +206,6 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)
       case _ => None
     }.toMap
-    new Engine(dirFile, process, inputFiles, outputFiles, relationDecl)
+    new Engine(programConfig, inputFiles, outputFiles, relationDecl)
 
 
