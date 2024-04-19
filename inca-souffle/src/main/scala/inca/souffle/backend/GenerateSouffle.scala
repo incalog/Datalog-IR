@@ -1,7 +1,7 @@
 package inca.souffle.backend
 
 import inca.ir
-import inca.ir.{RefByName, TermArg}
+import inca.ir.{RefByName, TAny, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
@@ -137,6 +137,7 @@ object GenerateSouffle:
     case data.Construct(RefByName(name), args) => Term.Constr(qualifyName(name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match
+    case TAny => throw IllegalStateException("TAny is not supported by Souffle!")
     case arith.TInt => Type.Number
     case arith.TDouble => Type.Float
     case string.TString => Type.Symbol

@@ -9,11 +9,10 @@ import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperator}
 import inca.ir.extension.{string, aggregate as agg, arithmetic as arith}
-import inca.ir.{Arg, TermArg, WildcardArg}
+import inca.ir.{Arg, Name, TAny, TermArg, WildcardArg, name2string, string2name}
 import inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.extension.string.TString
-import inca.ir.{Name, name2string, string2name}
 import inca.util.Gensym
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{MaxDouble, MaxInt, MinDouble, MinInt, SumDouble, SumInt, Count as CountAgg}
 import inca.ir.typing.Mode.{Binding, Bound, Collapse}
@@ -111,9 +110,17 @@ object GenerateAscent:
           case (Bound, Bound) =>
             Seq(Atom.Equal(compileTerm(lhs, noClone = true), compileTerm(rhs, noClone = true)))
           case (Bound, Binding) =>
-            Seq(Atom.Let(compileTerm(rhs, noClone = true), compileTerm(lhs, noDeref = true)))
+            val at = Atom.Let(compileTerm(rhs, noClone = true), compileTerm(lhs, noDeref = true))
+            (lhs, rhs) match
+              case (ir.Var(n1), ir.Var(n2)) if varRefs.contains(n1.name.name) => varRefs += n2.name.name
+              case _ => // nothing
+            Seq(at)
           case (Binding, Bound) =>
-            Seq(Atom.Let(compileTerm(lhs, noClone = true), compileTerm(rhs, noDeref = true)))
+            val at = Atom.Let(compileTerm(lhs, noClone = true), compileTerm(rhs, noDeref = true))
+            (lhs, rhs) match
+              case (ir.Var(n1), ir.Var(n2)) if varRefs.contains(n2.name.name) => varRefs += n1.name.name
+              case _ => // nothing
+            Seq(at)
           case _ =>
             throw new RuntimeException(s"Unexpected binding for terms: $lhs and $rhs")
         }
@@ -205,6 +212,7 @@ object GenerateAscent:
     case ir.Var(name) =>
       val varTerm = Term.Var(cleanName(name.name))
       val isRef = varRefs.contains(name.name.name)
+      println(s"isRef: ${name.name.name}  :: $isRef")
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
       val isString = t.typ.exists(_.ty == TString)
       val derefTerm = if (isRef && !isData && !noDeref)
@@ -215,6 +223,7 @@ object GenerateAscent:
         Term.Clone(derefTerm)
       else
         derefTerm
+    case ir.Cast(t, TAny) => compileTerm(t, noDeref)
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t, noDeref), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)
@@ -239,6 +248,7 @@ object GenerateAscent:
   }
 
   private def compileType(ty: ir.Type): FormatType = ty match
+    case TAny => throw IllegalStateException("TAny is not supported by Ascent!")
     case arith.TInt => FormatType.Number
     case arith.TDouble => FormatType.Float
     case string.TString => FormatType.Symbol

@@ -4,10 +4,11 @@ import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ScalaMonoDefinition}
 import inca.foreign.scala.ir.{primitive, arithmetic as scalaArith, data as scalaData, string as scalaString}
+import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
-import inca.ir.extension.demand.TDemand
+import inca.ir.extension.demand.{LoweringWithOutlining, TDemand}
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.mono.*
 import inca.ir.extension.set.{SetMember, TSet}
@@ -258,15 +259,16 @@ object AbstractSyntaxGraphMono:
       )
   )
 
-  class Compiled(optMono: Boolean) extends CompiledModule:
+  class Compiled(optMono: Boolean, outlineDemand: Boolean=false) extends CompiledModule:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override val ir: Module = mod
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
-      opt.irLogging.logModule = true
-      opt.irLogging.logLowerings = true
+      opt.irLogging.logModule = false
+      opt.irLogging.logLowerings = false
       opt.irLogging.logTypeInformation = false
+      opt.irLogging.logStatsAfterOptimizations = false
       opt
     }
     override def typechecker: BaseIRTypechecker = new IRTypechecker with primitive.Typechecker
@@ -282,7 +284,10 @@ object AbstractSyntaxGraphMono:
       () => new MonoScalaLowering {},
       () => new ConversionElimination {},
       () => new impure.Lowering {},
-      () => new demand.Lowering {},
+      () => if outlineDemand then
+        new LoweringWithOutlining {}
+      else
+        new demand.Lowering {},
       () => new incaBool.Lowering {},
       () => new blockLowering {},
       () => new incaSet.Lowering {},
@@ -336,12 +341,41 @@ object AbstractSyntaxGraphMono:
     }
   }
 
+  @main def runAsgMonoUsingViatra() = {
+    // Will only work with optimizations on, since souffle does not support recursive and user-defined aggregation
+    val compiled = new Compiled(true, true)
+
+    val engine = inca.viatra.backend.Executor().instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    //println(engine.readAll().map(_.size).sum)
+    //println(rel)
+    println(rel.asTable)
+  }
+
+  // FIXME: For these programs to work you need to change the mono lowering, such that the Mono_ADT does not
+  //  contain parameters of type TAny for the MonoImpurity, but instead uses TInt
+
   @main def runAsgMonoUsingSouffle() = {
     // Will only work with optimizations on, since souffle does not support recursive and user-defined aggregation
-    val compiled = new Compiled(true)
+    val compiled = new Compiled(true, true)
 
-    val engine = inca.souffle.backend.Executor().instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(50, 10))))
+    val engine = inca.souffle.backend.Executor(Fixed(1)).instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    //val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
+    //println(diff)
+    val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
+    println(rel.asTable)
+  }
+
+  @main def runAsgMonoUsingAscent() = {
+    // Will only work with optimizations on, since ascent does not support recursive and user-defined aggregation
+    val compiled = new Compiled(true, true)
+
+    val engine = inca.ascent.backend.Executor(Fixed(1)).instantiate(compiled)
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    //val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
+    //println(diff)
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }

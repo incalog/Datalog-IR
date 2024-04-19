@@ -39,7 +39,9 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   def createDataDefinition(tm: TMono, monos: Seq[MonoDefinition]): Seq[DataModuleEntry] =
     val data = DataDefinition(monoDataType(tm).ref.name)
     val cases = monos.map(mono =>
+      // Fix for Interval analysis edb data
       CaseDefinition(monoDataConstructor(mono, tm.keys), TAny +: TString +: mono.constructorParamTypes, TData(data.name))
+      //CaseDefinition(monoDataConstructor(mono, tm.keys), TInt +: TString +: mono.constructorParamTypes, TData(data.name))
     )
     data +: cases
 
@@ -209,19 +211,19 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case NewMono(mono, keys, args) =>
-      // TODO: Visit types in keys ?
       val vkeys = keys.map(visitType)
       monoDefs += (mono, vkeys)
       monoTypes += mono.monoType(vkeys)
       val dataConstr = monoDataConstructor(mono, vkeys)
       val stVar = Name(gensym.fresh("monoCount"))
       val mVar = Var(Name(gensym.fresh("mono")))
+      // Fix for Interval analysis edb data
       val constr = Construct(RefByName(dataConstr), Cast(Var(stVar), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+      //val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
       val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
       val block = Block(imp, mVar)
       Seq(block)
     case NewMonoFor(mono, keys, args, uniqueFor) =>
-      // TODO: Visit types in keys ?
       val vkeys = keys.map(visitType)
       monoDefs += (mono, vkeys)
       monoTypes += mono.monoType(vkeys)

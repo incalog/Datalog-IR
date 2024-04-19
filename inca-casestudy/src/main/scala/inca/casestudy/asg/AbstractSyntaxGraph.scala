@@ -254,7 +254,7 @@ object AbstractSyntaxGraph:
       val opt = CompilerOptions.default
       opt.irLogging.logLowerings = false
       opt.irLogging.logTypeInformation = false
-      opt.irLogging.logStatsAfterOptimizations = true
+      opt.irLogging.logStatsAfterOptimizations = false
       opt
     }
     setPipeline(List(
