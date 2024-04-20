@@ -42,6 +42,16 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  private def updateValueNumbersAndCongrClasses(term: Term, id: ValueId): Unit = {
+    val oldId = getIdOf(term)
+    val congrClassesContains = congrClasses.contains(id)
+//    valueNumbers.updateAll(oldId,id)
+    valueNumbers.getAllWithId(oldId).foreach(t =>
+      valueNumbers.update(t,id)
+      if (congrClassesContains) congrClasses(id).changeLeaderIfNecessary(t)
+    )
+  }
+
   private enum Phase:
     case initial
     case repetition
@@ -148,8 +158,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     val termId: ValueId = valueNumbers(newTerm)
     if (termId != valueNumbers(term)){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term
-      // -> should have same id TODO merge congrClasses so that other terms with same ids also get same other id (?)
-      valueNumbers.update(term,termId) // updating leader shouldnt be necessary since newTerm already processed and should have higher priority to be leader
+      // -> should have same id
+//      valueNumbers.update(term,termId) // updating leader shouldnt be necessary since newTerm already processed and should have higher priority to be leader
+      updateValueNumbersAndCongrClasses(term, termId)
     }
 
     // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
@@ -163,15 +174,16 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         if (congrClasses.contains(termId)) congrClasses(termId).changeLeaderIfNecessary(normalizedTerm)
       }
       else {
-        // normalized term already has an id -> update term and newTerm to that id TODO merge all with termID (?) (alternatively all with normId to termId)
-        val normId = valueNumbers(normalizedTerm) // TODO normID might be termID
-        valueNumbers.update(term, normId)
-        valueNumbers.update(newTerm, normId)
+        // normalized term already has an id -> update term and newTerm to that id
+        val normId = valueNumbers(normalizedTerm)
+        if (termId != normId) updateValueNumbersAndCongrClasses(term, normId)
+//        updateValueNumbersAndCongrClasses(newTerm, normId) -> not necessary since above already made sure that ids of term and newTerm are equal
+//        valueNumbers.update(term, normId)
+//        valueNumbers.update(newTerm, normId)
 
-        // if normalized term already has an id, check whether the corresponding leader can be replaced
         if (congrClasses.contains(normId)) {
-          congrClasses(normId).changeLeaderIfNecessary(term)
-          congrClasses(normId).changeLeaderIfNecessary(newTerm)
+//          congrClasses(normId).changeLeaderIfNecessary(term)
+//          congrClasses(normId).changeLeaderIfNecessary(newTerm)
           if (newTerm.vars.isEmpty || newTerm.isInstanceOf[Var]) {
             return Seq(getReplacementTerm(normalizedTerm))
           }
@@ -217,7 +229,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     val termId: ValueId = getIdOf(newTerm)
     if (congrClasses.contains(termId)) {
-      valueNumbers.update(newVari,termId)
+//      valueNumbers.update(newVari,termId)
+      updateValueNumbersAndCongrClasses(newVari, termId)
       // TODO update leader ? -> shouldnt be necessary since term already processed and Var shouldnt have higher priority to be leader
       //count = count.updated(termId, count (termId) + 1)
 
@@ -230,13 +243,15 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       }
     }
     else if (congrClasses.contains(valueNumbers(newVari))){
-      valueNumbers.update(newTerm, valueNumbers(newVari))
+//      valueNumbers.update(newTerm, valueNumbers(newVari))
+      updateValueNumbersAndCongrClasses(newTerm,valueNumbers(newVari))
       // update congrClass if newTerm is a const
-      getCongrClassOf(newVari).changeLeaderIfNecessary(newTerm)
+//      getCongrClassOf(newVari).changeLeaderIfNecessary(newTerm)
       Seq(Eq(newVari,newTerm))
     }
     else {
-      valueNumbers.update(newVari, termId)
+//      valueNumbers.update(newVari, termId)
+      updateValueNumbersAndCongrClasses(newVari,termId)
       //count += (termId,1)
 
       // if term is a constant then use it as leader of its congruence class

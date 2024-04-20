@@ -64,6 +64,14 @@ class ValueIds[T]{ // table from term to id
     println("")
   }
 
+  def getAllWithId(id: ValueId): Seq[T] = {
+    ids.keys.filter(t => ids(t) == id).toSeq
+  }
+  
+  def updateAll(fromId: ValueId, toId: ValueId): Unit = {
+    getAllWithId(fromId).foreach(update(_,toId))
+  }
+  
 }
 
 

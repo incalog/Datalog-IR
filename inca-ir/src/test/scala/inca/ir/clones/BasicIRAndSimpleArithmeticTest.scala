@@ -252,10 +252,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
             //            Eq(Var(Name("B")), IntNum(1)),
             Eq(IntNum(1), IntNum(1)),
             //            Eq(Var(Name("D")), Var("A")),
-            Eq(IntNum(1), Mul(IntNum(1), IntNum(1))), // TODO 1st: learned that 1 == (1*1) -> 2nd: ((1*1) * (1*1))
+            Eq(IntNum(1), IntNum(1)), 
             //            Eq(Var(Name("C")), Var("E")),
             Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), Mul(IntNum(1), IntNum(1)))
+            Eq(Var(Name("param$1")), IntNum(1))
           ))
         ))
       ))
@@ -783,7 +783,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-            Eq(Var("W"), Add(IntNum(12), IntNum(3))),  // this could be removed (but not because it is a duplicate but because it is never used)
+            Eq(Add(IntNum(12), IntNum(3)), Add(IntNum(12), IntNum(3))),
             //            Eq(Var(Name("Z")), IntNum(12))
             Eq(IntNum(12), IntNum(12)),
             Eq(Var(Name("param$0")), IntNum(12)),
