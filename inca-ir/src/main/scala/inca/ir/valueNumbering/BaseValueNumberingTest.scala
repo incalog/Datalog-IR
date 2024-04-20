@@ -41,6 +41,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       return t
     }
     else{
+      leader.typ = t.typ // otherwise always used the type that leader had when saving it
       return leader
     }
   }
@@ -99,7 +100,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     currentBodyIndex += 1
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
     val newBody = super.visitBody(body).head
-    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}")
+    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
     phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
     val newerBodySeq = super.visitBody(newBody)
 

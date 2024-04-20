@@ -42,10 +42,19 @@ class ValueIds[T]{ // table from term to id
   // just for printing and debugging (constructing congrClasses like this every time is too computationally complex)
   private def congrClasses: Map[ValueId, Seq[T]] = ids.groupBy(_._2).map((id, m) => id -> m.keys.toSeq)
 
-  def congrClassesStr: String = {
+  private def congrClassesStr: String = {
     val c = congrClasses
-//    Tabulator.format("CongrClasses:", c.keys.map(_.toString).toSeq, c.values.toSeq)
-    "CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t")
+    val size = (c.values ++ Seq(c.keys)).map(_.size).max
+    val entries = c.values.toSeq.map{e =>
+      if (e.size < size) {
+        e.appendedAll((0 until (size - e.size)).map(_ => ""))
+      }
+      else e
+    }.transpose
+    val header = c.keys.toSeq.map(_.toString)
+
+    Tabulator.format("Terms for Ids: ", header, entries)
+//    "CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t")
   }
 
   def printResults(): Unit = {

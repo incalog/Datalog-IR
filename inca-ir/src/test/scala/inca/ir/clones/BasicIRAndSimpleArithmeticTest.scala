@@ -780,7 +780,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-            Eq(Var("W"), Add(IntNum(12), IntNum(3))),  // TODO this could be removed
+            Eq(Var("W"), Add(IntNum(12), IntNum(3))),  // this could be removed (but not because it is a duplicate but because it is never used)
             //            Eq(Var(Name("Z")), IntNum(12))
             Eq(IntNum(12), IntNum(12)),
             Eq(Var(Name("param$0")), IntNum(12)),
