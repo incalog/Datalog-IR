@@ -133,7 +133,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
   private def normalizeDiv(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match {
     case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
 //    case (vari@Var(RefByName(Name(l))), Var(RefByName(Name(r)))) if l == r => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term
-    case (l, r) if getIdOf(l) == getIdOf(r) => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term
+    case (l, r) if (getIdOf(l) == getIdOf(r) && getReplacementTerm(r) != IntNum(0) && getReplacementTerm(r) != DoubleNum(0)) => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term // TODO 0/0 -> 1
     case (IntNum(l), IntNum(r)) if r != 0 => IntNum(l / r) // int/int yields int in scala
     case (DoubleNum(l), DoubleNum(r)) if r != 0 => DoubleNum(l / r)
 
