@@ -1236,20 +1236,438 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
   test("Calls: Add"){
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
           Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Call(Name("S1"), Seq(TermArg(Var("b")))),
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
             Eq(Var(Name("H1")), Add(Var("b"), IntNum(2))),
             Eq(Var(Name("H2")), Add(IntNum(2), Var("b"))),
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
             Eq(Var("H3"), Add(IntNum(0),Var("c"))),
             Eq(Var("H4"), Add(Var("c"),Var("c"))),
             Eq(Var("H5"), Mul(IntNum(2),Var("c"))),
             Eq(Var("H6"), Add(Add(IntNum(2),Var("c")),Var("b"))),
             Eq(Var("H7"), Add(IntNum(0),Add(Var("c"),Add(Var("b"),IntNum(2))))),
             Eq(Var("H8"), Add(Var("c"),Add(IntNum(2),Var("b")))),
+            Eq(Var("H9"), Add(Add(Var("a"),Var("b")),Var("c"))),
+            Eq(Var("H10"), Add(Var("a"), Add(Var("b"),Var("c")))),
             Eq(Add(Var("H1"), Var("H2")), Var(Name("result"))),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var(Name("H1")), Add(IntNum(2), Var("b"))),
+//            Eq(Var(Name("H2")), Add(IntNum(2), Var("b"))),
+//            Eq(Var("H3"), Add(IntNum(0),Var("c"))),
+            Eq(Var("H4"), Mul(IntNum(2),Var("c"))),
+//            Eq(Var("H5"), Mul(IntNum(2),Var("c"))),
+            Eq(Var("H6"), Add(IntNum(2), Add(Var("b"),Var("c")))),
+//            Eq(Var("H7"), Add(IntNum(0),Add(Var("c"),Add(Var("b"),IntNum(2))))),
+//            Eq(Var("H8"), Add(Var("c"),Add(IntNum(2),Var("b")))),
+            Eq(Var("H9"), Add(Var("a"), Add(Var("b"),Var("c")))),
+//            Eq(Var("H10"), Add(Var("a"), Add(Var("b"),Var("c")))),
+            Eq(Var(Name("result")), Mul(IntNum(2), Var("H1"))),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Calls: Mul") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var("H1"), Mul(Var("a"), IntNum(0))),
+            Eq(Var("H2"), Mul(IntNum(0),Var("a"))),
+            Eq(Var("H3"), Mul(IntNum(1),Var("a"))),
+            Eq(Var("H4"), Mul(Var("a"),Var("b"))),
+            Eq(Var("H5"), Mul(Var("b"),Var("a"))),
+            Eq(Var("H6"), Mul(Var("a"), Mul(Var("b"),Var("c")))),
+            Eq(Var("H7"), Mul(Var("c"), Mul(Var("b"),Var("a")))),
+            Eq(Var("H8"), Mul(Var("b"), Mul(Var("c"),Var("a")))),
+            Eq(Var("H9"), Mul(Mul(Var("b"),Var("c")),Var("a"))),
+            Eq(Var("H10"), Mul(Mul(Var("c"),Var("a")),Var("b"))),
+            Eq(Var("H11"), Mul(Mul(Var("a"),Var("b")),Var("c"))),
+            Eq(Add(Var("H1"), Var("H2")), Var(Name("result")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+//            Eq(Var("H1"), IntNum(0)),
+//            Eq(Var("H2"), Mul(IntNum(0),Var("a"))),
+//            Eq(Var("H3"), Var("a")),
+            Eq(Var("H4"), Mul(Var("a"),Var("b"))),
+//            Eq(Var("H5"), Mul(Var("b"),Var("a"))),
+            Eq(Var("H6"), Mul(Var("a"), Mul(Var("b"),Var("c")))),
+//            Eq(Var("H7"), Mul(Var("c"), Mul(Var("b"),Var("a")))),
+//            Eq(Var("H8"), Mul(Var("b"), Mul(Var("c"),Var("a")))),
+//            Eq(Var("H9"), Mul(Mul(Var("b"),Var("c")),Var("a"))),
+//            Eq(Var("H10"), Mul(Mul(Var("c"),Var("a")),Var("b"))),
+//            Eq(Var("H11"), Mul(Mul(Var("a"),Var("b")),Var("c"))),
+            Eq(Var("result"),IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Calls: Sub") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var(Name("H1")), Sub(Var("b"), IntNum(2))),
+            Eq(Var(Name("H2")), Sub(IntNum(2), Var("b"))),
+            Eq(Var("H3"), Sub(IntNum(0), Var("c"))),
+            Eq(Var("H4"), Mul(IntNum(-1), Var("c"))),
+            Eq(Var("H5"), Add(IntNum(0), Mul(IntNum(-1), Var("c")))),
+            Eq(Var("a"),Var("b")),
+            Eq(Var("H6"), Sub(Add(Var("a"), Var("b")), Add(Var("b"), Var("a")))),
+            Eq(Var("H7"), Sub(Var(Name("c")), Add(Var("c"), IntNum(4)))),
+            Eq(Var("H8"), Sub(Add(Var("c"), IntNum(-4)),Var(Name("c")))),
+            Eq(Add(Var("H1"), Var("H2")), Var(Name("result"))),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("b")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var(Name("H1")), Sub(Var("b"), IntNum(2))),
+            Eq(Var(Name("H2")), Sub(IntNum(2), Var("b"))),
+            Eq(Var("H3"), Mul(IntNum(-1), Var("c"))),
+//            Eq(Var("H4"), Mul(IntNum(-1), Var("c"))),
+//            Eq(Var("H5"), Add(IntNum(0), Mul(IntNum(-1), Var("c")))),
+            Eq(Var("b"),Var("b")),
+//            Eq(Var("H6"), IntNum(0)),
+//            Eq(Var("H7"), IntNum(-4)),
+//            Eq(Var("H8"), IntNum(-4)),
+            Eq(Var("result"),Add(Var("H1"), Var("H2"))),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Calls: Remainder") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var("a"),Var("b")),
+            Eq(Var("H1"), Remainder(Var("a"),IntNum(2))),
+            Eq(Var("H2"), Remainder(Var("b"),IntNum(2))),
+            Eq(Var("H3"), Remainder(Var("a"),Var("c"))),
+            Eq(Var("H4"), Remainder(Mul(Var("c"),IntNum(2)),IntNum(2))),
+            Eq(Var("H5"), Remainder(Var("c"),IntNum(2))),
+            Eq(Var("H6"), Remainder(Var("c"),Var("c"))),
+            Eq(Var("H7"), Remainder(Var("a"),Var("b"))),
+            Eq(Remainder(Var("H6"),Var("H1")), Var(Name("result"))),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("b")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Call(Name("S3"), Seq(TermArg(Var("c")))),
+            Eq(Var("b"),Var("b")),
+            Eq(Var("H1"), Remainder(Var("b"),IntNum(2))),
+//            Eq(Var("H2"), Remainder(Var("b"),IntNum(2))),
+            Eq(Var("H3"), Remainder(Var("b"),Var("c"))),
+//            Eq(Var("H4"), IntNum(0)),
+            Eq(Var("H5"), Remainder(Var("c"),IntNum(2))),
+//            Eq(Var("H6"), Remainder(Var("c"),Var("c"))),
+//            Eq(Var("H7"), Remainder(Var("a"),Var("b"))),
+            Eq(Var("result"),IntNum(0)),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Identity learned in 2nd pass") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Eq(Var("B"), IntNum(2)),
+            Eq(Var("C"), Sub(Var("A"),Var("B"))),
+            Eq(Var("A"), IntNum(2)),
+            Eq(Var("D"), IntNum(0)),
+            Eq(Var("X"), Add(Var("C"), Var("D")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+//            Call(Name("S1"), Seq(TermArg(Var("A")))),     //after 1st iteration
+////            Eq(Var("B"), IntNum(2)),
+//            Eq(Var("C"), Sub(Var("A"),IntNum(2))),
+//            Eq(Var("A"), IntNum(2)),
+////            Eq(Var("D"), IntNum(0)),
+//            Eq(Var("X"), Add(Var("C"), IntNum(0)))
+            Call(Name("S1"), Seq(TermArg(IntNum(2)))),
+            //            Eq(Var("B"), IntNum(2)),
+            Eq(IntNum(0), IntNum(0)),
+            Eq(IntNum(2), IntNum(2)),
+            //            Eq(Var("D"), IntNum(0)),
+            Eq(Var("X"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Calls: Equalities S(a),S(b),a+2,a==b,b+2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("H1"), Add(Var("a"), IntNum(2))), // finds equality -> H2 == b+2 but not removed TODO could be removed by starting with init phase again or by removing duplicated atoms
+            Eq(Var("a"), Var("b")),
+            Eq(Var("H2"), Add(Var("b"), IntNum(2))),
+            Eq(Sub(Var("H2"), Var("H1")), Var("result")),
           ))
         )),
         Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
@@ -1271,20 +1689,14 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
           Body(Seq(
-            Eq(Var("a"), IntNum(0)),
             Call(Name("S1"), Seq(TermArg(Var("b")))),
-            Eq(Var(Name("H1")), Add(IntNum(2), Var("b"))),
-//            Eq(Var(Name("H2")), Add(IntNum(2), Var("b"))),
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
-//            Eq(Var("H3"), Add(IntNum(0),Var("c"))),
-            Eq(Var("H4"), Mul(IntNum(2),Var("c"))),
-//            Eq(Var("H5"), Mul(IntNum(2),Var("c"))),
-            Eq(Var("H6"), Add(IntNum(2), Add(Var("b"),Var("c")))),
-//            Eq(Var("H7"), Add(IntNum(0),Add(Var("c"),Add(Var("b"),IntNum(2))))),
-//            Eq(Var("H8"), Add(Var("c"),Add(IntNum(2),Var("b")))),
-            Eq(Var(Name("result")), Mul(IntNum(2), Var("H1"))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("H2"), Add(IntNum(2),Var("b"))),
+            Eq(Var("b"), Var("b")),
+            Eq(Var("H2"), Add(IntNum(2),Var("b"))),
+            Eq(Var("result"),IntNum(0))
           ))
         )),
         Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
@@ -1307,158 +1719,132 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-//  test("Remainder/mod") {
-    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(4)),
-    //            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
-    //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
-    //            Eq(Var("B2"), Remainder(Add(IntNum(6), IntNum(10)), Var("Y"))),
-    //            Eq(Var("C"), Remainder(IntNum(-16), IntNum(2))),
-    //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
-    //            Eq(Var("E"), Mul(Var("A"), Mul(Var("B"), Mul(Var("C"), Var("D"))))),
-    //            Eq(Var("F"), Remainder(Mul(Var("Z"), IntNum(4)), IntNum(2))),
-    //            Eq(Var("G"), Remainder(Mul(Var("X"), IntNum(4)), IntNum(2))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("B"))),
-    //            Eq(Var(Name("param$2")), Var(Name("E")))
-    //          ))
-    //        ))
-    //      ))
-    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(4)),
-    //            Eq(Var("A"), Remainder(IntNum(16), Var("X"))),
-    //            //            Eq(Var("B"), Remainder(IntNum(16), Var("Y"))),
-    //            Eq(Var("C"), IntNum(0)),
-    //            //            Eq(Var("D"), Remainder(IntNum(2), IntNum(2))),
-    //            Eq(Var("E"), Mul(Var("A"), Mul(Var("A"), Mul(Var("C"), Var("C"))))),
-    //            Eq(Var("F"), Remainder(Mul(IntNum(4), Var("Z")), IntNum(2))),
-    //            Eq(Var("G"), Remainder(Mul(IntNum(4), Var("X")), IntNum(2))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("A"))),
-    //            Eq(Var(Name("param$2")), Var(Name("E")))
-    //          ))
-    //        ))
-    //      ))
-    //    performTest(expected, input)
-    //  }
-    //
-    //  test("Min") {
-    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("A"), Min(IntNum(16), Var("X"))),
-    //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
-    //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
-    //            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("B"))),
-    //            Eq(Var(Name("param$2")), Var(Name("C")))
-    //          ))
-    //        ))
-    //      ))
-    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("A"), Min(IntNum(16), Var("X"))),
-    //            //            Eq(Var("B"), Min(IntNum(16), Var("Y"))),
-    //            //            Eq(Var("C"), Min(Var("Y"), IntNum(16))),
-    //            //            Eq(Var("D"), Min(Var("Y"), IntNum(100))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("A"))),
-    //            Eq(Var(Name("param$2")), Var(Name("A")))
-    //          ))
-    //        ))
-    //      ))
-    //    performTest(expected, input)
-    //  }
-    //
-    //  test("Max") {
-    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(5)),
-    //            Eq(Var("A"), Max(IntNum(16), Var("X"))),
-    //            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
-    //            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
-    //            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("B"))),
-    //            Eq(Var(Name("param$2")), Var(Name("D")))
-    //          ))
-    //        ))
-    //      ))
-    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(5)),
-    //            Eq(Var("A"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("X"))))),
-    //            //            Eq(Var("B"), Max(IntNum(16), Var("Y"))),
-    //            //            Eq(Var("C"), Max(Var("Y"), IntNum(16))),
-    //            //            Eq(Var("D"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("X")), Mul(IntNum(-1), IntNum(16))))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("A"))),
-    //            Eq(Var(Name("param$2")), Var(Name("A")))
-    //          ))
-    //        ))
-    //      ))
-    //    performTest(expected, input)
-    //  }
-    //
-    //  test("Abs") {
-    //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(-2)),
-    //            Eq(Var("A"), Abs(Var("X"))),
-    //            Eq(Var("B"), Abs(Var("Y"))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("B"))),
-    //            Eq(Var(Name("param$2")), Var(Name("Z")))
-    //          ))
-    //        ))
-    //      ))
-    //    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-    //      Seq(
-    //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
-    //          Body(Seq(
-    //            Eq(Var("X"), IntNum(2)),
-    //            //            Eq(Var("Y"), IntNum(2)),
-    //            Eq(Var("Z"), IntNum(-2)),
-    //            Eq(Var("A"), Abs(Var("X"))),
-    //            //            Eq(Var("B"), Abs(Var("Y"))),
-    //            Eq(Var(Name("param$0")), Var(Name("A"))),
-    //            Eq(Var(Name("param$1")), Var(Name("A"))),
-    //            Eq(Var(Name("param$2")), Var(Name("Z")))
-    //          ))
-    //        ))
-    //      ))
-    //    performTest(expected, input)
-    //  }
+
+  test("defining term: A + 2 == A + 1 + 1") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Eq(Var("B"), Add(Var("A"), IntNum(1))),
+            Eq(Var("C"), Add(Var("B"), IntNum(1))),
+            Eq(Var("D"), Add(Var("A"), IntNum(2))),
+            Eq(Var("X"), Sub(Var("C"), Var("D")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Eq(Var("B"), Add(Var("A"), IntNum(1))),
+            Eq(Var("C"), Add(Var("B"), IntNum(1))),
+//            Eq(Var("D"), Add(Var("A"), IntNum(2))),
+            Eq(Var("X"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("defining term: (A * B) * C == A * (B * C)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Call(Name("S2"), Seq(TermArg(Var("B")))),
+            Call(Name("S2"), Seq(TermArg(Var("C")))),
+            Eq(Var("D"), Mul(Var("A"), Var("B"))),
+            Eq(Var("E"), Mul(Var("B"), Var("C"))),
+            Eq(Var("F"), Mul(Var("D"), Var("C"))),
+            Eq(Var("G"), Mul(Var("A"), Var("E"))),
+            Eq(Var("X"), Sub(Var("F"), Var("G")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("X", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Call(Name("S2"), Seq(TermArg(Var("B")))),
+            Call(Name("S2"), Seq(TermArg(Var("C")))),
+            Eq(Var("D"), Mul(Var("A"), Var("B"))),
+            Eq(Var("E"), Mul(Var("B"), Var("C"))),
+            Eq(Var("F"), Mul(Var("D"), Var("C"))),
+//            Eq(Var("G"), Mul(Var("A"), Var("E"))),
+            Eq(Var("X"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        )),
+        Relation(Name("S3"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(4))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
 
 
   }

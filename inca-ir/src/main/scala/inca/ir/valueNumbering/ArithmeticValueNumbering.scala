@@ -28,8 +28,13 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       
       case BinOp(lhs, rhs, "%") => (lhs, rhs) match {
         case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
+        case (IntNum(0),_) => IntNum(0)
+        case (DoubleNum(0),_) => DoubleNum(0)
         case (IntNum(l), IntNum(r)) => IntNum(l % r)
         case (DoubleNum(l), DoubleNum(r)) => DoubleNum(l % r)
+        case (lhs,rhs) if getIdOf(lhs) == getIdOf(rhs) => if typ == TInt then IntNum(0) else DoubleNum(0)
+        case (BinOp(l,r,"*"),rhs) if getIdOf(l) == getIdOf(rhs) => if typ == TInt then IntNum(0) else DoubleNum(0)
+        case (BinOp(l,r,"*"),rhs) if getIdOf(r) == getIdOf(rhs) => if typ == TInt then IntNum(0) else DoubleNum(0)
         case (l, r) => term
       }
       case BinOp(lhs, rhs, "min") => (lhs, rhs) match {
@@ -76,15 +81,17 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       case (lhs: Term, rhs: Term) if getIdOf(lhs) == getIdOf(rhs) && typ == TDouble => normalize(Mul(DoubleNum(2), lhs)) // for Doubles
       case (lhs, BinOp(DoubleNum(x), rhs, "*")) if getIdOf(lhs) == getIdOf(rhs) => normalize(Mul(DoubleNum(x + 1), lhs))
 
-      case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "+") // this and following four for commutativity & associativity
+      case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "+") // this and following five for commutativity & associativity
       case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_) | DoubleNum(_))) => BinOp(rNum, lvar, "+")
       case (lhs, BinOp(lNum@(IntNum(_) | DoubleNum(_)), rterm, "+")) => BinOp(lNum, normalize(BinOp(lhs, rterm, "+")), "+")
+      case (lvar@Var(RefByName(Name(nameL))), BinOp(rvar@Var(RefByName(Name(nameR))), rterm, "+")) if nameL > nameR =>
+        BinOp(rvar, normalize(BinOp(lvar, rterm, "+")), "+")
       case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) => if getIdOf(lBinOp) > getIdOf(rBinOp) then Add(rBinOp, lBinOp) else term
       case (lBinOp@BinOp(_, _, _), rhs) => normalize(BinOp(rhs, lBinOp, "+"))
       case (l, r) => term
     }
 
-  private def normalizeSub(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match { // TODO change to add
+  private def normalizeSub(lhs: Term, rhs: Term, typ: Type, term: Term): Term = (lhs, rhs) match { // TODO change to add (?)
       case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
       case (IntNum(0), _) | (DoubleNum(0), _) => normalize(Mul(rhs, IntNum(-1)))
 //      case (Var(RefByName(Name(l))), Var(RefByName(Name(r)))) if l == r => if typ == TInt then IntNum(0) else if typ == TDouble then DoubleNum(0) else term
@@ -117,9 +124,11 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "*")) => associativityDouble(l,r,restTerm,_*_,Mul)
     case (BinOp(DoubleNum(l), restTerm, "*"), DoubleNum(r)) => associativityDouble(l,r,restTerm,_*_,Mul)
 
-    case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "*") // this and following four for commutativity & associativity
+    case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then term else BinOp(rvar, lvar, "*") // this and following five for commutativity & associativity
     case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_) | DoubleNum(_))) => BinOp(rNum, lvar, "*")
     case (lhs, BinOp(lNum@(IntNum(_) | DoubleNum(_)), rterm, "*")) => normalize(BinOp(lNum, normalize(BinOp(lhs, rterm, "*")), "*"))
+    case (lvar@Var(RefByName(Name(nameL))), BinOp(rvar@Var(RefByName(Name(nameR))), rterm, "*")) if nameL > nameR =>
+      BinOp(rvar, normalize(BinOp(lvar, rterm, "*")), "*")
     case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) => if getIdOf(lBinOp) > getIdOf(rBinOp) then Mul(rBinOp, lBinOp) else term
     case (lBinOp@BinOp(_, _, _), rhs) => normalize(BinOp(rhs, lBinOp, "*"))
 

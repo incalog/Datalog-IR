@@ -41,7 +41,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //    }
   }
 
-  private def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = updateValueNumbersAndCongrClasses(getIdOf(term), toId)
+  private def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = {
+    val fromId = getIdOf(term)
+    if (fromId != toId) updateValueNumbersAndCongrClasses(fromId, toId)
+    else if (congrClasses.contains(toId)) congrClasses(toId).changeLeaderIfNecessary(term)
+  }
 
   private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
     val congrClassesContains = congrClasses.contains(toId)
