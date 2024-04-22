@@ -447,7 +447,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var(Name("X")), Div(IntNum(2), IntNum(1))),
             Eq(Var(Name("H1")), IntNum(2)),
             Eq(Var(Name("H2")), Div(IntNum(4), IntNum(2))),
-            Eq(Var(Name("H3")), Div(IntNum(1), IntNum(2))),
+            Eq(Var(Name("H3")), Div(IntNum(6), IntNum(2))),
             Eq(Var(Name("H4")), Div(Var("H1"), Var("H3"))),
             Eq(Var(Name("H5")), Mul(Var("X"), Var("X"))),
             Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
@@ -489,16 +489,16 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("div and mul") { // TODO how to normalize div correctly a * 1/a -> 1 or 0 if a > 1
+  test("div and mul") { // TODO how to normalize div correctly: a * x/a -> x (like arithmetic law) or -> 0 if a > x (because of x/a ~> 0)
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("n", TInt), Param("result", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("n")), Div(IntNum(2), IntNum(1))),
-            Eq(Var("temp"), Mul(Var("n"),Div(IntNum(1),Var("n")))), // TODO normalize this to 1 (like arithmetic law) or to 0 (because of 1/2 ~> 0)
-            Eq(Var("temp2"), Mul(Var("temp"),Div(IntNum(1),Var("temp")))),
-            Eq(Var("temp3"), Mul(Var("temp"),Div(IntNum(3),Var("temp")))),
-            Eq(Var("temp4"), Div(Var("temp"),Mul(IntNum(3),Var("temp")))),
+            Eq(Var("temp"), Mul(Var("n"),Div(IntNum(1),Var("n")))),
+            Eq(Var("temp2"), Mul(Var("temp"),Div(IntNum(1),Var("n")))),
+            Eq(Var("temp3"), Mul(Div(IntNum(3),Var("n")),Var("n"))),
+            Eq(Var("temp4"), Div(Var("n"),Mul(IntNum(3),Var("n")))),
             Eq(Var(Name("result")), Var(Name("temp")))
           ))
         ))

@@ -715,7 +715,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  test("Call and check for Equality with var bound in call used in term") { // TODO no error but not all equal terms in same congrClass (12 has a var as leader...)
+  test("Call and check for Equality with var bound in call used in term") { 
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
