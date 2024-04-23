@@ -212,7 +212,6 @@ object GenerateAscent:
     case ir.Var(name) =>
       val varTerm = Term.Var(cleanName(name.name))
       val isRef = varRefs.contains(name.name.name)
-      println(s"isRef: ${name.name.name}  :: $isRef")
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
       val isString = t.typ.exists(_.ty == TString)
       val derefTerm = if (isRef && !isData && !noDeref)
