@@ -208,6 +208,7 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
       |
       |use std::hash::{Hash,Hasher};
       |use std::ops;
+      |use std::cmp;
       |use std::cmp::Ordering;
       |use std::fs::File;
       |use std::str::FromStr;
@@ -249,13 +250,13 @@ enum ProgramContent:
       s"relation $name(${arg.mkString(", ")});"
     case Rule(name, param, body) =>
       val params = param.map {
-        case (p, FormatType.Custom(x)) =>
+        case (p, FormatType.Custom(x, _)) =>
           if (body.exists {
             case Atom.Aggregator(atomp, Aggregation.Count(), _) => Term.Var(atomp) == p
             case Atom.Aggregator(atomp, Aggregation.Mean(_), _) => Term.Var(atomp) == p
             case _ => false
           }) {
-            s"$p as ${FormatType.Custom(x)}"
+            s"$p as ${FormatType.Custom(x, _)}"
           } else {
             s"$p"
           }
@@ -283,7 +284,7 @@ enum ProgramContent:
       val paramS = cases.map {
         case (caseName, caseTypes) =>
           val caseType = caseTypes.map {
-            case p@FormatType.Custom(`dataName`) => s"Box<$p>"
+            case p@FormatType.Custom(dataName, true) => s"Box<$p>"
             case p => p.toString
           }
           s"$caseName(${caseType.mkString(",")})"
@@ -296,7 +297,7 @@ enum ProgramContent:
               val size = pty.size
               val paramVars = (0 until size).map(idx => s"param_$idx")
               val destrArgs = paramVars.zip(paramTys).map {
-                case (p, FormatType.Custom(`dataName`)) => s"*$p"
+                case (p, FormatType.Custom(_, true)) => s"*$p"
                 case (p, FormatType.Symbol) => s"$p.to_string()"
                 case (p, _) => p
               }
@@ -371,6 +372,8 @@ enum Term:
   case Box(t: Term)
 
   override def toString: String = this match {
+    case Binary(t1, op@BinOp.Min, t2) => s"$op($t1, $t2)"
+    case Binary(t1, op@BinOp.Max, t2) => s"$op($t1, $t2)"
     case Binary(t1, op, t2) => s"$t1 $op $t2"
     case Unary(op, t) => s"$op$t"
     case Var(name) => name
@@ -428,6 +431,8 @@ enum BinOp:
   case Rem
   case LAnd
   case LOr
+  case Min
+  case Max
 
   override def toString: String = this match {
     case Add => "+"
@@ -437,6 +442,8 @@ enum BinOp:
     case Rem => "%"
     case LAnd => "&&"
     case LOr => "||"
+    case Min => "cmp::min"
+    case Max => "cmp::min"
   }
 
 enum Unop:
@@ -453,12 +460,12 @@ enum FormatType:
   case Float
   case Symbol
   case Unsigned
-  case Custom(name: String)
+  case Custom(name: String, boxed: Boolean)
 
   override def toString: String = this match {
     case Number => "i32"
     case Float => "Float"
     case Symbol => "String"
     case Unsigned => "u32"
-    case Custom(name) => name
+    case Custom(name, _) => name
   }

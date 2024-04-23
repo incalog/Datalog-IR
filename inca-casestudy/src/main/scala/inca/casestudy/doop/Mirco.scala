@@ -74,7 +74,6 @@ object Mirco:
   def runMicroDlViatra(): Unit = {
     backend.Executor.initializeLogging()
     //inca.viatra.Executor.enableDebugLogging()
-
     runMicroDL(compiled => Executor().instantiate(compiled))
   }
 

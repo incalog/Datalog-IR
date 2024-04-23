@@ -17,6 +17,8 @@ import inca.util.Gensym
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{MaxDouble, MaxInt, MinDouble, MinInt, SumDouble, SumInt, Count as CountAgg}
 import inca.ir.typing.Mode.{Binding, Bound, Collapse}
 
+import scala.annotation.tailrec
+
 // Based on Sarah Hauschildts Bachelor thesis
 
 object GenerateAscent:
@@ -37,6 +39,17 @@ object GenerateAscent:
 
   private def freshTmpName(): String = cleanName(gensym.fresh("_tmp"))
 
+  private var typeDependencies: Map[String, Set[String]] = Map()
+
+  private def addTransitive[A, B](s: Set[(A, B)]) =
+    s ++ (for ((x1, y1) <- s; (x2, y2) <- s if y1 == x2) yield (x1, y2))
+
+  @tailrec
+  private def transitiveClosure[A, B](s: Set[(A, B)]): Set[(A, B)] = {
+    val t = addTransitive(s)
+    if (t.size == s.size) s else transitiveClosure(t)
+  }
+
   def compileModule(module: ir.Module): Seq[ProgramContent] = gensym.scoped {
     val compileableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR, agg.IR)
     val illegalFeatures = module.lang.features -- compileableFeatures
@@ -48,6 +61,15 @@ object GenerateAscent:
     val caseDefs = module.contents.collect {
       case cd: CaseDefinition => cd.data.ref.name -> cd
     }.groupBy(_._1).view.mapValues(e => e.map(x => x._2)).toMap
+
+    // Find indirect recursive data types, since we need to box them
+    val nestedDataTypes = caseDefs.toSet.flatMap { (dataName, cases) =>
+      cases.flatMap(_.args.collect {
+        case TData(ref) => cleanName(dataName) -> cleanName(ref.name.name)
+      })
+    }
+
+    typeDependencies = transitiveClosure(nestedDataTypes).groupBy(_._1).map { case (k,v) => (k,v.map(_._2))}
 
     val contents = module.contents.flatMap {
       case ir.Relation(name, param, bodies) =>
@@ -71,19 +93,22 @@ object GenerateAscent:
         val param_type = params.map { p => compileType(p.ty) }
         Seq(ProgramContent.RelDecl(cleanName(name), param_type, true))
 
-      case data.DataDefinition(name) =>
-        val compiledCases = caseDefs(name).map {
+      case data.DataDefinition(dataName) =>
+        val cleanDataName = cleanName(dataName)
+        val compiledCases = caseDefs(dataName).map {
           case CaseDefinition(caseName, caseTypes, _) =>
-            cleanName(caseName.name) -> caseTypes.map(compileType)
+            val cleanCaseName = cleanName(caseName.name)
+            cleanCaseName -> caseTypes.map { ty =>
+              compileType(ty, Some(cleanDataName))
+            }
         }
-        Seq(ProgramContent.CustomType(cleanName(name), compiledCases))
+        Seq(ProgramContent.CustomType(cleanDataName, compiledCases))
 
       case _ => Seq()
     }
 
     contents
   }
-
 
   private def compileBody(body: ir.Body): Seq[Atom] = gensym.scoped {
     val allVars = body.atoms.flatMap(_.vars.map(_.name.name))
@@ -203,6 +228,8 @@ object GenerateAscent:
     case "*" => BinOp.Mul
     case "/" => BinOp.Div
     case "%" => BinOp.Rem
+    case "min" => BinOp.Min
+    case "max" => BinOp.Max
     case _ => throw new RuntimeException("Unsupported binary operation: " + op)
 
   // Function arguments are never dereferenced.
@@ -237,18 +264,23 @@ object GenerateAscent:
       val dataName = cleanName(dataDef.name)
       val compiledArgs = args.map { t =>
         val compiledTerm = compileTerm(t)
-        val compiledTy = compileType(t.typ.get.ty)
+        val compiledTy = compileType(t.typ.get.ty, Some(dataName))
         compiledTy match
-          case FormatType.Custom(`dataName`) => Term.Box(compiledTerm) // Box recursive types
+          case FormatType.Custom(dName, true) => Term.Box(compiledTerm) // Box recursive types
           case FormatType.Symbol => Term.ToString(compiledTerm) // convert strings
           case _ => compiledTerm
       }
       Term.CustomLit(dataName, cleanName(caseDef.name), compiledArgs)
   }
 
-  private def compileType(ty: ir.Type): FormatType = ty match
+  private def compileType(ty: ir.Type, enclosingDataTypeOption: Option[String] = None): FormatType = ty match
     case TAny => throw IllegalStateException("TAny is not supported by Ascent!")
     case arith.TInt => FormatType.Number
     case arith.TDouble => FormatType.Float
     case string.TString => FormatType.Symbol
-    case data.TData(name) => FormatType.Custom(cleanName(name.name))
+    case data.TData(name) =>
+      val cleanDataName = cleanName(name.name)
+      val needsBoxing = enclosingDataTypeOption match
+        case Some(enclosingDataType) => typeDependencies.getOrElse(cleanDataName, Set()).contains(enclosingDataType)
+        case _ => false
+      FormatType.Custom(cleanDataName, needsBoxing)
