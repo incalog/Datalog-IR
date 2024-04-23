@@ -66,7 +66,7 @@ trait CompiledProgram:
         case mImp: ModuleImport => Seq()
         case _ => 
           val tempCurrentModule = currentModule
-          val processedExportModules = linkSet.flatMap(l => if l.toModule == tempCurrentModule
+          val processedImportedEntries = linkSet.flatMap(l => if l.toModule == tempCurrentModule
             then {
               if !alreadyImportedEntries.contains((l.fromModule, l.exportEntry)) then { 
                 alreadyImportedEntries = alreadyImportedEntries.appended(l.fromModule, l.exportEntry)
@@ -77,7 +77,7 @@ trait CompiledProgram:
             } else Seq())
           currentModule = tempCurrentModule
           features = features ++ modulesMap(currentModule).lang.features
-          processedExportModules ++ super.visitModuleEntry(moduleEntry)
+          processedImportedEntries ++ super.visitModuleEntry(moduleEntry)
       })
 
     override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
