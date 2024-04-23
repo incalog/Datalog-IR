@@ -240,6 +240,9 @@ class GenerateScala:
       val recvCode = transExpression(recv)
       val initCode = transExpression(init)
       s"$recvCode.fold($initCode)($fun)"
+    case methodCall@MethodCall(recv, Name("toString"), tyArgs, args, isFix) if recv.typ.exists(t => t.isInstanceOf[TName] && t.asInstanceOf[TName].isBuiltIn) =>
+      val recvCode = transExpression(recv)
+      s"$recvCode.toString()"
     case methodCall@MethodCall(recv, fun, tyArgs, args, isFix) =>
       val methodDef = methodCall.target match
         case Some((_, m)) => m
