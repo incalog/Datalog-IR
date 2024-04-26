@@ -62,9 +62,8 @@ class GenerateIR {
 
   def compileMainFun(f: FunctionDef): ir.ModuleEntry =
     val result = gensym.fresh(f.name.name + "_result")
-    // TODO: How do we handle this case correctly ?
-    //   If the main function returns a set there might be no demand on the set relation.
-    //   We now force a demand by introducing a SetMember at the end of the main function.
+    // If the main function returns a set there might be no demand on the set relation.
+    // We now force a demand by introducing a SetMember at the end of the main function.
     val returnsSet = f.outType.isInstanceOf[TSet]
     val setMember = if (returnsSet)
       Some(irset.SetMember(ir.Var(Name(gensym.fresh("_"))), ir.Var(Name(result))))
@@ -200,6 +199,7 @@ class GenerateIR {
     case Call(Var(Name("min")), Seq(), Seq(e1, e2)) => irarith.Min(compileExp(e1), compileExp(e2))
     case Call(Var(Name("max")), Seq(), Seq(e1, e2)) => irarith.Max(compileExp(e1), compileExp(e2))
     case Call(Var(Name("abs")), Seq(), Seq(e)) => irarith.Abs(compileExp(e))
+    case Call(Var(Name("toString")), Seq(), Seq(e)) => irstring.ToString(compileExp(e))
 
     case BoolLit(b) => if (b) bool.BoolTrue else bool.BoolFalse
     case BinOp(e1, "&&", e2) => bool.BoolAnd(compileExp(e1), compileExp(e2))
