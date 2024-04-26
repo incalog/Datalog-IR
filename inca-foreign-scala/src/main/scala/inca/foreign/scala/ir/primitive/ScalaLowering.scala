@@ -14,6 +14,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
   
   def isTypeSupported(ty: Type): Boolean = ty match
     case TAny => true
+    case TNothing => true
     case _ => false
 
   private var freshCount = 0

@@ -105,5 +105,6 @@ object CompiledOODLModule:
       () => new tuple.Lowering {},
 
       () => new optimize.IdentityCastElimination {},
-      () => new optimize.AliasElimination {}
+      () => new optimize.AliasElimination {},
+      () => new optimize.RemoveDuplicatedRelations {}
     ) // arith + string + data
