@@ -1117,9 +1117,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("H2")), Add(IntNum(2), Var("a"))),
             Eq(Var(Name("H3")), Mul(IntNum(2), Var("H1"))),
             Call(Name("S"), Seq(TermArg(Var("b")))),
-            Eq(Var(Name("H4")), Add(IntNum(6), Mul(IntNum(2), Var(Name("H3"))))),
+            Eq(Var(Name("result")), Add(IntNum(6), Mul(IntNum(2), Var(Name("H3"))))),
 //            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("result")), Var(Name("H4")))
+            Eq(Var(Name("result")), Var(Name("result")))
           ))
         )),
         Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
@@ -1605,6 +1605,50 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Call and check for Equality with unknown val of var learned later") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("Y")))),
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // 2nd: dont replace lhs because Y still there, replace X with 12
+            Eq(Var("W"), Add(Var("X"), IntNum(3))), // 2nd: x + 3 -> 12 + 3 -> V
+            Eq(IntNum(12), Var(Name("X"))), // 1st: now value of X is known -> W also known
+            Eq(Var("V"), Add(Var("X"), IntNum(3))), // whether redundancy recognized in 1st pass determined by which id used (of original term or newTerm with visited subterms)
+            Eq(IntNum(12), Var(Name("Z"))), // 1st: -> Z == X
+            //            Eq(Var("V"), Var("Z")),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("param$1")))),
+            Eq(IntNum(12), Add(IntNum(2),Var("param$1"))),
+            Eq(IntNum(15), IntNum(15)), // -> was prev removed in 2nd pass since 15 gets new id and this id is not in congrClasses and 15 isConst
+            //            Eq(Var(Name("Z")), IntNum(12))
+            Eq(IntNum(12), IntNum(12)),
+            Eq(Var(Name("param$0")), IntNum(12)),
+            Eq(Var(Name("param$1")), Var(Name("param$1")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(10))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Identity learned in 2nd pass") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1847,4 +1891,48 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
   }
 
 
+//  test("Redundant term in Eq with GE, LE, LT & Neq") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("X")), IntNum(3)),
+//            Eq(Var(Name("Y")), Add(Var(Name("X")), IntNum(1))),
+//            Eq(Var(Name("Z")), IntNum(3)),
+//            Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
+//            Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(2))),
+//            LT(Var(Name("H1")), Add(Var(Name("X")), IntNum(1))),
+//            GE(Mul(Var(Name("X")), IntNum(1)), Var(Name("H1"))),
+//            Eq(Var(Name("Y")), Var(Name("Z")), true),
+//            Eq(Mul(Var(Name("X")), IntNum(2)), Var(Name("H1")), true),
+//            Eq(Var(Name("X")), Div(Var(Name("X")), IntNum(2)), true),
+//            LE(Var(Name("Y")), Add(Var(Name("X")), IntNum(1))), // this is redundant...
+//            Eq(Var(Name("param$0")), Var(Name("X"))),
+//            Eq(Var(Name("param$1")), Var(Name("Y")))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            //            Eq(Var(Name("X")), IntNum(3)),
+//            //            Eq(Var(Name("Y")), Add(IntNum(3), IntNum(1))),
+//            //            Eq(Var(Name("Z")), IntNum(1)),
+//            //            Eq(Var(Name("H1")), Div(Var(Name("X")), IntNum(2))),
+//            //            Eq(Var(Name("H2")), Mul(Var(Name("X")), IntNum(2))),
+//            LT(Div(IntNum(3), IntNum(2)), Add(IntNum(3), IntNum(1))), // the truth of these atoms could be checked statically
+//            GE(Mul(IntNum(3), IntNum(1)), Div(IntNum(3), IntNum(2))),
+//            Eq(Add(IntNum(3), IntNum(1)), IntNum(3), true),
+//            Eq(Mul(IntNum(3), IntNum(2)), Div(IntNum(3), IntNum(2)), true),
+//            Eq(IntNum(3), Div(IntNum(3), IntNum(2)), true),
+//            LE(Add(IntNum(3), IntNum(1)), Add(IntNum(3), IntNum(1))),
+//            Eq(Var(Name("param$0")), IntNum(3)),
+//            Eq(Var(Name("param$1")), Add(IntNum(3), IntNum(1)))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
+  
   }

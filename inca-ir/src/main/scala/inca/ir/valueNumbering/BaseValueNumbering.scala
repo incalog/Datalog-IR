@@ -20,8 +20,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
     def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
+//      val oldLeader = leader
       if (isConst(t)) leader = t
-      if (t.vars.isEmpty && !isConst(leader)) leader = t
+      if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
+//      val newLeader = leader
+//      println("valueId = " + valueId + ", oldLeader = " + oldLeader + ", newLeader = " + newLeader)
+//      if (t.vars.isEmpty && !isConst(leader)) leader = t
     }
   }
 
@@ -32,13 +36,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def getReplacementTerm(t: Term): Term = {
     val leader = getCongrClassOf(t).leader
-//    if (t.vars.isEmpty && leader.vars.nonEmpty){ // for edge case in 2nd phase in which const was replaced with (an unbound) var TODO other fix? (merging congrClasses would fix...)
-//      return t
-//    }
-//    else{
+    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){ // for edge case in 2nd phase in which term was replaced with (an unbound) var TODO other fix?
+      return t
+    }
+    else{
       leader.typ = t.typ // otherwise always used the type that leader had when saving it
       return leader
-//    }
+    }
   }
 
   private def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = {
@@ -48,8 +52,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
   private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
+    if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
+      congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
+    }
     val congrClassesContains = congrClasses.contains(toId)
-//    valueNumbers.updateAll(oldId,id)
     valueNumbers.getAllWithId(fromId).foreach(t =>
       valueNumbers.update(t,toId)
       if (congrClassesContains) congrClasses(toId).changeLeaderIfNecessary(t)
@@ -167,10 +173,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
 
     // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
-    if (congrClasses.contains(newTermId) && isAllowedToReplace(newTerm)){
-        return Seq(getReplacementTerm(newTerm))
-    }
-    else {
+//    if (congrClasses.contains(newTermId) && isAllowedToReplace(newTerm)){
+//        return Seq(getReplacementTerm(newTerm))
+//    }
+//    else {
       val normalizedTerm = normalize(newTerm)
       if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
         valueNumbers.update(normalizedTerm, newTermId)
@@ -187,7 +193,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
       }
       return Seq(normalizedTerm)
-    }
+//    }
   }
 
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
@@ -236,9 +242,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       //count += (termId,1)
 
       // if term is a constant then use it as leader of its congruence class
-      // if no Vars are left in term then also use it -> leads to removal of more redundant atoms of the form T == T
       // TODO these atoms could also be removed statically by other means
-      if (isConst(newTerm) || newTerm.vars.isEmpty) {
+      if (isConst(newTerm)/* || newTerm.vars.isEmpty*/) {
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
