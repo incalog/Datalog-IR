@@ -1649,6 +1649,50 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Call and 'assign' value to equal Var") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("A")),TermArg(Var("B")))),
+            Eq(Var(Name("param$0")), Var("A")),
+            Eq(Var(Name("param$0")), Add(IntNum(2), Var("B")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt),Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(10)),
+            Eq(Var("n"), IntNum(9))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(1)),
+            Eq(Var("n"), IntNum(2))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(Var("param$0")),TermArg(Var("B")))),
+//            Eq(Var(Name("param$0")), Var("A")),
+            Eq(Var(Name("param$0")), Add(IntNum(2), Var("B")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt),Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(10)),
+            Eq(Var("n"), IntNum(9))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(1)),
+            Eq(Var("n"), IntNum(2))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Identity learned in 2nd pass") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1790,9 +1834,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("R"), Seq(Param("X", TInt)), Seq(
           Body(Seq(
             Call(Name("S1"), Seq(TermArg(Var("A")))),
-            Eq(Var("B"), Add(Var("A"), IntNum(1))),
-            Eq(Var("C"), Add(Var("B"), IntNum(1))),
-//            Eq(Var("D"), Add(Var("A"), IntNum(2))),
+            Eq(Var("B"), Add(IntNum(1),Var("A"))),
+            Eq(Var("C"), Add(IntNum(2),Var("A"))),
+//            Eq(Var("D"), Add(IntNum(2),Var("A"))),
             Eq(Var("X"), IntNum(0))
           ))
         )),
@@ -1857,7 +1901,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S2"), Seq(TermArg(Var("C")))),
             Eq(Var("D"), Mul(Var("A"), Var("B"))),
             Eq(Var("E"), Mul(Var("B"), Var("C"))),
-            Eq(Var("F"), Mul(Var("D"), Var("C"))),
+            Eq(Var("F"), Mul(Var("D"), Var("C"))), // Mul(Var("A"), Mul(Var("B"), Var("C")))
 //            Eq(Var("G"), Mul(Var("A"), Var("E"))),
             Eq(Var("X"), IntNum(0))
           ))
@@ -1934,5 +1978,5 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //      ))
 //    performTest(expected, input)
 //  }
-  
+
   }

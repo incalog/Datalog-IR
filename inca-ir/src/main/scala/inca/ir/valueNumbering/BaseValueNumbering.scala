@@ -15,7 +15,7 @@ case class ConfigVN(normalize: Boolean = false,
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  case class CongruenceClass(valueId: ValueId, var leader: Term, definingTerm: Term) {
+  case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
@@ -27,6 +27,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //      println("valueId = " + valueId + ", oldLeader = " + oldLeader + ", newLeader = " + newLeader)
 //      if (t.vars.isEmpty && !isConst(leader)) leader = t
     }
+
+    def changeDefTermIfNecessary(t: Term): Unit = {
+      if (isConst(t)) definingTerm = t
+      else if (definingTerm.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+//      else definingTerm = visitTerm(definingTerm).head // doesnt help
+    }
+
   }
 
   private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
@@ -45,13 +52,29 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
+  protected def getDefiningTerm(t: Term): Term = {
+    if (valueNumbers.contains(t)){
+      if (congrClasses.contains(valueNumbers(t))) {
+        return getCongrClassOf(t).definingTerm
+      }
+    }
+    return t
+  }
+
   private def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = {
     val fromId = getIdOf(term)
     if (fromId != toId) updateValueNumbersAndCongrClasses(fromId, toId)
-    else if (congrClasses.contains(toId)) congrClasses(toId).changeLeaderIfNecessary(term)
+    else if (congrClasses.contains(toId)) {
+      congrClasses(toId).changeLeaderIfNecessary(term)
+      congrClasses(toId).changeDefTermIfNecessary(term)
+    }
   }
 
   private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
+    if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
+      congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
+      congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
+    }
     if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
       congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
     }
@@ -76,7 +99,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
 
-  protected def normalize(term: Term): Term = term
+  protected def normalize(term: Term)/*(using withDefTerm: Boolean)*/: Term = term
 
   protected def isConst(term: Term): Boolean = false
 
@@ -177,10 +200,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 //        return Seq(getReplacementTerm(newTerm))
 //    }
 //    else {
-      val normalizedTerm = normalize(newTerm)
+      val normalizedTerm = normalize(newTerm)//(true)
+      normalizedMem.update(newTerm,normalizedTerm)
       if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
         valueNumbers.update(normalizedTerm, newTermId)
-        if (congrClasses.contains(newTermId)) congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
+        if (congrClasses.contains(newTermId)) {
+          congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
+          congrClasses(newTermId).changeDefTermIfNecessary(normalizedTerm)
+        }
       }
       else {
         // normalized term already has an id -> update term and newTerm to that id
@@ -190,11 +217,22 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
             return Seq(getReplacementTerm(normalizedTerm))
           }
-
       }
-      return Seq(normalizedTerm)
+
+
+    // TODO tried finding indicators which term is "better"
+    //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
+      return Seq(
+        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
+          && !isConst(normalizedTerm)
+          then newTerm
+        else normalizedTerm
+      )
+        return Seq(normalizedTerm)
 //    }
   }
+
+  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map() // TODO
 
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
 
@@ -244,12 +282,13 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       // if term is a constant then use it as leader of its congruence class
       // TODO these atoms could also be removed statically by other means
       if (isConst(newTerm)/* || newTerm.vars.isEmpty*/) {
-        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
+        congrClasses.update(termId, CongruenceClass(termId, newTerm, normalizedMem.getOrElse(newTerm,newTerm)))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
       else {
-        congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
+        congrClasses.update(termId, CongruenceClass(termId, newVari, normalizedMem.getOrElse(newTerm,newTerm)))
         congrClasses(termId).changeLeaderIfNecessary(newTerm)
+        congrClasses(termId).changeDefTermIfNecessary(newTerm)
       }
 
       // return with newTerm
