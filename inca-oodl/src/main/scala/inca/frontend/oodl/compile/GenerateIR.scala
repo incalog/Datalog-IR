@@ -72,6 +72,13 @@ class GenerateIR:
 
   def compileModule(m: Module): ir.Module =
     setFoldRelations = Seq()
+    userDefinedMonos = Map()
+    genScala = new GenerateScala
+
+    // Compile mono types
+    m.content.collect {
+      case m: ClassDef if m.isMonoClass => m
+    }.foreach(compileUserDefinedMono)
 
     val mainFunctions = m.content.flatMap {
       case f: FunctionDef if f.isMain => Some(f)
@@ -96,9 +103,7 @@ class GenerateIR:
       case f: FunctionDef if f.isMain => Seq(compileMainFunction(f))
       case f: FunctionDef => Seq() // Skip all none main functions. We just use them for set fold
       case c: ClassDef if !c.isMonoClass => compileClassDef(c)
-      case m: ClassDef if m.isMonoClass =>
-        compileUserDefinedMono(m)
-        Seq()
+      case m: ClassDef if m.isMonoClass => Seq() // nothing
     } ++ extMainInputRelations
 
     val castRelation = compileCastRelation()
@@ -477,13 +482,12 @@ class GenerateIR:
   }
 
   var userDefinedMonos: Map[Name, irmono.MonoDefinition] = Map()
-
+  var genScala: GenerateScala = _
+  
   def compileUserDefinedMono(classDef: ClassDef): Unit = {
     val monoName = classDef.name
     val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls
-
-    val genScala = new GenerateScala
-
+    
     def genClosure(methodDef: MethodDef) =
       val inArgs = methodDef.params.map(p => s"${p.name}: ${genScala.transType(p.typ)}").mkString("(", ",", ")")
       val body = genScala.transStatements(methodDef.body)
@@ -510,7 +514,6 @@ class GenerateIR:
       irmono.MonoTypes(compileType(inTy), compileType(stateTy), irscala.ScalaType(genScala.transType(outTy)))
     )
     userDefinedMonos += monoName -> monoDef
-    monoDef
   }
 
   def generateMonoDefinition(name: Name, tyArgs: Seq[Type]): irmono.MonoDefinition = name match {
@@ -816,7 +819,7 @@ class GenerateIR:
           irmono.TMono(compileInTypeFromMonoMap(t), compileOutTypeFromMonoMap(t), Seq())
         case _ =>
           val Seq(TName(Name("mono.Type"), Seq(inTy, _, outTy))) = cls.parentCls
-          irmono.TMono(compileType(inTy), compileType(outTy), Seq())
+          irmono.TMono(compileType(inTy), irscala.ScalaType(genScala.transType(outTy)), Seq())
       }
       case Some(cls: ClassDef) => irdata.TData("ID")
       case target => throw IllegalStateException(s"Unexpected type target $target for type $name")
