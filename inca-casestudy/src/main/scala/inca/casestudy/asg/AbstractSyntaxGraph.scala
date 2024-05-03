@@ -259,7 +259,7 @@ object AbstractSyntaxGraph:
     }
     setPipeline(List(
       () => if outlineDemand then
-              new LoweringWithOutlining {}
+              new LoweringWithSupplementaries {}
             else
               new demand.Lowering {},
       () => new AliasElimination {}

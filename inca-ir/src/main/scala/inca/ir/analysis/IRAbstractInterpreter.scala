@@ -20,8 +20,8 @@ enum Value:
   override def toString: lang.String = this match
     case Int(i) => i.toString
     case Double(d) => d.toString
-    case String(s) => s
-    case _ => this.toString
+    //case String(s) => s
+    case _ => super.toString
 
 enum VBool:
   case Top

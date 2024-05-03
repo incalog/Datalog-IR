@@ -8,7 +8,7 @@ import inca.ir.visitors.IRVisitor
 
 /**
  * Remove duplicated relations that contain the exact same bodies.
- * The demand LoweringWithOutlining, might produce multiple relations with different parameters,
+ * The demand LoweringWithSupplementaries, might produce multiple relations with different parameters,
  * but the exact same bodies.
  * This optimization will detect these colliding relations, determine the minimum set of parameters,
  * merge these relations together and rewrite all calls accordingly.

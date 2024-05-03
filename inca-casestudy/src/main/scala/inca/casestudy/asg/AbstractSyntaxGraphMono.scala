@@ -8,7 +8,7 @@ import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{Relation2, Relation4}
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.data.*
-import inca.ir.extension.demand.{LoweringWithOutlining, TDemand}
+import inca.ir.extension.demand.{LoweringWithSupplementaries, TDemand}
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.mono.*
 import inca.ir.extension.set.{SetMember, TSet}
@@ -285,7 +285,7 @@ object AbstractSyntaxGraphMono:
       () => new ConversionElimination {},
       () => new impure.Lowering {},
       () => if outlineDemand then
-        new LoweringWithOutlining {}
+        new LoweringWithSupplementaries {}
       else
         new demand.Lowering {},
       () => new incaBool.Lowering {},

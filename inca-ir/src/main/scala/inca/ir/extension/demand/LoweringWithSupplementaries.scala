@@ -13,7 +13,7 @@ import scala.collection.immutable.{AbstractSeq, LinearSeq, ListSet}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-trait LoweringWithOutlining extends BaseLowering:
+trait LoweringWithSupplementaries extends BaseLowering:
   override val name: String = "Demand With Outlining"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
@@ -150,8 +150,6 @@ trait LoweringWithOutlining extends BaseLowering:
             // TODO: We might need to add a dummy variable if relevant vars is empty.
             //  This should not be a problem for viatra
             val relevantVars = prefixVars.intersect(suffixVars).toSeq
-
-            // TODO: This might make problems when we cast variables to different types?
             val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
 
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)
@@ -187,8 +185,6 @@ trait LoweringWithOutlining extends BaseLowering:
             val prefixVars = ListSet.from(currentPrefixAtoms.flatMap(_.vars))
             val suffixVars = (currentSuffixAtoms.flatMap(_.vars) ++ atom.vars ++ paramVars).toSet
             val relevantVars = prefixVars.intersect(suffixVars).toSeq
-
-            // TODO: This might make problems when we cast variables to different types?
             val prefixRuleParams = relevantVars.map(v => Param(v.name, v.typ.get.ty))
 
             addDemandRule(rel, prefixName, relevantVars, demandedArgs)

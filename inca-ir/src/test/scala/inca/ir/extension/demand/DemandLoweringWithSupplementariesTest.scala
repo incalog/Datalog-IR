@@ -8,13 +8,13 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.optimize.AliasElimination
 import org.scalatest.funsuite.AnyFunSuiteLike
 
-class DemandLoweringWithOutliningTest extends AnyFunSuiteLike:
+class DemandLoweringWithSupplementariesTest extends AnyFunSuiteLike:
 
   def module(relations: ModuleEntry*): Module =
     val typecheckerBefore = new IRTypechecker
     val typecheckerLowered = new IRTypechecker
     val typecheckerOptimized = new IRTypechecker
-    val lowering = new demand.LoweringWithOutlining {}
+    val lowering = new demand.LoweringWithSupplementaries {}
 
     val mod = Module("M", BaseIR.language + demand.IR + arithmetic.IR, relations)
     var printedMod = false

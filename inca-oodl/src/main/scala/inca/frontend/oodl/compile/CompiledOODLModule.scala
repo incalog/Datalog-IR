@@ -83,7 +83,7 @@ object CompiledOODLModule:
   def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
     val demandLowering = () => {
       if withDemandOutlining then
-        new demand.LoweringWithOutlining {}
+        new demand.LoweringWithSupplementaries {}
       else
         new demand.Lowering {}
     }
