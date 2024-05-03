@@ -231,8 +231,9 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
         val impurityArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
           if (affectedRels.contains(rel.name))
             val previousImpurityVar = getImpurityCounter(kind, enclosure)
-            val freshImpurityVar = freshImpurityCounter(kind, enclosure)
-            Seq(previousImpurityVar.arg, freshImpurityVar.arg)
+            //val freshImpurityVar = freshImpurityCounter(kind, enclosure)
+            //Seq(previousImpurityVar.arg, freshImpurityVar.arg)
+            Seq(previousImpurityVar.arg, WildcardArg())
             //Seq(WildcardArg(), WildcardArg())
           else
             Seq()
