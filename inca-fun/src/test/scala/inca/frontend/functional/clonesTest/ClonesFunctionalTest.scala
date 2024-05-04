@@ -11,14 +11,14 @@ import inca.ir.extension.*
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, LE, Mul, Sub, TInt}
 import ir.{Body, Call, Eq, Param, Relation, Var}
 import inca.ir.term2Arg
-
 import inca.ir.valueNumbering.{ConfigVNOld, ValueNumbering}
+import inca.viatra.backend.Executor
 
 // TODO fill in missing expected results below
 
 class ClonesFunctionalTest extends AnyFunSuite{
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(new inca.viatra.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(new Executor)
 
   def performTest(path: String, expectedVNResult: IRModule, expectedExecResult: Any, argsExec: Seq[Any] = Seq(), functionName: String = "main", config: ConfigVNOld = ConfigVNOld()): Unit = {
     val code = FileUtil.readFileFromResource(path)

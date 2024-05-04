@@ -12,13 +12,14 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.*
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.valueNumbering.ConfigVNOld
+import inca.viatra.backend.Executor
 
 // TODO fill in missing expected results below
 
 class ClonesDatalogTest extends AnyFunSuite {
   val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
-  val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
+  val exec: DatalogExecutor = new DatalogExecutor(new Executor(DRedReteBackendFactory.INSTANCE))
 
   def performTest(path: String, expectedVNResult: IRModule, expectedQueryResult: Any, relationName: String, argsQuery: Seq[Any], config: ConfigVNOld = ConfigVNOld()): Unit = {
     val code = FileUtil.readFileFromResource(path)
