@@ -15,6 +15,10 @@ trait ExecutorEngine:
    *     2. the parameter names in the input must match the parameters names of the relation definition in the IR-Module
    */
   def read(rel: Relation): Relation
+
+  /** Execution time in ns */
+  def measure(rel: Relation): Long
+
   /**
    * Read all output relations from the idb.
    */

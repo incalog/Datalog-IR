@@ -4,6 +4,7 @@ import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
+import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
@@ -119,6 +120,11 @@ object CompiledFunctionalModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
+    //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
+
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {},
+    () => new optimize.RemoveDuplicatedRelations {}
     // TODO add ValueNumbering
   ) // arith + string + data

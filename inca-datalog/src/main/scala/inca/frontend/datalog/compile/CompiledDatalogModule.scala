@@ -3,6 +3,7 @@ package inca.frontend.datalog.compile
 import inca.frontend.datalog.syntax.Module
 import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.extension.*
+import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
@@ -50,5 +51,8 @@ object CompiledDatalogModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new tuple.Lowering {},
+
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {}
   ) // arith + string + data

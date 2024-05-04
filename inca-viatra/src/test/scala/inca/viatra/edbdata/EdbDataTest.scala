@@ -8,7 +8,7 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TNothing, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
-import inca.viatra.Executor
+import inca.viatra.backend.Executor
 import inca.viatra.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuiteLike
 import truechange.*

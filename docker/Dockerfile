@@ -1,0 +1,21 @@
+# Build docker-image for intel on mX macs: docker build --platform linux/amd64 -t sbt-image .
+FROM sbtscala/scala-sbt:eclipse-temurin-focal-17.0.9_9_1.9.8_3.3.1
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
+
+# Install Souffle
+RUN wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/keyrings/souffle-archive-keyring.gpg && \
+	echo "deb [signed-by=/usr/share/keyrings/souffle-archive-keyring.gpg] https://souffle-lang.github.io/ppa/ubuntu/ stable main" | tee /etc/apt/sources.list.d/souffle.list && \
+	apt-get update -y && \
+	apt-get install -y souffle && \
+    rm -rf /var/lib/apt/lists/*
+    
+# Install Rust for Ascent
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Update sbt
+RUN sbt sbtVersion && \
+ 	sbt update

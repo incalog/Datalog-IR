@@ -15,12 +15,13 @@ import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
-import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringMonoDefinition, TMono, WriteMono}
+import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringConcatMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 
 import scala.util.Random
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -77,8 +78,9 @@ class MonoAggregationTest extends AnyFunSuiteLike {
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledMonoModule(mod, CompilerOptions.default)
-    val exec: IRExecutor = new inca.viatra.Executor
+    val opts = CompilerOptions.default
+    val compiledMod = CompiledMonoModule(mod, opts)
+    val exec: IRExecutor = new Executor
     exec.instantiate(compiledMod)
 
   private lazy val relation1: Relation = Relation(
@@ -259,13 +261,13 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val mainRelation = Relation("main", Seq(Param("s", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
-      Eq(Var("m"), NewMono(StringMonoDefinition(), Seq(), Seq())),
+      Eq(Var("m"), NewMono(StringConcatMonoDefinition(), Seq(), Seq())),
       WriteMono(Var("m"), StringLit("1+1"), Seq()),
       Eq(Var("s"), ReadMono(Var("m")))
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
-    engine.readAll().foreach(println)
+    //engine.readAll().foreach(println)
 
 
   }
@@ -275,6 +277,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     "0.0", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: Double, a: Int) => st + a",
     "(st: Double) => st.toString",
+    s"(o1: String, o2: String) => o1 + o2",
     Seq(),
     MonoTypes(TInt, TDouble, ScalaType.string)
   )
@@ -284,6 +287,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     """"0.0"""", // we should be able to typecheck the foreign scala term, e.g. report errors if it was 0.0
     "(st: String, a: Int) => (st.toDouble + a).toString",
     "(st: String) => st.toDouble",
+    s"(o1: Double, o2: Double) => o1 + o2",
     Seq(),
     MonoTypes(TInt, TString, ScalaType.double)
   )
@@ -306,7 +310,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relationUserDefinedMono1)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    println(res.entries.head)
+    //println(res.entries.head)
     assertResult("0.0")(res.entries.head)
   }
 
@@ -338,6 +342,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     initCode = "Set[Any]()",
     addCode = "(st: Set[Any], a: Any) => st + a",
     resultCode = "(st: Set[Any]) => st.size",
+    combineCode=  s"(o1: Int, o2: Int) => o1 + o2",
     constructorParamTypes = Seq(),
     typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
   )
@@ -407,12 +412,12 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val res = mutable.Set[String]()
     for (i <- 0 until 30)
       val k = Random.nextInt(comb.length)
-      println("Generate random number " + k)
+      //println("Generate random number " + k)
       if !set.contains(k) then
         val p = s"""Seq("${comb(k)._1}", "${comb(k)._2}")"""
         res += p
         set += k
-    println(res.mkString(", "))
+    //println(res.mkString(", "))
 
 
   private lazy val multiMapMono = ScalaMonoDefinition(
@@ -426,6 +431,16 @@ class MonoAggregationTest extends AnyFunSuiteLike {
         |      st + (a._1 -> Set(a._2))
         |""".stripMargin,
     resultCode = "(st : Map[String, Set[String]] => st",
+    combineCode =
+      s"""(map1: Map[String, Set[String]], map2: Map[String, Set[String]]) => {
+         |  var result = map1
+         |  for ((k, v1) <- map2)
+         |    val v = map1.get(k) match
+         |      case None => v1
+         |      case Some(v2) => v1 ++ v2
+         |    result += k -> v
+         |  result
+         |}""".stripMargin,
     Seq(),
     typ = MonoTypes(TTuple(Seq(TString, TString)), TMap(TString, TSet(TString)), TMap(TString, TSet(TString)))
   )
@@ -434,5 +449,38 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   test("test map mono"){
 
   }
+
+  test("Top down evaluation: 1"):
+    val mainRelation = Relation("main", Seq(Param("p", TString), Param("q", TString)), Seq(Body(Seq(
+      Eq(Var("p"), StringLit("1")),
+      Call(Name("path"), Seq(Var("p").arg, Var("q").arg))
+    ))))
+
+    val pathRelation = Relation("path", Seq(Param("p", TDemand(TString)), Param("q", TString)), Seq(
+      Body(Seq(
+        ExtensionalCall("edge", Seq(Var("p").arg, Var("q").arg))
+      )),
+      Body(Seq(
+        Call("path", Seq(Var("p").arg, Var("r").arg)),
+        ExtensionalCall("edge", Seq(Var("r").arg, Var("q").arg))
+      ))
+    ))
+
+    val edgeRel: ExtensionalRelation = ExtensionalRelation(
+      "edge", Seq(Param("p", TString), Param("q", TString))
+    )
+
+    val edbBTree: Relation2[Seq[String], Seq[String]] = Relation2(
+      "edge",
+      Seq("p", "q"),
+      Seq(Seq("1", "2"), Seq("2", "3"), Seq("3", "4"), Seq("2", "5"), Seq("4", "2"))
+    )
+
+    val engine = compile(mainRelation, pathRelation, edgeRel)
+    engine.insert(edbBTree)
+    val res = engine.read(UnitRelation("main"))
+    //engine.readAll().foreach(res => println(res.asTable))
+
+
 
 }

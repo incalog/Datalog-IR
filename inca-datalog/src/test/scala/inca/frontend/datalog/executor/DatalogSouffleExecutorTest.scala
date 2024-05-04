@@ -1,20 +1,19 @@
 package inca.frontend.datalog.executor
 
-import inca.frontend.datalog.compile.DatalogCompilerOptions
+import inca.frontend.datalog.compile.{CompiledDatalogModule, DatalogCompilerOptions}
 import inca.frontend.datalog.executor.DatalogExecutor.?
 import inca.souffle.backend.Executor
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogSouffleExecutorTest extends AnyFunSuite:
-  val pipeline = List()
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
-  val exec: DatalogExecutor = new DatalogExecutor(Executor)
+  val exec: DatalogExecutor = new DatalogExecutor(Executor())
 
   test("Path") {
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code, options)
-    compiled.setPipeline(pipeline)
+    compiled.setPipeline(CompiledDatalogModule.pipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("Path", Seq(?, ?))

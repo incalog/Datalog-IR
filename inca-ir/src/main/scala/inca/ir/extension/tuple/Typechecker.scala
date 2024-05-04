@@ -2,9 +2,19 @@ package inca.ir.extension.tuple
 
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
+import inca.ir.util.SourceLocation
 import inca.ir.{TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
+
+  override def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
+    case (TTuple(tys1), TTuple(tys2)) =>
+      if (tys1.size == tys2.size)
+        tys1.zip(tys2).foreach(assertComparable(_, _, t))
+      else
+        error(s"Cannot compare tuples of different sizes ${tys1.size} and ${tys2.size}", t)
+    case _ => super.assertComparable(ty, outside, t)
+  
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match {
     case TupleLit(ts) =>
       val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Bound)) { case (tt, (tys, m)) =>

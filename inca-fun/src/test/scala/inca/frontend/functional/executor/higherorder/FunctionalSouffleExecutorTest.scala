@@ -9,7 +9,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalSouffleExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(Executor())
 
   test("Apply") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Apply.finca")

@@ -1,7 +1,7 @@
 package inca.souffle.backend
 
 import inca.ir
-import inca.ir.{RefByName, TermArg}
+import inca.ir.{RefByName, TAny, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
@@ -46,8 +46,9 @@ object GenerateSouffle:
           Attribute(cleanName(p.name), compileType(p.ty))
         }
         val relDecl = ProgramContent.RelationDecl(Seq(cleanName(name)), attrs, Seq(), None)
-        val directiveAttrs = edb.getHint[SouffleInputHint](SouffleInputHint).map(_.attrs).getOrElse(Map())
-        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), directiveAttrs)
+        //val directiveAttrs = edb.getHint[SouffleInputHint](SouffleInputHint).map(_.attrs).getOrElse(Map())
+        //val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), directiveAttrs)
+        val inputDirective = ProgramContent.Directive(DirectiveQualifier.Input, List(qualifyName(name)), Map())
         Seq(relDecl, inputDirective)
       case data.DataDefinition(name) =>
         val cases = module.contents.collect {
@@ -136,6 +137,7 @@ object GenerateSouffle:
     case data.Construct(RefByName(name), args) => Term.Constr(qualifyName(name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match
+    case TAny => throw IllegalStateException("TAny is not supported by Souffle!")
     case arith.TInt => Type.Number
     case arith.TDouble => Type.Float
     case string.TString => Type.Symbol

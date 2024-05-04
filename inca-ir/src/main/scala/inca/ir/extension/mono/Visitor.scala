@@ -15,6 +15,10 @@ trait Visitor extends BaseIRVisitor {
       val visitedArgs = args.flatMap{arg => visitTerm(arg)}
       val visitedKeys = keys.map(visitType)
       Seq(NewMono(mono, visitedKeys, visitedArgs))
+    case NewMonoFor(mono, keys, args, uniqueFor) =>
+      val visitedArgs = args.flatMap{arg => visitTerm(arg)}
+      val visitedKeys = keys.map(visitType)
+        Seq(NewMonoFor(mono, visitedKeys, visitedArgs, uniqueFor.flatMap(visitTerm)))
     case _ => super.visitTerm(term)
   )
 

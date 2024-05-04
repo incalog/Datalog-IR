@@ -11,6 +11,9 @@ project/plugins/project/
 .cache
 .lib/
 
+inca-ascent/ascent_project
+*.lock
+
 # vs code
 .vscode/*
 *.code-workspace
@@ -19,6 +22,7 @@ project/plugins/project/
 .metals/
 .bloop/
 project/
+benchmark/
 
 # intellij idea
 *.log

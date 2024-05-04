@@ -13,6 +13,14 @@ trait Typechecker extends BaseIRTypechecker{
         error(s"Expected ${mono.constructorParamTypes.size} arguments, but got $args", term)
       args.zip(mono.constructorParamTypes).foreach((a, ty) => checkTerm(a, ty, Mode.Bound))
       mono.monoType(keys).bound
+    case NewMonoFor(mono, keys, args, uniqueFor) =>
+      val tys = args.map(inferTerm(_, Mode.Bound).ty)
+      uniqueFor.foreach(inferTerm(_, Mode.Bound))
+      
+      if (mono.constructorParamTypes.size != args.size)
+        error(s"Expected ${mono.constructorParamTypes.size} arguments, but got $args", term)
+      args.zip(mono.constructorParamTypes).foreach((a, ty) => checkTerm(a, ty, Mode.Bound))
+      mono.monoType(keys).bound
     case ReadMono(m) =>
       inferTerm(m, mode).ty match
         case TMono(input, output, keys) => output.bound

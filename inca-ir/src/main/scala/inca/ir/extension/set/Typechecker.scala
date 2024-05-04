@@ -35,7 +35,7 @@ trait Typechecker extends BaseIRTypechecker:
       assertComparable(ty2, ty1, term)
       TermType(TSet(ty1), m1 || m2)
     case SetComprehension(elem, atoms) => scopedTypeContext {
-      atoms.foreach(checkAtom(_, mode.inverted))
+      atoms.foreach(checkAtom(_, Mode.Binding))
       val TermType(ty, m) = inferTerm(elem, mode)
       TermType(TSet(ty), m)
     }

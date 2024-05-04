@@ -1,26 +1,29 @@
 package inca.foreign.scala.ir.data
 
-import inca.ir.{Atom, BaseIR, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, Var, WildcardArg, name2string}
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanName
+import inca.ir.{Atom, Eq, ModuleEntry, Name, RefByName, Term, TermArg, TermType, Type, Var, WildcardArg, name2string}
 import inca.ir.extension.data
-import inca.foreign.scala.ir.primitive.{IR, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
-import inca.ir.extension.mono.MonoAggregationOperator
 
 trait ScalaLowering extends BaseScalaLowering:
+  override def name: String = "DataScalaLowering"
+
   override def isTypeSupported(ty: Type): Boolean = ty match
     case TData(name) => true
     case _ => super.isTypeSupported(ty)
 
-  var caseDef2params: Map[Name, Seq[(String, ScalaType)]] = Map()
+  var caseDef2params: Map[Name, Seq[(String, Type)]] = Map()
 
   private def translateCaseDefinition(name: Name, args: Seq[Type], data: TData): ScalaDefnModuleEntry =
     val TData(RefByName(dName)) = data
     val params = caseDef2params(name)
-    val paramsCode = params.map { case (n, t) => s"$n: ${t.name}" }.mkString(", ")
-    val classCode = s"case class $name($paramsCode) extends $dName"
+    val paramsCode = params.map {
+      case (n, t) => s"$n: ${ScalaInca.compileType(t).name}"
+    }.mkString(", ")
+    val classCode = s"case class $name($paramsCode) extends ${cleanName(dName)}"
     ScalaDefnModuleEntry(name, classCode)
 
   override def visitModule(module: ir.Module): ir.Module =
@@ -30,23 +33,24 @@ trait ScalaLowering extends BaseScalaLowering:
           val params = args.zipWithIndex.map { case (ty, idx) =>
             val sty = visitType(ty) match
               case t@ScalaType(_) => t
-              case t => throw IllegalArgumentException(s"Expected ScalaType, but got $t in $c")
+              case t => t//ScalaInca.compileType(t)
             (s"param_$idx", sty)
           }
-          caseDef2params += name -> params
+          caseDef2params += cleanName(name) -> params
         case _ =>
     super.visitModule(module)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     moduleEntry match
-      case DataDefinition(name) => Seq(ScalaDefnModuleEntry(name, s"trait $name"))
-      case CaseDefinition(name, args, data) => Seq(translateCaseDefinition(name, args, data))
+      case DataDefinition(name) => Seq(ScalaDefnModuleEntry(name, s"trait ${cleanName(name)}"))
+      case CaseDefinition(name, args, data) => Seq(translateCaseDefinition(cleanName(name), args, data))
       case _ =>
         super.visitModuleEntry(moduleEntry)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Deconstruct(term, RefByName(caseName), args, true) =>
+    case Deconstruct(term, RefByName(cName), args, true) =>
+      val caseName = cleanName(cName)
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -56,7 +60,8 @@ trait ScalaLowering extends BaseScalaLowering:
       val isInstanceOfCall = ScalaTerm(isInstanceOfCode, ScalaType.bool, visitTerm(term))
       val guard = Eq(ScalaConstantTerm.FALSE, isInstanceOfCall)
       Seq(guard)
-    case Deconstruct(term, RefByName(caseName), args, false) =>
+    case Deconstruct(term, RefByName(cName), args, false) =>
+      val caseName = cleanName(cName)
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -91,9 +96,9 @@ trait ScalaLowering extends BaseScalaLowering:
     case Construct(RefByName(name), args) =>
       val newArgs = args.flatMap(visitTerm)
       val tyName = term.typ match
-        case Some(TermType(TData(RefByName(n)), _)) => n
+        case Some(TermType(TData(RefByName(n)), _)) => cleanName(n)
         case Some(TermType(ty, _)) => throw new IllegalArgumentException(s"Unsupported type $ty for constructor $term")
         case _ => throw new IllegalArgumentException(s"Untyped constructor expression $term")
-      Seq(ScalaTerm(name, ScalaType(tyName), newArgs))
+      Seq(ScalaTerm(cleanName(name), ScalaType(tyName), newArgs))
     case _ =>
       super.visitTerm(term)

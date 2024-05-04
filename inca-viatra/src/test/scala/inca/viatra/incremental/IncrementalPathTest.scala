@@ -6,6 +6,7 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.TInt
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.collection.mutable.ListBuffer
@@ -48,7 +49,7 @@ class IncrementalPathTest extends AnyFunSuiteLike:
     val mod = pathModule
     val compiled = new Compiled(mod)
     for (i <- 0 until 5) {
-      val engine = new inca.viatra.Executor().instantiate(compiled)
+      val engine = new Executor().instantiate(compiled)
       val start = System.currentTimeMillis()
       engine.insert(initialEdges(1000, 100))
       val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))
@@ -66,7 +67,7 @@ class IncrementalPathTest extends AnyFunSuiteLike:
     val mod = pathModule
     val compiled = new Compiled(mod)
 
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val initialStart = System.currentTimeMillis()
     engine.insert(initialEdges(1000, 100))
     val path = engine.read(Relation2("path", Seq("from", "to"), Seq()))

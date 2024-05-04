@@ -4,11 +4,12 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateScala, OODLCompil
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorSetFoldTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new Executor)
 
   test("Set fold int") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/setfold/PrimitiveSetFold.oodl")

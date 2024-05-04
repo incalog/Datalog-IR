@@ -5,11 +5,12 @@ import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class FunctionalViatraExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
-  val exec: FunctionalExecutor = new FunctionalExecutor(new inca.viatra.Executor)
+  val exec: FunctionalExecutor = new FunctionalExecutor(new Executor)
 
   // Unittests
 

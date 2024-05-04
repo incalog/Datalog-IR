@@ -190,6 +190,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Mode.Bound => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(paramTys, null, null).foreach {
+      case (wildcard@WildcardArg(), null) =>
+        // if inferRelationRef fails, we do not want to exit with a null pointer
+        error("Could not infer type for wildcard.", atom)
+        wildcard.typed(TAny.collapsed, force = true)
       case (wildcard@WildcardArg(), ty) =>
         wildcard.typed(ty.collapsed, force = true)
       case (TermArg(t), null) => // missing param
@@ -226,6 +230,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case ExtensionalCall(ref, args, false) => checkCall(ref, args, atom, mode)
     case ExtensionalCall(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
 
+    case Eq(lhs@Var(x), rhs, false) if !lookupVar(x).exists(_.mode == VarMode.Bound) =>
+      // special case to avoid backtracking for ubiquitous `x = e`  
+      val rty = inferTerm(rhs, Mode.Bound).ty
+      checkTerm(lhs, rty, mode)
     case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match

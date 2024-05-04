@@ -1,8 +1,9 @@
 package inca.ir
 
 import inca.ir.extension.*
-import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
+import inca.ir.analysis.IRAbstractInterpreter
 import inca.ir.lowering.BaseLowering
+import inca.ir.optimize.{BaseIROptimizer, IROptimizer}
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
@@ -97,10 +98,10 @@ trait CompiledModule:
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
     if (logStatsAfterOptimization)
-      printStatistics(p1.head, s"before optimization")
+      printStatistics(p1.head, s"after first optimization")
     val p2 = optimize(p1)
     if (logStatsAfterOptimization)
-      printStatistics(p2.head, s"before optimization")
+      printStatistics(p2.head, s"after second optimization")
 
     if (logOptimizations)
       printStep(s"Optimized: ", p2)

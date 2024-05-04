@@ -9,6 +9,7 @@ import inca.ir.extension.*
 import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.data.TData
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode}
 import inca.ir.extension.set.{SetComprehension, SetMember, TSet}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapLookUp, TMap}
 import inca.ir.extension.string.TString
@@ -128,6 +129,10 @@ trait ConversionElimination extends BaseLowering:
       visitTerm(map)
     case ConvertForeignIR(term, ScalaType("Any"), TAny) =>
       Seq(Cast(term, TAny))
+    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbNode(name)) =>
+      Seq(Cast(term, ety))
+    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbList(_)) =>
+      Seq(Cast(term, ety))
     case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
       throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
 
@@ -161,10 +166,13 @@ trait ConversionElimination extends BaseLowering:
       )
       val op = ScalaMonoAggregationOperator(
         Name(s"ScalaSetMono$$$fty"),
+        ScalaType(s"Set[$fty]"),
         ScalaType(fty),
         ScalaType(s"Set[$fty]"),
         initCode = s"Set[$fty]()",
-        addCode = s"(st: Set[$fty], a: $fty) => st + a"
+        addCode = s"(st: Set[$fty], a: $fty) => st + a",
+        resultCode = s"(st: Set[$fty]) => st",
+        combineCode = s"(s1: Set[$fty], s2: Set[$fty]) => s1 ++ s2"
       )
       scalasetMembershipRelations += TSet(irty) -> memRel
       val elem = Name(gensym.fresh("elem"))
@@ -182,6 +190,16 @@ trait ConversionElimination extends BaseLowering:
       val args = argsWithConvert.flatMap(visitTerm)
       Seq(
         ScalaTerm(s"$params => $tuple", stup, args)
+      )
+    case ConvertIRForeign(term, TTuple(tys), ScalaType("Any")) =>
+      //      val stys = styStr.split(',').toSeq.map(_.trim)
+      val stys = tys.map(ty => ScalaInca.compileType(ty).name)
+      val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
+      val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
+      val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
+      val args = argsWithConvert.flatMap(visitTerm)
+      Seq(
+        ScalaTerm(s"$params => $tuple", ScalaType.any, args)
       )
     case ConvertIRForeign(term, TMap(irkTy, irvTy), smap@ScalaType(s"Map[$fkTy, $fvTy]")) =>
       val mapTy = s"Map[$fkTy, $fvTy]"
@@ -207,10 +225,13 @@ trait ConversionElimination extends BaseLowering:
       val smapTy = s"Map[$fkTy, $fvTy]"
       val op = ScalaMonoAggregationOperator(
         Name(s"ScalaMapMono$$$fkTy$$$fvTy"),
+        ScalaType(smapTy),
         ScalaType(skvTy),
         ScalaType(smapTy),
         initCode = s"$smapTy()",
-        addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)"
+        addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)",
+        resultCode = s"(st: $smapTy) => st",
+        combineCode = s"(st1: $smapTy, st2: $smapTy) => throw new UnsupportedOperationException()"
       )
       scalamapMembershipRelations += TMap(irkTy, irvTy) -> memRel
       val map = Name(gensym.fresh("map"))
@@ -218,6 +239,10 @@ trait ConversionElimination extends BaseLowering:
         aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(map)), term.arg), op),
         Var(map)
       ))
+    case ConvertIRForeign(term, TEdbNode(_), sty@ScalaType("truechange.URI")) =>
+      Seq(Cast(term, sty))
+    case ConvertIRForeign(term, TEdbList(_), sty@ScalaType("truechange.URI")) =>
+      Seq(Cast(term, sty))
     case ConvertIRForeign(term, ty1, ScalaType(ty2)) =>
       throw new UnsupportedOperationException(s"Cannot convert $ty1 to ScalaType $ty2")
 

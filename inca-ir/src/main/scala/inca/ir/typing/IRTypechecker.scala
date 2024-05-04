@@ -22,4 +22,5 @@ class IRTypechecker extends BaseIRTypechecker
   with mono.Typechecker
   with typeparam.Typechecker
   with edbdata.Typechecker
+  with record.Typechecker
 

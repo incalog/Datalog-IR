@@ -13,6 +13,7 @@ import inca.souffle.syntax.{Atom, ProgramContent, Term, Type, *}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.util.compileroptions.CompilerOptions.default
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
@@ -48,7 +49,7 @@ class GenerateIRTest extends AnyFunSuite:
     val compiled = new Compiled(mod)
     compiled.setPipeline(pipeline)
 
-    val engine = new inca.viatra.Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(compiled)
     val rels = engine.readAll()
     rels.map { rel =>
       rel.name -> rel
@@ -345,12 +346,4 @@ class GenerateIRTest extends AnyFunSuite:
 
     val nats = execute(prog)("nats")
     assertResult("Succ(Zero())")(nats.entries.head.toString)
-  }
-  
-  test("compile micro.dl") {
-    val code = FileUtil.readFileFromResource("inca/souffle/doop/micro.dl")
-
-    val prog = Parser.parseSouffle(code)
-    val rels = execute(prog)
-    rels.foreach(r => println(r._2.asTable))
   }

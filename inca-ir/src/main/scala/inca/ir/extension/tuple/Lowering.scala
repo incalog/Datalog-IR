@@ -15,10 +15,10 @@ trait Lowering extends BaseLowering:
   override val requiredIRs: Set[BaseIR] = Set()
 
   /** Remember for each variable how we flattened it */
-  private var cachedFlatten: Map[(Name,Type), Seq[(Name, Type)]] = Map()
+  private var cachedFlatten: Map[Name, Seq[(Name, Type)]] = Map()
 
   private def flatten(name: Name, typ: Type): Seq[(Name, Type)] =
-    cachedFlatten.get((name, typ)) match
+    cachedFlatten.get(name) match
       case Some(cached) =>
         cached
       case None =>
@@ -27,7 +27,7 @@ trait Lowering extends BaseLowering:
             flatten(gensym.fresh(name), visitType(ty))
           }
           case _ => Seq((name, visitType(typ)))
-        cachedFlatten += (name,typ) -> res
+        cachedFlatten += name -> res
         res
 
   private def flatten(param: Param): Seq[Param] =
@@ -74,8 +74,8 @@ trait Lowering extends BaseLowering:
       case Cast(t, ty) =>
         val terms = visitTerm(t)
         val ttys = visitType(ty).flatten
-        //if (terms.size != ttys.size)
-        //  throw IllegalStateException(s"Can not lower cast $term")
+        if (terms.size != ttys.size)
+          throw IllegalStateException(s"Can not lower cast $term")
         terms.zip(ttys).map((t, ty) => Cast(t, ty))
       case Project(t, idx) =>
         val tupleTy: TTuple = t.typ match {

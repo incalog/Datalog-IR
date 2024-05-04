@@ -59,7 +59,7 @@ trait BaseLowering extends IRVisitor:
         relation.params.flatMap(visitParam),
         relation.bodies.flatMap(b => gensym.scoped {
           visitBody(b)
-        })
+        }).distinct // Remove exact duplicates
       )
     )
   }

@@ -1,6 +1,7 @@
 package inca.ir.extension.bool
 
-import inca.ir.analysis.{BaseIROptimizer, VBool, Value}
+import inca.ir.analysis.{VBool, Value}
+import inca.ir.optimize.BaseIROptimizer
 import inca.ir.visitors.IRVisitor
 import inca.ir.{Atom, Term}
 
