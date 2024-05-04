@@ -2,468 +2,310 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
-import inca.ir.analysis.Analyzable
-import inca.ir.extension.aggregate.Aggregate
-import inca.util.Gensym
 
 import scala.collection.mutable
-import inca.ir.util.SourceLocation
 import inca.ir.visitors.IRVisitor
 
 
 /** wraps parameters for value numbering */
-case class ConfigVN(simplifyArithmetic: Boolean = false,
-                    propagateConstants: Boolean = false,
-                    removeTrueAtoms: Boolean = false,
-//                    occurrencesBeforeRemoved: Int = 0,
-                    attemptAlphaEquivalence: Boolean = false,
-                    outline: Boolean = false,
-                    occurrencesBeforeOutlined: Int = 1,
-                    minSizeOutline: Int = 2
+case class ConfigVN(normalize: Boolean = false,
+                    occurrencesBeforeRemoved: Int = 0,
                    )
 
 /** for value numbering constructs from BaseIR */
-//class ValueNumbering(analysis: IRAbstractInterpreter) extends IROptimizer(analysis) {
 trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  type ValNum = String
-  type Hashed = Int
+  case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
+    override def toString: String =
+      s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
-  // maps for terms
-  var VN: Map[String, ValNum] = Map() // String is a Name TODO Map[Name, ValNum] ?
-  var hashTable: Map[Hashed, ValNum] = Map()
-  var const: Map[String, Term] = Map() // remembers constant term assigned to Var with name string
-//  var count: Map[Hashed, Int] = Map()   // remembers how often term with hash has occurred
+    def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
+//      val oldLeader = leader
+      if (isConst(t)) leader = t
+      if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
+//      val newLeader = leader
+//      println("valueId = " + valueId + ", oldLeader = " + oldLeader + ", newLeader = " + newLeader)
+//      if (t.vars.isEmpty && !isConst(leader)) leader = t
+    }
 
-  var valueUnknown: mutable.Map[Var, mutable.Set[Var]] = mutable.Map() // remembers variables that where bound in calls -> if they are compared in Eq those shouldnt be removed
+    def changeDefTermIfNecessary(t: Term): Unit = {
+      if (isConst(t)) definingTerm = t
+      else if (definingTerm.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+//      else definingTerm = visitTerm(definingTerm).head // doesnt help
+    }
 
-  // maps for atoms
-  var hashTableAtoms: Map[Hashed, (Atom,Int)] = Map()
+  }
 
-  // for bodies
-  var hashedBodies: Seq[Hashed] = Seq()
+  private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
 
-  // maps for relations
-  var VNRelations: Map[String, ValNum] = Map()
-  var hashTableRelations: Map[Hashed, ValNum] = Map()
+  private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
-  var gensym: Gensym = Gensym()
-  var substParamNames: Seq[String] = Seq()
+  protected def getReplacementTerm(t: Term): Term = {
+    val leader = getCongrClassOf(t).leader
+    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){ // for edge case in 2nd phase in which term was replaced with (an unbound) var TODO other fix?
+      return t
+    }
+    else{
+      leader.typ = t.typ // otherwise always used the type that leader had when saving it
+      return leader
+    }
+  }
 
-  // global Maps for terms
-  var VNGlobal: Map[String, ValNum] = Map() // String is a Name
-  var hashTableGlobal: Map[Hashed, ValNum] = Map()
+  protected def getDefiningTerm(t: Term): Term = {
+    if (valueNumbers.contains(t)){
+      if (congrClasses.contains(valueNumbers(t))) {
+        return getCongrClassOf(t).definingTerm
+      }
+    }
+    return t
+  }
 
-  // global Maps for atoms:  remembers info about atom with hash
-  var hashTableAtomsGlobal: mutable.Map[Hashed, mutable.Seq[AtomInfo]] = mutable.Map() // TODO use less space ?
+  private def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = {
+    val fromId = getIdOf(term)
+    if (fromId != toId) updateValueNumbersAndCongrClasses(fromId, toId)
+    else if (congrClasses.contains(toId)) {
+      congrClasses(toId).changeLeaderIfNecessary(term)
+      congrClasses(toId).changeDefTermIfNecessary(term)
+    }
+  }
+
+  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = { // TODO refactor
+    if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
+      congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
+      congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
+    }
+    if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
+      congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
+    }
+    val congrClassesContains = congrClasses.contains(toId)
+    valueNumbers.getAllWithId(fromId).foreach(t =>
+      valueNumbers.update(t,toId)
+      if (congrClassesContains) congrClasses(toId).changeLeaderIfNecessary(t)
+    )
+  }
+
+  private enum Phase:
+    case initial
+    case repetition
+  private var phase: Phase = _
+
+//  var count: Map[valueId, Int] = Map()   // remembers how often term with id has occurred
 
 
   def valueNumbering(module: ir.Module): ir.Module = {
-    // ugly fix for changing references from removed relations  // TODO refactor / rewrite so that relations are processed in different order (?)
-    class CallsFix extends IRVisitor {
-      def fixCalls(module: Module): Module = {
-        super.visitModule(module)
-      }
-      override def visitAtom(atom: Atom): Seq[Atom] = atom match {
-        case Call(ref, args, neg) => Seq(Call(VNRelations(ref.name.name), args, neg))
-        case Aggregate(rel, args, op) => Seq(Aggregate(RefByName(Name(VNRelations(rel.name.name))),args,op)) // TODO move in separate aggregate file
-//        case ExtensionalCall(ref, args, neg) => Seq(ExtensionalCall(VNRelations(ref.name.name), args, neg))
-        case _ => Seq(atom) // no further descend in AST
-      }
-    }
-
-    val newModule = visitModule(module)
-    val fixed = new CallsFix().fixCalls(newModule)
-    if config.outline then return new Outlining().outlineCommonAtoms(fixed) else return fixed
-
+    visitModule(module)
   }
 
-  override def visitModule(module: Module): Module = {
-    VNRelations = Map()
-    hashTableRelations = Map()
+  protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
 
-    if (config.attemptAlphaEquivalence){
-      gensym = Gensym(module.relations.values.flatMap(rel => rel.params.map(_.name.name).concat(rel.bodies.flatMap(_.vars.map(_.name.name)))))
-      val maxNumParams = module.relations.values.map(_.params.length).max
-      (0 until maxNumParams).foreach( _ => substParamNames = substParamNames.appended(gensym.fresh("param")))
-    }
+  protected def normalize(term: Term)/*(using withDefTerm: Boolean)*/: Term = term
 
-    super.visitModule(module)
+  protected def isConst(term: Term): Boolean = false
+
+
+  def printResults(): Unit = {
+    println(s"Results from Relation $currentRelationName body $currentBodyIndex")
+    println(s"CongruenceClasses:")
+    println("\t" + congrClasses.mkString("\n\t") + "\n")
+    valueNumbers.printResults()
   }
 
 
-  // TODO dont use scala`s hashing function
-  // TODO save hashes
-  protected def getHashCode(elem: Term): Hashed = elem match {
-    case Var(RefByName(Name(name))) if VN.contains(name) && hashTable.exists(_._2 == name) =>
-      // In case of calls and a following Eq there are two hash values for one Var -> make sure that the right one is chosen
-      hashTable.find(_._2 == name).head._1
-//      hashTable.filter(_._2 == name).last._1  // used hash that was added last
-    case _ => elem.hashCode()
+  private def newVar(name: Name, ty: Option[TermType] = None): Var = { // currently not used
+    val v = Var(RefByName(name))
+    v.typ = ty
+    v
   }
 
-  // hash is used for Var with name bindingArg and NOT for the atom
-  protected def getHashCode(atom: Atom, bindigArg: String): Hashed = atom match {
-    case Call(ref,args,neg) =>
-        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice TODO okay ?
-          case TermArg(Var(RefByName(Name(x)))) => x == bindigArg
-          case _ => false
-        }
-        getHashCode(Call(ref,argsFiltered,neg))
-    case ExtensionalCall(ref,args,neg) =>
-        val argsFiltered = args.filterNot { // there should be no false positive caused by removal because no relation name used twice
-          case TermArg(Var(RefByName(Name(x)))) => x == bindigArg
-          case _ => false
-        }
-        getHashCode(ExtensionalCall(ref,argsFiltered,neg))
-    case _ => getHashCode(atom)
-  }
-
-  protected def getHashCode(atom: Atom): Hashed = atom match{
-    case Eq(lhs,rhs,neg) => Seq(Eq,getHashCode(lhs),getHashCode(rhs),neg).hashCode()
-    case Call(ref,args,neg) =>
-      val argsHashed = args.map{
-        case TermArg(t) => getHashCode(t)
-        case w@WildcardArg() => w.hashCode()
-      }
-      Seq(Call,ref,argsHashed,neg).hashCode()
-    case ExtensionalCall(ref,args,neg) =>
-      val argsHashed = args.map{
-        case TermArg(t) => getHashCode(t)
-        case w@WildcardArg() => w.hashCode()
-      }
-      Seq(ExtensionalCall,ref,argsHashed,neg).hashCode()
-    case _ => atom.hashCode()
-  }
-
-  protected def getHashCode(body: Body): Hashed =
-    body.atoms.map(atom =>
-      val hashed = getHashCode(atom)
-      hashed
-  ).hashCode()
-
-  protected def getHashCode(relation: Relation): Hashed = // TODO hash params differently?
-    (relation.params ++ relation.bodies.map(getHashCode(_))).hashCode()  // -> name of relation irrelevant
-
-
+  // for printing results
   private var currentRelationName: Name = _
+  private var currentBodyIndex: Int = -1
+
 
   private var relationParams: Seq[Name] = Seq()
-  private def isParam(x: String): Boolean = relationParams.map(_.name).contains(x)
+  private def isParam(t: Term): Boolean = t match {
+    case vari@Var(_) => relationParams.contains(vari.name)
+    case _ => false
+  }
 
-  private var paramSubst: Map[String,String] = Map()
-
-  private var currentBodyIndex: Int = -1
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
     relationParams = relation.params.map(_.name)
-    hashedBodies = Seq()
-
-    if (config.attemptAlphaEquivalence) { // TODO include?  and if save correct relationParams
-      paramSubst = Map()
-      relationParams.zip(substParamNames).foreach(paramSubst += (_, _))
-    }
-
     currentBodyIndex = -1
-    valueNumberRelations(relation)
+    super.visitRelation(relation)
   }
 
-  override def visitParam(param: Param): Seq[Param] = {
-    if paramSubst.contains(param.name.name) then Seq(Param(paramSubst(param.name.name), param.ty))
-    else Seq(param)
-  }
-
-  private def valueNumberRelations(relation: Relation): Seq[Relation] = {
-    // removes correctly but references need to be changed -> ugly fix above
-    val newRelation = super.visitRelation(relation).head
-    val x = newRelation.name.name
-
-    val relationHash: Hashed = getHashCode(newRelation)
-    if (hashTableRelations.contains(relationHash)) {
-      val v: ValNum = hashTableRelations(relationHash)
-      VNRelations += (x, v)
-      // remove redundant body
-      Seq()
-    }
-    else {
-      val v = x
-      VNRelations += (x, v)
-      hashTableRelations += (relationHash, v)
-
-      Seq(newRelation)
-    }
-  }
-
-
-  private var currentBodyVars: Seq[Var] = Seq()
-  private def isUsedInBody(x: String): Boolean = currentBodyVars.map(_.name.name).contains(x) // TODO like this or use gensym?
-
-  private var currentAtomIndex: Int = -1   // TODO prettier solution ?
 
   override def visitBody(body: Body): Seq[Body] = {
-    VNGlobal = VNGlobal ++ VN
-    hashTableGlobal = hashTableGlobal ++ hashTable
-
-    VN = Map()
-    hashTable = Map()
-    const = Map()
-
-    hashTableAtoms = Map()
-    currentAtomIndex = -1
     currentBodyIndex += 1
-    currentBodyVars = body.vars
-    val newBodySeq = valueNumberBodies(body)
-    if newBodySeq.nonEmpty then
-      hashTableAtoms.foreach {
-        case (hash, (atom, idx)) => hashTableAtomsGlobal.updateWith(hash) {
-          _ => Some(hashTableAtomsGlobal.getOrElse(hash, mutable.Seq()).appended(AtomInfo(atom, currentRelationName, currentBodyIndex, idx)))
-        }
-      }
-    newBodySeq
-  }
-
-  private def valueNumberBodies(body: Body): Seq[Body] = {
+    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
     val newBody = super.visitBody(body).head
+    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+    phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
+    val newerBodySeq = super.visitBody(newBody)
 
-    // remove if redundant
-    val bodyHash: Hashed = getHashCode(newBody)
-    if (hashedBodies.contains(bodyHash)) {
-      Seq()
-    }
-    else {
-      hashedBodies = hashedBodies.appended(bodyHash)
-      Seq(newBody)
-    }
-  }
+    printResults()
 
-  private def newVar(nameStr: String, ty: Option[TermType] = None, valUnkownBecauseOf: Set[Var] = Set()): Var = {
-    val v = Var(RefByName(Name(nameStr)))
-    v.typ = ty
-    if (valUnkownBecauseOf.nonEmpty){
-      valUnkownBecauseOf.foreach(valueIsUnknown(v,_))
-      valueIsUnknown(v)
-    }
-    v
-  }
-
-  private def valueIsUnknown(v: Var): Unit = valueUnknown.update(v, valueUnknown.getOrElse(v, mutable.Set()).union(Set(v)))
-  private def valueIsUnknown(v: Var, becauseOf: Var): Unit =
-    valueUnknown.update(becauseOf, valueUnknown.getOrElse(becauseOf, mutable.Set()).union(Set(v)))
-  private def valueIsKnown(v: Var): Unit =
-    val removed = valueUnknown.remove(v).getOrElse(Seq()).toSeq
-    valueUnknown = valueUnknown.map((key,seq) => (key,seq.filter(vari => vari.name != v.name && !removed.contains(vari))))
-    removed.foreach(valueIsKnown(_))
-  private def isValueUnknown(t: Term): Boolean = valueUnknown.values.flatten.toSeq.contains(t)
-  private def getReasonsForUnknown(t: Term): Set[Var] =
-    val varis = t.vars.toSet
-    valueUnknown.filter((_,set) => set.intersect(varis).nonEmpty).keys.toSet
-
-
-  protected def simplify(term: Term): Term = term 
-
-  /** replaces term with Var if possible */
-  override def visitTerm(term: Term): Seq[Term] = term match {
-    case v@Var(RefByName(Name(name))) if paramSubst.contains(name) && config.attemptAlphaEquivalence => visitTerm(newVar(paramSubst(name),v.typ,getReasonsForUnknown(term)))
-    case v@Var(RefByName(Name(name))) if const.contains(name) && this.config.propagateConstants => Seq(const(name))
-    case v@Var(RefByName(Name(name))) if VN.contains(name) =>
-      Seq(
-        if const.contains(VN(name)) && this.config.propagateConstants then
-          const(VN(name))
-        else newVar(VN(name),v.typ,getReasonsForUnknown(term))
-      )
-    case _ if isConst(term) => Seq(term) // dont replace constant terms with a var and no need to simplify them 
-    case _ =>
-      val newTerm = super.visitTerm(term).head
-      if term.typ.nonEmpty then newTerm.typed(term.typ.get) // TODO okay ?
-      val termHash: Hashed = getHashCode(newTerm)
-      Seq(if (hashTable.contains(termHash)) then newVar(hashTable(termHash),term.typ,getReasonsForUnknown(term)) else simplify(newTerm))
+    // reset congrClasses (otherwise not known when variables are unbound)
+    congrClasses.clear()
+    valueNumbers.clear()
+    newerBodySeq
   }
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {
-    case Eq(vari@Var(RefByName(Name(x))), e, false) if vari.mode.isBinding =>
-      treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ) // in case a redundant binding is found it will be removed unless it belongs to parameter
-    case Eq(e, vari@Var(RefByName(Name(x))), false) if vari.mode.isBinding =>
-      treatBindingInEq(x, e, dontRemove = isParam(x), vari.typ)
+    case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
+      treatBindingInEq(vari, e, dontRemove = isParam(vari)) // in case a redundant binding is found it will be removed unless it belongs to parameter
+    case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
+      treatBindingInEq(vari, e, dontRemove = isParam(vari))
     case Eq(vari@Var(_), e, false) =>
-      // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality and remove if duplicate of other Eq
-      treatComparisonEq(vari, e, vari.typ)
+      // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+      treatComparisonEq(vari, e)
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      treatComparisonEq(vari, e, vari.typ)
+      treatComparisonEq(vari, e)
 
-    case call@Call(_, _, false) =>
+    case call@Call(_, _, false) =>  // TODO when can equivalence of two vars be concluded from calls?
       super.visitAtom(atom).head match {
         case call@Call(ref, args, false) => treatBindingsInCall(call, args)
       }
-
-    // TODO can equivalence of two vars not be concluded from calls?
-    //  could be e.g. that b(x) :- x == 0. b(x) :- x == 2. so that b(a1), b(a2) not necessarily implies that a1 == a2
-    //        val otherRelation = ref.target.get
-    //        if (otherRelation.bodies.size <= 1){  // then args which are bound by call have a unique value
-    //          args.map{arg =>
-    //           ???
-    //          }
-    //        }
-
     case call@ExtensionalCall(_, _, false) =>
       super.visitAtom(atom).head match {
         case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
       }
 
-    case _ => val newAtomSeq = valueNumberAtoms(super.visitAtom(atom).head)
-      removeAtomIfTrue(newAtomSeq)
+    case _ => super.visitAtom(atom)
   }
 
-  protected def isConst(term: Term): Boolean = false
 
-  private def treatBindingInEq(varName: String, e: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Atom] = {
-    val newEqSeq = valueNumberingTerm(varName,e,dontRemove,typ)
-    if newEqSeq.isEmpty then return Seq()
+  /** replaces term with Var if possible */
+  override def visitTerm(term: Term): Seq[Term] = {
+    if isConst(term) then return Seq(term) // dont replace constant terms and no need to normalize them
+//    if isParam(term) then return Seq(term) // dont replace params -> this reduces number of replacements too much
+    if (congrClasses.contains(valueNumbers(term)) && isAllowedToReplace(term)) then return Seq( getReplacementTerm(term) )
 
-    val newEq = newEqSeq.head
-    valueNumberAtoms(newEq,dontRemove=dontRemove)
-  }
+    val newTerm = super.visitTerm(term).head
+    newTerm.typ = term.typ
 
-  private def treatComparisonEq(vari: Var, t: Term, typ: Option[TermType]): Seq[Atom] = {
-    val newEqSeq = visitTerm(vari).head match // vari might need to be replaced when Eq is a comparision
-      case Var(RefByName(Name(x))) => valueNumberingTerm(x, t, dontRemove = true, typ) // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-      case const => t match {
-        case vari2@Var(_) => treatComparisonEq(vari2,const,typ) // t might be a Var if first case was taken in visitAtom
-        case _ => if !isValueUnknown(vari) then Seq( Eq(const,t) ) else valueNumberingTerm(vari.name.name, t, dontRemove = true, typ)
-      } // happens when propagating constants
-
-    if newEqSeq.isEmpty then return Seq()
-    val newEq = newEqSeq.head
-    val newAtomSeq = {
-      if (valueUnknown.contains(vari)) {
-        if (!isValueUnknown(t)) then valueIsKnown(vari) // remove all that where unknown because of vari
-        valueNumberAtoms(newEq, dontRemove = true)
-      }
-      else valueNumberAtoms(super.visitAtom(newEq).head) // allowed to remove comparison since value of variable is known before -> wont reduce set of results
+    val newTermId: ValueId = valueNumbers(newTerm)
+    val termId: ValueId = valueNumbers(term)
+    if (newTermId != termId){
+      // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
+      updateValueNumbersAndCongrClasses(termId, newTermId)
     }
-    removeAtomIfTrue(newAtomSeq)
 
-  }
-
-  private def valueNumberingTerm(varName: String, t: Term, dontRemove: Boolean = false, typ: Option[TermType]): Seq[Eq] = {
-    val newTerm = visitTerm(t).head
-    val x = if paramSubst.contains(varName) && config.attemptAlphaEquivalence then paramSubst(varName) else varName
-
-    val termHash: Hashed = getHashCode(newTerm)
-    if (hashTable.contains(termHash)) {
-      val v: ValNum = newTerm match {
-        case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
-        case _ => hashTable(termHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
-      }
-      VN += (x, v)
-
-      //count = count.updated(termHash, count (termHash) + 1)
-
-      // remove "Assignment" or replace term
-      if dontRemove then {
-        // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
-        // also remember the new Eq but dont remove it
-        Seq( Eq(newVar(x, typ, getReasonsForUnknown(t)), newTerm) )
+    // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
+//    if (congrClasses.contains(newTermId) && isAllowedToReplace(newTerm)){
+//        return Seq(getReplacementTerm(newTerm))
+//    }
+//    else {
+      val normalizedTerm = normalize(newTerm)//(true)
+//      normalizedMem.update(newTerm,normalizedTerm)
+      if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
+        valueNumbers.update(normalizedTerm, newTermId)
+        if (congrClasses.contains(newTermId)) {
+          congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
+          congrClasses(newTermId).changeDefTermIfNecessary(normalizedTerm)
+        }
       }
       else {
-        newVar(x, typ, getReasonsForUnknown(t)) // TODO refactor
+        // normalized term already has an id -> update term and newTerm to that id
+        val normId = valueNumbers(normalizedTerm)
+        if (newTermId != normId) updateValueNumbersAndCongrClasses(newTermId, normId)
+
+        if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
+            return Seq(getReplacementTerm(normalizedTerm))
+          }
+      }
+
+
+    // TODO tried finding indicators which term is "better" (probably should implement term.size if want to use something like that)
+    //    -> sometimes leads to less equalities being found ???!!!
+    //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
+//      return Seq(
+//        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
+//          && !isConst(normalizedTerm)
+//          then newTerm
+//        else normalizedTerm
+//      )
+        return Seq(normalizedTerm)
+//    }
+  }
+
+//  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map() // TODO
+
+  private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
+
+
+  private def treatBindingInEq(vari: Var, e: Term, dontRemove: Boolean = false): Seq[Atom] = {
+   valueNumberVar(vari,e,dontRemove)
+  }
+
+  private def treatComparisonEq(vari: Var, t: Term): Seq[Atom] = {
+    // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
+    val res1 = valueNumberVar(vari, t, dontRemove = true)
+    val res2 = t match { // t might be a Var if first case was taken in visitAtom
+      case variRhs: Var => valueNumberVar(variRhs, vari, dontRemove = true)
+      case _ => Seq()
+    }
+    res1
+  }
+
+
+  private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
+    // for case: in the 2nd pass might be replaced with vari and if vari is a param then new ill-typed Eq will not be removed
+    val tempTerm = visitTerm(t).head
+    val newTerm = if /*(tempTerm == vari && t != vari) ||*/ isParam(t) then t else tempTerm
+    val newVari = if !(isParam(vari)) then visitTerm(vari).head else vari
+
+    val termId: ValueId = getIdOf(newTerm)
+    if (congrClasses.contains(termId)) {
+      updateValueNumbersAndCongrClasses(newVari, termId)
+      //count = count.updated(termId, count (termId) + 1)
+
+      // remove "Assignment" or replace term
+      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound ( & irrelevant if var contained) TODO ?
+        Seq( Eq(newVari, newTerm) )
+      }
+      else {
         Seq()
       }
     }
-    else if (hashTableGlobal.contains(termHash) && !dontRemove) {
-      val v: ValNum = newTerm match {
-        case Var(RefByName(Name(str))) => str // then term was already replaced in visitTerm
-        case _ => hashTableGlobal(termHash) // term was already processed in visitTerm but there it was decided not to replace it TODO looked up twice in hashtable
-      }
-      if (!isUsedInBody(v)) {
-        VN += (x, v)
-        VN += (v, v)
-        hashTable += (termHash, v)
-
-        // replace term
-        return Seq( Eq(newVar(v, typ), newTerm) )  // newTerm instead of Var(Name(v)) so that what is replaced only decided in visitTerm
-      }
-      else{ // TODO refactor
-        val v = x
-        VN += (x, v)
-        hashTable += (termHash, v)
-        return Seq( Eq(newVar(v, typ), newTerm) )
-      }
+    else if (congrClasses.contains(valueNumbers(newVari))){
+      updateValueNumbersAndCongrClasses(termId,valueNumbers(newVari))
+      Seq(Eq(newVari,newTerm))
     }
-
     else {
-      val v = x
-      VN += (x, v)
-      hashTable += (termHash, v)    // In case of calls and a following Eq there are two hash values for one Var
+      updateValueNumbersAndCongrClasses(newVari,termId)
+      //count += (termId,1)
 
-      //count += (termHash,1)
-
-      if (isConst(newTerm) && this.config.propagateConstants) {
-        const += (x, newTerm)
+      // if term is a constant then use it as leader of its congruence class
+      // TODO atoms of the form term == term could also be removed statically
+      if (isConst(newTerm)/* || newTerm.vars.isEmpty*/) {
+        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm /*normalizedMem.getOrElse(newTerm,newTerm)*/))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
+      }
+      else {
+        congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm /*normalizedMem.getOrElse(newTerm,newTerm)*/))
+        congrClasses(termId).changeLeaderIfNecessary(newTerm)
+        congrClasses(termId).changeDefTermIfNecessary(newTerm)
       }
 
       // return with newTerm
-      // also remember the new Eq; it might be removed
-      Seq( Eq(newVar(x, typ, getReasonsForUnknown(newTerm)), newTerm) )
-    }
-  }
-
-//  private def rememberEquality(x: String, v: ValNum, hash: Option[Hashed] = None): Unit = {
-//    VN += (x,v)
-//    if (hash.isDefined) {
-//      hashTable += (hash.get, v)
-//    }
-//  }
-
-
-
-  protected def removeAtomIfTrue(newAtomSeq: Seq[Atom]): Seq[Atom] = {
-    if newAtomSeq.isEmpty || !config.removeTrueAtoms then return newAtomSeq
-
-    newAtomSeq.head match {
-      case Eq(rhs, lhs, false) if rhs == lhs => Seq()
-      case _ => newAtomSeq
+      Seq( Eq(newVari, newTerm) )
     }
   }
 
 
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
-    var isBinding = false
     val newArgs: Seq[Arg] = args.map {
       case t@TermArg(term) => term match {
 
-        case vari@Var(RefByName(Name(variName))) if vari.mode.isBinding => // add binding vars to maps
-          isBinding = true
-          val bindingCallHash = getHashCode(call, variName)   // TODO is this okay?
-//          val termValHash = getHashCode(vari)
-
-          // same calls except currently binding var should have same ValNum in different Relations
-          if (hashTableGlobal.contains(bindingCallHash) && !isParam(variName)) {
-            val v: ValNum = hashTableGlobal(bindingCallHash)
-            if (!isUsedInBody(v)) {
-              VN += (variName,v)
-              VN += (v,v)
-              hashTable += (bindingCallHash,v)
-              val newVari = newVar(v, term.typ)
-              valueIsUnknown(newVari)
-              TermArg(newVari)
-            }
-            else {
-              VN += (variName, variName)
-              hashTable += (bindingCallHash, variName)
-              valueIsUnknown(Var(variName))
-              t
-            }
-          }
-          else {
-            VN += (variName, variName)
-            hashTable += (bindingCallHash, variName)
-            valueIsUnknown(Var(variName))
-            t
-          }
-
+        case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
+          val id = valueNumbers.getIdOf(vari)
+          congrClasses.update(id, CongruenceClass(id, vari, vari))
+          t
         case _ => t
       }
       case t => t
@@ -472,164 +314,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       case Call(ref,_,neg) => Call(ref,newArgs,neg)
       case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
     }
-    valueNumberAtoms(newCall,dontRemove = isBinding) // TODO || exists isParam(_) ?
-  }
-
-  private def valueNumberAtoms(atom: Atom, dontRemove: Boolean = false): Seq[Atom] = {
-    // remove if redundant
-    val atomHash: Hashed = getHashCode(atom)
-    if (hashTableAtoms.contains(atomHash)) {
-      if dontRemove then Seq(atom) // TODO currentAtomIndex += 1 ???
-      else Seq()
-    }
-    else {
-      currentAtomIndex += 1
-      hashTableAtoms += (atomHash, (atom,currentAtomIndex))
-      Seq(atom)
-    }
-  }
-
-
-
-
-  case class AtomInfo(atom: Atom, name: Name, bodyIdx: Int, atomIdx: Int) {
-    override def toString: String = s"$atom | ${name.name} | $bodyIdx | $atomIdx"
-
-  }
-  class Outlining{ // TODO refactor (?)
-
-    type candidateBody = Seq[AtomInfo]
-
-    def outlineCommonAtoms(module: Module): Module = {
-      val atomsPerBody = preprocessCollectedData()
-
-      val newBodiesWithInfosAboutOriginalAtoms: Seq[(Body,Seq[AtomInfo])] = findCommonAtomsInARow(atomsPerBody)
-
-      val usedRelNames = module.relations.keys
-      gensym.register(usedRelNames.map(_.name))
-
-      val newRelations = updateRelations(module.relations,newBodiesWithInfosAboutOriginalAtoms)
-      val otherEntries = module.entries.filterNot(_._2.isInstanceOf[Relation])
-      Module(module.name, module.lang, newRelations ++ otherEntries.values)
-    }
-
-    private def preprocessCollectedData(): Seq[Seq[AtomInfo]] = {
-      val commonAtoms: Seq[mutable.Seq[AtomInfo]] =
-        // makes sure that no atoms -> bodies -> relations are looked at that are known to not contain relevant duplicates
-        hashTableAtomsGlobal.values.filter(_.length > config.occurrencesBeforeOutlined).toSeq
-      val candidateAtoms: Seq[AtomInfo] = commonAtoms.flatten
-      val atomsPerBody: Seq[Seq[AtomInfo]] = candidateAtoms.groupBy(aI => (aI.name, aI.bodyIdx)).toSeq.map(_._2.sortWith((l, r) => l.atomIdx <= r.atomIdx))
-      atomsPerBody
-    }
-
-    private def findCommonAtomsInARow(atomsPerBody: Seq[Seq[AtomInfo]]): Seq[(Body,Seq[AtomInfo])] = {
-      if atomsPerBody.isEmpty then return Seq()
-
-      def noIndexJumps(candidate: candidateBody): Boolean = { // TODO refactor...
-        // make sure there is no jump in indices between atoms in original body
-        val idc = candidate.map(_.atomIdx)
-        var prev = idc(0)
-        (1 until idc.size).map{ i =>
-          val current = idc(i)
-          val result = current - prev == 1
-          prev = current
-          result
-        }.forall(_==true)
-      }
-
-      var bodiesTable: Seq[(Body,Seq[AtomInfo])] = Seq()
-      val maxSize = atomsPerBody.map(_.size).max
-
-      (config.minSizeOutline to maxSize).foreach { k =>
-        val hashtable: mutable.Map[Hashed, mutable.Seq[candidateBody]] = mutable.Map()
-        val candidatesK: Seq[candidateBody] = atomsPerBody.flatMap(_.grouped(k).toSeq).filter(candidate => candidate.size == k && noIndexJumps(candidate))
-        /* determine max size clones
-         *   1. place current subset in hashtable
-         *   2. check whether enough occurrences in different bodies are equal / in same bucket
-         *   3. if then save subset in table
-         *   4. and remove smaller subsets that are contained in current
-         *   5. -> table should contain the cloned subsets with maximum size
-         * */
-        val candidateBodiesK: Seq[Body] = candidatesK.map(cand =>
-          val candBody = Body(cand.map{ case AtomInfo(atom, name, bodyIdx, atomIdx) => atom })
-          val hash = candBody.hashCode()
-          hashtable.updateWith(hash) {
-          _ => Some(hashtable.getOrElse(hash, mutable.Seq()).appended(cand))
-          }
-          candBody
-        )
-        val candidateEntries = hashtable.values
-        val filteredCandidates = candidateEntries.filter(_.size > config.occurrencesBeforeOutlined)
-        filteredCandidates.foreach { candidateSeq =>
-          val candidate = Body(candidateSeq.head.map{case AtomInfo(atom, _, _, _) => atom})
-          bodiesTable = bodiesTable.filter{case (candBody,atomInfoSeq) => candidate.atoms.intersect(candBody.atoms).isEmpty } // remove smaller clones
-          bodiesTable = bodiesTable.appended((candidate, candidateSeq.flatten.toSeq)) // need to remember all the original locations to change them in the next step
-        }
-      }
-        bodiesTable
-    }
-
-
-    private def getNeededParameters(body: Body): Seq[(Param,TermType)] =
-      body.atoms.flatMap(_.vars).distinct.map(v => (Param(v.name, v.typ.get.ty), v.typ.get)) // TODO to many vars ?
-
-    private def updateRelations(oldRelations: Map[String, Relation], newBodiesWithInfosAboutOriginalAtoms: Seq[(Body, Seq[AtomInfo])]): Seq[Relation] = {
-      var relations = oldRelations
-
-      val newRelations = newBodiesWithInfosAboutOriginalAtoms.flatMap { case (newBody, atomInfos) =>
-        // generate new relation
-        val paramsWithTypes = getNeededParameters(newBody)
-        val (params, _) = paramsWithTypes.unzip
-        val newRel = generateNewRelation(params, newBody)
-
-        // insert call into existing relations
-        val newCall = generateNewCall(newRel, paramsWithTypes)
-        val relBodiesToChange = atomInfos.groupBy { case AtomInfo(_, name, bodyIdx, atomIdx) => (name, bodyIdx) }
-        relBodiesToChange.foreach { case ((name, bodyIdx), atomInfoSeq) =>
-          if (relations.contains(name)) { // otherwise relation was previously removed
-            val changedRel = changeRelation(relations(name), bodyIdx, atomInfoSeq.map(_.atom), newCall)
-            relations = relations.updated(changedRel.name, changedRel)
-          }
-        }
-
-        Seq(newRel)
-      }
-      newRelations ++ relations.values
-    }
-
-    private def generateNewRelation(params: Seq[Param], body: Body): Relation = {
-      val name = gensym.freshName("R")
-      Relation(name, params, Seq(body))
-    }
-
-    private def generateNewCall(relation: Relation, parametersWithType: Seq[(Param,TermType)]): Call = {
-      val args: Seq[Arg] = parametersWithType.map{ case (Param(name, ty), termType) => TermArg(newVar(name, Some(termType)))} // TODO mode of type correct ?
-      Call(relation.name, args)
-    }
-
-    private def changeRelation(rel: Relation, bodyIdx: Int, removed: Seq[Atom], newCall: Call): Relation = {
-      val newBody = removeOutlinedAtomsAndInsertCall(rel.bodies(bodyIdx), removed, newCall)
-      val newBodies = rel.bodies.patch(bodyIdx, Seq(newBody), 1)
-      Relation(rel.name,rel.params,newBodies)
-    }
-
-    private def removeOutlinedAtomsAndInsertCall(oldBody: Body, removed: Seq[Atom], call: Call): Body = {
-      var newAtoms: Seq[Atom] = Seq()
-      var inserted = false
-      (0 until oldBody.atoms.size).foreach { i =>
-        val atom = oldBody.atoms(i)
-        if(!removed.contains(atom)) { // TODO does that always work?
-          newAtoms = newAtoms.appended(atom)
-        }
-        else if (!inserted) {
-          newAtoms = newAtoms.appended(call)
-          inserted = true
-        }
-      }
-      Body(newAtoms)
-    }
-
-
+    Seq(newCall)
   }
 
 

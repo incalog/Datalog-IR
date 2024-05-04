@@ -92,6 +92,7 @@ trait CompiledModule:
       l
     }
 
+    // TODO remove other optimizations
     if (logStatsBeforeOptimization)
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
@@ -128,7 +129,7 @@ trait CompiledModule:
 
   
   var valueNumberingResult: Seq[Module] = Seq() // for Testing 
-  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(outline = true)): Seq[Module] =
+  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
     valueNumberingResult = p.map { input =>
       valueNumbering(input,config)
     }

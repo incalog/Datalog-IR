@@ -11,7 +11,7 @@ import inca.ir.extension.*
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
 import inca.ir.extension.arithmetic.TInt
-import inca.ir.valueNumbering.ConfigVN
+import inca.ir.valueNumbering.ConfigVNOld
 
 // TODO fill in missing expected results below
 
@@ -20,7 +20,7 @@ class ClonesDatalogTest extends AnyFunSuite {
   val options = DatalogCompilerOptions.fromResource("datalog/Options.ini")
   val exec: DatalogExecutor = new DatalogExecutor(new inca.viatra.Executor(DRedReteBackendFactory.INSTANCE))
 
-  def performTest(path: String, expectedVNResult: IRModule, expectedQueryResult: Any, relationName: String, argsQuery: Seq[Any], config: ConfigVN = ConfigVN()): Unit = {
+  def performTest(path: String, expectedVNResult: IRModule, expectedQueryResult: Any, relationName: String, argsQuery: Seq[Any], config: ConfigVNOld = ConfigVNOld()): Unit = {
     val code = FileUtil.readFileFromResource(path)
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(pipeline)

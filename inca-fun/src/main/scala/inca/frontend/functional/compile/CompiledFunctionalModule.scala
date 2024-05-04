@@ -119,5 +119,6 @@ object CompiledFunctionalModule:
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
     () => new demand.Lowering {},
-    () => new tuple.Lowering {}
+    () => new tuple.Lowering {},
+    // TODO add ValueNumbering
   ) // arith + string + data
