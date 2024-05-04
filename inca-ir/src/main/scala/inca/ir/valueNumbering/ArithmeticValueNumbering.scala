@@ -40,7 +40,8 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     return (newLhs, newRhs)
   }
   private def getArgumentOfOp(t: Term): Term = {
-    return visitTerm(getDefiningTerm(t)).head
+//    return visitTerm(getDefiningTerm(t)).head
+    t
   }
 
   private def normalizeAdd(lhs: Term, rhs: Term, typ: Type): Term = getArgumentsOfOp(lhs,rhs) match {

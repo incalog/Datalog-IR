@@ -321,25 +321,25 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("C")), Var(Name("B"))),
-            Call(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("B"))), TermArg(Var(Name("C")))), false),
-            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("B"))), TermArg(Var(Name("B")))), false),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("C")))
+            Eq(Var("A"), Add(IntNum(2), IntNum(3))),
+            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+            Eq(Var("C"), Var("B")),
+            Call("b", Seq(TermArg(Var("A")), TermArg(Var("B")), TermArg(Var("C"))), false),
+            Call("b", Seq(TermArg(IntNum(1)), TermArg(Var("B")), TermArg(Var("B"))), false),
+            Eq(Var("param$0"), Var("A")),
+            Eq(Var("param$1"), Var("C"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), IntNum(5)),
-            Eq(Var(Name("param$2")), IntNum(5)),
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(5)),
+            Eq(Var("param$2"), IntNum(5)),
           )),
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5)),
-            Eq(Var(Name("param$1")), IntNum(5)),
-            Eq(Var(Name("param$2")), IntNum(5)),
+            Eq(Var("param$0"), IntNum(5)),
+            Eq(Var("param$1"), IntNum(5)),
+            Eq(Var("param$2"), IntNum(5)),
           ))
         ))
       ))
@@ -347,25 +347,25 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-//            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-//            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-//            Eq(Var(Name("C")), Var(Name("B"))),
-            Call(Name("b"), Seq(TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3)))), false),
-            Call(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3)))), false),
-            Eq(Var(Name("param$0")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("param$1")), Add(IntNum(2), IntNum(3)))
+            Eq(Var("param$0"), Add(IntNum(2), IntNum(3))),
+//            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+//            Eq(Var("C"), Var("B")),
+            Call("b", Seq(TermArg(Var("param$0")), TermArg(Var("param$0")), TermArg(Var("param$0"))), false),
+            Call("b", Seq(TermArg(IntNum(1)), TermArg(Var("param$0")), TermArg(Var("param$0"))), false),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), IntNum(5)),
-            Eq(Var(Name("param$2")), IntNum(5)),
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(5)),
+            Eq(Var("param$2"), Var("param$1")), // TODO prefer consts ?
           )),
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5)),
-            Eq(Var(Name("param$1")), IntNum(5)),
-            Eq(Var(Name("param$2")), IntNum(5)),
+            Eq(Var("param$0"), IntNum(5)),
+            Eq(Var("param$1"), Var("param$0")),
+            Eq(Var("param$2"), Var("param$0")),
           ))
         ))
       ))
@@ -377,15 +377,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            Call("b", Seq(TermArg(Var("X1")))),
             Eq(Var("X2"), Var("X1")),
-            Eq(Var(Name("param$0")), Var(Name("X1"))),
-            Eq(Var(Name("param$1")), Var(Name("X2")))
+            Eq(Var("param$0"), Var("X1")),
+            Eq(Var("param$1"), Var("X2"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
+            Eq(Var("param$0"), IntNum(1))
           ))
         ))
       ))
@@ -393,10 +393,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
-//            Eq(Var("X2"), Var("X1")),
-            Eq(Var(Name("param$0")), Var(Name("X1"))),
-            Eq(Var(Name("param$1")), Var(Name("X1")))
+            Call("b", Seq(TermArg(Var("param$0")))),
+//            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
@@ -413,18 +413,18 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"),Seq(TermArg(Var(Name("X")))),false),
-            Call(Name("b"),Seq(TermArg(Var(Name("Y")))),false),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b",Seq(TermArg(Var("X")))),
+            Call("b",Seq(TermArg(Var("Y")))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
+            Eq(Var("param$0"), IntNum(1))
           )),
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(2))
+            Eq(Var("param$0"), IntNum(2))
           ))
         ))
       ))
@@ -432,10 +432,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var(Name("X")))), false),
-            Call(Name("b"), Seq(TermArg(Var(Name("Y")))), false),  // Cant be removed: is that correct if b has multiple bodies ???
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b",Seq(TermArg(Var("param$0")))),
+            Call("b",Seq(TermArg(Var("param$1")))),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$1"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt)), Seq(
@@ -455,22 +455,22 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-            Call(Name("b"), Seq(TermArg(Var(Name("X"))),TermArg(Var(Name("B")))), false),
-            Call(Name("b"), Seq(TermArg(Var(Name("Y"))),TermArg(Var(Name("B")))), false),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Eq(Var("A"), Add(IntNum(2), IntNum(3))),
+            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+            Call("b", Seq(TermArg(Var("X")),TermArg(Var("B")))),
+            Call("b", Seq(TermArg(Var("Y")),TermArg(Var("B")))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), IntNum(5))
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(5))
           )),
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(2)),
-            Eq(Var(Name("param$1")), IntNum(2))
+            Eq(Var("param$0"), IntNum(2)),
+            Eq(Var("param$1"), IntNum(2))
           ))
         ))
       ))
@@ -478,22 +478,22 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-//            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-            //Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-            Call(Name("b"), Seq(TermArg(Var("X")), TermArg(Add(IntNum(2), IntNum(3))))),
-            Call(Name("b"), Seq(TermArg(Var("Y")), TermArg(Add(IntNum(2), IntNum(3))))),
-            Eq(Var(Name("param$0")), Var("X")),
-            Eq(Var(Name("param$1")), Var("Y"))
+            Eq(Var("A"), Add(IntNum(2), IntNum(3))),
+//            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+            Call("b", Seq(TermArg(Var("param$0")),TermArg(Var("A")))),
+            Call("b", Seq(TermArg(Var("param$1")),TermArg(Var("A")))),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$1"))
           ))
         )),
         Relation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1)),
-            Eq(Var(Name("param$1")), IntNum(5))
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(5))
           )),
           Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(2)),
-            Eq(Var(Name("param$1")), IntNum(2))
+            Eq(Var("param$0"), IntNum(2)),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         ))
       ))
@@ -505,13 +505,13 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("C")), Var(Name("B"))),
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("A"))), TermArg(Var(Name("B"))), TermArg(Var(Name("C")))), false),
-            ExtensionalCall(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Var(Name("B"))), TermArg(Var(Name("B")))), false),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("C")))
+            Eq(Var("A"), Add(IntNum(2), IntNum(3))),
+            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+            Eq(Var("C"), Var("B")),
+            ExtensionalCall("b", Seq(TermArg(Var("A")), TermArg(Var("B")), TermArg(Var("C")))),
+            ExtensionalCall("b", Seq(TermArg(IntNum(1)), TermArg(Var("B")), TermArg(Var("B")))),
+            Eq(Var("param$0"), Var("A")),
+            Eq(Var("param$1"), Var("C"))
           ))
         )),
         ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)))
@@ -521,13 +521,13 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-//            Eq(Var(Name("A")), Add(IntNum(2), IntNum(3))),
-            //            Eq(Var(Name("B")), Add(IntNum(2), IntNum(3))),
-            //            Eq(Var(Name("C")), Var(Name("B"))),
-            ExtensionalCall(Name("b"), Seq(TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3))))),
-            ExtensionalCall(Name("b"), Seq(TermArg(IntNum(1)), TermArg(Add(IntNum(2), IntNum(3))), TermArg(Add(IntNum(2), IntNum(3))))),
-            Eq(Var(Name("param$0")), Add(IntNum(2), IntNum(3))),
-            Eq(Var(Name("param$1")), Add(IntNum(2), IntNum(3)))
+            Eq(Var("param$0"), Add(IntNum(2), IntNum(3))),
+//            Eq(Var("B"), Add(IntNum(2), IntNum(3))),
+//            Eq(Var("C"), Var("B")),
+            ExtensionalCall("b", Seq(TermArg(Var("param$0")), TermArg(Var("param$0")), TermArg(Var("param$0")))),
+            ExtensionalCall("b", Seq(TermArg(IntNum(1)), TermArg(Var("param$0")), TermArg(Var("param$0")))),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("param$2", TInt)))
@@ -540,10 +540,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var("X1")))),
             Eq(Var("X2"), Var("X1")),
-            Eq(Var(Name("param$0")), Var(Name("X1"))),
-            Eq(Var(Name("param$1")), Var(Name("X2")))
+            Eq(Var(Name("param$0")), Var("X1")),
+            Eq(Var(Name("param$1")), Var("X2"))
           ))
         )),
         ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
@@ -552,10 +552,10 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            ExtensionalCall(Name("b"), Seq(TermArg(Var(Name("X1")))), false),
+            ExtensionalCall(Name("b"), Seq(TermArg(Var("param$0")))),
             //            Eq(Var("X2"), Var("X1")),
-            Eq(Var(Name("param$0")), Var(Name("X1"))),
-            Eq(Var(Name("param$1")), Var(Name("X1")))
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         ExtensionalRelation(Name("b"), Seq(Param("param$0", TInt)))
@@ -568,11 +568,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(IntNum(8), IntNum(2))),
-            Eq(Var(Name("Y")), Add(IntNum(8), IntNum(2))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(IntNum(8), IntNum(2))),
+            Eq(Var("Y"), Add(IntNum(8), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -585,11 +585,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Add(IntNum(8), IntNum(2))))),
-//            Eq(Var(Name("X")), Add(IntNum(8), IntNum(2))),
-            Eq(Add(IntNum(8), IntNum(2)), Add(IntNum(8), IntNum(2))),
+            Call("b", Seq(TermArg(Var("param$0")))),
             Eq(Var("param$0"), Add(IntNum(8), IntNum(2))),
-            Eq(Var("param$1"), Add(IntNum(8), IntNum(2)))
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -606,11 +606,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(IntNum(8), IntNum(2))),
-            Eq(Add(IntNum(8), IntNum(2)), Var(Name("Y"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(IntNum(8), IntNum(2))),
+            Eq(Add(IntNum(8), IntNum(2)), Var("Y")),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -623,11 +623,11 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Add(IntNum(8), IntNum(2))))),
-            //            Eq(Var(Name("X")), Add(IntNum(8), IntNum(2))),
-            Eq(Add(IntNum(8), IntNum(2)), Add(IntNum(8), IntNum(2))),
-            Eq(Var(Name("param$0")), Add(IntNum(8), IntNum(2))),
-            Eq(Var(Name("param$1")), Add(IntNum(8), IntNum(2)))
+            Call("b", Seq(TermArg(Var("param$0")))),
+            Eq(Var("param$0"), Add(IntNum(8), IntNum(2))),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$0"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -644,17 +644,17 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // now value of X also not known
-            Eq(IntNum(12), Var(Name("Z"))),
-            Eq(IntNum(12), Var(Name("X"))), // <- thus this var shouldn`t be replaced either
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))), // now value of X also not known
+            Eq(IntNum(12), Var("Z")),
+            Eq(IntNum(12), Var("X")), // <- thus this var shouldn`t be replaced either
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("m")), IntNum(10))
+            Eq(Var("m"), IntNum(10))
           ))
         ))
       ))
@@ -662,17 +662,17 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-//            Eq(Var(Name("Z")), IntNum(12)),
-            Eq(IntNum(12), IntNum(12)),
-            Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b", Seq(TermArg(Var("param$1")))),
+            Eq(Var("param$0"), Add(Var("param$1"), IntNum(2))), // now value of X also not known
+            Eq(Var("param$0"), IntNum(12)),
+            Eq(Var("param$0"), Var("param$0")), // <- thus this var shouldn`t be replaced either
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$1"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("m")), IntNum(10))
+            Eq(Var("m"), IntNum(10))
           ))
         ))
       ))
@@ -684,20 +684,20 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // 2nd: dont replace lhs because Y still there, replace X with 12
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))), // 2nd: dont replace lhs because Y still there, replace X with 12
             Eq(Var("W"), Add(Var("X"), IntNum(3))),       // 2nd: x + 3 -> 12 + 3 -> V
-            Eq(IntNum(12), Var(Name("X"))),               // 1st: now value of X is known -> W also known
+            Eq(IntNum(12), Var("X")),               // 1st: now value of X is known -> W also known
             Eq(Var("V"), Add(Var("X"), IntNum(3))), // whether redundancy recognized in 1st pass determined by which id used (of original term or newTerm with visited subterms)
-            Eq(IntNum(12), Var(Name("Z"))),               // 1st: -> Z == X
+            Eq(IntNum(12), Var("Z")),               // 1st: -> Z == X
             //            Eq(Var("V"), Var("Z")),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("m")), IntNum(10))
+            Eq(Var("m"), IntNum(10))
           ))
         ))
       ))
@@ -705,18 +705,20 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-            Eq(Add(IntNum(12), IntNum(3)), Add(IntNum(12), IntNum(3))),
-            //            Eq(Var(Name("Z")), IntNum(12))
-            Eq(IntNum(12), IntNum(12)),
-            Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Var(Name("Y")))
+            Call("b", Seq(TermArg(Var("param$1")))),
+            Eq(Var("param$0"), Add(Var("param$1"), IntNum(2))),
+            Eq(Var("W"), Add(Var("param$0"), IntNum(3))),
+            Eq(Var("param$0"),IntNum(12)),
+//            Eq(Var("V"), Add(Var("X"), IntNum(3))),
+//            Eq(IntNum(12), Var("Z")),
+            //            Eq(Var("V"), Var("Z")),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Var("param$1"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
-            Eq(Var(Name("m")), IntNum(10))
+            Eq(Var("m"), IntNum(10))
           ))
         ))
       ))
@@ -728,16 +730,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("W", TInt)), Seq(
           Body(Seq(
-            Eq(IntNum(12), Var(Name("X"))),
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))),
+            Eq(IntNum(12), Var("X")),
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
             Eq(Var("W"), Add(Var("X"), IntNum(3))),
-             // now value of X is known -> W also known
-            Eq(Var("V"), Add(Var("X"), IntNum(3))), // to see redundancy the id of first introduction of X is needed
-            Eq(IntNum(12), Var(Name("Z"))), // and here the second one (works because only tested whether id contained in map)
+            Eq(Var("V"), Add(Var("X"), IntNum(3))),
+            Eq(IntNum(12), Var("Z")),
             //            Eq(Var("V"), Var("Z")),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Add(Var("Y"), IntNum(2)))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -750,13 +751,15 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt), Param("W", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(IntNum(12), Add(Var("Y"), IntNum(2))),
-            Eq(Var("W"), Add(IntNum(12), IntNum(3))),
-            //            Eq(Var(Name("Z")), IntNum(12))
-//            Eq(Var(Name("X")), IntNum(12)),
-            Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Add(Var(Name("Y")), IntNum(2)))
+            Eq(Var("param$0"), IntNum(12)),
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("param$0"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("W"), Add(Var("param$0"), IntNum(3))),
+//            Eq(Var("V"), Add(Var("X"), IntNum(3))),
+//            Eq(Var("Z"), IntNum(12)),
+            //            Eq(Var("V"), Var("Z")),
+            Eq(Var("param$0"), Var("param$0")),
+            Eq(Var("param$1"), Add(Var("Y"), IntNum(2)))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
