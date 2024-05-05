@@ -9,7 +9,8 @@ import inca.ir.visitors.IRVisitor
 
 /** wraps parameters for value numbering */
 case class ConfigVN(normalize: Boolean = false,
-                    occurrencesBeforeRemoved: Int = 0,
+//                    occurrencesBeforeRemoved: Int = 0,
+                    useDefiningTerm: Boolean = false
                    )
 
 /** for value numbering constructs from BaseIR */
@@ -70,7 +71,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
-  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = { // TODO refactor
+  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = { // TODO refactor (?)
     if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
       congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
       congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
