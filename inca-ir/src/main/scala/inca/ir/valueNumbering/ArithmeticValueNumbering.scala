@@ -1,6 +1,6 @@
 package inca.ir.valueNumbering
 
-import inca.ir.{Atom, Name, RefByName, TAny, Term, TermType, Type, Var}
+import inca.ir.{Term, TermType, Var}
 import inca.ir.extension.arithmetic.*
 
 
@@ -60,19 +60,6 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       case (lhs: Term, rhs: Term) if getIdOf(lhs) == getIdOf(rhs) && typ.ty == TDouble => normalize(Mul(DoubleNum(2), lhs).typed(typ)) // for Doubles
       case (lhs, BinOp(DoubleNum(x), rhs, "*")) if getIdOf(lhs) == getIdOf(rhs) => normalize(Mul(DoubleNum(x + 1), lhs).typed(typ))
 
-      // for commutativity & associativity
-//      case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => if nameL <= nameR then Add(lvar,rvar) else Add(rvar, lvar) // variables
-//      case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_) | DoubleNum(_))) => Add(rNum, lvar) // numbers before vars
-//
-//      case (lhs, BinOp(lNum@(IntNum(_) | DoubleNum(_)), rterm, "+")) => Add(lNum, normalize(Add(lhs, rterm).typed(typ)))
-//      case (lhs, BinOp(lVar@Var(_), rterm, "+")) if !isConst(lhs) => normalize(Add(lVar, normalize(Add(lhs, rterm).typed(typ))).typed(typ)) // outer recursion necessary for ordering correctly but leads to stack overflow in other test
-//
-//      case (lvar@Var(RefByName(Name(nameL))), BinOp(rvar@Var(RefByName(Name(nameR))), rterm, "+")) if nameL > nameR =>
-//        Add(rvar, normalize(Add(lvar, rterm).typed(typ)))
-//      case (lBinOp@BinOp(ll, lr, "+"), rBinOp@BinOp(rl, rr, "+")) => normalize(Add(ll, normalize(Add(lr,rBinOp).typed(typ))).typed(typ))
-//      case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) if getIdOf(lBinOp) > getIdOf(rBinOp) => normalize(Add(rBinOp, lBinOp).typed(typ))
-//      case (lBinOp@BinOp(_, _, _), rhs) if !rhs.isInstanceOf[BinOp] => normalize(Add(rhs, lBinOp).typed(typ))
-
       case (l, r) => orderAssociativityCommutativity(getAllOperands(Add(l,r),"+"), typ, "+")
     }
 
@@ -114,18 +101,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "*")) => associativityDouble(l,r,restTerm,_*_,Mul)
     case (BinOp(DoubleNum(l), restTerm, "*"), DoubleNum(r)) => associativityDouble(l,r,restTerm,_*_,Mul)
 
-//    case (lvar@Var(RefByName(Name(nameL))), rvar@Var(RefByName(Name(nameR)))) => // this and following five for commutativity & associativity
-//      if nameL <= nameR then Mul(lvar,rvar)else Mul(rvar, lvar)
-//    case (lvar@Var(RefByName(Name(nameL))), rNum@(IntNum(_) | DoubleNum(_))) => Mul(rNum, lvar)
-//    case (lhs, BinOp(lNum@(IntNum(_) | DoubleNum(_)), rterm, "*")) =>
-//      normalize(Mul(lNum, normalize(Mul(lhs, rterm).typed(typ))).typed(typ))
-//    case (lvar@Var(RefByName(Name(nameL))), BinOp(rvar@Var(RefByName(Name(nameR))), rterm, "*")) if nameL > nameR =>
-//      Mul(rvar, normalize(Mul(lvar, rterm).typed(typ))).typed(typ)
-//    case (lBinOp@BinOp(_, _, _), rBinOp@BinOp(_, _, _)) if getIdOf(lBinOp) > getIdOf(rBinOp) => normalize(Mul(rBinOp, lBinOp).typed(typ))
-//    case (lBinOp@BinOp(_, _, _), rhs) if !rhs.isInstanceOf[BinOp] => normalize(Mul(rhs, lBinOp).typed(typ))
-
     case (factor, BinOp(lhs, rhs, "+")) => distributivity(factor,lhs,rhs,Add,Mul,typ)
-//    case (factor, BinOp(lhs, rhs, "-")) => distributivity(factor,lhs,rhs,Sub,Mul,typ)
 
     case (lTerm, BinOp(lhs, rBinOp@rTerm, "/")) => // TODO include ?
       if getIdOf(lTerm) == getIdOf(rTerm) then lhs else Mul(lTerm, rBinOp)
@@ -135,7 +111,6 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
     case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
-//    case (vari@Var(RefByName(Name(l))), Var(RefByName(Name(r)))) if l == r => if typ == TInt then IntNum(1) else if typ == TDouble then DoubleNum(1) else term
     case (l, r) if (getIdOf(l) == getIdOf(r) && getReplacementTerm(r) != IntNum(0) && getReplacementTerm(r) != DoubleNum(0)) =>
       if typ.ty == TInt then IntNum(1) else if typ.ty == TDouble then DoubleNum(1) else Div(l,r) // TODO 0/0 -> 1
     case (IntNum(l), IntNum(r)) if r != 0 => IntNum(l / r) // int/int yields int in scala
@@ -148,7 +123,6 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       else Div(lTerm,lBinOp)
 
     case (BinOp(lhs, rhs, "+"),denom) => distributivity(denom,lhs,rhs,Add,Div,typ)
-//    case (BinOp(lhs, rhs, "-"),denom) => distributivity(denom,lhs,rhs,Sub,Div,typ)
 
     case (l, r) => Div(l,r)
   }
@@ -180,8 +154,6 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       Mul(IntNum(-1), normalize(Min(normalize(Mul(IntNum(-1), l).typed(typ)), normalize(Mul(IntNum(-1), r).typed(typ))).typed(typ)))
     case (l, r) if typ.ty == TDouble =>
       Mul(DoubleNum(-1), normalize(Min(normalize(Mul(DoubleNum(-1), l).typed(typ)), normalize(Mul(DoubleNum(-1), r).typed(typ))).typed(typ)))
-    //        case (lvar, IntNum(r)) => simplify(Max(IntNum(r), lvar))
-    //        case (lvar, DoubleNum(r)) => simplify(Max(DoubleNum(r), lvar))
     case (l, r) => throw new IllegalStateException(s"unknown type $typ in normalization of Max with $lhs and $rhs")
   }
 
