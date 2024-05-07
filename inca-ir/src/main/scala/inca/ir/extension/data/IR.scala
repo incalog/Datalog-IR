@@ -6,7 +6,9 @@ import scala.language.implicitConversions
 
 trait DataDefinitionBase extends DataModuleEntry
 
-trait CaseDefinitionBase extends DataModuleEntry
+trait CaseDefinitionBase extends DataModuleEntry:
+  def data: TData
+  def args: Seq[Type]
 
 case class DataDefinitionImport(name: Name) extends ModuleImport with DataDefinitionBase:
   def withExtendedName(suffix: String): DataDefinitionImport = this.copy(name = Name(name.name + suffix))
