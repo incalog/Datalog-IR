@@ -40,8 +40,8 @@ class CompiledProgramTest extends AnyFunSuite:
     val compiledModule2 = new TestCompiledModule(module2)
 
     class testCompiledProgram extends CompiledProgram:
-      override val linkSet = Seq(new Link("Module1", "R", "Module2", "Q"))
-      override val compiledModules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
+      override val linkSet = Seq(Link("Module1", "R", "Module2", "Q"))
+      override val compiledModules: Seq[CompiledModule] = Seq(TestCompiledModule(module1), TestCompiledModule(module2))
     
     val TestCompiledProgram = new testCompiledProgram
 
