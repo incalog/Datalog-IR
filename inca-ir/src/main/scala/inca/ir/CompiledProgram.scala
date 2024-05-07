@@ -77,16 +77,13 @@ trait CompiledProgram:
               alreadyImportedEntries :+= (fromModuleName, exportEntryName)
               currentModule = modulesMap(fromModuleName).name
               val exportEntry = getExportEntry(fromModuleName, exportEntryName)
-              println("--------")
               val res = visitModuleEntry(exportEntry).map { m =>
                 println(m.name)
                 if !nameAlreadyExtended(m.name) then
-                  println(s"Extend: ${m.name}")
                   m.withExtendedName(s"_$fromModuleName")
                 else
                   m
               }
-              println("++++++")
               res
             case _ =>
               Seq()
