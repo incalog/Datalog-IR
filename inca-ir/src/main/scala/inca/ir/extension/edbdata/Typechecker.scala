@@ -3,6 +3,7 @@ package inca.ir.extension.edbdata
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
 import inca.ir.*
+import inca.ir.extension.edbdata.{Link => EdbLink}
 
 import scala.annotation.tailrec
 
@@ -64,15 +65,15 @@ trait Typechecker extends BaseIRTypechecker:
     case (TEdbList(ety1), TEdbList(ety2)) => assertComparable(ety1, ety2, t)
     case _ => super.assertComparable(ty, outside, t)
 
-  def inferLinkLookup(srcTy: EdbType, link: Link, locations: SourceLocation*): Type = link match
-    case Link.Parent | Link.Children =>
+  def inferLinkLookup(srcTy: EdbType, link: EdbLink, locations: SourceLocation*): Type = link match
+    case EdbLink.Parent | EdbLink.Children =>
       TEdbValue(TAny)
-    case Link.Prev | Link.Next => srcTy match
+    case EdbLink.Prev | EdbLink.Next => srcTy match
       case TEdbList(ety) => ety
       case ty =>
         error(s"Cannot lookup field $link on $ty", locations:_*)
         ty
-    case Link.Field(field) => srcTy match
+    case EdbLink.Field(field) => srcTy match
       case TEdbNode(node) => lookupEdbField(edbFieldName(node, field)) match
         case Some((_, EdbFieldDefinition(_, _, target))) => target
         case _ => TAny // error produced by lookupEdbConstruct

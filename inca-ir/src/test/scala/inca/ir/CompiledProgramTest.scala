@@ -1,7 +1,7 @@
-package inca.ir.CompiledProgram
+package inca.ir
 
 import inca.ir.*
-import inca.ir.CompiledProgram.CompiledProgram
+import inca.ir.CompiledProgram
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
@@ -45,7 +45,7 @@ class CompiledProgramTest extends AnyFunSuite:
     
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset
+    TestCompiledProgram.validateLinkset()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2", Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
         Eq(Var("x"), Var("y")))))),
@@ -66,16 +66,16 @@ class CompiledProgramTest extends AnyFunSuite:
           Call("Q", Seq(Var("a"), Var("b")))
         )))))
 
-      val compiledModule1 = new TestCompiledModule(module1)
-      val compiledModule2 = new TestCompiledModule(module2)
+      val compiledModule1 = TestCompiledModule(module1)
+      val compiledModule2 = TestCompiledModule(module2)
 
       class testCompiledProgram extends CompiledProgram:
-        override val linkSet = Seq(new Link("Module1", "F", "Module2", "Q"))
-        override val compiledModules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
+        override val linkSet: Seq[Link] = Seq(Link("Module1", "F", "Module2", "Q"))
+        override val compiledModules: Seq[CompiledModule] = Seq(TestCompiledModule(module1), new TestCompiledModule(module2))
       
       val TestCompiledProgram = new testCompiledProgram
 
-      TestCompiledProgram.validateLinkset
+      TestCompiledProgram.validateLinkset()
     }
   }
 
@@ -93,13 +93,13 @@ class CompiledProgramTest extends AnyFunSuite:
     val compiledModule2 = new TestCompiledModule(module2)
 
     class testCompiledProgram extends CompiledProgram:
-      override val linkSet = Seq(new Link("Module1", "R", "Module2", "Q"))
+      override val linkSet = Seq(Link("Module1", "R", "Module2", "Q"))
       override val compiledModules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
     
     val TestCompiledProgram = new testCompiledProgram
 
     assertThrows[TypeErrorException](
-      TestCompiledProgram.validateLinkset
+      TestCompiledProgram.validateLinkset()
     )
   }
 
@@ -117,19 +117,19 @@ class CompiledProgramTest extends AnyFunSuite:
       Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(Call("Q", Seq(Var("a"), Var("b"))))))),
       Relation("U", Seq(Param("a", TInt)), Seq(Body(Seq(Call("W", Seq(Var("a"))))))))
 
-    val compiledModule1 = new TestCompiledModule(module1)
-    val compiledModule2 = new TestCompiledModule(module2)
+    val compiledModule1 = TestCompiledModule(module1)
+    val compiledModule2 = TestCompiledModule(module2)
 
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(
-        new Link("Module1", "R", "Module2", "Q"),
-        new Link("Module1", "S", "Module2", "W")
+        Link("Module1", "R", "Module2", "Q"),
+        Link("Module1", "S", "Module2", "W")
       )
       override val compiledModules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2)
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset
+    TestCompiledProgram.validateLinkset()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
         Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
@@ -181,7 +181,7 @@ class CompiledProgramTest extends AnyFunSuite:
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset
+    TestCompiledProgram.validateLinkset()
     assert(TestCompiledProgram.linkedModule ==
       module("ModuleA",
 
@@ -224,7 +224,7 @@ class CompiledProgramTest extends AnyFunSuite:
     val TestCompiledProgram = new testCompiledProgram
 
 
-    TestCompiledProgram.validateLinkset
+    TestCompiledProgram.validateLinkset()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
         DataDefinition("testdata_Module1"),
@@ -286,7 +286,7 @@ class CompiledProgramTest extends AnyFunSuite:
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset
+    TestCompiledProgram.validateLinkset()
     assert(TestCompiledProgram.linkedModule ==
       module("Module3",
         Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),

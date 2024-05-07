@@ -1,9 +1,10 @@
-package inca.ir.CompiledProgram
+package inca.ir
+
 import inca.ir
 import inca.ir.*
 import inca.ir.extension.*
 import inca.ir.CompiledModule.*
-import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
+import inca.ir.analysis.IRAbstractInterpreter
 import inca.ir.lowering.BaseLowering
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
@@ -26,7 +27,7 @@ trait CompiledProgram:
 
   lazy val modulesMap: Map[Name, Module] = compiledModules.map(m => m.ir.name -> m.ir).toMap
 
-  def validateLinkset: Unit =
+  def validateLinkset(): Unit =
     linkSet.foreach(link =>
       modulesMap(link.fromModule).exports(link.exportEntry) match
         case mExp: ModuleExport =>

@@ -9,7 +9,7 @@ import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, Type
 
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  private def lookupDataDefinition(ref: Ref[DataDefinitionGeneral], s: SourceLocation): Option[(Seq[Name], DataDefinitionGeneral)] =
+  private def lookupDataDefinition(ref: Ref[DataDefinitionBase], s: SourceLocation): Option[(Seq[Name], DataDefinitionBase)] =
     lookupModuleEntry(ref.name) match
       case Some(dd: DataDefinition) =>
         ref.resolved(dd)
@@ -27,7 +27,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         error(s"Could not find data type ${ref.name}", s)
         None
 
-  def lookupConstruct(ref: Ref[CaseDefinitionGeneral], locations: SourceLocation*): Option[(Seq[Name], CaseDefinitionGeneral)] =
+  def lookupConstruct(ref: Ref[CaseDefinitionBase], locations: SourceLocation*): Option[(Seq[Name], CaseDefinitionBase)] =
     lookupModuleEntry(ref.name) match
       case Some(cd: CaseDefinition) =>
         ref.resolved(cd)
@@ -64,7 +64,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.checkExport(exp)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = 
-    def processCase(typeParams: Seq[Name], ref: Ref[CaseDefinitionGeneral], args: Seq[Term], params: Seq[Type], data: Type): TermType =
+    def processCase(typeParams: Seq[Name], ref: Ref[CaseDefinitionBase], args: Seq[Term], params: Seq[Type], data: Type): TermType =
       if (args.size != params.size)
         error(s"Expected ${params.size} arguments but got: ${args.size}", term)
       val tyArgs = ref match
@@ -102,7 +102,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       case _ => super.inferTermExtend(term, mode)
 
   protected override def checkAtom(atom: Atom, mode: Mode): Unit =
-    def processCase(t: Term, ref: Ref[CaseDefinitionGeneral], args: Seq[Arg], neg: Boolean, params: Seq[Type], data: TData): Unit =
+    def processCase(t: Term, ref: Ref[CaseDefinitionBase], args: Seq[Arg], neg: Boolean, params: Seq[Type], data: TData): Unit =
       if (args.size != params.size)
         error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 
@@ -127,7 +127,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
           processCase(t, ref, args, neg, params, data)
       case _ => super.checkAtom(atom, mode)
 
-  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinitionGeneral], s: SourceLocation): Map[Name, Type] = matcheeType match
+  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinitionBase], s: SourceLocation): Map[Name, Type] = matcheeType match
     case TData(matcheeRef) =>
       if (matcheeRef.name != dataRef.name)
         error(s"Constructor ${dataRef.name} does not belong to matchee's data type ${matcheeRef.name}", matcheeRef)

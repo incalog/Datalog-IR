@@ -151,7 +151,7 @@ class GenerateIR {
       )
     case Call(v@Var(constrName), tyArgs, args) if v.target.exists(t => t.isInstanceOf[DataConstructor]) =>
       // constructor call
-      val ref: ir.Ref[irdata.CaseDefinitionGeneral] = typeparam.TypeApplication.make(constrName, tyArgs.map(compileType))
+      val ref: ir.Ref[irdata.CaseDefinitionBase] = typeparam.TypeApplication.make(constrName, tyArgs.map(compileType))
       irdata.Construct(ref, args.map(compileExp))
 
     case Match(matchee, cases) =>
@@ -164,7 +164,7 @@ class GenerateIR {
       val caseAlternatives: Seq[irmatch.Case] = cases.map {
         case (pat@ConstructorPattern(constr, args), body) =>
           val (_, data) = pat.target.get
-          val ref: ir.Ref[irdata.CaseDefinitionGeneral] = typeparam.TypeApplication.make(constr, tyArgs.map(compileType))
+          val ref: ir.Ref[irdata.CaseDefinitionBase] = typeparam.TypeApplication.make(constr, tyArgs.map(compileType))
 
           irmatch.Case(ref, args.map(a => ir.Var(a.name)),
             Seq(ir.Eq(ir.Var(Name(tmp)), compileExp(body))))
