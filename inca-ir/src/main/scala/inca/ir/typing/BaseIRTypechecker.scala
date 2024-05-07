@@ -40,12 +40,25 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
   protected def checkModule(module: Module): Unit = scopedTypeContext {
-    module.contents.sorted.foreach(bindModuleEntry)
-    module.contents.sorted.foreach { entry =>
+    val contentsNoExport = module.contents.filterNot(m => module.exports.values.toSeq.contains(m))
+    contentsNoExport.sorted.foreach(bindModuleEntry)
+    contentsNoExport.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
     }
+    module.exports.foreach { exp => checkExport(exp._2) }
   }
+
+  protected def checkExport(exp: ModuleExport): Unit = exp match
+    case relationExport: RelationExport =>
+      lookupModuleEntry(exp.name) match
+        case Some(relation: Relation) => relationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+        case _ => error(s"The exported relation: $exp is not defined")
+    case extRelationExport: ExtensionalRelationExport =>
+      lookupModuleEntry(exp.name) match
+        case Some(relation: Relation) => extRelationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+        case _ => error(s"The exported relation: $exp is not defined")
+    case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
 
   protected def bindModuleEntry(entry: ModuleEntry): Unit =
     registerModuleEntry(entry)
@@ -53,6 +66,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case relation: Relation => scopedTypeContext { checkRelation(relation) }
     case relation: ExtensionalRelation => // nothing
+    case moduleimport: ModuleImport => // nothing
+    case moduleexport: ModuleExport => // nothing
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
 
   protected def checkRelation(relation: Relation): Unit = {
@@ -217,6 +232,11 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
         ref.resolved(rel.asInstanceOf[R])
         params.map(_.ty)
+      case Some(rel@RelationImport(_, types))  =>
+        //if (!tag.runtimeClass.isInstance(rel))
+        //  error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationImport", s)
+        ref.resolved(rel.asInstanceOf[R])
+        types
       case None =>
         error(s"Undefined relation $name", s)
         Seq()
@@ -298,3 +318,11 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       }
       this.vars = varsAfter
     }
+
+  def checkImportExport(imp: ModuleImport, exp: ModuleExport): Unit = 
+    imp match
+      case relImp: RelationImport => exp match
+        case relExp: RelationExport => if relImp.types != relExp.types then error(s"Types of $relImp and $relExp do not match")
+        case _ => throw IllegalStateException("Can not typecheck unknown Export")
+      case _ => throw IllegalStateException("Can not typecheck unknown Import")
+    this.failOnError()

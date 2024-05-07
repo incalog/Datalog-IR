@@ -3,32 +3,44 @@ package inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.{Atom, ModuleEntry, ModuleImport, ModuleExport, Name, Ref, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Arg, Var, WildcardArg}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeSubst, TypeVar}
 
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  private def lookupDataDefinition(ref: Ref[DataDefinition], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
-    entries.get(ref.name) match
+  private def lookupDataDefinition(ref: Ref[DataDefinitionGeneral], s: SourceLocation): Option[(Seq[Name], DataDefinitionGeneral)] =
+    lookupModuleEntry(ref.name) match
       case Some(dd: DataDefinition) =>
         ref.resolved(dd)
         Some((Seq(), dd))
+      case Some(ddi: DataDefinitionImport) =>
+        ref.resolved(ddi)
+        Some((Seq(), ddi))
       case Some(ParametricModuleEntry(tyParams, dd: DataDefinition)) =>
         ref.resolved(dd)
         Some((tyParams, dd))
+      case Some(ParametricModuleEntry(tyParams, ddi: DataDefinitionImport)) =>
+        ref.resolved(ddi)
+        Some((tyParams, ddi))
       case _ =>
         error(s"Could not find data type ${ref.name}", s)
         None
 
-  def lookupConstruct(ref: Ref[CaseDefinition], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
-    entries.get(ref.name) match
+  def lookupConstruct(ref: Ref[CaseDefinitionGeneral], locations: SourceLocation*): Option[(Seq[Name], CaseDefinitionGeneral)] =
+    lookupModuleEntry(ref.name) match
       case Some(cd: CaseDefinition) =>
         ref.resolved(cd)
         Some((Seq(), cd))
+      case Some(cdi: CaseDefinitionImport) =>
+        ref.resolved(cdi)
+        Some(Seq(), cdi)
       case Some(ParametricModuleEntry(tyParams, cd: CaseDefinition)) =>
         ref.resolved(cd)
         Some((tyParams, cd))
+      case Some(ParametricModuleEntry(tyParams, cdi: CaseDefinitionImport)) =>
+        ref.resolved(cdi)
+        Some((tyParams, cdi))
       case _ =>
         error(s"Could not find constructor ${ref.name}", locations: _*)
         None
@@ -40,57 +52,82 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       args.foreach(checkType)
     case _ => super.checkModuleEntry(moduleEntry)
 
-  protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Construct(ref, args) => lookupConstruct(ref, term) match
-      case None =>
-        error(s"Unknown constructor ${ref.name}", term)
-        TAny.bound
-      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
-        addTypeDependency(cd)
-        if (args.size != params.size)
-          error(s"Expected ${params.size} arguments but got: ${args.size}", term)
-        val tyArgs = ref match
-          case RefByName(name) =>
-            if (typeParams.nonEmpty)
-              error(s"Missing type arguments $typeParams for constructor $name", term)
-            Seq()
-          case TypeApplication(name, tyArgs) =>
-            if (typeParams.size != tyArgs.size)
-              error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", term)
-            tyArgs
-        val tySubst = new TypeSubst(typeParams.zip(tyArgs).toMap)
-        args.zip(params).foreach { case (t, ty) =>
-          if (tySubst.subst.isEmpty)
-            checkTerm(t, ty, Mode.Bound)
-          else {
-            val tyInst = tySubst.visitType(ty)
-            checkTerm(t, tyInst, Mode.Bound)
-          }
+  protected override def checkExport(exp: ModuleExport): Unit = exp match
+    case dataExport: DataDefinitionExport =>
+      lookupModuleEntry(exp.name) match
+        case Some(dataDefinition: DataDefinition) => // do nothing
+        case _ => error(s"The exported DataDefinition: $exp is not defined")
+    case caseExport: CaseDefinitionExport =>
+      lookupModuleEntry(exp.name) match
+        case Some(caseDefinition: CaseDefinition) => caseExport.args.zip(caseDefinition.args).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $caseDefinition"))
+        case _ => error(s"The exported CaseDefinition: $exp is not defined")
+    case _ => super.checkExport(exp)
+
+  protected override def inferTermExtend(term: Term, mode: Mode): TermType = 
+    def processCase(typeParams: Seq[Name], ref: Ref[CaseDefinitionGeneral], args: Seq[Term], params: Seq[Type], data: Type): TermType =
+      if (args.size != params.size)
+        error(s"Expected ${params.size} arguments but got: ${args.size}", term)
+      val tyArgs = ref match
+        case RefByName(name) =>
+          if (typeParams.nonEmpty)
+            error(s"Missing type arguments $typeParams for constructor $name", term)
+          Seq()
+        case TypeApplication(name, tyArgs) =>
+          if (typeParams.size != tyArgs.size)
+            error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", term)
+          tyArgs
+      val tySubst = new TypeSubst(typeParams.zip(tyArgs).toMap)
+      args.zip(params).foreach { case (t, ty) =>
+        if (tySubst.subst.isEmpty)
+          checkTerm(t, ty, Mode.Bound)
+        else {
+          val tyInst = tySubst.visitType(ty)
+          checkTerm(t, tyInst, Mode.Bound)
         }
-        val resultType = tySubst.visitType(data)
-        resultType.bound
-    case _ => super.inferTermExtend(term, mode)
+      }
+      val resultType = tySubst.visitType(data)
+      resultType.bound
 
-  protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Deconstruct(t, ref, args, neg) => lookupConstruct(ref, atom) match
-      case None =>
-        error(s"Unknown constructor $ref", atom)
-      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
-        addTypeDependency(cd)
-        if (args.size != params.size)
-          error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
+    term match
+      case Construct(ref, args) => lookupConstruct(ref, term) match
+        case None =>
+          error(s"Unknown constructor ${ref.name}", term)
+          TAny.bound
+        case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+          addTypeDependency(cd)
+          processCase(typeParams, ref, args, params, data)
+        case Some((typeParams, cd@CaseDefinitionImport(_, params, data))) =>
+          addTypeDependency(cd)
+          processCase(typeParams, ref, args, params, data)
+      case _ => super.inferTermExtend(term, mode)
 
-        val ty = inferTerm(t, Mode.Bound).ty
-        val substMap = checkDeconstruct(ty, data.ref, t)
-        val subst = new TypeSubst(substMap)
-        val substedParams = params.map(subst.visitType)
-        args.zip(substedParams).foreach {
-          case (TermArg(v), ty) => checkTerm(v, ty, mode)
-          case (wildcard@WildcardArg(), ty) => wildcard.typed(ty.collapsed, force = true)
-        }
-    case _ => super.checkAtom(atom, mode)
+  protected override def checkAtom(atom: Atom, mode: Mode): Unit =
+    def processCase(t: Term, ref: Ref[CaseDefinitionGeneral], args: Seq[Arg], neg: Boolean, params: Seq[Type], data: TData): Unit =
+      if (args.size != params.size)
+        error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
 
-  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinition], s: SourceLocation): Map[Name, Type] = matcheeType match
+      val ty = inferTerm(t, Mode.Bound).ty
+      val substMap = checkDeconstruct(ty, data.ref, t)
+      val subst = new TypeSubst(substMap)
+      val substedParams = params.map(subst.visitType)
+      args.zip(substedParams).foreach {
+        case (TermArg(v), ty) => checkTerm(v, ty, mode)
+        case (wildcard@WildcardArg(), ty) => wildcard.typed(ty.collapsed, force = true)
+      }
+
+    atom match
+      case Deconstruct(t, ref, args, neg) => lookupConstruct(ref, atom) match
+        case None =>
+          error(s"Unknown constructor $ref", atom)
+        case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+          addTypeDependency(cd)
+          processCase(t, ref, args, neg, params, data)
+        case Some((typeParams, cd@CaseDefinitionImport(_, params, data))) =>
+          addTypeDependency(cd)
+          processCase(t, ref, args, neg, params, data)
+      case _ => super.checkAtom(atom, mode)
+
+  def checkDeconstruct(matcheeType: Type, dataRef: Ref[DataDefinitionGeneral], s: SourceLocation): Map[Name, Type] = matcheeType match
     case TData(matcheeRef) =>
       if (matcheeRef.name != dataRef.name)
         error(s"Constructor ${dataRef.name} does not belong to matchee's data type ${matcheeRef.name}", matcheeRef)
@@ -130,3 +167,13 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
             error(s"Type application has ${args.size} arguments, but $name requires ${tyParams.size} arguments: $entry", ty)
           args.foreach(checkType)
     case _ => super.checkType(ty)
+
+  override def checkImportExport(imp: ModuleImport, exp: ModuleExport): Unit = imp.match
+    case dataImp: DataDefinitionImport => exp match
+      case dataExp: DataDefinitionExport => // all good
+      case _ => error(s"Incompatible Import $imp to Export $exp")
+    case caseImp: CaseDefinitionImport => exp match
+      case caseExp: CaseDefinitionExport => if caseImp.args != caseExp.args then error(s"Types of $caseImp and $caseExp do not match")
+      case _ => error(s"Incompatible Import $imp to Export $exp")
+    case _ => super.checkImportExport(imp, exp)
+    

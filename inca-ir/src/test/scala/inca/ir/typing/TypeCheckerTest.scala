@@ -13,13 +13,13 @@ import inca.ir.term2Arg
 
 class TypeCheckerTest extends AnyFunSuiteLike:
 
-  def module(relations: Relation*)(using typechecker: () => BaseIRTypechecker): Module =
+  def module(relations: ModuleEntry*)(using typechecker: () => BaseIRTypechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
     val checker = typechecker()
     try checker.checkProgram(Seq(mod))
     finally {
-      //println(mod)
-      //checker.getErrors.foreach(println)
+      println(mod)
+      checker.getErrors.foreach(println)
     }
     mod
 
@@ -254,4 +254,45 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  // TODO: test extensional calls
+  test("import type success") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    module(
+      RelationImport("Q", Seq(TInt, TInt)),
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Call("Q", Seq(Var("x"), Var("y")))))))
+    )
+  }
+
+  test("import type fail") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    assertThrows[TypeErrorException] {
+      module(
+        RelationImport("Q", Seq(TInt, TInt)),
+        Relation("R", Seq(Param("x", TNothing), Param("y", TNothing)), Seq(Body(Seq(
+          Call("Q", Seq(Var("x"), Var("y")))))))
+      )
+    }
+  }
+
+  test("export type success") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    module(
+      RelationImport("Q", Seq(TNothing, TNothing)),
+      Relation("R", Seq(Param("x", TNothing), Param("y", TNothing)), Seq(Body(Seq(
+        Call("Q", Seq(Var("x"), Var("y"))))))),
+      RelationExport("R", Seq(TNothing, TNothing))
+    )
+  }
+
+  test("export type fail") {
+    implicit val typechecker = () => new BaseIRTypechecker with arithmetic.Typechecker {}
+    assertThrows[TypeErrorException] {
+      module(
+        RelationImport("Q", Seq(TNothing, TNothing)),
+        Relation("R", Seq(Param("x", TNothing), Param("y", TNothing)), Seq(Body(Seq(
+          Call("Q", Seq(Var("x"), Var("y"))))))),
+        RelationExport("R", Seq(TInt, TInt))
+      )
+    }
+  }
+  // TODO: test extensional call
