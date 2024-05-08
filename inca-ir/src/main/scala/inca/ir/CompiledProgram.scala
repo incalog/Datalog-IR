@@ -2,111 +2,139 @@ package inca.ir
 
 import inca.ir
 import inca.ir.*
-import inca.ir.extension.*
 import inca.ir.CompiledModule.*
-import inca.ir.analysis.IRAbstractInterpreter
-import inca.ir.lowering.BaseLowering
-import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
-import inca.ir.util.SourceLocation
-import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
-import inca.util.CompilationMessage
-import inca.util.compileroptions.CompilerOptions
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.visitors.IRVisitor
 import inca.ir.Hint.preserveHints
 
 case class Link(fromModule: Name, exportEntry: Name, toModule: Name, importEntry: Name)
 
+private case class SuffixModuleEntries(suffix: Name) extends IRVisitor:
+  private var renamings: Map[ModuleEntry, Name] = _
+
+  def extend(module: Module): Module = visitModule(module)
+
+  def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
+    moduleEntry.withExtendedName(suffix)
+
+  override def visitModule(module: Module): Module =
+    renamings = module.contents.flatMap {
+      case _: ModuleImport => None
+      case e => Some(e -> updateModuleEntryName(e).name)
+    }.toMap
+
+    super.visitModule(module)
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case _: ModuleImport => super.visitModuleEntry(moduleEntry)
+    case _: ModuleExport => Seq()
+    case _ => super.visitModuleEntry(moduleEntry).map(updateModuleEntryName)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
+    ref.target match
+      case Some(value: ModuleEntry) => renamings.get(value) match
+        case Some(name) => RefByName[Target](name)
+        case _ => super.visitRef(ref)
+      case _ => super.visitRef(ref)
+  }
+
+
+private case class ResolveImports(linkSet: Seq[Link]) extends IRVisitor:
+  var currentModule: Module = _
+  // This assumes that all references are unique given their name, e.g. no Datatype and relation must have the same name
+  var renamings: Map[Name, Name] = Map()
+
+  def resolve(module: Module): Module =
+    currentModule = module
+    // find all links that are required by this modules imports
+    val links = linkSet.filter(_.toModule == module.name)
+    renamings = links.map { l =>
+      l.importEntry -> Name(s"${l.exportEntry}_${l.fromModule}")
+    }.toMap
+
+    visitModule(module)
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case _: ModuleImport => Seq()
+    case _ => super.visitModuleEntry(moduleEntry)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
+    // TODO: Targets to ModuleImports are not correctly resolved
+    //  Calls should have a ref to either a relation, ext relation or import
+    /*ref.target match
+      case Some(imp: ModuleImport) => renamings.get(imp.name) match
+        case Some(name) => RefByName[Target](name)
+        case None => super.visitRef(ref)
+      case _ => super.visitRef(ref)*/
+
+    renamings.get(ref.name) match
+      case Some(name) => RefByName[Target](name)
+      case _ => super.visitRef(ref)
+  }
+
 trait CompiledProgram:
-  val linkSet: Seq[Link]
-  val compiledModules: Seq[CompiledModule]
+  def linkSet: Seq[Link]
+  def compiledModules: Seq[CompiledModule]
 
   private lazy val rootModule: Module = compiledModules.find(m => linkSet.forall(l => l.fromModule != m.ir.name)) match
-    case Some(module: CompiledModule) => module.ir
+    case Some(module: CompiledModule) => module.checked
     case None => throw IllegalArgumentException(s"No root module could be found for linkset $linkSet")
 
-  lazy val linkedModule: Module = ApplyLinking.visitModule(rootModule)
+  lazy val linkedModule: Module = link(rootModule)
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
-  lazy val modulesMap: Map[Name, Module] = compiledModules.map(m => m.ir.name -> m.ir).toMap
+  lazy val modulesMap: Map[Name, Module] =
+    compiledModules.map {
+      m => m.ir.name -> m.checked
+    }.toMap
 
-  def validateLinkset(): Unit =
+  type Suffix = Name
+  type ModuleName = Name
+
+  var alreadyExtended: Map[ModuleName, Suffix] = Map()
+
+  def validateLinkSet(): Unit =
     linkSet.foreach(link =>
-      modulesMap(link.fromModule).exports(link.exportEntry) match
-        case mExp: ModuleExport =>
-          modulesMap(link.toModule).imports(link.importEntry) match
-            case mImp: ModuleImport => typechecker.checkImportExport(mImp, mExp)
-            case null => throw IllegalArgumentException(s"${link.importEntry} is not a valid Import")
-        case null => throw IllegalArgumentException(s"${link.exportEntry} is not a valid Export")
+      val exp =  modulesMap(link.fromModule).exports.get(link.exportEntry)
+      val imp =  modulesMap(link.toModule).imports.get(link.importEntry)
+      (exp, imp) match
+        case (Some(mExp: ModuleExport), Some(mImp: ModuleImport)) => typechecker.checkImportExport(mImp, mExp)
+        case (Some(_), _) => throw IllegalArgumentException(s"${link.exportEntry} is not a valid Export")
+        case (_, Some(_)) => throw IllegalArgumentException(s"${link.importEntry} is not a valid Import")
+        case _ => throw IllegalArgumentException(s"${link.importEntry}, nor ${link.exportEntry} is valid")
       )
-  
-  private def getExportEntry(module: Name, exportEntry: Name): ModuleEntry = {
-    val targetModule = modulesMap(module)
-    val targetExports: Set[ModuleEntry] = targetModule.exports.values.toSet
-    val contentsNoExport = targetModule.contents.filterNot(m => targetExports.contains(m))
-    contentsNoExport.find(e => e.name == exportEntry) match
-      case Some(entry) => entry
-      case None => throw new IllegalArgumentException(s"Definition for export $exportEntry not found in module $module")
-  }
 
-  private def nameAlreadyExtended(name: Name): Boolean =
-    val suffix = name.name.reverse.takeWhile(c => c != '_')
-    if name.name.exists(c => c == '_') then
-      compiledModules.exists(m => m.name.name == suffix.reverse)
-    else
-      false
+  def link(module: Module): Module =
+    var lang: Language = BaseIR.language
+    val newFeatures = linkSet.flatMap(l => modulesMap(l.toModule).lang.features).toSet
+    lang ++= newFeatures
 
-  private object ApplyLinking extends IRVisitor:
-    private var currentModule: Name = ""
-    private var alreadyImportedEntries: Seq[(Name, Name)] = Seq() // Seq[(fromModule, exportEntry)]
-    private var features: Language = BaseIR.language
+    // Suffix all module entries by their module name
+    var renamedModules = modulesMap.map((n, mod) =>
+      if n != rootModule.name then
+        SuffixModuleEntries(s"_$n").extend(mod)
+      else
+        rootModule
+    ).toSeq
 
-    override def visitModule(module: Module): Module = 
-      currentModule = module.name
-      val contents = module.contents.flatMap(visitModuleEntry)
-      Module(module.name, features, contents)
-
-    override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
-      moduleEntry match {
-        case mImp: ModuleImport =>
-          Seq()
-        case _ =>
-          val tempCurrentModule = currentModule
-          val processedImportedEntries = linkSet.flatMap {
-            case Link(fromModuleName, exportEntryName, toModuleName, _)
-              if toModuleName == tempCurrentModule && !alreadyImportedEntries.contains((fromModuleName, exportEntryName)) =>
-              alreadyImportedEntries :+= (fromModuleName, exportEntryName)
-              currentModule = modulesMap(fromModuleName).name
-              val exportEntry = getExportEntry(fromModuleName, exportEntryName)
-              val res = visitModuleEntry(exportEntry).map { m =>
-                println(m.name)
-                if !nameAlreadyExtended(m.name) then
-                  m.withExtendedName(s"_$fromModuleName")
-                else
-                  m
-              }
-              res
-            case _ =>
-              Seq()
-          }
-          currentModule = tempCurrentModule
-          features = features ++ modulesMap(currentModule).lang.features
-          processedImportedEntries ++ super.visitModuleEntry(moduleEntry)
-      }
+    // Follow transitive links
+    var links: Map[(Name, Name), (Name, Name)] = Map()
+    var changed = true
+    while (changed) {
+      val newLinks = linkSet.map { l =>
+        links.get((l.fromModule, l.exportEntry)) match
+          case Some((newFrom, newExport)) => (l.toModule, l.importEntry) -> (newFrom, newExport)
+          case _ => (l.toModule, l.importEntry) -> (l.fromModule, l.exportEntry)
+      }.toMap
+      changed = newLinks != links
+      links = newLinks
     }
+    val resolvedLinkSet = links.map { case ((to, imp), (from, exp)) => Link(from, exp, to, imp) }.toSeq
 
-    override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
-      ref match
-        case RefByName(name) => modulesMap(currentModule).entries.get(name) match
-          case Some(mImport: ModuleImport) =>
-            linkSet.find(link => link.toModule == currentModule && link.importEntry == mImport.name) match
-              case Some(curlink) =>
-                val exportEntry = getExportEntry(curlink.fromModule, curlink.exportEntry).name
-                RefByName(exportEntry + s"_${curlink.fromModule}")
-              case None =>
-                throw IllegalArgumentException(s"Imported entry does not exist")
-          case _ if linkSet.exists(l => l.fromModule == currentModule && l.exportEntry == name) =>
-            RefByName(name + s"_${currentModule.name}")
-          case _ =>
-            super.visitRef(ref)
-        case _ => super.visitRef(ref)
-    }
+    // Resolve the imports
+    renamedModules = renamedModules.map(m => ResolveImports(resolvedLinkSet).resolve(m))
+
+    // We over approximate by copying over all relations, we could refine this to only copy over transitively
+    // required relations from the import
+    Module(module.name, lang, renamedModules.flatMap(_.contents))

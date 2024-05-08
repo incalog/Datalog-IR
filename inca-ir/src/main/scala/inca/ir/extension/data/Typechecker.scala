@@ -50,6 +50,12 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case CaseDefinition(name, args, data) =>
       checkType(data)
       args.foreach(checkType)
+    case CaseDefinitionImport(name, args, data) =>
+      checkType(data)
+      args.foreach(checkType)
+    case CaseDefinitionExport(name, args, data) =>
+      checkType(data)
+      args.foreach(checkType)
     case _ => super.checkModuleEntry(moduleEntry)
 
   protected override def checkExport(exp: ModuleExport): Unit = exp match
@@ -170,10 +176,11 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
   override def checkImportExport(imp: ModuleImport, exp: ModuleExport): Unit = imp.match
     case dataImp: DataDefinitionImport => exp match
-      case dataExp: DataDefinitionExport => // all good
+      case dataExp: DataDefinitionExport => // ok
       case _ => error(s"Incompatible Import $imp to Export $exp")
     case caseImp: CaseDefinitionImport => exp match
-      case caseExp: CaseDefinitionExport => if caseImp.args != caseExp.args then error(s"Types of $caseImp and $caseExp do not match")
+      case caseExp: CaseDefinitionExport if caseImp.args == caseExp.args => // ok
+      case caseExp: CaseDefinitionExport => error(s"Types of $caseImp and $caseExp do not match")
       case _ => error(s"Incompatible Import $imp to Export $exp")
     case _ => super.checkImportExport(imp, exp)
     

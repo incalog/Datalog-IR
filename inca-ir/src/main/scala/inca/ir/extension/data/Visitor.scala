@@ -19,6 +19,14 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
     case DataDefinition(name) => Seq(DataDefinition(name))
     case CaseDefinition(name, args, data) =>
       Seq(CaseDefinition(name, args.map(visitType), visitType(data).asInstanceOf[TData]))
+    case DataDefinitionImport(name) =>
+      Seq(DataDefinitionImport(name))
+    case DataDefinitionExport(name) =>
+      Seq(DataDefinitionExport(name))
+    case CaseDefinitionImport(name, args, data) =>
+      Seq(CaseDefinitionImport(name, args.map(visitType), visitType(data).asInstanceOf[TData]))
+    case CaseDefinitionExport(name, args, data) =>
+      Seq(CaseDefinitionExport(name, args.map(visitType), visitType(data).asInstanceOf[TData]))
     case _ => super.visitModuleEntry(moduleEntry))
   
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match

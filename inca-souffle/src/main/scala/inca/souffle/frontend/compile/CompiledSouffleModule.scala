@@ -26,7 +26,7 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
   )
   
   override def ir: Module =
-    val genIR = new GenerateIR
+    val genIR = new GenerateIRSingleModule
     genIR.compileProgram(program, name.name)
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =

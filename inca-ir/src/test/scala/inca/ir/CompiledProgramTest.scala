@@ -9,17 +9,12 @@ import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.arithmetic
 import inca.ir.extension.data.*
-import java.{util => ju}
 import inca.ir.typing.TypeErrorException
 
 class CompiledProgramTest extends AnyFunSuite:
 
-  def module(name: Name, relations: ModuleEntry*)(using language: Language): Module =
-    val mod = Module(name, language, relations)
-    println(mod)
-    println('\n')
-    mod
-  
+  def module(name: Name, relations: ModuleEntry*)(using language: Language): Module = Module(name, language, relations)
+
   case class TestCompiledModule(mod: Module) extends CompiledModule:
     override def compilerOptions: CompilerOptions = CompilerOptions.default
     override def name: Name = mod.name
@@ -28,8 +23,11 @@ class CompiledProgramTest extends AnyFunSuite:
 
   test("simple 2Module relation import") {
     implicit val language = BaseIR.language
-    val module1: Module = module("Module1", Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-      Eq(Var("x"), Var("y")))))),
+    val module1: Module = module("Module1",
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("y"), IntNum(2))
+      )))),
       RelationExport("R", Seq(TInt, TInt)))
     val module2: Module = module("Module2", RelationImport("Q", Seq(TInt, TInt)),
       Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
@@ -45,21 +43,28 @@ class CompiledProgramTest extends AnyFunSuite:
     
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset()
+    TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
-      module("Module2", Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-        Eq(Var("x"), Var("y")))))),
+      module("Module2",
+        Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )))),
         Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
-          Call("R_Module1", Seq(Var("a"), Var("b")))))))
+          Call("R_Module1", Seq(Var("a"), Var("b")))
+        )))),
       )
     )
   }
 
   test("simple 2Module relation import wrong linkset") {
     implicit val language = BaseIR.language
-    assertThrows[ju.NoSuchElementException] {
-      val module1: Module = module("Module1", Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-        Eq(Var("x"), Var("y")))))),
+    assertThrows[IllegalArgumentException] {
+      val module1: Module = module("Module1",
+        Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )))),
         RelationExport("R", Seq(TInt, TInt)))
       val module2: Module = module("Module2", RelationImport("Q", Seq(TInt, TInt)),
         Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
@@ -75,22 +80,25 @@ class CompiledProgramTest extends AnyFunSuite:
       
       val TestCompiledProgram = new testCompiledProgram
 
-      TestCompiledProgram.validateLinkset()
+      TestCompiledProgram.validateLinkSet()
     }
   }
 
   test("simple 2Module relation import wrong types") {
     implicit val language = BaseIR.language
-    val module1: Module = module("Module1", Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-      Eq(Var("x"), Var("y")))))),
+    val module1: Module = module("Module1",
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("y"), IntNum(2))
+      )))),
       RelationExport("R", Seq(TInt, TInt)))
     val module2: Module = module("Module2", RelationImport("Q", Seq(TNothing, TNothing)),
       Relation("T", Seq(Param("a", TNothing), Param("b", TNothing)), Seq(Body(Seq(
         Call("Q", Seq(Var("a"), Var("b")))
       )))))
 
-    val compiledModule1 = new TestCompiledModule(module1)
-    val compiledModule2 = new TestCompiledModule(module2)
+    val compiledModule1 = TestCompiledModule(module1)
+    val compiledModule2 = TestCompiledModule(module2)
 
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(Link("Module1", "R", "Module2", "Q"))
@@ -99,14 +107,17 @@ class CompiledProgramTest extends AnyFunSuite:
     val TestCompiledProgram = new testCompiledProgram
 
     assertThrows[TypeErrorException](
-      TestCompiledProgram.validateLinkset()
+      TestCompiledProgram.validateLinkSet()
     )
   }
 
   test("2Module multiple relation import") {
     implicit val language = BaseIR.language
     val module1: Module = module("Module1",
-      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+      Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("y"), IntNum(2))
+      )))),
       RelationExport("R", Seq(TInt, TInt)),
       Relation("S", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
       RelationExport("S", Seq(TInt)))
@@ -129,10 +140,13 @@ class CompiledProgramTest extends AnyFunSuite:
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset()
+    TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
-        Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+        Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )))),
         Relation("S_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
         Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(Call("R_Module1", Seq(Var("a"), Var("b"))))))),
         Relation("U", Seq(Param("a", TInt)), Seq(Body(Seq(Call("S_Module1", Seq(Var("a")))))))
@@ -149,7 +163,10 @@ class CompiledProgramTest extends AnyFunSuite:
       override def ir: Module = mod
 
     val moduleC: Module = module("ModuleC",
-      Relation("CR1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+      Relation("CR1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("y"), IntNum(2))
+      )))),
       RelationExport("CR1", Seq(TInt, TInt)),
       Relation("CR2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
       RelationExport("CR2", Seq(TInt))
@@ -167,29 +184,31 @@ class CompiledProgramTest extends AnyFunSuite:
       Relation("AR", Seq(Param("w", TInt), Param("v", TInt)), Seq(Body(Seq(Call("AR1", Seq(Var("w"), Var("v"))), Call("ABR", Seq(Var("w")))))))
     )
 
-    val compiledModuleC = new TestCompiledModule(moduleC)
-    val compiledModuleB = new TestCompiledModule(moduleB)
-    val compiledModuleA = new TestCompiledModule(moduleA)
+    val compiledModuleC = TestCompiledModule(moduleC)
+    val compiledModuleB = TestCompiledModule(moduleB)
+    val compiledModuleA = TestCompiledModule(moduleA)
 
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(
-        new Link("ModuleC", "CR1", "ModuleA", "AR1"),
-        new Link("ModuleC", "CR2", "ModuleB", "BR2"),
-        new Link("ModuleB", "BR", "ModuleA", "ABR")
+        Link("ModuleC", "CR2", "ModuleB", "BR2"),
+        Link("ModuleB", "BR", "ModuleA", "ABR"),
+        Link("ModuleC", "CR1", "ModuleA", "AR1")
       )
       override val compiledModules: Seq[CompiledModule] = Seq(compiledModuleC, compiledModuleB, compiledModuleA)
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset()
+    TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("ModuleA",
-
-        Relation("CR1_ModuleC", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+        Relation("CR1_ModuleC", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )))),
         Relation("CR2_ModuleC", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
         Relation("BR_ModuleB", Seq(Param("z", TInt)), Seq(Body(Seq(Call("CR2_ModuleC", Seq(Var("z"))))))),
         Relation("AR", Seq(Param("w", TInt), Param("v", TInt)), Seq(Body(Seq(Call("CR1_ModuleC", Seq(Var("w"), Var("v"))), Call("BR_ModuleB", Seq(Var("w")))))))
-     )
+      )
     )
   }
 
@@ -204,36 +223,41 @@ class CompiledProgramTest extends AnyFunSuite:
     val module2: Module = module("Module2",
       DataDefinitionImport("testdata2"), 
       CaseDefinitionImport("addition2", Seq(TInt, TInt), TData("testdata2")), 
-      Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))), 
+      Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Eq(Var("x"), IntNum(1)),
+        Eq(Var("y"), IntNum(2))
+      )))),
       Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-        Call("Bind", Seq(Var("x"), Var("y"))), 
+        Call("Bind", Seq(Var("x"), Var("y"))),
         Eq(Construct("addition2", Seq(Var("x"), Var("x"))), Construct("addition2", Seq(Var("y"), Var("y"))))
       ))))
     )
 
-    val compiledModule1 = new TestCompiledModule(module1)
-    val compiledModule2 = new TestCompiledModule(module2)
+    val compiledModule1 = TestCompiledModule(module1)
+    val compiledModule2 = TestCompiledModule(module2)
   
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(
-        new Link("Module1", "testdata", "Module2", "testdata2"), 
-        new Link("Module1", "addition", "Module2", "addition2")
+        Link("Module1", "testdata", "Module2", "testdata2"),
+        Link("Module1", "addition", "Module2", "addition2")
       )
       override val compiledModules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2)
 
     val TestCompiledProgram = new testCompiledProgram
 
 
-    TestCompiledProgram.validateLinkset()
+    TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
         DataDefinition("testdata_Module1"),
         CaseDefinition("addition_Module1", Seq(TInt, TInt), TData("testdata_Module1")),
-
-        Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(Eq(Var("x"), Var("y")))))),
+        Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )))),
         Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
           Call("Bind", Seq(Var("x"), Var("y"))), Eq(Construct("addition_Module1", Seq(Var("x"), Var("x"))), Construct("addition_Module1", Seq(Var("y"), Var("y"))))
-        ))))
+        )))),
       )
     )
   }
@@ -269,34 +293,81 @@ class CompiledProgramTest extends AnyFunSuite:
       Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("T3", Seq(Var("x")))))))
     )
 
-    val compiledModule1 = new TestCompiledModule(module1)
-    val compiledModule2 = new TestCompiledModule(module2)
-    val compiledModule3 = new TestCompiledModule(module3)
+    val compiledModule1 = TestCompiledModule(module1)
+    val compiledModule2 = TestCompiledModule(module2)
+    val compiledModule3 = TestCompiledModule(module3)
 
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(
-        new Link("Module1", "R1", "Module2", "R2"),
-        new Link("Module1", "L1", "Module3", "L3"),
+        Link("Module1", "R1", "Module2", "R2"),
+        Link("Module1", "L1", "Module3", "L3"),
 
-        new Link("Module2", "Q2", "Module1", "Q1"),
-        new Link("Module2", "T2", "Module3", "T3"),
+        Link("Module2", "Q2", "Module1", "Q1"),
+        Link("Module2", "T2", "Module3", "T3"),
       )
 
       override val compiledModules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2, compiledModule3)
 
     val TestCompiledProgram = new testCompiledProgram
 
-    TestCompiledProgram.validateLinkset()
+    TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module3",
         Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-        Relation("Q2_Module2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
         Relation("L1_Module1", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Q2_Module2", Seq(Var("a"))))))),
-
+        Relation("Q2_Module2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
         Relation("T2_Module2", Seq(Param("a", TInt)), Seq(Body(Seq(Call("R1_Module1", Seq(Var("a"))))))),
-
         Relation("X3", Seq(Param("a", TInt)), Seq(Body(Seq(Call("L1_Module1", Seq(Var("a"))))))),
         Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("T2_Module2", Seq(Var("x")))))))
       )
+    )
+  }
+
+  test("2-Level import") {
+    implicit val language = BaseIR.language
+    case class TestCompiledModule(mod: Module) extends CompiledModule:
+      override def compilerOptions: CompilerOptions = CompilerOptions.default
+
+      override def name: Name = mod.name
+
+      override def sourceLocation: SourceLocation = mod.name
+
+      override def ir: Module = mod
+
+    val module1: Module = module("Module1",
+      RelationExport("R1", Seq(TInt)),
+      Relation("R1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+    )
+
+    val module2: Module = module("Module2",
+      RelationImport("R2", Seq(TInt)),
+      RelationExport("R2", Seq(TInt)),
+    )
+
+    val module3: Module = module("Module3",
+      RelationImport("R3", Seq(TInt)),
+      Relation("Test", Seq(Param("x", TInt)), Seq(Body(Seq(Call("R3", Seq(Var("x")))))))
+    )
+
+    val compiledModule1 = TestCompiledModule(module1)
+    val compiledModule2 = TestCompiledModule(module2)
+    val compiledModule3 = TestCompiledModule(module3)
+
+    class testCompiledProgram extends CompiledProgram:
+      override val linkSet = Seq(
+        Link("Module1", "R1", "Module2", "R2"),
+        Link("Module2", "R2", "Module3", "R3")
+      )
+
+      override val compiledModules: Seq[CompiledModule] = Seq(compiledModule1, compiledModule2, compiledModule3)
+
+    val TestCompiledProgram = new testCompiledProgram
+
+    TestCompiledProgram.validateLinkSet()
+    assert(TestCompiledProgram.linkedModule ==
+           module("Module3",
+             Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+             Relation("Test", Seq(Param("x", TInt)), Seq(Body(Seq(Call("R1_Module1", Seq(Var("x")))))))
+           )
     )
   }

@@ -1,10 +1,9 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
-import inca.ir.{Language, Name}
+import inca.ir.Language
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
-import inca.ir.extension.data.{CaseDefinition, CaseDefinitionExport, CaseDefinitionImport, DataDefinition, DataDefinitionExport, DataDefinitionImport}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
@@ -13,7 +12,7 @@ import inca.util.Gensym
 
 import scala.annotation.tailrec
 
-class GenerateIR:
+class GenerateIRSingleModule:
   trait Context:
     /* These fields are relative to the ComponentInit we are in */
 
@@ -24,8 +23,6 @@ class GenerateIR:
 
     /* These fields are independent of the ComponentInit we are in */
 
-    // The name of the main module
-    val mainModuleName: ir.Name
     // All rules / facts that belong to a RelationDecl
     val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
     // Collect for all RelationDecl if it is an edb relation or not
@@ -37,17 +34,12 @@ class GenerateIR:
     def extend(newPrefix: Seq[String], decls: Seq[ProgramContent]): Context =
       val obj = this
       new Context {
-        override val mainModuleName: Name = obj.mainModuleName
         override val prefix: Seq[String] = newPrefix
         override val declPrefixes: Map[ProgramContent, Seq[String]] = obj.declPrefixes ++ decls.map(_ -> newPrefix).toMap
         override val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = obj.rules
         override val edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = obj.edbDecls
         override val outputDecls: Set[ProgramContent.RelationDecl] = obj.outputDecls
       }
-
-  /* Modules for each component */
-  var componentModules: Seq[ir.Module] = Seq()
-  var componentLinkSet: Seq[ir.Link] = Seq()
 
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + irbool.IR + irdata.IR
@@ -57,12 +49,11 @@ class GenerateIR:
   val gensym: Gensym = new Gensym()
 
 
-  def compileProgram(prog: Program, name: String): (Seq[ir.Module], Seq[ir.Link]) =
+  def compileProgram(prog: Program, name: String): ir.Module =
     val nameResolution = new NameResolution {}
     nameResolution.resolveProgram(prog)
 
     val ctx = new Context {
-      override val mainModuleName: Name = Name(name)
       override val prefix: Seq[String] = Seq()
       override val declPrefixes: Map[ProgramContent, Seq[String]] = collectDirectDecls(prog.content).map(_ -> Seq()).toMap
       override val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = collectRules(prog.content)
@@ -70,8 +61,7 @@ class GenerateIR:
       override val outputDecls: Set[ProgramContent.RelationDecl] = collectOutputDecls(prog.content)
     }
 
-    val mainModule = ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content)(ctx))
-    (mainModule +: componentModules, componentLinkSet)
+    ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content)(ctx))
 
   private def collectRules(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Seq[ProgramContent]] =
     var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
@@ -155,27 +145,7 @@ class GenerateIR:
       case compInit@ProgramContent.ComponentInit(n, compType) =>
         val compDecl@ProgramContent.ComponentDecl(_, _, compContent) = compInit.target.get
         val newCtx = ctx.extend(ctx.prefix :+ n, collectDirectDecls(compContent))
-
-        val compModuleName = ir.Name(n)
-        val compModuleEntries = compileProgramContents(compContent)(newCtx)
-
-        val (imports, exports) = compModuleEntries.flatMap {
-          case DataDefinition(name) =>
-            Some((DataDefinitionImport(name), DataDefinitionExport(name)))
-          case CaseDefinition(name, args, data) =>
-            Some((CaseDefinitionImport(name, args, data), CaseDefinitionExport(name, args, data)))
-          case ir.Relation(name, params, bodies) =>
-            Some((ir.RelationImport(name, params.map(_.ty)), ir.RelationExport(name, params.map(_.ty))))
-          case ir.ExtensionalRelation(name, params) =>
-            Some((ir.ExtensionalRelationImport(name, params.map(_.ty)), ir.ExtensionalRelationExport(name, params.map(_.ty))))
-          case _ => None
-        }.unzip
-
-        componentModules :+= ir.Module(compModuleName, irLang, compModuleEntries)
-        componentLinkSet ++= exports.zip(imports).map { (ex, in) =>
-          ir.Link(compModuleName, ex.name, ctx.mainModuleName, in.name)
-        }
-        imports
+        compileProgramContents(compContent)(newCtx)
       case _ =>
         Seq()
       /*

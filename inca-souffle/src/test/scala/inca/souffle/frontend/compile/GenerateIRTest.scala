@@ -1,16 +1,15 @@
 package inca.souffle.frontend.compile
 
 import inca.ir.*
-import inca.ir.execution.{Relation2, Relation as Rel}
-import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
-import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
+import inca.ir.execution.{Relation as Rel}
+import inca.ir.extension.{block, bool, datamatch, disjunction, not, set}
+import inca.ir.optimize.IdentityCastElimination
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.souffle.syntax.ProgramContent.{Pragma, Rule}
+import inca.souffle.syntax.ProgramContent.Rule
 import inca.souffle.syntax.Term.StringLit
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
 import inca.souffle.syntax.{Atom, ProgramContent, Term, Type, *}
-import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.util.compileroptions.CompilerOptions.default
 import inca.viatra.backend.Executor
@@ -28,6 +27,11 @@ class GenerateIRTest extends AnyFunSuite:
     () => new not.Lowering {}
   ) // arith + string + data
 
+  /*val optimizationPipeline : List[() => BaseIRVisitor] = List(
+    () => new optimize.AliasElimination {},
+    () => new optimize.IdentityCastElimination {},
+  )*/
+
   class Compiled(val ir: Module) extends CompiledModule:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
@@ -39,15 +43,38 @@ class GenerateIRTest extends AnyFunSuite:
 
   def execute(prog: Program): Map[String, Rel] =
     val genIR = GenerateIR()
-    val mod = genIR.compileProgram(prog, "SouffleProgram")
+    val (mods, links) = genIR.compileProgram(prog, "SouffleProgram")
+
+    println(prog)
+    println()
+    println(links)
+    println()
+    mods.foreach(println)
+
     /*println(prog)
     println()
     println()
     println()
     println(mod)*/
 
-    val compiled = new Compiled(mod)
+    // Lower all components individually
+    val compiledProg = new CompiledProgram:
+      override def linkSet: Seq[Link] = links
+      override def compiledModules: Seq[CompiledModule] = mods.map { m =>
+        val compiled = Compiled(m)
+        //compiled.setPipeline(pipeline)
+        compiled
+      }
+
+    // Create the final linked program
+    val linkedModule = compiledProg.linkedModule
+    val compiled = Compiled(linkedModule)
     compiled.setPipeline(pipeline)
+
+    println()
+    println("Linked:")
+    println(compiled)
+    println(compiled.lowered)
 
     val engine = new Executor().instantiate(compiled)
     val rels = engine.readAll()

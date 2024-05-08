@@ -22,8 +22,28 @@ trait BaseIRVisitor:
   def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry)(moduleEntry match {
     case rel: Relation => visitRelation(rel)
     case rel: ExtensionalRelation => visitExtensionalRelation(rel)
+    case rel: RelationImport => visitRelationImport(rel)
+    case rel: RelationExport => visitRelationExport(rel)
+    case rel: ExtensionalRelationImport => visitExtensionalRelationImport(rel)
+    case rel: ExtensionalRelationExport => visitExtensionalRelationExport(rel)
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $moduleEntry")
   })
+
+  def visitRelationExport(relExport: RelationExport): Seq[RelationExport] = preserveHints(relExport) {
+    Seq(RelationExport(relExport.name, relExport.types.map(visitType)))
+  }
+
+  def visitExtensionalRelationExport(relExport: ExtensionalRelationExport): Seq[ExtensionalRelationExport] = preserveHints(relExport) {
+    Seq(ExtensionalRelationExport(relExport.name, relExport.types.map(visitType)))
+  }
+
+  def visitRelationImport(relImport: RelationImport): Seq[RelationImport] = preserveHints(relImport) {
+    Seq(RelationImport(relImport.name, relImport.types.map(visitType)))
+  }
+
+  def visitExtensionalRelationImport(relImport: ExtensionalRelationImport): Seq[ExtensionalRelationImport] = preserveHints(relImport) {
+    Seq(ExtensionalRelationImport(relImport.name,relImport.types.map(visitType)))
+  }
 
   def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] = preserveHints(relation) {
     Seq(ExtensionalRelation(relation.name, relation.params.flatMap(visitParam)))

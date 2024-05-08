@@ -52,11 +52,28 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   protected def checkExport(exp: ModuleExport): Unit = exp match
     case relationExport: RelationExport =>
       lookupModuleEntry(exp.name) match
-        case Some(relation: Relation) => relationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+        case Some(relation: Relation) =>
+          relationExport.types.zip(relation.params.map(_.ty)).foreach { (t1, t2) =>
+            if t1 != t2 then
+              error(s"Type $t1 of export $exp does not match type $t2 of $relation")
+          }
+        case Some(imp: RelationImport) =>
+          relationExport.types.zip(imp.types).foreach { (t1, t2) =>
+            if t1 != t2 then
+              error(s"Type $t1 of export $exp does not match type $t2 of $imp")
+          }
         case _ => error(s"The exported relation: $exp is not defined")
     case extRelationExport: ExtensionalRelationExport =>
       lookupModuleEntry(exp.name) match
-        case Some(relation: Relation) => extRelationExport.types.zip(relation.params.map(_.ty)).foreach((t1, t2) => if t1 != t2 then error(s"Type $t1 of export $exp does not match type $t2 of $relation"))
+        case Some(relation: Relation) => extRelationExport.types.zip(relation.params.map(_.ty)).foreach { (t1, t2) =>
+          if t1 != t2 then
+            error(s"Type $t1 of export $exp does not match type $t2 of $relation")
+        }
+        case Some(imp: RelationImport) =>
+          extRelationExport.types.zip(imp.types).foreach { (t1, t2) =>
+            if t1 != t2 then
+              error(s"Type $t1 of export $exp does not match type $t2 of $imp")
+          }
         case _ => error(s"The exported relation: $exp is not defined")
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown export: $exp")
 
@@ -65,9 +82,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case relation: Relation => scopedTypeContext { checkRelation(relation) }
-    case relation: ExtensionalRelation => // nothing
-    case moduleimport: ModuleImport => // nothing
-    case moduleexport: ModuleExport => // nothing
+    case _: ExtensionalRelation => // nothing
+    case _: ModuleImport => // nothing
+    case _: ModuleExport => // nothing
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
 
   protected def checkRelation(relation: Relation): Unit = {

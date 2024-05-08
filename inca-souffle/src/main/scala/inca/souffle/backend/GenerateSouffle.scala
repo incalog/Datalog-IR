@@ -2,10 +2,10 @@ package inca.souffle.backend
 
 import inca.ir
 import inca.ir.{RefByName, TAny, TermArg}
-import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
+import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
-import inca.souffle.frontend.compile.{GenerateIR, SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
+import inca.souffle.frontend.compile.SouffleQueryPlanHint
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
 
