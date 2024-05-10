@@ -44,7 +44,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     else return t
   }
 
-  private def normalizeAdd(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
+  private def normalizeAdd(lhs: Term, rhs: Term, typ: TermType, repetition: Boolean = false): Term = getArgumentsOfOp(lhs,rhs) match {
       case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
       case (IntNum(0), _) | (DoubleNum(0), _) => rhs
       case (IntNum(l), IntNum(r)) => IntNum(l + r)
@@ -60,7 +60,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       case (lhs: Term, rhs: Term) if getIdOf(lhs) == getIdOf(rhs) && typ.ty == TDouble => normalize(Mul(DoubleNum(2), lhs).typed(typ)) // for Doubles
       case (lhs, BinOp(DoubleNum(x), rhs, "*")) if getIdOf(lhs) == getIdOf(rhs) => normalize(Mul(DoubleNum(x + 1), lhs).typed(typ))
 
-      case (l, r) => orderAssociativityCommutativity(getAllOperands(Add(l,r),"+"), typ, "+")
+      case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Add(l,r),"+"), typ, "+") else Add(l,r)
     }
 
   private def normalizeSub(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match { // fold or rewrite to Add(lhs, Mul(-1, rhs))
@@ -83,12 +83,12 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
       case (BinOp(l,r,"+"),rhs) if getIdOf(r) == getIdOf(rhs) => l
 
       case (l, r) =>
-        if typ.ty == TInt then Add(l,Mul(IntNum(-1),r).typed(typ))
-        else if typ.ty == TDouble then Add(l,Mul(DoubleNum(-1),r).typed(typ))
+        if typ.ty == TInt then normalize(Add(l, normalize(Mul(IntNum(-1),r).typed(typ)) ).typed(typ))
+        else if typ.ty == TDouble then normalize(Add(l, normalize(Mul(DoubleNum(-1),r).typed(typ)) ).typed(typ))
         else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
     }
 
-  private def normalizeMul(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
+  private def normalizeMul(lhs: Term, rhs: Term, typ: TermType, repetition: Boolean = false): Term = getArgumentsOfOp(lhs,rhs) match {
     case (_, IntNum(0)) | (IntNum(0), _) => IntNum(0)
     case (_, DoubleNum(0)) | (DoubleNum(0), _) => DoubleNum(0)
     case (IntNum(1), _) | (DoubleNum(1), _) => rhs
@@ -106,7 +106,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     case (lTerm, BinOp(lhs, rBinOp@rTerm, "/")) => // TODO include ?
       if getIdOf(lTerm) == getIdOf(rTerm) then lhs else Mul(lTerm, rBinOp)
 
-    case (l, r) => orderAssociativityCommutativity(getAllOperands(Mul(l,r),"*"), typ, "*")
+    case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Mul(l,r),"*"), typ, "*") else Mul(l,r)
   }
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
@@ -216,13 +216,23 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
 
     val newOperands = (if number != IntNum(neutralElem) && number != DoubleNum(neutralElem) then Seq(number) else Seq())
       ++ vars ++ Seq(unOps, muls, divs, remains, mins).flatMap(sortedByID)
-    buildOp(newOperands, typ, (l, r) => BinOp(l, r, op))
+    buildOp(newOperands, typ, op)
   }
 
-  private def buildOp(operands: Seq[Term], typ: TermType, binOp: (Term, Term) => BinOp): Term = operands match {
-    case Nil => throw new IllegalStateException(s"no terms in Operation")
-    case head :: Nil => head
-    case h1 :: h2 :: tail => binOp(h1, buildOp(h2 :: tail, typ, binOp)).typed(typ)
-  }
+  private def buildOp(operands: Seq[Term], typ: TermType, op: String): Term = {
+    val binOp = (l, r) => BinOp(l, r, op)
+    val normOp = op match
+      case "+" => normalizeAdd(_, _, typ, repetition = true)
+      case "*" => normalizeMul(_, _, typ, repetition = true)
 
+    def buildOpInner(operands: Seq[Term]): Term = operands match {
+      case Nil => throw new IllegalStateException(s"no terms in Operation")
+      case head :: Nil => head
+      case h1 :: h2 :: tail =>
+        val recRes = buildOpInner(h2 :: tail).typed(typ, force = true)
+        val newRes = binOp(h1, normalize(recRes)).typed(typ)
+        normOp(newRes.lhs, newRes.rhs)
+    }
+    buildOpInner(operands)
+  }
 }

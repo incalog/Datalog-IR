@@ -31,7 +31,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     def changeDefTermIfNecessary(t: Term): Unit = {
       if (isConst(t)) definingTerm = t
-      else if (definingTerm.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+      else if (definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
 //      else definingTerm = visitTerm(definingTerm).head // doesnt help
     }
 
@@ -48,8 +48,10 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       return t
     }
     else{
-      leader.typ = t.typ // otherwise always used the type that leader had when saving it
-      return leader
+      leader match {
+        case vari@Var(_) => newVar(vari.name,t.typ)
+        case _ => leader
+      }
     }
   }
 
@@ -71,19 +73,23 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
   }
 
-  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = { // TODO refactor (?)
+  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
+    var updateToCongrClass = false
     if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
       congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
       congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
     }
-    if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
+    else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
       congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
     }
-    val congrClassesContains = congrClasses.contains(toId)
+    else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
+      updateToCongrClass = true
+    }
     valueNumbers.getAllWithId(fromId).foreach(t =>
       valueNumbers.update(t,toId)
-      if (congrClassesContains) congrClasses(toId).changeLeaderIfNecessary(t)
+      if (updateToCongrClass) congrClasses(toId).changeLeaderIfNecessary(t)
     )
+    congrClasses.remove(fromId)
   }
 
   private enum Phase:
@@ -119,7 +125,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   }
 
 
-  private def newVar(name: Name, ty: Option[TermType] = None): Var = { // currently not used
+  private def newVar(name: Name, ty: Option[TermType] = None): Var = {
     val v = Var(RefByName(name))
     v.typ = ty
     v
@@ -229,12 +235,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     // TODO tried finding indicators which term is "better" (probably should implement term.size if want to use something like that)
     //    -> sometimes leads to less equalities being found ???!!!
     //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
-//      return Seq(
-//        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
-//          && !isConst(normalizedTerm)
-//          then newTerm
-//        else normalizedTerm
-//      )
+      //      return Seq(
+      //        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
+      //          && !isConst(normalizedTerm)
+      //          then newTerm
+      //        else normalizedTerm
+      //      )
+
+//        if (!congrClasses.contains(getIdOf(normalizedTerm))) congrClasses.update(getIdOf(normalizedTerm), CongruenceClass(getIdOf(normalizedTerm),normalizedTerm,normalizedTerm))
         return Seq(normalizedTerm)
 //    }
   }
