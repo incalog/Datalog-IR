@@ -241,12 +241,12 @@ class GenerateIR:
       val edb = ctx.edbDecls.get(decl)
       edb match
         case Some(attrs) =>
-          ir.ExtensionalRelation(prefixedIrName(relName), params)
+          ir.ExtensionalRelation(Name(relName), params)
             .addHint(SouffleInputHint(attrs))
         case None =>
           // Find all rules relevant for this relation
           val rulesForRelation = ctx.rules(decl).filter(r => ruleHasName(r, relName))
-          val rel = ir.Relation(prefixedIrName(relName), params, rulesForRelation.flatMap {
+          val rel = ir.Relation(Name(relName), params, rulesForRelation.flatMap {
             case r: ProgramContent.Rule => compileRule(decl, r, relName)
             case f: ProgramContent.Fact => Seq(compileFact(decl, f))
             case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")

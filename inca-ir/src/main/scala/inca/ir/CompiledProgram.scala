@@ -9,18 +9,19 @@ import inca.ir.Hint.preserveHints
 
 case class Link(fromModule: Name, exportEntry: Name, toModule: Name, importEntry: Name)
 
-private case class SuffixModuleEntries(suffix: Name) extends IRVisitor:
+private case class PrefixModuleEntries(prefix: Name) extends IRVisitor:
   private var renamings: Map[ModuleEntry, Name] = _
 
   def extend(module: Module): Module = visitModule(module)
 
   def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
-    moduleEntry.withExtendedName(suffix)
+    val prefixedName = CompiledProgram.prefixName(moduleEntry.name, prefix)
+    moduleEntry.withName(prefixedName)
 
   override def visitModule(module: Module): Module =
     renamings = module.contents.flatMap {
       case _: ModuleImport => None
-      case e => Some(e -> updateModuleEntryName(e).name)
+      case e => Some(e -> CompiledProgram.prefixName(e.name, prefix))
     }.toMap
 
     super.visitModule(module)
@@ -49,7 +50,7 @@ private case class ResolveImports(linkSet: Seq[Link]) extends IRVisitor:
     // find all links that are required by this modules imports
     val links = linkSet.filter(_.toModule == module.name)
     renamings = links.map { l =>
-      l.importEntry -> Name(s"${l.exportEntry}_${l.fromModule}")
+      l.importEntry ->  CompiledProgram.prefixName(l.exportEntry, l.fromModule)
     }.toMap
 
     visitModule(module)
@@ -89,10 +90,10 @@ trait CompiledProgram:
       m => m.ir.name -> m.checked
     }.toMap
 
-  type Suffix = Name
+  type Prefix = Name
   type ModuleName = Name
 
-  var alreadyExtended: Map[ModuleName, Suffix] = Map()
+  var alreadyExtended: Map[ModuleName, Prefix] = Map()
 
   def validateLinkSet(): Unit =
     linkSet.foreach(link =>
@@ -107,13 +108,13 @@ trait CompiledProgram:
 
   def link(module: Module): Module =
     var lang: Language = BaseIR.language
-    val newFeatures = linkSet.flatMap(l => modulesMap(l.toModule).lang.features).toSet
+    val newFeatures = modulesMap.flatMap((_, m) => m.lang.features).toSet
     lang ++= newFeatures
 
-    // Suffix all module entries by their module name
+    // Prefix all module entries by their module name
     var renamedModules = modulesMap.map((n, mod) =>
       if n != rootModule.name then
-        SuffixModuleEntries(s"_$n").extend(mod)
+        PrefixModuleEntries(n).extend(mod)
       else
         rootModule
     ).toSeq
@@ -138,3 +139,6 @@ trait CompiledProgram:
     // We over approximate by copying over all relations, we could refine this to only copy over transitively
     // required relations from the import
     Module(module.name, lang, renamedModules.flatMap(_.contents))
+
+object CompiledProgram:
+  def prefixName(name: Name, prefix: Name): Name = Name(s"$prefix$$$name")

@@ -45,10 +45,13 @@ class GenerateIRTest extends AnyFunSuite:
     val genIR = GenerateIR()
     val (mods, links) = genIR.compileProgram(prog, "SouffleProgram")
 
+    println("The program:")
     println(prog)
     println()
+    println("The Links:")
     println(links)
     println()
+    println("The Modules:")
     mods.foreach(println)
 
     /*println(prog)
@@ -68,12 +71,16 @@ class GenerateIRTest extends AnyFunSuite:
 
     // Create the final linked program
     val linkedModule = compiledProg.linkedModule
+
+    println()
+    println("Linked:")
+    println(compiledProg.linkedModule)
+
     val compiled = Compiled(linkedModule)
     compiled.setPipeline(pipeline)
 
     println()
-    println("Linked:")
-    println(compiled)
+    println("Lowered: ")
     println(compiled.lowered)
 
     val engine = new Executor().instantiate(compiled)

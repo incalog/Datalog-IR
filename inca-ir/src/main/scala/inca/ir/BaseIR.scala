@@ -31,23 +31,28 @@ trait ModuleExport extends ModuleEntry
 
 case class RelationImport(name: Name, types: Seq[Type]) extends ModuleImport:
   def withExtendedName(suffix: String): RelationImport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): RelationImport = this.copy(name = Name(name))
   override def toString: String = s"import $name${types.mkString("(", ", ", ")")}"
 
 case class ExtensionalRelationImport(name: Name, types: Seq[Type]) extends ModuleImport:
   def withExtendedName(suffix: String): ExtensionalRelationImport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ExtensionalRelationImport = this.copy(name = Name(name))
   override def toString: String = s"import ext $name${types.mkString("(", ", ", ")")}"
 
 case class RelationExport(name: Name, types: Seq[Type]) extends ModuleExport:
   def withExtendedName(suffix: String): RelationExport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): RelationExport = this.copy(name = Name(name))
   override def toString: String = s"export $name${types.mkString("(", ", ", ")")}"
 
 case class ExtensionalRelationExport(name: Name, types: Seq[Type]) extends ModuleExport:
   def withExtendedName(suffix: String): ExtensionalRelationExport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ExtensionalRelationExport = this.copy(name = Name(name))
   override def toString: String = s"export ext $name${types.mkString("(", ", ", ")")}"
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
   def withExtendedName(suffix: String): ModuleEntry
+  def withName(name: String): ModuleEntry
 
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
   def name: Name
@@ -95,6 +100,7 @@ case class TermType(ty: Type, mode: Mode):
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
   def withExtendedName(suffix: String): Relation = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -108,6 +114,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
   def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
 

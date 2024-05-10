@@ -20,12 +20,14 @@ object TRecord:
 trait RecordModuleEntry extends ModuleEntry
 case class RecordDefinition(name: Name) extends RecordModuleEntry{
   def withExtendedName(suffix: String): RecordDefinition = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): RecordDefinition = this.copy(name = Name(name))
   override def toString: String = s"""record $name"""
 }
 
 case class FieldDefinition(fieldName: Name, ty: Type, record: TRecord) extends RecordModuleEntry:
   override val name: Name = Name(s"${record.ref.name}.$fieldName")
-  def withExtendedName(suffix: String): inca.ir.ModuleEntry = this.copy(fieldName = Name(name.name + suffix)) 
+  def withExtendedName(suffix: String): FieldDefinition = this.copy(fieldName = Name(name.name + suffix))
+  def withName(name: String): FieldDefinition = this.copy(fieldName = Name(name))
 
   override def toString: String = s"""field $name: $ty"""
 

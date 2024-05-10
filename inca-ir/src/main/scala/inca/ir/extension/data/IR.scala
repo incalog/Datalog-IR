@@ -12,18 +12,22 @@ trait CaseDefinitionBase extends DataModuleEntry:
 
 case class DataDefinitionImport(name: Name) extends ModuleImport with DataDefinitionBase:
   def withExtendedName(suffix: String): DataDefinitionImport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): DataDefinitionImport = this.copy(name = Name(name))
   override def toString: String = s"""import data $name"""
 
 case class CaseDefinitionImport(name: Name, args: Seq[Type], data: TData) extends ModuleImport with CaseDefinitionBase:
   def withExtendedName(suffix: String): CaseDefinitionImport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): CaseDefinitionImport = this.copy(name = Name(name))
   override def toString: String = s"""import case $name(${args.mkString(",")}): $data"""
 
 case class DataDefinitionExport(name: Name) extends ModuleExport:
   def withExtendedName(suffix: String): DataDefinitionExport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): DataDefinitionExport = this.copy(name = Name(name))
   override def toString: String = s"""export data $name"""
 
 case class CaseDefinitionExport(name: Name, args: Seq[Type], data: TData) extends ModuleExport:
   def withExtendedName(suffix: String): CaseDefinitionExport = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): CaseDefinitionExport = this.copy(name = Name(name))
   override def toString: String = s"""export case $name(${args.mkString(",")}): $data"""
 
 case class TData(ref: Ref[DataDefinitionBase]) extends Type:
@@ -35,10 +39,12 @@ trait DataModuleEntry extends ModuleEntry
 
 case class DataDefinition(name: Name) extends DataDefinitionBase:
   def withExtendedName(suffix: String): DataDefinition = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): DataDefinition = this.copy(name = Name(name))
   override def toString: String = s"""data $name"""
 
 case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionBase:
   def withExtendedName(suffix: String): CaseDefinition = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): CaseDefinition = this.copy(name = Name(name))
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 
 case class Construct(caseRef: Ref[CaseDefinitionBase], args: Seq[Term]) extends Term:

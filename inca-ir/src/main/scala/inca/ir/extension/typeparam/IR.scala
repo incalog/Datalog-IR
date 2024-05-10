@@ -15,6 +15,8 @@ case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) exte
   override def toString: String = s"with[${typeParams.mkString(", ")}] $entry"
   def withExtendedName(suffix: String): ParametricModuleEntry =
     ParametricModuleEntry(typeParams, entry.withExtendedName(suffix))
+  def withName(name: String): ParametricModuleEntry =
+    ParametricModuleEntry(typeParams, entry.withName(name))
   override val name: Name = entry.name
 object ParametricModuleEntry:
   def make(tyParams: Seq[Name], entry: ModuleEntry): ModuleEntry =

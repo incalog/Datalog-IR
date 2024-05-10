@@ -46,12 +46,12 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
-        Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Relation("Module1$R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
           Eq(Var("x"), IntNum(1)),
           Eq(Var("y"), IntNum(2))
         )))),
         Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(
-          Call("R_Module1", Seq(Var("a"), Var("b")))
+          Call("Module1$R", Seq(Var("a"), Var("b")))
         )))),
       )
     )
@@ -102,7 +102,7 @@ class CompiledProgramTest extends AnyFunSuite:
 
     class testCompiledProgram extends CompiledProgram:
       override val linkSet = Seq(Link("Module1", "R", "Module2", "Q"))
-      override val compiledModules: Seq[CompiledModule] = Seq(new TestCompiledModule(module1), new TestCompiledModule(module2))
+      override val compiledModules: Seq[CompiledModule] = Seq(TestCompiledModule(module1), new TestCompiledModule(module2))
     
     val TestCompiledProgram = new testCompiledProgram
 
@@ -143,13 +143,13 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
-        Relation("R_Module1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Relation("Module1$R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
           Eq(Var("x"), IntNum(1)),
           Eq(Var("y"), IntNum(2))
         )))),
-        Relation("S_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-        Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(Call("R_Module1", Seq(Var("a"), Var("b"))))))),
-        Relation("U", Seq(Param("a", TInt)), Seq(Body(Seq(Call("S_Module1", Seq(Var("a")))))))
+        Relation("Module1$S", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+        Relation("T", Seq(Param("a", TInt), Param("b", TInt)), Seq(Body(Seq(Call("Module1$R", Seq(Var("a"), Var("b"))))))),
+        Relation("U", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Module1$S", Seq(Var("a")))))))
       )
     )
   }
@@ -201,13 +201,13 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("ModuleA",
-        Relation("CR1_ModuleC", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
+        Relation("ModuleC$CR1", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
           Eq(Var("x"), IntNum(1)),
           Eq(Var("y"), IntNum(2))
         )))),
-        Relation("CR2_ModuleC", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-        Relation("BR_ModuleB", Seq(Param("z", TInt)), Seq(Body(Seq(Call("CR2_ModuleC", Seq(Var("z"))))))),
-        Relation("AR", Seq(Param("w", TInt), Param("v", TInt)), Seq(Body(Seq(Call("CR1_ModuleC", Seq(Var("w"), Var("v"))), Call("BR_ModuleB", Seq(Var("w")))))))
+        Relation("ModuleC$CR2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+        Relation("ModuleB$BR", Seq(Param("z", TInt)), Seq(Body(Seq(Call("ModuleC$CR2", Seq(Var("z"))))))),
+        Relation("AR", Seq(Param("w", TInt), Param("v", TInt)), Seq(Body(Seq(Call("ModuleC$CR1", Seq(Var("w"), Var("v"))), Call("ModuleB$BR", Seq(Var("w")))))))
       )
     )
   }
@@ -249,14 +249,14 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module2",
-        DataDefinition("testdata_Module1"),
-        CaseDefinition("addition_Module1", Seq(TInt, TInt), TData("testdata_Module1")),
+        DataDefinition("Module1$testdata"),
+        CaseDefinition("Module1$addition", Seq(TInt, TInt), TData("Module1$testdata")),
         Relation("Bind", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
           Eq(Var("x"), IntNum(1)),
           Eq(Var("y"), IntNum(2))
         )))),
         Relation("R", Seq(Param("x", TInt), Param("y", TInt)), Seq(Body(Seq(
-          Call("Bind", Seq(Var("x"), Var("y"))), Eq(Construct("addition_Module1", Seq(Var("x"), Var("x"))), Construct("addition_Module1", Seq(Var("y"), Var("y"))))
+          Call("Bind", Seq(Var("x"), Var("y"))), Eq(Construct("Module1$addition", Seq(Var("x"), Var("x"))), Construct("Module1$addition", Seq(Var("y"), Var("y"))))
         )))),
       )
     )
@@ -313,12 +313,12 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
       module("Module3",
-        Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-        Relation("L1_Module1", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Q2_Module2", Seq(Var("a"))))))),
-        Relation("Q2_Module2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-        Relation("T2_Module2", Seq(Param("a", TInt)), Seq(Body(Seq(Call("R1_Module1", Seq(Var("a"))))))),
-        Relation("X3", Seq(Param("a", TInt)), Seq(Body(Seq(Call("L1_Module1", Seq(Var("a"))))))),
-        Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("T2_Module2", Seq(Var("x")))))))
+        Relation("Module1$R1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+        Relation("Module1$L1", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Module2$Q2", Seq(Var("a"))))))),
+        Relation("Module2$Q2", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+        Relation("Module2$T2", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Module1$R1", Seq(Var("a"))))))),
+        Relation("X3", Seq(Param("a", TInt)), Seq(Body(Seq(Call("Module1$L1", Seq(Var("a"))))))),
+        Relation("Y3", Seq(Param("x", TInt)), Seq(Body(Seq(Call("Module2$T2", Seq(Var("x")))))))
       )
     )
   }
@@ -366,8 +366,8 @@ class CompiledProgramTest extends AnyFunSuite:
     TestCompiledProgram.validateLinkSet()
     assert(TestCompiledProgram.linkedModule ==
            module("Module3",
-             Relation("R1_Module1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
-             Relation("Test", Seq(Param("x", TInt)), Seq(Body(Seq(Call("R1_Module1", Seq(Var("x")))))))
+             Relation("Module1$R1", Seq(Param("x", TInt)), Seq(Body(Seq(Eq(Var("x"), IntNum(0)))))),
+             Relation("Test", Seq(Param("x", TInt)), Seq(Body(Seq(Call("Module1$R1", Seq(Var("x")))))))
            )
     )
   }
