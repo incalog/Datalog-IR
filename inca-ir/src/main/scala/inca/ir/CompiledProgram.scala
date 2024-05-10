@@ -12,7 +12,7 @@ case class Link(fromModule: Name, exportEntry: Name, toModule: Name, importEntry
 private case class PrefixModuleEntries(prefix: Name) extends IRVisitor:
   private var renamings: Map[ModuleEntry, Name] = _
 
-  def extend(module: Module): Module = visitModule(module)
+  def rename(module: Module): Module = visitModule(module)
 
   def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
     val prefixedName = CompiledProgram.prefixName(moduleEntry.name, prefix)
@@ -77,7 +77,9 @@ trait CompiledProgram:
   def linkSet: Seq[Link]
   def compiledModules: Seq[CompiledModule]
 
-  private lazy val rootModule: Module = compiledModules.find(m => linkSet.forall(l => l.fromModule != m.ir.name)) match
+  def rootModule: Module = findRootModule()
+  
+  private def findRootModule(): Module = compiledModules.find(m => linkSet.forall(l => l.fromModule != m.ir.name)) match
     case Some(module: CompiledModule) => module.checked
     case None => throw IllegalArgumentException(s"No root module could be found for linkset $linkSet")
 
@@ -114,7 +116,7 @@ trait CompiledProgram:
     // Prefix all module entries by their module name
     var renamedModules = modulesMap.map((n, mod) =>
       if n != rootModule.name then
-        PrefixModuleEntries(n).extend(mod)
+        PrefixModuleEntries(n).rename(mod)
       else
         rootModule
     ).toSeq

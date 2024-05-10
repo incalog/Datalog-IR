@@ -45,24 +45,20 @@ class GenerateIRTest extends AnyFunSuite:
     val genIR = GenerateIR()
     val (mods, links) = genIR.compileProgram(prog, "SouffleProgram")
 
-    println("The program:")
+    /*println("The program:")
     println(prog)
     println()
     println("The Links:")
     println(links)
     println()
     println("The Modules:")
-    mods.foreach(println)
-
-    /*println(prog)
-    println()
-    println()
-    println()
-    println(mod)*/
+    println(mods.size)
+    mods.foreach(println)*/
 
     // Lower all components individually
     val compiledProg = new CompiledProgram:
-      override def linkSet: Seq[Link] = links
+      override def rootModule: Module = mods.find(_.name.name == "SouffleProgram").get
+      override def linkSet: Seq[Link] = links.toSeq
       override def compiledModules: Seq[CompiledModule] = mods.map { m =>
         val compiled = Compiled(m)
         //compiled.setPipeline(pipeline)
@@ -72,9 +68,9 @@ class GenerateIRTest extends AnyFunSuite:
     // Create the final linked program
     val linkedModule = compiledProg.linkedModule
 
-    println()
-    println("Linked:")
-    println(compiledProg.linkedModule)
+    /*println()
+    println("Linked: ")
+    println(linkedModule)*/
 
     val compiled = Compiled(linkedModule)
     compiled.setPipeline(pipeline)
@@ -228,14 +224,23 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("b"), Term.StringLit("c"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("b"))),
         ProgramContent.Fact(QualifiedName(Seq("comp", "edge")), Seq(Term.StringLit("c"), Term.StringLit("d"))),
+        ProgramContent.RelationDecl(Seq("path"), Seq(
+          Attribute("x", Type.Name(QualifiedName(Seq("comp", "Base")))),
+          Attribute("y", Type.Name(QualifiedName(Seq("comp", "Base"))))
+        ), Seq(), None),
+        ProgramContent.Rule(
+          Seq(Atom.Call(QualifiedName(Seq("path")), Seq(Term.Var("x"), Term.Var("y")))),
+          Seq(
+            Atom.Call(QualifiedName(Seq("comp", "innerComp", "path")), Seq(Term.Var("x"), Term.Var("y"))),
+          ),
+          None
+        ),
         ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("comp", "innerComp", "path"))), Map()),
         ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
     )
-    // print(prog)
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
-    println(prog)
 
     val path = execute(prog)("comp$innerComp$path")
     val expected = Set(
@@ -343,7 +348,7 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
      )
-    // print(prog)
+
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
 

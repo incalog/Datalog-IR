@@ -1,10 +1,10 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
-import inca.ir.{Language, Name}
+import inca.ir.{ExtensionalRelationExport, ExtensionalRelationImport, Language, ModuleEntry, ModuleExport, ModuleImport, Name, RelationExport, RelationImport}
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
-import inca.ir.extension.data.{CaseDefinition, CaseDefinitionExport, CaseDefinitionImport, DataDefinition, DataDefinitionExport, DataDefinitionImport}
+import inca.ir.extension.data.{CaseDefinition, CaseDefinitionExport, CaseDefinitionImport, DataDefinition, DataDefinitionExport, DataDefinitionImport, TData}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
@@ -46,8 +46,8 @@ class GenerateIR:
       }
 
   /* Modules for each component */
-  var componentModules: Seq[ir.Module] = Seq()
-  var componentLinkSet: Seq[ir.Link] = Seq()
+  var modulesMap: Map[Name, ir.Module] = Map()
+  var componentLinkSet: Set[ir.Link] = Set()
 
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + irbool.IR + irdata.IR
@@ -57,12 +57,12 @@ class GenerateIR:
   val gensym: Gensym = new Gensym()
 
 
-  def compileProgram(prog: Program, name: String): (Seq[ir.Module], Seq[ir.Link]) =
+  def compileProgram(prog: Program, name: String): (Seq[ir.Module], Set[ir.Link]) =
     val nameResolution = new NameResolution {}
     nameResolution.resolveProgram(prog)
 
     val ctx = new Context {
-      override val mainModuleName: Name = Name(name)
+      override val mainModuleName: ir.Name = ir.Name(name)
       override val prefix: Seq[String] = Seq()
       override val declPrefixes: Map[ProgramContent, Seq[String]] = collectDirectDecls(prog.content).map(_ -> Seq()).toMap
       override val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = collectRules(prog.content)
@@ -70,8 +70,40 @@ class GenerateIR:
       override val outputDecls: Set[ProgramContent.RelationDecl] = collectOutputDecls(prog.content)
     }
 
-    val mainModule = ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content)(ctx))
-    (mainModule +: componentModules, componentLinkSet)
+    val mainModule = ir.Module(ctx.mainModuleName, irLang, compileProgramContents(prog.content)(ctx))
+    modulesMap += mainModule.name -> mainModule
+
+    // resolve all imports and exports
+    componentLinkSet.foreach { case link@ir.Link(fromModuleName, exportEntryName, toModuleName, importEntryName) =>
+      val fromModule@ir.Module(_, fromLang, fromContents) = modulesMap(fromModuleName)
+      val toModule@ir.Module(_, toLang, toContents) = modulesMap(toModuleName)
+      val (importEntry, exportEntry) = fromModule.entries(exportEntryName) match {
+        case DataDefinition(name) =>
+          (Some(DataDefinitionImport(importEntryName)), Some(DataDefinitionExport(exportEntryName)))
+        case CaseDefinition(name, args, data) =>
+          // FIXME: ugly hack to find correct TData for CaseDefinition
+          //  When we use a Construct with an absolute path, we need to fix the CaseDefinition import
+          val exportDataName = componentLinkSet.filter { l =>
+            val isToModule = l.toModule == toModuleName
+            val matchesName = l.importEntry.name.endsWith(data.ref.name.name)
+            isToModule && matchesName
+          }.head.importEntry
+          val exportTypes = args.map {
+            case TData(ref) if ref.name.name.endsWith(data.ref.name.name) => TData(exportDataName)
+            case ty => ty
+          }
+          (Some(CaseDefinitionImport(importEntryName, exportTypes, TData(exportDataName))), Some(CaseDefinitionExport(exportEntryName, args, data)))
+        case ir.Relation(name, params, _) =>
+          (Some(RelationImport(importEntryName, params.map(_.ty))), Some(RelationExport(exportEntryName, params.map(_.ty))))
+        case ir.ExtensionalRelation(name, params) =>
+          (Some(ExtensionalRelationImport(importEntryName, params.map(_.ty))), Some(ExtensionalRelationExport(exportEntryName, params.map(_.ty))))
+        case _ => (None, None)
+      }
+      modulesMap += fromModuleName -> ir.Module(fromModuleName, fromLang, fromContents ++ exportEntry)
+      modulesMap += toModuleName -> ir.Module(toModuleName, toLang, toContents ++ importEntry)
+    }
+
+    (modulesMap.values.toSeq, componentLinkSet)
 
   private def collectRules(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Seq[ProgramContent]] =
     var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
@@ -156,26 +188,11 @@ class GenerateIR:
         val compDecl@ProgramContent.ComponentDecl(_, _, compContent) = compInit.target.get
         val newCtx = ctx.extend(ctx.prefix :+ n, collectDirectDecls(compContent))
 
-        val compModuleName = ir.Name(n)
+        val compModuleName = prefixedIrName(n)
         val compModuleEntries = compileProgramContents(compContent)(newCtx)
+        modulesMap += compModuleName -> ir.Module(compModuleName, irLang, compModuleEntries)
 
-        val (imports, exports) = compModuleEntries.flatMap {
-          case DataDefinition(name) =>
-            Some((DataDefinitionImport(name), DataDefinitionExport(name)))
-          case CaseDefinition(name, args, data) =>
-            Some((CaseDefinitionImport(name, args, data), CaseDefinitionExport(name, args, data)))
-          case ir.Relation(name, params, bodies) =>
-            Some((ir.RelationImport(name, params.map(_.ty)), ir.RelationExport(name, params.map(_.ty))))
-          case ir.ExtensionalRelation(name, params) =>
-            Some((ir.ExtensionalRelationImport(name, params.map(_.ty)), ir.ExtensionalRelationExport(name, params.map(_.ty))))
-          case _ => None
-        }.unzip
-
-        componentModules :+= ir.Module(compModuleName, irLang, compModuleEntries)
-        componentLinkSet ++= exports.zip(imports).map { (ex, in) =>
-          ir.Link(compModuleName, ex.name, ctx.mainModuleName, in.name)
-        }
-        imports
+        Seq()
       case _ =>
         Seq()
       /*
@@ -199,8 +216,21 @@ class GenerateIR:
 
   private def prefixedIrName(decl: ProgramContent, qName: QualifiedName)(implicit ctx: Context): ir.Name =
     ctx.declPrefixes.get(decl) match
-      case Some(prefix) => namesToIrName(prefix :+ qName.ns.last) // relative name
-      case _ => namesToIrName(qName.ns) // absolute name
+      case Some(prefix) if prefix == ctx.prefix => // relative name in current component
+        namesToIrName(Seq(qName.ns.last))
+      case Some(prefix) => // import from parent
+        // import the name from a parent, that is we do not need a prefix on the import name
+        val entryName = Name(qName.ns.last)
+        val toModuleName = if ctx.prefix.isEmpty then ctx.mainModuleName else namesToIrName(ctx.prefix)
+        componentLinkSet += ir.Link(namesToIrName(prefix), entryName, toModuleName, entryName)
+        namesToIrName(Seq(qName.ns.last))
+      case _ => // absolute name, that is import the entry by the absolute name
+        val exportName = Name(qName.ns.last)
+        val importName = namesToIrName(qName.ns)
+        val fromModuleName = if qName.ns.length == 1 then ctx.mainModuleName else namesToIrName(qName.ns.dropRight(1))
+        val toModuleName = if ctx.prefix.isEmpty then ctx.mainModuleName else namesToIrName(ctx.prefix)
+        componentLinkSet += ir.Link(fromModuleName, exportName, toModuleName, importName)
+        namesToIrName(qName.ns)
 
   private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
     // A single rule can have multiple names. Only a single name must match
@@ -214,10 +244,10 @@ class GenerateIR:
 
   private def compileAdtDecl(decl: ProgramContent.TypeDecl)(implicit ctx: Context) =
     val ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) = decl
-    val dataDefName = prefixedIrName(name)
+    val dataDefName = Name(name)
     val dataDef = irdata.DataDefinition(dataDefName)
     val caseDefs = alts.map { case ADTConstructor(caseName, attrs) =>
-      irdata.CaseDefinition(prefixedIrName(caseName), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
+      irdata.CaseDefinition(Name(caseName), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
     }
     dataDef +: caseDefs
 

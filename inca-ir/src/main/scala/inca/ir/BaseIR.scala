@@ -20,7 +20,11 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
-  lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
+  lazy val entries: Map[Name,ModuleEntry] = contents.map {
+    case e: ModuleImport => Name(s"Import$$${e.name}") -> e
+    case e: ModuleExport => Name(s"Export$$${e.name}") -> e
+    case e => e.name -> e
+  }.toMap
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
   lazy val exports: Map[Name, ModuleExport] = contents.collect { case e: ModuleExport => (e.name, e) }.toMap
   lazy val imports: Map[Name, ModuleImport] = contents.collect { case i: ModuleImport => (i.name, i) }.toMap
