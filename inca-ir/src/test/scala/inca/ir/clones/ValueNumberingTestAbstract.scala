@@ -15,7 +15,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   
   
   /** for testing VN without any additional knowledge about extensions */
-  def performTestWithBaseVN(expected: IRModule, input: IRModule, config: ConfigVN = config): Unit = {
+  def performTestWithBaseVN(expected: IRModule, input: IRModule, config: ConfigVN = ConfigVN(normalize=false)): Unit = {
     val VN = new BaseValueNumbering() {}
     performTestInternal(expected, input, VN)
   }
@@ -28,10 +28,10 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   private def performTestInternal(expected: IRModule, input: IRModule, VN: BaseValueNumbering): Unit = {
     val typecheckerBefore = new Typechecker {}
     typecheckerBefore.checkProgram(Seq(input))
-    println(s"before VN: \n$input\n")
+//    println(s"before VN: \n$input\n")
     val result = VN.valueNumbering(input)
     val typecheckerAfter = new Typechecker {}
-    println(s"after VN: \n$result")
+//    println(s"after VN: \n$result")
     typecheckerAfter.checkProgram(Seq(result))
     assertResult(expected)(result)
     println("#" * 100)

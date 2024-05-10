@@ -106,9 +106,9 @@ trait CompiledModule:
     if (logOptimizations)
       printStep(s"Optimized: ", p2)
 
-    val p3 = valueNumbering(p2)
+//    val p3 = valueNumbering(p2)
 
-    postProcessingPipeline.foldLeft(p3.head) { case (m, lowering) =>
+    postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
@@ -129,20 +129,20 @@ trait CompiledModule:
     po
 
   
-  var valueNumberingResult: Seq[Module] = Seq() // for Testing 
-  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
-    valueNumberingResult = p.map { input =>
-      valueNumbering(input,config)
-    }
-    valueNumberingResult
-
-  def valueNumbering(module: Module, config: ConfigVN): Module = {
-    val VN = new ValueNumbering(config)
-    println(s"before VN: \n$module\n") // TODO use printstep
-    val result = VN.valueNumbering(module)
-    println(s"after VN: \n$result")
-    result
-  }
+//  var valueNumberingResult: Seq[Module] = Seq() // for Testing
+//  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
+//    valueNumberingResult = p.map { input =>
+//      valueNumbering(input,config)
+//    }
+//    valueNumberingResult
+//
+//  def valueNumbering(module: Module, config: ConfigVN): Module = {
+//    val VN = new ValueNumbering(config)
+//    println(s"before VN: \n$module\n") // use printstep
+//    val result = VN.valueNumbering(module)
+//    println(s"after VN: \n$result")
+//    result
+//  }
 
 
 

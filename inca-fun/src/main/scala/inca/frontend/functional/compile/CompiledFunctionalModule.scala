@@ -6,6 +6,7 @@ import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
 import inca.ir.optimize
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
 
@@ -123,8 +124,8 @@ object CompiledFunctionalModule:
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
 
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {},
-    () => new optimize.RemoveDuplicatedRelations {}
-    // TODO add ValueNumbering
+//    () => new optimize.IdentityCastElimination {},
+//    () => new optimize.AliasElimination {},
+//    () => new optimize.RemoveDuplicatedRelations {},
+    () => new ValueNumbering()
   ) // arith + string + data

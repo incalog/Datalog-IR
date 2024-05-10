@@ -8,7 +8,7 @@ import inca.ir.visitors.IRVisitor
 
 
 /** wraps parameters for value numbering */
-case class ConfigVN(normalize: Boolean = false,
+case class ConfigVN(normalize: Boolean = true,
 //                    occurrencesBeforeRemoved: Int = 0,
                     useDefiningTerm: Boolean = false
                    )
@@ -16,7 +16,7 @@ case class ConfigVN(normalize: Boolean = false,
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
-  case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
+  private case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
@@ -93,6 +93,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 //  var count: Map[valueId, Int] = Map()   // remembers how often term with id has occurred
 
+  override def visitModule(module: Module): Module = {
+    println(s"before VN: \n$module\n")
+    val result = super.visitModule(module)
+    println(s"after VN: \n$result")
+    result
+  }
 
   def valueNumbering(module: ir.Module): ir.Module = {
     visitModule(module)
@@ -143,7 +149,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     currentBodyIndex += 1
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
     val newBody = super.visitBody(body).head
-    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+//    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
     phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
     val newerBodySeq = super.visitBody(newBody)
 
@@ -196,7 +202,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       updateValueNumbersAndCongrClasses(termId, newTermId)
     }
 
-    // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
 //    if (congrClasses.contains(newTermId) && isAllowedToReplace(newTerm)){
 //        return Seq(getReplacementTerm(newTerm))
 //    }
@@ -236,6 +241,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 //  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map() // TODO
 
+  // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
 
 
@@ -266,7 +272,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       //count = count.updated(termId, count (termId) + 1)
 
       // remove "Assignment" or replace term
-      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound ( & irrelevant if var contained) TODO ?
+      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
         Seq( Eq(newVari, newTerm) )
       }
       else {

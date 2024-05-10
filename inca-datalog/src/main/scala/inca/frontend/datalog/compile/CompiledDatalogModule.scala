@@ -5,6 +5,7 @@ import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.extension.*
 import inca.ir.optimize
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledModule, Name, Module as IRModule}
 
@@ -53,6 +54,7 @@ object CompiledDatalogModule:
     () => new demand.Lowering {},
     () => new tuple.Lowering {},
 
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {}
+//    () => new optimize.IdentityCastElimination {},
+//    () => new optimize.AliasElimination {},
+    () => new ValueNumbering()
   ) // arith + string + data
