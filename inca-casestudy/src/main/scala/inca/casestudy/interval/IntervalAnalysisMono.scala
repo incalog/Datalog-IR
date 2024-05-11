@@ -34,6 +34,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.valueNumbering.ValueNumbering
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
@@ -452,7 +453,8 @@ object IntervalAnalysisMono:
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
       () => new demandLowering {},
-      () => new tuple.Lowering {}
+      () => new tuple.Lowering {},
+      () => new ValueNumbering()
     ))
 
   @main def check2() = {

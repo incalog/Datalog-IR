@@ -11,6 +11,7 @@ import inca.ir.extension.demand.*
 import inca.ir.extension.string.*
 import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
@@ -262,7 +263,8 @@ object AbstractSyntaxGraph:
               new LoweringWithSupplementaries {}
             else
               new demand.Lowering {},
-      () => new AliasElimination {}
+//      () => new AliasElimination {},
+      () => new ValueNumbering()
     ))
 
 

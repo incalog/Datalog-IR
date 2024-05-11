@@ -5,6 +5,7 @@ import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, not}
 import inca.ir.optimize.AliasElimination
+import inca.ir.valueNumbering.ValueNumbering
 import inca.souffle.frontend.compile.CompiledSouffleModule
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend
@@ -25,7 +26,8 @@ object Mirco:
       () => new block.Lowering {},
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
-      () => new AliasElimination {}
+//      () => new AliasElimination {}
+      () => new ValueNumbering()
     ))
 
     println("Load edb from files...")
