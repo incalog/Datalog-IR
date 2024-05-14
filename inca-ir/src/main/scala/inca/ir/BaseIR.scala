@@ -8,29 +8,81 @@ import inca.ir.util.SourceLocation
 import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
+implicit def stringList2nameList(strings: Seq[String]): Seq[Name] = strings.map(Name.apply)
 implicit def name2string(name: Name): String = name.toString
 implicit def term2Arg(term: Term): Arg = term.arg
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
 
-case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extends SourceLocation:
+case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extends SourceLocation with Hints:
   override def toString: String = {
     val features = if lang.features.nonEmpty then s"(with ${lang.features.map(_.name).mkString(",")})" else ""
     val con = contents.mkString("\n")
     s"module $name $features\n$con"
   }
   lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
+  lazy val imports: Seq[Import] = contents.collect { case i: Import => i }
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
-  def withExtendedName(suffix: String): ModuleEntry
+  def withName(name: String): ModuleEntry
+  def withExtendedName(suffix: String): ModuleEntry = withName(Name(name.name + suffix))
+
+
+// Module system
+trait Require extends ModuleEntry
+
+trait Provide[T <: ModuleEntry] extends ModuleEntry:
+  def exportRef: Ref[T]
+  override val name: Name = exportRef.name
+
+case class RequireRelation(name: Name, params: Seq[Param]) extends Require:
+  override def toString: String = s"require $name(${params.mkString(", ")})"
+  def withName(name: String): ModuleEntry = this.copy(name=Name(name))
+
+// TODO: Relation is incorrect, could also be a required right?
+case class ProvideRelation(exportRef: Ref[Relation], params: Seq[Param]) extends Provide[Relation]:
+  override def toString: String = s"provide $exportRef(${params.mkString(", ")})"
+  def withName(name: String): ModuleEntry =
+    val newRef = RefByName[Relation](name)
+    newRef.target = exportRef.target
+    this.copy(exportRef=newRef)
+
+object ProvideRelation:
+  def apply(exportName: Name, sig: Seq[Param]) =
+    new ProvideRelation(RefByName(exportName), sig)
+
+trait Substitution extends SourceLocation:
+  def to: Ref[Require]
+
+case class RelationSubstitution(to: Ref[Require], toSig: Seq[Param], from: Seq[Ref[_]], fromSig: Seq[Param]) extends Substitution:
+  override def toString: String = s"$to(${toSig.mkString(", ")}) = ${from.mkString(".")}(${fromSig.mkString(", ")})"
+object RelationSubstitution:
+  def apply(to: Name, toSig: Seq[Param], from: Seq[Name], fromSig: Seq[Param]): RelationSubstitution =
+    if to.isEmpty then
+      throw IllegalStateException("Path to a relation must not be empty")
+    new RelationSubstitution(RefByName(to), fromSig, from.map(RefByName.apply), toSig)
+
+case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution]) extends ModuleEntry:
+  override val name: Name = Name(s"Import ${module.name} as $as")
+  override def toString: String =
+    if subst.nonEmpty then
+      s"import ${module.name} as $as with { ${subst.mkString(", ")} }"
+    else
+      s"import ${module.name} as $as"
+  def withName(name: String): ModuleEntry = this.copy(as=Name(name))
+object Import:
+  def apply(module: Name, as: Name) = new Import(RefByName(module), as, Seq())
+  def apply(module: Name, as: Name, entries: Seq[Substitution]) = new Import(RefByName(module), as, entries)
+
 
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
   def name: Name
 case class RefByName[Target](name: Name) extends Ref[Target]:
-  override def toString: String = name.name
+  override def toString: String = name.name //+ ":: " +  target
+
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
@@ -72,7 +124,7 @@ case class TermType(ty: Type, mode: Mode):
       throw IllegalStateException(s"Unknown mode $mode")
 
 case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry:
-  def withExtendedName(suffix: String): Relation = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
@@ -85,7 +137,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def nonEmpty: Boolean = !isEmpty
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry:
-  def withExtendedName(suffix: String): ExtensionalRelation = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
 

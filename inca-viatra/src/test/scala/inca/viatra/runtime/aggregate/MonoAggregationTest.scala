@@ -310,7 +310,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relationUserDefinedMono1)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    //println(res.entries.head)
+    //println(res.subst.head)
     assertResult("0.0")(res.entries.head)
   }
 

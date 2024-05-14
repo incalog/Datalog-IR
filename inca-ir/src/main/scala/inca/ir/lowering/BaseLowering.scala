@@ -14,6 +14,8 @@ trait BaseLowering extends IRVisitor:
 
   override def toString: String = s"Lowering ${loweredIRs.mkString(", ")}"
 
+  def lower(ms: Seq[Module]): Module = visitProgram(ms).head
+
   def lower(m: Module): Module = visitProgram(Seq(m)).head
 
   override def visitProgram(modules: Seq[Module]): Seq[Module] = gensym.scoped {

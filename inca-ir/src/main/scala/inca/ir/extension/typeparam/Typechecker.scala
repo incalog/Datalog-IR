@@ -3,6 +3,7 @@ package inca.ir.extension.typeparam
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
+import inca.ir.Module
 import inca.ir.{ExtensionalRelation, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermType, Type}
 
 import scala.reflect.ClassTag
@@ -34,13 +35,13 @@ trait Typechecker extends BaseIRTypechecker:
     }
     case _ => super.checkModuleEntry(entry)
 
-  override def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name) match
+  override def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name)(module) match
       case Some(ParametricModuleEntry(tyParams, _)) =>
         error(s"Expected type application of $name with ${tyParams.size} type arguments", s)
-        super.inferRelationRef(ref, s)
-      case _ => super.inferRelationRef(ref, s)
-    case TypeApplication(name, args) => lookupModuleEntry(name) match
+        super.inferRelationRef(ref, s, module)
+      case _ => super.inferRelationRef(ref, s, module)
+    case TypeApplication(name, args) => lookupModuleEntry(name)(module) match
       case None =>
         error(s"Unknown entry $name", s)
         Seq()
@@ -57,7 +58,7 @@ trait Typechecker extends BaseIRTypechecker:
       case Some(entry) =>
         error(s"Illegal type application of $args to $entry", s)
         Seq()
-    case _ => super.inferRelationRef(ref, s)
+    case _ => super.inferRelationRef(ref, s, module)
 
   def matchRef[Target](ref: Ref[Target], typeParams: Seq[Name], s: SourceLocation): Map[Name, Type] = ref match
       case RefByName(name) =>

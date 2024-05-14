@@ -17,7 +17,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
   }.toSeq
 
   private def lookupRecordDefinition(ref: Ref[RecordDefinition], s: SourceLocation): Option[(Seq[Name], RecordDefinition)] =
-    entries.get(ref.name) match
+    entries.get((currentModule, ref.name)) match
       case Some(rd: RecordDefinition) =>
         ref.resolved(rd)
         Some((Seq(), rd))
@@ -29,7 +29,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         None
 
   private def lookupFieldDefinition(ref: Ref[FieldDefinition], s: SourceLocation, recordName: Name): Option[(Seq[Name], FieldDefinition)] =
-    entries.get(Name(s"${recordName.name}.${ref.name}")) match
+    entries.get((currentModule, Name(s"${recordName.name}.${ref.name}"))) match
       case Some(fd: FieldDefinition) =>
         ref.resolved(fd)
         Some((Seq(), fd))

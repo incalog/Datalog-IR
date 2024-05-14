@@ -15,7 +15,7 @@ trait Typechecker extends BaseIRTypechecker:
       case _ => // nothing
 
   def lookupEdbNode(name: Name, s: SourceLocation): Option[(Seq[Name], EdbNodeDefinition)] =
-    entries.get(name) match
+    entries.get((currentModule, name)) match
       case Some(dd: EdbNodeDefinition) =>
         Some((Seq(), dd))
       case _ =>
@@ -30,7 +30,7 @@ trait Typechecker extends BaseIRTypechecker:
     case None => None
 
   def lookupEdbField(name: Name, locations: SourceLocation*): Option[(Seq[Name], EdbFieldDefinition)] =
-    entries.get(name) match
+    entries.get((currentModule, name)) match
       case Some(cd: EdbFieldDefinition) =>
         Some((Seq(), cd))
       case _ =>

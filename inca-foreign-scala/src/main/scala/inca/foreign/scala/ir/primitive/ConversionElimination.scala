@@ -33,18 +33,19 @@ trait ConversionElimination extends BaseLowering:
   var scalamapMembershipRelations: Map[TMap, Relation] = _
 
 
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     setMembershipRelations = Map()
     scalasetMembershipRelations = Map()
     mapMembershipRelations = Map()
     scalamapMembershipRelations = Map()
     val mod = super.visitModule(module)
     mod.copy(contents = mod.contents
-      ++ setMembershipRelations.values
-      ++ scalasetMembershipRelations.values
-      ++ mapMembershipRelations.values
-      ++ scalamapMembershipRelations.values
+                        ++ setMembershipRelations.values
+                        ++ scalasetMembershipRelations.values
+                        ++ mapMembershipRelations.values
+                        ++ scalamapMembershipRelations.values
     )
+  }
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
     case ConvertForeignIR(term, ty1, ty2) if ty1 == ty2 => Seq(term)

@@ -1,10 +1,12 @@
 package inca.ir.typing
 
-import inca.ir.{Module, ModuleEntry, Name, Param, Ref, Term, Type, Var}
+import inca.ir.{Import, Module, ModuleEntry, Name, Param, Ref, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
-  var entries: Map[Name, ModuleEntry] = Map()
+
+  var moduleImports: Map[(Module, Name), Name] = Map()
+  var entries: Map[(Module, Name), ModuleEntry] = Map()
 
   case class VarInfo(target: Var.Target, ty: Type, mode: VarMode)
 
@@ -34,11 +36,13 @@ trait BaseIRTypeContext extends TypeIO:
 
   def scopedTypeContext[T](f: => T): T = {
     val modulesSaved = modules
+    val moduleAliasesSaved = moduleImports
     val entriesSaved = entries
     val varsSaved = vars
     val t = f
     vars = varsSaved
     entries = entriesSaved
+    moduleImports = moduleAliasesSaved
     modules = modulesSaved
     t
   }
@@ -61,12 +65,21 @@ trait BaseIRTypeContext extends TypeIO:
     modules += (name -> module)
   }
 
-  def registerModuleEntry(entry: ModuleEntry): Unit = {
+  def bindModuleImport(imp: Import)(implicit module: Module): Unit = moduleImports.get((module, imp.as)) match
+    case Some(_) => error(s"Found multiple aliases with the same name ${imp.as}", imp)
+    case _ =>
+      val moduleRef = imp.module
+      lookupModule(moduleRef.name) match
+        case Some(mod) => imp.module.resolved(mod)
+        case _ => error(s"Could not resolve module ${moduleRef.name}", imp)
+      moduleImports += ((module, imp.as) -> moduleRef.name)
+
+  def registerModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = {
     val name = entry.name
-    entries.get(name).foreach { bound =>
-      error(s"Found multiple entries with same name $name", name, bound.name)
+    entries.get((module, name)).foreach { bound =>
+      error(s"Found multiple subst with same name $name", name, bound.name)
     }
-    entries += (name -> entry)
+    entries += ((module, name) -> entry)
   }
 
   def registerVar(name: Name, decl: Var.Target, ty: Type): Unit = {
@@ -80,7 +93,14 @@ trait BaseIRTypeContext extends TypeIO:
     case None => error(s"Cannot bind unknown variable $name, which should have been registered before", name)
     case Some(info) => vars += name -> info.copy(mode = VarMode.Bound)
 
-  def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
+  def lookupModuleByAlias(alias: Name)(implicit module: Module): Option[Module] =
+    moduleImports.get((module, alias)) match
+      case Some(name) => modules.get(name)
+      case _ => None
+
+  def lookupModule(name: Name): Option[Module] = modules.get(name)
+
+  def lookupModuleEntry(name: Name)(implicit module: Module): Option[ModuleEntry] = entries.get((module, name))
 
   def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
     vars.get(ref.name) match

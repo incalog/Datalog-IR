@@ -9,6 +9,7 @@ import scala.reflect.ClassTag
 
 // We assume that every variable that is used is introduced beforehand (left-to-right)
 trait BaseIRTypechecker extends BaseIRTypeContext:
+  def closedWorld: Boolean = true
 
   // Always process Relations last
   implicit def ordering[A <: ModuleEntry]: Ordering[A] = (x: A, y: A) => (x, y) match
@@ -21,6 +22,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     assert(dependencyGraph.nodes.isEmpty, "Type checking needs to be started with a fresh type checker instance.")
 
     program.foreach(bindModule)
+
+    program.foreach { module =>
+      module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
+      if closedWorld then
+        module.imports.foreach(i => bindModuleImport(i)(module))
+    }
+
+    //println(subst.toSeq.map { case ((m, n), _) => m.name -> n })
+
     program.foreach(checkModule)
 
     val negativeCycles = dependencyGraph.negativeCycles
@@ -32,6 +42,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     this.failOnError()
   }
 
+  protected var currentModule: Module = _
   protected var currentEntry: ModuleEntry = _
 
   def addCallDependency(to: ModuleEntry, neg: Boolean = false): Unit =
@@ -39,21 +50,99 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def addTypeDependency(to: ModuleEntry): Unit =
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
-  protected def checkModule(module: Module): Unit = scopedTypeContext {
-    module.contents.sorted.foreach(bindModuleEntry)
+  protected def checkModule(module: Module): Unit =
+    currentModule = module
     module.contents.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
     }
+
+  protected def bindModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = entry match
+    case _: Provide[_] => // do not register provides. We either have a "require" or another module entry with this name
+    case _ => registerModuleEntry(entry)(module)
+
+  protected def checkRequire[T <: ModuleEntry](require: Require): Unit = require match
+    case r: RequireRelation => // nothing, we check these on import
+    case _ => error(s"Can not typecheck unknown require: $require")
+
+  protected def checkProvide[T <: ModuleEntry](provide: Provide[T]): Unit = provide match
+    case p: ProvideRelation =>
+      val sig = inferRelationRef(p.exportRef, provide)
+      if sig.size != p.params.size then
+        error(s"Expected ${sig.size} parameters, but got ${p.params.size}", provide)
+      p.params.zip(sig).foreach {
+        case (param, ty) => assertComparable(param.ty, ty, provide)
+      }
+    case _ => error(s"Can not typecheck unknown: $provide")
+
+  protected def checkImport(imp: Import): Unit = imp match
+    case Import(module, as, entries) if !closedWorld =>
+      warn(s"Can not typecheck import without closed-world assumption", imp)
+    case Import(moduleRef, as, entries) =>
+      // Make sure every substitution is valid
+      entries.foreach(i => checkSubstitution(imp, i))
+      // Make sure every required entry in the imported module is satisfied
+      moduleRef.target match
+        case Some(mod) =>
+          val required = mod.contents.collect { case req: Require => req }.sortBy(_.name.name)
+          val importedRequired = entries.map(_.to).sortBy(_.name.name)
+          if required.size != importedRequired.size then
+            error(s"Expected ${required.size} requirements, but got ${importedRequired.size}", imp)
+          required.zip(importedRequired).foreach { (req, imp) =>
+            (imp.target, req) match
+              case (Some(reqTarget), req) if reqTarget != req =>
+                error(s"Incorrectly resolved requirement ${req.name}", imp)
+              case _ => // ok
+          }
+        case _ => // unresolved module
+
+  protected def checkSubstitution(imp: Import, importable: Substitution): Unit = importable match
+    case RelationSubstitution(to, toSig, from, fromSig) =>
+      // Make sure the to and from signature match
+      if toSig.size != fromSig.size then
+        error(s"Expected ${toSig.size} parameters, but got ${fromSig.size}", importable)
+      fromSig.zip(toSig).foreach {
+        case (fromParam, toParam) => assertComparable(fromParam.ty, toParam.ty, importable)
+      }
+
+      // Make sure there is a "require" for the "to" name and resolve it
+      imp.module.target match
+        case Some(mod) => lookupModuleEntry(to.name)(mod) match
+          case Some(r: Require) => to.resolved(r)
+          case _ => error(s"Can not assign unrequired name ${to.name}", importable, imp)
+        case _ => // unresolved module
+
+      // Resolve the whole qualified "from" name
+      val m: Option[Module] = None
+      val lastModule = from.dropRight(1).foldLeft(m) {
+        case (_, ref) => lookupModuleByAlias(ref.name)(currentModule) match
+          case Some(mod) =>
+            ref.asInstanceOf[Ref[Module]].resolved(mod)
+            Some(mod)
+          case _ =>
+            error(s"Could not resolve alias ${ref.name}", importable, imp)
+            None
+      }.getOrElse(currentModule)
+
+      // lookup the last component, which must be a module entry
+      from.lastOption.foreach { entryRef =>
+        inferRelationRef(entryRef.asInstanceOf[Ref[ModuleEntry]], importable, lastModule)
+      }
+
+      //println("Last:::")
+      //from.lastOption.foreach(f => println(s"${f.name} -> ${f.target.asInstanceOf[Option[ModuleEntry]].get.name}"))
+
+    case _ => error(s"Can not typecheck import: $importable")
+
+  protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = scopedTypeContext {
+    moduleEntry match
+      case relation: Relation => checkRelation(relation)
+      case relation: ExtensionalRelation => // nothing
+      case r: Require => checkRequire(r)
+      case p: Provide[_] => checkProvide(p)
+      case i: Import => checkImport(i)
+      case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
   }
-
-  protected def bindModuleEntry(entry: ModuleEntry): Unit =
-    registerModuleEntry(entry)
-
-  protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
-    case relation: Relation => scopedTypeContext { checkRelation(relation) }
-    case relation: ExtensionalRelation => // nothing
-    case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
 
   protected def checkRelation(relation: Relation): Unit = {
     // bind parameters
@@ -204,8 +293,11 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name) match
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] =
+    inferRelationRef(ref, s, currentModule)
+
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name)(module) match
       case Some(rel@Relation(_, params, _)) =>
         if (!tag.runtimeClass.isInstance(rel))
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
@@ -217,6 +309,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
         ref.resolved(rel.asInstanceOf[R])
         params.map(_.ty)
+      case Some(req@RequireRelation(_, params)) =>
+        ref.resolved(req.asInstanceOf[R])
+        params.map(_.ty)
+      /*case Some(prov@ProvideRelation(_, params)) =>
+        ref.resolved(prov.asInstanceOf[R])
+        params.map(_.ty)*/
       case None =>
         error(s"Undefined relation $name", s)
         Seq()

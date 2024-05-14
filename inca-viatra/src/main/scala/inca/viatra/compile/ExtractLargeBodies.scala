@@ -2,6 +2,7 @@ package inca.viatra.compile
 
 import inca.foreign.scala.ir.primitive
 import inca.ir
+import inca.ir.Hint.preserveHints
 import inca.ir.{Body, Call, Name, Relation, Var}
 import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
@@ -17,11 +18,12 @@ trait ExtractLargeBodies extends IRVisitor with primitive.Visitor:
 
   val gensym = new Gensym(Seq.empty)
 
-  override def visitModule(module: ir.Module): ir.Module =
+  override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     val mod = super.visitModule(module)
     val (relations, noneRelationContent) = mod.contents.partition(_.isInstanceOf[Relation])
     gensym.register(relations.map(_.name.name))
     mod.copy(mod.name, mod.lang, noneRelationContent ++ relations)
+  }
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     val Seq(rel) = super.visitRelation(relation)

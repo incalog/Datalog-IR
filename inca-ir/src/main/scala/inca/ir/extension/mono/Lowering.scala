@@ -186,7 +186,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   var monoTypes: Set[TMono] = _
   var mapMonoColl: Set[Relation] = _
 
-  override def visitModule(module: ir.Module): ir.Module =
+  override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     monoDefs = Set()
     monoTypes = Set()
     mapMonoColl = Set()
@@ -199,9 +199,10 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     val collectRels = monoTypes.toSeq.map(createCollectingRelation)
     val aggregateRels = defsByType.map((tm, defs) => createAggregationRelation(tm, defs.toSeq.map(_._1))).toSeq
 
-//    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
+    //    val monoResultRels = monoDefs.toSeq.map((mono, _) => mono.resultRelation)
 
     mod.copy(contents = dataDefs ++ mod.contents ++ collectRels ++ aggregateRels ++ mapMonoColl)
+  }
 
   override def visitType(ty: Type): Type = ty match
     case tm@TMono(in, out, keys) =>

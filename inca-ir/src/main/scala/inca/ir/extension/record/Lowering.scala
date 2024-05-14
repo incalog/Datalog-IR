@@ -1,6 +1,7 @@
 package inca.ir.extension.record
 
 import inca.ir
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.block.Block
 import inca.ir.{Atom, BaseIR, ModuleEntry, Name, Ref, RefByName, Term, TermArg, TermType, Type, Var, string2name}
 import inca.ir.lowering.BaseLowering
@@ -20,7 +21,7 @@ trait Lowering extends BaseLowering:
     case TRecord(RefByName(name)) => TData(RefByName(s"$name$$Record"))
     case _ => super.visitType(ty)
 
-  override def visitModule(module: ir.Module): ir.Module =
+  override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
 
     val recordDefsByName = module.contents.collect {
       case rDef: RecordDefinition => rDef.name -> rDef
@@ -44,6 +45,7 @@ trait Lowering extends BaseLowering:
 
     val ir.Module(name, lang, contents) = super.visitModule(module)
     ir.Module(name, lang, recordAdtDef ++ recordCaseDefs ++ contents)
+  }
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
     case RecordDefinition(name) => Seq()

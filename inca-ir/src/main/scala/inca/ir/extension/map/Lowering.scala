@@ -95,13 +95,14 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module
     mapTypes = Set()
     mapConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeMapDefinitions
     m.copy(contents = m.contents ++ defs)
+  }
 
   private def keyValType(t: Term): (Type,Type) = t.typ.getOrElse(throw new IllegalStateException(s"Map lowering requires typed IR, type missing in $t")).ty match
     case TMap(keyTy, valTy) => (keyTy, valTy)

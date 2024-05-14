@@ -1,0 +1,108 @@
+package inca.ir.extension.module
+
+import inca.ir
+import inca.ir.Hint.preserveHints
+import inca.ir.{BaseIR, Body, Call, Import, Module, ModuleEntry, Name, Provide, Ref, RefByName, Relation, RelationSubstitution, Require, RequireRelation, Substitution, Var}
+import inca.ir.lowering.BaseLowering
+import inca.ir.visitors.IRVisitor
+
+object PrefixModuleEntries:
+  def prefixName(name: Name, prefix: String): String = s"$prefix$$$name"
+import PrefixModuleEntries.prefixName
+
+// modify a provided Module to be imported in the main module
+private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]) extends IRVisitor:
+  private var renamings: Map[Name, Name] = _
+
+  def extract(module: Module): Seq[ModuleEntry] = visitModule(module).contents
+
+  private def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
+    moduleEntry.withName(prefixName(moduleEntry.name, prefix))
+
+  override def visitModule(module: Module): Module =
+    // we need to rename refs to require module entries differently
+    val requirementsRenaming = subst.flatMap {
+      case RelationSubstitution(to, _, from, _) => Some(to.name -> from.dropRight(1).foldRight(from.last.name) {
+        case (ref, acc) => Name(prefixName(acc, ref.name.name))
+      })
+      case _ => None
+    }.toMap
+
+    // we prefix all other module entries
+    renamings = module.contents.flatMap {
+      case _: Require => None
+      case _: Provide[_] => None
+      case _: Import => None
+      case e => Some(e.name -> Name(prefixName(e.name, prefix)))
+    }.toMap ++ requirementsRenaming
+
+    super.visitModule(module)
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case prov: Provide[_] =>
+      prov.exportRef.target match
+        case Some(RequireRelation(name, params)) =>
+          // we need to manually create a relation for this, since it does not really exist yet
+          val fromName = renamings(name)
+          val rel = Relation(Name(prefixName(name, prefix)), params, Seq(Body(Seq(
+            Call(fromName, params.map(p => Var(p.name).arg))
+          ))))
+          Seq(rel)
+        case _ => Seq() // nothing, since we already copied this one over by copying all relations
+    case _: Require => Seq()
+    case _ => super.visitModuleEntry(moduleEntry).map(updateModuleEntryName)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
+    // this assumes that all module entries in a module have unique names (which is enforced by the typechecker)
+    ref.target match
+      case Some(_: ModuleEntry) => renamings.get(ref.name) match
+        case Some(name) => RefByName[Target](name)
+        case _ => throw IllegalStateException(s"No renaming found for ${ref.name}")
+      case _ => super.visitRef(ref)
+  }
+
+/*private case class RenameRequiredEntries(subst: Seq[Substitution]) extends IRVisitor:
+  // This assumes that all references are unique given their name, e.g. no Datatype and relation must have the same name
+  private val relationRenaming: Map[Name, Name] = subst.flatMap {
+    case RelationSubstitution(to, _, from, _) => Some(to.name -> from.dropRight(1).foldRight(from.last.name) {
+      case (ref, acc) => Name(prefixName(acc, ref.name.name))
+    })
+    case _ => None
+  }.toMap
+
+  def rename(module: Module): Module = visitModule(module)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
+    ref.target match
+      case Some(_: RequireRelation) => relationRenaming.get(ref.name) match
+        case Some(name) => RefByName[Target](name)
+        case _ => throw IllegalStateException(s"No renaming found for ${ref.name}")
+      case _ => super.visitRef(ref)
+  }*/
+
+trait Lowering extends BaseLowering:
+  override val name: String = "Module"
+  override val loweredIRs: Set[BaseIR] = Set()
+  override val requiredIRs: Set[BaseIR] = Set()
+
+  var moduleMap: Map[Name, ir.Module] = Map()
+
+  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+    val (main, others) = modules.partition(_.hasHint(MainHint)) match
+      case (mainModule, _) if mainModule.size > 1 =>
+        throw IllegalStateException("Ambiguous main module")
+      case (mainModule, _) if mainModule.isEmpty =>
+        throw IllegalStateException("No main module found")
+      case (Seq(main), otherModules) => (main, otherModules)
+
+    moduleMap = modules.map(m => m.name -> m).toMap
+
+    // This assumes, that only the main module has imports
+    Seq(visitModule(main).clearHints())
+
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
+    case Import(moduleRef, as, subst) =>
+      val module = moduleMap(moduleRef.name)
+      val extractor = ExtractModuleContent(as.name, subst)
+      extractor.extract(module)
+    case _ => super.visitModuleEntry(moduleEntry)
