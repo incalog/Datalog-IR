@@ -12,91 +12,6 @@ import inca.util.Gensym
 
 import scala.annotation.tailrec
 
-trait RequirementAnalysis:
-  var requiredDecls: Map[ComponentDecl, Set[(String, Seq[Attribute])]] = Map()
-  private var providedDecls: Map[ComponentDecl, Set[(String, Seq[Attribute])]] = Map()
-  private var parentChildRelations: Map[ComponentDecl, ComponentDecl] = Map()
-
-  private var currentComponent: Option[ComponentDecl] = None
-
-  private def initRequirement(compDecl: ComponentDecl): Unit =
-    requiredDecls += compDecl -> Set()
-  private def addRequirement(name: String, decl: ProgramContent.RelationDecl, compDecl: Option[ComponentDecl]): Unit =
-    currentComponent match
-      case Some(comp) => requiredDecls += comp -> (requiredDecls(comp) + ((name, decl.attrs)))
-      case _ => // nothing
-
-  private def initProvision(compDecl: ComponentDecl): Unit =
-    providedDecls += compDecl -> Set()
-  private def addProvision(name: String, decl: ProgramContent.RelationDecl, compDecl: Option[ComponentDecl]): Unit =
-    currentComponent match
-      case Some(comp) => providedDecls += comp -> (providedDecls(comp) + ((name, decl.attrs)))
-      case _ => // nothing
-
-  def analyseProgram(prog: Program): Unit =
-    analyseContents(prog.content)
-
-    // Everything a child requires is required by the parent
-    var changed = true
-    while (changed) {
-      parentChildRelations.foreach { (parent, child) =>
-        val oldReq = requiredDecls
-        requiredDecls += parent -> (requiredDecls(parent) ++ requiredDecls(child) -- providedDecls(parent))
-        changed = oldReq != requiredDecls
-      }
-    }
-
-  def analyseContents(contents: Seq[ProgramContent]): Unit =
-    contents.foreach(analyseContent)
-
-  def analyseContent(content: ProgramContent): Unit = content match
-    case comp: ComponentDecl =>
-      val oldComponent = currentComponent
-      if oldComponent.isDefined then
-        parentChildRelations += oldComponent.get -> comp
-      currentComponent = Some(comp)
-      initRequirement(comp)
-      initProvision(comp)
-      analyseContents(comp.content)
-      currentComponent = oldComponent
-    case relDecl: RelationDecl =>
-      relDecl.names.foreach { n =>
-        addProvision(n, relDecl, currentComponent)
-      }
-    case fact: ProgramContent.Fact if fact.name.ns.size == 1 =>
-      val relDecl = fact.target.get
-      val compDecl = relDecl.target
-      // fact is defined outside the current component
-      if compDecl != currentComponent then
-        addRequirement(fact.name.ns.last, relDecl, currentComponent)
-    case rule: ProgramContent.Rule =>
-      rule.heads.foreach {
-        case a: Atom.Call if a.qualifiedName.ns.size == 1 =>
-          val relDecl = a.target.get
-          val compDecl = relDecl.target
-          val relName = a.qualifiedName.ns.last
-          if compDecl != currentComponent then
-            addRequirement(relName, relDecl, currentComponent)
-          else
-            // we only care about the body of a rule, if the relation is declared in the current component
-            analyseAtom(rule.body)
-        case _ => None // nothing
-      }
-    case _ => // nothing
-
-  def analyseAtom(atom: Atom): Unit = atom match
-    case Atom.Not(atom) =>
-      analyseAtom(atom)
-    case call@Atom.Call(qname, args) if qname.ns.size == 1 =>
-      val relDecl = call.target.get
-      val compDecl = relDecl.target
-      val relName = call.qualifiedName.ns.last
-      if compDecl != currentComponent then
-        addRequirement(relName, relDecl, currentComponent)
-    case Atom.Disjunction(bodys) =>
-      bodys.map(_.map(analyseAtom))
-    case _ => // nothing
-
 
 class GenerateModuleBasedIR:
   val irLang: Language = new Language(Set(ir.BaseIR)
@@ -113,33 +28,8 @@ class GenerateModuleBasedIR:
   var outputDecls: Set[ProgramContent.RelationDecl] = Set()
   // all path for each declaration
   var paths: Map[ProgramContent.RelationDecl, Seq[ComponentType]] = Map()
-
-  // for each component keep track of which relation it requires
-  var requiredDecls: Map[String, Set[(String, RelationDecl)]] = Map()
-
-  private def addRequiredDecl(decl: ProgramContent.RelationDecl, relName: String): Boolean =
-    if currentNestedComponent.nonEmpty && decl.target != currentNestedComponent.lastOption then
-      val componentName = currentNestedComponent.last.ty.n
-      val oldRequirements = requiredDecls.getOrElse(componentName, Set())
-      requiredDecls += componentName -> (oldRequirements + ((relName, decl)))
-      true
-    else
-      false
-
-
-  var currentNestedComponent: Seq[ComponentDecl] = Seq()
-
-  def newComponentLevel[A](decl: ComponentDecl)(f: => A): A = {
-    //val oldRequired = this.required
-    val oldcurrentNestedComponent = currentNestedComponent
-    currentNestedComponent :+= decl
-    try {
-      val a = f
-      a
-    } finally {
-      this.currentNestedComponent = oldcurrentNestedComponent
-    }
-  }
+  // for each component decl store the name and the actual decl that is required
+  var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent.RelationDecl)]] = Map()
 
   var componentModules: Map[ir.Name, ir.Module] = Map()
 
@@ -155,6 +45,7 @@ class GenerateModuleBasedIR:
     rules = collectRules(prog.content)
     edbDecls = collectEdbDecls(prog.content)
     outputDecls = collectOutputDecls(prog.content)
+    requiredDecls = reqAna.requiredDecls
 
     val content = compileProgramContents(prog.content)
     val souffleModule = ir.Module(ir.Name(name), irLang, content)
@@ -247,23 +138,27 @@ class GenerateModuleBasedIR:
     val modName = ir.Name(decl.ty.n)
     componentModules.get(modName) match
       case Some(m) => m
-      case _ => newComponentLevel(decl) {
+      case _ =>
         // compile all inherited components
         val superDecls = decl.superTys.map(_.target.get)
         superDecls.map(compileComponentDecl)
 
+        val oldComponent = currentComponent
+        currentComponent = Some(decl)
         val content = compileProgramContents(decl.content)
+        currentComponent = oldComponent
 
-        val required = requiredDecls.getOrElse(modName.name, Set()).toSeq.map {
+        val (required, provided) = requiredDecls(decl).toSeq.map {
           case (name, decl) =>
             val params = decl.attrs.map(compileAttribute)
-            RequireRelation(ir.Name(name), params)
-        }
+            (RequireRelation(ir.Name(name), params), ProvideRelation(ir.Name(name), params))
+        }.unzip
 
-        val compModule = ir.Module(modName, irLang, content ++ required)
+        val compModule = ir.Module(modName, irLang, content ++ required ++ provided)
         componentModules += modName -> compModule
         compModule
-      }
+
+  private var currentComponent: Option[ComponentDecl] = None
 
   private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
@@ -277,25 +172,9 @@ class GenerateModuleBasedIR:
 
         rels ++ provide
       case rule@ProgramContent.Rule(heads, body, queryPlan) =>
-        // if we use a relation from a parent we must reexport it
-        heads.flatMap {
-          case a: Atom.Call =>
-            val relName = a.qualifiedName.ns.last
-            val decl = a.target.get
-            if addRequiredDecl(decl, relName) then
-              Some(ir.ProvideRelation(ir.Name(relName), decl.attrs.map(compileAttribute)))
-            else
-              None
-          case _ => None // nothing
-        }
+        Seq()
       case fact@ProgramContent.Fact(name, args) =>
-        // if we use a fact from a parent we must reexport it
-        val decl = fact.target.get
-        val relName = name.ns.last
-        if addRequiredDecl(decl, relName) then
-          Seq(ir.ProvideRelation(ir.Name(relName), decl.attrs.map(compileAttribute)))
-        else
-          Seq() // nothing, handled by ProgramContent.RelationDecl
+        Seq()
       case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
         compileAdtDecl(typeDecl)
       case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
@@ -309,13 +188,11 @@ class GenerateModuleBasedIR:
       case decl@ProgramContent.ComponentDecl(compTy, _, compContent) if !componentModules.contains(ir.Name(compTy.n)) =>
         Seq() // nothing
       case compInit@ProgramContent.ComponentInit(initName, compTy) =>
-        val modName = compTy.n
-
         // lazily compile the component and all inherited components if needed
         val decl = compInit.target.get
-        val mod = compileComponentDecl(decl)
+        compileComponentDecl(decl)
 
-        resolveImport(modName, initName)
+        resolveImport(compTy, initName)
       case _ =>
         Seq()
       /*
@@ -324,29 +201,24 @@ class GenerateModuleBasedIR:
       case ProgramContent.FunctorDecl(name, params, retType, stateful) => ???
       case ProgramContent.Pragma(option, arg) => ???*/
 
-  private def resolveImport(modName: String, as: String, alreadyResolved: Set[String] = Set()): Seq[ir.Import] =
-    if alreadyResolved.contains(modName) then
+  private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
+    if currentComponent.contains(compTyp) then
       Seq()
     else
-      val requiredInComponent = requiredDecls.getOrElse(modName, Set()).toSeq
-      var dependencies: Set[String] = Set()
+      val requiredInComponent = requiredDecls(compTyp.target.get).toSeq
+      var dependencies: Set[ComponentType] = Set()
       val subst = requiredInComponent.map {
         case (name, decl: RelationDecl) =>
-          val fromPath =
-            if paths(decl) == currentNestedComponent.map(_.ty) then
-              Seq()
-            else
-              paths(decl).map(compTy => compTy.n)
+          val compTy = currentComponent.map(_.ty)
+          val fromPath = if paths(decl).lastOption == compTy then Seq() else paths(decl)
           dependencies ++= fromPath
           val params = decl.attrs.map(compileAttribute)
           val relName = ir.Name(name)
-          val qualifiedFromName = fromPath.map(ir.Name.apply) :+ ir.Name(name)
+          val qualifiedFromName = fromPath.map(compTy => ir.Name(compTy.n)) :+ ir.Name(name)
           RelationSubstitution(relName, params, qualifiedFromName, params)
       }
-      val imp = ir.Import(ir.Name(modName), ir.Name(as), subst)
-      dependencies.toSeq.flatMap { dep =>
-        resolveImport(dep, dep, alreadyResolved + modName)
-      } :+ imp
+      val imp = ir.Import(ir.Name(compTyp.n), ir.Name(as), subst)
+      dependencies.toSeq.flatMap(dep => resolveImport(dep, dep.n)) :+ imp
 
   private def cleanName(name: String): String =
     name.replace("?", "Q_")
@@ -449,11 +321,6 @@ class GenerateModuleBasedIR:
     case call@Atom.Call(qname, args) =>
       val compileArgs = args.map(compileTermAsArgument)
       val decl = call.target.get
-
-      // qualified names are handled via import, not with a requirement
-      if qname.ns.size == 1 then
-        val relName = qname.ns.last
-        addRequiredDecl(decl, relName)
 
       edbDecls.get(decl) match
         case Some(_) =>

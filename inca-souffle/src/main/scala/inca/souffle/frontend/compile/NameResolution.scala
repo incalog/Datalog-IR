@@ -3,8 +3,6 @@ package inca.souffle.frontend.compile
 import inca.souffle.syntax.ProgramContent.RelationDecl
 import inca.souffle.syntax.{Aggregator, Atom, ComponentType, Program, ProgramContent, Term, Type, TypeDeclConstraint}
 
-import java.awt.Component
-
 
 trait NameResolution:
   val ctx: SouffleContext = new SouffleContext {}
@@ -32,8 +30,9 @@ trait NameResolution:
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => fact.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $content")
-    case ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
+    case decl@ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
       ctx.scopedTypeContext {
+        ty.resolved(decl)
         // register all decl in we inherited
         superTys.map(ctx.lookupComponentDecl).foreach(c => c.get.content.map(register))
         ctx.newComponentLevel(ty)
@@ -47,7 +46,9 @@ trait NameResolution:
       }
     case compInit@ProgramContent.ComponentInit(n, compType) =>
       ctx.lookupComponentDecl(compType) match
-        case Some(compDecl) => compInit.resolved(compDecl)
+        case Some(compDecl) =>
+          compType.resolved(compDecl)
+          compInit.resolved(compDecl)
         case None => throw IllegalArgumentException(s"Could not resolve ${compType.n} for $content")
     case dir@ProgramContent.Directive(dirQualifier, names, attrs) =>
       names.foreach(name =>
