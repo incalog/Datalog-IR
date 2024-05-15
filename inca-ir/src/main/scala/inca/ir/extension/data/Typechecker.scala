@@ -3,7 +3,7 @@ package inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ModuleEntry, Name, Ref, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.{Atom, ModuleEntry, Name, Ref, RefByName, RefByQualifiedName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeSubst, TypeVar}
 
@@ -53,6 +53,10 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
           case RefByName(name) =>
             if (typeParams.nonEmpty)
               error(s"Missing type arguments $typeParams for constructor $name", term)
+            Seq()
+          case ref@RefByQualifiedName(_) =>
+            if (typeParams.nonEmpty)
+              error(s"Missing type arguments $typeParams for constructor ${ref.name}", term)
             Seq()
           case TypeApplication(name, tyArgs) =>
             if (typeParams.size != tyArgs.size)

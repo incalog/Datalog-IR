@@ -3,7 +3,7 @@ package inca.frontend.oodl.compile
 import inca.frontend.oodl.syntax.Module
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{BaseIR, CompiledModule, Name, Module as IRModule}
+import inca.ir.{BaseIR, CompiledUnit, Name, Module as IRModule}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, mono, not, set, tuple}
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
@@ -13,7 +13,7 @@ import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
-case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledModule:
+case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledUnit:
 
   override def name: Name = fun.name
 
@@ -74,7 +74,7 @@ case class CompiledOODLModule(fun: Module, override val compilerOptions: OODLCom
     println(low)
     low*/
 
-object CompiledOODLModule:
+object CompiledOODLUnit:
   // Important:
   // 1. Not before block
   // 2. Impure before Disjunction

@@ -24,15 +24,18 @@ trait NameResolution:
       case _ => ()
 
   private def resolveProgramContent(content: ProgramContent): Unit = content match
-    case ProgramContent.Rule(heads, body, queryPlan) =>
+    case rule@ProgramContent.Rule(heads, body, queryPlan) =>
       heads.foreach(resolveAtom)
       resolveAtom(body)
+      ctx.currentComponentDecl.map(c => rule.resolved(c))
     case fact@ProgramContent.Fact(qualifiedName, args) =>
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => fact.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $content")
     case ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
       ctx.scopedTypeContext {
+        // register all decl in we inherited
+        superTys.map(ctx.lookupComponentDecl).foreach(c => c.get.content.map(register))
         ctx.newComponentLevel(ty)
         superTys.foreach { superCompType =>
           ctx.lookupComponentDecl(superCompType) match
@@ -52,11 +55,14 @@ trait NameResolution:
           case Some(relDecl) => dir.resolved(relDecl)
           case None => throw IllegalArgumentException(s"Could not resolve $name for $content")
       )
-    case ProgramContent.TypeDecl(name, rhs) => resolveTypeDeclConstraint(rhs)
-    case ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
+    case decl@ProgramContent.TypeDecl(name, rhs) =>
+      resolveTypeDeclConstraint(rhs)
+      ctx.currentComponentDecl.map(c => decl.resolved(c))
+    case decl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
       attrs.foreach { attr =>
         resolveType(attr.ty)
       }
+      ctx.currentComponentDecl.map(c => decl.resolved(c))
     case ProgramContent.Override(n) => // TODO do nothing?
     case ProgramContent.FunctorDecl(name, params, retType, stateful) => // do nothing
     case ProgramContent.Pragma(option, arg) => // do nothing

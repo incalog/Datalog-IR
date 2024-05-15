@@ -5,11 +5,11 @@ import inca.ir.*
 import inca.ir.extension.arithmetic as arith
 import inca.ir.extension.module.{Lowering, MainHint}
 import inca.ir.typing.Typechecker
+import inca.ir.string2name
+import inca.ir.term2Arg
 
 class ModuleTest extends AnyFunSuiteLike:
-  def typechecker(closedWorldAssumption: Boolean) = new Typechecker {
-    override val closedWorld: Boolean = closedWorldAssumption
-  }
+  def typechecker(): Typechecker = new Typechecker {}
 
   test("Test module system") {
     val lang = BaseIR.language + arith.IR
@@ -74,12 +74,17 @@ class ModuleTest extends AnyFunSuiteLike:
       Import("Client", "Cl2", Seq(
         RelationSubstitution("magicNumber", Seq(Param("x", arith.TInt)), Seq("C2", "magicNumber"), Seq(Param("x", arith.TInt)))
       )),
+      Relation("main", Seq(Param("x", arith.TInt)), Seq(
+        Body(Seq(
+          Call(Seq("Cl2", "magicNumber"), Seq(Var("x")))
+        ))
+      ))
     )).addHint(MainHint)
 
     val mods = Seq(ac, c1, c2, client, main)
-    mods.foreach(m => { println(); println(m) } )
+    //mods.foreach(m => { println(); println(m) } )
 
-    var checker = typechecker(true)
+    var checker = typechecker()
     checker.checkProgram(mods)
     checker.failOnWarnings()
     checker.failOnError()
@@ -90,7 +95,9 @@ class ModuleTest extends AnyFunSuiteLike:
     val linking = new Lowering {}
     val linked = linking.lower(mods)
 
-    checker = typechecker(true)
+    println(linked)
+
+    checker = typechecker()
     checker.checkProgram(Seq(linked))
     checker.failOnWarnings()
     checker.failOnError()
@@ -143,7 +150,7 @@ class ModuleTest extends AnyFunSuiteLike:
     val mods = Seq(a, b, c, d)
     mods.foreach(m => { println(); println(m) } )
 
-    var checker = typechecker(true)
+    var checker = typechecker()
     checker.checkProgram(mods)
 
     checker.failOnWarnings()
@@ -152,7 +159,7 @@ class ModuleTest extends AnyFunSuiteLike:
     val linking = new Lowering {}
     val linked = linking.lower(mods)
 
-    checker = typechecker(true)
+    checker = typechecker()
     checker.checkProgram(Seq(linked))
     checker.failOnWarnings()
     checker.failOnError()
@@ -217,7 +224,7 @@ class ModuleTest extends AnyFunSuiteLike:
       println(); println(m)
     })
 
-    var checker = typechecker(true)
+    var checker = typechecker()
     checker.checkProgram(mods)
     checker.failOnWarnings()
     checker.failOnError()
@@ -228,7 +235,7 @@ class ModuleTest extends AnyFunSuiteLike:
     val stage1Linking = new Lowering {}
     val stage1 = stage1Linking.lower(mods)
 
-    checker = typechecker(true)
+    checker = typechecker()
     checker.checkProgram(Seq(stage1))
     checker.failOnWarnings()
     checker.failOnError()
@@ -262,7 +269,7 @@ class ModuleTest extends AnyFunSuiteLike:
 
     mods.foreach(m => { println(); println(m) })
 
-    checker = typechecker(true)
+    checker = typechecker()
     checker.checkProgram(mods)
     checker.failOnWarnings()
     checker.failOnError()
@@ -270,7 +277,7 @@ class ModuleTest extends AnyFunSuiteLike:
     val stage2Linking = new Lowering {}
     val stage2 = stage2Linking.lower(mods)
 
-    checker = typechecker(true)
+    checker = typechecker()
     checker.checkProgram(Seq(stage2))
     checker.failOnWarnings()
     checker.failOnError()

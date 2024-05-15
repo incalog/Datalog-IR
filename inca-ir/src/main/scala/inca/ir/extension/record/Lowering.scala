@@ -18,7 +18,7 @@ trait Lowering extends BaseLowering:
   private var indexForFieldInRecord: Map[Name, Map[Name, Int]] = Map()
 
   override def visitType(ty: Type): Type = ty match
-    case TRecord(RefByName(name)) => TData(RefByName(s"$name$$Record"))
+    case TRecord(ref) => TData(RefByName(s"${ref.name}$$Record"))
     case _ => super.visitType(ty)
 
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {

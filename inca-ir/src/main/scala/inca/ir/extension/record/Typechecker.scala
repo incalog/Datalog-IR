@@ -107,8 +107,8 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       case Some((typeParams, cd@RecordDefinition(recName))) =>
         addTypeDependency(cd)
         inferTerm(record, Mode.Bound).ty match {
-          case ty@TRecord(RefByName(name)) =>
-            val recFields = getAllFieldDefinitions(name)
+          case ty@TRecord(ref) =>
+            val recFields = getAllFieldDefinitions(ref.name)
             if (recFields.size != fields.size)
               error(s"Expected ${fields.size} arguments but got: ${recFields.size}", atom)
 

@@ -188,9 +188,9 @@ trait BaseAbstractInterpreter[V, B]:
     r
 
   protected def evalTermExtend(t: Term): TermResult = t match
-    case Var(RefByName(x)) =>
+    case Var(ref) =>
       // FIXME: Is this correct ? See above
-      TermResult(env.getOrElse(x, top), trueBool)
+      TermResult(env.getOrElse(ref.name, top), trueBool)
     case Cast(t, ty) => evalTerm(t)
     case _ => TermResult(top, topBool)
 

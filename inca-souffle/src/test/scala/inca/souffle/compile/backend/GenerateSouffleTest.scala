@@ -12,7 +12,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.{aggregate, aggregateset, block, bool, datamatch, demand, disjunction, impure, not, set, tuple}
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.souffle.backend.{Executor, GenerateSouffle}
-import inca.souffle.frontend.compile.{CompiledSouffleModule, SouffleInputHint}
+import inca.souffle.frontend.compile.{CompiledSouffleUnit, SouffleInputHint}
 import inca.souffle.syntax.{DirectiveValue, Parser}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions.default
@@ -142,7 +142,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   
   test("process test") {
     val irModule = Module("MaxExample", Language.Datalog, Seq(maxRel))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "MaxExample"
       override def sourceLocation: SourceLocation = ???
       override def ir: Module = irModule
@@ -156,7 +156,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   
   test("process test 2") {
     val irModule = Module("PathExample", Language.Datalog, Seq(pathRel, edgeRel))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "PathExample"
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
       override def ir: Module = irModule
@@ -172,7 +172,7 @@ class GenerateSouffleTest extends AnyFunSuite:
 //  test("process test 3") {
 //    // Souffle does not support recursive aggregation
 //    val irModule = Module("MaxExample", Language.Datalog, Seq(edgeRel, maxTargetNode))
-//    val compiledModule = new CompiledModule:
+//    val compiledModule = new CompiledUnit:
 //      override def name: Name = "MaxExample"
 //      override def sourceLocation: SourceLocation = ???
 //      override def ir: Module = irModule
@@ -187,7 +187,7 @@ class GenerateSouffleTest extends AnyFunSuite:
 // TODO Souffle does not support recursive aggregation
 //  test("process test 4") {
 //    val irModule = Module("PathExample", Language.Datalog, Seq(pathWithDistanceRel, edgeWithDistanceRel, pathColWithDistanceRel))
-//    val compiledModule = new CompiledModule:
+//    val compiledModule = new CompiledUnit:
 //      override def name: Name = "PathExample"
 //      override def sourceLocation: SourceLocation = ???
 //      override def ir: Module = irModule
@@ -203,7 +203,7 @@ class GenerateSouffleTest extends AnyFunSuite:
 
     val times = ListBuffer[Long]()
     for (i <- 1 to 10) {
-      val compiled = CompiledSouffleModule.fromSourceCode("micro", code)
+      val compiled = CompiledSouffleUnit.fromSourceCode("micro", code)
       val start = System.nanoTime()
       compiled.lowered
       val end = System.nanoTime()

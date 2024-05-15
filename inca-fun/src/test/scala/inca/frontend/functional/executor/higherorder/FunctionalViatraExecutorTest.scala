@@ -1,6 +1,6 @@
 package inca.frontend.functional.executor.higherorder
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.FileUtil
 import inca.ir.execution.Relation
@@ -15,7 +15,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Apply") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Apply.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(6)(res.entries.head)
@@ -24,7 +24,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Compose Fun") {
     val code = FileUtil.readFileFromResource("functional/higherorder/ComposeFun.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(16)(res.entries.head)
@@ -33,7 +33,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Compose Lambda") {
     val code = FileUtil.readFileFromResource("functional/higherorder/ComposeLambda.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(16)(res.entries.head)
@@ -42,7 +42,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Lambda") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Lambda.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(21)(res.entries.head)
@@ -51,7 +51,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Lambda Higher order") {
     val code = FileUtil.readFileFromResource("functional/higherorder/LambdaHigherOrder.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(63)(res.entries.head)
@@ -60,7 +60,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Transitive") {
     val code = FileUtil.readFileFromResource("functional/higherorder/Transitive.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("foo", Seq())
     var setAdt = res.entries.head

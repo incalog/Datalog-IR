@@ -267,7 +267,7 @@ object Parser:
     (atomList ~ (op(":-") *> (disjunction <* op('.')) ~ plan.?)).mapWithLoc { case (heads, (body, plan)) => Rule(heads, body, plan) }
 
   val fact: P[Fact] =
-    (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Fact(name, args))
+    (qualifiedIdentifier ~ inParens(argList) <* op('.')).mapWithLoc((name, args) => Fact(name, args))
 
   val attribute: P[Attribute] = ((varidentifier <* op(':')) ~ typ).map((name, ty) => Attribute(name, ty))
   private val qualifier: P[Qualifier] =
@@ -327,7 +327,7 @@ object Parser:
     (op(".init") *> identifier ~ (op('=') *> compType)).mapWithLoc((name, ty) => ComponentInit(name, ty))
 
   private lazy val programContent: P[ProgramContent] =
-    rule | fact | decl | typeDecl | directive | component | componentInit
+    fact.backtrack | rule | decl | typeDecl | directive | component | componentInit
 
   val program: P0[Program] =
     whitespaces0 *> programContent.rep0.mapWithLoc(Program.apply)

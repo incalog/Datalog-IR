@@ -1,0 +1,31 @@
+.decl zero(x: number)
+
+.comp Component {
+    .decl edge(x: symbol, y: symbol)
+
+    .comp InnerComponent {
+        .decl path(x: symbol, y: symbol)
+        path(x, y) :- edge(x, y).
+        path(x, y) :- edge(x, z),path(z, y).
+        zero(5).
+    }
+
+    .comp InnerComponent2 {
+        .decl path(x: symbol, y: symbol)
+        path(x, y) :- edge(x, y).
+        path(x, y) :- path(x, z),edge(z, y).
+        zero(4).
+    }
+
+    .init innerComp = InnerComponent
+    .init innerComp2 = InnerComponent2
+}
+
+.init comp = Component
+comp.edge("a", "b").
+comp.edge("b", "c").
+comp.edge("c", "b").
+comp.edge("c", "d").
+.output comp.innerComp.path
+.output comp.innerComp2.path
+.output zero

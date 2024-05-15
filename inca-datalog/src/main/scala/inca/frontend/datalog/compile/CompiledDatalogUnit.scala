@@ -6,9 +6,9 @@ import inca.ir.extension.*
 import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.ir.{CompiledUnit, Name, Module as IRModule}
 
-case class CompiledDatalogModule(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledModule {
+case class CompiledDatalogUnit(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledUnit {
 
   override def name: Name = Name("Datalog")
 
@@ -41,7 +41,7 @@ case class CompiledDatalogModule(mod: Module, override val compilerOptions: Data
   }
 }
 
-object CompiledDatalogModule:
+object CompiledDatalogUnit:
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},

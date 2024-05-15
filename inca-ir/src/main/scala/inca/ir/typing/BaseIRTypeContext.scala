@@ -77,7 +77,7 @@ trait BaseIRTypeContext extends TypeIO:
   def registerModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = {
     val name = entry.name
     entries.get((module, name)).foreach { bound =>
-      error(s"Found multiple subst with same name $name", name, bound.name)
+      error(s"Found multiple entries with same name $name", name, bound.name)
     }
     entries += ((module, name) -> entry)
   }

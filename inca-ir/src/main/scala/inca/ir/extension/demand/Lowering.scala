@@ -50,6 +50,8 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
+  override def lower(m: ir.Module): ir.Module = if isClosedWorld then super.lower(m) else m
+  
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     currentModule = module
     phase = Phase.InsertDemandGuards
@@ -94,8 +96,8 @@ trait Lowering extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
       case Phase.DeriveDemandRules => atom match
-        case Call(RefByName(rel), args, false) =>
-          val params = currentModule.relations.get(rel.name) match
+        case Call(ref, args, false) =>
+          val params = currentModule.relations.get(ref.name.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
@@ -104,10 +106,10 @@ trait Lowering extends BaseLowering:
             case _ => None
           }
           if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
-            addDemandRule(rel, bodyPrefix.toList, demandedArgs)
+            addDemandRule(ref.name, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
-        case Aggregate(rel, args, op) =>
-          val params = currentModule.relations.get(rel.name.name) match
+        case Aggregate(ref, args, op) =>
+          val params = currentModule.relations.get(ref.name.name) match
             case None => Seq()
             case Some(r) => r.params
           val demandedArgs = params.zip(args).flatMap {
@@ -119,7 +121,7 @@ trait Lowering extends BaseLowering:
             case _ => None
           }
           if (demandedArgs.nonEmpty && !atom.hasHint(DemandIgnoreCallHint))
-            addDemandRule(rel.name, bodyPrefix.toList, demandedArgs)
+            addDemandRule(ref.name, bodyPrefix.toList, demandedArgs)
           super.visitAtom(atom)
         case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)

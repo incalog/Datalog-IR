@@ -8,13 +8,13 @@ import inca.ir.extension.record.{FieldDefinition, FieldLookup, RecordDefinition,
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.{block, data, record}
 import inca.ir.util.SourceLocation
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, Language, Module, Name, Param, RefByName, Relation, TermArg, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, Language, Module, Name, Param, RefByName, Relation, TermArg, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class RecordTests extends AnyFunSuite:
-  class Compiled(val ir: Module) extends CompiledModule:
+  class Compiled(val ir: Module) extends CompiledUnit:
     setPipeline(List(
       () => new RecordLowering {},
       () => new BlockLowering {}

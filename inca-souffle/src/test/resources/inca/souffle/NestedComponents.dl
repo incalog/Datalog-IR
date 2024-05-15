@@ -1,0 +1,19 @@
+.comp A {
+    .decl R(x:number)
+    R(42).
+}
+
+.comp B {
+    .decl Q(x:number)
+    Q(41).
+
+    .init a = A
+    Q(x) :- a.R(x).
+    //Q(x) :- b.a.R(x).
+}
+
+.init b = B
+
+
+//.output config1.a.MagicNumber2
+.output b.Q

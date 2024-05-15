@@ -69,6 +69,8 @@ trait LoweringWithSupplementaries extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
+  override def lower(m: ir.Module): ir.Module = if isClosedWorld then super.lower(m) else m
+
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     currentModule = module
     phase = Phase.InsertDemandGuards
@@ -130,7 +132,8 @@ trait LoweringWithSupplementaries extends BaseLowering:
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     phase match
       case Phase.DeriveDemandRules => atom match
-        case Call(RefByName(rel), args, false) =>
+        case Call(relRef, args, false) =>
+          val rel = relRef.name
           val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params
@@ -164,7 +167,8 @@ trait LoweringWithSupplementaries extends BaseLowering:
 
           super.visitAtom(atom)
 
-        case Aggregate(RefByName(rel), args, op) =>
+        case Aggregate(relRef, args, op) =>
+          val rel = relRef.name
           val params = currentModule.relations.get(rel.name) match
             case None => Seq()
             case Some(r) => r.params

@@ -6,7 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import inca.ir as base
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.util.SourceLocation
-import inca.ir.{CompiledModule, Name, string2name, term2Arg}
+import inca.ir.{CompiledUnit, Name, string2name, term2Arg}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 
@@ -50,7 +50,7 @@ class DatalogColumnsTest extends AnyFunSuite:
       )
     )
 
-    val compiledMod = new CompiledModule:
+    val compiledMod = new CompiledUnit:
       override def compilerOptions: CompilerOptions = options
       override def name: Name = mod.name
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation

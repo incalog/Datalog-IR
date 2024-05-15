@@ -6,7 +6,7 @@ import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.compileroptions.CompilerOptions
 
-class CompiledHazelModule(val ir: Module) extends CompiledModule:
+class CompiledHazelUnit(val ir: Module) extends CompiledUnit:
   override def name: Name = ir.name
   override def sourceLocation: SourceLocation = ir
   override def compilerOptions: CompilerOptions = CompilerOptions.default

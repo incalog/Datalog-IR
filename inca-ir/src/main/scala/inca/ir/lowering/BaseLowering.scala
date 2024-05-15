@@ -6,6 +6,7 @@ import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
 
 trait BaseLowering extends IRVisitor:
+  def isClosedWorld: Boolean = false
 
   protected val gensym = new Gensym()
 

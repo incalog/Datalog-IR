@@ -89,7 +89,7 @@ class IncrementalPathTest extends AnyFunSuiteLike:
 
 
 
-  class Compiled(val ir: Module) extends CompiledModule:
+  class Compiled(val ir: Module) extends CompiledUnit:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false

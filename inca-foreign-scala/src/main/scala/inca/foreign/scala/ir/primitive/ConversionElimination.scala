@@ -55,8 +55,8 @@ trait ConversionElimination extends BaseLowering:
       Seq(Cast(term, TInt))
     case ConvertForeignIR(term, ScalaType("Double"), TDouble) =>
       Seq(Cast(term, TDouble))
-    case ConvertForeignIR(term, ScalaType(nm1), TData(RefByName(Name(nm2)))) if nm1 == nm2 =>
-      Seq(Cast(term, TData(nm2)))
+    case ConvertForeignIR(term, ScalaType(nm1), TData(dataRef)) if nm1 == dataRef.name.name =>
+      Seq(Cast(term, TData(dataRef.name.name)))
     case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
     case ConvertForeignIR(term, ScalaType(s"Set[$fty]"), TSet(irty)) =>
       // create a relation that enumerates all items in the set
@@ -146,7 +146,7 @@ trait ConversionElimination extends BaseLowering:
       Seq(Cast(term, ScalaType("String")))
     case ConvertIRForeign(term, TAny, ScalaType("Any")) =>
       Seq(Cast(term, ScalaType("Any")))
-    case ConvertIRForeign(term, TData(RefByName(Name(nm1))), ScalaType(nm2)) if nm1 == nm2 =>
+    case ConvertIRForeign(term, TData(dataRef), ScalaType(nm2)) if dataRef.name.name == nm2 =>
       Seq(Cast(term, ScalaType(nm2)))
     case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
       Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))

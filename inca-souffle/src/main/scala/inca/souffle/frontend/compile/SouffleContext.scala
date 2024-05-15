@@ -15,6 +15,7 @@ trait SouffleContext:
   private var compInits: Map[String, ComponentInit] = Map()
   private var currentNestedComponent: Seq[ComponentType] = Seq()
 
+  private var componentDeclToType: Map[ComponentDecl, Seq[ComponentType]] = Map()
   private var componentTypeToTypeDecl: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
   private var componentTypeToADTConstr: Map[Seq[ComponentType], Map[String, TypeDecl]] = Map()
   private var componentTypeToInits: Map[Seq[ComponentType], Map[String, ComponentInit]] = Map()
@@ -35,6 +36,11 @@ trait SouffleContext:
     t
   }
 
+  def currentComponentDecl: Option[ComponentDecl] =
+    currentNestedComponent.lastOption match
+      case Some(compTyp) => compDecls.get(compTyp)
+      case _ => None
+
   def newComponentLevel(compType: ComponentType): Unit =
     currentNestedComponent = currentNestedComponent :+ compType
 
@@ -53,12 +59,27 @@ trait SouffleContext:
     else
       lookupRelationDeclHelper(currentNestedComponent, qn.ns)
 
-  @tailrec
+  //@tailrec
   private def lookupRelationDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[RelationDecl] =
     if (qn.size == 1)
-      componentTypeToRelDecl.get(compPath) match
+      val relDecl = componentTypeToRelDecl.get(compPath) match
         case Some(relMap) => relMap.get(qn.head)
-        case None => throw IllegalArgumentException("FAIL3")
+        case None =>
+          // find the super components
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          // find the first matching relation in a super component
+          val superPaths = superTys.map(s => componentDeclToType(s.target.get))
+          superPaths.collectFirst {
+            case path => lookupRelationDeclHelper(path, qn)
+          }.flatten
+
+      // search the parent scope
+      relDecl match
+        case None if compPath.nonEmpty => lookupRelationDeclHelper(compPath.tail, qn)
+        case None => None
+        case _ => relDecl
     else
       componentTypeToInits.get(compPath) match
         case Some(compInitMap) =>
@@ -71,6 +92,7 @@ trait SouffleContext:
 
   def bindComponentDecl(comp: ComponentDecl): Unit =
     // TODO consider type parameters
+    componentDeclToType += (comp -> (currentNestedComponent :+ comp.ty))
     compDecls += (comp.ty -> comp)
 
   def lookupComponentDecl(compType: ComponentType): Option[ComponentDecl] =
@@ -100,10 +122,11 @@ trait SouffleContext:
 
   @tailrec
   private def lookupTypeDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
+    // TODO: Fix inheritance (see lookupRelation)
     if (qn.size == 1)
       componentTypeToTypeDecl.get(compPath) match
         case Some(typeMap) => typeMap.get(qn.head)
-        case None => throw IllegalArgumentException("FAIL3")
+        case None => throw IllegalArgumentException("TypeDecl: FAIL3")
     else
       componentTypeToInits.get(compPath) match
         case Some(compInitMap) =>
@@ -131,10 +154,12 @@ trait SouffleContext:
 
   @tailrec
   private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
+    // TODO: Fix inheritance (see lookupRelation)
     if (qn.size == 1)
       componentTypeToADTConstr.get(compPath) match
         case Some(adtMap) => adtMap.get(qn.head)
-        case None => throw IllegalArgumentException("FAIL3")
+        // TODO: Lookup super decls
+        case None => throw IllegalArgumentException("ADT: FAIL3")
     else
       componentTypeToInits.get(compPath) match
         case Some(compInitMap) =>

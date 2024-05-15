@@ -12,11 +12,14 @@ import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
 
-trait CompiledModule:
+trait CompiledUnit:
   def compilerOptions: CompilerOptions
   def name: Name
   def sourceLocation: SourceLocation
 
+  // def isClosedWorld: Boolean
+  // def irModules: Seq[Module]
+  // def otherUnits: Seq[CompiledUnit]
   def ir: Module
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
@@ -28,9 +31,9 @@ trait CompiledModule:
     val es = errors
     val ws = es ++ warnings
     if (/*options.stopOnWarning &&*/ warnings.nonEmpty)
-      throw CompiledModule.Failed(this, ws)
+      throw CompiledUnit.Failed(this, ws)
     if (/*options.stopOnError &&*/ errors.nonEmpty)
-      throw CompiledModule.Failed(this, es)
+      throw CompiledUnit.Failed(this, es)
   }
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
@@ -125,5 +128,5 @@ trait CompiledModule:
     po
 
 
-object CompiledModule:
-  case class Failed(module: CompiledModule, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+object CompiledUnit:
+  case class Failed(module: CompiledUnit, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))

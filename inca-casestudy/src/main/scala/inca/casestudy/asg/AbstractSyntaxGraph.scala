@@ -246,7 +246,7 @@ object AbstractSyntaxGraph:
 
   def compiled = createCompiled(false)
 
-  def createCompiled(outlineDemand: Boolean): CompiledModule = new CompiledModule:
+  def createCompiled(outlineDemand: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod

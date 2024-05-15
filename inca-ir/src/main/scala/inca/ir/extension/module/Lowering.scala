@@ -2,7 +2,8 @@ package inca.ir.extension.module
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.{BaseIR, Body, Call, Import, Module, ModuleEntry, Name, Provide, Ref, RefByName, Relation, RelationSubstitution, Require, RequireRelation, Substitution, Var}
+import inca.ir.extension.typeparam.TypeApplication
+import inca.ir.{BaseIR, Body, Call, Import, Module, ModuleEntry, Name, Provide, Ref, RefByName, RefByQualifiedName, Relation, RelationSubstitution, Require, RequireRelation, Substitution, Var}
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
 
@@ -22,9 +23,13 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]
   override def visitModule(module: Module): Module =
     // we need to rename refs to require module entries differently
     val requirementsRenaming = subst.flatMap {
-      case RelationSubstitution(to, _, from, _) => Some(to.name -> from.dropRight(1).foldRight(from.last.name) {
-        case (ref, acc) => Name(prefixName(acc, ref.name.name))
-      })
+      case RelationSubstitution(to, _, from, _) =>
+        val pathComponents = from match
+          case RefByName(n) => Seq(n)
+          case RefByQualifiedName(ns) => ns
+        Some(to.name -> pathComponents.dropRight(1).foldRight(pathComponents.last) {
+          case (refName, acc) => Name(prefixName(acc, refName.name))
+        })
       case _ => None
     }.toMap
 
@@ -61,25 +66,6 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]
       case _ => super.visitRef(ref)
   }
 
-/*private case class RenameRequiredEntries(subst: Seq[Substitution]) extends IRVisitor:
-  // This assumes that all references are unique given their name, e.g. no Datatype and relation must have the same name
-  private val relationRenaming: Map[Name, Name] = subst.flatMap {
-    case RelationSubstitution(to, _, from, _) => Some(to.name -> from.dropRight(1).foldRight(from.last.name) {
-      case (ref, acc) => Name(prefixName(acc, ref.name.name))
-    })
-    case _ => None
-  }.toMap
-
-  def rename(module: Module): Module = visitModule(module)
-
-  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
-    ref.target match
-      case Some(_: RequireRelation) => relationRenaming.get(ref.name) match
-        case Some(name) => RefByName[Target](name)
-        case _ => throw IllegalStateException(s"No renaming found for ${ref.name}")
-      case _ => super.visitRef(ref)
-  }*/
-
 trait Lowering extends BaseLowering:
   override val name: String = "Module"
   override val loweredIRs: Set[BaseIR] = Set()
@@ -106,3 +92,11 @@ trait Lowering extends BaseLowering:
       val extractor = ExtractModuleContent(as.name, subst)
       extractor.extract(module)
     case _ => super.visitModuleEntry(moduleEntry)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = ref match
+    case RefByQualifiedName(ns) =>
+      val name = ns.dropRight(1).foldRight(ns.last) {
+        case (refName, acc) => Name(prefixName(acc, refName.name))
+      }
+      RefByName(name)
+    case _ => super.visitRef(ref)

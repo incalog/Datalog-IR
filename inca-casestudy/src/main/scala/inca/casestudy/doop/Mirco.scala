@@ -1,11 +1,11 @@
 package inca.casestudy.doop
 
-import inca.ir.{CompiledModule, string2name}
+import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, not}
 import inca.ir.optimize.AliasElimination
-import inca.souffle.frontend.compile.CompiledSouffleModule
+import inca.souffle.frontend.compile.CompiledSouffleUnit
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend
 import inca.viatra.backend.Executor
@@ -14,12 +14,12 @@ import scala.io.Source
 
 object Mirco:
 
-  private def runMicroDL(createEngine: (compiled: CompiledModule) => IRExecutor#Engine, file: String = "micro.dl"): Unit =
+  private def runMicroDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "micro.dl"): Unit =
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + file)
     val options = CompilerOptions.default
     //options.irLogging.logLowerings = true
-    val compiled = CompiledSouffleModule.fromSource("micro", source, options)
+    val compiled = CompiledSouffleUnit.fromSource("micro", source, options)
     compiled.setPipeline(List(
       () => new bool.Lowering {},
       () => new block.Lowering {},

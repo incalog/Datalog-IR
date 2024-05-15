@@ -1,6 +1,6 @@
 package inca.frontend.functional.executor.itypes
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.{Relation, UnitRelation}
 import inca.util.FileUtil
@@ -16,7 +16,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
   test("TypeChecker") {
     val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     //val diff = loaded.engine.measure(UnitRelation("main"))
     //println(diff)

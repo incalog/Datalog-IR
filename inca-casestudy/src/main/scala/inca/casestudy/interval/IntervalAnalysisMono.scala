@@ -415,7 +415,7 @@ object IntervalAnalysisMono:
 
 
 
-  def compiled(opt: Boolean) = new CompiledModule:
+  def compiled(opt: Boolean) = new CompiledUnit:
     override def name: Name = "IntervalAnalysis"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod

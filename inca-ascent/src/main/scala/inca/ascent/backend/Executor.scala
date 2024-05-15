@@ -5,7 +5,7 @@ import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.execution.ThreadCount.Auto
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, ThreadCount}
-import inca.ir.{CompiledModule, Name}
+import inca.ir.{CompiledUnit, Name}
 import inca.util.FileUtil
 import ujson._
 
@@ -101,7 +101,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
   }
 
   // Rust compilation is slow, therefore we compile once on instantiate
-  def instantiate(m: CompiledModule): Engine = {
+  def instantiate(m: CompiledUnit): Engine = {
     // Create project structure
     val rustProjectDir = Executor.ascentProjectPath.toFile.getCanonicalPath
     Files.createDirectories(Paths.get(rustProjectDir, "src"))

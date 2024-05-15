@@ -7,10 +7,10 @@ import inca.ir.extension.*
 import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{CompiledModule, Name, Module as IRModule}
+import inca.ir.{CompiledUnit, Name, Module as IRModule}
 
-case class CompiledFunctionalModule(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
-  extends CompiledModule:
+case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
+  extends CompiledUnit:
 
   override def name: Name = fun.name
   override def sourceLocation: SourceLocation = fun.name
@@ -103,7 +103,7 @@ case class CompiledFunctionalModule(fun: Module, override val compilerOptions: F
     module
   }
 
-object CompiledFunctionalModule:
+object CompiledFunctionalUnit:
   val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(
     () => new foreign.Lowering {}
   )

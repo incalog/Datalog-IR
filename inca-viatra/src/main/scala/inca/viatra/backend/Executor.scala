@@ -1,7 +1,7 @@
 package inca.viatra.backend
 
 import inca.foreign.scala.ir.primitive.ScalaInca.cleanString
-import inca.ir.CompiledModule
+import inca.ir.CompiledUnit
 import inca.ir.execution.*
 import inca.util.ScalaCompiler
 import inca.viatra.compile.{GeneratePSystem, PSystem}
@@ -71,10 +71,10 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       val matcher = spec.getMatcher(engine)
       engine.removeMatchUpdateListener(matcher, ViatraUpdateListener(up))
 
-  override def instantiate(m: CompiledModule): Engine =
+  override def instantiate(m: CompiledUnit): Engine =
     instantiate(m, new DataModel())
   
-  def instantiate(m: CompiledModule, dataModel: DataModel): Engine =
+  def instantiate(m: CompiledUnit, dataModel: DataModel): Engine =
     val options = m.compilerOptions
     val code = GeneratePSystem.compileModules(Seq(m.lowered), options)
     val loadSource = s"$code;\n${m.name}"

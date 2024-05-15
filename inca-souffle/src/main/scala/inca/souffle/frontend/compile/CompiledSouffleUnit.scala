@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.extension.{block, bool, datamatch, disjunction, not, set}
-import inca.ir.{Atom, CompiledModule, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation}
+import inca.ir.{Atom, CompiledUnit, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.souffle.backend.GenerateSouffle
@@ -13,7 +13,7 @@ import inca.ir.extension.arithmetic.{TDouble, TInt}
 
 import scala.io.Source
 
-case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledModule {
+case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledUnit {
   override def sourceLocation: SourceLocation = program
 
   setPipeline(
@@ -92,12 +92,12 @@ case class CompiledSouffleModule(name: Name, program: Program, compilerOptions: 
     }.toSeq
 }
 
-object CompiledSouffleModule:
-  def fromSource(name: Name, source: Source, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleModule =
+object CompiledSouffleUnit:
+  def fromSource(name: Name, source: Source, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleUnit =
     val content = source.getLines().mkString("\n")
     source.close()
     fromSourceCode(name, content, compilerOptions)
 
-  def fromSourceCode(name: Name, source: String, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleModule =
+  def fromSourceCode(name: Name, source: String, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleUnit =
     val program: Program = Parser.parseSouffle(source)
-    new CompiledSouffleModule(name, program, compilerOptions)
+    new CompiledSouffleUnit(name, program, compilerOptions)

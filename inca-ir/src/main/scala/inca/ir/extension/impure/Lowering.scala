@@ -213,9 +213,9 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
         val freshCounter = freshImpurityCounter(kind, enclosure)
         Eq(Var(v), counter) +: as :+ Eq(freshCounter, up)
 
-      case Call(RefByName(name), args, neg) =>
+      case Call(ref, args, neg) =>
         val impurityArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
-          if (affectedRels.contains(name))
+          if (affectedRels.contains(ref.name))
             val previousImpurityVar = getImpurityCounter(kind, enclosure)
             val freshImpurityVar = freshImpurityCounter(kind, enclosure)
             Seq(previousImpurityVar.arg, freshImpurityVar.arg)
@@ -225,11 +225,11 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
             Seq()
         }
         preserveHints(atom) {
-          Seq(Call(name, args.flatMap(visitArg) ++ impurityArgs, neg))
+          Seq(Call(ref.name, args.flatMap(visitArg) ++ impurityArgs, neg))
         }
-      case Aggregate(rel, args, op) =>
+      case Aggregate(ref, args, op) =>
         val impurityArgs = affectedRelations.flatMap { case (kind, affectedRels) =>
-          if (affectedRels.contains(rel.name))
+          if (affectedRels.contains(ref.name))
             val previousImpurityVar = getImpurityCounter(kind, enclosure)
             //val freshImpurityVar = freshImpurityCounter(kind, enclosure)
             //Seq(previousImpurityVar.arg, freshImpurityVar.arg)
@@ -239,7 +239,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
             Seq()
         }
         preserveHints(atom) {
-          Seq(Aggregate(rel, args.flatMap(visitArg) ++ impurityArgs, op))
+          Seq(Aggregate(ref, args.flatMap(visitArg) ++ impurityArgs, op))
         }
 
       case _ => super.visitAtom(atom, enclosure, parentEnclosureOption)
@@ -349,16 +349,16 @@ class CollectImpurityAffectedRelations extends IRVisitor:
       addAffectedMainRelation(currentRelation.name, kind)
       super.visitAtom(atom)*/
 
-    case Call(RefByName(name), args, neg) =>
+    case Call(ref, args, neg) =>
       affectedRelations.foreach { (kind, rels) =>
-        if (rels.contains(name))
+        if (rels.contains(ref.name))
           addAffectedRelation(currentRelation.name, kind)
       }
       super.visitAtom(atom)
 
-    case Aggregate(RefByName(name), args, op) =>
+    case Aggregate(ref, args, op) =>
       affectedRelations.foreach { (kind, rels) =>
-        if (rels.contains(name))
+        if (rels.contains(ref.name))
           addAffectedRelation(currentRelation.name, kind)
       }
       super.visitAtom(atom)

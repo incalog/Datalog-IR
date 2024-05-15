@@ -9,7 +9,6 @@ import scala.reflect.ClassTag
 
 // We assume that every variable that is used is introduced beforehand (left-to-right)
 trait BaseIRTypechecker extends BaseIRTypeContext:
-  def closedWorld: Boolean = true
 
   // Always process Relations last
   implicit def ordering[A <: ModuleEntry]: Ordering[A] = (x: A, y: A) => (x, y) match
@@ -25,8 +24,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
     program.foreach { module =>
       module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
-      if closedWorld then
-        module.imports.foreach(i => bindModuleImport(i)(module))
+      module.imports.foreach(i => bindModuleImport(i)(module))
     }
 
     //println(subst.toSeq.map { case ((m, n), _) => m.name -> n })
@@ -65,7 +63,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case r: RequireRelation => // nothing, we check these on import
     case _ => error(s"Can not typecheck unknown require: $require")
 
-  protected def checkProvide[T <: ModuleEntry](provide: Provide[T]): Unit = provide match
+  protected def checkProvide[T <: Providable](provide: Provide[T]): Unit = provide match
     case p: ProvideRelation =>
       val sig = inferRelationRef(p.exportRef, provide)
       if sig.size != p.params.size then
@@ -76,8 +74,6 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case _ => error(s"Can not typecheck unknown: $provide")
 
   protected def checkImport(imp: Import): Unit = imp match
-    case Import(module, as, entries) if !closedWorld =>
-      warn(s"Can not typecheck import without closed-world assumption", imp)
     case Import(moduleRef, as, entries) =>
       // Make sure every substitution is valid
       entries.foreach(i => checkSubstitution(imp, i))
@@ -112,25 +108,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           case _ => error(s"Can not assign unrequired name ${to.name}", importable, imp)
         case _ => // unresolved module
 
-      // Resolve the whole qualified "from" name
-      val m: Option[Module] = None
-      val lastModule = from.dropRight(1).foldLeft(m) {
-        case (_, ref) => lookupModuleByAlias(ref.name)(currentModule) match
-          case Some(mod) =>
-            ref.asInstanceOf[Ref[Module]].resolved(mod)
-            Some(mod)
-          case _ =>
-            error(s"Could not resolve alias ${ref.name}", importable, imp)
-            None
-      }.getOrElse(currentModule)
-
-      // lookup the last component, which must be a module entry
-      from.lastOption.foreach { entryRef =>
-        inferRelationRef(entryRef.asInstanceOf[Ref[ModuleEntry]], importable, lastModule)
-      }
-
-      //println("Last:::")
-      //from.lastOption.foreach(f => println(s"${f.name} -> ${f.target.asInstanceOf[Option[ModuleEntry]].get.name}"))
+      inferRelationRef(from, importable)
 
     case _ => error(s"Can not typecheck import: $importable")
 
@@ -183,15 +161,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
-    case v@Var(ref@RefByName(name)) => mode match
+    case v@Var(ref) => mode match
       case Mode.Binding => lookupVar(ref) match
         case None =>
-          registerVar(name, v, expected)
-          bindVar(name)
+          registerVar(ref.name, v, expected)
+          bindVar(ref.name)
           Mode.Binding
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
           assertComparable(ty, expected, v)
-          bindVar(name)
+          bindVar(ref.name)
           Mode.Binding
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
@@ -223,15 +201,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       m
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case v@Var(ref@RefByName(name)) => mode match
+    case v@Var(ref) => mode match
       case Mode.Binding => lookupVar(ref) match
         case None =>
           error(s"Cannot infer type of Undefined variable $v", v)
-          registerVar(name, v, TAny)
-          bindVar(name)
+          registerVar(ref.name, v, TAny)
+          bindVar(ref.name)
           TAny.binding
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
-          bindVar(name)
+          bindVar(ref.name)
           ty.binding
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           ty.bound
@@ -296,31 +274,47 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] =
     inferRelationRef(ref, s, currentModule)
 
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name)(module) match
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] =
+    val targetModule = ref match
+      case RefByQualifiedName(ns) =>
+        // resolve the modules in the path
+        val m: Option[Module] = None
+        ns.dropRight(1).foldLeft(m) {
+          case (_, moduleName) => lookupModuleByAlias(moduleName)(module) match
+            case Some(mod) => Some(mod)
+            case _ =>
+              error(s"Could not resolve module $moduleName", s)
+              None
+        }.getOrElse(module)
+      case _ => module
+
+    val (rel, tys) = lookupRelationRef[R](ref, s, targetModule)
+    rel.map(r => ref.resolved(r))
+    tys
+
+  // lookup a relation in a module given a name
+  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
+    val name = ref match
+      case RefByName(n) => n
+      case RefByQualifiedName(ns) => ns.last
+    lookupModuleEntry(name)(module) match
       case Some(rel@Relation(_, params, _)) =>
         if (!tag.runtimeClass.isInstance(rel))
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
-        ref.resolved(rel.asInstanceOf[R])
-        params.map(_.ty)
+        (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(rel@ExtensionalRelation(_, params)) =>
         // This might e.g. happen if we perform a call on an extensional relation
         if (!tag.runtimeClass.isInstance(rel))
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
-        ref.resolved(rel.asInstanceOf[R])
-        params.map(_.ty)
+        (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(req@RequireRelation(_, params)) =>
-        ref.resolved(req.asInstanceOf[R])
-        params.map(_.ty)
-      /*case Some(prov@ProvideRelation(_, params)) =>
-        ref.resolved(prov.asInstanceOf[R])
-        params.map(_.ty)*/
+        (Some(req.asInstanceOf[R]), params.map(_.ty))
       case None =>
-        error(s"Undefined relation $name", s)
-        Seq()
+        error(s"Undefined relation ${ref.name}", s)
+        (None, Seq())
       case entry =>
-        error(s"Expected a relation $name but found $entry", s)
-        Seq()
+        error(s"Expected a relation ${ref.name} but found $entry", s)
+        (None, Seq())
 
   protected def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Call(ref, args, false) => checkCall(ref, args, atom, mode)

@@ -118,7 +118,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test ") {
     val irModule = Module("PathExample", Language.Datalog, Seq(pathRel, edgeRel))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "PathExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -163,7 +163,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test Float path und binops") {
     val irModule = Module("FloatpathExample", Language.Datalog, Seq(floatEdgeRel, floatPathRel, floatAdd, floatSub, floatMul, floatDiv))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "FloatPathExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -203,7 +203,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test float comparison") {
     val irModule = Module("FloatCompareExample", Language.Datalog, Seq(floatEdgeRel, floatEqual, floatNotEqual, floatGreaterEqual, floatGreater, floatLesser, floatLesserEqual))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "FloatCompareExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -218,7 +218,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test negation") {
     val irModule = Module("NegExample", Language.Datalog, Seq(valueRel, value2Rel, negRel))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "NegExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -235,7 +235,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test add ") {
     val irModule = Module("AddExample", Language.Datalog, Seq(edgeRel, add1, add2, add3))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "AddExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -251,7 +251,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test BinOP ") {
     val irModule = Module("BinOPExample", Language.Datalog, Seq(edgeRel, add2, div, sub, mul, rem))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "BinOPExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -284,7 +284,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test Comparison") {
     val irModule = Module("ComparisonExample", Language.Datalog, Seq(edgeRel, greater, lesser, lesserEqual, greaterEqual, notEqual))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "ComparisonExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -300,7 +300,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test x greater 3 ") {
     val irModule = Module("xgreater3Example", Language.Datalog, Seq(edgeRel, xGreater3))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "xGreater3Example"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -317,7 +317,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test yIs5 ") {
     val irModule = Module("yIs5Example", Language.Datalog, Seq(edgeRel, yis5))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "yIs5Example"
       override def ir: Module = irModule
       override def compilerOptions: CompilerOptions = CompilerOptions.default
@@ -333,7 +333,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test yIsX") {
     val irModule = Module("yIsXExample", Language.Datalog, Seq(edgeRel, yisx))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "yIsXExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -349,7 +349,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test StringConcat") {
     val irModule = Module("StringConcatExample", Language.Datalog, Seq(valueString, cat))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "StringConcatExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -366,7 +366,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test String ") {
     val irModule = Module("StringExample", Language.Datalog, Seq(valueString, stringRel))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "StringExample"
       override def ir: Module = irModule
       override def compilerOptions: CompilerOptions = CompilerOptions.default
@@ -406,7 +406,7 @@ class GenerateAscentTest extends AnyFunSuite:
         ))
       ))
     ))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "ADTTest"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -445,7 +445,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val irModule = Module("AggregationExample", Language.Datalog, Seq(valueRel, valueRelWrapper, maxRel, minRel, sumRel, countRel))
     val typechecker = IRTypechecker()
     typechecker.checkProgram(Seq(irModule))
-    val compiledModule = new CompiledModule:
+    val compiledModule = new CompiledUnit:
       override def name: Name = "AggregationExample"
       override def compilerOptions: CompilerOptions = CompilerOptions.default
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation

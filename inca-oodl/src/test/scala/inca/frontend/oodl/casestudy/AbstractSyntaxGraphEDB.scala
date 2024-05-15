@@ -280,7 +280,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
   }
 
 
-  def compiled = new CompiledModule:
+  def compiled = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     override def ir: Module = mod

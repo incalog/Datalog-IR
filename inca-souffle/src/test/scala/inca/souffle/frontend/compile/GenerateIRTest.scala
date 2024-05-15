@@ -28,7 +28,7 @@ class GenerateIRTest extends AnyFunSuite:
     () => new not.Lowering {}
   ) // arith + string + data
 
-  class Compiled(val ir: Module) extends CompiledModule:
+  class Compiled(val ir: Module) extends CompiledUnit:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
@@ -198,10 +198,8 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
     )
-    // print(prog)
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
-    println(prog)
 
     val path = execute(prog)("comp$innerComp$path")
     val expected = Set(
@@ -309,7 +307,7 @@ class GenerateIRTest extends AnyFunSuite:
         ProgramContent.Directive(DirectiveQualifier.Output, List(QualifiedName(Seq("zero"))), Map())
       )
      )
-    // print(prog)
+    //println(prog)
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
 

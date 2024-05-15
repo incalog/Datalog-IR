@@ -641,7 +641,7 @@ class MarkedLambda:
 
 object MarkedLambda extends App:
   private val module = new MarkedLambda().module
-  private val compiled = new CompiledHazelModule(module)
+  private val compiled = new CompiledHazelUnit(module)
   println(module)
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
   try compiled.checked

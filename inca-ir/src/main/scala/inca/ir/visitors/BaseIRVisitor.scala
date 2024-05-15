@@ -35,10 +35,10 @@ trait BaseIRVisitor:
   
   def visitSubstitution(importable: Substitution): Seq[Substitution] = importable match
     case RelationSubstitution(to, toSig, from, fromSig) => 
-      Seq(RelationSubstitution(visitRef(to), toSig.flatMap(visitParam), from.map(visitRef), fromSig.flatMap(visitParam)))
+      Seq(RelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $importable")
   
-  def visitProvide[T <: ModuleEntry](provide: Provide[T]): Seq[Provide[_]] = preserveHints(provide) {
+  def visitProvide[T <: Providable](provide: Provide[T]): Seq[Provide[_]] = preserveHints(provide) {
     provide match
       case ProvideRelation(exportRef, params) => Seq(ProvideRelation(visitRef(exportRef), params.flatMap(visitParam)))
       case _ => throw IllegalStateException(s"Can not visit unknown entry: $provide")
@@ -69,6 +69,7 @@ trait BaseIRVisitor:
 
   def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match
     case RefByName(name) => RefByName(name)
+    case RefByQualifiedName(ns) => RefByQualifiedName(ns)
     case _ => throw IllegalStateException(s"Can not visit unknown reference: $ref")
   )
 
