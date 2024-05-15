@@ -113,7 +113,7 @@ case class ScalaMonoAggregationOperator(name: Name,
 
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
-  def withExtendedName(suffix: String): ScalaDefnModuleEntry = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ScalaDefnModuleEntry = this.copy(name = Name(name))
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
 
