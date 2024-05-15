@@ -26,13 +26,11 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
       if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
 //      val newLeader = leader
 //      println("valueId = " + valueId + ", oldLeader = " + oldLeader + ", newLeader = " + newLeader)
-//      if (t.vars.isEmpty && !isConst(leader)) leader = t
     }
 
     def changeDefTermIfNecessary(t: Term): Unit = {
       if (isConst(t)) definingTerm = t
       else if (definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
-//      else definingTerm = visitTerm(definingTerm).head // doesnt help
     }
 
   }
@@ -44,7 +42,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def getReplacementTerm(t: Term): Term = {
     val leader = getCongrClassOf(t).leader
-    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){ // for edge case in 2nd phase in which term was replaced with (an unbound) var TODO other fix?
+    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){
+      // for case in 2nd phase in which term was replaced with an unbound var TODO other fix below?
+      // e.g. without this param == 1 ~> param == param
       return t
     }
     else{
@@ -87,10 +87,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
     valueNumbers.getAllWithId(fromId).foreach(t =>
       valueNumbers.update(t,toId)
-      if (updateToCongrClass) congrClasses(toId).changeLeaderIfNecessary(t)
+      if (updateToCongrClass) {
+        congrClasses(toId).changeLeaderIfNecessary(t)
+        congrClasses(toId).changeDefTermIfNecessary(t) // necessary ?
+      }
     )
     congrClasses.remove(fromId)
   }
+
 
   private enum Phase:
     case initial
@@ -112,7 +116,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
 
-  protected def normalize(term: Term)/*(using withDefTerm: Boolean)*/: Term = term
+  protected def normalize(term: Term): Term = term
 
   protected def isConst(term: Term): Boolean = false
 
@@ -153,6 +157,7 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
+
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
     val newBody = super.visitBody(body).head
 //    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
@@ -170,7 +175,8 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {
     case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
-      treatBindingInEq(vari, e, dontRemove = isParam(vari)) // in case a redundant binding is found it will be removed unless it belongs to parameter
+      // in case a redundant binding is found it will be removed unless it belongs to parameter
+      treatBindingInEq(vari, e, dontRemove = isParam(vari))
     case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
       treatBindingInEq(vari, e, dontRemove = isParam(vari))
     case Eq(vari@Var(_), e, false) =>
@@ -195,7 +201,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = {
     if isConst(term) then return Seq(term) // dont replace constant terms and no need to normalize them
-//    if isParam(term) then return Seq(term) // dont replace params -> this reduces number of replacements too much
     if (congrClasses.contains(valueNumbers(term)) && isAllowedToReplace(term)) then return Seq( getReplacementTerm(term) )
 
     val newTerm = super.visitTerm(term).head
@@ -203,51 +208,46 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     val newTermId: ValueId = valueNumbers(newTerm)
     val termId: ValueId = valueNumbers(term)
+
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
       updateValueNumbersAndCongrClasses(termId, newTermId)
     }
 
-//    if (congrClasses.contains(newTermId) && isAllowedToReplace(newTerm)){
-//        return Seq(getReplacementTerm(newTerm))
-//    }
-//    else {
-      val normalizedTerm = normalize(newTerm)//(true)
+    val normalizedTerm = normalize(newTerm)//(true)
 //      normalizedMem.update(newTerm,normalizedTerm)
-      if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
-        valueNumbers.update(normalizedTerm, newTermId)
-        if (congrClasses.contains(newTermId)) {
-          congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
-          congrClasses(newTermId).changeDefTermIfNecessary(normalizedTerm)
+    if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
+      valueNumbers.update(normalizedTerm, newTermId)
+      if (congrClasses.contains(newTermId)) {
+        congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
+        congrClasses(newTermId).changeDefTermIfNecessary(normalizedTerm)
+      }
+    }
+    else {
+      // normalized term already has an id -> update term and newTerm to that id
+      val normId = valueNumbers(normalizedTerm)
+      if (newTermId != normId) updateValueNumbersAndCongrClasses(newTermId, normId)
+
+      if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
+          return Seq(getReplacementTerm(normalizedTerm))
         }
-      }
-      else {
-        // normalized term already has an id -> update term and newTerm to that id
-        val normId = valueNumbers(normalizedTerm)
-        if (newTermId != normId) updateValueNumbersAndCongrClasses(newTermId, normId)
+    }
 
-        if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
-            return Seq(getReplacementTerm(normalizedTerm))
-          }
-      }
-
-
-    // TODO tried finding indicators which term is "better" (probably should implement term.size if want to use something like that)
-    //    -> sometimes leads to less equalities being found ???!!!
-    //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
-      //      return Seq(
-      //        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
-      //          && !isConst(normalizedTerm)
-      //          then newTerm
-      //        else normalizedTerm
-      //      )
+  // TODO tried finding indicators which term is "better" (probably should implement term.size if want to use something like that)
+  //    -> sometimes leads to less equalities being found...
+  //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
+    //      return Seq(
+    //        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
+    //          && !isConst(normalizedTerm)
+    //          then newTerm
+    //        else normalizedTerm
+    //      )
 
 //        if (!congrClasses.contains(getIdOf(normalizedTerm))) congrClasses.update(getIdOf(normalizedTerm), CongruenceClass(getIdOf(normalizedTerm),normalizedTerm,normalizedTerm))
-        return Seq(normalizedTerm)
-//    }
+      return Seq(normalizedTerm)
   }
 
-//  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map() // TODO
+//  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map()
 
   // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
@@ -259,20 +259,15 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
   private def treatComparisonEq(vari: Var, t: Term): Seq[Atom] = {
     // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-    val res1 = valueNumberVar(vari, t, dontRemove = true)
-    val res2 = t match { // t might be a Var if first case was taken in visitAtom
-      case variRhs: Var => valueNumberVar(variRhs, vari, dontRemove = true)
-      case _ => Seq()
-    }
-    res1
+    valueNumberVar(vari, t, dontRemove = true)
   }
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-    // for case: in the 2nd pass might be replaced with vari and if vari is a param then new ill-typed Eq will not be removed
-    val tempTerm = visitTerm(t).head
-    val newTerm = if /*(tempTerm == vari && t != vari) ||*/ isParam(t) then t else tempTerm
-    val newVari = if !(isParam(vari)) then visitTerm(vari).head else vari
+//    val tempTerm = visitTerm(t).head
+//    val newTerm = if (tempTerm == newVari && t != newVari && newVari.mode.isBinding) || isParam(t) then t else tempTerm
+    val newTerm = if isParam(t) then t else visitTerm(t).head
+    val newVari = if isParam(vari) then vari else visitTerm(vari).head
 
     val termId: ValueId = getIdOf(newTerm)
     if (congrClasses.contains(termId)) {
@@ -287,17 +282,14 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         Seq()
       }
     }
-    else if (congrClasses.contains(valueNumbers(newVari))){
-      updateValueNumbersAndCongrClasses(termId,valueNumbers(newVari))
-      Seq(Eq(newVari,newTerm))
-    }
+
     else {
       updateValueNumbersAndCongrClasses(newVari,termId)
       //count += (termId,1)
 
       // if term is a constant then use it as leader of its congruence class
       // TODO atoms of the form term == term could also be removed statically
-      if (isConst(newTerm)/* || newTerm.vars.isEmpty*/) {
+      if (isConst(newTerm)) {
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm /*normalizedMem.getOrElse(newTerm,newTerm)*/))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }

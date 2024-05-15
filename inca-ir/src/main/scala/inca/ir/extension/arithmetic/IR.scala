@@ -25,7 +25,7 @@ case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class UnOp(t: Term, op: String) extends Term:
-  override def toString: String = s"$op $t"
+  override def toString: String = s"($op $t)"
   override def vars: Seq[Var] = t.vars
 
 case class BinCompare(lhs: Term, rhs: Term, op: String) extends Atom:

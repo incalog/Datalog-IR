@@ -1,8 +1,6 @@
 package inca.ir.valueNumbering
 
 import inca.ir
-import inca.ir.{Atom, Body, Call, ExtensionalCall, Name, RefByName, Term, TermArg, Var}
-import inca.ir.visitors.IRVisitor
 import inca.util.Tabulator
 
 import scala.collection.mutable
@@ -54,7 +52,6 @@ class ValueIds[T]{ // table from term to id
     val header = c.keys.toSeq.map(_.toString)
 
     Tabulator.format("Terms for Ids: ", header, entries)
-//    "CongrClasses: \t" + congrClasses.mkString(";\n\t\t\t\t")
   }
 
   def printResults(): Unit = {
