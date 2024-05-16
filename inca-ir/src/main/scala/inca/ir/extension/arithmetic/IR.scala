@@ -10,11 +10,11 @@ case object TDouble extends Type
 
 case class IntNum(value: Int) extends Term:
   override def vars: Seq[Var] = Seq()
-  override def toString: String = s"$value"
+  override def toString: String = value.toString
 
 case class DoubleNum(value: Double) extends Term:
   override def vars: Seq[Var] = Seq()
-  override def toString: String = s"$value"
+  override def toString: String = value.toString
 
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def toString: String =
@@ -25,7 +25,7 @@ case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class UnOp(t: Term, op: String) extends Term:
-  override def toString: String = s"$op $t"
+  override def toString: String = s"($op $t)"
   override def vars: Seq[Var] = t.vars
 
 case class BinCompare(lhs: Term, rhs: Term, op: String) extends Atom:

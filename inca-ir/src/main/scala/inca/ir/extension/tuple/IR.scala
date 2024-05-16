@@ -26,6 +26,11 @@ case class TupleLit(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
 object TupleLit:
+  def make(t: Term, ts: Term*): Term =
+    if (ts.isEmpty)
+      t
+    else
+      new TupleLit(t +: ts)
   def make(ts: Seq[Term]): Term =
     if (ts.size == 1)
       ts.head

@@ -5,6 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
@@ -13,6 +14,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
   
   def isTypeSupported(ty: Type): Boolean = ty match
     case TAny => true
+    case TNothing => true
     case _ => false
 
   private var freshCount = 0

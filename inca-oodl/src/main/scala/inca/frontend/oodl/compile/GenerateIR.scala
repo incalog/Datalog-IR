@@ -31,6 +31,7 @@ import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
 import inca.foreign.scala.ir.primitive as  irscala
+import inca.ir.optimize
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
@@ -71,6 +72,13 @@ class GenerateIR:
 
   def compileModule(m: Module): ir.Module =
     setFoldRelations = Seq()
+    userDefinedMonos = Map()
+    genScala = new GenerateScala
+
+    // Compile mono types
+    m.content.collect {
+      case m: ClassDef if m.isMonoClass => m
+    }.foreach(compileUserDefinedMono)
 
     val mainFunctions = m.content.flatMap {
       case f: FunctionDef if f.isMain => Some(f)
@@ -95,9 +103,7 @@ class GenerateIR:
       case f: FunctionDef if f.isMain => Seq(compileMainFunction(f))
       case f: FunctionDef => Seq() // Skip all none main functions. We just use them for set fold
       case c: ClassDef if !c.isMonoClass => compileClassDef(c)
-      case m: ClassDef if m.isMonoClass =>
-        compileUserDefinedMono(m)
-        Seq()
+      case m: ClassDef if m.isMonoClass => Seq() // nothing
     } ++ extMainInputRelations
 
     val castRelation = compileCastRelation()
@@ -137,7 +143,7 @@ class GenerateIR:
 
     ir.Relation(f.name, params, Seq(ir.Body(
       (edbInputCall +: impureAllocIn +: impureMutIn +: impureMonoIn +: compileStatements(f.body, result)) ++ setMember
-    ))).addHint(impure.MainHint)
+    ))).addHint(impure.MainHint, optimize.NoInlineHint)
 
   /**
    * We represent objects and structural objects as ADTs:
@@ -219,7 +225,7 @@ class GenerateIR:
         ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("ty").arg)),
         ir.Call(subtypeRelationName, Seq(ir.Var("ty").arg, ir.Var("ty2").arg))
       )) :+ ir.Body(Seq(
-        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.Var("_$0").arg)),
+        ir.Call(subtypeRelationName, Seq(ir.Var("ty1").arg, ir.WildcardArg())),
         ir.Eq(ir.Var("ty2"), ir.Var("ty1"))
       ))
     )
@@ -476,13 +482,12 @@ class GenerateIR:
   }
 
   var userDefinedMonos: Map[Name, irmono.MonoDefinition] = Map()
-
+  var genScala: GenerateScala = _
+  
   def compileUserDefinedMono(classDef: ClassDef): Unit = {
     val monoName = classDef.name
     val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls
-
-    val genScala = new GenerateScala
-
+    
     def genClosure(methodDef: MethodDef) =
       val inArgs = methodDef.params.map(p => s"${p.name}: ${genScala.transType(p.typ)}").mkString("(", ",", ")")
       val body = genScala.transStatements(methodDef.body)
@@ -496,17 +501,19 @@ class GenerateIR:
 
     val resultMethod = classDef.methods.filter(_.name.name == "result").head
     val resultCode = genClosure(resultMethod)
+    
+    val combineCode = "(a: Any, b: Any) => throw new UnsupportedOperationException()"
 
     val monoDef = new irscala.ScalaMonoDefinition(
       monoName,
       initCode,
       addCode,
       resultCode,
+      combineCode,
       Seq(),
       irmono.MonoTypes(compileType(inTy), compileType(stateTy), irscala.ScalaType(genScala.transType(outTy)))
     )
     userDefinedMonos += monoName -> monoDef
-    monoDef
   }
 
   def generateMonoDefinition(name: Name, tyArgs: Seq[Type]): irmono.MonoDefinition = name match {
@@ -766,6 +773,9 @@ class GenerateIR:
   private def compileOutTypeFromMonoMap(mono: TName): ir.Type =
     val outTy = mono.tyArgs.last match
       case t: TName if t.name.name == "mono.Map" => compileOutTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Set" =>
+        val ty = t.tyArgs.head
+        compileType(TSet(ty))
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
         val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
@@ -776,7 +786,11 @@ class GenerateIR:
 
   private def compileInTypeFromMonoMap(mono: TName): ir.Type =
     val outTy = mono.tyArgs.last match
-      case t: TName if t.name.name == "mono.Map" => compileInTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Map" =>
+        compileInTypeFromMonoMap(t)
+      case t: TName if t.name.name == "mono.Set" =>
+        val ty = t.tyArgs.head
+        compileType(ty)
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
         val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
@@ -805,7 +819,7 @@ class GenerateIR:
           irmono.TMono(compileInTypeFromMonoMap(t), compileOutTypeFromMonoMap(t), Seq())
         case _ =>
           val Seq(TName(Name("mono.Type"), Seq(inTy, _, outTy))) = cls.parentCls
-          irmono.TMono(compileType(inTy), compileType(outTy), Seq())
+          irmono.TMono(compileType(inTy), irscala.ScalaType(genScala.transType(outTy)), Seq())
       }
       case Some(cls: ClassDef) => irdata.TData("ID")
       case target => throw IllegalStateException(s"Unexpected type target $target for type $name")

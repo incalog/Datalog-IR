@@ -3,6 +3,8 @@ package inca.viatra.runtime
 import inca.viatra.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.*
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
+//import org.eclipse.viatra.query.runtime.localsearch.matcher.integration.LocalSearchHints
+//import org.eclipse.viatra.query.runtime.localsearch.planner.cost.impl.VariableBindingBasedCostFunction
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
@@ -20,7 +22,14 @@ object EnginePool {
       if (engineReference != null && engineReference.get != null) {
         engineReference.get
       } else {
+        //val hint = LocalSearchHints
+        //  .getDefault
+        //  .setRowCount(100)
+        //  .setUseBase(false)
+        //  .setCostFunction(new VariableBindingBasedCostFunction)
+        //  .build()
         val options = ViatraQueryEngineOptions.defineOptions
+          //.withDefaultHint(hint)
           .withDefaultBackend(backendFactory)
           .withDefaultCachingBackend(backendFactory)
           .withDefaultSearchBackend(DummySearchBackendFactory)

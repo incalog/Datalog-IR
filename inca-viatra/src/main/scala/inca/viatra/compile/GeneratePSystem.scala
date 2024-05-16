@@ -2,16 +2,17 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
 import inca.foreign.scala.ir.data
+import inca.foreign.scala.ir.primitive.ScalaInca.cleanName
 import inca.foreign.scala.ir.string
-import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
+import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaConstantTerm, ScalaDefnModuleEntry, ScalaInca, ScalaMonoAggregationOperator, ScalaTerm, ScalaType}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
-import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, TEdbList, TEdbNode, TEdbValue}
+import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, NotInEdbType, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Gensym
@@ -41,7 +42,8 @@ object GeneratePSystem:
 
   def compileModules(modules: Seq[Module], options: CompilerOptions): Code = {
     val env: RuleEnvironment = modules.flatMap(m => m.relations.map(r => r._1 -> m.name.name)).toMap
-    modules.map(m => compileModule(m, options)(env)).mkString("\n")
+    val a = modules.map(m => compileModule(m, options)(env)).mkString("\n")
+    a
   }
 
   protected def printStep(title: String, content: Any): Unit =
@@ -155,8 +157,8 @@ object GeneratePSystem:
     val myenv = env ++ relations.keys.map(r => r -> mod.name.name) // makes sure this module's names are found first
     val funs = relations.values.map(r => compileRelation(mod.name, r)(indent)(myenv)).toList
 
-    val nonEmptyRels = relations.values.filter(!_.isEmpty).map {
-      r => s""""${r.name}" -> (() => ${r.name}.instance)"""
+    val nonEmptyRels = relations.values.map {
+      r => s""""${cleanName(r.name)}" -> (() => ${cleanName(r.name)}.instance)"""
     }
 
     // collect all external scala definitions
@@ -218,8 +220,10 @@ object GeneratePSystem:
   var pVar2Code: Map[String, (Option[String], Code)] = Map()
   val atomCode: ListBuffer[Code] = ListBuffer.empty
 
+
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = gensym.scoped {
-    val qname = s"${moduleName}_${relation.name}"
+    val relName = cleanName(relation.name)
+    val qname = s"${moduleName}_${relName}"
 
     val allVars = relation.bodies.flatMap(_.atoms.flatMap(_.vars))
     gensym.register(allVars.map(_.name.name))
@@ -261,7 +265,7 @@ object GeneratePSystem:
     val bodiesS = bodies.mkString("{", "}, {", "}")
 
     s"""
-     |object ${relation.name} {
+     |object ${relName} {
      |  lazy val instance: Specification = new Specification(generatedPQuery)
      |
      |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
@@ -280,19 +284,19 @@ object GeneratePSystem:
     case Call(RefByName(name), args, false) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown relation $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(name)}.instance.getInternalQueryRepresentation"
       atomCode += s"new PositivePatternCall(body, $argTuple, $callQuery)"
     case Call(RefByName(name), args, true) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
-      val callQuery = s"$module.$name.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(name)}.instance.getInternalQueryRepresentation"
       atomCode += s"new NegativePatternCall(body, $argTuple, $callQuery)"
     case ExtensionalCall(RefByName(name), args, false) =>
-      val key = s"""NamedRelationKey("$name", ${args.size})"""
+      val key = s"""NamedRelationKey("${cleanName(name)}", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       atomCode += s"new TypeConstraint(body, $tuple, $key)"
     case ExtensionalCall(RefByName(name), args, true) =>
-      val key = s"""NotNamedRelationIndex.Key("$name", ${args.size})"""
+      val key = s"""NotNamedRelationIndex.Key("${cleanName(name)}", ${args.size})"""
       val tuple = s"Tuples.flatTupleOf(${args.map(compileArg).mkString(",")})"
       atomCode += s"new TypeFilterConstraint(body, $tuple, $key)"
     case Eq(lhs, rhs, false) =>
@@ -308,7 +312,7 @@ object GeneratePSystem:
       val result = compileTerm(outTerm)
       val module = env.getOrElse(rel.name, throw new IllegalArgumentException(s"Unknown relation $rel"))
       val argTuple = s"Tuples.flatTupleOf(${argTerms.mkString(",")})"
-      val callQuery = s"$module.$rel.instance.getInternalQueryRepresentation"
+      val callQuery = s"$module.${cleanName(rel.name)}.instance.getInternalQueryRepresentation"
 
       val code = op match
         case ScalaAggregationOperator(Name("Count"), scalaTy, initCode, addCode) =>
@@ -325,19 +329,26 @@ object GeneratePSystem:
                |""".stripMargin
           val boundAggOp = s"new BoundAggregator($code, classOf[$scalaTyp], classOf[$scalaTyp])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
-        case ScalaMonoAggregationOperator(name, ScalaType(inTy), ScalaType(stateTy), initCode, addCode) =>
+        case ScalaMonoAggregationOperator(name, ScalaType(stateTy), ScalaType(inTy), ScalaType(outputTy), initCode, addCode, resultCode, combineCode) =>
           val code =
             s"""
-               | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy] {
+               | new inca.viatra.runtime.aggregate.MonoAggregation[$stateTy, $inTy, $outputTy] {
                |   override val name: String = "$name"
                |   override def init: $stateTy = $initCode
                |   override def add(st: $stateTy, a: $inTy): $stateTy = ($addCode)(st, a)
+               |   override def result(st: $stateTy): $outputTy = ($resultCode)(st)
+               |   override def combine(o1: $outputTy, o2: $outputTy): $outputTy = ($combineCode)(o1, o2)
                | }.aggregator
                |""".stripMargin
           val boundAggOp = s"new BoundAggregator($code, classOf[$inTy], classOf[$stateTy])"
           s"new AggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)"
         case _ => throw IllegalArgumentException(s"Unexpected aggregation operator $op")
       atomCode += code
+    case NotInEdbType(t, ety) =>
+      val sty = compileEdbType(ety)
+      val arg = compileTerm(t)
+      val (sort, key) = genNotEdbTypeKey(ety)
+      atomCode += s"new TypeFilterConstraint(body, Tuples.staticArityFlatTupleOf($arg), $key)"
 
   private def compileArg(a: Arg): Code = a match
     case TermArg(t) =>
@@ -372,7 +383,8 @@ object GeneratePSystem:
       val pvarName = s"$LITPREFIX${genLiteralVarName(code, ty)}"
       pVar2Code += (pvarName -> (None, code))
       pvarName
-    case scalaTerm@primitive.ScalaTerm(termCode, sty, args, isApp) =>
+    case scalaTerm@primitive.ScalaTerm(termCode, ty, args, isApp) =>
+      val sty = ScalaInca.compileType(ty)
       val compiledArgs = args.map(compileTerm)
       val tyCode = sty.name
 
@@ -416,9 +428,10 @@ object GeneratePSystem:
 
     case LookupEdbField(srcTerm, link) =>
       val src = compileTerm(srcTerm)
-      val trgTy = t.typ.filter(_.ty.isInstanceOf[EdbType])
-        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
-        .ty.asInstanceOf[EdbType]
+      val trgTy = t.typ.get.ty
+//        .filter(_.ty.isInstanceOf[EdbType])
+//        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
+//        .ty.asInstanceOf[EdbType]
       val trgTyCompiled = compileEdbType(trgTy)
 
       val outName = gensym.fresh("edb_lookup")
@@ -447,9 +460,10 @@ object GeneratePSystem:
     ty.name.replace("[", "$").replace("]", "$") + lit.hashCode.toString.replace("-", "_")
   }
 
-  private def compileEdbType(ety: EdbType): Code = ety match
+  private def compileEdbType(ety: Type): Code = ety match
+    case ScalaType(code) => code
     case _: (TEdbNode | TEdbList) => "truechange.URI"
-    case TEdbValue(ScalaType(sty)) => sty
+    case TEdbValue(ty) => ScalaInca.compileType(ty).code
 
   private def genEdbTypeKey(ety: EdbType): (String, String) = ety match
     case TEdbValue(ScalaType(sty)) =>
@@ -465,10 +479,22 @@ object GeneratePSystem:
       val key = s"NodeTypeKey($sort)"
       (sort, key)
 
+  private def genNotEdbTypeKey(ety: EdbType): (String, String) = ety match
+    case TEdbNode(name) =>
+      val sort = s"truechange.SortType(\"${name.name}\")"
+      val key = s"NotNodeTypeIndex.Key($sort)"
+      (sort, key)
+    case TEdbList(ety) =>
+      val sort = s"truechange.ListType(${genEdbTypeKey(ety)._1})"
+      val key = s"NotNodeTypeIndex.Key($sort)"
+      (sort, key)
+
+
   private def genEdbLinkKey(link: edbdata.Link, srcType: Type, trgType: Type): String = link match
     case Link.Field(Name(name)) => srcType match
       case TEdbNode(Name(ty)) => trgType match
-        case _: TEdbValue => s"""LinkPrimitiveKey(("$ty", "$name"))"""
+        // TODO ScalaType should not occur here
+        case _: TEdbValue | _: ScalaType => s"""LinkPrimitiveKey(("$ty", "$name"))"""
         case _ => s"""LinkNodeKey(("$ty", "$name"))"""
       case _ => throw new IllegalArgumentException(s"Cannot read edb field $name from $srcType")
     case Link.Parent => srcType match

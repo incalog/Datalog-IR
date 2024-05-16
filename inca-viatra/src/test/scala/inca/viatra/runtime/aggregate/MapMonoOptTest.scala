@@ -9,7 +9,7 @@ import inca.ir.extension.arithmetic.{Add, DoubleNum, GT, IntNum, Max, Mul, Sub, 
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.foreign.ConvertForeignIR
+import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
@@ -23,13 +23,19 @@ import inca.ir.extension.{disjunction, impure, mono}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
+import inca.viatra.backend
+import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
 case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
-  override def compilerOptions: CompilerOptions = CompilerOptions.default
+  override def compilerOptions: CompilerOptions =
+    val op = CompilerOptions.default
+    op.irLogging.logModule = false
+    op.irLogging.logLowerings = false
+    op
 
   override def name: Name = mod.name
 
@@ -99,7 +105,8 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptModule(mod)
-    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+//    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+    val exec: IRExecutor = new Executor(DRedReteBackendFactory.INSTANCE)
     exec.instantiate(compiledMod)
 
   private def module(relations: ModuleEntry*): Module =
@@ -109,7 +116,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptModule(mod)
-    val exec: IRExecutor = inca.viatra.Executor()
+    val exec: IRExecutor = backend.Executor()
     exec.instantiate(compiledMod)
   
   // mono = new MapMono[Int, Int](arithMonoDef)
@@ -406,6 +413,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       initCode = "Set[Any]()",
       addCode = "(st: Set[Any], a: Any) => st + a",
       resultCode = "(st: Set[Any]) => st.size",
+      combineCode = s"(o1: Int, o2: Int) => o1 + o2",
       constructorParamTypes = Seq(),
       typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
     )
@@ -415,10 +423,10 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("mono"), NewMono(MapMonoDefinition(TTuple(Seq(TString, TInt)), SetSizeMono))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(1), StringLit("1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(1), StringLit("1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       WriteMono(Var("mono"), TupleLit(Seq(TupleLit(Seq(StringLit("-1"), IntNum(1))),
-        Cast(TupleLit(Seq(IntNum(-1), StringLit("-1"))), ScalaType.any)
+        ConvertIRForeign(TupleLit(Seq(IntNum(-1), StringLit("-1"))), TTuple(Seq(TInt, TString)), ScalaType.any)
       ))),
       Eq(Var("map"), ReadMono(Var("mono"))),
       Eq(Var("size"), Cast(
@@ -659,6 +667,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assertResult(2024-1946)(res.entries.head)
+    engine.readAll().map(_.asTable).foreach(println)
 
 
   test("Map mono basic test 19: 2-level map mono with non-primitive key types"):
@@ -724,6 +733,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       initCode = "Set[Any]()",
       addCode = "(st: Set[Any], a: Any) => st + a",
       resultCode = "(st: Set[Any]) => st.size",
+      combineCode = s"(o1: Int, o2: Int) => o1 + o2",
       constructorParamTypes = Seq(),
       typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
     )
@@ -1004,3 +1014,31 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
+
+  test("Map mono basic test 31: 2-level nested map mono "):
+    val mapMono = MapMonoDefinition(TInt, MapMonoDefinition(TInt, SumInt))
+    val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+//      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1))),
+      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1), IntNum(1))),
+    )))).addHint(MainHint)
+
+    val engine = compile(mainRelation)
+    //engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))
+
+
+  test("Map mono basic test 32: 2-level nested map mono "):
+    val mapMono = MapMonoDefinition(TInt, SumInt)
+    val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(Body(Seq(
+      Eq(Var("counter"), IntNum(0)),
+      Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
+      Eq(Var("mono"), NewMono(mapMono)),
+      Eq(Var("x"), MapLookUp(ReadMono(Var("mono")), IntNum(1))),
+    )))).addHint(MainHint)
+
+    val engine = compile(mainRelation)
+    //engine.readAll().foreach(res => println(res.asTable))
+    val res = engine.read(UnitRelation("main"))

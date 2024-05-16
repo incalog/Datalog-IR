@@ -4,11 +4,12 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.{Relation, UnitRelation}
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new Executor)
 
   // Unittests
   test("Add") {
@@ -44,6 +45,8 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledOODLModule.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
+    println(s"Total tuples: ${loaded.engine.readAll().map(_.size).sum}")
+    loaded.engine.readAll().foreach(r => println(s"${r.name}: ${r.size}"))
     assertResult("BBC")(res.entries.head)
   }
 

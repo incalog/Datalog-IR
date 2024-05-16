@@ -1,8 +1,9 @@
 package inca.ir
 
 import inca.ir.extension.*
-import inca.ir.analysis.{BaseIROptimizer, IRAbstractInterpreter, IROptimizer}
+import inca.ir.analysis.IRAbstractInterpreter
 import inca.ir.lowering.BaseLowering
+import inca.ir.optimize.{BaseIROptimizer, IROptimizer}
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
@@ -10,7 +11,7 @@ import inca.util.CompilationMessage
 import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
-import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
+import inca.ir.valueNumbering.ValueNumbering
 
 trait CompiledModule:
   def compilerOptions: CompilerOptions
@@ -97,17 +98,17 @@ trait CompiledModule:
       printStatistics(l, s"before optimization")
     val p1 = optimize(Seq(l))
     if (logStatsAfterOptimization)
-      printStatistics(p1.head, s"before optimization")
+      printStatistics(p1.head, s"after first optimization")
     val p2 = optimize(p1)
     if (logStatsAfterOptimization)
-      printStatistics(p2.head, s"before optimization")
+      printStatistics(p2.head, s"after second optimization")
 
     if (logOptimizations)
       printStep(s"Optimized: ", p2)
 
-    val p3 = valueNumbering(p2)
+//    val p3 = valueNumbering(p2)
 
-    postProcessingPipeline.foldLeft(p3.head) { case (m, lowering) =>
+    postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
       val Seq(l) = lowFun.visitProgram(Seq(m))
       // Don't typecheck after postprocessing
@@ -128,20 +129,21 @@ trait CompiledModule:
     po
 
   
-  var valueNumberingResult: Seq[Module] = Seq() // for Testing 
-  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
-    valueNumberingResult = p.map { input =>
-      valueNumbering(input,config)
-    }
-    valueNumberingResult
-
-  def valueNumbering(module: Module, config: ConfigVN): Module = {
-    val VN = new ValueNumbering(config)
-    println(s"before VN: \n$module\n") // TODO use printstep
-    val result = VN.valueNumbering(module)
-    println(s"after VN: \n$result")
-    result
-  }
+//  var valueNumberingResult: Seq[Module] = Seq() // for Testing
+//  def valueNumbering(p: Seq[Module]): Seq[Module] = {
+//    valueNumberingResult = p.map { input =>
+//      valueNumbering(input)
+//    }
+//    valueNumberingResult
+//  }
+//
+//  def valueNumbering(module: Module): Module = {
+//    val VN = new ValueNumbering{}
+//    println(s"before VN: \n$module\n") // use printstep
+//    val result = VN.valueNumbering(module)
+//    println(s"after VN: \n$result")
+//    result
+//  }
 
 
 

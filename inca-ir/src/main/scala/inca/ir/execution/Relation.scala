@@ -70,6 +70,7 @@ trait Relation {
       Seq(entry.asInstanceOf[AnyRef])
     else entry match
       case v: Product => v.productIterator.map(_.asInstanceOf[AnyRef]).toSeq
+      case s: Iterable[_] => s.map(_.asInstanceOf[AnyRef]).toSeq
   def unflattenEntry(entry: Seq[Any]): Tuple
   def matches: Iterable[Seq[Any]]
   
@@ -86,7 +87,13 @@ trait Relation {
   }
 
   override def equals(obj: Any): Boolean = obj match {
-    case relation: Relation if (name == relation.name) && (arity == relation.arity) && (toSet == relation.toSet) => true
+    case relation: Relation =>
+      val sameName = name == relation.name
+      val sameArity = arity == relation.arity
+      val sameSize = size == relation.size
+      // TODO: Compare ADT data correctly. For now we just compare the string rep, which might fail when we use different engines
+      val sameElements = toSet.map(t => flattenEntry(t).toString) == relation.toSet.map(t => relation.flattenEntry(t).toString)
+      sameName && sameArity && sameSize && sameElements
     case _ => false
   }
 

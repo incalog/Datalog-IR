@@ -11,6 +11,8 @@ import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes,
 import inca.ir.extension.block.Block
 import inca.ir.visitors.BaseIRVisitor
 import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
+//import inca.ir.extension.edbdata.TEdbNode
 import inca.ir.extension.map.TMap
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
@@ -19,18 +21,26 @@ import inca.util.Gensym
 object ScalaInca extends ForeignLanguage:
   type Code = String
 
+  def cleanString(name: String): String = name.replace(".", "_").replace("@", "__")
+  
+  def cleanName(name: Name): Name = Name(cleanString(name.name))
+
   def compileType(ty: Type): ScalaType = ty match
     case sty@ScalaType(_) => sty
     case TAny => ScalaType.any
+    case TNothing => ScalaType.nothing
     case TString => ScalaType.string
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
-    case TData(RefByName(name)) => ScalaType(name)
+    case TData(RefByName(name)) => ScalaType(cleanName(name))
     case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
     case TTuple(Seq(ty)) => compileType(ty)
     case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
     case TMap(k, v) => ScalaType(s"Map[${compileType(k).name}, ${compileType(v).name}]")
+    case TEdbNode(_) => ScalaType("truechange.URI")
+    case TEdbList(ety) => ScalaType("truechange.URI")
+    case TEdbValue(ty) => compileType(ty)
     case _ => throw IllegalStateException(s"No scala conversion for Type $ty")
 
 case class ScalaType(name: String) extends ForeignType:
@@ -39,12 +49,13 @@ case class ScalaType(name: String) extends ForeignType:
 
 object ScalaType:
   def any: ScalaType = ScalaType("Any")
+  def nothing: ScalaType = ScalaType("Nothing")
   def string: ScalaType = ScalaType("String")
   def int: ScalaType = ScalaType("Int")
   def double: ScalaType = ScalaType("Double")
   def bool: ScalaType = ScalaType("Boolean")
 
-case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
+case class ScalaTerm(code: String, ty: Type, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):
   override val lang: ScalaInca.type = ScalaInca
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -54,7 +65,7 @@ case class ScalaTerm(code: String, ty: ScalaType, args: Seq[Term], isApp: Boolea
       case _ => throw IllegalStateException(s"Untyped argument $a")
     ScalaInca.compileType(tty)
   }
-  override def outTypes: Seq[ScalaType] = Seq(ty)
+  override def outTypes: Seq[ScalaType] = Seq(ScalaInca.compileType(ty))
   override def visitArgs(f: Term => Seq[Term]): Seq[Term] =
     Seq(this.copy(args = args.flatMap(f)))
   override def toString: String =
@@ -85,10 +96,13 @@ case class ScalaAggregationOperator(name: Name, ty: Type, initCode: String, addC
   def typecheck(in: Seq[Type]): Option[String] = None
 
 case class ScalaMonoAggregationOperator(name: Name,
+                                        stateTy: Type,
                                         inputTy: Type,
                                         outputTy: Type,
                                         initCode: String,
-                                        addCode: String
+                                        addCode: String,
+                                        resultCode: String,
+                                        combineCode: String
                                        )
   extends ForeignAggregationOperator:
   override val lang: ScalaInca.type = ScalaInca
@@ -107,12 +121,11 @@ case class ScalaMonoDefinition(name: Name,
                                initCode: String,
                                addCode: String,
                                resultCode: String,
+                               combineCode: String,
                                constructorParamTypes: Seq[Type],
                                typ: MonoTypes) extends ForeignMonoDefinition:
   override val lang: ScalaInca.type = ScalaInca
   def typecheck(in: Seq[Type]): Option[String] = None
-  override def resultTerm(state: Term, gensym: Gensym): Term =
-    ScalaTerm(resultCode, ScalaInca.compileType(typ.out), Seq(state))
 
   override def toString: String =
     s"""
@@ -123,8 +136,8 @@ case class ScalaMonoDefinition(name: Name,
        |}""".stripMargin
 
 object ScalaMonoDefinition:
-  def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String): ScalaMonoDefinition =
-    ScalaMonoDefinition(mono.name, initCode, addCode, resultCode, mono.constructorParamTypes, mono.typ)
+  def builtinMono(mono: BuiltInMonoDefinition, initCode: String, addCode: String, resultCode: String, combineCode: String): ScalaMonoDefinition =
+    ScalaMonoDefinition(mono.name, initCode, addCode, resultCode, combineCode, mono.constructorParamTypes, mono.typ)
 
 trait IR extends BaseIR:
   override val name: String = "PrimitiveScala"

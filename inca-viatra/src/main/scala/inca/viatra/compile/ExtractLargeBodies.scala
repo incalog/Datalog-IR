@@ -26,7 +26,7 @@ trait ExtractLargeBodies extends IRVisitor with primitive.Visitor:
   override def visitRelation(relation: Relation): Seq[Relation] =
     val Seq(rel) = super.visitRelation(relation)
 
-    val remainingBodies :: groupedBodies = rel.bodies.sortBy(_.atoms.size).foldLeft(Seq(Seq.empty[Body])) {
+    val res = rel.bodies.sortBy(_.atoms.size).foldLeft(Seq(Seq.empty[Body])) {
       case (acc, body) =>
         val currentBin = acc.last
         val currentBinSize = currentBin.map(_.atoms.size).sum
@@ -37,6 +37,8 @@ trait ExtractLargeBodies extends IRVisitor with primitive.Visitor:
         else
           acc :+ Seq(body)
     }
+    val remainingBodies = res.head
+    val groupedBodies = res.tail
 
     val name = rel.name
     val params = rel.params

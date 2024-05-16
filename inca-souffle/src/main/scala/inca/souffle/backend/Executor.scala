@@ -1,6 +1,7 @@
 package inca.souffle.backend
 
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener}
+import inca.ir.execution.ThreadCount.Auto
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener, ThreadCount}
 import inca.ir.{CompiledModule, string2name}
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, QualifiedName, Type}
 import inca.util.FileUtil
@@ -8,21 +9,67 @@ import inca.util.FileUtil
 import java.io.File
 import scala.sys.process.*
 import scala.util.{Failure, Success, Try}
+import ujson._
 
 // TODO we assume that directives use defaults
 // inputs are in <name>.facts of directory
 // tab is default delimiter
 // outputs are in <name>.csv of directory
 // tab is default delimiter
-object Executor extends IRExecutor:
+class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
-  class Engine(dirFile: File, executable: ProcessBuilder, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
-    private var inputDirty = false
+  case class ProgramConfig(dirFile: File, progFile: File, flags: Map[String, String]):
+    val dirFilePath: String = dirFile.getAbsolutePath
+    val progFilePath: String = progFile.getAbsolutePath
+    val profileFilePath: String = s"$dirFilePath/profile.log"
+
+    def flagsToString(fls: Map[String, String]): String = fls.map((k, v) => s"-$k $v" ).mkString(" ")
+
+    lazy val process: ProcessBuilder =
+      val fls = flagsToString(flags)
+      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
+
+    lazy val profilingProcess: ProcessBuilder =
+      val fls = flagsToString(flags + ("p" -> profileFilePath))
+      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
+
+
+  class Engine(config: ProgramConfig, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
+    private var inputDirty = true
     private var cachedResult: Option[Seq[Relation]] = None
 
     private def execute(): Unit =
-      // if (inputDirty)
-        executable.!
+      if (inputDirty)
+        config.process.!!
+        inputDirty = false
+
+    // This method measures the pure execution time without any disk I/O.
+    override def measure(rel: Relation): Long =
+      // Read runtime information from a profiling run
+      config.profilingProcess.!!
+      val profileJson = FileUtil.readFile(config.profileFilePath)
+
+      // Get runtime (including savetimes)
+      val res = ujson.read(profileJson)
+      val program = res.obj("root").obj("program")
+      val runtime = program.obj("runtime")
+      val startTimeInUs = runtime.obj("start").num
+      val endTimeInUs = runtime.obj("end").num
+      val runtimeInUs = (endTimeInUs - startTimeInUs).toLong
+
+      // Get savetime aka time spend for disk I/O
+      val savetimeInUs = program.obj("relation").obj.map {
+        // We include the save time for the measured relation
+        // case (relName, _) if relName == GenerateSouffle.cleanName(rel.name) => 0
+        // Only relations with an .output directive have a savetime
+        case (relName, relObj) if relObj.obj.contains("savetime") =>
+          val startTimeInUs = relObj.obj("savetime").obj("start").num
+          val endTimeInUs = relObj.obj("savetime").obj("end").num
+          (endTimeInUs - startTimeInUs).toLong
+        case _ => 0
+      }.sum
+
+      (runtimeInUs - savetimeInUs) * 1000
 
     // Create empty input files for all input relations
     // This is necessary if a module has more than one main function
@@ -84,6 +131,7 @@ object Executor extends IRExecutor:
     // TODO support data
     private def souffleifyTupleEntry(s: Any): String = s match
       case i: Int => i.toString
+      case f: Float => f.toString
       case s: String => s
       case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
 
@@ -117,11 +165,10 @@ object Executor extends IRExecutor:
       val params = (0 until size).map(idx => s"param_$idx")
       Relation.from(directive.names.head.toString, params, tuples)
 
-    // TODO we just use the defaults currently
     private def getPath(dir: ProgramContent.Directive): String =
       dir.dirQualifier match
-        case DirectiveQualifier.Input => s"${dirFile.getAbsolutePath}/${dir.names.head}.facts"
-        case DirectiveQualifier.Output => s"${dirFile.getAbsolutePath}/${dir.names.head}.csv"
+        case DirectiveQualifier.Input => s"${config.dirFilePath}/${dir.names.head}.facts"
+        case DirectiveQualifier.Output => s"${config.dirFilePath}/${dir.names.head}.csv"
     private def getSeperator(dir: ProgramContent.Directive): String = dir.dirQualifier match
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"
@@ -131,12 +178,17 @@ object Executor extends IRExecutor:
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
 
-    //println(souffleProg)
-
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
-    // create process
-    val process = Process(s"souffle --fact-dir=${dirFile.getAbsolutePath}/ --output-dir=${dirFile.getAbsolutePath}/ ${souffleProgFile.getAbsolutePath}")
+
+    // Souffle 2.4.1 crashes when it automatically guesses the thread count
+    val flags = numThreads match
+      case ThreadCount.Auto => Map("j" -> ThreadCount.numberOfAvailableThreads().toString)
+      case ThreadCount.Fixed(n) if n > 1 => Map("j" -> n.toString)
+      case _ => Map()
+
+    val programConfig = ProgramConfig(dirFile, souffleProgFile, flags)
+
     // collect input and output directives
     val inputFiles = souffleProg.content.flatMap {
       case d@ProgramContent.Directive(DirectiveQualifier.Input, names, _) => names.map { n => n.toString -> d }
@@ -154,6 +206,6 @@ object Executor extends IRExecutor:
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)
       case _ => None
     }.toMap
-    new Engine(dirFile, process, inputFiles, outputFiles, relationDecl)
+    new Engine(programConfig, inputFiles, outputFiles, relationDecl)
 
 

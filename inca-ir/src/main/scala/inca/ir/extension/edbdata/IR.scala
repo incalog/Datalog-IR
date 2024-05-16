@@ -37,6 +37,9 @@ case class TEdbList(ty: EdbType) extends EdbType:
 case class LookupEdbType(ty: EdbType) extends Term:
   override def vars: Seq[Var] = Seq()
   override def toString: String = s"edb[$ty]"
+case class NotInEdbType(t: Term, ty: EdbType) extends Atom:
+  override def vars: Seq[Var] = t.vars
+  override def toString: String = s"not t in edb[$ty]"
 case class UndefEdbType(ty: EdbType) extends Atom:
   override def vars: Seq[Var] = Seq()
   override def toString: String = s"undef edb[$ty]"

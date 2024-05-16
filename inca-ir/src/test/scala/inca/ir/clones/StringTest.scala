@@ -5,7 +5,6 @@ import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
 import inca.ir.extension.string.{StringConcat, StringLit, TString}
 import inca.ir.string2name
-import inca.ir.valueNumbering.ConfigVN
 
 
 class StringTest extends ValueNumberingTestAbstract {

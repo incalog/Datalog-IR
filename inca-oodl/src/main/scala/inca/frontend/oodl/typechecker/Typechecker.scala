@@ -243,6 +243,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   def assignType(term: TypeCastable[Type] with SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
     val inferred = computeType
+    typecheckTy(inferred)
 
     val result = term.typ match
       case Some(annotated) =>
@@ -746,7 +747,7 @@ class Typechecker extends TypeContext with TypeIO:
           val outMonoType = currentTy.tyArgs.last match
             case t@TName(Name("mono.Set"), _) =>
               // Allow nested mono.Sets in mono.Maps
-              TSet(currentTy.tyArgs.head)
+              t.tyArgs.head
             case t@TName(name, _) => lookupClass(name) match
               case Some(clsDef) if clsDef.isMonoClass =>
                 // Get the result type of the nested mono.Type
@@ -787,7 +788,7 @@ class Typechecker extends TypeContext with TypeIO:
           val outMonoType = currentTy.tyArgs.last match
             case t@TName(Name("mono.Set"), _) =>
               // Allow nested mono.Sets in mono.Maps
-              TSet(currentTy.tyArgs.head)
+              TSet(t.tyArgs.head)
             case t@TName(name, _) => lookupClass(name) match
               case Some(clsDef) if clsDef.isMonoClass =>
                 // Get the result type of the nested mono.Type

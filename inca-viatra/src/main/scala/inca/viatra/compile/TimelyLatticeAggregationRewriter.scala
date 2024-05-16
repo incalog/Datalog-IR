@@ -6,6 +6,8 @@ import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Atom, Body, Call, Name, Param, RefByName, Relation, Var}
 import inca.ir.visitors.IRVisitor
 import inca.util.{DependencyGraph, Gensym}
+import inca.ir.extension.edbdata
+
 
 class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with primitive.Visitor:
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
@@ -27,7 +29,7 @@ class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with 
  *  2.2 Redirect all calls to `R` in the scc to `R$Wrapped`
  *  2.3 Introduce a new relation `R` that queries and aggregates over `R$Wrapped`
  */
-class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
+class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor with primitive.Visitor:
   val gensym: Gensym = Gensym()
 
   var scc: Seq[Seq[String]] = Seq()
@@ -59,11 +61,12 @@ class TimelyLatticeAggregationRewriter extends IRVisitor with primitive.Visitor:
       throw IllegalStateException("At most one aggregation over lattice values can occur in a pattern!")
     case agg: Aggregate =>
       numberOfAggregations += 1
+      val allSCCs = scc.filter(_.contains(currentRelation.name.name))
+                       .filter(_.contains(agg.rel.name))
       // only if we aggregate over a relation in the same strongly connected component
-      scc.find(_.contains(currentRelation.name.name)) match
-        case Some(currentScc) if currentScc.contains(agg.rel.name) =>
-          createDoubleAggregation(currentScc, currentRelation, agg)
-        case _ => // nothing
+      allSCCs.foreach { currentScc =>
+        createDoubleAggregation(currentScc, currentRelation, agg)
+      }
       super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 

@@ -19,12 +19,12 @@ class TypecheckerTest extends AnyFunSuite {
     val module = Parser.parseModule(code)
     //println(module)
     checker.typecheck(module)
-    checker.printTypeIO()
+    //checker.printTypeIO()
     assertResult(Nil)(checker.getErrors)
 
   Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {
     override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
-      println(s"Entering ${dir.getFileName}")
+      //println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
       if (p.toString.endsWith(".finca")) {
@@ -39,7 +39,7 @@ class TypecheckerTest extends AnyFunSuite {
     override def visitFileFailed(file: Path, exc: IOException): FileVisitResult =
       FileVisitResult.CONTINUE
     override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult =
-      println(s"Leaving ${dir.getFileName}")
+      //println(s"Leaving ${dir.getFileName}")
       FileVisitResult.CONTINUE
   })
 }

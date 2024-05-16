@@ -118,6 +118,57 @@ trait Graph[N, E] {
     cycle
   }
 
+  lazy val stronglyConnectedComponents: List[List[N]] =
+    val stack = mutable.Stack[N]()
+    val visited: mutable.Map[N, Boolean] = mutable.Map()
+    nodes.foreach { n => visited(n) = false }
+    val lowLink: mutable.Map[N, Int] = mutable.Map()
+    val index: mutable.Map[N, Int] = mutable.Map()
+    var indexCounter = 0
+    var components: List[List[N]] = List()
+
+    def strongConnect(node: N): Unit = {
+      index(node) = indexCounter
+      lowLink(node) = indexCounter
+      indexCounter += 1
+      stack.push(node)
+      visited(node) = true
+
+      edges.getOrElse(node, Set()).foreach { case (neighbor, _) =>
+        if (!visited(neighbor)) {
+          strongConnect(neighbor)
+          lowLink(node) = Math.min(lowLink(node), lowLink(neighbor))
+        } else if (stack.contains(neighbor)) {
+          lowLink(node) = Math.min(lowLink(node), index(neighbor))
+        }
+      }
+
+      if (lowLink(node) == index(node)) {
+        var component: List[N] = List()
+        var top = stack.pop()
+        component = top +: component
+        while (top != node) {
+          top = stack.pop()
+          component = top +: component
+        }
+        components = component +: components
+      }
+    }
+
+    nodes.foreach { node =>
+      if (!visited(node)) {
+        strongConnect(node)
+      }
+    }
+    components
+
+  lazy val stronglyConnectedComponentsWithInfo: List[List[(N,E)]] =
+    stronglyConnectedComponents.map { component =>
+      component.flatMap { node =>
+        edges.getOrElse(node, Set()).map { case (to, info) => (to, info) }
+      }
+    }
+
   def filter(nodeFilter: N => Boolean, edgeFilter: (N,N,E) => Boolean): Graph[N, E] =
     val g = cloneGraph()
     for (n <- g.nodes if !nodeFilter(n))

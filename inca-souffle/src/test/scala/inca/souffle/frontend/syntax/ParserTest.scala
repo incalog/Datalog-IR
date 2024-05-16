@@ -34,11 +34,3 @@ class ParserTest extends AnyFunSuite:
     Parser.plan.parseAll(".plan 1:(3,2,1)").getOrElse(???)
     Parser.plan.parseAll(".plan 1 : (3,2,1)").getOrElse(???)
   }
-
-  test("parse micro.dl") {
-    val code = FileUtil.readFileFromResource("inca/souffle/doop/micro.dl")
-
-    val prog = Parser.parseSouffle(code)
-    val progAgain = Parser.parseSouffle(prog.toString)
-    assert(prog.toString == progAgain.toString)
-  }

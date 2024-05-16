@@ -4,11 +4,12 @@ import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
+import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
 
 class OODLViatraExecutorMonoTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
-  val exec: OODLExecutor = new OODLExecutor(new inca.viatra.Executor)
+  val exec: OODLExecutor = new OODLExecutor(new Executor)
 
   // Unittests
   test("Count mono") {
@@ -29,6 +30,20 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult("SID(Pos)")(res.entries.head.toString)
+  }
+
+  test("Map mono with nested mono.Set") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/mono/MapWithSet.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLModule.pipeline)
+    // Important: Include post processing pipeline for custom mono type
+    compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
+    val loaded = exec.loadOODL(compiled)
+    var res = loaded.execute("main", Seq())
+    val setAdt = res.entries.head
+    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    res = loaded.engine.read(query).project(1, 2)
+    assertResult(Set(1, 2))(res.toSet)
   }
 
   test("User mono") {
