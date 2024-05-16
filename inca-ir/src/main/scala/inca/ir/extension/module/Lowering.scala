@@ -40,7 +40,7 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]
       case _: Import => None
       case e => Some(e.name -> Name(prefixName(e.name, prefix)))
     }.toMap ++ requirementsRenaming
-    
+
     super.visitModule(module)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
@@ -63,8 +63,7 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]
       case Some(_: ModuleEntry) => renamings.get(ref.name) match
         case Some(name) => RefByName[Target](name)
         case _ => throw IllegalStateException(s"No renaming found for ${ref.name}")
-      case Some(_) => super.visitRef(ref)
-      case _ => throw IllegalStateException(s"Unresolved target $ref")
+      case _ => super.visitRef(ref)
   }
 
 trait Lowering extends BaseLowering:

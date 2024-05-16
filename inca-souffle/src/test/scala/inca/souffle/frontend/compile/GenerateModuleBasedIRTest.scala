@@ -65,8 +65,12 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     val dep = Compiled(mods, Seq(), false, "Config")
     dep.setPipeline(pipeline)
 
+    println(dep.lowered)
+
     val compiled = Compiled(Seq(newM), Seq(dep), true, progName)
     compiled.setPipeline(pipeline)
+
+    println(compiled.lowered)
 
     val engine = new Executor().instantiate(compiled)
     val rels = engine.readAll()

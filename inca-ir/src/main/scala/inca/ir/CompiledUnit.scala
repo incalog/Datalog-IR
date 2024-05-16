@@ -96,7 +96,7 @@ trait CompiledUnit:
 
     stopIfNeeded()
 
-    println(s"Lower now !!!!   ${pipeline.map(_.apply().name)}")
+    //println(s"Lower now !!!!   ${pipeline.map(_.apply().name)}")
 
     val loweredMods = pipeline.foldLeft(checked) { case (ms, lowering) =>
       val lowFun = lowering()
@@ -114,7 +114,7 @@ trait CompiledUnit:
       ls
     }
 
-    /*if (logStatsBeforeOptimization)
+    if (logStatsBeforeOptimization)
       printStatistics(loweredMods, s"before optimization")
     val p1 = optimize(loweredMods)
     if (logStatsAfterOptimization)
@@ -124,9 +124,8 @@ trait CompiledUnit:
       printStatistics(loweredMods, s"after second optimization")
 
     if (logOptimizations)
-      printStep(s"Optimized: ", p2)*/
+      printStep(s"Optimized: ", p2)
 
-    val p2 = loweredMods
     if isClosedWorld then
       postProcessingPipeline.foldLeft(p2) { case (ms, lowering) =>
         val lowFun = lowering()
@@ -142,7 +141,7 @@ trait CompiledUnit:
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
-    aeval.evalModule(p.head)
+    p.foreach(aeval.evalModule)
     //println("Eval module: ")
     //println(p)
     val opt = new IROptimizer(aeval)
