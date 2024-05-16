@@ -360,7 +360,7 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var("param$0"), IntNum(1)),
             Eq(Var("param$1"), IntNum(5)),
-            Eq(Var("param$2"), Var("param$1")), 
+            Eq(Var("param$2"), Var("param$1")),
           )),
           Body(Seq(
             Eq(Var("param$0"), IntNum(5)),

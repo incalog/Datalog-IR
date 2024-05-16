@@ -18,13 +18,21 @@ trait BaseValueNumbering extends IRVisitor {
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
     def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
-      if (isConst(t)) leader = t
+      if (isConst(t)) {
+        if isConst(leader) && leader != t then throw new IllegalStateException(s"Term $t can not equal $leader with valueId $valueId")
+        leader = t
+      }
       if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
     }
 
     def changeDefTermIfNecessary(t: Term): Unit = {
       if (isConst(t)) definingTerm = t
       else if (definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+    }
+
+    def updateCongrClassIfNecessary(t: Term): Unit = {
+      changeLeaderIfNecessary(t)
+      changeDefTermIfNecessary(t)
     }
 
   }
@@ -35,6 +43,8 @@ trait BaseValueNumbering extends IRVisitor {
   private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
   protected def getReplacementTerm(t: Term): Term = {
+    if (!congrClasses.contains(valueNumbers(t))) return t
+
     val leader = getCongrClassOf(t).leader
     if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){
       // for case in 2nd phase in which term was replaced with an unbound var TODO other fix below?
@@ -62,8 +72,7 @@ trait BaseValueNumbering extends IRVisitor {
     val fromId = getIdOf(term)
     if (fromId != toId) updateValueNumbersAndCongrClasses(fromId, toId)
     else if (congrClasses.contains(toId)) {
-      congrClasses(toId).changeLeaderIfNecessary(term)
-      congrClasses(toId).changeDefTermIfNecessary(term)
+      congrClasses(toId).updateCongrClassIfNecessary(term)
     }
   }
 
@@ -82,8 +91,7 @@ trait BaseValueNumbering extends IRVisitor {
     valueNumbers.getAllWithId(fromId).foreach(t =>
       valueNumbers.update(t,toId)
       if (updateToCongrClass) {
-        congrClasses(toId).changeLeaderIfNecessary(t)
-        congrClasses(toId).changeDefTermIfNecessary(t) // necessary ?
+        congrClasses(toId).updateCongrClassIfNecessary(t)
       }
     )
     congrClasses.remove(fromId)
@@ -148,14 +156,24 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
+  private var validBody: Boolean = _
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
+    validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
+
     val newBody = super.visitBody(body).head
 //    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
-    phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
-    val newerBodySeq = super.visitBody(newBody)
+    val newerBodySeq = if (validBody){
+      phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
+      val res = super.visitBody(newBody)
+      if !validBody then Seq()
+      else res
+    }
+    else {
+      Seq()
+    }
 
     printResults()
 
@@ -211,8 +229,7 @@ trait BaseValueNumbering extends IRVisitor {
     if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
       valueNumbers.update(normalizedTerm, newTermId)
       if (congrClasses.contains(newTermId)) {
-        congrClasses(newTermId).changeLeaderIfNecessary(normalizedTerm)
-        congrClasses(newTermId).changeDefTermIfNecessary(normalizedTerm)
+        congrClasses(newTermId).updateCongrClassIfNecessary(normalizedTerm)
       }
     }
     else {
@@ -247,6 +264,12 @@ trait BaseValueNumbering extends IRVisitor {
     val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
 
+    // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
+    if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
+      validBody = false
+      return Seq(Eq(newVari,newTerm))
+    }
+
     val termId: ValueId = getIdOf(newTerm)
     if (congrClasses.contains(termId)) {
       updateValueNumbersAndCongrClasses(newVari, termId)
@@ -265,7 +288,6 @@ trait BaseValueNumbering extends IRVisitor {
       updateValueNumbersAndCongrClasses(newVari,termId)
 
       // if term is a constant then use it as leader of its congruence class
-      // TODO atoms of the form term == term could also be removed statically
       if (isConst(newTerm)) {
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant

@@ -2333,6 +2333,34 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, config = ConfigVN(normalize = config.normalize, useDefiningTerm = true))
   }
 
+  test("constraint that should not be removed and not learned from") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+            Eq(Var("Y"), Var("X")),
+            Eq(Var(Name("param$0")), Var(Name("X"))),
+            Eq(Var(Name("param$1")), Var(Name("Y"))),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            //            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
+//            //            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
+//            Eq(IntNum(1),IntNum(3)),                              // should stay since it makes relation empty
+//            Eq(Var(Name("param$0")), IntNum(3)),
+//            Eq(Var(Name("param$1")), IntNum(1)),
+//          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 //  test("Redundant term in Eq with GE, LE, LT & Neq") {
 //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
 //      Seq(
