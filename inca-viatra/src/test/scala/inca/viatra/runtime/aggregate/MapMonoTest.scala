@@ -33,13 +33,13 @@ case class CompiledScalaMapMonoUnit(mod: Module) extends CompiledUnit:
     opts.irLogging.logLowerings = false
     opts
 
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
 
   override def name: Name = mod.name
-
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-  override def ir: Module = mod
-
+  
   private class ScalaTypeChecker extends IRTypechecker with scalaExt.primitive.Typechecker
 
   override def typechecker: BaseIRTypechecker = new ScalaTypeChecker

@@ -10,6 +10,9 @@ class CompiledHazelUnit(val ir: Module) extends CompiledUnit:
   override def name: Name = ir.name
   override def sourceLocation: SourceLocation = ir
   override def compilerOptions: CompilerOptions = CompilerOptions.default
+  override def irModules: Seq[Module] = Seq(ir)
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
 
   setPipeline(List(
     () => new typeparam.Lowering {},

@@ -50,8 +50,9 @@ trait Lowering extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  override def lower(m: ir.Module): ir.Module = if isClosedWorld then super.lower(m) else m
-  
+  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+    if isClosedWorld then super.visitProgram(modules) else modules
+
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     currentModule = module
     phase = Phase.InsertDemandGuards

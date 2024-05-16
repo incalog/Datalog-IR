@@ -27,8 +27,9 @@ case class CompiledSetMonoOptUnit(mod: Module) extends CompiledUnit:
   override def compilerOptions: CompilerOptions = CompilerOptions.default
   override def name: Name = mod.name
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-  override def ir: Module = mod
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
 
   private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
 

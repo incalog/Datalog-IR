@@ -176,7 +176,9 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
   override def instantiate(m: CompiledUnit): Engine =
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
-    val souffleProg = GenerateSouffle.compileModule(m.lowered)
+
+    val Seq(lowered) = m.lowered
+    val souffleProg = GenerateSouffle.compileModule(lowered)
 
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile

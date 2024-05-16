@@ -97,11 +97,15 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     module
   }
 
-  lazy val ir: IRModule = {
+  val isClosedWorld = true
+
+  def otherUnits: Seq[CompiledUnit] = Seq()
+
+  lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR
     val module = compiler.compileModule(normalizedFoldModule)
-    module
-  }
+    Seq(module)
+  
 
 object CompiledFunctionalUnit:
   val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(

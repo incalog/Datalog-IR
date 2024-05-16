@@ -15,6 +15,10 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class RecordTests extends AnyFunSuite:
   class Compiled(val ir: Module) extends CompiledUnit:
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    lazy val irModules: Seq[Module] = Seq(ir)
+
     setPipeline(List(
       () => new RecordLowering {},
       () => new BlockLowering {}

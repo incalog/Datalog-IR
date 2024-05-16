@@ -8,6 +8,8 @@ import inca.ir.Var.Target
 import scala.collection.immutable.Seq
 
 trait BaseIRVisitor:
+  var isClosedWorld: Boolean = false
+
   case object FailedBody extends Throwable
 
   // Name used for debugging

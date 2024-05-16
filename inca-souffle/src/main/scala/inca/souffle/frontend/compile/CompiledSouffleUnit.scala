@@ -24,10 +24,15 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
       () => new not.Lowering {}
     )
   )
-  
-  override def ir: Module =
+
+  override val isClosedWorld: Boolean = true
+
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+
+  lazy val irModules: Seq[Module] =
     val genIR = new GenerateIR
-    genIR.compileProgram(program, name.name)
+    val mod = genIR.compileProgram(program, name.name)
+    Seq(mod)
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =
     val io = attrs.getOrElse("IO", DirectiveValue.StringLit("file"))
@@ -57,7 +62,7 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
           case Some(_) => outputs = outputs :+ UnitRelation(relation.name.name)
           case _ => // nothing
         super.visitRelation(relation)
-    }.visitModule(this.ir)
+    }.visitProgram(irModules)
     outputs
 
   /**
@@ -74,7 +79,7 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
           case Some(SouffleInputHint(attrs)) => inputs += relation.name.name -> (relation.params, attrs)
           case _ => // nothing
         super.visitExtensionalRelation(relation)
-    }.visitModule(this.ir)
+    }.visitProgram(irModules)
 
     inputs.map { case (name, (params, attrs)) =>
       val tys = params.map(_.ty)

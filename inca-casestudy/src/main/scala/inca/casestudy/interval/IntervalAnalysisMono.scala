@@ -418,7 +418,9 @@ object IntervalAnalysisMono:
   def compiled(opt: Boolean) = new CompiledUnit:
     override def name: Name = "IntervalAnalysis"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
+    override def irModules: Seq[Module] = Seq(mod)
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
       op.irLogging.logModule = false

@@ -6,8 +6,6 @@ import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
 
 trait BaseLowering extends IRVisitor:
-  def isClosedWorld: Boolean = false
-
   protected val gensym = new Gensym()
 
   def loweredIRs: Set[BaseIR]
@@ -15,7 +13,9 @@ trait BaseLowering extends IRVisitor:
 
   override def toString: String = s"Lowering ${loweredIRs.mkString(", ")}"
 
-  def lower(ms: Seq[Module]): Module = visitProgram(ms).head
+  def lower(ms: Seq[Module]): Module = visitProgram(ms) match
+    case Seq(mod) => mod
+    case mods => throw IllegalStateException(s"Expected a single output module, but got ${mods.size}")
 
   def lower(m: Module): Module = visitProgram(Seq(m)).head
 

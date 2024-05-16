@@ -64,10 +64,14 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     stopIfNeeded()
     module
 
-  lazy val ir: IRModule =
+  val isClosedWorld = true
+
+  def otherUnits: Seq[CompiledUnit] = Seq()
+
+  lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR
     val module = compiler.compileModule(ssa)
-    module
+    Seq(module)
 
   /*override lazy val lowered: IRModule =
     val low = super.lowered

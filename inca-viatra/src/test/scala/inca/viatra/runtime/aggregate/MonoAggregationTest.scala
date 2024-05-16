@@ -32,11 +32,11 @@ import scala.collection.mutable
 case class CompiledMonoUnit(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledUnit:
   override def name: Name = mod.name
   override def sourceLocation: SourceLocation = mod.name
-  override def ir: Module = mod
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
   private class MonoTypeChecker extends IRTypechecker with primitive.Typechecker
   override def typechecker: BaseIRTypechecker = new MonoTypeChecker()
-  override def printStatistics(module: Module, str: String): Unit =
-    ScalaStatisticsCollector.printStatistics(module, str)
 
 
   override def optimize(p: Seq[Module]): Seq[Module] = p

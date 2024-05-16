@@ -21,7 +21,7 @@ class DatalogExecutor(val exec: IRExecutor):
     }
 
     def query(rel: String, tups: Seq[Any]*): Relation = {
-      val inputRel = compiled.ir.relations.get(rel) match
+      val inputRel = compiled.irModules.flatMap(_.relations).toMap.get(rel) match
         case Some(r) =>
           if (tups.exists(t => r.params.size != t.size))
             throw IllegalArgumentException(s"Each tuple should have size ${r.params.size} in $tups")

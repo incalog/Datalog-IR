@@ -31,6 +31,10 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 
 case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
+
   override def compilerOptions: CompilerOptions =
     val op = CompilerOptions.default
     op.irLogging.logModule = false
@@ -40,9 +44,7 @@ case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
   override def name: Name = mod.name
 
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-  override def ir: Module = mod
-
+  
   private class ScalaTypeChecker extends IRTypechecker with scalaExt.primitive.Typechecker
 
   override def typechecker: BaseIRTypechecker = new ScalaTypeChecker

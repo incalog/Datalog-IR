@@ -17,7 +17,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case (r1: Relation, _) => 1
     case _ => 0
 
-  def checkProgram(program: Seq[Module]): Unit = scopedTypeContext {
+  def checkProgram(program: Seq[Module], dependencies: Seq[Module] = Seq()): Unit = scopedTypeContext {
     assert(dependencyGraph.nodes.isEmpty, "Type checking needs to be started with a fresh type checker instance.")
 
     program.foreach(bindModule)

@@ -33,6 +33,9 @@ class GenerateIRTest extends AnyFunSuite:
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
       opt
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    lazy val irModules: Seq[Module] = Seq(ir)
     override def name: Name = ir.name
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 

@@ -17,11 +17,10 @@ trait CompiledUnit:
   def name: Name
   def sourceLocation: SourceLocation
 
-  // def isClosedWorld: Boolean
-  // def irModules: Seq[Module]
-  // def otherUnits: Seq[CompiledUnit]
-  def ir: Module
-
+  val isClosedWorld: Boolean
+  def irModules: Seq[Module]
+  def otherUnits: Seq[CompiledUnit]
+  
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
   def allMessages: List[CompilationMessage] = messages.toList
   def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
@@ -38,15 +37,14 @@ trait CompiledUnit:
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
-  protected def printStatistics(module: Module, str: String): Unit =
-    StatisticsCollector.printStatistics(module, str)
+  protected def printStatistics(modules: Seq[Module], str: String): Unit =
+    StatisticsCollector.printStatistics(modules, str)
 
-  lazy val (checked, dependencyGraph): (Module, DependencyGraph) =
+  lazy val (checked, dependencyGraph): (Seq[Module], DependencyGraph) =
     val checker = typechecker
-    checker.checkProgram(Seq(ir))
-    (ir, checker.getDependencyGraph)
+    checker.checkProgram(irModules)
+    (irModules, checker.getDependencyGraph)
 
-  // TODO should be configurable
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.pipeline = pipeline
   private var pipeline: List[() => BaseIRVisitor] = List()
@@ -63,7 +61,16 @@ trait CompiledUnit:
     println("~~~~~~~~~~~~~~~~~~~~~~~")
     println()
 
-  def lowered: Module =
+  protected def printSteps(title: String, contents: Seq[Any]): Unit =
+    println(title)
+    contents.foreach { content =>
+      println(content)
+      println()
+      println("~~~~~~~~~~~~~~~~~~~~~~~")
+      println()
+    }
+
+  lazy val lowered: Seq[Module] =
     val irLogging = compilerOptions.irLogging
     val logTyped = irLogging.logTypeInformation
     val logModule = irLogging.logModule
@@ -74,47 +81,50 @@ trait CompiledUnit:
     val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
 
     if (logModule)
-      printStep("IR-Module", if (!logTyped) ir else checked)
+      printStep("IR-Module", if logTyped then checked else irModules)
 
     if (logStatsBeforeLowering)
-      StatisticsCollector.printStatistics(checked, "before lowering")
+      printStatistics(checked, "before lowering")
 
     stopIfNeeded()
 
-    val l = pipeline.foldLeft(checked) { case (m, lowering) =>
+    val loweredMods = pipeline.foldLeft(checked) { case (ms, lowering) =>
       val lowFun = lowering()
-      val Seq(l) = lowFun.visitProgram(Seq(m))
+      lowFun.isClosedWorld = isClosedWorld
+
+      val ls = lowFun.visitProgram(ms)
 
       if (logLowerings && !logTyped)
-        printStep(s"Lowering: ${lowFun.name}", l)
+        printSteps(s"Lowering: ${lowFun.name}", ls)
 
       val checker = typechecker
-      try checker.checkProgram(Seq(l))
+      try checker.checkProgram(ls)
       finally if (logLowerings && logTyped)
-        printStep(s"Lowering: ${lowFun.name}", l)
-      l
+        printSteps(s"Lowering: ${lowFun.name}", ls)
+      ls
     }
 
     if (logStatsBeforeOptimization)
-      printStatistics(l, s"before optimization")
-    val p1 = optimize(Seq(l))
+      printStatistics(loweredMods, s"before optimization")
+    val p1 = optimize(loweredMods)
     if (logStatsAfterOptimization)
-      printStatistics(p1.head, s"after first optimization")
+      printStatistics(loweredMods, s"after first optimization")
     val p2 = optimize(p1)
     if (logStatsAfterOptimization)
-      printStatistics(p2.head, s"after second optimization")
+      printStatistics(loweredMods, s"after second optimization")
 
     if (logOptimizations)
       printStep(s"Optimized: ", p2)
 
-    postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
+    postProcessingPipeline.foldLeft(p2) { case (ms, lowering) =>
       val lowFun = lowering()
-      val Seq(l) = lowFun.visitProgram(Seq(m))
+      val ls = lowFun.visitProgram(ms)
       // Don't typecheck after postprocessing
       if (logLowerings)
-        printStep(s"Post processing lowering: ${lowFun.name}", l)
-      l
+        printStep(s"Post processing lowering: ${lowFun.name}", ls)
+      ls
     }
+
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter

@@ -32,25 +32,30 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     () => new not.Lowering {}
   ) // arith + string + data
 
-  class Compiled(val ir: Module) extends CompiledUnit:
+  class Compiled(val irModules: Seq[Module]) extends CompiledUnit:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
       opt
-    override def name: Name = ir.name
+
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override def name: Name = "SouffleUnit"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
 
   def execute(prog: Program): Map[String, Rel] =
-    val genIR = GenerateIR()
-    val mod = genIR.compileProgram(prog, "SouffleProgram")
+    val genIR = GenerateModuleBasedIR()
+    val mods = genIR.compileProgram(prog, "SouffleProgram")
     /*println(prog)
     println()
     println()
     println()
     println(mod)*/
 
-    val compiled = new Compiled(mod)
+    // TODO: Figure out topological order and compile based on that
+
+    val compiled = new Compiled(mods)
     compiled.setPipeline(pipeline)
 
     val engine = new Executor().instantiate(compiled)

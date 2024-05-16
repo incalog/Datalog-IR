@@ -3,7 +3,7 @@ package inca.frontend.datalog.exploration
 import inca.frontend.datalog.compile.DatalogCompilerOptions
 import inca.ir.execution.{IRExecutor, UnitRelation, Relation2 as ExecRelation2}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.ir as base
+import inca.{ir as base}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.util.SourceLocation
 import inca.ir.{CompiledUnit, Name, string2name, term2Arg}
@@ -54,7 +54,9 @@ class DatalogColumnsTest extends AnyFunSuite:
       override def compilerOptions: CompilerOptions = options
       override def name: Name = mod.name
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: base.Module = mod
+      override def irModules: Seq[base.Module] = Seq(mod)
+      override val isClosedWorld: Boolean = true
+      override def otherUnits: Seq[CompiledUnit] = Seq()
 
     val graph = (for i <- 0.until(numNodes) yield Seq(i, i+1)) :+ Seq(numNodes, 0)
     val edbRels = ExecRelation2("edge", Seq("x", "y"), graph)

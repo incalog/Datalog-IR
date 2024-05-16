@@ -34,11 +34,14 @@ case class CompiledDatalogUnit(mod: Module, override val compilerOptions: Datalo
     mod
   }
 
-  lazy val ir: IRModule = {
+  val isClosedWorld = true
+
+  def otherUnits: Seq[CompiledUnit] = Seq()
+
+  lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR
     val module = compiler.compileModule(typed)
-    module
-  }
+    Seq(module)
 }
 
 object CompiledDatalogUnit:
