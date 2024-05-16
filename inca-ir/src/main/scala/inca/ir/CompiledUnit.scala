@@ -21,6 +21,8 @@ trait CompiledUnit:
   def irModules: Seq[Module]
   def otherUnits: Seq[CompiledUnit]
 
+  lazy val header: Seq[Module] = dependencies.map(_.header)
+
   private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
@@ -44,7 +46,7 @@ trait CompiledUnit:
 
   lazy val (checked, dependencyGraph): (Seq[Module], DependencyGraph) =
     val checker = typechecker
-    checker.checkProgram(irModules, dependencies)
+    checker.checkProgram(irModules, header)
     (irModules, checker.getDependencyGraph)
 
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
@@ -96,8 +98,6 @@ trait CompiledUnit:
 
     stopIfNeeded()
 
-    //println(s"Lower now !!!!   ${pipeline.map(_.apply().name)}")
-
     val loweredMods = pipeline.foldLeft(checked) { case (ms, lowering) =>
       val lowFun = lowering()
       lowFun.isClosedWorld = isClosedWorld
@@ -108,7 +108,7 @@ trait CompiledUnit:
         printSteps(s"Lowering: ${lowFun.name}", ls)
 
       val checker = typechecker
-      try checker.checkProgram(ls, dependencies)
+      try checker.checkProgram(ls, header)
       finally if (logLowerings && logTyped)
         printSteps(s"Lowering: ${lowFun.name}", ls)
       ls
@@ -147,7 +147,7 @@ trait CompiledUnit:
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = typechecker
-    checker.checkProgram(po, dependencies)
+    checker.checkProgram(po, header)
     po
 
 

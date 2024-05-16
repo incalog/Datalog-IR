@@ -57,11 +57,11 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
         compiled
     }
 
-    //println(newM)
-    //println()
-    //mods.foreach(m => {println(); println(m) } )
+    generateMods.foreach(m => {println(); println(m) } )
 
     // the last component is the closed world one
+    println("++++++++++++++++")
+    println(compiledProg.compiledUnits.map(_.name))
     val closedWorldUnit = compiledProg.compiledUnits.last
 
     val engine = new Executor().instantiate(closedWorldUnit)
@@ -95,6 +95,7 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
   }
 
   test("Nested components 2") {
+    // TODO: Fix compilation here
     val file = FileUtil.readFileFromResource("inca/souffle/NestedComponents2.dl")
     val prog = Parser.parseSouffle(file)
     execute(prog).foreach {

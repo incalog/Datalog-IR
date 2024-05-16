@@ -83,7 +83,6 @@ class ModuleTest extends AnyFunSuiteLike:
 
     val deps = Seq(ac, c1, c2, client)
     val mods = main +: deps
-    mods.foreach(m => { println(); println(m) } )
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -91,19 +90,17 @@ class ModuleTest extends AnyFunSuiteLike:
       checker.failOnWarnings()
       checker.failOnError()
     }
-
+    
     var checker = typechecker()
-    checker.checkProgram(Seq(main), deps)
+    checker.checkProgram(Seq(main), deps.map(_.header))
     checker.failOnWarnings()
     checker.failOnError()
 
-    mods.foreach(m => { println(); println(m) } )
+    //mods.foreach(m => { println(); println(m) } )
 
 
     val linking = new Lowering {}
     val linked = linking.visitProgram(Seq(main), deps)
-
-    println(linked)
 
     checker = typechecker()
     checker.checkProgram(linked)
@@ -154,7 +151,7 @@ class ModuleTest extends AnyFunSuiteLike:
     val main = d
     val deps = Seq(a, b, c)
     val mods = main +: deps
-    mods.foreach(m => { println(); println(m) } )
+    //mods.foreach(m => { println(); println(m) } )
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -164,7 +161,7 @@ class ModuleTest extends AnyFunSuiteLike:
     }
 
     var checker = typechecker()
-    checker.checkProgram(Seq(main), deps)
+    checker.checkProgram(Seq(main), deps.map(_.header))
 
     checker.failOnWarnings()
     checker.failOnError()
@@ -235,9 +232,7 @@ class ModuleTest extends AnyFunSuiteLike:
 
     var deps = Seq(c1, c2, client)
     var mods = aMain +: deps
-    mods.foreach(m => {
-      println(); println(m)
-    })
+    //mods.foreach(m => { println(); println(m) })
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -247,7 +242,7 @@ class ModuleTest extends AnyFunSuiteLike:
     }
 
     var checker = typechecker()
-    checker.checkProgram(Seq(aMain), deps)
+    checker.checkProgram(Seq(aMain), deps.map(_.header))
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -262,8 +257,8 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    println()
-    println("After Stage 1:")
+    //println()
+    //println("After Stage 1:")
 
     // Stage 2:
 
@@ -290,7 +285,7 @@ class ModuleTest extends AnyFunSuiteLike:
     deps = stage1 :+ ac
     mods = main +: deps
 
-    mods.foreach(m => { println(); println(m) })
+    //mods.foreach(m => { println(); println(m) })
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -300,7 +295,7 @@ class ModuleTest extends AnyFunSuiteLike:
     }
 
     checker = typechecker()
-    checker.checkProgram(Seq(main), deps)
+    checker.checkProgram(Seq(main), deps.map(_.header))
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -312,7 +307,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    println()
-    println("After Stage 2:")
+    //println()
+    //println("After Stage 2:")
     println(stage2)
   }

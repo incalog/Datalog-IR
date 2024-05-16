@@ -27,7 +27,7 @@ trait Typechecker extends BaseIRTypechecker:
       }
       TMap(tyK, tyV).bound
     case MapFrom(name) =>
-      lookupModuleEntry(name)(currentModule) match
+      lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
           val tys = params.map(_.ty)
           // should check nondemanded is also non-empty

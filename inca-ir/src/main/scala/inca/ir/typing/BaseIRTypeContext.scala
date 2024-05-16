@@ -1,15 +1,17 @@
 package inca.ir.typing
 
-import inca.ir.{Import, Module, ModuleEntry, Name, Param, Providable, Provide, Ref, Term, Type, Var}
+import inca.ir.{Import, Module, ModuleEntry, Name, Param, Providable, Provide, Ref, Require, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
 
-  var provides: Map[(Module, Name), Provide[_]] = Map()
   // (module, imported module) -> module alias name
   var moduleImports: Map[(Module, Name), Name] = Map()
+  var provides: Map[(Module, Name), Provide[_]] = Map()
+  var requires: Map[(Module, Name), Require] = Map()
+  
   // (module, entry name) -> entry
-  var entries: Map[(Module, Name), ModuleEntry] = Map()
+  var entries: Map[Name, ModuleEntry] = Map()
 
   case class VarInfo(target: Var.Target, ty: Type, mode: VarMode)
 
@@ -67,10 +69,6 @@ trait BaseIRTypeContext extends TypeIO:
     }
     modules += (name -> module)
   }
-
-  def registerProvide[T <: Providable](prov: Provide[T])(implicit module: Module): Unit = provides.get((module, prov.name)) match
-    case Some(_) => error(s"Found multiple provides with same name ${prov.name}", prov)
-    case _ => provides += ((module, prov.name) -> prov)
   
   def bindModuleImport(imp: Import)(implicit module: Module): Unit = moduleImports.get((module, imp.as)) match
     case Some(_) => error(s"Found multiple aliases with the same name ${imp.as}", imp)
@@ -81,12 +79,28 @@ trait BaseIRTypeContext extends TypeIO:
         case _ => error(s"Could not resolve module ${moduleRef.name}", imp)
       moduleImports += ((module, imp.as) -> moduleRef.name)
 
-  def registerModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = {
+  def registerProvide(entry: Provide[_])(implicit module: Module): Unit = {
     val name = entry.name
-    entries.get((module, name)).foreach { bound =>
+    provides.get((module, name)).foreach { bound =>
+      error(s"Found multiple provides with same name $name", name, bound.name)
+    }
+    provides += ((module, name) -> entry)
+  }
+
+  def registerRequire(entry: Require)(implicit module: Module): Unit = {
+    val name = entry.name
+    requires.get((module, name)).foreach { bound =>
+      error(s"Found multiple requires with same name $name", name, bound.name)
+    }
+    requires += ((module, name) -> entry)
+  }
+  
+  def registerModuleEntry(entry: ModuleEntry): Unit = {
+    val name = entry.name
+    entries.get(name).foreach { bound =>
       error(s"Found multiple entries with same name $name", name, bound.name)
     }
-    entries += ((module, name) -> entry)
+    entries += (name -> entry)
   }
 
   def registerVar(name: Name, decl: Var.Target, ty: Type): Unit = {
@@ -105,11 +119,13 @@ trait BaseIRTypeContext extends TypeIO:
       case Some(name) => modules.get(name)
       case _ => None
 
+  def lookupRequire(name: Name)(implicit module: Module): Option[Require] = requires.get((module, name))
+  
+  def lookupProvide(name: Name)(implicit module: Module): Option[Provide[_]] = provides.get((module, name))
+  
   def lookupModule(name: Name): Option[Module] = modules.get(name)
 
-  def lookupModuleEntry(name: Name)(implicit module: Module): Option[ModuleEntry] = entries.get((module, name))
-
-  def lookupProvide(name: Name)(implicit module: Module): Option[Provide[_]] = provides.get((module, name))
+  def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
   
   def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
     vars.get(ref.name) match

@@ -35,13 +35,13 @@ trait Typechecker extends BaseIRTypechecker:
     }
     case _ => super.checkModuleEntry(entry)
 
-  override def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name)(module) match
+  override def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] = ref match
+    case RefByName(name) => lookupModuleEntry(name) match
       case Some(ParametricModuleEntry(tyParams, _)) =>
         error(s"Expected type application of $name with ${tyParams.size} type arguments", s)
-        super.inferRelationRef(ref, s, module)
-      case _ => super.inferRelationRef(ref, s, module)
-    case TypeApplication(name, args) => lookupModuleEntry(name)(module) match
+        super.inferRelationRef(ref, s)
+      case _ => super.inferRelationRef(ref, s)
+    case TypeApplication(name, args) => lookupModuleEntry(name) match
       case None =>
         error(s"Unknown entry $name", s)
         Seq()
@@ -58,7 +58,7 @@ trait Typechecker extends BaseIRTypechecker:
       case Some(entry) =>
         error(s"Illegal type application of $args to $entry", s)
         Seq()
-    case _ => super.inferRelationRef(ref, s, module)
+    case _ => super.inferRelationRef(ref, s)
 
   def matchRef[Target](ref: Ref[Target], typeParams: Seq[Name], s: SourceLocation): Map[Name, Type] = ref match
       case RefByName(name) =>

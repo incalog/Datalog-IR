@@ -14,7 +14,7 @@ trait Typechecker extends BaseIRTypechecker:
       ts.foreach(checkTerm(_, ty, Mode.Bound))
       TSet(ty).bound
     case SetFrom(name) =>
-      lookupModuleEntry(name)(currentModule) match
+      lookupModuleEntry(name) match
         case Some(Relation(_, params, _)) =>
           val tys = params.map(_.ty)
           if (tys.size == 1)

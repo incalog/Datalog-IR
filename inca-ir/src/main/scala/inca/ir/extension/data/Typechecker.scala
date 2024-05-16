@@ -10,7 +10,7 @@ import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, Type
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
   private def lookupDataDefinition(ref: Ref[DataDefinition], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
-    entries.get((currentModule, ref.name)) match
+    entries.get(ref.name) match
       case Some(dd: DataDefinition) =>
         ref.resolved(dd)
         Some((Seq(), dd))
@@ -22,7 +22,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         None
 
   def lookupConstruct(ref: Ref[CaseDefinition], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
-    entries.get((currentModule, ref.name)) match
+    entries.get(ref.name) match
       case Some(cd: CaseDefinition) =>
         ref.resolved(cd)
         Some((Seq(), cd))

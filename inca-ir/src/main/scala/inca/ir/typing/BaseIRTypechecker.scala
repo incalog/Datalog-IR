@@ -27,7 +27,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     dependencies.foreach(bindModule)
 
     dependencies.foreach { module =>
-      module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
+      module.contents.sorted.foreach(e => bindHeaderEntry(e)(module))
       module.imports.foreach(i => bindModuleImport(i)(module))
     }
 
@@ -54,7 +54,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   protected def checkModule(module: Module): Unit = scopedTypeContext {
     currentModule = module
-    module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
+    module.contents.sorted.foreach(e => bindModuleEntry(e))
     module.imports.foreach(i => bindModuleImport(i)(module))
 
     module.contents.sorted.foreach { entry =>
@@ -63,9 +63,14 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
   }
 
-  protected def bindModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = entry match
+  protected def bindHeaderEntry(entry: ModuleEntry)(implicit module: Module): Unit = entry match
+    case p: Provide[_] => registerProvide(p)(module)
+    case r: Require => registerRequire(r)(module)
+    case _ => // nothing
+
+  protected def bindModuleEntry(entry: ModuleEntry): Unit = entry match
     case _: Provide[_] => // do not register provides. We either have a "require" or another module entry with this name
-    case _ => registerModuleEntry(entry)(module)
+    case _ => registerModuleEntry(entry)
 
   protected def checkRequire[T <: ModuleEntry](require: Require): Unit = require match
     case r: RequireRelation => // nothing, we check these on import
@@ -111,7 +116,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
       // Make sure there is a "require" for the "to" name and resolve it
       imp.module.target match
-        case Some(mod) => lookupModuleEntry(to.name)(mod) match
+        case Some(mod) => lookupRequire(to.name)(mod) match
           case Some(r: Require) => to.resolved(r)
           case _ => error(s"Can not assign unrequired name ${to.name}", importable, imp)
         case _ => // unresolved module
@@ -280,38 +285,45 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] =
-    inferRelationRef(ref, s, currentModule)
-
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Seq[Type] =
     val targetModule = ref match
       case RefByQualifiedName(ns) =>
         // resolve the modules in the path
         val m: Option[Module] = None
         ns.dropRight(1).foldLeft(m) {
-          case (_, moduleName) => lookupModuleByAlias(moduleName)(module) match
+          case (_, moduleName) => lookupModuleByAlias(moduleName)(currentModule) match
             case Some(mod) => Some(mod)
             case _ =>
               error(s"Could not resolve module $moduleName", s)
               None
-        }.getOrElse(module)
-      case _ => module
+        }.getOrElse(currentModule)
+      case _ => currentModule
 
-    val (rel, tys) = lookupRelationRef[R](ref, s, targetModule)
-    if module != currentModule then
-      // check if the relation is provide
-      lookupModuleEntry(ref.name)(module) match
-        case Some(_: Provide[_]) => // ok
-        case _ => error(s"Cannot access relation ${ref.name} in module ${module.name}", s)
+    val (rel, tys) = if targetModule != currentModule then
+      // definitions outside the current module must be provided
+      lookupProvideRef[R](ref, s, targetModule)
     else
-      rel.map(r => ref.resolved(r))
+      // definitions inside the module can either be a relation or a requirement 
+      lookupRelationRef[R](ref, s)
+    rel.map(r => ref.resolved(r))
     tys
 
-  // lookup a relation in a module given a name
-  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
+  private def lookupProvideRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
     val name = ref match
       case RefByName(n) => n
       case RefByQualifiedName(ns) => ns.last
-    lookupModuleEntry(name)(module) match
+    lookupProvide(name)(module) match
+      case prov@Some(ProvideRelation(_, params)) =>
+        (prov.asInstanceOf[Option[R]], params.map(_.ty))
+      case _ =>
+        error(s"Could not resolve relation ${ref.name}", s)
+        (None, Seq())
+
+  // lookup a relation in a module given a name
+  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
+    val name = ref match
+      case RefByName(n) => n
+      case RefByQualifiedName(ns) => ns.last
+    lookupModuleEntry(name) match
       case Some(rel@Relation(_, params, _)) =>
         if (!tag.runtimeClass.isInstance(rel))
           error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)

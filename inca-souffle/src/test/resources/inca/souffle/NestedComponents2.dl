@@ -2,6 +2,10 @@
 
 .comp Component {
     .decl edge(x: symbol, y: symbol)
+    edge("a", "b").
+    edge("b", "c").
+    edge("c", "b").
+    edge("c", "d").
 
     .comp InnerComponent {
         .decl path(x: symbol, y: symbol)
@@ -22,10 +26,13 @@
 }
 
 .init comp = Component
+/*
+// Not obvious how to handle this
 comp.edge("a", "b").
 comp.edge("b", "c").
 comp.edge("c", "b").
 comp.edge("c", "d").
+*/
 .output comp.innerComp.path
 .output comp.innerComp2.path
 .output zero

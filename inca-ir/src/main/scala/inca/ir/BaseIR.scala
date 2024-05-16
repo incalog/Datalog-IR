@@ -27,6 +27,10 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
   lazy val entries: Map[Name,ModuleEntry] = contents.map(e => e.name -> e).toMap
   lazy val imports: Seq[Import] = contents.collect { case i: Import => i }
   lazy val relations: Map[String,Relation] = contents.collect { case r: Relation => (r.name.name,r) }.toMap
+  lazy val header: Module = Module(name, lang, contents.filter {
+    case _: Import | _: Require | _: Provide[_] => true
+    case _ => false
+  })
 
 trait ModuleEntry extends SourceLocation with Hints:
   val name: Name
