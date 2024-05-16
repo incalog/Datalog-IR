@@ -56,5 +56,5 @@ object CompiledDatalogModule:
 
 //    () => new optimize.IdentityCastElimination {},
 //    () => new optimize.AliasElimination {},
-    () => new ValueNumbering()
+    () => new ValueNumbering{}
   ) // arith + string + data

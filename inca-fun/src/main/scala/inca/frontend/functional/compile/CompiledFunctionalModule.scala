@@ -127,5 +127,5 @@ object CompiledFunctionalModule:
 //    () => new optimize.IdentityCastElimination {},
 //    () => new optimize.AliasElimination {},
 //    () => new optimize.RemoveDuplicatedRelations {},
-    () => new ValueNumbering()
+    () => new ValueNumbering{}
   ) // arith + string + data

@@ -11,7 +11,7 @@ import inca.ir.visitors.IRVisitor
 trait BaseValueNumbering extends IRVisitor {
   // config
   def normalize: Boolean = true
-  def useDefiningTerm: Boolean = false 
+  def useDefiningTerm: Boolean = false
 
   private case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -253,7 +253,8 @@ trait BaseValueNumbering extends IRVisitor {
 
       // remove "Assignment" or replace term
       if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
-        Seq( Eq(newVari, newTerm) )
+//        Seq( Eq(newVari, newTerm) )
+        generateEqIfNecessary(newVari, newTerm)
       }
       else {
         Seq()
@@ -276,8 +277,14 @@ trait BaseValueNumbering extends IRVisitor {
       }
 
       // return with newTerm
-      Seq( Eq(newVari, newTerm) )
+//      Seq( Eq(newVari, newTerm) )
+      generateEqIfNecessary(newVari, newTerm)
     }
+  }
+
+  private def generateEqIfNecessary(lhs: Term, rhs: Term): Seq[Eq] = {
+    if (lhs == rhs) Seq()
+    else Seq(Eq(lhs, rhs))
   }
 
 

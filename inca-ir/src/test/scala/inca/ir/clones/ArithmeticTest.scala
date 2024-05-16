@@ -141,8 +141,8 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("X")), IntNum(1)),
 //            Eq(Var(Name("Y")), IntNum(3)),
 //            Eq(Var(Name("H1")), Add(IntNum(5), Add(Var("X"), Var("Y")))),
-            Eq(IntNum(9), IntNum(9)), // TODO could be removed
-            Eq(IntNum(9), IntNum(9)),
+//            Eq(IntNum(9), IntNum(9)),
+//            Eq(IntNum(9), IntNum(9)),
 //            Eq(Var(Name("Z")), Mul(IntNum(2), Var("H1"))),
             Eq(Var(Name("param$0")), IntNum(1)),
             Eq(Var(Name("param$1")), IntNum(3)),
@@ -423,10 +423,10 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("H1")), Mul(IntNum(6), Mul(Var("X"), Var("Y")))),
 //            Eq(Var(Name("H2")), Mul(Mul(Var("X"), Mul(IntNum(2), IntNum(3))), Var("Y"))),
 //            Eq(Var(Name("H3")), Mul(Mul(Var("X"), Mul(IntNum(2), IntNum(3))), Mul(Var("Y"), IntNum(1)))),
-            Eq(IntNum(18), IntNum(18)),
+//            Eq(IntNum(18), IntNum(18)),
 //            Eq(Var(Name("H4")), Mul(Mul(Var("Y"), Mul(IntNum(2), IntNum(3))), Var("X"))),
 //            Eq(Var(Name("H5")), Mul(Mul(Var("X"), Var("Y")), Mul(IntNum(2), IntNum(3)))),
-            Eq(IntNum(18), IntNum(18)),
+//            Eq(IntNum(18), IntNum(18)),
 //            Eq(Var(Name("H6")), Mul(IntNum(3), Mul(Var("Y"), Mul(IntNum(1), Mul(Var("X"), IntNum(2)))))),
 //            Eq(Var(Name("Z")), Mul(Var("H1"), Var("H1"))),
             Eq(Var(Name("param$0")), IntNum(1)),
@@ -467,10 +467,10 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("X3"), Add(Var("X1"), Var("X1"))),
 //            Eq(Var("X4"), Mul(IntNum(3),Var("X1"))),
 //            Eq(Var("X5"), Add(Var("X1"), Add(Var("X1"),Var("X1")))),
-            Eq(IntNum(6), IntNum(6)),
+//            Eq(IntNum(6), IntNum(6)),
 //            Eq(Var("X6"), Mul(IntNum(4),Var("X1"))),
 //            Eq(Var("X7"), Add(Var("X1"), Add(Var("X1"),Add(Var("X1"),Var("X"))))),
-            Eq(IntNum(8), IntNum(8)),
+//            Eq(IntNum(8), IntNum(8)),
             Eq(Var(Name("param$0")), IntNum(2)),
             Eq(Var(Name("param$1")), IntNum(4)),
             Eq(Var(Name("param$2")), IntNum(6))
@@ -518,7 +518,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //            Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
 //            Eq(Var(Name("H7")), IntNum(1)),
             //            Eq(Var(Name("H8")), Add(Div(Var("X"), IntNum(2)), Div(IntNum(0), IntNum(2)))),
-            Eq(IntNum(1), IntNum(1)),
+//            Eq(IntNum(1), IntNum(1)),
 //            Eq(Var("Y"), IntNum(1)),
             //            Eq(Var("Z"), Div(Var("H2"), Var("H1"))),
             Eq(Var(Name("param$0")), IntNum(2)),
@@ -713,7 +713,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //            Eq(Var("B"), Abs(Var("Y"))),
             //            Eq(Var("C"), Abs(Var("Z"))),
             //            Eq(Var("C"), Abs(Var("A"))),
-            Eq(IntNum(2), IntNum(2)),
+//            Eq(IntNum(2), IntNum(2)),
             Eq(Var(Name("param$0")), IntNum(2)),
             Eq(Var(Name("param$1")), IntNum(2)),
             Eq(Var(Name("param$2")), IntNum(-2))
@@ -1113,7 +1113,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             //            Eq(Var(Name("H6")), Div(Var("X"), IntNum(1))),
 //            Eq(Var(Name("H7")), DoubleNum(1)),
             //            Eq(Var(Name("H8")), Add(Div(Var("X"), IntNum(2)), Div(IntNum(0), IntNum(2)))),
-            Eq(DoubleNum(1), DoubleNum(1)),
+//            Eq(DoubleNum(1), DoubleNum(1)),
 //            Eq(Var("Y"), DoubleNum(1)),
             //            Eq(Var("Z"), Div(Var("H2"), Var("H1"))),
             Eq(Var(Name("param$0")), DoubleNum(2)),
@@ -1160,7 +1160,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S"), Seq(TermArg(Var("b")))),
             Eq(Var(Name("result")), Add(IntNum(6), Mul(IntNum(2), Var(Name("H3"))))),
 //            Eq(Var(Name("H5")), Add(Mul(IntNum(2), Var(Name("H3"))), Mul(IntNum(2), IntNum(3)))),
-            Eq(Var(Name("result")), Var(Name("result")))
+//            Eq(Var(Name("result")), Var(Name("result")))
           ))
         )),
         Relation(Name("S"), Seq(Param("param$0", TInt)), Seq(
@@ -1235,7 +1235,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("H6"), Sub(Var("a"), Var("c"))),
             Eq(Var("c"), IntNum(5)), // -> a == 5;  not 5 == 5 in 2nd because a is a param
             Eq(Var("H7"), Sub(IntNum(5), Var("c"))),
-            Eq(Var("H6"), Var("H7")), // H6 == H7 -> 0 == 0 TODO could be removed
+            Eq(Var("H6"), Var("H7")), // H6 == H7 -> 0 == 0
             Eq(Var(Name("result")), Var(Name("H7")))
           ))
         )),
@@ -1257,7 +1257,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("H6"), IntNum(0)),
             Eq(Var("a"), IntNum(5)),
             //            Eq(Var("H7"),IntNum(0)),
-            Eq(IntNum(0),IntNum(0)),
+//            Eq(IntNum(0),IntNum(0)),
             Eq(Var(Name("result")), IntNum(0))
           ))
         )),
@@ -1520,7 +1520,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("H3"), Mul(IntNum(-1), Var("c"))),
 //            Eq(Var("H4"), Mul(IntNum(-1), Var("c"))),
 //            Eq(Var("H5"), Add(IntNum(0), Mul(IntNum(-1), Var("c")))),
-            Eq(Var("b"),Var("b")),
+//            Eq(Var("b"),Var("b")),
 //            Eq(Var("H6"), IntNum(0)),
 //            Eq(Var("H7"), IntNum(-4)),
 //            Eq(Var("H8"), IntNum(-4)),
@@ -1606,7 +1606,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S1"), Seq(TermArg(Var("b")))),
             Call(Name("S2"), Seq(TermArg(Var("b")))),
             Call(Name("S3"), Seq(TermArg(Var("c")))),
-            Eq(Var("b"),Var("b")),
+//            Eq(Var("b"),Var("b")),
             Eq(Var("H1"), Remainder(Var("b"),IntNum(2))),
 //            Eq(Var("H2"), Remainder(Var("b"),IntNum(2))),
             Eq(Var("H3"), Remainder(Var("b"),Var("c"))),
@@ -1701,7 +1701,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("H2"), Min(Min(Var("b"),Var("c")),Var("a"))),
 //            Eq(Var("H3"), Min(Min(Var("c"),Var("a")),Var("b"))),
 //            Eq(Var("H4"), Var("a")),
-            Eq(IntNum(2), IntNum(2)),
+//            Eq(IntNum(2), IntNum(2)),
 //            Eq(Var("H5"), IntNum(2)),
             Eq(Var("H6"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("b"))))),
 //            Eq(Var("H7"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("b")), Mul(IntNum(-1), IntNum(16))))),
@@ -1853,9 +1853,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("b"), Seq(TermArg(Var("param$1")))),
             Eq(IntNum(12), Add(IntNum(2),Var("param$1"))),
             //            Eq(Var(Name("Z")), IntNum(12)),
-            Eq(IntNum(12), IntNum(12)),
+//            Eq(IntNum(12), IntNum(12)),
             Eq(Var("param$0"), IntNum(12)),
-            Eq(Var("param$1"), Var("param$1"))
+//            Eq(Var("param$1"), Var("param$1"))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -1895,11 +1895,11 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("param$1")))),
             Eq(IntNum(12), Add(IntNum(2),Var("param$1"))),
-            Eq(IntNum(15), IntNum(15)), // -> was prev removed in 2nd pass since 15 gets new id and this id is not in congrClasses and 15 isConst
+//            Eq(IntNum(15), IntNum(15)), // -> was prev removed in 2nd pass since 15 gets new id and this id is not in congrClasses and 15 isConst
             //            Eq(Var(Name("Z")), IntNum(12))
-            Eq(IntNum(12), IntNum(12)),
+//            Eq(IntNum(12), IntNum(12)),
             Eq(Var(Name("param$0")), IntNum(12)),
-            Eq(Var(Name("param$1")), Var(Name("param$1")))
+//            Eq(Var(Name("param$1")), Var(Name("param$1")))
           ))
         )),
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
@@ -1982,7 +1982,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("a"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("param$0")),TermArg(Var("B")))),
-            Eq(Var("param$0"), Var("param$0")),
+//            Eq(Var("param$0"), Var("param$0")),
             Eq(Var("param$0"), Add(IntNum(2), Var("B")))
           ))
         )),
@@ -2034,8 +2034,8 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("X"), Add(Var("C"), IntNum(0)))
             Call(Name("S1"), Seq(TermArg(IntNum(2)))),
             //            Eq(Var("B"), IntNum(2)),
-            Eq(IntNum(0), IntNum(0)),
-            Eq(IntNum(2), IntNum(2)),
+//            Eq(IntNum(0), IntNum(0)),
+//            Eq(IntNum(2), IntNum(2)),
             //            Eq(Var("D"), IntNum(0)),
             Eq(Var("X"), IntNum(0))
           ))
@@ -2089,7 +2089,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S1"), Seq(TermArg(Var("b")))),
             Call(Name("S2"), Seq(TermArg(Var("b")))),
             Eq(Var("H2"), Add(IntNum(2),Var("b"))),
-            Eq(Var("b"), Var("b")),
+//            Eq(Var("b"), Var("b")),
             Eq(Var("H2"), Add(IntNum(2),Var("b"))),
             Eq(Var("result"),IntNum(0))
           ))
@@ -2313,12 +2313,12 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call(Name("S1"), Seq(TermArg(IntNum(-1)))),
             Eq(Var("X"), IntNum(0)),
-            Eq(IntNum(1), IntNum(1)),
-            Eq(IntNum(-1), IntNum(-1)),
-            Eq(IntNum(-1), IntNum(-1)),
+//            Eq(IntNum(1), IntNum(1)),
+//            Eq(IntNum(-1), IntNum(-1)),
+//            Eq(IntNum(-1), IntNum(-1)),
             //            Eq(Var("D"), Add(IntNum(2),Var("A"))),
 //            Eq(Var("E"), Add(IntNum(-1), Add(Var("A"), Mul(IntNum(-1), Var("A"))))),
-            Eq(Var("X"), Var("X"))
+//            Eq(Var("X"), Var("X"))
           ))
         )),
         Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
