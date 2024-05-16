@@ -59,7 +59,7 @@ trait SouffleContext:
     else
       lookupRelationDeclHelper(currentNestedComponent, qn.ns)
 
-  //@tailrec
+  @tailrec
   private def lookupRelationDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[RelationDecl] =
     if (qn.size == 1)
       val relDecl = componentTypeToRelDecl.get(compPath) match
@@ -122,11 +122,25 @@ trait SouffleContext:
 
   @tailrec
   private def lookupTypeDeclHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
-    // TODO: Fix inheritance (see lookupRelation)
     if (qn.size == 1)
-      componentTypeToTypeDecl.get(compPath) match
+      val typeDecl = componentTypeToTypeDecl.get(compPath) match
         case Some(typeMap) => typeMap.get(qn.head)
-        case None => throw IllegalArgumentException("TypeDecl: FAIL3")
+        case None =>
+          // find the super components
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          // find the first matching relation in a super component
+          val superPaths = superTys.map(s => componentDeclToType(s.target.get))
+          superPaths.collectFirst {
+            case path => lookupTypeDeclHelper(path, qn)
+          }.flatten
+
+      // search the parent scope
+      typeDecl match
+        case None if compPath.nonEmpty => lookupTypeDeclHelper(compPath.tail, qn)
+        case None => None
+        case _ => typeDecl
     else
       componentTypeToInits.get(compPath) match
         case Some(compInitMap) =>
@@ -154,12 +168,24 @@ trait SouffleContext:
 
   @tailrec
   private def lookupADTConstructorHelper(compPath: Seq[ComponentType], qn: Seq[String]): Option[TypeDecl] =
-    // TODO: Fix inheritance (see lookupRelation)
     if (qn.size == 1)
-      componentTypeToADTConstr.get(compPath) match
+      val adtDecl = componentTypeToADTConstr.get(compPath) match
         case Some(adtMap) => adtMap.get(qn.head)
-        // TODO: Lookup super decls
-        case None => throw IllegalArgumentException("ADT: FAIL3")
+        case None =>
+          // find the super components
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          // find the first matching relation in a super component
+          val superPaths = superTys.map(s => componentDeclToType(s.target.get))
+          superPaths.collectFirst {
+            case path => lookupADTConstructorHelper(path, qn)
+          }.flatten
+      // search the parent scope
+      adtDecl match
+        case None if compPath.nonEmpty => lookupADTConstructorHelper(compPath.tail, qn)
+        case None => None
+        case _ => adtDecl
     else
       componentTypeToInits.get(compPath) match
         case Some(compInitMap) =>
