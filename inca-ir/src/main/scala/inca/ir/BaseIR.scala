@@ -4,6 +4,7 @@ import inca.ir.*
 import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
+import inca.util.Graph
 
 import scala.language.implicitConversions
 
@@ -15,6 +16,7 @@ implicit def termList2ArgList(terms: Seq[Term]): Seq[Arg] = terms.map(_.arg)
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name
+
 
 case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extends SourceLocation with Hints:
   override def toString: String = {

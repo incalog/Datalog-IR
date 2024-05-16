@@ -47,32 +47,24 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     val progName = "SouffleProgram"
     val genIR = GenerateModuleBasedIR()
     val generateMods = genIR.compileProgram(prog, progName)
-    /*println(prog)
-    println()
-    println()
-    println()
-    println(mod)*/
 
-    // TODO: Figure out topological order and compile based on that
-    val modsMap = generateMods.map(m => m.name -> m).toMap
-    val newM = modsMap.values.find(m => m.name.name == progName).get
-    val mods = modsMap.removed(newM.name).values.toSeq
+    // sort modules based on a topological order of dependencies
+    val compiledProg = new CompiledProgram {
+      override def irModules: Seq[Module] = generateMods
+      override def createCompiledUnit(module: Module, otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
+        val compiled = Compiled(Seq(module), otherUnits, isClosedWorld, module.name)
+        compiled.setPipeline(pipeline)
+        compiled
+    }
 
     //println(newM)
     //println()
     //mods.foreach(m => {println(); println(m) } )
 
-    val dep = Compiled(mods, Seq(), false, "Config")
-    dep.setPipeline(pipeline)
+    // the last component is the closed world one
+    val closedWorldUnit = compiledProg.compiledUnits.last
 
-    println(dep.lowered)
-
-    val compiled = Compiled(Seq(newM), Seq(dep), true, progName)
-    compiled.setPipeline(pipeline)
-
-    println(compiled.lowered)
-
-    val engine = new Executor().instantiate(compiled)
+    val engine = new Executor().instantiate(closedWorldUnit)
     val rels = engine.readAll()
     rels.map { rel =>
       rel.name -> rel
@@ -97,17 +89,15 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
   test("Nested components") {
     val file = FileUtil.readFileFromResource("inca/souffle/NestedComponents.dl")
     val prog = Parser.parseSouffle(file)
-    val genIR = GenerateModuleBasedIR()
-
-    var mods = genIR.compileProgram(prog, "SouffleModule").map(m => m.name -> m).toMap
-    mods.foreach(println)
+    execute(prog).foreach {
+      (_, r) => println(r.asTable)
+    }
   }
 
   test("Nested components 2") {
     val file = FileUtil.readFileFromResource("inca/souffle/NestedComponents2.dl")
     val prog = Parser.parseSouffle(file)
-    val genIR = GenerateModuleBasedIR()
-
-    var mods = genIR.compileProgram(prog, "SouffleModule").map(m => m.name -> m).toMap
-    mods.foreach(println)
+    execute(prog).foreach {
+      (_, r) => println(r.asTable)
+    }
   }

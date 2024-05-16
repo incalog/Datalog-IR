@@ -118,6 +118,28 @@ trait Graph[N, E] {
     cycle
   }
 
+  lazy val topologicalSort: List[N] =
+    val visited: mutable.Map[N, Boolean] = mutable.Map()
+    val stack = mutable.Stack[N]()
+    nodes.foreach { n => visited(n) = false }
+
+    def topologicalSort(node: N): Unit = {
+      visited(node) = true
+      edges.getOrElse(node, Set()).foreach { case (neighbor, _) =>
+        if (!visited(neighbor)) {
+          topologicalSort(neighbor)
+        }
+      }
+      stack.push(node)
+    }
+
+    nodes.foreach { node =>
+      if (!visited(node)) {
+        topologicalSort(node)
+      }
+    }
+    stack.toList
+
   lazy val stronglyConnectedComponents: List[List[N]] =
     val stack = mutable.Stack[N]()
     val visited: mutable.Map[N, Boolean] = mutable.Map()
