@@ -81,24 +81,32 @@ class ModuleTest extends AnyFunSuiteLike:
       ))
     ))
 
-    val mods = Seq(ac, c1, c2, client, main)
-    //mods.foreach(m => { println(); println(m) } )
+    val deps = Seq(ac, c1, c2, client)
+    val mods = main +: deps
+    mods.foreach(m => { println(); println(m) } )
+
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
 
     var checker = typechecker()
-    checker.checkProgram(mods)
+    checker.checkProgram(Seq(main), deps)
     checker.failOnWarnings()
     checker.failOnError()
 
-    //mods.foreach(m => { println(); println(m) } )
+    mods.foreach(m => { println(); println(m) } )
 
 
     val linking = new Lowering {}
-    val linked = linking.lower(mods)
+    val linked = linking.visitProgram(Seq(main), deps)
 
     println(linked)
 
     checker = typechecker()
-    checker.checkProgram(Seq(linked))
+    checker.checkProgram(linked)
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -140,27 +148,32 @@ class ModuleTest extends AnyFunSuiteLike:
       )),
       Import("C", "MyC", Seq(
         RelationSubstitution("S", defaultSig, Seq("MyB", "Q"), defaultSig),
-      )),
-      // TODO: Allow qualified names in Calls
-      /*Relation("Main", defaultSig, Seq(Body(
-        Seq(Call("S", Seq(Var("x"))))
-      )))*/
+      ))
     ))
 
-    val mods = Seq(a, b, c, d)
+    val main = d
+    val deps = Seq(a, b, c)
+    val mods = main +: deps
     mods.foreach(m => { println(); println(m) } )
 
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
+
     var checker = typechecker()
-    checker.checkProgram(mods)
+    checker.checkProgram(Seq(main), deps)
 
     checker.failOnWarnings()
     checker.failOnError()
 
     val linking = new Lowering {}
-    val linked = linking.lower(mods)
+    val linked = linking.visitProgram(Seq(main), deps)
 
     checker = typechecker()
-    checker.checkProgram(Seq(linked))
+    checker.checkProgram(linked)
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -219,13 +232,22 @@ class ModuleTest extends AnyFunSuiteLike:
       )),
     ))
 
-    var mods = Seq(c1, c2, client, aMain)
+
+    var deps = Seq(c1, c2, client)
+    var mods = aMain +: deps
     mods.foreach(m => {
       println(); println(m)
     })
 
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
+
     var checker = typechecker()
-    checker.checkProgram(mods)
+    checker.checkProgram(Seq(aMain), deps)
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -233,10 +255,10 @@ class ModuleTest extends AnyFunSuiteLike:
 
 
     val stage1Linking = new Lowering {}
-    val stage1 = stage1Linking.lower(mods)
+    val stage1 = stage1Linking.visitProgram(Seq(aMain), deps)
 
     checker = typechecker()
-    checker.checkProgram(Seq(stage1))
+    checker.checkProgram(stage1)
     checker.failOnWarnings()
     checker.failOnError()
 
@@ -265,20 +287,28 @@ class ModuleTest extends AnyFunSuiteLike:
       ),
     ))
 
-    mods = Seq(stage1, main, ac)
+    deps = stage1 :+ ac
+    mods = main +: deps
 
     mods.foreach(m => { println(); println(m) })
 
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
+
     checker = typechecker()
-    checker.checkProgram(mods)
+    checker.checkProgram(Seq(main), deps)
     checker.failOnWarnings()
     checker.failOnError()
 
     val stage2Linking = new Lowering {}
-    val stage2 = stage2Linking.lower(mods)
+    val stage2 = stage2Linking.visitProgram(Seq(main), deps)
 
     checker = typechecker()
-    checker.checkProgram(Seq(stage2))
+    checker.checkProgram(stage2)
     checker.failOnWarnings()
     checker.failOnError()
 
