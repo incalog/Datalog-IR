@@ -74,7 +74,7 @@ class GenerateIR:
             relDecl -> (existingRules :+ rule)
         }
       case fact@ProgramContent.Fact(_, _) =>
-        val relDecl = fact.target.get
+        val (relDecl, _) = fact.target.get
         val existingRules = rules.getOrElse(relDecl, Seq())
         rules += relDecl -> (existingRules :+ fact)
       case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>

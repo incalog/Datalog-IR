@@ -24,4 +24,5 @@ S(x) :- config1.MagicNumber(x).
 S(x) :- config2.MagicNumber(x).
 
 //.output config1.a.MagicNumber2
-.output S
+.output config1.MagicNumber
+.output config2.MagicNumber

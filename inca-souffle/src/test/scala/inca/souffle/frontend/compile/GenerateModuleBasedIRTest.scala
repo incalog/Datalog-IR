@@ -3,15 +3,15 @@ package inca.souffle.frontend.compile
 import inca.ir.*
 import inca.ir.execution.{Relation2, Relation as Rel}
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
-import inca.ir.extension.module.{Lowering, MainHint}
-import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
+import inca.ir.extension.module.Lowering
+import inca.ir.extension.{module, aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
 import inca.ir.typing.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.souffle.syntax.ProgramContent.{Pragma, Rule}
 import inca.souffle.syntax.Term.StringLit
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
-import inca.souffle.syntax.{Atom, Term, Type, *}
+import inca.souffle.syntax.*
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
 import inca.util.compileroptions.CompilerOptions.default
@@ -29,24 +29,24 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     () => new datamatch.Lowering {},
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
-    () => new not.Lowering {}
+    () => new not.Lowering {},
+    () => new module.Lowering {}
   ) // arith + string + data
 
-  class Compiled(val irModules: Seq[Module]) extends CompiledUnit:
+  case class Compiled(irModules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean, name: Name) extends CompiledUnit:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
+      opt.irLogging.logOptimizations = true
       opt
 
-    override val isClosedWorld: Boolean = true
-    override def otherUnits: Seq[CompiledUnit] = Seq()
-    override def name: Name = "SouffleUnit"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
 
   def execute(prog: Program): Map[String, Rel] =
+    val progName = "SouffleProgram"
     val genIR = GenerateModuleBasedIR()
-    val mods = genIR.compileProgram(prog, "SouffleProgram")
+    val generateMods = genIR.compileProgram(prog, progName)
     /*println(prog)
     println()
     println()
@@ -54,8 +54,18 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     println(mod)*/
 
     // TODO: Figure out topological order and compile based on that
+    val modsMap = generateMods.map(m => m.name -> m).toMap
+    val newM = modsMap.values.find(m => m.name.name == progName).get
+    val mods = modsMap.removed(newM.name).values.toSeq
 
-    val compiled = new Compiled(mods)
+    //println(newM)
+    //println()
+    //mods.foreach(m => {println(); println(m) } )
+
+    val dep = Compiled(mods, Seq(), false, "Config")
+    dep.setPipeline(pipeline)
+
+    val compiled = Compiled(Seq(newM), Seq(dep), true, progName)
     compiled.setPipeline(pipeline)
 
     val engine = new Executor().instantiate(compiled)
@@ -67,52 +77,17 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
   test("Component") {
     val file = FileUtil.readFileFromResource("inca/souffle/Component.dl")
     val prog = Parser.parseSouffle(file)
-    val genIR = GenerateModuleBasedIR()
-    var mods = genIR.compileProgram(prog, "SouffleModule").map(m => m.name -> m).toMap
-    val newM = mods.values.find(m => m.name.name == "SouffleModule").map(m => m.addHint(MainHint)).get
-    mods += newM.name -> newM
-    mods.values.foreach(println)
-
-    var checker = typechecker()
-    checker.checkProgram(mods.values.toSeq)
-    checker.failOnWarnings()
-    checker.failOnError()
-
-    val linking = new Lowering {}
-    val linked = linking.lower(mods.values.toSeq)
-
-    checker = typechecker()
-    checker.checkProgram(Seq(linked))
-    checker.failOnWarnings()
-    checker.failOnError()
-
-    println(linked)
+    execute(prog).foreach {
+      (_, r) => println(r.asTable)
+    }
   }
 
   test("Component inheritance") {
     val file = FileUtil.readFileFromResource("inca/souffle/ComponentInheritance.dl")
     val prog = Parser.parseSouffle(file)
-    val genIR = GenerateModuleBasedIR()
-
-    var mods = genIR.compileProgram(prog, "SouffleModule").map(m => m.name -> m).toMap
-    val newM = mods.values.find(m => m.name.name == "SouffleModule").map(m => m.addHint(MainHint)).get
-    mods += newM.name -> newM
-    mods.values.foreach(println)
-
-    var checker = typechecker()
-    checker.checkProgram(mods.values.toSeq)
-    checker.failOnWarnings()
-    checker.failOnError()
-
-    val linking = new Lowering {}
-    val linked = linking.lower(mods.values.toSeq)
-
-    checker = typechecker()
-    checker.checkProgram(Seq(linked))
-    checker.failOnWarnings()
-    checker.failOnError()
-
-    println(linked)
+    execute(prog).foreach {
+      (_, r) => println(r.asTable)
+    }
   }
 
   test("Nested components") {

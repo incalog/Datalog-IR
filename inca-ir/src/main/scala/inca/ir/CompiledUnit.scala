@@ -17,10 +17,12 @@ trait CompiledUnit:
   def name: Name
   def sourceLocation: SourceLocation
 
-  val isClosedWorld: Boolean
+  def isClosedWorld: Boolean
   def irModules: Seq[Module]
   def otherUnits: Seq[CompiledUnit]
-  
+
+  private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
+
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
   def allMessages: List[CompilationMessage] = messages.toList
   def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
@@ -42,7 +44,7 @@ trait CompiledUnit:
 
   lazy val (checked, dependencyGraph): (Seq[Module], DependencyGraph) =
     val checker = typechecker
-    checker.checkProgram(irModules)
+    checker.checkProgram(irModules, dependencies)
     (irModules, checker.getDependencyGraph)
 
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
@@ -70,6 +72,12 @@ trait CompiledUnit:
       println()
     }
 
+  private lazy val loweredOtherUnits: Seq[Module] =
+    val low = otherUnits.flatMap(_.lowered)
+    /*val checker = typechecker
+    checker.checkProgram(low)*/
+    low
+
   lazy val lowered: Seq[Module] =
     val irLogging = compilerOptions.irLogging
     val logTyped = irLogging.logTypeInformation
@@ -88,23 +96,25 @@ trait CompiledUnit:
 
     stopIfNeeded()
 
+    println(s"Lower now !!!!   ${pipeline.map(_.apply().name)}")
+
     val loweredMods = pipeline.foldLeft(checked) { case (ms, lowering) =>
       val lowFun = lowering()
       lowFun.isClosedWorld = isClosedWorld
 
-      val ls = lowFun.visitProgram(ms)
+      val ls = lowFun.visitProgram(ms, loweredOtherUnits)
 
       if (logLowerings && !logTyped)
         printSteps(s"Lowering: ${lowFun.name}", ls)
 
       val checker = typechecker
-      try checker.checkProgram(ls)
+      try checker.checkProgram(ls, dependencies)
       finally if (logLowerings && logTyped)
         printSteps(s"Lowering: ${lowFun.name}", ls)
       ls
     }
 
-    if (logStatsBeforeOptimization)
+    /*if (logStatsBeforeOptimization)
       printStatistics(loweredMods, s"before optimization")
     val p1 = optimize(loweredMods)
     if (logStatsAfterOptimization)
@@ -114,16 +124,20 @@ trait CompiledUnit:
       printStatistics(loweredMods, s"after second optimization")
 
     if (logOptimizations)
-      printStep(s"Optimized: ", p2)
+      printStep(s"Optimized: ", p2)*/
 
-    postProcessingPipeline.foldLeft(p2) { case (ms, lowering) =>
-      val lowFun = lowering()
-      val ls = lowFun.visitProgram(ms)
-      // Don't typecheck after postprocessing
-      if (logLowerings)
-        printStep(s"Post processing lowering: ${lowFun.name}", ls)
-      ls
-    }
+    val p2 = loweredMods
+    if isClosedWorld then
+      postProcessingPipeline.foldLeft(p2) { case (ms, lowering) =>
+        val lowFun = lowering()
+        val ls = lowFun.visitProgram(ms)
+        // Don't typecheck after postprocessing
+        if (logLowerings)
+          printStep(s"Post processing lowering: ${lowFun.name}", ls)
+        ls
+      }
+    else
+      p2
 
 
   def optimize(p: Seq[Module]): Seq[Module] =
@@ -134,7 +148,7 @@ trait CompiledUnit:
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = typechecker
-    checker.checkProgram(po)
+    checker.checkProgram(po, dependencies)
     po
 
 

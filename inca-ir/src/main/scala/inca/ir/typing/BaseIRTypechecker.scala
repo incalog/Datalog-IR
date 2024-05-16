@@ -20,9 +20,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def checkProgram(program: Seq[Module], dependencies: Seq[Module] = Seq()): Unit = scopedTypeContext {
     assert(dependencyGraph.nodes.isEmpty, "Type checking needs to be started with a fresh type checker instance.")
 
-    program.foreach(bindModule)
+    //program.foreach(println)
+    //println("---------------")
+    //dependencies.foreach(println)
 
-    program.foreach { module =>
+    dependencies.foreach(bindModule)
+
+    dependencies.foreach { module =>
       module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
       module.imports.foreach(i => bindModuleImport(i)(module))
     }
@@ -48,12 +52,16 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
   def addTypeDependency(to: ModuleEntry): Unit =
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
-  protected def checkModule(module: Module): Unit =
+  protected def checkModule(module: Module): Unit = scopedTypeContext {
     currentModule = module
+    module.contents.sorted.foreach(e => bindModuleEntry(e)(module))
+    module.imports.foreach(i => bindModuleImport(i)(module))
+
     module.contents.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
     }
+  }
 
   protected def bindModuleEntry(entry: ModuleEntry)(implicit module: Module): Unit = entry match
     case _: Provide[_] => // do not register provides. We either have a "require" or another module entry with this name
@@ -289,7 +297,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case _ => module
 
     val (rel, tys) = lookupRelationRef[R](ref, s, targetModule)
-    rel.map(r => ref.resolved(r))
+    if module != currentModule then
+      // check if the relation is provide
+      lookupModuleEntry(ref.name)(module) match
+        case Some(_: Provide[_]) => // ok
+        case _ => error(s"Cannot access relation ${ref.name} in module ${module.name}", s)
+    else
+      rel.map(r => ref.resolved(r))
     tys
 
   // lookup a relation in a module given a name

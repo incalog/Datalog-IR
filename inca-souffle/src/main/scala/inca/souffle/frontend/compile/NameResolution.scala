@@ -28,7 +28,7 @@ trait NameResolution:
       ctx.currentComponentDecl.map(c => rule.resolved(c))
     case fact@ProgramContent.Fact(qualifiedName, args) =>
       ctx.lookupRelationDecl(qualifiedName) match
-        case Some(relDecl) => fact.resolved(relDecl)
+        case Some(relDecl) => fact.resolved((relDecl, ctx.currentComponentDecl))
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $content")
     case decl@ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
       ctx.scopedTypeContext {

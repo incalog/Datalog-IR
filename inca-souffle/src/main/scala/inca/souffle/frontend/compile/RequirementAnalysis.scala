@@ -55,10 +55,9 @@ trait RequirementAnalysis:
         addProvision(n, relDecl, currentComponent)
       }
     case fact: ProgramContent.Fact if fact.name.ns.size == 1 =>
-      val relDecl = fact.target.get
-      val compDecl = relDecl.target
+      val (relDecl, _) = fact.target.get
       // fact is defined outside the current component
-      if compDecl != currentComponent then
+      if relDecl.target != currentComponent then
         addRequirement(fact.name.ns.last, relDecl, currentComponent)
     case rule: ProgramContent.Rule =>
       rule.heads.foreach {

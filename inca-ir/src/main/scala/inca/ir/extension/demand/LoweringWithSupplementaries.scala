@@ -69,7 +69,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
 
   private var currentModule: ir.Module = _
 
-  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     if isClosedWorld then super.visitProgram(modules) else modules
 
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {

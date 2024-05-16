@@ -15,7 +15,7 @@ trait BaseIRVisitor:
   // Name used for debugging
   def name: String = ""
 
-  def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+  def visitProgram(modules: Seq[ir.Module], dependencies: Seq[Module] = Seq()): Seq[ir.Module] =
     modules.map(visitModule)
 
   def visitModule(module: ir.Module): ir.Module = preserveHints(module) {

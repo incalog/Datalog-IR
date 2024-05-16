@@ -13,7 +13,7 @@ enum ProgramContent extends SourceLocation:
   case TypeDecl(name: String, rhs: TypeDeclConstraint) extends ProgramContent, Resolvable[ComponentDecl]
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain]) extends ProgramContent, Resolvable[ComponentDecl]
   case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan]) extends ProgramContent, Resolvable[ComponentDecl]
-  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[RelationDecl]
+  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[(RelationDecl, Option[ComponentDecl])]
   case Directive(dirQualifier: DirectiveQualifier, names: List[QualifiedName], attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
   case ComponentInit(n: String, compType: ComponentType) extends ProgramContent, Resolvable[ComponentDecl]

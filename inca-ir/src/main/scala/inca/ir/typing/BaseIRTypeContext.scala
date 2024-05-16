@@ -1,11 +1,14 @@
 package inca.ir.typing
 
-import inca.ir.{Import, Module, ModuleEntry, Name, Param, Ref, Term, Type, Var}
+import inca.ir.{Import, Module, ModuleEntry, Name, Param, Providable, Provide, Ref, Term, Type, Var}
 
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
 
+  var provides: Map[(Module, Name), Provide[_]] = Map()
+  // (module, imported module) -> module alias name
   var moduleImports: Map[(Module, Name), Name] = Map()
+  // (module, entry name) -> entry
   var entries: Map[(Module, Name), ModuleEntry] = Map()
 
   case class VarInfo(target: Var.Target, ty: Type, mode: VarMode)
@@ -65,6 +68,10 @@ trait BaseIRTypeContext extends TypeIO:
     modules += (name -> module)
   }
 
+  def registerProvide[T <: Providable](prov: Provide[T])(implicit module: Module): Unit = provides.get((module, prov.name)) match
+    case Some(_) => error(s"Found multiple provides with same name ${prov.name}", prov)
+    case _ => provides += ((module, prov.name) -> prov)
+  
   def bindModuleImport(imp: Import)(implicit module: Module): Unit = moduleImports.get((module, imp.as)) match
     case Some(_) => error(s"Found multiple aliases with the same name ${imp.as}", imp)
     case _ =>
@@ -102,6 +109,8 @@ trait BaseIRTypeContext extends TypeIO:
 
   def lookupModuleEntry(name: Name)(implicit module: Module): Option[ModuleEntry] = entries.get((module, name))
 
+  def lookupProvide(name: Name)(implicit module: Module): Option[Provide[_]] = provides.get((module, name))
+  
   def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
     vars.get(ref.name) match
       case None => None

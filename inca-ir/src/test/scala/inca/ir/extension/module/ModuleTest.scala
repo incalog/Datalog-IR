@@ -1,9 +1,9 @@
-package inca.ir.extension.modulesystem
+package inca.ir.extension.module
 
 import org.scalatest.funsuite.AnyFunSuiteLike
 import inca.ir.*
 import inca.ir.extension.arithmetic as arith
-import inca.ir.extension.module.{Lowering, MainHint}
+import inca.ir.extension.module.Lowering
 import inca.ir.typing.Typechecker
 import inca.ir.string2name
 import inca.ir.term2Arg
@@ -79,7 +79,7 @@ class ModuleTest extends AnyFunSuiteLike:
           Call(Seq("Cl2", "magicNumber"), Seq(Var("x")))
         ))
       ))
-    )).addHint(MainHint)
+    ))
 
     val mods = Seq(ac, c1, c2, client, main)
     //mods.foreach(m => { println(); println(m) } )
@@ -145,7 +145,7 @@ class ModuleTest extends AnyFunSuiteLike:
       /*Relation("Main", defaultSig, Seq(Body(
         Seq(Call("S", Seq(Var("x"))))
       )))*/
-    )).addHint(MainHint)
+    ))
 
     val mods = Seq(a, b, c, d)
     mods.foreach(m => { println(); println(m) } )
@@ -217,7 +217,7 @@ class ModuleTest extends AnyFunSuiteLike:
       Import("Client", "Cl2", Seq(
         RelationSubstitution("magicNumber", Seq(Param("x", arith.TInt)), Seq("C2", "magicNumber"), Seq(Param("x", arith.TInt)))
       )),
-    )).addHint(MainHint)
+    ))
 
     var mods = Seq(c1, c2, client, aMain)
     mods.foreach(m => {
@@ -263,7 +263,7 @@ class ModuleTest extends AnyFunSuiteLike:
       Import("AbstractMain", "AM", Seq(
         RelationSubstitution("P", Seq(Param("x", arith.TInt)), Seq("AC", "magicNumber"), Seq(Param("x", arith.TInt))))
       ),
-    )).addHint(MainHint)
+    ))
 
     mods = Seq(stage1, main, ac)
 

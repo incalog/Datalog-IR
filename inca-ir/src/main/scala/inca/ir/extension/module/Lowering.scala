@@ -73,18 +73,9 @@ trait Lowering extends BaseLowering:
 
   var moduleMap: Map[Name, ir.Module] = Map()
 
-  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-    val (main, others) = modules.partition(_.hasHint(MainHint)) match
-      case (mainModule, _) if mainModule.size > 1 =>
-        throw IllegalStateException("Ambiguous main module")
-      case (mainModule, _) if mainModule.isEmpty =>
-        throw IllegalStateException("No main module found")
-      case (Seq(main), otherModules) => (main, otherModules)
-
-    moduleMap = modules.map(m => m.name -> m).toMap
-
-    // This assumes, that only the main module has imports
-    Seq(visitModule(main).clearHints())
+  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
+    moduleMap = dependencies.map(m => m.name -> m).toMap
+    modules.map(visitModule)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
     case Import(moduleRef, as, subst) =>
