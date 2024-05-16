@@ -5,7 +5,7 @@ import inca.ir.extension.arithmetic.*
 
 
 
-trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueNumbering {
+trait ArithmeticValueNumbering extends BaseValueNumbering {
 
   protected override def isConst(term: Term): Boolean = term match {
     case IntNum(_) | DoubleNum(_) => true
@@ -14,7 +14,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
 
   // in the beginning no recursive call needed here since called in visitTerm ->  all subterms visited already
   protected override def normalize(term: Term): Term = {
-    if !this.config.normalize then return term
+    if !this.normalize then return term
     val typ = term.typ match { // assumed that program was typechecked before and every term thus has a type
       case Some(termType: TermType) => termType
       case _ => throw new IllegalStateException(s"Untyped Term $term in normalization")
@@ -41,7 +41,7 @@ trait ArithmeticValueNumbering(config: ConfigVN = ConfigVN()) extends BaseValueN
     return (newLhs, newRhs)
   }
   private def getArgumentOfOp(t: Term): Term = {
-    if (config.useDefiningTerm) return visitTerm(getDefiningTerm(t)).head // TODO without visitTerm defterm might contain removed Var -> other solution ? update defterm here?
+    if (this.useDefiningTerm) return visitTerm(getDefiningTerm(t)).head // TODO without visitTerm defterm might contain removed Var -> other solution ? update defterm here?
     else return t
   }
 

@@ -7,25 +7,19 @@ import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
 
 
-/** wraps parameters for value numbering */
-case class ConfigVN(normalize: Boolean = true,
-//                    occurrencesBeforeRemoved: Int = 0,
-                    useDefiningTerm: Boolean = false
-                   )
-
 /** for value numbering constructs from BaseIR */
-trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
+trait BaseValueNumbering extends IRVisitor {
+  // config
+  def normalize: Boolean = true
+  def useDefiningTerm: Boolean = false 
 
   private case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
     def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
-//      val oldLeader = leader
       if (isConst(t)) leader = t
       if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
-//      val newLeader = leader
-//      println("valueId = " + valueId + ", oldLeader = " + oldLeader + ", newLeader = " + newLeader)
     }
 
     def changeDefTermIfNecessary(t: Term): Unit = {
@@ -101,7 +95,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     case repetition
   private var phase: Phase = _
 
-//  var count: Map[valueId, Int] = Map()   // remembers how often term with id has occurred
 
   override def visitModule(module: Module): Module = {
     println(s"before VN: \n$module\n")
@@ -215,7 +208,6 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
     }
 
     val normalizedTerm = normalize(newTerm)//(true)
-//      normalizedMem.update(newTerm,normalizedTerm)
     if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
       valueNumbers.update(normalizedTerm, newTermId)
       if (congrClasses.contains(newTermId)) {
@@ -233,21 +225,9 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
         }
     }
 
-  // TODO tried finding indicators which term is "better" (probably should implement term.size if want to use something like that)
-  //    -> sometimes leads to less equalities being found...
-  //    maybe normalize once without defTerm and once with defterm and choose better one for program but save both in VN maps???
-    //      return Seq(
-    //        if (isConst(newTerm) || newTerm.isInstanceOf[Var] || (normalizedTerm.vars.size >= newTerm.vars.size))
-    //          && !isConst(normalizedTerm)
-    //          then newTerm
-    //        else normalizedTerm
-    //      )
-
-//        if (!congrClasses.contains(getIdOf(normalizedTerm))) congrClasses.update(getIdOf(normalizedTerm), CongruenceClass(getIdOf(normalizedTerm),normalizedTerm,normalizedTerm))
       return Seq(normalizedTerm)
   }
 
-//  protected val normalizedMem: mutable.Map[Term,Term] = mutable.Map()
 
   // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
@@ -264,15 +244,12 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-//    val tempTerm = visitTerm(t).head
-//    val newTerm = if (tempTerm == newVari && t != newVari && newVari.mode.isBinding) || isParam(t) then t else tempTerm
     val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
 
     val termId: ValueId = getIdOf(newTerm)
     if (congrClasses.contains(termId)) {
       updateValueNumbersAndCongrClasses(newVari, termId)
-      //count = count.updated(termId, count (termId) + 1)
 
       // remove "Assignment" or replace term
       if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
@@ -285,16 +262,15 @@ trait BaseValueNumbering(config: ConfigVN = ConfigVN()) extends IRVisitor {
 
     else {
       updateValueNumbersAndCongrClasses(newVari,termId)
-      //count += (termId,1)
 
       // if term is a constant then use it as leader of its congruence class
       // TODO atoms of the form term == term could also be removed statically
       if (isConst(newTerm)) {
-        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm /*normalizedMem.getOrElse(newTerm,newTerm)*/))
+        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
         if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
       else {
-        congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm /*normalizedMem.getOrElse(newTerm,newTerm)*/))
+        congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
         congrClasses(termId).changeLeaderIfNecessary(newTerm)
         congrClasses(termId).changeDefTermIfNecessary(newTerm)
       }

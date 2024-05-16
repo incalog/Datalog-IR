@@ -11,7 +11,7 @@ import inca.util.CompilationMessage
 import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
-import inca.ir.valueNumbering.{ConfigVN, ValueNumbering}
+import inca.ir.valueNumbering.ValueNumbering
 
 trait CompiledModule:
   def compilerOptions: CompilerOptions
@@ -130,14 +130,15 @@ trait CompiledModule:
 
   
 //  var valueNumberingResult: Seq[Module] = Seq() // for Testing
-//  def valueNumbering(p: Seq[Module], config: ConfigVN = ConfigVN(normalize=true)): Seq[Module] =
+//  def valueNumbering(p: Seq[Module]): Seq[Module] = {
 //    valueNumberingResult = p.map { input =>
-//      valueNumbering(input,config)
+//      valueNumbering(input)
 //    }
 //    valueNumberingResult
+//  }
 //
-//  def valueNumbering(module: Module, config: ConfigVN): Module = {
-//    val VN = new ValueNumbering(config)
+//  def valueNumbering(module: Module): Module = {
+//    val VN = new ValueNumbering{}
 //    println(s"before VN: \n$module\n") // use printstep
 //    val result = VN.valueNumbering(module)
 //    println(s"after VN: \n$result")

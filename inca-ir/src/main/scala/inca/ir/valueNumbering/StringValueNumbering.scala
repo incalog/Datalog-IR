@@ -4,15 +4,15 @@ import inca.ir.extension.string.{StringLit,StringConcat,ToString}
 import inca.ir.{Atom, Term}
 
 
-trait StringValueNumbering(config: ConfigVN) extends BaseValueNumbering {
+trait StringValueNumbering extends BaseValueNumbering {
   
   protected override def isConst(term: Term): Boolean = term match {
     case StringLit(_) => true
     case _ => super.isConst(term)
   }
   
-  protected override def normalize(term: Term): Term = // TODO ToString
-    if !this.config.normalize then return term 
+  protected override def normalize(term: Term): Term = 
+    if !this.normalize then return term 
     term match {
       case StringLit(s) => term
       case StringConcat(lhs, rhs) => (lhs,rhs) match {

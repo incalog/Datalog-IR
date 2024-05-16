@@ -6,11 +6,16 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.extension.arithmetic
 import inca.ir.*
-import inca.ir.valueNumbering.{ArithmeticValueNumbering, BaseValueNumbering, ConfigVN, ValueNumbering}
+import inca.ir.valueNumbering.{ArithmeticValueNumbering, BaseValueNumbering, ValueNumbering}
 import inca.ir.typing.Typechecker
 
 abstract class ValueNumberingTestAbstract extends AnyFunSuite{
 
+  /** wraps parameters for value numbering */
+  case class ConfigVN(normalize: Boolean = true,
+                      useDefiningTerm: Boolean = false
+                     )
+  
   val config: ConfigVN = ConfigVN()
   
   
@@ -21,7 +26,10 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   }
   
   def performTest(expected: IRModule, input: IRModule, config: ConfigVN = config): Unit = {
-    val VN = new ValueNumbering(config)
+    val VN = new ValueNumbering {
+      override val normalize: Boolean = config.normalize
+      override val useDefiningTerm: Boolean = config.useDefiningTerm
+    }
     performTestInternal(expected, input, VN)
   }
   
