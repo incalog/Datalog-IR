@@ -12,8 +12,13 @@ import inca.util.Gensym
 
 import scala.annotation.tailrec
 
+implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y) match
+  case (_: ProgramContent.ComponentDecl, _: ProgramContent.ComponentDecl) => 0
+  case (_, _: ProgramContent.ComponentDecl) => -1
+  case (_: ProgramContent.ComponentDecl, _) => 1
+  case _ => 0
 
-class GenerateModuleBasedIR:
+class GenerateModuleBasedIR extends GenerateIRContext:
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + irbool.IR + irdata.IR
     + irdis.IR + irnot.IR + irstring.IR
@@ -21,112 +26,23 @@ class GenerateModuleBasedIR:
   )
   val gensym: Gensym = new Gensym()
 
-  var rules: Map[ProgramContent.RelationDecl, Set[ProgramContent]] = Map()
-  // Collect for all RelationDecl if it is an edb relation or not
-  var edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = Map()
-  // Collect for all RelationDecl if it is an output or not
-  var outputDecls: Set[ProgramContent.RelationDecl] = Set()
-  // all path for each declaration
-  var paths: Map[ProgramContent.RelationDecl, Seq[ComponentType]] = Map()
-  // for each component decl store the name and the actual decl that is required
-  var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent.RelationDecl)]] = Map()
+  private var componentModules: Map[ir.Name, ir.Module] = Map()
 
-  var componentModules: Map[ir.Name, ir.Module] = Map()
+  private var currentComponent: Option[ComponentDecl] = None
+
+  private def currentlyInMainComponent: Boolean = currentComponent.isEmpty
+
+  private def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
 
   def compileProgram(prog: Program, name: String): Seq[ir.Module] =
-    val nameResolution = new NameResolution {}
-    nameResolution.resolveProgram(prog)
-
-    val reqAna = new RequirementAnalysis {}
-    reqAna.analyseProgram(prog)
-    //println(reqAna.requiredDecls.map(a => a._1.ty.n -> a._2.map(_._1)))
-
-    paths = collectPath(prog.content)
-    rules = collectRules(prog.content)
-    edbDecls = collectEdbDecls(prog.content)
-    outputDecls = collectOutputDecls(prog.content)
-    requiredDecls = reqAna.requiredDecls
+    // perform name resolution and prefill the context
+    analyseProgram(prog)
 
     val content = compileProgramContents(prog.content)
     val souffleModule = ir.Module(ir.Name(name), irLang, content)
 
     souffleModule +: componentModules.values.toSeq
 
-  private def combineIterables[K, V](a: Map[K, Set[V]], b: Map[K, Set[V]]): Map[K, Set[V]] = {
-    a ++ b.map { case (k, v) => k -> (v ++ a.getOrElse(k, Set.empty)) }
-  }
-
-  private def collectRules(content: Seq[ProgramContent], collectedComponents: Set[ComponentType] = Set()): Map[ProgramContent.RelationDecl, Set[ProgramContent]] =
-    // TODO: We can improve this by visiting components only once. We still need to visit them on init!
-    var rules: Map[ProgramContent.RelationDecl, Set[ProgramContent]] = Map()
-    content.foreach {
-      case rule@ProgramContent.Rule(heads, _, _) =>
-        val newRules = heads.map {
-          case call: Atom.Call =>
-            val relDecl = call.target.get
-            val existingRules = rules.getOrElse(relDecl, Set())
-            relDecl -> (existingRules + rule)
-          case a =>
-            throw IllegalStateException(s"Unexpected head atom $a")
-        }.toMap
-        rules = combineIterables(rules, newRules)
-      case fact@ProgramContent.Fact(_, _) =>
-        val (relDecl, _) = fact.target.get
-        val existingRules = rules.getOrElse(relDecl, Set())
-        rules += relDecl -> (existingRules + fact)
-      case compInit@ProgramContent.ComponentInit(_, compType) =>
-        // we must only collect rules in a component, if there is an init for the component
-        val compDecl = compInit.target.get
-        val newRules = collectRules(compDecl.content)
-        rules = combineIterables(rules, newRules)
-      case _ => // nothing
-    }
-    rules
-
-  private def collectEdbDecls(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] =
-    // TODO: This assumes, we do not allow cases such as
-    //  .decl A, B
-    //  .input A
-    var edbDecls = Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]]()
-    content.foreach {
-      case input@ProgramContent.Directive(DirectiveQualifier.Input, _, _) =>
-        edbDecls += input.target.get -> input.attrs
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        edbDecls ++= collectEdbDecls(compContent)
-      case _ => // nothing
-    }
-    edbDecls
-
-  private def collectOutputDecls(content: Seq[ProgramContent]): Set[ProgramContent.RelationDecl] =
-    // TODO: This assumes, we do not allow cases such as
-    //  .decl A, B
-    //  .input A
-    var outputDecls = Set[ProgramContent.RelationDecl]()
-    content.foreach {
-      case output@ProgramContent.Directive(DirectiveQualifier.Output, _, _) =>
-        outputDecls += output.target.get
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        outputDecls ++= collectOutputDecls(compContent)
-      case _ => // nothing
-    }
-    outputDecls
-
-  private def collectPath(content: Seq[ProgramContent], path: Seq[ComponentType] = Seq()): Map[ProgramContent.RelationDecl, Seq[ComponentType]] =
-    var declToPath: Map[ProgramContent.RelationDecl, Seq[ComponentType]] = Map()
-    content.foreach {
-      case decl: RelationDecl =>
-        declToPath += decl -> path
-      case compDecl@ProgramContent.ComponentDecl(compTy, _, compContent) =>
-        declToPath ++= collectPath(compContent, path :+ compTy)
-      case _ => // nothing
-    }
-    declToPath
-
-  implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y) match
-    case (_: ProgramContent.ComponentDecl, _: ProgramContent.ComponentDecl) => 0
-    case (_, _: ProgramContent.ComponentDecl) => -1
-    case (_: ProgramContent.ComponentDecl, _) => 1
-    case _ => 0
 
   private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
     contents.sorted.flatMap(compileProgramContent).distinct
@@ -154,7 +70,7 @@ class GenerateModuleBasedIR:
         val content = rels.flatMap(compileRelationDecl) ++ compileProgramContents(decl.content)
         currentComponent = oldComponent
 
-        val required = requiredDecls(decl).toSeq.map {
+        val required = lookupRequiredDeclarations(decl).map {
           case (name, decl) =>
             val params = decl.attrs.map(compileAttribute)
             RequireRelation(ir.Name("super$" + name), params)
@@ -169,17 +85,14 @@ class GenerateModuleBasedIR:
         componentModules += modName -> compModule
         compModule
 
-  private var currentComponent: Option[ComponentDecl] = None
-
   private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
       case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
-        if currentComponent.nonEmpty then
+        if currentlyInMainComponent then
+          compileRelationDecl(relDecl)
+        else
           // we compile this when we compile a component
           Seq()
-        else
-          // compile the main content
-          compileRelationDecl(relDecl)
       case rule@ProgramContent.Rule(heads, body, queryPlan) =>
         Seq()
       case fact@ProgramContent.Fact(name, args) =>
@@ -207,14 +120,15 @@ class GenerateModuleBasedIR:
 
   private def prefixedRelationName(name: String, decl: RelationDecl, absolutePath: Boolean): ir.Name =
     if absolutePath then
-      if requiredDecls(decl.target.get).map(_._1).contains(name) then
+      val requiredRelNames = lookupRequiredDeclarations(decl.target.get).map(_._1)
+      if requiredRelNames.contains(name) then
         // the relation is also required in the parent => prefix
         ir.Name("super$" + name)
       else
         // the relation is not required in the parent => no prefix
         ir.Name(name)
     else
-      if decl.target == currentComponent then
+      if currentlyInComponent(decl.target) then
         // the relation is declared in the current component => no prefix
         ir.Name(name)
       else
@@ -222,26 +136,21 @@ class GenerateModuleBasedIR:
         ir.Name("super$" + name)
 
   private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
-    if currentComponent.contains(compTyp) then
-      Seq()
-    else
-      val requiredInComponent = requiredDecls(compTyp.target.get).toSeq
-      var dependencies: Set[ComponentType] = Set()
-      val subst = requiredInComponent.map {
-        case (name, decl: RelationDecl) =>
-          //val compTy = currentComponent.map(_.ty)
-          // paths(decl).lastOption == compTy
-          // when we are in the current component, we don't need a prefix for the export
-          val fromPath = if decl.target == currentComponent then Seq() else paths(decl)
-          val fromName = prefixedRelationName(name, decl, absolutePath = fromPath.nonEmpty)
-          dependencies ++= fromPath
-          val params = decl.attrs.map(compileAttribute)
-          val relName = ir.Name("super$"+name)
-          val qualifiedFromName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromName
-          RelationSubstitution(relName, params, qualifiedFromName, params)
-      }
-      val imp = ir.Import(ir.Name(compTyp.n), ir.Name(as), subst)
-      dependencies.toSeq.flatMap(dep => resolveImport(dep, dep.n)) :+ imp
+    val requiredInComponent = lookupRequiredDeclarations(compTyp.target.get)
+    var dependencies: Set[ComponentType] = Set()
+    val subst = requiredInComponent.map {
+      case (name, decl: RelationDecl) =>
+        // when we are in the current component, we don't need a prefix for the export
+        val fromPath = if currentlyInComponent(decl.target) then Seq() else lookupPath(decl)
+        val fromName = prefixedRelationName(name, decl, absolutePath = fromPath.nonEmpty)
+        dependencies ++= fromPath
+        val params = decl.attrs.map(compileAttribute)
+        val relName = ir.Name("super$"+name)
+        val qualifiedFromName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromName
+        RelationSubstitution(relName, params, qualifiedFromName, params)
+    }
+    val imp = ir.Import(ir.Name(compTyp.n), ir.Name(as), subst.toSeq)
+    dependencies.toSeq.flatMap(dep => resolveImport(dep, dep.n)) :+ imp
 
   private def cleanName(name: String): String =
     name.replace("?", "Q_")
@@ -252,16 +161,6 @@ class GenerateModuleBasedIR:
 
   private def namesToIrName(ns: Seq[String]): ir.Name =
     ir.Name(ns.map(cleanName).mkString("$"))
-
-  private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
-    // A single rule can have multiple names. Only a single name must match
-    case ProgramContent.Rule(heads, _, _) =>
-      heads.exists {
-        case Atom.Call(QualifiedName(ns), _) if ns.last == relName => true
-        case _ => false
-      }
-    case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
-    case _ => false
 
   private def compileAdtDecl(decl: ProgramContent.TypeDecl) = ???
     /*val ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) = decl
@@ -289,47 +188,45 @@ class GenerateModuleBasedIR:
     names.map { relName =>
       val params = attrs.map(compileAttribute)
 
-      val edb = edbDecls.get(decl)
-      edb match
-        case Some(attrs) =>
-          ir.ExtensionalRelation(ir.Name(relName), params)
-            .addHint(SouffleInputHint(attrs))
-        case None =>
-          // Find all rules relevant for this relation
-          val rulesForRelation = rules(decl).filter(r => ruleHasName(r, relName)).toSeq
-          val bodies = rulesForRelation.flatMap {
-            case r: ProgramContent.Rule if currentComponent.isEmpty =>
-              // we always compile in the main component
-              compileRule(decl, r, relName)
-            case r: ProgramContent.Rule if r.target == currentComponent =>
-              compileRule(decl, r, relName)
-            case f: ProgramContent.Rule => Seq()
-              // Call parent impl
-              Seq(ir.Body(Seq(
-                ir.Call(ir.Name(s"super$$$relName"), decl.attrs.map(compileAttribute).map(p => ir.Var(p.name).arg))
-              )))
-            case f: ProgramContent.Fact if currentComponent.isEmpty =>
-              // we always compile in the main component
-              Seq(compileFact(decl, f))
-            case f: ProgramContent.Fact if f.target.get._2 == currentComponent =>
-              Seq(compileFact(decl, f))
-            case f: ProgramContent.Fact => Seq() // nothing
-            case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
-          }
-
-          // the declaration is in a parent, that is do a super call
-          val superCall = if decl.target != currentComponent then
+      if isEdbDeclaration(decl) then
+        ir.ExtensionalRelation(ir.Name(relName), params)
+          .addHint(SouffleInputHint(lookupEdbAttributes(decl)))
+      else
+        // Find all rules relevant for this relation
+        val rulesForRelation = lookupRules(relName, decl)
+        val bodies = rulesForRelation.flatMap {
+          case r: ProgramContent.Rule if currentlyInMainComponent =>
+            // we always compile in the main component
+            compileRule(decl, r, relName)
+          case r: ProgramContent.Rule if currentlyInComponent(r.target) =>
+            compileRule(decl, r, relName)
+          case f: ProgramContent.Rule => Seq()
             // Call parent impl
-            Some(ir.Body(Seq(
+            Seq(ir.Body(Seq(
               ir.Call(ir.Name(s"super$$$relName"), decl.attrs.map(compileAttribute).map(p => ir.Var(p.name).arg))
             )))
-          else
-            None
+          case f: ProgramContent.Fact if currentlyInMainComponent =>
+            // we always compile in the main component
+            Seq(compileFact(decl, f))
+          case f: ProgramContent.Fact if currentlyInComponent(f.target.get._2) =>
+            Seq(compileFact(decl, f))
+          case f: ProgramContent.Fact => Seq() // nothing
+          case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
+        }
 
-          val rel = ir.Relation(ir.Name(relName), params, bodies ++ superCall)
-          if (outputDecls.contains(decl))
-            rel.addHint(SouffleOutputHint)
-          rel
+        // the declaration is in a parent, that is do a super call
+        val superCall = if !currentlyInComponent(decl.target) then
+          // Call parent impl
+          Some(ir.Body(Seq(
+            ir.Call(ir.Name(s"super$$$relName"), decl.attrs.map(compileAttribute).map(p => ir.Var(p.name).arg))
+          )))
+        else
+          None
+
+        val rel = ir.Relation(ir.Name(relName), params, bodies ++ superCall)
+        if isOutputDeclaration(decl) then
+          rel.addHint(SouffleOutputHint)
+        rel
     }
 
   private def compileAttribute(attr: Attribute): ir.Param =
@@ -371,14 +268,13 @@ class GenerateModuleBasedIR:
       val decl = call.target.get
 
       // find the component in which this call is declared
-      val fromPath = qname.ns.dropRight(1).map(n => ir.Name(n))
-      val fromName = prefixedRelationName(qname.ns.last, decl, absolutePath = fromPath.nonEmpty)
+      val fromPath = qname.path.map(n => ir.Name(n))
+      val fromName = prefixedRelationName(qname.unqualifiedName, decl, absolutePath = fromPath.nonEmpty)
 
-      edbDecls.get(decl) match
-        case Some(_) =>
-          ir.ExtensionalCall(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
-        case None =>
-          ir.Call(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
+      if isEdbDeclaration(decl) then
+        ir.ExtensionalCall(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
+      else
+        ir.Call(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(atoms => irdis.DisjunctionAlternative(atoms.map(compileAtom))))
     case Atom.Compare(t1, Comparator.EQ, t2) =>

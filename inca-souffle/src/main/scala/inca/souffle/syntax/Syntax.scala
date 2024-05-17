@@ -108,6 +108,8 @@ enum Type extends SourceLocation:
     case Name(qualName) => qualName.toString
 
 case class QualifiedName(ns: Seq[String]):
+  def path: Seq[String] = ns.dropRight(1)
+  def unqualifiedName: String = ns.last
   override def toString: String = ns.mkString(".")
 case class Record(attrs: Seq[Attribute]):
   override def toString: String = s"[${attrs.mkString(", ")}]"

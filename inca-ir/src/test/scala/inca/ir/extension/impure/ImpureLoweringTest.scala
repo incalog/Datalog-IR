@@ -39,6 +39,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
     val typecheckerBefore = new IRTypechecker
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
+    lowering.isClosedWorld = true
 
     val mod = Module("M", impureIR.language, relations)
     //var printedMod = false
