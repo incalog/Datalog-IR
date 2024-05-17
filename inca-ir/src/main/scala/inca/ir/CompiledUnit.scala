@@ -90,6 +90,10 @@ trait CompiledUnit:
     val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
     val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
 
+    //println(s"Lower $name :: ${header.size}")
+    //header.foreach(println)
+    //println()
+
     if (logModule)
       printStep("IR-Module", if logTyped then checked else irModules)
 

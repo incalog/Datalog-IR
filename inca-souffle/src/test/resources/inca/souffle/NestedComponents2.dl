@@ -27,7 +27,7 @@
 
 .init comp = Component
 /*
-// Not obvious how to handle this
+// Not obvious how to handle / compile this
 comp.edge("a", "b").
 comp.edge("b", "c").
 comp.edge("c", "b").

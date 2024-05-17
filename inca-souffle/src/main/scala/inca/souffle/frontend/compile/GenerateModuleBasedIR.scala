@@ -200,15 +200,26 @@ class GenerateModuleBasedIR:
         // lazily compile the component and all inherited components if needed
         val decl = compInit.target.get
         compileComponentDecl(decl)
-
         resolveImport(compTy, initName)
       case _ =>
         Seq()
-      /*
-      case ProgramContent.Directive(dirQualifier, name, attrs) => ???
-      case ProgramContent.Override(n) => ???
-      case ProgramContent.FunctorDecl(name, params, retType, stateful) => ???
-      case ProgramContent.Pragma(option, arg) => ???*/
+
+
+  private def prefixedRelationName(name: String, decl: RelationDecl, absolutePath: Boolean): ir.Name =
+    if absolutePath then
+      if requiredDecls(decl.target.get).map(_._1).contains(name) then
+        // the relation is also required in the parent => prefix
+        ir.Name("super$" + name)
+      else
+        // the relation is not required in the parent => no prefix
+        ir.Name(name)
+    else
+      if decl.target == currentComponent then
+        // the relation is declared in the current component => no prefix
+        ir.Name(name)
+      else
+        // the relation is passed down from a parent to the current component and reexported => prefix
+        ir.Name("super$" + name)
 
   private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
     if currentComponent.contains(compTyp) then
@@ -222,22 +233,7 @@ class GenerateModuleBasedIR:
           // paths(decl).lastOption == compTy
           // when we are in the current component, we don't need a prefix for the export
           val fromPath = if decl.target == currentComponent then Seq() else paths(decl)
-          // if we export a required relation given as input, then we prepend super$
-          val fromName = if fromPath.nonEmpty then
-            //assert(fromPath.lastOption.flatMap(_.target) == decl.target)
-            if requiredDecls(decl.target.get).map(_._1).contains(name) then
-              // the relation is also required in the parent => prefix from
-              ir.Name("super$" + name)
-            else
-              // the relation is not required in the parent => no prefix
-              ir.Name(name)
-          else
-            if decl.target == currentComponent then
-              // the relation is declared in the current component => no prefix
-              ir.Name(name)
-            else
-              // the relation is passed down from a parent to the current component and reexported => prefix
-              ir.Name("super$" + name)
+          val fromName = prefixedRelationName(name, decl, absolutePath = fromPath.nonEmpty)
           dependencies ++= fromPath
           val params = decl.attrs.map(compileAttribute)
           val relName = ir.Name("super$"+name)
@@ -376,24 +372,7 @@ class GenerateModuleBasedIR:
 
       // find the component in which this call is declared
       val fromPath = qname.ns.dropRight(1).map(n => ir.Name(n))
-      val fromName = if fromPath.nonEmpty then
-        if requiredDecls(decl.target.get).map(_._1).contains(qname.ns.last) then
-          // the relation is also required in the parent => prefix from
-          ir.Name("super$" + qname.ns.last)
-        else
-          // the relation is not required in the parent => no prefix
-          ir.Name(qname.ns.last)
-      else if decl.target == currentComponent then
-        // the relation is declared in the current component => no prefix
-        ir.Name(qname.ns.last)
-      else
-        // the relation is passed down from a parent to the current component and reexported => prefix
-        ir.Name("super$" + qname.ns.last)
-
-      val required = currentComponent match
-        case Some(comp) => requiredDecls(comp).map(_._2)
-        case _ => Set()
-      val prefix = if required.contains(decl) && qname.ns.size == 1 then "super$" else ""
+      val fromName = prefixedRelationName(qname.ns.last, decl, absolutePath = fromPath.nonEmpty)
 
       edbDecls.get(decl) match
         case Some(_) =>
@@ -423,7 +402,7 @@ class GenerateModuleBasedIR:
     case Term.NumberLit(n) => irarith.IntNum(n)
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
     case Term.FloatLit(f) => irarith.DoubleNum(f)
-    case Term.Nil() => ???
+    case Term.Nil() => ??? // record nil case
     case Term.List(s) => ???
     case constr@Term.Constr(qname, args) =>
       // TODO: Allow calls with absolut paths
@@ -437,22 +416,17 @@ class GenerateModuleBasedIR:
         case IntrinsicFunctor.Ord => ???
         case IntrinsicFunctor.ToFloat => ???
         case IntrinsicFunctor.ToNumber => ???
-        case IntrinsicFunctor.ToString => ???
+        case IntrinsicFunctor.ToString =>
+          irstring.ToString(compileTerm(args.head))
         case IntrinsicFunctor.ToUnsigned => ???
         case IntrinsicFunctor.Cat =>
-          val lhs = args.head
-          val rhs = args(1)
-          irstring.StringConcat(compileTerm(lhs), compileTerm(rhs))
+          irstring.StringConcat(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.StrLen => ???
         case IntrinsicFunctor.Substr => ???
         case IntrinsicFunctor.Max =>
-          val lhs = args.head
-          val rhs = args(1)
-          irarith.Max(compileTerm(lhs), compileTerm(rhs))
+          irarith.Max(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.Min =>
-          val lhs = args.head
-          val rhs = args(1)
-          irarith.Min(compileTerm(lhs), compileTerm(rhs))
+          irarith.Min(compileTerm(args.head), compileTerm(args(1)))
     case Term.UserDefFunctorApp(f, args) => ???
 
     case Term.Unary(UnOp.Neg, t) => irarith.Neg(compileTerm(t))

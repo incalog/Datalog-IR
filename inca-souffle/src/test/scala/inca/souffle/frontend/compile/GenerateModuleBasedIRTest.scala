@@ -37,7 +37,7 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
-      opt.irLogging.logOptimizations = true
+      opt.irLogging.logOptimizations = false
       opt
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -52,20 +52,24 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     val compiledProg = new CompiledProgram {
       override def irModules: Seq[Module] = generateMods
       override def createCompiledUnit(module: Module, otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
-        val compiled = Compiled(Seq(module), otherUnits, isClosedWorld, module.name)
-        compiled.setPipeline(pipeline)
-        compiled
+        Compiled(Seq(module), otherUnits, isClosedWorld, module.name)
+        /*println(s"Lower: ${module.name} :: ")
+        println("Header ::")
+        println(otherUnits.flatMap(_.header))
+        println("*****")
+        println(compiled.lowered)*/
     }
+    compiledProg.setPipeline(pipeline)
 
     generateMods.foreach(m => {println(); println(m) } )
 
     // the last component is the closed world one
-    println("++++++++++++++++")
-    println(compiledProg.compiledUnits.map(_.name))
-    val closedWorldUnit = compiledProg.compiledUnits.last
+    //println("++++++++++++++++")
+    //println(compiledProg.compiledUnits.map(_.name))
 
-    val engine = new Executor().instantiate(closedWorldUnit)
+    val engine = new Executor().instantiate(compiledProg.mainUnit)
     val rels = engine.readAll()
+    //rels.foreach { r => println(r.asTable) }
     rels.map { rel =>
       rel.name -> rel
     }.toMap
@@ -73,32 +77,47 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
   test("Component") {
     val file = FileUtil.readFileFromResource("inca/souffle/Component.dl")
     val prog = Parser.parseSouffle(file)
-    execute(prog).foreach {
-      (_, r) => println(r.asTable)
-    }
+    val res = execute(prog)
+
+    assertResult(Set(42))(res("R").toSet)
+    assertResult(Set(41, 42))(res("Q").toSet)
+    assertResult(Set(41, 42))(res("config1$MagicNumber").toSet)
+    assertResult(Set(41, 42))(res("config2$MagicNumber").toSet)
   }
 
   test("Component inheritance") {
     val file = FileUtil.readFileFromResource("inca/souffle/ComponentInheritance.dl")
     val prog = Parser.parseSouffle(file)
-    execute(prog).foreach {
-      (_, r) => println(r.asTable)
-    }
+    val res = execute(prog)
+
+    assertResult(Set())(res("AbstractConfiguration$MagicNumber").toSet)
+    assertResult(Set(42, 43))(res("S").toSet)
+    assertResult(Set(42))(res("config1$MagicNumber").toSet)
+    assertResult(Set(43))(res("config2$MagicNumber").toSet)
   }
 
   test("Nested components") {
     val file = FileUtil.readFileFromResource("inca/souffle/NestedComponents.dl")
     val prog = Parser.parseSouffle(file)
-    execute(prog).foreach {
-      (_, r) => println(r.asTable)
-    }
+    val res = execute(prog)
+
+    assertResult(Set(41, 42))(res("S").toSet)
+    assertResult(Set(41, 42))(res("b$Q").toSet)
+    assertResult(Set(42))(res("b$a$R").toSet)
   }
 
   test("Nested components 2") {
-    // TODO: Fix compilation here
     val file = FileUtil.readFileFromResource("inca/souffle/NestedComponents2.dl")
     val prog = Parser.parseSouffle(file)
-    execute(prog).foreach {
-      (_, r) => println(r.asTable)
-    }
+    val res = execute(prog)
+
+    val pathSet = Set(
+      ("a", "b"), ("b", "b"), ("c", "b"),
+      ("a", "c"), ("b", "c"), ("c", "c"),
+      ("a", "d"), ("b", "d"), ("c", "d")
+    )
+
+    assertResult(pathSet)(res("comp$innerComp$path").toSet)
+    assertResult(pathSet)(res("comp$innerComp2$path").toSet)
+    assertResult(Set(4, 5))(res("zero").toSet)
   }

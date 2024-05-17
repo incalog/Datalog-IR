@@ -96,6 +96,9 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
   private var suffixes:  Map[SourceLocation, String] = Map()
 
+  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
+    if isClosedWorld then super.visitProgram(modules) else modules
+
   private def getBodyEnclosureSpecificImpuritySuffix(enclosure: SourceLocation): String =
     enclosure match
       case _: Relation => ""
@@ -103,8 +106,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
         suffixes.get(enclosure) match
           case Some(suffix) => gensym.fresh(suffix)
           case _ =>
-            // TODO: This naming scheme is ugly
-            val clsName = enclosure.getClass.getSimpleName //enclosure.hashCode().abs.toString
+            val clsName = enclosure.getClass.getSimpleName
             val suffix = gensym.fresh(gensym.freshGlobal(clsName).replace("$", ""))
             suffixes += enclosure -> suffix
             "_" + suffix
