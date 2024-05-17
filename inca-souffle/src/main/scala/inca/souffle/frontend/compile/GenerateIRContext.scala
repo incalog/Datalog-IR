@@ -51,6 +51,9 @@ trait GenerateIRContext {
 
   def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
 
+  def relationIsRequiredInComponent(name: String, compDecl: ComponentDecl): Boolean =
+    lookupRequiredDeclarations(compDecl).map(_._1).contains(name)
+  
   def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(String, ProgramContent.RelationDecl)] =
     requiredDecls.getOrElse(compDecl, Set())
 

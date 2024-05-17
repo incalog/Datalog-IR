@@ -11,6 +11,7 @@ import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl}
 import inca.util.Gensym
 
 import scala.annotation.tailrec
+import scala.collection.immutable.{AbstractSet, SortedSet}
 
 implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y) match
   case (_: ProgramContent.ComponentDecl, _: ProgramContent.ComponentDecl) => 0
@@ -37,10 +38,10 @@ class GenerateModuleBasedIR extends GenerateIRContext:
   private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
     contents.sorted.flatMap(compileProgramContent).distinct
 
-  private def collectProgramContent[A](componentDecl: ComponentDecl)(f: PartialFunction[ProgramContent, A]): Set[A] =
+  private def transitivelyCollectProgramContent[A](componentDecl: ComponentDecl)(f: PartialFunction[ProgramContent, A]): Set[A] =
     val directDecls = componentDecl.content.collect(f).toSet
     val superComponents = componentDecl.superTys.map(_.target.get)
-    directDecls ++ superComponents.flatMap(c => collectProgramContent(c)(f))
+    directDecls ++ superComponents.flatMap(c => transitivelyCollectProgramContent(c)(f))
 
   private def compileComponentDecl(decl: ComponentDecl): ir.Module =
     val modName = ir.Name(decl.ty.n)
@@ -52,38 +53,29 @@ class GenerateModuleBasedIR extends GenerateIRContext:
     // compile all inherited components
     val superDecls = decl.superTys.map(_.target.get)
     superDecls.map(compileComponentDecl)
-
     // collect all relation declarations defined in this component or the parent
-    val rels = collectProgramContent(decl){ case r: ProgramContent.RelationDecl => r }
+    val rels = transitivelyCollectProgramContent(decl){ case r: ProgramContent.RelationDecl => r }
     val content = switchToComponent(decl) {
       rels.toSeq.flatMap(compileRelationDecl) ++ compileProgramContents(decl.content)
     }
-
     val required = lookupRequiredDeclarations(decl).map {
       case (name, decl) =>
         val params = decl.attrs.map(compileAttribute)
         RequireRelation(ir.Name("super$" + name), params)
     }
-
     // provide all relations in a component
     val provided = content.collect {
       case ir.Relation(name, params, bodies) => ProvideRelation(name, params)
     }
-
     val compModule = ir.Module(moduleName, irLang, content ++ required ++ provided)
     componentModules += moduleName -> compModule
     compModule
 
   private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
-      case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
-        if currentlyInMainComponent then
-          compileRelationDecl(relDecl)
-        else
-          // we compile this when we compile a component
-          Seq()
+      case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) if currentlyInMainComponent =>
+        compileRelationDecl(relDecl)
       case compInit@ProgramContent.ComponentInit(initName, compTy) =>
-        // lazily compile the component and all inherited components if needed
         val decl = compInit.target.get
         compileComponentDecl(decl)
         resolveImport(compTy, initName)
@@ -91,21 +83,18 @@ class GenerateModuleBasedIR extends GenerateIRContext:
         Seq()
 
   private def prefixedRelationName(name: String, decl: RelationDecl, absolutePath: Boolean): ir.Name =
-    if absolutePath then
-      val requiredRelNames = lookupRequiredDeclarations(decl.target.get).map(_._1)
-      if requiredRelNames.contains(name) then
-        // the relation is also required in the parent => prefix
-        ir.Name("super$" + name)
-      else
-        // the relation is not required in the parent => no prefix
-        ir.Name(name)
+    if absolutePath && relationIsRequiredInComponent(name, decl.target.get) then
+      // the relation is from a parent and is also required in the parent => prefix
+      ir.Name("super$" + name)
+    else if absolutePath then
+      // the relation is from a parent, but is not required in it => no prefix
+      ir.Name(name)
+    else if currentlyInComponent(decl.target) then
+      // the relation is declared in the current component => no prefix
+      ir.Name(name)
     else
-      if currentlyInComponent(decl.target) then
-        // the relation is declared in the current component => no prefix
-        ir.Name(name)
-      else
-        // the relation is passed down from a parent to the current component and reexported => prefix
-        ir.Name("super$" + name)
+      // the relation is passed down from a parent to the current component and reexported => prefix
+      ir.Name("super$" + name)
 
   private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
     val requiredInComponent = lookupRequiredDeclarations(compTyp.target.get)
