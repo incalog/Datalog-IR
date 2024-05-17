@@ -32,7 +32,7 @@ object GenerateSouffle:
           ProgramContent.Rule(Seq(head), Atom.Disjunction(Seq(atoms)), queryPlanHintOption.map(_.qp))
         }
 
-        // TODO: Although this is correct for souffle programs, we currently expect all outputs for IncA programs
+        // FIXME: Although this is correct for souffle programs, we currently expect all outputs for IncA programs
         //if (rel.hasHint(SouffleOutputHint)) {
         val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
         Seq(relDecl, outputDirective) ++ rules

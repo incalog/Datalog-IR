@@ -4,13 +4,6 @@
 
 .comp Configuration: AbstractConfiguration {
     MagicNumber(42).
-
-// Duplicated names might make problems
-/*.comp AbstractConfiguration {
-    .decl MagicNumber2(x:number)
-    MagicNumber2(x) :- MagicNumber(x).
-}
-.init a = AbstractConfiguration*/
 }
 
 .comp ConfigurationTwo: AbstractConfiguration {

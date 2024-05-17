@@ -20,7 +20,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
 
-class GenerateModuleBasedIRTest extends AnyFunSuite:
+class GenerateIRTest extends AnyFunSuite:
   def typechecker(): Typechecker = new Typechecker {}
 
   val pipeline: List[() => BaseIRVisitor] = List(
@@ -54,19 +54,10 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
       override def irModules: Seq[Module] = generateMods
       override def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
         Compiled(modules, otherUnits, isClosedWorld, modules.head.name)
-        /*println(s"Lower: ${module.name} :: ")
-        println("Header ::")
-        println(otherUnits.flatMap(_.header))
-        println("*****")
-        println(compiled.lowered)*/
     }
     compiledProg.setPipeline(pipeline)
 
-    generateMods.foreach(m => {println(); println(m) } )
-
-    // the last component is the closed world one
-    //println("++++++++++++++++")
-    //println(compiledProg.compiledUnits.map(_.name))
+    //generateMods.foreach(m => {println(); println(m) } )
 
     val engine = new Executor().instantiate(compiledProg.mainUnit)
     val rels = engine.readAll()

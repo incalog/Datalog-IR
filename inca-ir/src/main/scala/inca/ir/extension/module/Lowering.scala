@@ -47,29 +47,31 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[
 
     super.visitModule(module)
 
-  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
-    case prov: Provide[_] =>
-      prov.exportRef.target match
-        case Some(RequireRelation(name, params)) =>
-          // we need to manually create a relation for this, since it does not really exist yet
-          val fromName = renamings(name)
-          val rel = Relation(Name(prefixName(name, prefix)), params.flatMap(visitParam), Seq(Body(Seq(
-            Call(fromName, params.map(p => Var(p.name).arg))
-          ))))
-          Seq(rel)
-        // TODO: Are these two cases needed / correct?
-        case Some(RequireDataDefinition(name)) =>
-          val fromName = renamings(name)
-          val dd = DataDefinition(Name(prefixName(name, prefix)))
-          Seq(dd)
-        case Some(RequireCaseDefinition(name, rArgs, data)) =>
-          val fromName = renamings(name)
-          val args = rArgs.map(visitType)
-          val cd = CaseDefinition(Name(prefixName(name, prefix)), args, visitType(data).asInstanceOf[TData])
-          Seq(cd)
-        case _ => Seq() // nothing, since we already copied this one over by copying all relations
-    case _: Require => Seq()
-    case _ => super.visitModuleEntry(moduleEntry).map(updateModuleEntryName)
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
+    moduleEntry match
+      case prov: Provide[_] =>
+        prov.exportRef.target match
+          case Some(RequireRelation(name, params)) =>
+            // we need to manually create a relation for this, since it does not really exist yet
+            val fromName = renamings(name)
+            val rel = Relation(Name(prefixName(name, prefix)), params.flatMap(visitParam), Seq(Body(Seq(
+              Call(fromName, params.map(p => Var(p.name).arg))
+            ))))
+            Seq(rel)
+          // TODO: Are these two cases needed / correct?
+          case Some(RequireDataDefinition(name)) =>
+            val fromName = renamings(name)
+            val dd = DataDefinition(Name(prefixName(name, prefix)))
+            Seq(dd)
+          case Some(RequireCaseDefinition(name, rArgs, data)) =>
+            val fromName = renamings(name)
+            val args = rArgs.map(visitType)
+            val cd = CaseDefinition(Name(prefixName(name, prefix)), args, visitType(data).asInstanceOf[TData])
+            Seq(cd)
+          case _ => Seq() // nothing, since we already copied this one over by copying all relations
+      case _: Require => Seq()
+      case _ => super.visitModuleEntry(moduleEntry).map(updateModuleEntryName)
+  }
 
   override def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref) {
     // this assumes that all module entries in a module have unique names (which is enforced by the typechecker)

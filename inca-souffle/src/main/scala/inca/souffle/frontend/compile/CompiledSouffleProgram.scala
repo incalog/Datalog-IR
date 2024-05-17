@@ -3,7 +3,6 @@ package inca.souffle.frontend.compile
 import inca.ir
 import inca.ir.extension.{block, bool, disjunction, module, not}
 import inca.ir.{CompiledProgram, CompiledUnit, ExtensionalRelation, Module, Name, Param, Relation}
-import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.souffle.syntax.{DirectiveValue, Parser, Program}
 import inca.util.compileroptions.CompilerOptions
@@ -11,10 +10,6 @@ import inca.ir.execution.{UnitRelation, Relation as ExecutionRelation}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 
 import scala.io.Source
-
-case class CompiledSouffleUnit(name: Name, irModules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean, compilerOptions: CompilerOptions) extends CompiledUnit:
-  override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
 
 case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledProgram {
 
