@@ -22,7 +22,7 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
     case ProvideDataDefinition(ref) => Seq(ProvideDataDefinition(visitRef(ref)))
     case RequireDataDefinition(name) => Seq(ProvideDataDefinition(name))
     case ProvideCaseDefinition(ref, args, data) =>
-      Seq(ProvideCaseDefinition(visitRef(ref), args.map(visitType), visitRef(data)))
+      Seq(ProvideCaseDefinition(visitRef(ref), args.map(visitType), visitType(data).asInstanceOf[TData]))
     case RequireCaseDefinition(name, args, data) =>
       Seq(RequireCaseDefinition(name, args.map(visitType), data))
     case _ => super.visitModuleEntry(moduleEntry))

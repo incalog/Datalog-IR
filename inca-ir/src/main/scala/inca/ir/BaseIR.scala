@@ -45,7 +45,7 @@ trait Providable extends ModuleEntry
 trait Provide[T <: Providable] extends ModuleEntry:
   def exportRef: Ref[T]
   override val name: Name = exportRef.name
-trait Require extends ModuleEntry, Providable
+trait Require extends ModuleEntry
 
 trait Substitution[T <: Require, S <: Providable] extends SourceLocation:
   def to: Ref[T]
@@ -66,7 +66,7 @@ object Import:
 // relation specific module system
 trait RelationProvidable extends Providable
 
-case class RequireRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Require:
+case class RequireRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, RelationProvidable, Require:
   override def toString: String = s"require $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name=Name(name))
 

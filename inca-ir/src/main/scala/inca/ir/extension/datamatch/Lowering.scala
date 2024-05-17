@@ -19,11 +19,11 @@ trait Lowering extends BaseLowering:
     case Match(matchee, cases) =>
       val previous: ListBuffer[Deconstruct] = ListBuffer.empty
       val alternatives = cases.map { case Case(ref, patVars, body) =>
-        previous += Deconstruct(matchee, ref.asInstanceOf[Ref[CaseDefinitionProvidable]], patVars.map(_.arg), false)
+        previous += Deconstruct(matchee, ref, patVars.map(_.arg), false)
         // TODO non-overlapping patterns?
         val notPrevious = Seq() // previous.map(not.Not.apply).toList
         DisjunctionAlternative(
-          Deconstruct(matchee, ref.asInstanceOf[Ref[CaseDefinitionProvidable]], patVars.map(_.arg), false) +:
+          Deconstruct(matchee, ref, patVars.map(_.arg), false) +:
             (notPrevious ++ body.flatMap(visitAtom))
         )
       }

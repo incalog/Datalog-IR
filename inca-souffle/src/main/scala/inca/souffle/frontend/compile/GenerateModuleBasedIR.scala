@@ -82,7 +82,7 @@ class GenerateModuleBasedIR extends GenerateIRContext:
     val provided = content.collect {
       case ir.Relation(name, params, bodies) => ir.ProvideRelation(name, params)
       case irdata.DataDefinition(name) => irdata.ProvideDataDefinition(name)
-      case irdata.CaseDefinition(name, args, data) => irdata.ProvideCaseDefinition(name, args, data.ref.name)
+      case irdata.CaseDefinition(name, args, data) => irdata.ProvideCaseDefinition(name, args, data)
     }
 
     val compModule = ir.Module(moduleName, irLang, content ++ required ++ provided)
