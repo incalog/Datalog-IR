@@ -2,7 +2,8 @@ package inca.souffle.frontend.compile
 
 import inca.souffle.frontend.compile.nameresolution.NameResolution
 import inca.souffle.syntax.{Atom, ComponentType, DirectiveQualifier, DirectiveValue, Program, ProgramContent, QualifiedName}
-import inca.souffle.syntax.ProgramContent.ComponentDecl
+import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl, TypeDecl}
+import inca.souffle.syntax.TypeDeclConstraint.ADTType
 
 trait GenerateIRContext {
   private var rules: Map[ProgramContent.RelationDecl, Set[ProgramContent]] = Map()
@@ -13,7 +14,7 @@ trait GenerateIRContext {
   // all path for each declaration
   private var paths: Map[ProgramContent, Seq[ComponentType]] = Map()
   // for each component decl store the name and the actual decl that is required
-  private var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent.RelationDecl)]] = Map()
+  private var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent)]] = Map()
 
   private var currentComponent: Option[ComponentDecl] = None
 
@@ -52,10 +53,10 @@ trait GenerateIRContext {
 
   def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
 
-  def relationIsRequiredInComponent(name: String, compDecl: ComponentDecl): Boolean =
-    lookupRequiredDeclarations(compDecl).map(_._1).contains(name)
-  
-  def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(String, ProgramContent.RelationDecl)] =
+  def declIsRequiredInComponent(name: String, compDecl: ComponentDecl): Boolean =
+    requiredDecls.getOrElse(compDecl, Set()).map(_._1).contains(name)
+
+  def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(String, ProgramContent)] =
     requiredDecls.getOrElse(compDecl, Set())
 
   def lookupPath(decl: ProgramContent): Seq[ComponentType] =

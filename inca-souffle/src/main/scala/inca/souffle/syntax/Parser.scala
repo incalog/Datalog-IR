@@ -289,9 +289,15 @@ object Parser:
       case ((names, attrs), quals) => RelationDecl(names.toList, attrs, quals, None)
     }
 
+
+  private val adtBranch: P[ADTConstructor] = (identifier ~ inBraces(attribute.rep0)).map {
+    case (name, attributes) => ADTConstructor(name, attributes)
+  }
+
   private val typeDeclConstraint: P[TypeDeclConstraint] =
     import TypeDeclConstraint.*
     (op("<:") *> typ).map(SubType.apply) |
+    (op("=") *> adtBranch.repSep(1, op("|")).map(a => ADTType(a.toList))).backtrack |
     (op("=") *> typ).map(EqType.apply)
 
   val typeDecl: P[TypeDecl] =

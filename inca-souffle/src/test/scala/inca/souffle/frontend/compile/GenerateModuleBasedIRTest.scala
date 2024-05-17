@@ -37,6 +37,7 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
+      opt.irLogging.logLowerings = false
       opt.irLogging.logOptimizations = false
       opt
 
@@ -120,4 +121,18 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     assertResult(pathSet)(res("comp$innerComp$path").toSet)
     assertResult(pathSet)(res("comp$innerComp2$path").toSet)
     assertResult(Set(4, 5))(res("zero").toSet)
+  }
+
+  test("ADT") {
+    val file = FileUtil.readFileFromResource("inca/souffle/ADT.dl")
+    val prog = Parser.parseSouffle(file)
+    val res = execute(prog)
+    assertResult("Succ(Zero())")(res("nats").entries.head.toString)
+  }
+
+  test("ADT - Component Inheritance") {
+    val file = FileUtil.readFileFromResource("inca/souffle/ComponentInheritanceADT.dl")
+    val prog = Parser.parseSouffle(file)
+    val res = execute(prog)
+    assertResult("comp$innerComp$Succ(comp$innerComp$Zero())")(res("nats").entries.head.toString)
   }

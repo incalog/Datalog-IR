@@ -6,6 +6,7 @@ import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 import inca.util.Graph
 
+import java.lang.annotation.Target
 import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
@@ -39,16 +40,18 @@ trait ModuleEntry extends SourceLocation with Hints:
 
 
 // Module system
+
 trait Providable extends ModuleEntry
 trait Provide[T <: Providable] extends ModuleEntry:
   def exportRef: Ref[T]
   override val name: Name = exportRef.name
 trait Require extends ModuleEntry, Providable
 
-trait Substitution[T <: Require] extends SourceLocation:
+trait Substitution[T <: Require, S <: Providable] extends SourceLocation:
   def to: Ref[T]
+  def from: Ref[S]
 
-case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[_]]) extends ModuleEntry:
+case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[_, _]]) extends ModuleEntry:
   override val name: Name = Name(s"Import ${module.name} as $as")
   override def toString: String =
     if subst.nonEmpty then
@@ -58,16 +61,16 @@ case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[_]]) ex
   def withName(name: String): ModuleEntry = this.copy(as = Name(name))
 object Import:
   def apply(module: Name, as: Name) = new Import(RefByName(module), as, Seq())
-  def apply(module: Name, as: Name, entries: Seq[Substitution[_]]) = new Import(RefByName(module), as, entries)
+  def apply(module: Name, as: Name, entries: Seq[Substitution[_, _]]) = new Import(RefByName(module), as, entries)
 
 // relation specific module system
 trait RelationProvidable extends Providable
 
-case class RequireRelation(name: Name, params: Seq[Param]) extends Require:
+case class RequireRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Require:
   override def toString: String = s"require $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name=Name(name))
 
-case class ProvideRelation(exportRef: Ref[RelationProvidable], params: Seq[Param]) extends Provide[RelationProvidable]:
+case class ProvideRelation(exportRef: Ref[RelationProvidable], params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Provide[RelationProvidable]:
   override def toString: String = s"provide $exportRef(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry =
     val newRef = RefByName[RelationProvidable](name)
@@ -77,7 +80,7 @@ object ProvideRelation:
   def apply(exportName: Name, params: Seq[Param]) =
     new ProvideRelation(RefByName(exportName), params)
 
-case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationProvidable], fromParams: Seq[Param]) extends Substitution[RequireRelation]:
+case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationProvidable], fromParams: Seq[Param]) extends Substitution[RequireRelation, RelationProvidable]:
   override def toString: String = s"$to(${toParams.mkString(", ")}) = ${from.name}(${fromParams.mkString(", ")})"
 object RelationSubstitution:
   def apply(to: Name, toParams: Seq[Param], from: Seq[Name], fromParams: Seq[Param]): RelationSubstitution =
@@ -90,12 +93,15 @@ object RelationSubstitution:
 trait Ref[Target] extends Resolvable[Target] with Hints with SourceLocation:
   def name: Name
   def unqualifiedName: Name
+  def path: Seq[Name]
 case class RefByName[Target](name: Name) extends Ref[Target]:
   override def toString: String = name.name //+ ":: " +  target
   override def unqualifiedName: Name = name
+  override def path: Seq[Name] = Seq()
 case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
   override def name: Name = Name(ns.mkString("."))
   override def unqualifiedName: Name = ns.last
+  override def path: Seq[Name] = ns.dropRight(1)
   override def toString: String = name.name //+ ":: " +  target
 
 trait Atom extends Analyzable with SourceLocation with Hints:
@@ -137,7 +143,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationProvidable:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference, RelationProvidable:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -150,7 +156,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, RelationProvidable:
+case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference, RelationProvidable:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
@@ -183,19 +189,32 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-case class Call(ref: Ref[Relation], args: Seq[Arg], neg: Boolean) extends Atom:
+trait RelationReference extends ModuleEntry
+
+case class Call(ref: Ref[_ <: RelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"$negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 object Call:
   def apply(name: Name, args: Seq[Arg], neg: Boolean = false): Call = Call(RefByName(name), args, neg)
-  def apply(qname: Seq[Name], args: Seq[Arg]): Call = Call(RefByQualifiedName(qname), args, false)
+  def apply(qname: Seq[Name], args: Seq[Arg]): Call =
+    if qname.size == 1 then
+      Call(RefByName(qname.last), args, false)
+    else
+      Call(RefByQualifiedName(qname), args, false)
 object NegCall:
   def apply(name: Name, args: Seq[Arg]): Call = Call(RefByName(name), args, true)
-  def apply(qname: Seq[Name], args: Seq[Arg]): Call = Call(RefByQualifiedName(qname), args, true)
+  def apply(qname: Seq[Name], args: Seq[Arg]): Call =
+    if qname.size == 1 then
+      Call(RefByName(qname.last), args, true)
+    else
+      Call(RefByQualifiedName(qname), args, true)
 
-case class ExtensionalCall(ref: Ref[ExtensionalRelation], args: Seq[Arg], neg: Boolean) extends Atom:
+
+trait ExtensionalRelationReference extends ModuleEntry
+
+case class ExtensionalCall(ref: Ref[_ <: ExtensionalRelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString

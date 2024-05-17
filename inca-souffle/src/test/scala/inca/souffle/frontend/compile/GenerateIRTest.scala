@@ -243,6 +243,8 @@ class GenerateIRTest extends AnyFunSuite:
     val nameRes = new NameResolution {}
     nameRes.resolveProgram(prog)
 
+    println(prog)
+
     val nats = execute(prog)("nats")
     assertResult("comp$innerComp$Succ(comp$innerComp$Zero())")(nats.entries.head.toString)
   }
@@ -345,7 +347,6 @@ class GenerateIRTest extends AnyFunSuite:
         None
       )
     ))
-
     val nats = execute(prog)("nats")
     assertResult("Succ(Zero())")(nats.entries.head.toString)
   }

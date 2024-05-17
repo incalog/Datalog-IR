@@ -21,10 +21,10 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
       Seq(CaseDefinition(name, args.map(visitType), visitType(data).asInstanceOf[TData]))
     case ProvideDataDefinition(ref) => Seq(ProvideDataDefinition(visitRef(ref)))
     case RequireDataDefinition(name) => Seq(ProvideDataDefinition(name))
-    case ProvideCaseDefinition(ref, params, data) =>
-      Seq(ProvideCaseDefinition(visitRef(ref), params.flatMap(visitParam), visitRef(data)))
-    case RequireCaseDefinition(name, params, data) =>
-      Seq(RequireCaseDefinition(name, params.flatMap(visitParam), data))
+    case ProvideCaseDefinition(ref, args, data) =>
+      Seq(ProvideCaseDefinition(visitRef(ref), args.map(visitType), visitRef(data)))
+    case RequireCaseDefinition(name, args, data) =>
+      Seq(RequireCaseDefinition(name, args.map(visitType), data))
     case _ => super.visitModuleEntry(moduleEntry))
   
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match

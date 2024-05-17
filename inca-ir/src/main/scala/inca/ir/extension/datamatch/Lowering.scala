@@ -3,7 +3,7 @@ package inca.ir.extension.datamatch
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.data.Deconstruct
+import inca.ir.extension.data.{CaseDefinitionProvidable, Deconstruct}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, Term}
@@ -19,11 +19,11 @@ trait Lowering extends BaseLowering:
     case Match(matchee, cases) =>
       val previous: ListBuffer[Deconstruct] = ListBuffer.empty
       val alternatives = cases.map { case Case(ref, patVars, body) =>
-        previous += Deconstruct(matchee, ref, patVars.map(_.arg), false)
+        previous += Deconstruct(matchee, ref.asInstanceOf[Ref[CaseDefinitionProvidable]], patVars.map(_.arg), false)
         // TODO non-overlapping patterns?
         val notPrevious = Seq() // previous.map(not.Not.apply).toList
         DisjunctionAlternative(
-          Deconstruct(matchee, ref, patVars.map(_.arg), false) +:
+          Deconstruct(matchee, ref.asInstanceOf[Ref[CaseDefinitionProvidable]], patVars.map(_.arg), false) +:
             (notPrevious ++ body.flatMap(visitAtom))
         )
       }

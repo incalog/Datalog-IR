@@ -26,6 +26,7 @@ object ParametricModuleEntry:
 case class TypeApplication[Target <: ModuleEntry](name: Name, args: Seq[Type]) extends Ref[Target]:
   override def toString: String = s"$name[${args.mkString(", ")}]"
   override def unqualifiedName: Name = name
+  override def path: Seq[Name] = Seq()
 object TypeApplication:
   def make[Target <: ModuleEntry](name: Name, args: Seq[Type]): Ref[Target] =
     if (args.isEmpty)

@@ -4,12 +4,20 @@ import inca.ir.*
 
 import scala.language.implicitConversions
 
-case class TData(ref: Ref[DataDefinition]) extends Type:
+case class TData(ref: Ref[DataDefinitionReference]) extends Type:
   override def toString: String = s"$ref"
 object TData:
   def apply(name: Name) = new TData(RefByName(name))
+  def apply(names: Seq[Name]): TData =
+    if names.size == 1 then
+      new TData(RefByName(names.last))
+    else
+      new TData(RefByQualifiedName(names))
+
 
 trait DataModuleEntry extends ModuleEntry
+trait DataDefinitionReference extends DataModuleEntry
+trait CaseDefinitionReference extends DataModuleEntry
 
 // extend the module system
 
@@ -20,39 +28,39 @@ case class RequireDataDefinition(name: Name) extends DataDefinitionProvidable, R
   override def toString: String = s"require data $name"
   def withName(name: String): ModuleEntry = this.copy(name = Name(name))
 
-case class RequireCaseDefinition(name: Name, params: Seq[Param], data: TData) extends CaseDefinitionProvidable, Require:
+case class RequireCaseDefinition(name: Name, params: Seq[Type], data: TData) extends CaseDefinitionReference, CaseDefinitionProvidable, Require:
   override def toString: String = s"require case $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name = Name(name))
 
-case class ProvideDataDefinition(exportRef: Ref[Providable]) extends DataModuleEntry, Provide[Providable]:
+case class ProvideDataDefinition(exportRef: Ref[DataDefinitionProvidable]) extends DataDefinitionReference, Provide[DataDefinitionProvidable]:
   override def toString: String = s"provide data $exportRef"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[Providable](name)
+    val newRef = RefByName[DataDefinitionProvidable](name)
     newRef.target = exportRef.target
     this.copy(exportRef = newRef)
 object ProvideDataDefinition:
   def apply(exportName: Name) =
     new ProvideDataDefinition(RefByName(exportName))
 
-case class ProvideCaseDefinition(exportRef: Ref[CaseDefinitionProvidable], params: Seq[Param], data: Ref[DataDefinitionProvidable]) extends DataModuleEntry, Provide[CaseDefinitionProvidable]:
-  override def toString: String = s"provide case $exportRef(${params.mkString(", ")})"
+case class ProvideCaseDefinition(exportRef: Ref[CaseDefinitionProvidable], args: Seq[Type], data: Ref[DataDefinitionProvidable]) extends CaseDefinitionReference, Provide[CaseDefinitionProvidable]:
+  override def toString: String = s"provide case $exportRef(${args.mkString(", ")})"
   def withName(name: String): ModuleEntry =
     val newRef = RefByName[CaseDefinitionProvidable](name)
     newRef.target = exportRef.target
     this.copy(exportRef = newRef)
 object ProvideCaseDefinition:
-  def apply(exportName: Name, params: Seq[Param], data: Name) =
-    new ProvideCaseDefinition(RefByName(exportName), params, RefByName(data))
+  def apply(exportName: Name, args: Seq[Type], data: Name) =
+    new ProvideCaseDefinition(RefByName(exportName), args, RefByName(data))
 
-case class CaseDefinitionSubstitution(to: Ref[RequireCaseDefinition], toSig: Seq[Param], from: Ref[CaseDefinitionProvidable], fromSig: Seq[Param]) extends Substitution[RequireCaseDefinition]:
+case class CaseDefinitionSubstitution(to: Ref[RequireCaseDefinition], toSig: Seq[Type], from: Ref[CaseDefinitionProvidable], fromSig: Seq[Type]) extends Substitution[RequireCaseDefinition, CaseDefinitionProvidable]:
   override def toString: String = s"case $to(${toSig.mkString(", ")}) = case ${from.name}(${fromSig.mkString(", ")})"
 object CaseDefinitionSubstitution:
-  def apply(to: Name, toSig: Seq[Param], from: Seq[Name], fromSig: Seq[Param]): CaseDefinitionSubstitution =
+  def apply(to: Name, toSig: Seq[Type], from: Seq[Name], fromSig: Seq[Type]): CaseDefinitionSubstitution =
     if from.isEmpty then
       throw IllegalStateException("Path to a case definition must not be empty")
     new CaseDefinitionSubstitution(RefByName(to), fromSig, RefByQualifiedName(from), toSig)
 
-case class DataDefinitionSubstitution(to: Ref[RequireDataDefinition], from: Ref[DataDefinitionProvidable]) extends Substitution[RequireDataDefinition]:
+case class DataDefinitionSubstitution(to: Ref[RequireDataDefinition], from: Ref[DataDefinitionProvidable]) extends Substitution[RequireDataDefinition, DataDefinitionProvidable]:
   override def toString: String = s"data $to = data ${from.name}"
 object DataDefinitionSubstitution:
   def apply(to: Name, from: Seq[Name]): DataDefinitionSubstitution =
@@ -63,21 +71,26 @@ object DataDefinitionSubstitution:
 
 // IR
 
-case class DataDefinition(name: Name) extends DataModuleEntry, DataDefinitionProvidable:
+case class DataDefinition(name: Name) extends DataDefinitionReference, DataDefinitionProvidable:
   def withName(name: String): DataDefinition = this.copy(name = Name(name))
   override def toString: String = s"""data $name"""
 
-case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends DataModuleEntry, CaseDefinitionProvidable:
+case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionReference, CaseDefinitionProvidable:
   def withName(name: String): CaseDefinition = this.copy(name = Name(name))
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 
-case class Construct(caseRef: Ref[CaseDefinition], args: Seq[Term]) extends Term:
+case class Construct(caseRef: Ref[CaseDefinitionReference], args: Seq[Term]) extends Term:
   override def toString: String = s"!$caseRef(${args.mkString(", ")})" + analysisString
   override def vars: Seq[Var] = args.flatMap(_.vars)
 object Construct:
   def apply(caseName: Name, args: Seq[Term]): Construct = new Construct(RefByName(caseName), args)
+  def apply(caseName: Seq[Name], args: Seq[Term]): Construct =
+    if caseName.size == 1 then
+      new Construct(RefByName(caseName.last), args)
+    else
+      new Construct(RefByQualifiedName(caseName), args)
 
-case class Deconstruct(t: Term, caseRef: Ref[CaseDefinition], args: Seq[Arg], neg: Boolean) extends Atom:
+case class Deconstruct(t: Term, caseRef: Ref[CaseDefinitionProvidable], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
     val negPrefix = if (neg) "~" else ""
