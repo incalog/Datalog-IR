@@ -27,7 +27,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
     CompiledSouffleUnit(modules.head.name, modules, otherUnits, isClosedWorld, compilerOptions)
 
   lazy val irModules: Seq[Module] =
-    val genIR = new GenerateModuleBasedIR
+    val genIR = new GenerateIR
     genIR.compileProgram(program, name.name)
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =

@@ -22,7 +22,7 @@ implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y)
   case (_: ProgramContent.ComponentDecl, _) => 1
   case _ => 0
 
-class GenerateModuleBasedIR extends GenerateIRContext:
+class GenerateIR extends GenerateIRContext:
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + irbool.IR + irdata.IR
     + irdis.IR + irnot.IR + irstring.IR

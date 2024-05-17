@@ -4,7 +4,8 @@ import inca.ir.*
 import inca.ir.execution.{Relation2, Relation as Rel}
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.extension.module.Lowering
-import inca.ir.extension.{module, aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
+import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, module, not, set, tuple, arithmetic as arith}
+import inca.ir.optimize.AliasElimination
 import inca.ir.typing.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -30,7 +31,9 @@ class GenerateIRTest extends AnyFunSuite:
     () => new block.Lowering {},
     () => new disjunction.Lowering {},
     () => new not.Lowering {},
-    () => new module.Lowering {}
+    () => new module.Lowering {},
+    // optimize
+    () => new AliasElimination {}
   ) // arith + string + data
 
   case class Compiled(irModules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean, name: Name) extends CompiledUnit:
@@ -46,7 +49,7 @@ class GenerateIRTest extends AnyFunSuite:
 
   def execute(prog: Program): Map[String, Rel] =
     val progName = "SouffleProgram"
-    val genIR = GenerateModuleBasedIR()
+    val genIR = GenerateIR()
     val generateMods = genIR.compileProgram(prog, progName)
 
     // sort modules based on a topological order of dependencies
@@ -57,7 +60,11 @@ class GenerateIRTest extends AnyFunSuite:
     }
     compiledProg.setPipeline(pipeline)
 
-    //generateMods.foreach(m => {println(); println(m) } )
+    /*generateMods.foreach(m => {println(); println(m) } )
+
+    println()
+    println("After lowering:")
+    println(compiledProg.mainUnit.lowered)*/
 
     val engine = new Executor().instantiate(compiledProg.mainUnit)
     val rels = engine.readAll()
