@@ -5,11 +5,10 @@ import inca.ir.{RefByName, TAny, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
-import inca.souffle.frontend.compile.{GenerateIR, SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
+import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
 
-// TODO what is output? Need main hint
 // Core + Arithmetic + String + Data
 object GenerateSouffle:
 
@@ -55,7 +54,7 @@ object GenerateSouffle:
           case cd@CaseDefinition(_, _, td) if td.ref.name == name => cd
         }
         val adtBranches = cases.map {
-          case data.CaseDefinition(name, args, TData(RefByName(_))) =>
+          case data.CaseDefinition(name, args, TData(_)) =>
             val cotrArgs = args.zipWithIndex.map { case(ty, idx) =>
               Attribute(s"param_$idx", compileType(ty))
             }
@@ -73,19 +72,19 @@ object GenerateSouffle:
     body.atoms.map(compileAtom)
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
-    case ir.Call(RefByName(name), args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
-    case ir.Call(RefByName(name), args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
-    case ir.ExtensionalCall(RefByName(name), args, false) => Atom.Call(qualifyName(name), args.map(compileArg))
-    case ir.ExtensionalCall(RefByName(name), args, true) => Atom.Not(Atom.Call(qualifyName(name), args.map(compileArg)))
+    case ir.Call(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg))
+    case ir.Call(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg)))
+    case ir.ExtensionalCall(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg))
+    case ir.ExtensionalCall(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg)))
     case ir.Eq(lhs, rhs, false) => Atom.Compare(compileTerm(lhs), Comparator.EQ, compileTerm(rhs))
     case ir.Eq(lhs, rhs, true) => Atom.Compare(compileTerm(lhs), Comparator.NEQ, compileTerm(rhs))
     case arith.BinCompare(lhs, rhs, c) =>
       val op = Parser.comparator.parseAll(c).toOption.get
       Atom.Compare(compileTerm(lhs), op, compileTerm(rhs))
-    case data.Deconstruct(t, RefByName(name), args, false) =>
-      Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(name), args.map(compileArg)))
+    case data.Deconstruct(t, ref, args, false) =>
+      Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(ref.name), args.map(compileArg)))
     case data.Deconstruct(t, name, args, true) => ???
-    case agg.Aggregate(RefByName(name), args, op) =>
+    case agg.Aggregate(ref, args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }
@@ -97,9 +96,9 @@ object GenerateSouffle:
         case TermArg(t) => compileTerm(t)
       }
       val souffleAgg = op match
-        case arith.ArithmeticAggregationOperator.MinInt => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
-        case arith.ArithmeticAggregationOperator.MaxInt => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
-        case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(name), callArgs)))
+        case arith.ArithmeticAggregationOperator.MinInt => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
+        case arith.ArithmeticAggregationOperator.MaxInt => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
+        case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
         case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
         case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
       Atom.Compare(Term.Var(cleanName(resultVar)), EQ, Term.AggregatorTerm(souffleAgg))
@@ -119,7 +118,7 @@ object GenerateSouffle:
     case ir.WildcardArg() => Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
-    case ir.Var(RefByName(name)) => Term.Var(cleanName(name))
+    case ir.Var(ref) => Term.Var(cleanName(ref.name))
     case ir.Cast(t, ty) => Term.TypeCast(compileTerm(t), compileType(ty))
     case arith.IntNum(n) => Term.NumberLit(n)
     case arith.DoubleNum(n) => Term.FloatLit(n.toFloat)
@@ -134,12 +133,12 @@ object GenerateSouffle:
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
     case string.ToString(t) => Term.IntrinsicFunctorApp(IntrinsicFunctor.ToString, Seq(compileTerm(t)))
-    case data.Construct(RefByName(name), args) => Term.Constr(qualifyName(name), args.map(compileTerm))
+    case data.Construct(ref, args) => Term.Constr(qualifyName(ref.name), args.map(compileTerm))
 
   private def compileType(ty: ir.Type): Type = ty match
     case TAny => throw IllegalStateException("TAny is not supported by Souffle!")
     case arith.TInt => Type.Number
     case arith.TDouble => Type.Float
     case string.TString => Type.Symbol
-    case data.TData(RefByName(name)) => Type.Name(qualifyName(name))
+    case data.TData(ref) => Type.Name(qualifyName(ref.name))
 

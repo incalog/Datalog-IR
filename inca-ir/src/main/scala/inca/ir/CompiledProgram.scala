@@ -22,7 +22,7 @@ private case class ModuleGraph(modules: Seq[IRModule]) extends Graph[IRModule, E
 
 trait CompiledProgram:
   def irModules: Seq[IRModule]
-  def createCompiledUnit(module: Module, otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit
+  def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit
 
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     compiledUnits.foreach(_.setPipeline(pipeline))
@@ -34,9 +34,9 @@ trait CompiledProgram:
   lazy val compiledUnits: Seq[CompiledUnit] =
     val mods = topologicalOrderedModules
     val tl = mods.dropRight(1).foldLeft(Seq[CompiledUnit]()) {
-      case (units, m) => units :+ createCompiledUnit(m, units, false)
+      case (units, m) => units :+ createCompiledUnit(Seq(m), units, false)
     }
-    tl ++ mods.lastOption.map(m => createCompiledUnit(m, tl, true))
+    tl ++ mods.lastOption.map(m => createCompiledUnit(Seq(m), tl, true))
 
   lazy val mainUnit: CompiledUnit = compiledUnits.last
 

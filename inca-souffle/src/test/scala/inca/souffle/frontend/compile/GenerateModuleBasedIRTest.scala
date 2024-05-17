@@ -52,8 +52,8 @@ class GenerateModuleBasedIRTest extends AnyFunSuite:
     // sort modules based on a topological order of dependencies
     val compiledProg = new CompiledProgram {
       override def irModules: Seq[Module] = generateMods
-      override def createCompiledUnit(module: Module, otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
-        Compiled(Seq(module), otherUnits, isClosedWorld, module.name)
+      override def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
+        Compiled(modules, otherUnits, isClosedWorld, modules.head.name)
         /*println(s"Lower: ${module.name} :: ")
         println("Header ::")
         println(otherUnits.flatMap(_.header))

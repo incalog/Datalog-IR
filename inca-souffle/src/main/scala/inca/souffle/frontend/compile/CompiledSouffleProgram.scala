@@ -1,38 +1,39 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
-import inca.ir.extension.{block, bool, datamatch, disjunction, not, set}
-import inca.ir.{Atom, CompiledUnit, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation}
+import inca.ir.extension.{block, bool, disjunction, module, not}
+import inca.ir.{CompiledProgram, CompiledUnit, ExtensionalRelation, Module, Name, Param, Relation}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
-import inca.souffle.backend.GenerateSouffle
-import inca.souffle.syntax.{DirectiveValue, Parser, Program, ProgramContent}
+import inca.souffle.syntax.{DirectiveValue, Parser, Program}
 import inca.util.compileroptions.CompilerOptions
 import inca.ir.execution.{UnitRelation, Relation as ExecutionRelation}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
 
 import scala.io.Source
 
-case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledUnit {
-  override def sourceLocation: SourceLocation = program
+case class CompiledSouffleUnit(name: Name, irModules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean, compilerOptions: CompilerOptions) extends CompiledUnit:
+  override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
+
+case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledProgram {
 
   setPipeline(
     List(
       () => new bool.Lowering {},
       () => new block.Lowering {},
       () => new disjunction.Lowering {},
-      () => new not.Lowering {}
+      () => new not.Lowering {},
+      () => new module.Lowering {}
     )
   )
 
-  override val isClosedWorld: Boolean = true
-
-  override def otherUnits: Seq[CompiledUnit] = Seq()
+  def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
+    CompiledSouffleUnit(modules.head.name, modules, otherUnits, isClosedWorld, compilerOptions)
 
   lazy val irModules: Seq[Module] =
-    val genIR = new GenerateIR
-    val mod = genIR.compileProgram(program, name.name)
-    Seq(mod)
+    val genIR = new GenerateModuleBasedIR
+    genIR.compileProgram(program, name.name)
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =
     val io = attrs.getOrElse("IO", DirectiveValue.StringLit("file"))
@@ -62,7 +63,7 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
           case Some(_) => outputs = outputs :+ UnitRelation(relation.name.name)
           case _ => // nothing
         super.visitRelation(relation)
-    }.visitProgram(irModules)
+    }.visitProgram(mainUnit.lowered)
     outputs
 
   /**
@@ -79,7 +80,7 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
           case Some(SouffleInputHint(attrs)) => inputs += relation.name.name -> (relation.params, attrs)
           case _ => // nothing
         super.visitExtensionalRelation(relation)
-    }.visitProgram(irModules)
+    }.visitProgram(mainUnit.lowered)
 
     inputs.map { case (name, (params, attrs)) =>
       val tys = params.map(_.ty)
@@ -97,12 +98,12 @@ case class CompiledSouffleUnit(name: Name, program: Program, compilerOptions: Co
     }.toSeq
 }
 
-object CompiledSouffleUnit:
-  def fromSource(name: Name, source: Source, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleUnit =
+object CompiledSouffleProgram:
+  def fromSource(name: Name, source: Source, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleProgram =
     val content = source.getLines().mkString("\n")
     source.close()
     fromSourceCode(name, content, compilerOptions)
 
-  def fromSourceCode(name: Name, source: String, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleUnit =
+  def fromSourceCode(name: Name, source: String, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleProgram =
     val program: Program = Parser.parseSouffle(source)
-    new CompiledSouffleUnit(name, program, compilerOptions)
+    new CompiledSouffleProgram(name, program, compilerOptions)
