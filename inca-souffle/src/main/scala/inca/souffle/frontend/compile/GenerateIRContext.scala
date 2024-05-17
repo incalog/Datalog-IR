@@ -1,5 +1,6 @@
 package inca.souffle.frontend.compile
 
+import inca.souffle.frontend.compile.nameresolution.NameResolution
 import inca.souffle.syntax.{Atom, ComponentType, DirectiveQualifier, DirectiveValue, Program, ProgramContent, QualifiedName}
 import inca.souffle.syntax.ProgramContent.ComponentDecl
 

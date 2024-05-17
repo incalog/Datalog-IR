@@ -1,7 +1,7 @@
-package inca.souffle.frontend.compile
+package inca.souffle.frontend.compile.nameresolution
 
 import inca.souffle.syntax.ProgramContent.RelationDecl
-import inca.souffle.syntax.{Aggregator, Atom, ComponentType, Program, ProgramContent, Term, Type, TypeDeclConstraint}
+import inca.souffle.syntax.*
 
 
 trait NameResolution:

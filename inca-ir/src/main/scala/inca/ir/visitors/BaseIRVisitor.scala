@@ -35,7 +35,7 @@ trait BaseIRVisitor:
     Seq(Import(visitRef(imp.module), imp.as, imp.subst.flatMap(visitSubstitution)))
   }
   
-  def visitSubstitution(importable: Substitution): Seq[Substitution] = importable match
+  def visitSubstitution(importable: Substitution[_]): Seq[Substitution[_]] = importable match
     case RelationSubstitution(to, toSig, from, fromSig) => 
       Seq(RelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $importable")

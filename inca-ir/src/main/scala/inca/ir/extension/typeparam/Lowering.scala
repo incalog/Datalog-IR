@@ -20,8 +20,8 @@ trait Lowering extends BaseLowering:
     else
       s"$$${usage.mkString("_")}"
 
-  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module] = Seq()): Seq[Module] =
-    if isClosedWorld then super.visitProgram(modules) else modules
+  //override def visitProgram(modules: Seq[Module], dependencies: Seq[Module] = Seq()): Seq[Module] =
+  //  if isClosedWorld then super.visitProgram(modules) else modules
 
   override def visitModule(module: Module): Module = preserveHints(module) {
     groundUsages = Map().withDefault(_ => Set())

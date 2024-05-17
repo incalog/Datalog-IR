@@ -2,6 +2,8 @@ package inca.ir.typing
 
 import inca.ir.{Import, Module, ModuleEntry, Name, Param, Providable, Provide, Ref, Require, Term, Type, Var}
 
+import scala.reflect.ClassTag
+
 trait BaseIRTypeContext extends TypeIO:
   var modules: Map[Name, Module] = Map()
 
@@ -119,9 +121,17 @@ trait BaseIRTypeContext extends TypeIO:
       case Some(name) => modules.get(name)
       case _ => None
 
-  def lookupRequire(name: Name)(implicit module: Module): Option[Require] = requires.get((module, name))
+  def lookupRequire[R <: Require](name: Name, module: Module)(implicit tag: ClassTag[R]): Option[R] =
+    requires.get((module, name)) match
+      case Some(req) if !tag.runtimeClass.isInstance(req) => None // not the kind of requirement we expected
+      case Some(req) => Some(req.asInstanceOf[R])
+      case _ => None
   
-  def lookupProvide(name: Name)(implicit module: Module): Option[Provide[_]] = provides.get((module, name))
+  def lookupProvide[P <: Provide[_]](name: Name, module: Module)(implicit tag: ClassTag[P]): Option[P] =
+    provides.get((module, name)) match
+      case Some(prov) if !tag.runtimeClass.isInstance(prov) => None // not the kind of requirement we expected
+      case Some(prov) => Some(prov.asInstanceOf[P])
+      case _ => None
   
   def lookupModule(name: Name): Option[Module] = modules.get(name)
 

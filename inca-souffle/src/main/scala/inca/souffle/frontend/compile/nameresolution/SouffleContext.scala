@@ -1,4 +1,4 @@
-package inca.souffle.frontend.compile
+package inca.souffle.frontend.compile.nameresolution
 
 import inca.souffle.syntax.ProgramContent.*
 import inca.souffle.syntax.{ADTConstructor, ComponentType, QualifiedName, TypeDeclConstraint}

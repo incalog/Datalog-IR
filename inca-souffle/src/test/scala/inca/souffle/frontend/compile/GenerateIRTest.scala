@@ -6,6 +6,7 @@ import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
 import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, not, set, tuple, arithmetic as arith}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
+import inca.souffle.frontend.compile.nameresolution.NameResolution
 import inca.souffle.syntax.ProgramContent.{Pragma, Rule}
 import inca.souffle.syntax.Term.StringLit
 import inca.souffle.syntax.TypeDeclConstraint.ADTType

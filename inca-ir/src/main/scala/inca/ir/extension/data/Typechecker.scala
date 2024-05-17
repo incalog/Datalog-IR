@@ -3,32 +3,103 @@ package inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, ModuleEntry, Name, Ref, RefByName, RefByQualifiedName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.{Atom, Import, ModuleEntry, Name, Providable, Provide, Ref, RefByName, RefByQualifiedName, Relation, Require, Substitution, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeSubst, TypeVar}
 
+import scala.reflect.ClassTag
+
 trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
-  private def lookupDataDefinition(ref: Ref[DataDefinition], s: SourceLocation): Option[(Seq[Name], DataDefinition)] =
+  protected override def checkRequire[T <: ModuleEntry](require: Require): Unit = require match
+    case _: RequireDataDefinition => // nothing, we check these on import
+    case _: RequireCaseDefinition => // nothing, we check these on import
+    case _ => super.checkRequire(require)
+
+  protected override def checkProvide[T <: Providable](provide: Provide[T]): Unit = provide match
+    case p: ProvideDataDefinition => inferDataDefinition(p.exportRef, p)
+    case p@ProvideCaseDefinition(exportRef, params, dataRef) => inferConstruct(exportRef, p) match
+      case Some((_, _, args, data)) =>
+        if params.size != args.size then
+          error(s"Expected ${params.size} parameters, but got ${args.size}", provide)
+        params.zip(args).foreach {
+          case (param, ty) => assertComparable(param.ty, ty, provide)
+        }
+        val expected = inferDataDefinition(dataRef, p)
+        if expected != data then
+          error(s"Expected $expected, but got $data")
+      case _ => // nothing
+    case _ => super.checkProvide(provide)
+
+  protected override def checkSubstitution(imp: Import, importable: Substitution[_]): Unit = importable match
+    case DataDefinitionSubstitution(to, from) =>
+      // Make sure there is a "require" for the "to" name and resolve it
+      lookupRequireRef(to, importable, imp.module.target.get)
+      inferDataDefinition(from, importable)
+    case CaseDefinitionSubstitution(to, toSig, from, fromSig) =>
+      if toSig.size != fromSig.size then
+        error(s"Expected ${toSig.size} parameters, but got ${fromSig.size}", importable)
+      fromSig.zip(toSig).foreach {
+        case (fromParam, toParam) => assertComparable(fromParam.ty, toParam.ty, importable)
+      }
+      lookupRequireRef(to, importable, imp.module.target.get)
+      inferConstruct(from, importable)
+    case _ => super.checkSubstitution(imp, importable)
+
+  private def inferDataDefinition[D <: ModuleEntry](ref: Ref[D], locations: SourceLocation*)(implicit tag: ClassTag[D]): Option[(Seq[Name], D, Type)] =
+    val targetModule = lookupModulePath(ref, locations:_*)
+    val res = if targetModule != currentModule then
+      // definitions outside the current module must be provided
+      // TODO: Handle typeparams in the future?
+      val providedData = lookupProvideRef[ProvideDataDefinition](ref, targetModule, locations:_*)
+      providedData.map(p => (Seq(), p.asInstanceOf[D], TData(p.exportRef.unqualifiedName)))
+    else
+      // definitions inside the module can either be a relation or a requirement
+      lookupDataDefinition[D](ref, locations:_*)
+
+    res.map { case (_, d, _) => ref.resolved(d) }
+    res.map { case (tys, entry, data) => (tys, entry, data) }
+
+  private def lookupDataDefinition[D <: ModuleEntry](ref: Ref[D], s: SourceLocation*)(implicit tag: ClassTag[D]): Option[(Seq[Name], D, Type)] =
     entries.get(ref.name) match
       case Some(dd: DataDefinition) =>
-        ref.resolved(dd)
-        Some((Seq(), dd))
+        if (!tag.runtimeClass.isInstance(dd))
+          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${dd.getClass.getSimpleName} while resolving DataDefinition", s:_*)
+        Some((Seq(), dd.asInstanceOf[D], TData(dd.name)))
       case Some(ParametricModuleEntry(tyParams, dd: DataDefinition)) =>
-        ref.resolved(dd)
-        Some((tyParams, dd))
+        Some((tyParams, dd.asInstanceOf[D], TData(dd.name)))
+      case Some(req: RequireDataDefinition) =>
+        Some((Seq(), req.asInstanceOf[D], TData(req.name)))
+      case Some(ParametricModuleEntry(tyParams, req: RequireDataDefinition)) =>
+        Some((Seq(), req.asInstanceOf[D], TData(req.name)))
       case _ =>
-        error(s"Could not find data type ${ref.name}", s)
+        error(s"Could not find data type ${ref.name}", s:_*)
         None
 
-  def lookupConstruct(ref: Ref[CaseDefinition], locations: SourceLocation*): Option[(Seq[Name], CaseDefinition)] =
+  def inferConstruct[C <: ModuleEntry](ref: Ref[C], locations: SourceLocation*)(implicit tag: ClassTag[C]): Option[(Seq[Name], C, Seq[Type], TData)] =
+    val targetModule = lookupModulePath(ref, locations:_*)
+    val cd = if targetModule != currentModule then
+      // definitions outside the current module must be provided
+      // TODO: Handle typeparams in the future?
+      val providedData = lookupProvideRef[ProvideCaseDefinition](ref, targetModule, locations:_*)
+      providedData.map(p => (Seq(), p.asInstanceOf[C], p.params.map(_.ty), TData(p.data.unqualifiedName)))
+    else
+      // definitions inside the module can either be a relation or a requirement
+      lookupConstruct[C](ref, locations:_*)
+
+    cd.map { case (_, d, _, _) => ref.resolved(d) }
+    cd.map { case (tys, entry, args, data) => (tys, entry, args, data) }
+
+  def lookupConstruct[C <: ModuleEntry](ref: Ref[C], locations: SourceLocation*)(implicit tag: ClassTag[C]): Option[(Seq[Name], C, Seq[Type], TData)] =
     entries.get(ref.name) match
-      case Some(cd: CaseDefinition) =>
-        ref.resolved(cd)
-        Some((Seq(), cd))
-      case Some(ParametricModuleEntry(tyParams, cd: CaseDefinition)) =>
-        ref.resolved(cd)
-        Some((tyParams, cd))
+      case Some(cd@CaseDefinition(_, params, data)) =>
+        Some((Seq(), cd.asInstanceOf[C], params, data))
+      case Some(ParametricModuleEntry(tyParams, cd@CaseDefinition(_, params, data))) =>
+        Some((tyParams, cd.asInstanceOf[C], params, data))
+      case Some(ParametricModuleEntry(tyParams, req@RequireCaseDefinition(_, params, data))) =>
+        Some((tyParams, req.asInstanceOf[C], params.map(_.ty), data))
+      case Some(req@RequireCaseDefinition(_, params, data)) =>
+        Some((Seq(), req.asInstanceOf[C], params.map(_.ty), data))
       case _ =>
         error(s"Could not find constructor ${ref.name}", locations: _*)
         None
@@ -41,11 +112,11 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.checkModuleEntry(moduleEntry)
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case Construct(ref, args) => lookupConstruct(ref, term) match
+    case Construct(ref, args) => inferConstruct(ref, term) match
       case None =>
         error(s"Unknown constructor ${ref.name}", term)
         TAny.bound
-      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+      case Some((typeParams, cd, params, data)) =>
         addTypeDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", term)
@@ -76,10 +147,10 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.inferTermExtend(term, mode)
 
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Deconstruct(t, ref, args, neg) => lookupConstruct(ref, atom) match
+    case Deconstruct(t, ref, args, neg) => inferConstruct(ref, atom) match
       case None =>
         error(s"Unknown constructor $ref", atom)
-      case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+      case Some((typeParams, cd, params, data)) =>
         addTypeDependency(cd)
         if (args.size != params.size)
           error(s"Expected ${params.size} arguments but got: ${args.size}", atom)
@@ -116,13 +187,11 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       error(s"Expected data type but got $matcheeType", s)
       Map()
 
-
-
   override def checkType(ty: Type): Unit = ty match
     case TData(ref) =>
-      val (tyParams, entry) = lookupDataDefinition(ref, ty) match
+      val (tyParams, entry) = inferDataDefinition(ref, ty) match
         case None => (Seq(), null)
-        case Some((tyParams, dd)) =>
+        case Some((tyParams, dd, _)) =>
           addTypeDependency(dd)
           (tyParams, dd)
       ref match

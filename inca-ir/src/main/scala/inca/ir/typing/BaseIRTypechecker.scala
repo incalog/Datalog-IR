@@ -73,7 +73,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case _ => registerModuleEntry(entry)
 
   protected def checkRequire[T <: ModuleEntry](require: Require): Unit = require match
-    case r: RequireRelation => // nothing, we check these on import
+    case _: RequireRelation => // nothing, we check these on import
     case _ => error(s"Can not typecheck unknown require: $require")
 
   protected def checkProvide[T <: Providable](provide: Provide[T]): Unit = provide match
@@ -84,15 +84,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       p.params.zip(sig).foreach {
         case (param, ty) => assertComparable(param.ty, ty, provide)
       }
-    case _ => error(s"Can not typecheck unknown: $provide")
+    case _ => error(s"Can not typecheck unknown provide: $provide")
 
   protected def checkImport(imp: Import): Unit = imp match
     case Import(moduleRef, as, entries) =>
-      // Make sure every substitution is valid
-      entries.foreach(i => checkSubstitution(imp, i))
-      // Make sure every required entry in the imported module is satisfied
       moduleRef.target match
         case Some(mod) =>
+          // Make sure every substitution is valid
+          entries.foreach(i => checkSubstitution(imp, i))
+          // Make sure every required entry in the imported module is satisfied
           val required = mod.contents.collect { case req: Require => req }.sortBy(_.name.name)
           val importedRequired = entries.map(_.to).sortBy(_.name.name)
           if required.size != importedRequired.size then
@@ -103,9 +103,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
                 error(s"Incorrectly resolved requirement ${req.name}", imp)
               case _ => // ok
           }
-        case _ => // unresolved module
+        case _ => error(s"Unresolved module $moduleRef", imp)
 
-  protected def checkSubstitution(imp: Import, importable: Substitution): Unit = importable match
+
+  protected def checkSubstitution(imp: Import, importable: Substitution[_]): Unit = importable match
     case RelationSubstitution(to, toSig, from, fromSig) =>
       // Make sure the to and from signature match
       if toSig.size != fromSig.size then
@@ -113,17 +114,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       fromSig.zip(toSig).foreach {
         case (fromParam, toParam) => assertComparable(fromParam.ty, toParam.ty, importable)
       }
-
       // Make sure there is a "require" for the "to" name and resolve it
-      imp.module.target match
-        case Some(mod) => lookupRequire(to.name)(mod) match
-          case Some(r: Require) => to.resolved(r)
-          case _ => error(s"Can not assign unrequired name ${to.name}", importable, imp)
-        case _ => // unresolved module
-
+      lookupRequireRef(to, importable, imp.module.target.get)
       inferRelationRef(from, importable)
-
     case _ => error(s"Can not typecheck import: $importable")
+
+  protected def lookupRequireRef[R <: Require](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Option[R] =
+    lookupRequire[R](ref.name, module)(tag) match
+      case Some(r) =>
+        ref.resolved(r)
+        Some(r)
+      case _ =>
+        error(s"Could not resolve entry required by: ${ref.name}", s)
+        None
 
   protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = scopedTypeContext {
     moduleEntry match
@@ -284,62 +287,59 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] =
-    val targetModule = ref match
+  protected def lookupModulePath[R <: ModuleEntry](ref: Ref[R], s: SourceLocation*)(implicit tag: ClassTag[R]): Module =
+    ref match
       case RefByQualifiedName(ns) =>
         // resolve the modules in the path
         val m: Option[Module] = None
         ns.dropRight(1).foldLeft(m) {
           case (_, moduleName) => lookupModuleByAlias(moduleName)(currentModule) match
-            case Some(mod) => Some(mod)
+            case Some(mod) => 
+              Some(mod)
             case _ =>
-              error(s"Could not resolve module $moduleName", s)
+              error(s"Could not resolve module $moduleName", s:_*)
               None
         }.getOrElse(currentModule)
       case _ => currentModule
-
+  
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], locations: SourceLocation*)(implicit tag: ClassTag[R]): Seq[Type] =
+    val targetModule = lookupModulePath(ref, locations:_*)
     val (rel, tys) = if targetModule != currentModule then
       // definitions outside the current module must be provided
-      lookupProvideRef[R](ref, s, targetModule)
+      val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations:_*)
+      (providedRel, providedRel.map(_.params.map(_.ty)).getOrElse(Seq()))
     else
-      // definitions inside the module can either be a relation or a requirement 
-      lookupRelationRef[R](ref, s)
-    rel.map(r => ref.resolved(r))
+      // definitions inside the module can either be a relation or a requirement
+      lookupRelationRef[R](ref, locations:_*)
+    rel.map(r => ref.resolved(r.asInstanceOf[R]))
     tys
-
-  private def lookupProvideRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
-    val name = ref match
-      case RefByName(n) => n
-      case RefByQualifiedName(ns) => ns.last
-    lookupProvide(name)(module) match
-      case prov@Some(ProvideRelation(_, params)) =>
-        (prov.asInstanceOf[Option[R]], params.map(_.ty))
+  
+  protected def lookupProvideRef[P <: Provide[_]](ref: Ref[_], module: Module, locations: SourceLocation*)(implicit tag: ClassTag[P]): Option[P] =
+    lookupProvide[P](ref.unqualifiedName, module) match
+      case prov@Some(ProvideRelation(_, params)) => prov
       case _ =>
-        error(s"Could not resolve relation ${ref.name}", s)
-        (None, Seq())
+        error(s"Could not resolve entry provided by: ${ref.name}", locations:_*)
+        None
 
   // lookup a relation in a module given a name
-  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
-    val name = ref match
-      case RefByName(n) => n
-      case RefByQualifiedName(ns) => ns.last
-    lookupModuleEntry(name) match
+  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation*)(implicit tag: ClassTag[R]): (Option[R], Seq[Type]) =
+    lookupModuleEntry(ref.unqualifiedName) match
       case Some(rel@Relation(_, params, _)) =>
         if (!tag.runtimeClass.isInstance(rel))
-          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
+          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s:_*)
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(rel@ExtensionalRelation(_, params)) =>
-        // This might e.g. happen if we perform a call on an extensional relation
+        // This might e.g. happen if we perform a normal call on an extensional relation
         if (!tag.runtimeClass.isInstance(rel))
-          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
+          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s:_*)
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(req@RequireRelation(_, params)) =>
         (Some(req.asInstanceOf[R]), params.map(_.ty))
       case None =>
-        error(s"Undefined relation ${ref.name}", s)
+        error(s"Undefined relation ${ref.name}", s:_*)
         (None, Seq())
       case entry =>
-        error(s"Expected a relation ${ref.name} but found $entry", s)
+        error(s"Expected a relation ${ref.name} but found $entry", s:_*)
         (None, Seq())
 
   protected def checkAtom(atom: Atom, mode: Mode): Unit = atom match

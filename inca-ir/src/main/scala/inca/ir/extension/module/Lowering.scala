@@ -12,7 +12,7 @@ object PrefixModuleEntries:
 import PrefixModuleEntries.prefixName
 
 // modify a provided Module to be imported in the main module
-private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution]) extends IRVisitor:
+private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[_]]) extends IRVisitor:
   private var renamings: Map[Name, Name] = _
 
   def extract(module: Module): Seq[ModuleEntry] = visitModule(module).contents
