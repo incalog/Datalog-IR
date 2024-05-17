@@ -28,62 +28,51 @@ class GenerateModuleBasedIR extends GenerateIRContext:
 
   private var componentModules: Map[ir.Name, ir.Module] = Map()
 
-  private var currentComponent: Option[ComponentDecl] = None
-
-  private def currentlyInMainComponent: Boolean = currentComponent.isEmpty
-
-  private def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
-
   def compileProgram(prog: Program, name: String): Seq[ir.Module] =
-    // perform name resolution and prefill the context
-    analyseProgram(prog)
-
-    val content = compileProgramContents(prog.content)
+    initContext(prog)
+    val content = switchToMainComponent { compileProgramContents(prog.content) }
     val souffleModule = ir.Module(ir.Name(name), irLang, content)
-
     souffleModule +: componentModules.values.toSeq
-
 
   private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
     contents.sorted.flatMap(compileProgramContent).distinct
 
-  private def collectRelationDecls(componentDecl: ComponentDecl): Set[ProgramContent.RelationDecl] =
-    val directDecls = componentDecl.content.collect { case r: ProgramContent.RelationDecl => r }.toSet
+  private def collectProgramContent[A](componentDecl: ComponentDecl)(f: PartialFunction[ProgramContent, A]): Set[A] =
+    val directDecls = componentDecl.content.collect(f).toSet
     val superComponents = componentDecl.superTys.map(_.target.get)
-    directDecls ++ superComponents.flatMap(collectRelationDecls)
+    directDecls ++ superComponents.flatMap(c => collectProgramContent(c)(f))
 
   private def compileComponentDecl(decl: ComponentDecl): ir.Module =
     val modName = ir.Name(decl.ty.n)
     componentModules.get(modName) match
       case Some(m) => m
-      case _ =>
-        // compile all inherited components
-        val superDecls = decl.superTys.map(_.target.get)
-        superDecls.map(compileComponentDecl)
+      case _ => compileComponentDeclInternal(modName, decl)
 
-        val oldComponent = currentComponent
-        currentComponent = Some(decl)
+  private def compileComponentDeclInternal(moduleName: ir.Name, decl: ComponentDecl): ir.Module =
+    // compile all inherited components
+    val superDecls = decl.superTys.map(_.target.get)
+    superDecls.map(compileComponentDecl)
 
-        // collect all relation declarations defined in this component or the parent
-        val rels = collectRelationDecls(decl).toSeq
+    // collect all relation declarations defined in this component or the parent
+    val rels = collectProgramContent(decl){ case r: ProgramContent.RelationDecl => r }
+    val content = switchToComponent(decl) {
+      rels.toSeq.flatMap(compileRelationDecl) ++ compileProgramContents(decl.content)
+    }
 
-        val content = rels.flatMap(compileRelationDecl) ++ compileProgramContents(decl.content)
-        currentComponent = oldComponent
+    val required = lookupRequiredDeclarations(decl).map {
+      case (name, decl) =>
+        val params = decl.attrs.map(compileAttribute)
+        RequireRelation(ir.Name("super$" + name), params)
+    }
 
-        val required = lookupRequiredDeclarations(decl).map {
-          case (name, decl) =>
-            val params = decl.attrs.map(compileAttribute)
-            RequireRelation(ir.Name("super$" + name), params)
-        }
+    // provide all relations in a component
+    val provided = content.collect {
+      case ir.Relation(name, params, bodies) => ProvideRelation(name, params)
+    }
 
-        // provide all relations in a component
-        val provided = content.collect {
-          case ir.Relation(name, params, bodies) => ProvideRelation(name, params)
-        }
-
-        val compModule = ir.Module(modName, irLang, content ++ required ++ provided)
-        componentModules += modName -> compModule
-        compModule
+    val compModule = ir.Module(moduleName, irLang, content ++ required ++ provided)
+    componentModules += moduleName -> compModule
+    compModule
 
   private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
@@ -93,22 +82,6 @@ class GenerateModuleBasedIR extends GenerateIRContext:
         else
           // we compile this when we compile a component
           Seq()
-      case rule@ProgramContent.Rule(heads, body, queryPlan) =>
-        Seq()
-      case fact@ProgramContent.Fact(name, args) =>
-        Seq()
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
-        compileAdtDecl(typeDecl)
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
-        compileUnionTypeDecl(typeDecl)
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
-        compileRecordTypeDecl(typeDecl)
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(ty)) =>
-        throw IllegalStateException(s"Subtypes are not supported: $content")
-      case ProgramContent.TypeDecl(name, _) =>
-        Seq() // nothing
-      case decl@ProgramContent.ComponentDecl(compTy, _, compContent) if !componentModules.contains(ir.Name(compTy.n)) =>
-        Seq() // nothing
       case compInit@ProgramContent.ComponentInit(initName, compTy) =>
         // lazily compile the component and all inherited components if needed
         val decl = compInit.target.get
@@ -116,7 +89,6 @@ class GenerateModuleBasedIR extends GenerateIRContext:
         resolveImport(compTy, initName)
       case _ =>
         Seq()
-
 
   private def prefixedRelationName(name: String, decl: RelationDecl, absolutePath: Boolean): ir.Name =
     if absolutePath then

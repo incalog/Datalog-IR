@@ -14,12 +14,14 @@ trait GenerateIRContext {
   // for each component decl store the name and the actual decl that is required
   private var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent.RelationDecl)]] = Map()
 
-  def analyseProgram(prog: Program): Unit =
+  private var currentComponent: Option[ComponentDecl] = None
+
+  def initContext(prog: Program): Unit =
     val nameResolution = new NameResolution {}
     nameResolution.resolveProgram(prog)
-    populateContext(prog)
 
-  def populateContext(prog: Program): Unit =
+    currentComponent = None
+
     rules = collectRules(prog.content)
     edbDecls = collectEdbDecls(prog.content)
     outputDecls = collectOutputDecls(prog.content)
@@ -29,12 +31,32 @@ trait GenerateIRContext {
     reqAna.analyseProgram(prog)
     requiredDecls = reqAna.requiredDecls
 
+  def switchToMainComponent[A](f: => A): A =
+    internalSwitchToComponent(None)(f)
+
+  def switchToComponent[A](componentDecl: ComponentDecl)(f: => A): A =
+    internalSwitchToComponent(Some(componentDecl))(f)
+
+  private def internalSwitchToComponent[A](componentDeclOption: Option[ComponentDecl])(f: => A): A =
+    val oldComponent = currentComponent
+    currentComponent = componentDeclOption
+    try {
+      val a = f
+      a
+    } finally {
+      currentComponent = oldComponent
+    }
+
+  def currentlyInMainComponent: Boolean = currentComponent.isEmpty
+
+  def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
+
   def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(String, ProgramContent.RelationDecl)] =
     requiredDecls.getOrElse(compDecl, Set())
-  
+
   def lookupPath(decl: ProgramContent): Seq[ComponentType] =
     paths(decl)
-  
+
   // name and relDecl, since one relDecl might have multiple rules
   def lookupRules(name: String, relDecl: ProgramContent.RelationDecl): Seq[ProgramContent] =
     def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
@@ -48,16 +70,16 @@ trait GenerateIRContext {
       case _ => false
 
     rules(relDecl).filter(r => ruleHasName(r, name)).toSeq
-    
+
   def lookupEdbAttributes(relDecl: ProgramContent.RelationDecl): Map[String, DirectiveValue] =
     edbDecls(relDecl)
-    
+
   def isEdbDeclaration(relDecl: ProgramContent.RelationDecl): Boolean =
     edbDecls.contains(relDecl)
-  
+
   def isOutputDeclaration(relDecl: ProgramContent.RelationDecl): Boolean =
     outputDecls.contains(relDecl)
-  
+
   private def combineIterables[K, V](a: Map[K, Set[V]], b: Map[K, Set[V]]): Map[K, Set[V]] =
     a ++ b.map { case (k, v) => k -> (v ++ a.getOrElse(k, Set.empty)) }
 
