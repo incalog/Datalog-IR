@@ -2333,7 +2333,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input, config = ConfigVN(normalize = config.normalize, useDefiningTerm = true))
   }
 
-  test("constraint that should not be removed and not learned from") {
+  test("invalid constraint (-> should not be learned from)") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -2352,7 +2352,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //          Body(Seq(
 //            //            Eq(Var(Name("X")), Add(IntNum(2), IntNum(1))),
 //            //            Eq(Var(Name("Y")), Sub(IntNum(2), IntNum(1))),
-//            Eq(IntNum(1),IntNum(3)),                              // should stay since it makes relation empty
+//            Eq(IntNum(1),IntNum(3)),                              // makes relation empty
 //            Eq(Var(Name("param$0")), IntNum(3)),
 //            Eq(Var(Name("param$1")), IntNum(1)),
 //          ))
@@ -2361,7 +2361,91 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-//  test("Redundant term in Eq with GE, LE, LT & Neq") {
+  test("wrong mode of type") { // TODO fix
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(IntNum(1)))),
+            Eq(Var("param$0"), IntNum(1)),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("wrong mode of type 2") { // TODO see notes
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("A")))),
+            Eq(Var("B"), Var("A")),
+            Call(Name("S1"), Seq(TermArg(Var("B")))),
+//            Eq(Var("param$0"), Var("A")),
+            Eq(Var("param$0"), Var("B")),
+            Eq(Var("param$1"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
+//            Eq(Var("param$0"), Var("A")),
+            Eq(Var("param$1"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+
+  //  test("Redundant term in Eq with GE, LE, LT & Neq") {
 //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
 //      Seq(
 //        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(

@@ -2,13 +2,14 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
+import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
 
 
 /** for value numbering constructs from BaseIR */
-trait BaseValueNumbering extends IRVisitor {
+trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
@@ -46,7 +47,7 @@ trait BaseValueNumbering extends IRVisitor {
     if (!congrClasses.contains(valueNumbers(t))) return t
 
     val leader = getCongrClassOf(t).leader
-    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){
+    if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
       // for case in 2nd phase in which term was replaced with an unbound var TODO other fix below?
       // e.g. without this param == 1 ~> param == param
       return t
@@ -164,7 +165,8 @@ trait BaseValueNumbering extends IRVisitor {
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-//    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+    // TODO has to check whole program: typechecker.checkProgram()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
       val res = super.visitBody(newBody)
@@ -196,14 +198,14 @@ trait BaseValueNumbering extends IRVisitor {
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
       treatComparisonEq(vari, e)
 
-    case call@Call(_, _, false) =>  // TODO when can equivalence of two vars be concluded from calls?
-      super.visitAtom(atom).head match {
-        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
-      }
-    case call@ExtensionalCall(_, _, false) =>
-      super.visitAtom(atom).head match {
-        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
-      }
+    case call@Call(_, args, false) =>  treatBindingsInCall(call, args) // TODO when can equivalence of two vars be concluded from calls?
+//      super.visitAtom(atom).head match {
+//        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
+//      }
+    case call@ExtensionalCall(_, args, false) => treatBindingsInCall(call, args)
+//      super.visitAtom(atom).head match {
+//        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
+//      }
 
     case _ => super.visitAtom(atom)
   }
@@ -261,8 +263,12 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
+//    val tempTerm = visitTerm(t).head
     val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
+//    val newTerm = if (tempTerm == newVari && !t.isInstanceOf[Var] && newVari.mode.isBinding && phase == Phase.repetition)
+//        || isParam(t) || (newVari.mode.isBinding && isConst(t)) then t
+//      else tempTerm
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
     if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
@@ -305,8 +311,11 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   private def generateEqIfNecessary(lhs: Term, rhs: Term): Seq[Eq] = {
-    if (lhs == rhs) Seq()
-    else Seq(Eq(lhs, rhs))
+    if (lhs == rhs) {
+      Seq()
+    }
+    else
+    Seq(Eq(lhs, rhs))
   }
 
 
@@ -315,10 +324,11 @@ trait BaseValueNumbering extends IRVisitor {
       case t@TermArg(term) => term match {
 
         case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
-          val id = valueNumbers.getIdOf(vari)
-          congrClasses.update(id, CongruenceClass(id, vari, vari))
-          t
-        case _ => t
+          val newVari = if isParam(vari) then vari else visitTerm(vari).head
+          val id = valueNumbers.getIdOf(newVari)
+          congrClasses.update(id, CongruenceClass(id, newVari, newVari))
+          TermArg(newVari)
+        case _ => visitTerm(term).head
       }
       case t => t
     }
