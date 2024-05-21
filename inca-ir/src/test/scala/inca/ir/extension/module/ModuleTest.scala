@@ -246,7 +246,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    //mods.foreach(m => { println(); println(m) } )
+    mods.foreach(m => { println(); println(m) } )
 
 
     val stage1Linking = new Lowering {}
@@ -257,8 +257,8 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    //println()
-    //println("After Stage 1:")
+    println()
+    println("After Stage 1:")
 
     // Stage 2:
 
@@ -285,7 +285,7 @@ class ModuleTest extends AnyFunSuiteLike:
     deps = stage1 :+ ac
     mods = main +: deps
 
-    //mods.foreach(m => { println(); println(m) })
+    mods.foreach(m => { println(); println(m) })
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -307,7 +307,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    //println()
-    //println("After Stage 2:")
+    println()
+    println("After Stage 2:")
     println(stage2)
   }

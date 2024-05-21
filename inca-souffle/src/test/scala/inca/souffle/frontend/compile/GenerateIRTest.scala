@@ -60,11 +60,15 @@ class GenerateIRTest extends AnyFunSuite:
     }
     compiledProg.setPipeline(pipeline)
 
-    /*generateMods.foreach(m => {println(); println(m) } )
-
     println()
-    println("After lowering:")
-    println(compiledProg.mainUnit.lowered)*/
+    println("Generated:")
+    generateMods.foreach(m => {println(); println(m) } )
+
+    compiledProg.compiledUnits.foreach { u =>
+      println()
+      println("After lowering:")
+      println(u.lowered)
+    }
 
     val engine = new Executor().instantiate(compiledProg.mainUnit)
     val rels = engine.readAll()

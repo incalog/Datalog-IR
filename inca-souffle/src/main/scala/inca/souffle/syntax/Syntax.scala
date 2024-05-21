@@ -290,7 +290,7 @@ enum Qualifier:
   case Magic
   case NoInline
   case Inline
-  case Override
+  case Overridable
 
   override def toString: String = this match
     case EqRel => "eqrel"
@@ -300,7 +300,7 @@ enum Qualifier:
     case Magic => "magic"
     case NoInline => "no_inline"
     case Inline => "inline"
-    case Override => "override"
+    case Overridable => "overridable"
 
 // TODO functional dependencies
 case class ChoiceDomain():
