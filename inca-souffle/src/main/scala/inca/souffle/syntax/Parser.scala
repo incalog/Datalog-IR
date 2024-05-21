@@ -66,7 +66,7 @@ object Parser:
     IntrinsicFunctor.StrLen.toString,
     IntrinsicFunctor.Substr.toString,
     IntrinsicFunctor.Max.toString,
-    IntrinsicFunctor.Min.toString
+    IntrinsicFunctor.Min.toString,
   )
 
   def keyword(s: String): P[Unit] =
@@ -264,12 +264,17 @@ object Parser:
       case ((lhs, op), rhs) => Atom.Compare(lhs, op, rhs)
     }
 
+  lazy val matchAtom: P[Atom.Match] =
+    (op("match") *> inParens((term <* op(",")) ~ term)).map(
+      (t1, t2) => Atom.Match(t1, t2)
+    )
+    
   lazy val atom: P[Atom] =
     inParens(P.defer(disjunction)) |
     op('!') *> P.defer(atom).map(Atom.Not.apply) |
+    matchAtom.backtrack |
     call.backtrack |
     compare |
-    // TODO match
     // TODO contains
     oneOperator(List(Atom.True, Atom.False))
 

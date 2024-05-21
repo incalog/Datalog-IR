@@ -70,7 +70,7 @@ trait SouffleContext:
             case Some(decl) => decl.superTys
             case _ => throw IllegalArgumentException("Relation: FAIL3")
           // find the first matching relation in a super component
-          val superPaths = superTys.map(s => componentDeclToType(s.target.get))
+          val superPaths = superTys.map(s => componentDeclToType(compDecls(s)))
           superPaths.collectFirst {
             case path => lookupRelationDeclHelper(path, qn)
           }.flatten
@@ -86,8 +86,19 @@ trait SouffleContext:
           compInitMap.get(qn.head) match
             case Some(compInit) =>
               lookupRelationDeclHelper(compPath :+ compInit.compType, qn.tail)
+            case None if compPath.nonEmpty => // look if component was initialized in parent
+              lookupRelationDeclHelper(compPath.tail, qn)
             case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
-        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None => // check if we have inherited the component init 
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          val superPaths = superTys.map(s => componentDeclToType(compDecls(s)))
+          val relDecl = superPaths.collectFirst { case path => lookupRelationDeclHelper(path, qn) }.flatten
+          relDecl match
+            case Some(_) => relDecl
+            case None if compPath.nonEmpty => lookupRelationDeclHelper(compPath.tail, qn)
+            case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
 
 
   def bindComponentDecl(comp: ComponentDecl): Unit =
@@ -131,7 +142,7 @@ trait SouffleContext:
             case Some(decl) => decl.superTys
             case _ => throw IllegalArgumentException("Relation: FAIL3")
           // find the first matching relation in a super component
-          val superPaths = superTys.map(s => componentDeclToType(s.target.get))
+          val superPaths = superTys.map(s => componentDeclToType(compDecls(s)))
           superPaths.collectFirst {
             case path => lookupTypeDeclHelper(path, qn)
           }.flatten
@@ -147,8 +158,19 @@ trait SouffleContext:
           compInitMap.get(qn.head) match
             case Some(compInit) =>
               lookupTypeDeclHelper(compPath :+ compInit.compType, qn.tail)
+            case None if compPath.nonEmpty => // look in parent
+              lookupTypeDeclHelper(compPath.tail, qn)
             case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
-        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None =>
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          val superPaths = superTys.map(s => componentDeclToType(compDecls(s)))
+          val typeDecl = superPaths.collectFirst { case path => lookupTypeDeclHelper(path, qn) }.flatten
+          typeDecl match
+            case Some(_) => typeDecl
+            case None if compPath.nonEmpty => lookupTypeDeclHelper(compPath.tail, qn)
+            case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
 
   def bindComponentInit(compInit: ComponentInit): Unit =
     compInits += (compInit.n -> compInit)
@@ -192,6 +214,17 @@ trait SouffleContext:
           compInitMap.get(qn.head) match
             case Some(compInit) =>
               lookupADTConstructorHelper(compPath :+ compInit.compType, qn.tail)
+            case None if compPath.nonEmpty => // look in parent
+              lookupADTConstructorHelper(compPath.tail, qn)
             case None => throw IllegalArgumentException(s"FAIL1: Could not find $qn at level ${compPath.mkString(", ")}")
-        case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
+        case None =>
+          val superTys = lookupComponentDecl(compPath.last) match
+            case Some(decl) => decl.superTys
+            case _ => throw IllegalArgumentException("Relation: FAIL3")
+          val superPaths = superTys.map(s => componentDeclToType(compDecls(s)))
+          val adtDecl = superPaths.collectFirst { case path => lookupADTConstructorHelper(path, qn) }.flatten
+          adtDecl match
+            case Some(_) => adtDecl
+            case None if compPath.nonEmpty => lookupADTConstructorHelper(compPath.tail, qn)
+            case None => throw IllegalArgumentException(s"FAIL2: Could not find $qn at level ${compPath.mkString(", ")}")
 

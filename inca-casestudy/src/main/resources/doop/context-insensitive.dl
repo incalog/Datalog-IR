@@ -1959,43 +1959,7 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 .decl XMLNodeData(?file:symbol, ?nodeId:symbol, ?data:symbol)
 .input XMLNodeData(filename="minijavac/XMLNodeData.facts")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Copy of MockValueConsMacro but with proper component qualifers.
-
-
-
-
-
-
-
-
-
-
-
-
-// Android-specific macro to qualify unqualified types in layout controls.
-// Heuristic: if the name is unqualified, it may come from android.view or
-// android.widget ("Android Programming: The Big Nerd Ranch Guide", chapter 32).
-
-
-
-
 .comp Basic {
-
-
 
 .decl ExceptionHandler_InRange(?handler:ExceptionHandler, ?instruction:Instruction)
 
@@ -2016,7 +1980,7 @@ ExceptionHandler_TypeIsCaught(?type, ?block) :-
 	ExceptionHandler_SameInsn_Repr(?insn, ?repr),
 	ExceptionHandler_SameBlock_Repr(?repr, ?block),
 	ExceptionHandler_Type(?handler, ?handlerType),
-	basic.SubtypeOf(?type, ?handlerType),
+	SubtypeOf(?type, ?handlerType),
 	ConcreteClass(?type).
 
 
@@ -2027,8 +1991,8 @@ ExceptionHandler_Impossible(?type, ?h2, ?insn) :-
 	ExceptionHandler_Before(?h1, ?h2),
 	ExceptionHandler_Type(?h1, ?h1Type),
 	ExceptionHandler_Type(?h2, ?h2Type),
-	basic.SubtypeOf(?type, ?h1Type),
-	basic.SubtypeOf(?type, ?h2Type),
+	SubtypeOf(?type, ?h1Type),
+	SubtypeOf(?type, ?h2Type),
 	ConcreteClass(?type).
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2659,72 +2623,51 @@ MainMethodDeclaration(?method) :-
 
 .init basic = Basic
 
+.comp AbstractConfiguration {
+	.type Context = symbol
+	.type HContext = symbol
 
-// Context-insensitive pointer analysis with on-the-fly call graph discovery
+	.decl ContextRequest(?ctx:Context, ?hctx:HContext, ?invo:MethodInvocation, ?value:Value, ?method:Method, ?createCGE:number)
+	.decl StaticContextRequest(?ctx:Context, ?invo:MethodInvocation)
 
+	.decl ContextResponse(?callerCtx:Context, ?hctx:HContext, ?invo:MethodInvocation, ?value:Value, ?method:Method, ?calleeCtx:Context)
+	.decl StaticContextResponse(?callerCtx:Context, ?invo:MethodInvocation, ?calleeCtx:Context)
 
+	.decl RecordContextRequest(?callerCtx:Context, ?value:Value, ?var:Var)
+	.decl RecordContextResponse(?callerCtx:Context, ?value:Value, ?var:Var, ?hctx:HContext)
 
+	.decl InitContextRequest(?symbol:symbol)
+	.decl InitContextResponse(?symbol:symbol, ?context:Context)
 
-
-
-
-
-
-
-
-
-
-
-
-// Copy of MockValueConsMacro but with proper component qualifers.
-
-
-
-
-
-
-
-
-
-
-
-
-// Android-specific macro to qualify unqualified types in layout controls.
-// Heuristic: if the name is unqualified, it may come from android.view or
-// android.widget ("Android Programming: The Big Nerd Ranch Guide", chapter 32).
-
-
-
-
-
-
-
+	.decl InitHContextRequest(?symbol:symbol)
+	.decl InitHContextResponse(?symbol:symbol, ?hcontext:HContext)
+}
 
 .comp AbstractContextSensitivity {
-
+.init configuration = ContextInsensitiveConfiguration
 
 .decl ClassInitializer(?type:Type, ?method:Method)
-
 .decl InitializedClass(?classOrInterface:Type)
-
-
 .decl ImplicitReachable(?sig:Method)
-
 .decl ApplicationEntryPoint(?meth:Method)
-
-
 .decl ForcedReachable(?method:Method)
-
 .decl RunningThread(?hctx:configuration.HContext, ?value:Value)
-
 .decl ReachableCurrentThreadInvocation(?callerCtx:configuration.Context, ?local:Var)
-
 .decl FakeInvocation_ThreadGroupInit(?invo: MethodInvocation)
-
 .decl FakeInvocation_MainThreadInit(?invo: MethodInvocation)
-
 .decl FakeInvocation_SystemThreadGroupInit(?invo: MethodInvocation)
 
+.decl isContext(?ctx:configuration.Context)
+.decl isHContext(?hctx:configuration.HContext)
+
+// These are normally unique, but for partitioned analyses there may be
+// one per partition.
+.decl isImmutableContext(?ctx:configuration.Context)
+.decl isInitialContext(?ctx:configuration.Context)
+.decl isJVMStartupContext(?ctx:configuration.Context)
+.decl isClinitContext(?ctx:configuration.Context)
+.decl isImmutableHContext(?hctx:configuration.HContext)
+.decl isJVMStartupHContext(?hctx:configuration.HContext)
 
 
 // Basic "spec" relation: method returns mock value (of some type).
@@ -2739,16 +2682,6 @@ MockedMethodReturns(?method, ?value, ?type) :-
   basic.SubtypeOf(?type, "java.sql.Connection"),
   isClassType(?type),
   ?value = cat("<mock SQL connection of type ", cat(?type, ">")).
-
-
-
-
-
-
-
-
-
-
 
 .decl StringFactoryVar(?var:Var)
 .decl StringFactoryVarPointsTo(?factoryHctx:configuration.HContext, ?factoryValue:Value, ?ctx:configuration.Context, ?var:Var)
@@ -3411,16 +3344,6 @@ Value_isMock(?mockObj), isValue(?mockObj), Value_Type(?mockObj,  ?type), Value_D
   isImmutableHContext(?hctx).
 
 
-
-
-
-
-
-
-
-
-
-
   .decl FakeInvocation_RegisterFinalize0(?heap:HeapAllocation, ?invo:MethodInvocation)
 
   .decl FakeInvocation_RegisterFinalize(?value:Value, ?invo:MethodInvocation)
@@ -3446,20 +3369,6 @@ Value_isMock(?mockObj), isValue(?mockObj), Value_Type(?mockObj,  ?type), Value_D
   // [Miscellaneous]
   .decl Value_Null(?null:Value)
 
-
-
-
-.decl isContext(?ctx:configuration.Context)
-.decl isHContext(?hctx:configuration.HContext)
-
-// These are normally unique, but for partitioned analyses there may be
-// one per partition.
-.decl isImmutableContext(?ctx:configuration.Context)
-.decl isInitialContext(?ctx:configuration.Context)
-.decl isJVMStartupContext(?ctx:configuration.Context)
-.decl isClinitContext(?ctx:configuration.Context)
-.decl isImmutableHContext(?hctx:configuration.HContext)
-.decl isJVMStartupHContext(?hctx:configuration.HContext)
 
 
 .decl VarPointsTo(?hctx:configuration.HContext, ?value:Value, ?ctx:configuration.Context, ?var:Var)
@@ -3803,8 +3712,8 @@ MockObject(?value, ?class) :-
   ; (ForcedReachable(?method), Method_DeclaringType(?method, ?class))),
   ThisVar(?method, ?receiver),
   ?value = cat(?class, "::MockObject"),
-  mainAnalysis.isImmutableContext(?ctx),
-  mainAnalysis.isImmutableHContext(?hctx).
+  isImmutableContext(?ctx),
+  isImmutableHContext(?hctx).
 
 
 
@@ -4832,7 +4741,7 @@ ClassNameIndexes(0, ?type) :-
 
 ClassNameIndexes(?newPos, ?t) :-
   ClassNameIndexes(?pos, ?t),
-  ?newPos = pos + 1,
+  ?newPos = ?pos + 1,
   ?newPos < strlen(?t).
 
 // Recognize packages
@@ -5817,7 +5726,7 @@ Reachable(?method) :-
   ReachableContext(_, ?method).
 
 ReachableClass(?class) :-
-  mainAnalysis.Reachable(?method),
+  Reachable(?method),
   Method_DeclaringType(?method, ?class).
 
 .decl AppReachable(?method:Method)
@@ -5877,7 +5786,7 @@ AnyCallGraphEdge(?i, ?m) :- OpaqueCallGraphEdge(?i, ?m).
 
 
 // Metrics are always written, even when the other standard outputs are skipped.
-.output Stats_Metrics(IO="file",filename="minijavac/Stats_Metrics.csv",delimiter="\t")
+.output Stats_Metrics(IO="file",filename="Stats_Metrics.csv",delimiter="\t")
 
 
 
@@ -5885,17 +5794,17 @@ AnyCallGraphEdge(?i, ?m) :- OpaqueCallGraphEdge(?i, ?m).
 // It is possible to have multiple relations in an .output statement
 // e.g. .output CallGraphEdge, VarPointsTo
 
-.output CallGraphEdge(IO="file",filename="minijavac/CallGraphEdge.csv",delimiter="\t")
-.output AnyCallGraphEdge(IO="file",filename="minijavac/AnyCallGraphEdge.csv",delimiter="\t")
+.output CallGraphEdge(IO="file",filename="CallGraphEdge.csv",delimiter="\t")
+.output AnyCallGraphEdge(IO="file",filename="AnyCallGraphEdge.csv",delimiter="\t")
 
-.output VarPointsTo(IO="file",filename="minijavac/VarPointsTo.csv",delimiter="\t")
-.output ReachableContext(IO="file",filename="minijavac/ReachableContext.csv",delimiter="\t")
-.output InstanceFieldPointsTo(IO="file",filename="minijavac/InstanceFieldPointsTo.csv",delimiter="\t")
-.output StaticFieldPointsTo(IO="file",filename="minijavac/StaticFieldPointsTo.csv",delimiter="\t")
+.output VarPointsTo(IO="file",filename="VarPointsTo.csv",delimiter="\t")
+.output ReachableContext(IO="file",filename="ReachableContext.csv",delimiter="\t")
+.output InstanceFieldPointsTo(IO="file",filename="InstanceFieldPointsTo.csv",delimiter="\t")
+.output StaticFieldPointsTo(IO="file",filename="StaticFieldPointsTo.csv",delimiter="\t")
 //.output ArrayIndexPointsTo(IO="file",filename="minijavac/ArrayIndexPointsTo.csv",delimiter="\t")
 
 
-.output Reachable(IO="file",filename="minijavac/Reachable.csv",delimiter="\t")
+.output Reachable(IO="file",filename="Reachable.csv",delimiter="\t")
 
 // It is possible to output facts in an sqlite3 db.
 // .output CallGraphEdge(IO=sqlite, dbname="test.db", name=CallGraphEdge)
@@ -5991,25 +5900,7 @@ RemovedMethod(?method) :-
   PhantomMethod(?method),
   Method_DeclaringType(?method, ?type),
   !PhantomType(?type).
-
-
-  .init configuration = ContextInsensitiveConfiguration
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 .comp BasicContextSensitivity : AbstractContextSensitivity {
 
@@ -6039,38 +5930,14 @@ CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
 
 }
 
-
 .init mainAnalysis = BasicContextSensitivity
 
-.comp AbstractConfiguration {
 
-  .decl ContextRequest(?ctx:configuration.Context, ?hctx:configuration.HContext, ?invo:MethodInvocation, ?value:Value, ?method:Method, ?createCGE:number)
-  .decl StaticContextRequest(?ctx:configuration.Context, ?invo:MethodInvocation)
-
-  .decl ContextResponse(?callerCtx:configuration.Context, ?hctx:configuration.HContext, ?invo:MethodInvocation, ?value:Value, ?method:Method, ?calleeCtx:Context)
-  .decl StaticContextResponse(?callerCtx:configuration.Context, ?invo:MethodInvocation, ?calleeCtx:Context)
-
-  .decl RecordContextRequest(?callerCtx:configuration.Context, ?value:Value, ?var:Var)
-  .decl RecordContextResponse(?callerCtx:configuration.Context, ?value:Value, ?var:Var, ?hctx:configuration.HContext)
-
-  .decl InitContextRequest(?symbol:symbol)
-  .decl InitContextResponse(?symbol:symbol, ?context:Context)
-
-  .decl InitHContextRequest(?symbol:symbol)  
-  .decl InitHContextResponse(?symbol:symbol, ?hcontext:HContext)
-}
-
- 
 // This analysis has no context for either method calls or heap objects.
 // This is emulated by creating a single Context object and a single HContext
 // object, which are used everywhere.
 
-
 .comp ContextInsensitiveConfiguration : AbstractConfiguration {
-
-  .type Context = symbol
-  .type HContext = symbol
-
   ContextResponse(?callerCtx, ?hctx, ?invo, ?value, ?tomethod, ?calleeCtx) :-
     ContextRequest(?callerCtx, ?hctx, ?invo, ?value, ?tomethod, _),
     ?calleeCtx = ?callerCtx.
@@ -6079,11 +5946,9 @@ CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
     StaticContextRequest(?callerCtx, ?invo),
     ?calleeCtx = ?callerCtx.
 
-
-      
   RecordContextResponse(?ctx, ?value, ?var, ?hctx) :-
     RecordContextRequest(?ctx, ?value, ?var),
-    isImmutableHContext(?hctx).
+    mainAnalysis.isImmutableHContext(?hctx).
 
   InitContextResponse(?s, ?ctx) :-
     ?ctx = "<<immutable-context>>",
@@ -6092,40 +5957,7 @@ CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
   InitHContextResponse(?s, ?hctx) :-
     ?hctx = "<<immutable-hcontext>>",
     InitHContextRequest(?s).
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Copy of MockValueConsMacro but with proper component qualifers.
-
-
-
-
-
-
-
-
-
-
-
-
-// Android-specific macro to qualify unqualified types in layout controls.
-// Heuristic: if the name is unqualified, it may come from android.view or
-// android.widget ("Android Programming: The Big Nerd Ranch Guide", chapter 32).
-
 
 
 .decl BridgeMethod(?bridge:Method, ?type:Type)
@@ -6816,11 +6648,6 @@ MethodWithBuggySerializableArg(?method) :-
     Method_Arity(?method, 1),
     FormalParam(0, ?method, ?var),
     Var_Type(?var, "java.io.Serializable").
-// An output statement like ".output A" is just a shorthand for
-// ".output AB(IO="file",filename="minijavac/A.csv",delimiter="\t")".
-
-
-
 
 
 .decl Stats_Simple_JavaUtilInsensVarPointsTo(?value:Value, ?var:Var)
@@ -6957,34 +6784,6 @@ MethodWithBuggySerializableArg(?method) :-
 
 .decl Stats_Simple_Application_PotentiallyFailingCast(?type:Type, ?from:Var, ?to:Var)
 
-
-
-                                                     
-
-
-
-
-                                                     
-
-
-
-
-                                                     
-
-
-//.decl Stats_Simple_ReachableFromEntryPoint(?method:Method)
-//
-
-
-
-
-
-                                                     
-
-
-
-
-                                                     
 Stats_Simple_JavaUtilInsensVarPointsTo(?value, ?var) :-
   Stats_Simple_JavaUtilVarPointsTo(_, ?value, _, ?var).
 
@@ -7093,12 +6892,6 @@ Stats_Simple_PolymorphicCallSite(?from) :-
   Stats_Simple_VirtualTargets(?from, ?size),
   ?size > 1.
 
-/// Too slow for large programs!
-// Stats_Simple_PolymorphicCallSite(?from) :-
-//   Stats_Simple_VirtualCallGraphEdge(?from, ?to1),
-//   Stats_Simple_VirtualCallGraphEdge(?from, ?to2),
-//   ord(?to1) < ord(?to2).
-  
 Stats_Simple_NullVirtualMethodInvocation(?invocation) :-
   mainAnalysis.Value_Null(?null),
   Stats_Simple_InsensVarPointsTo(?null, ?base),
@@ -7130,8 +6923,6 @@ Stats_Simple_Application_EmptyReachableVirtualMethodInvocation(?invocation) :-
   VirtualMethodInvocation_Base(?invocation, ?base),
   !Stats_Simple_InsensVarPointsTo(_, ?base).
 
-
-                                                     
 
 Stats_Simple_ReachableCast(?inmethod, ?type, ?to, ?from) :-
   Stats_Simple_AssignedVariable(?from),
@@ -7216,26 +7007,6 @@ Stats_Metrics("25.0",  "app reachable casts that may fail", c) :- c = count : { 
 Stats_Metrics("25.5",  "app reachable methods", c) :- c = count : {  Stats_Simple_Application_ReachableMethod(_) }.
 Stats_Metrics("25.75",  "app concrete methods", c) :- c = count : {  Stats_Simple_ApplicationConcreteMethod(_) }.
 
-//Stats_Metrics("50.0",  "call sites that did (not) get refined", c) :- c = count : {  SiteToRefine(_) }.
-//Stats_Metrics("51.0",  "allocation sites that did (not) get refined", c) :- c = count : {  ValueToRefine(_) }.
-
-
-                                                     
-
-
-
-
-                                                     
-
-
-
-
-                                                     
-
-
-
-
-                                                     
 
 Stats_Metrics("61.0",  "mock objects", c) :- c = count : {  MockObject(_, _) }.
 Stats_Metrics("61.1",  "mock objects for receivers", c) :- c = count : {  MockObjFromOpenProgramEntryPointReceiver(_) }.
@@ -7243,24 +7014,9 @@ Stats_Metrics("61.2",  "mock objects for arg", c) :- c = count : {  MockObjFromO
 Stats_Metrics("61.6",  "forced-reachable formals that could not be mocked", c) :- c = count : {  UnmockableFormalOfForcedReachableContext(_, _) }.
 
 
-//Stats_Simple_ReachableFromOpenProgramEntryPoint(?method) :-
-//  MockReachableContext(_, ?method).
-
-//Stats_Metrics("60.0",  "Entry Points", c) :- c = count : {  OpenProgramEntryPoint(_) }.
-
 Stats_Metrics("61.3",  "mock objects for fields", c) :- c = count : {  MockObjFromField(_) }.
 Stats_Metrics("61.4",  "mock objects for arrays", c) :- c = count : {  MockObjFromArray(_) }.
 Stats_Metrics("61.5",  "mock objects for formals", c) :- c = count : {  MockObjFromFormal(_) }.
-//Stats_Metrics("62.0",  "Methods Reachable from open entry points (SENS)", c) :- c = count : {  MockReachableContext(_,_) }.
-//Stats_Metrics("62.5",  "Methods Reachable from open entry points (INS)", c) :- c = count : {  Stats_Simple_ReachableFromOpenProgramEntryPoint(_) }.
-
-
-
-
-
-                                                     
-
-
 
 .decl Stats_Simple_Application_InsensCallGraphEdge(?invocation:Instruction, ?toMeth:Method)
 
@@ -7271,60 +7027,9 @@ Stats_Simple_Application_InsensCallGraphEdge(?invocation, ?toMeth) :-
   Instruction_Method(?invocation, ?fromMeth),
   ApplicationMethod(?fromMeth).
 
-// An output statement like ".output A" is just a shorthand for
-// ".output AB(IO="file",filename="minijavac/A.csv",delimiter="\t")".
-
-
-
-
-
-
-                                                                 
-
-// .decl Stats_ReflectiveHeap(?heap:HeapAllocation)
-// 
 
 .decl Stats_ApplicationHeap(?heap:HeapAllocation)
 
-
-//.decl Stats_ReachableValue(?value:Value)
-//
-//
-//.decl Stats_ReachableValueWithContext(?hctx:mainAnalysis.configuration.HContext, ?value:Value)
-//
-//
-//.decl Stats_InsensValuesOnMethodBoundaries(?value:Value, ?var:Var),
-//
-//
-//.decl Stats_ValuesOnMethodBoundaries(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?ctx:mainAnalysis.configuration.Context, ?var:Var)
-//
-//
-//.decl Stats_ThrowablesInMethod(?valuetype:Type, ?method:Method)
-//
-//
-//.decl Stats_InsensThrowableValuesOnMethodBoundaries(?value:Value, ?var:Var)
-//
-//
-//.decl Stats_ThrowableValuesOnMethodBoundaries(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?ctx:mainAnalysis.configuration.Context, ?var:Var)
-//
-//
-//.decl Stats_InsensAppThrowableValuesOnMethodBoundaries(?value:Value, ?var:Var)
-//
-//
-//.decl Stats_AppThrowableValuesOnMethodBoundaries(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?ctx:mainAnalysis.configuration.Context, ?var:Var)
-//
-//
-//.decl Stats_ThrowablesInAppMethod(?valuetype:Type, ?method:Method)
-//
-//
-//.decl Stats_InsensAppMethThrowableValuesOnMethodBoundaries(?value:Value, ?var:Var)
-//
-//
-//.decl Stats_AppMethThrowableValuesOnMethodBoundaries(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?ctx:mainAnalysis.configuration.Context, ?var:Var)
-//
-
-
-                                                                 
 
 // Count how many objects, a var points to (context-sensitive)
 .decl Stats_VarCount(?ctx:mainAnalysis.configuration.Context, ?var:Var, ?n:number)
@@ -7356,15 +7061,6 @@ Stats_Simple_Application_InsensCallGraphEdge(?invocation, ?toMeth) :-
 .decl Stats_InsensVars(?n:number)
 
 
-//.decl Stats_InsensVarPointsToNonThrowable(?value:Value, ?var:Var)
-//
-//
-//.decl Stats_VarPointsToNonThrowable(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?ctx:mainAnalysis.configuration.Context, ?var:Var)
-//
-
-
-                                                                 
-
 // Count how many objects, an array points to (context-sensitive)
 .decl Stats_ArrayCount(?basehctx:mainAnalysis.configuration.HContext, ?basevalue:Value, ?n:number)
 
@@ -7393,10 +7089,6 @@ Stats_Simple_Application_InsensCallGraphEdge(?invocation, ?toMeth) :-
 
 // NOTE: The same applies for Stats_InsensBaseValueArrayCount
 .decl Stats_InsensArrays(?n:number)
-
-
-
-
 
                                                                  
 
@@ -7428,29 +7120,6 @@ Stats_Simple_Application_InsensCallGraphEdge(?invocation, ?toMeth) :-
 
 // NOTE: The same applies for Stats_InsensBaseFieldCount
 .decl Stats_InsensFields(?n:number)
-
-
-//.decl Stats_InsensInstanceFieldPointsToNonThrowable(?value:Value, ?sig:Field, ?basevalue:Value)
-//
-//
-//.decl Stats_InstanceFieldPointsToNonThrowable(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?sig:Field, ?basehctx:mainAnalysis.configuration.HContext, ?basevalue:Value)
-//
-//
-//.decl Stats_InsensInstanceFieldPointsToNonThrowable2(?value:Value, ?sig:Field, ?basevalue:Value)
-//
-//
-//.decl Stats_InstanceFieldPointsToNonThrowable2(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?sig:Field, ?basehctx:mainAnalysis.configuration.HContext, ?basevalue:Value)
-//
-//
-//.decl Stats_InsensInstanceFieldPointsToNonThrowable3(?value:Value, ?sig:Field, ?basevalue:Value)
-//
-//
-//.decl Stats_InstanceFieldPointsToNonThrowable3(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?sig:Field, ?basehctx:mainAnalysis.configuration.HContext, ?basevalue:Value)
-//
-
-
-
-
                                                      
 
 // Count how many contexts, a reachable method appears with
@@ -7468,129 +7137,9 @@ Stats_Simple_Application_InsensCallGraphEdge(?invocation, ?toMeth) :-
 
 .decl Method_TotalVPT(?method:Method, Y:number)
 
-
-//// Count how many local vars, a reachable method has
-//.decl Stats_InsensVarInReachableMethod(?var:Var, ?method:Method)
-//
-//
-//.decl Stats_VarInReachableMethod(?var:Var, ?ctx:mainAnalysis.configuration.Context, ?method:Method)
-//
-//
-//.decl Stats_MethodVarCount(?ctx:mainAnalysis.configuration.Context, ?method:Method, ?n:number)
-//
-//
-//.decl Stats_InsensMethodVarCount(?method:Method, ?n:number)
-//
-//
-//.decl Stats_MethodsWithVars(?n:number)
-//
-//
-//.decl Stats_InsensMethodsWithVars(?n:number)
-//
-//
-//.decl Stats_ReachableNativeMethod(?method:Method)
-//
-
-
-                                                                 
-
-//.decl Stats_Dominance_VarPointsTo_Var(?var:Var, ?count:number)
-//
-//
-//.decl Stats_Dominance_VarPointsTo_AllocationSite(?alloc:Value, ?count:number)
-//
-//
-//.decl Stats_Dominance_VarPointsTo_Object(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?count:number)
-//
-//
-//// Intermediate predicate
-//.decl Dominance_VarPointsTo_Method_Var(?method:Method, ?var:Var, ?count:number)
-//
-//.decl Stats_Dominance_VarPointsTo_Method(?method:Method ?count:number)
-//
-//
-//.decl Stats_Dominance_InstanceFieldPointsTo_Signature(?sig:Field, ?count:number)
-//
-//
-//.decl Stats_Dominance_InstanceFieldPointsTo_BaseAllocationSite(?alloc:Value, ?count:number)
-//
-//
-//.decl Stats_Dominance_InstanceFieldPointsTo_BaseObject(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?count:number)
-//
-//
-//.decl Stats_Dominance_InstanceFieldPointsTo_IdAllocationSite(?alloc:Value, ?count:number)
-//
-//
-//.decl Stats_Dominance_InstanceFieldPointsTo_IdObject(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?count:number)
-//
-
-
-                                                     
-
-//.decl Stats_InsensCallGraphEdgesFromSize(?from:MethodInvocation, ?size:number)
-//
-//
-//.decl Stats_InsensCallGraphEdgesToSize(?to:Method, ?size:number)
-//
-
-
-                                                     
-
-
-
 .decl Stats_InsensValueThrowPointsTo(?value:Value, ?ctx:mainAnalysis.configuration.Context, ?method:Method)
 
-
-//.decl Stats_InsensValueThrowPointsToSize(?ctx:mainAnalysis.configuration.Context, ?method:Method, ?size:number)
-//
-
 .decl Stats_InsensThrowPointsTo(?value:Value, ?method:Method)
-
-
-//.decl Stats_InsensThrowPointsToSize(?method:Method, ?size:number)
-//
-
-
-
-//.decl Stats_ReachableExceptionHandler(?handler:ExceptionHandler)
-//
-//
-//.decl Stats_ReachableThrow(?ref:Throw_Insn)
-//
-
-//// Count how many objects, a method may throw (context-sensitive)
-//.decl Stats_ThrowsPerMethodCount(?ctx:mainAnalysis.configuration.Context, ?method:Method, ?n:number)
-//
-//
-//// Count how many objects, a method may throw (value context-insensitive)
-//.decl Stats_InsensValueThrowsPerMethodCount(?ctx:mainAnalysis.configuration.Context, ?method:Method, ?n:number)
-//
-//
-//.decl Stats_InsensMethodThrowPointsTo(?hctx:mainAnalysis.configuration.HContext, ?value:Value, ?method:Method)
-//
-//
-//// Count how many objects, a method may throw (method context-insensitive)
-//.decl Stats_InsensMethodThrowsPerMethodCount(?method:Method, ?n:number)
-//
-//
-//// Count how many objects, a method may throw (value+method context-insensitive)
-//.decl Stats_InsensThrowsPerMethodCount(?method:Method, ?n:number)
-//
-//
-//// NOTE: The same applies for Stats_InsensValueThrowsPerMethodCount
-//.decl Stats_ThrowMethods(?n:number)
-//
-//
-//// NOTE: The same applies for Stats_InsensMethodThrowsPerMethodCount
-//.decl Stats_InsensThrowMethods(?n:number)
-//
-
-
-
-                                                                 
-
-//Stats_ReflectiveHeap(?heap) :-
-//  ReflectiveHeapAllocation(_, _, ?heap).
 
 Stats_ApplicationHeap(?heap) :-
   ApplicationMethod(?method),
@@ -7599,47 +7148,6 @@ Stats_ApplicationHeap(?heap) :-
 Stats_ApplicationHeap(?heap) :-
   ApplicationMethod(?method),
   mainAnalysis.AssignContextInsensitiveHeapAllocation(?heap, _, ?method).
-
-//Stats_ApplicationHeap(?heap) :-
-//  ApplicationMethod(?method),
-//  Instruction_Method(?instr, ?method),
-//  ReflectiveHeapAllocation(?instr, _, ?heap).
-
-//Stats_ReachableValue(?value),
-//Stats_ReachableValueWithContext(?hctx, ?value) :-
-//   VarPointsTo(?hctx, ?value, _, _).
-//
-//Stats_InsensValuesOnMethodBoundaries(?value, ?var),
-//Stats_ValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var) :-
-//  (FormalParam(_, ?method, ?var) ;
-//   ReturnVar(?var, ?method)),
-//  Var_DeclaringMethod(?var, ?method),
-//  VarPointsTo(?hctx, ?value, ?ctx, ?var).
-//
-//Stats_ThrowablesInMethod(?valuetype, ?method),
-//Stats_InsensThrowableValuesOnMethodBoundaries(?value, ?var),
-//Stats_ThrowableValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var) :-
-//  SupertypeOf("java.lang.Throwable", ?valuetype),
-//  Value_Type(?value, ?valuetype),
-//  Stats_ValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var),
-//  Var_DeclaringMethod(?var, ?method).
-//
-//Stats_InsensAppThrowableValuesOnMethodBoundaries(?value, ?var),
-//Stats_AppThrowableValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var) :-
-//  ApplicationClass(?valuetype),
-//  Value_Type(?value, ?valuetype),
-//  Stats_ThrowableValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var).
-//
-//Stats_ThrowablesInAppMethod(?valuetype, ?method),
-//Stats_InsensAppMethThrowableValuesOnMethodBoundaries(?value, ?var),
-//Stats_AppMethThrowableValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var) :-
-//  ApplicationMethod(?method),
-//  Var_DeclaringMethod(?var, ?method),
-//  Stats_ThrowableValuesOnMethodBoundaries(?hctx, ?value, ?ctx, ?var),
-//  Value_Type(?value, ?valuetype).
-
-
-                                                                 
 
 // Count how many objects, a var points to (context-sensitive)
 Stats_VarCount(?ctx, ?var, ?n) :-
@@ -7675,14 +7183,6 @@ Stats_Vars(?n) :-
 Stats_InsensVars(?n) :-
   ?n = count : Stats_InsensVarCount(_, _).
 
-//Stats_InsensVarPointsToNonThrowable(?value, ?var),
-//Stats_VarPointsToNonThrowable(?hctx, ?value, ?ctx, ?var) :-
-//  Value_Type(?value, ?valuetype),
-//  VarPointsTo(?hctx, ?value, ?ctx, ?var),
-//  !SupertypeOf("java.lang.Throwable", ?valuetype).
-
-
-                                                                 
 
 // Count how many objects, an array points to (context-sensitive)
 Stats_ArrayCount(?basehctx, ?basevalue, ?n) :-
@@ -7719,10 +7219,6 @@ Stats_InsensArrays(?n) :-
   ?n = count : Stats_InsensArrayCount(_, _).
 
 
-
-
-                                                                 
-
 // Count how many objects, a field points to (context-sensitive)
 Stats_FieldCount(?sig, ?basehctx, ?basevalue, ?n) :-
   mainAnalysis.InstanceFieldPointsTo(_, _, ?sig, ?basehctx, ?basevalue),
@@ -7757,31 +7253,6 @@ Stats_Fields(?n) :-
 Stats_InsensFields(?n) :-
   ?n = count : Stats_InsensFieldCount(_, _, _).
 
-//Stats_InsensInstanceFieldPointsToNonThrowable(?value, ?sig, ?basevalue),
-//Stats_InstanceFieldPointsToNonThrowable(?hctx, ?value, ?sig, ?basehctx, ?basevalue) :-
-//  Value_Type(?value, ?valuetype),
-//  InstanceFieldPointsTo(?hctx, ?value, ?sig, ?basehctx, ?basevalue),
-//  !SupertypeOf("java.lang.Throwable", ?valuetype).
-//
-//Stats_InsensInstanceFieldPointsToNonThrowable2(?value, ?sig, ?basevalue),
-//Stats_InstanceFieldPointsToNonThrowable2(?hctx, ?value, ?sig, ?basehctx, ?basevalue) :-
-//  Value_Type(?basevalue, ?valuetype),
-//  InstanceFieldPointsTo(?hctx, ?value, ?sig, ?basehctx, ?basevalue),
-//  !SupertypeOf("java.lang.Throwable", ?valuetype).
-//
-//Stats_InsensInstanceFieldPointsToNonThrowable3(?value, ?sig, ?basevalue),
-//Stats_InstanceFieldPointsToNonThrowable3(?hctx, ?value, ?sig, ?basehctx, ?basevalue) :-
-//  Value_Type(?basevalue, ?basevaluetype),
-//  InstanceFieldPointsTo(?hctx, ?value, ?sig, ?basehctx, ?basevalue),
-//  Value_Type(?value, ?valuetype),
-//  !SupertypeOf("java.lang.Throwable", ?valuetype),
-//  !SupertypeOf("java.lang.Throwable", ?basevaluetype).
-
-
-
-
-                                                     
-
 // Count how many contexts, a reachable method appears with
 Stats_MethodContextCount(?method, ?n) :-
   mainAnalysis.ReachableContext(_, ?method),
@@ -7806,196 +7277,9 @@ Method_TotalVPT(?method, 0) :-
   mainAnalysis.Reachable(?method),
   !Var_DeclaringMethod(_, ?method).
 
-//// Count how many local vars, a reachable method has
-//Stats_InsensVarInReachableMethod(?var, ?method),
-//Stats_VarInReachableMethod(?var, ?ctx, ?method) :-
-//  ReachableContext(?ctx, ?method),
-//  Var_DeclaringMethod(?var, ?method).
-//
-//Stats_MethodVarCount(?ctx, ?method, ?n) :-
-//  Stats_VarInReachableMethod(_, ?ctx, ?method),
-//  ?n = count : Stats_VarInReachableMethod(_, ?ctx, ?method).
-//
-//Stats_InsensMethodVarCount(?method, ?n) :-
-//  Stats_InsensVarInReachableMethod(_, ?method),
-//  ?n = count : Stats_InsensVarInReachableMethod(_, ?method).
-//
-//Stats_MethodsWithVars(?n) :-
-//  ?n = count : Stats_MethodVarCount(_, _, _).
-//
-//Stats_InsensMethodsWithVars(?n) :-
-//  ?n = count : Stats_InsensMethodVarCount(_, _).
-//
-//Stats_ReachableNativeMethod(?method) :-
-//  Reachable(?method),
-//  Method_Modifier("native", ?method).
-
-
-                                                                 
-
-//Stats_Dominance_VarPointsTo_Var(?var, ?count) :-
-//  VarPointsTo(_, _, _, ?var),
-//  ?count = count : VarPointsTo(_, _, _, ?var).
-//
-//Stats_Dominance_VarPointsTo_AllocationSite(?alloc, ?count) :-
-//  VarPointsTo(_, ?alloc, _, _),
-//  ?count = count : VarPointsTo(_, ?alloc, _, _).
-//
-//Stats_Dominance_VarPointsTo_Object(?hctx, ?value, ?count) :-
-//  VarPointsTo(?hctx, ?value, _, _),
-//  ?count = count : VarPointsTo(?hctx, ?value, _, _).
-//
-//Dominance_VarPointsTo_Method_Var(?method, ?var, ?varCount) :-
-//  Reachable(?method),
-//  Var_DeclaringMethod(?var, ?method)
-//  Stats_Dominance_VarPointsTo_Var(?var, ?varCount).
-//
-//Stats_Dominance_VarPointsTo_Method(?method, ?count) :-
-//  Dominanace_VarPointsTo_Method_Var(?method, _, _),
-//  ?count = sum (?varCount): Dominance_VarPointsTo_Method_Var(?method, _, ?varCount).
-//
-//Stats_Dominance_InstanceFieldPointsTo_Signature(?sig, ?count) :-
-//  InstanceFieldPointsTo(_, _, ?sig, _, _,),
-//  ?count = count : InstanceFieldPointsTo(_, _, ?sig, _, _).
-//
-//Stats_Dominance_InstanceFieldPointsTo_BaseAllocationSite(?alloc, ?count) :-
-//  InstanceFieldPointsTo(_, _, _, _, ?alloc),
-//  ?count = count : InstanceFieldPointsTo(_, _, _, _, ?alloc).
-//
-//Stats_Dominance_InstanceFieldPointsTo_BaseObject(?hctx, ?value, ?count) :-
-//  InstanceFieldPointsTo(_, _, _, ?hctx, ?value),
-//  ?count = count : InstanceFieldPointsTo(_, _, _, ?hctx, ?value).
-//
-//Stats_Dominance_InstanceFieldPointsTo_IdAllocationSite(?alloc, ?count) :-
-//  ?count = count : InstanceFieldPointsTo(_, ?alloc, _, _, _).
-//
-//Stats_Dominance_InstanceFieldPointsTo_IdObject(?hctx, ?value, ?count) :-
-//  InstanceFieldPointsTo(?hctx, ?value, _, _, _),
-//  ?count = count : InstanceFieldPointsTo(?hctx, ?value, _, _, _).
-
-
-                                                     
-
-//Stats_InsensCallGraphEdgesFromSize(?from, ?size) :-
-//  Stats_Simple_InsensCallGraphEdge(?from, _),
-//  ?size = count : Stats_Simple_InsensCallGraphEdge(?from, _).
-//
-//Stats_InsensCallGraphEdgesToSize(?to, ?size) :-
-//  Stats_Simple_InsensCallGraphEdge(_, ?to),
-//  ?size = count : Stats_Simple_InsensCallGraphEdge(_, ?to).
-
-
-                                                     
-
-
-
-
 Stats_InsensValueThrowPointsTo(?value, ?ctx, ?method) :-
   mainAnalysis.ThrowPointsTo(_, ?value, ?ctx, ?method).
 
-//Stats_InsensValueThrowPointsToSize(?ctx, ?method, ?size) :-
-//  Stats_InsensValueThrowPointsTo(_, ?ctx, ?method),
-//  ?size = count : Stats_InsensValueThrowPointsTo(_, ?ctx, ?method).
-
 Stats_InsensThrowPointsTo(?value, ?method) :-
   Stats_InsensValueThrowPointsTo(?value, _, ?method).
-
-//Stats_InsensThrowPointsToSize(?method, ?size)
-//  Stats_InsensThrowPointsTo(_, ?method),
-//  ?size = count : Stats_InsensThrowPointsTo(_, ?method).
-
-
-
-//Stats_ReachableExceptionHandler(?handler) :-
-//  Reachable(?method),
-//  ExceptionHandler_Method(?handler, ?method).
-//
-//Stats_ReachableThrow(?ref) :-
-//  Reachable(?method),
-//  Instruction_Method(?ref, ?method),
-//  Throw_Insn(?ref).
-
-//// Count how many objects, a method may throw (context-sensitive)
-//Stats_ThrowsPerMethodCount(?ctx, ?method, ?n) :-
-//  ThrowPointsTo(_, _, ?ctx, ?method),
-//  ?n = count : ThrowPointsTo(_, _, ?ctx, ?method).
-//
-//// Count how many objects, a method may throw (value context-insensitive)
-//Stats_InsensValueThrowsPerMethodCount(?ctx, ?method, ?n) :-
-//  Stats_InsensValueThrowPointsTo(_, ?ctx, ?method),
-//  ?n = count : Stats_InsensValueThrowPointsTo(_, ?ctx, ?method).
-//
-//// Count how many objects, a method may throw (method context-insensitive)
-//Stats_InsensMethodThrowPointsTo(?hctx, ?value, ?method) :-
-//  ThrowPointsTo(?hctx, ?value, _, ?method).
-//
-//Stats_InsensMethodThrowsPerMethodCount(?method, ?n) :-
-//  Stats_InsensMethodThrowPointsTo(_, _, ?method),
-//  ?n = count : Stats_InsensMethodThrowPointsTo(_, _, ?method).
-//
-//// Count how many objects, a method may throw (value+method context-insensitive)
-//Stats_InsensThrowsPerMethodCount(?method, ?n) :-
-//  Stats_InsensThrowPointsTo(_, ?method),
-//  ?n = count : Stats_InsensThrowPointsTo(_, ?method).
-//
-//// NOTE: The same applies for Stats_InsensValueThrowsPerMethodCount
-//Stats_ThrowMethods(?n) :-
-//  ?n = count : Stats_ThrowsPerMethodCount(_, _, _).
-//
-//// NOTE: The same applies for Stats_InsensMethodThrowsPerMethodCount
-//Stats_InsensThrowMethods(?n) :-
-//  ?n = count : Stats_InsensThrowsPerMethodCount(_, _).
-
-
-                                                     
-
-//VarsRank(?r), VarsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`VarsRank] = 8388608.
-//VarsRankNr(?r) <- uint32_range(1, Stats_Vars[], 1, ?r).
-//+VarsRank(?r) <- +VarsRankNr(?r).
-//
-//InsensVarsRank(?r), InsensVarsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`InsensVarsRank] = 8388608.
-//InsensVarsRankNr(?r) <- uint32_range(1, Stats_InsensVars[], 1, ?r).
-//+InsensVarsRank(?r) <- +InsensVarsRankNr(?r).
-//
-//ArraysRank(?r), ArraysRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`ArraysRank] = 8388608.
-//ArraysRankNr(?r) <- uint32_range(1, Stats_Arrays[], 1, ?r).
-//+ArraysRank(?r) <- +ArraysRankNr(?r).
-//
-//InsensArraysRank(?r), InsensArraysRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`InsensArraysRank] = 8388608.
-//InsensArraysRankNr(?r) <- uint32_range(1, Stats_InsensArrays[], 1, ?r).
-//+InsensArraysRank(?r) <- +InsensArraysRankNr(?r).
-//
-//FieldsRank(?r), FieldsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`FieldsRank] = 8388608.
-//FieldsRankNr(?r) <- uint32_range(1, Stats_Fields[], 1, ?r).
-//+FieldsRank(?r) <- +FieldsRankNr(?r).
-//
-//InsensFieldsRank(?r), InsensFieldsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`InsensFieldsRank] = 8388608.
-//InsensFieldsRankNr(?r) <- uint32_range(1, Stats_InsensFields[], 1, ?r).
-//+InsensFieldsRank(?r) <- +InsensFieldsRankNr(?r).
-//
-//ThrowsRank(?r), ThrowsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`ThrowsRank] = 8388608.
-//ThrowsRankNr(?r) <- uint32_range(1, Stats_ThrowMethods[], 1, ?r).
-//+ThrowsRank(?r) <- +ThrowsRankNr(?r).
-//
-//MethodsRank(?r), MethodsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`MethodsRank] = 8388608.
-//MethodsRankNr(?r) <- uint32_range(1, Stats_Methods[], 1, ?r).
-//+MethodsRank(?r) <- +MethodsRankNr(?r).
-//
-//MethodVarsRank(?r), MethodVarsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`MethodVarsRank] = 8388608.
-//MethodVarsRankNr(?r) <- uint32_range(1, Stats_MethodsWithVars[], 1, ?r).
-//+MethodVarsRank(?r) <- +MethodVarsRankNr(?r).
-//
-//InsensMethodVarsRank(?r), InsensMethodVarsRank_Id(?r_?n) -> uint[32](?n).
-//lang_physical_capacity[`InsensMethodVarsRank] = 8388608.
-//InsensMethodVarsRankNr(?r) <- uint32_range(1, Stats_InsensMethodsWithVars[], 1, ?r).
-//+InsensMethodVarsRank(?r) <- +InsensMethodVarsRankNr(?r).
 

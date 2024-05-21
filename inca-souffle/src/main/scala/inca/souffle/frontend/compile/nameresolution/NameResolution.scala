@@ -17,8 +17,10 @@ trait NameResolution:
     content match
       case decl: ProgramContent.TypeDecl => ctx.bindTypeDecl(decl)
       case decl: ProgramContent.RelationDecl => ctx.bindRelationDecl(decl)
-      case decl: ProgramContent.ComponentDecl => ctx.bindComponentDecl(decl)
-      case init: ProgramContent.ComponentInit => ctx.bindComponentInit(init)
+      case decl: ProgramContent.ComponentDecl => 
+        ctx.bindComponentDecl(decl)
+      case init: ProgramContent.ComponentInit => 
+        ctx.bindComponentInit(init)
       case _ => ()
 
   private def resolveProgramContent(content: ProgramContent): Unit = content match
@@ -33,8 +35,14 @@ trait NameResolution:
     case decl@ProgramContent.ComponentDecl(ty, superTys, innerContent) =>
       ctx.scopedTypeContext {
         ty.resolved(decl)
-        // register all decl in we inherited
-        superTys.map(ctx.lookupComponentDecl).foreach(c => c.get.content.map(register))
+        // register all decl we inherited
+        superTys.foreach { sTy =>
+          ctx.lookupComponentDecl(sTy) match
+            case Some(comp) => 
+              sTy.resolved(comp)
+              comp.content.foreach(register)
+            case _ => ???
+        }
         ctx.newComponentLevel(ty)
         superTys.foreach { superCompType =>
           ctx.lookupComponentDecl(superCompType) match

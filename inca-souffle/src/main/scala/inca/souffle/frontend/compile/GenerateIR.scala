@@ -1,14 +1,17 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.{Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
 import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.data.{RequireCaseDefinition, RequireDataDefinition}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.ir.typing.Resolvable
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
+import inca.souffle.syntax.Aggregator.Min
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl}
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
 import inca.util.Gensym
@@ -305,7 +308,32 @@ class GenerateIR extends GenerateIRContext:
       irdata.Construct(fromPath :+ fromName, args.map(compileTerm))
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
-    case Term.AggregatorTerm(agg) => ???
+    case Term.AggregatorTerm(agg) =>
+      // TODO: Ignore for now
+      irbool.BoolFalse
+      /*val (op, args, t) = agg match
+        case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
+        case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
+        case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
+        case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
+      val outTerm = t.map(compileTerm)
+
+      Block(
+        args.map(compileAtom).map {
+          case ir.Call(ref, args, false) if args.find(_ == outTerm) =>
+            val aggIndex = args.indexOf(outTerm)
+            val aggTem = args(aggIndex) match
+              case TermArg(t) => t
+              case _ => throw IllegalStateException(s"Could not extract aggregation term for: $a")
+            val newArgs = args.updated(aggIndex, AggregateColumnArg(aggTem))
+            iragg.Aggregate(ref, newArgs, op)
+          case ir.Call(ref, args, false)  =>
+            throw IllegalStateException(s"Cound not find aggregation index for: $a")
+          case a =>
+            throw IllegalStateException(s"Unexpected aggregation atom: $a")
+        }
+      )*/
+      
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
         case IntrinsicFunctor.Ord => ???
