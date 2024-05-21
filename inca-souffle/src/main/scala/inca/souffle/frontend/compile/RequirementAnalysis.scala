@@ -5,32 +5,67 @@ import inca.souffle.syntax.{Atom, Attribute, BinOp, IntrinsicFunctor, Program, P
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl}
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
 
+case class QName(ns: Seq[String]):
+  override def toString: String = ns.mkString("$")
+
 trait RequirementAnalysis:
-  var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent)]] = Map()
-  var providedDecls: Map[ComponentDecl, Set[(String, ProgramContent)]] = Map()
+  var requiredDecls: Map[ComponentDecl, Set[(QName, ProgramContent)]] = Map()
+  var providedDecls: Map[ComponentDecl, Set[(QName, ProgramContent)]] = Map()
+
+  // parent -> child relations regarding the nesting sturcture, not component inheritance!
   private var parentChildRelations: Map[ComponentDecl, ComponentDecl] = Map()
 
   private var currentComponent: Option[ComponentDecl] = None
 
   private def initRequirement(compDecl: ComponentDecl): Unit =
     requiredDecls += compDecl -> Set()
-  private def addRequirement(name: String, decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
+  private def addRequirement(ns: Seq[String], decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
     currentComponent match
-      case Some(comp) => requiredDecls += comp -> (requiredDecls(comp) + ((name, decl)))
+      case Some(comp) => requiredDecls += comp -> (requiredDecls(comp) + ((QName(ns), decl)))
       case _ => // nothing
 
   private def initProvision(compDecl: ComponentDecl): Unit =
     providedDecls += compDecl -> Set()
-  private def addProvision(name: String, decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
+  private def addProvision(ns: Seq[String], decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
     currentComponent match
-      case Some(comp) => providedDecls += comp -> (providedDecls(comp) + ((name, decl)))
+      case Some(comp) => providedDecls += comp -> (providedDecls(comp) + ((QName(ns), decl)))
       case _ => // nothing
 
   def analyseProgram(prog: Program): Unit =
     analyseContents(prog.content)
 
-    // Everything a child requires is required by the parent
+    /*requiredDecls.foreach {
+      case (decl, rules) =>
+        println(s"Declaration: ${decl.ty.n}")
+        rules.map { r =>
+          println(s"\t${r._1}")
+        }
+    }*/
+
+    // propagate information based on inheritance
     var changed = true
+    //println(requiredDecls.map(_._1.ty.n))
+    while (changed) {
+      changed = requiredDecls.exists { (compDecl, compRequired) =>
+        val superComps = compDecl.superTys.map(_.target.get)
+        val oldReq = requiredDecls
+        val inherited = superComps.flatMap(providedDecls).toSet
+        requiredDecls += compDecl -> (inherited ++ compRequired)
+        oldReq != requiredDecls
+      }
+    }
+
+    /*println("After inheritance propagation")
+    requiredDecls.foreach {
+      case (decl, rules) =>
+        println(s"Declaration: ${decl.ty.n}")
+        rules.map { r =>
+          println(s"\t${r._1}")
+        }
+    }*/
+
+    // propagate information along the nesting structure
+    changed = true
     while (changed) {
       changed = parentChildRelations.exists { (parent, child) =>
         val oldReq = requiredDecls
@@ -38,6 +73,15 @@ trait RequirementAnalysis:
         oldReq != requiredDecls
       }
     }
+
+    /*println("After propagation: ")
+    requiredDecls.foreach {
+      case (decl, rules) =>
+        println(s"Declaration: ${decl.ty.n}")
+        rules.map { r =>
+          println(s"\t${r._1}")
+        }
+    }*/
 
   def analyseContents(contents: Seq[ProgramContent]): Unit =
     contents.foreach(analyseContent)
@@ -54,19 +98,19 @@ trait RequirementAnalysis:
       currentComponent = oldComponent
     case relDecl: RelationDecl =>
       relDecl.names.foreach { n =>
-        addProvision(n, relDecl, currentComponent)
+        addProvision(Seq(n), relDecl, currentComponent)
       }
-    case fact: ProgramContent.Fact if fact.name.ns.size == 1 =>
+    case fact: ProgramContent.Fact => //if fact.name.ns.size == 1 =>
       val (relDecl, _) = fact.target.get
       // fact is defined outside the current component
       if relDecl.target != currentComponent then
-        addRequirement(fact.name.ns.last, relDecl, currentComponent)
+        addRequirement(fact.name.ns, relDecl, currentComponent)
     case rule: ProgramContent.Rule =>
       rule.heads.foreach {
-        case a: Atom.Call if a.qualifiedName.ns.size == 1 =>
+        case a: Atom.Call =>//if a.qualifiedName.ns.size == 1 =>
           val relDecl = a.target.get
           val compDecl = relDecl.target
-          val relName = a.qualifiedName.ns.last
+          val relName = a.qualifiedName.ns
           if compDecl != currentComponent then
             addRequirement(relName, relDecl, currentComponent)
           else
@@ -75,21 +119,21 @@ trait RequirementAnalysis:
         case _ => None // nothing
       }
     case typeDecl@ProgramContent.TypeDecl(name, _: ADTType) =>
-      addProvision(name, typeDecl, currentComponent)
+      addProvision(Seq(name), typeDecl, currentComponent)
     case _ => // nothing
 
   def analyseAtom(atom: Atom): Unit = atom match
     case Atom.Not(atom) =>
       analyseAtom(atom)
-    case call@Atom.Call(qname, args) if qname.ns.size == 1 =>
+    case call@Atom.Call(qname, args) => //if qname.ns.size == 1 =>
       analyseTerms(args:_*)
       val relDecl = call.target.get
       val compDecl = relDecl.target
-      val relName = qname.unqualifiedName
+      val relName = qname.ns
       if compDecl != currentComponent then
         addRequirement(relName, relDecl, currentComponent)
-    case call@Atom.Call(_, args) =>
-      analyseTerms(args:_*)
+    //case call@Atom.Call(_, args) =>
+    //  analyseTerms(args:_*)
     case Atom.Disjunction(bodys) =>
       bodys.map(_.map(analyseAtom))
     case Atom.Compare(t1, _, t2) =>
@@ -105,11 +149,12 @@ trait RequirementAnalysis:
 
   def analyseTerm(term: Term): Unit = term match
     case Term.List(s) => analyseTerms(s:_*)
-    case constr@Term.Constr(qname, args) if qname.ns.size == 1 =>
+    // TODO: support qualified names
+    case constr@Term.Constr(qname, args) => // if qname.ns.size == 1 =>
       analyseTerms(args:_*)
       val typeDecl = constr.target.get
       val compDecl = typeDecl.target
-      val caseName = qname.unqualifiedName
+      val caseName = qname.ns
       if compDecl != currentComponent then
         addRequirement(caseName, typeDecl, currentComponent)
     case constr@Term.Constr(qname, args) =>

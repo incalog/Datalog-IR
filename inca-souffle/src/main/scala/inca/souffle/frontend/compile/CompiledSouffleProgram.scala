@@ -28,7 +28,13 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
 
   lazy val irModules: Seq[Module] =
     val genIR = new GenerateIR
-    genIR.compileProgram(program, name.name)
+    val mods = genIR.compileProgram(program, name.name)
+    mods.foreach(println)
+    println("*****--------------------*****")
+    println("*****--------------------*****")
+    println("*****--------------------*****")
+    println("*****--------------------*****")
+    mods
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =
     val io = attrs.getOrElse("IO", DirectiveValue.StringLit("file"))

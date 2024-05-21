@@ -1946,7 +1946,7 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 
 
 // Relation that triggers the creation of (non-heap) number constants from imported facts.
-.decl CreateIntValue(?n:symbol, ?type:Type, ?declaringType:ReferenceType)
+//.decl CreateIntValue(?n:symbol, ?type:Type, ?declaringType:ReferenceType)
 
 .decl NumConstantRaw(?const:symbol, ?type:Type)
 .input NumConstantRaw(filename="minijavac/NumConstantRaw.facts")
@@ -2663,11 +2663,11 @@ MainMethodDeclaration(?method) :-
 // These are normally unique, but for partitioned analyses there may be
 // one per partition.
 .decl isImmutableContext(?ctx:configuration.Context)
-.decl isInitialContext(?ctx:configuration.Context)
-.decl isJVMStartupContext(?ctx:configuration.Context)
-.decl isClinitContext(?ctx:configuration.Context)
+//.decl isInitialContext(?ctx:configuration.Context)
+//.decl isJVMStartupContext(?ctx:configuration.Context)
+//.decl isClinitContext(?ctx:configuration.Context)
 .decl isImmutableHContext(?hctx:configuration.HContext)
-.decl isJVMStartupHContext(?hctx:configuration.HContext)
+//.decl isJVMStartupHContext(?hctx:configuration.HContext)
 
 
 // Basic "spec" relation: method returns mock value (of some type).
@@ -2683,8 +2683,8 @@ MockedMethodReturns(?method, ?value, ?type) :-
   isClassType(?type),
   ?value = cat("<mock SQL connection of type ", cat(?type, ">")).
 
-.decl StringFactoryVar(?var:Var)
-.decl StringFactoryVarPointsTo(?factoryHctx:configuration.HContext, ?factoryValue:Value, ?ctx:configuration.Context, ?var:Var)
+//.decl StringFactoryVar(?var:Var)
+//.decl StringFactoryVarPointsTo(?factoryHctx:configuration.HContext, ?factoryValue:Value, ?ctx:configuration.Context, ?var:Var)
 
 
 
@@ -3402,7 +3402,7 @@ Value_isMock(?mockObj), isValue(?mockObj), Value_Type(?mockObj,  ?type), Value_D
 
 
    
-.decl OptInterproceduralAssign(?toCtx:configuration.Context, ?to:Var, ?fromCtx:configuration.Context, ?from:Var)
+//.decl OptInterproceduralAssign(?toCtx:configuration.Context, ?to:Var, ?fromCtx:configuration.Context, ?from:Var)
 
 .decl OptLoadArrayIndex(?to:Var, ?base:Var)
 
@@ -5641,9 +5641,9 @@ VarPointsTo(?hctx, ?value, ?toCtx, ?to) :-
 // No longer using general-purpose inter-procedural assignments for lots
 // of different flows. Souffle cannot optimize well. Best to break up
 // key cases (like arg-return flow, above) into separate, well-optimized rules.
-VarPointsTo(?hctx, ?value, ?toCtx, ?to) :-
-  OptInterproceduralAssign(?toCtx, ?to, ?fromCtx, ?from),
-  VarPointsTo(?hctx, ?value, ?fromCtx, ?from).
+//VarPointsTo(?hctx, ?value, ?toCtx, ?to) :-
+//  OptInterproceduralAssign(?toCtx, ?to, ?fromCtx, ?from),
+//  VarPointsTo(?hctx, ?value, ?fromCtx, ?from).
 //  .plan 1:(2,1)
 //// no plan for now. These kinds of inter-proc assignments should be very few!
 
@@ -6007,9 +6007,9 @@ NonApplicationConcreteImplementationRepresentative(?class, ?staticType) :-
 
 // The following 3 predicate declarations are needed in case that
 // statistics are enabled.
-.decl MockObjFromArray(?type:ReferenceType)
-.decl MockObjFromField(?type:ReferenceType)
-.decl MockObjFromFormal(?type:ReferenceType)
+//.decl MockObjFromArray(?type:ReferenceType)
+//.decl MockObjFromField(?type:ReferenceType)
+//.decl MockObjFromFormal(?type:ReferenceType)
 
 .decl Servlet(?class:Type)
 
@@ -6022,9 +6022,6 @@ mainAnalysis.ApplicationEntryPoint(?meth) :-
   ApplicationMethod(?meth).
 
 
-
-
-    
 EntryPointClass(?class) :-
   Servlet(?class),
   mainAnalysis.ApplicationConcreteType(?class).
@@ -6045,8 +6042,6 @@ mainAnalysis.ReachableContext(?ctx, ?method) :-
   EntryPointMethod(?method).
 
 // Set flag to enable statistics print logic.
-
-
 
     
 mainAnalysis.Value_isMock(?mockObj), isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?concreteType), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
@@ -6236,20 +6231,15 @@ PossibleEntryPointClass(?type) :-
   Method_DeclaringType(?method, ?type),
   Method_SimpleName(?method, "init").
 
-
 ExercisedEntryPointMethod(?type, ?method) :-
    MockObject(_, ?type),
    Method_DeclaringType(?method, ?type),
    Method_SimpleName(?method, "<init>").
 
-
-    
 ExercisedEntryPointMethod(?type, ?method) :-
   EntryPointClass(?type),
   Method_DeclaringType(?method, ?type),
   !MethodWithBuggySerializableArg(?method).
-
-
     
 ExercisedEntryPointMethod(?type, ?method) :-
   ApplicationClass(?type),
@@ -6282,7 +6272,6 @@ SerializableEntryPointMethod(?method) :-
   FormalParam(_, ?method, ?param),
   Var_Type(?param, ?type),
   ?type = "java.io.Serializable".
-
 
 .decl DependencyInjectedMethod(?method:Method)
 
@@ -6336,8 +6325,6 @@ mainAnalysis.VarPointsTo(?immHctx, ?beanMockObject, ?ctx, ?return) :-
   MockObject(?beanMockObject, ?beanClass),
   mainAnalysis.isImmutableHContext(?immHctx).
 
-
-    
 .decl isConcreteBean(?bean:Type)
 .decl MVCInterceptorBean(?bean:Type)
 .decl Validator(?class:Type)
@@ -7014,9 +7001,9 @@ Stats_Metrics("61.2",  "mock objects for arg", c) :- c = count : {  MockObjFromO
 Stats_Metrics("61.6",  "forced-reachable formals that could not be mocked", c) :- c = count : {  UnmockableFormalOfForcedReachableContext(_, _) }.
 
 
-Stats_Metrics("61.3",  "mock objects for fields", c) :- c = count : {  MockObjFromField(_) }.
-Stats_Metrics("61.4",  "mock objects for arrays", c) :- c = count : {  MockObjFromArray(_) }.
-Stats_Metrics("61.5",  "mock objects for formals", c) :- c = count : {  MockObjFromFormal(_) }.
+//Stats_Metrics("61.3",  "mock objects for fields", c) :- c = count : {  MockObjFromField(_) }.
+//Stats_Metrics("61.4",  "mock objects for arrays", c) :- c = count : {  MockObjFromArray(_) }.
+//Stats_Metrics("61.5",  "mock objects for formals", c) :- c = count : {  MockObjFromFormal(_) }.
 
 .decl Stats_Simple_Application_InsensCallGraphEdge(?invocation:Instruction, ?toMeth:Method)
 

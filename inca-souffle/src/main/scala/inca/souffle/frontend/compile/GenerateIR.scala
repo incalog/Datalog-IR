@@ -105,19 +105,19 @@ class GenerateIR extends GenerateIRContext:
       case _ =>
         Seq()
 
-  private def prefixedName[R <: Resolvable[ComponentDecl]](name: String, resolvable: R, absolutePath: Boolean): ir.Name =
-    if absolutePath && declIsRequiredInComponent(name, resolvable.target.get) then
+  private def prefixedName[R <: Resolvable[ComponentDecl]](name: QName, resolvable: R, absolutePath: Boolean): ir.Name =
+    if absolutePath && declIsRequiredInComponent(QName(Seq(name.ns.last)), resolvable.target.get) then
       // the relation is from a parent and is also required in the parent => prefix
-      ir.Name("super$" + name)
+      ir.Name("super$" + name.ns.last)
     else if absolutePath then
       // the relation is from a parent, but is not required in it => no prefix
-      ir.Name(name)
+      ir.Name(name.ns.last)
     else if currentlyInComponent(resolvable.target) then
       // the relation is declared in the current component => no prefix
-      ir.Name(name)
+      ir.Name(name.ns.last)
     else
       // the relation is passed down from a parent to the current component and reexported => prefix
-      ir.Name("super$" + name)
+      ir.Name("super$" + name.ns.last)
 
   private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
     val requiredInComponent = lookupRequiredDeclarations(compTyp.target.get)
@@ -142,7 +142,7 @@ class GenerateIR extends GenerateIRContext:
         val dataSubst = irdata.DataDefinitionSubstitution(dataName, qualifiedFromDataName)
         val caseSubsts = ty.alts.map { case ADTConstructor(cName, attrs) =>
           val caseName = ir.Name("super$" + cName)
-          val fromCaseName = prefixedName(cName, decl, absolutePath = fromPath.nonEmpty)
+          val fromCaseName = prefixedName(QName(Seq(cName)), decl, absolutePath = fromPath.nonEmpty)
           val qualifiedFromCaseName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromCaseName
           val args = attrs.map(compileAttribute).map(_.ty)
           irdata.CaseDefinitionSubstitution(caseName, args, qualifiedFromCaseName, args)
@@ -270,7 +270,7 @@ class GenerateIR extends GenerateIRContext:
 
       // find the component in which this call is declared
       val fromPath = qname.path.map(n => ir.Name(n))
-      val fromName = prefixedName(qname.unqualifiedName, decl, absolutePath = fromPath.nonEmpty)
+      val fromName = prefixedName(QName(qname.ns), decl, absolutePath = fromPath.nonEmpty)
 
       if isEdbDeclaration(decl) then
         ir.ExtensionalCall(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
@@ -304,7 +304,7 @@ class GenerateIR extends GenerateIRContext:
     case constr@Term.Constr(qname, args) =>
       val typeDecl = constr.target.get
       val fromPath = qname.path.map(n => ir.Name(n))
-      val fromName = prefixedName(qname.unqualifiedName, typeDecl, absolutePath = fromPath.nonEmpty)
+      val fromName = prefixedName(QName(qname.ns), typeDecl, absolutePath = fromPath.nonEmpty)
       irdata.Construct(fromPath :+ fromName, args.map(compileTerm))
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
@@ -389,7 +389,7 @@ class GenerateIR extends GenerateIRContext:
           compileType(eTy)
         case decl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(_)) =>
           val fromPath = qname.path.map(n => ir.Name(n))
-          val fromName = prefixedName(qname.unqualifiedName, decl, absolutePath = fromPath.nonEmpty)
+          val fromName = prefixedName(QName(qname.ns), decl, absolutePath = fromPath.nonEmpty)
           irdata.TData(fromPath :+ fromName)
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(_)) =>
           ???

@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.souffle.frontend.compile.nameresolution.NameResolution
 import inca.souffle.syntax.{Atom, ComponentType, DirectiveQualifier, DirectiveValue, Program, ProgramContent, QualifiedName}
-import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl, TypeDecl}
+import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl, TypeDecl}
 import inca.souffle.syntax.TypeDeclConstraint.ADTType
 
 trait GenerateIRContext {
@@ -14,9 +14,11 @@ trait GenerateIRContext {
   // all path for each declaration
   private var paths: Map[ProgramContent, Seq[ComponentType]] = Map()
   // for each component decl store the name and the actual decl that is required
-  private var requiredDecls: Map[ComponentDecl, Set[(String, ProgramContent)]] = Map()
+  private var requiredDecls: Map[ComponentDecl, Set[(QName, ProgramContent)]] = Map()
+  // all component directly initialized in this component
+  private var inits: Map[Option[ComponentDecl], Set[ComponentInit]] = Map()
 
-  private var currentComponent: Option[ComponentDecl] = None
+  var currentComponent: Option[ComponentDecl] = None
 
   def initContext(prog: Program): Unit =
     val nameResolution = new NameResolution {}
@@ -28,6 +30,7 @@ trait GenerateIRContext {
     edbDecls = collectEdbDecls(prog.content)
     outputDecls = collectOutputDecls(prog.content)
     paths = collectPath(prog.content)
+    inits = collectComponentInits(prog.content)
 
     val reqAna = new RequirementAnalysis {}
     reqAna.analyseProgram(prog)
@@ -53,12 +56,17 @@ trait GenerateIRContext {
 
   def currentlyInComponent(comp: Option[ComponentDecl]): Boolean = currentComponent == comp
 
-  def declIsRequiredInComponent(name: String, compDecl: ComponentDecl): Boolean =
+  def declIsRequiredInComponent(name: QName, compDecl: ComponentDecl): Boolean =
     requiredDecls.getOrElse(compDecl, Set()).map(_._1).contains(name)
 
-  def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(String, ProgramContent)] =
+  def lookupRequiredDeclarations(compDecl: ComponentDecl): Set[(QName, ProgramContent)] =
     requiredDecls.getOrElse(compDecl, Set())
 
+  def currentComponentInitializes(initName: String): Boolean =
+    inits.get(currentComponent) match
+      case Some(allInits) => allInits.exists(_.n == initName)
+      case _ => false
+  
   def lookupPath(decl: ProgramContent): Seq[ComponentType] =
     paths(decl)
 
@@ -74,7 +82,10 @@ trait GenerateIRContext {
       case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
       case _ => false
 
-    rules(relDecl).filter(r => ruleHasName(r, name)).toSeq
+    rules.get(relDecl) match
+      case Some(content) =>
+        content.filter(r => ruleHasName(r, name)).toSeq
+      case _ => Seq()
 
   def lookupEdbAttributes(relDecl: ProgramContent.RelationDecl): Map[String, DirectiveValue] =
     edbDecls(relDecl)
@@ -111,6 +122,11 @@ trait GenerateIRContext {
         val compDecl = compInit.target.get
         val newRules = collectRules(compDecl.content)
         rules = combineIterables(rules, newRules)
+        // also collect all inherited rules
+        val parentRules = compDecl.superTys.map(_.target.get).map(c => collectRules(c.content))
+        rules = parentRules.foldLeft(rules) {
+          case (rs, acc) => combineIterables(rs, acc)
+        }
       case _ => // nothing
     }
     rules
@@ -155,4 +171,16 @@ trait GenerateIRContext {
       case _ => // nothing
     }
     declToPath
+
+  private def collectComponentInits(content: Seq[ProgramContent], currentDecl: Option[ComponentDecl] = None): Map[Option[ComponentDecl], Set[ComponentInit]] =
+    var inits: Map[Option[ComponentDecl], Set[ComponentInit]] = Map()
+    content.foreach {
+      case componentInit: ComponentInit =>
+        inits += currentDecl -> (inits.getOrElse(currentDecl, Set()) + componentInit)
+      case compDecl@ProgramContent.ComponentDecl(compTy, _, compContent) =>
+        inits ++= collectComponentInits(compContent, Some(compDecl))
+      case _ => // nothing
+    }
+    inits
+
 }

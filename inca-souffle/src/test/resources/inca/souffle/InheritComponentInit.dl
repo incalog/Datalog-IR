@@ -1,0 +1,23 @@
+.comp A {
+    .decl R(x:number)
+    R(42).
+}
+
+.comp B {
+    .init a = A
+}
+
+.comp C: B {
+    .decl Q(x:number)
+    Q(41).
+
+    Q(x) :- a.R(x).
+}
+
+.init c = C
+
+.decl S(x: number)
+S(x) :- c.Q(x).
+
+.output c.Q
+.output S
