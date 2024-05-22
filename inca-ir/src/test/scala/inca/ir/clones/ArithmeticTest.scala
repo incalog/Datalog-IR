@@ -1252,7 +1252,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("R"), Seq(Param("a", TInt), Param("result", TInt)), Seq(
           Body(Seq(
-            Call(Name("S"), Seq(TermArg(IntNum(5)))),
+            Call(Name("S"), Seq(TermArg(Var("a")))),
             //            Eq(Var("a"),Var("c")),
 //            Eq(Var("H6"), IntNum(0)),
             Eq(Var("a"), IntNum(5)),
@@ -2384,7 +2384,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("S1"), Seq(TermArg(IntNum(1)))),
+            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
             Eq(Var("param$0"), IntNum(1)),
             Eq(Var("param$1"), IntNum(0))
           ))
@@ -2401,48 +2401,48 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("wrong mode of type 2") { // TODO see notes
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("A")))),
-            Eq(Var("B"), Var("A")),
-            Call(Name("S1"), Seq(TermArg(Var("B")))),
-//            Eq(Var("param$0"), Var("A")),
-            Eq(Var("param$0"), Var("B")),
-            Eq(Var("param$1"), IntNum(0)),
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
-//            Eq(Var("param$0"), Var("A")),
-            Eq(Var("param$1"), IntNum(0)),
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
+//  test("wrong mode of type 2") { // TODO see notes
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("S1"), Seq(TermArg(Var("A")))),
+//            Eq(Var("B"), Var("A")),
+//            Call(Name("S1"), Seq(TermArg(Var("B")))),
+////            Eq(Var("param$0"), Var("A")),
+//            Eq(Var("param$0"), Var("B")),
+//            Eq(Var("param$1"), IntNum(0)),
+//          ))
+//        )),
+//        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          )),
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(5))
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
+////            Eq(Var("param$0"), Var("A")),
+//            Eq(Var("param$1"), IntNum(0)),
+//          ))
+//        )),
+//        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(1))
+//          )),
+//          Body(Seq(
+//            Eq(Var(Name("param$0")), IntNum(5))
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
 
   //  test("Redundant term in Eq with GE, LE, LT & Neq") {

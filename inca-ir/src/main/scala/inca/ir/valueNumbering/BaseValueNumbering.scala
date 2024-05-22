@@ -14,7 +14,7 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
 
-  private case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
+  protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
@@ -26,22 +26,22 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
       if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
     }
 
-    def changeDefTermIfNecessary(t: Term): Unit = {
+    def changeDefTermIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       if (isConst(t)) definingTerm = t
-      else if (definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+      else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
     }
 
-    def updateCongrClassIfNecessary(t: Term): Unit = {
+    def updateCongrClassIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       changeLeaderIfNecessary(t)
-      changeDefTermIfNecessary(t)
+      if (updateDefTermIfNecessary) changeDefTermIfNecessary(t)
     }
 
   }
 
-  private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
-  private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
+  protected val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  protected val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
 
-  private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  protected def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
   protected def getReplacementTerm(t: Term): Term = {
     if (!congrClasses.contains(valueNumbers(t))) return t
@@ -300,8 +300,7 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
       }
       else {
         congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
-        congrClasses(termId).changeLeaderIfNecessary(newTerm)
-        congrClasses(termId).changeDefTermIfNecessary(newTerm)
+        congrClasses(termId).updateCongrClassIfNecessary(newTerm, updateDefTermIfNecessary = true)
       }
 
       // return with newTerm

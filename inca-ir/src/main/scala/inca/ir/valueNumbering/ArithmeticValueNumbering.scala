@@ -42,8 +42,14 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     return (newLhs, newRhs)
   }
   private def getArgumentOfOp(t: Term): Term = {
-    // TODO without visitTerm defterm might contain removed Var -> other solution ? update defterm here?
-    if (this.useDefiningTerm) return visitTerm(getDefiningTerm(t)).head.typed(t.typ.get,force = true)
+    // without visitTerm defterm might contain removed Var
+    if (this.useDefiningTerm && !isConst(t)) {
+      val newTerm =  visitTerm(getDefiningTerm(t)).head.typed(t.typ.get, force = true)
+//      if (newTerm != getDefiningTerm(t) && congrClasses.contains(valueNumbers(newTerm))){
+//        getCongrClassOf(newTerm).definingTerm = newTerm // term will only get "simpler" by normalization
+//      }
+      return newTerm
+    }
     else return t
   }
 
@@ -122,25 +128,26 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
 
     case (factor, BinOp(lhs, rhs, "+")) => distributivity(factor,lhs,rhs,Add,Mul,typ)
 
-    case (lTerm, BinOp(lhs, rBinOp@rTerm, "/")) if getIdOf(lTerm) == getIdOf(rTerm) =>  lhs // TODO include ?
+    // no rewriting for TInt since a * (b / a) = 0 if a > b
+    case (lTerm, BinOp(l, rTerm, "/")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
 
     case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Mul(l,r),"*"), typ, "*") else Mul(l,r)
   }
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
     case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
-    case (l, r) if (getIdOf(l) == getIdOf(r) && getReplacementTerm(r) != IntNum(0) && getReplacementTerm(r) != DoubleNum(0)) =>  // TODO 0/0 -> 1
+    case (l, r) if (getIdOf(l) == getIdOf(r) && getReplacementTerm(r) != IntNum(0) && getReplacementTerm(r) != DoubleNum(0)) =>
       if typ.ty == TInt then newIntNum(1)
       else if typ.ty == TDouble then newDoubleNum(1)
       else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
     case (IntNum(l), IntNum(r)) if r != 0 => newIntNum(l / r) // int/int yields int in scala
     case (DoubleNum(l), DoubleNum(r)) if r != 0 => newDoubleNum(l / r)
 
-    case (lBinOp@BinOp(lhs, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) =>  lhs
-    case (lTerm, lBinOp@BinOp(l, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) =>
-      if typ.ty == TInt then normalize(Div(newIntNum(1), l).typed(typ))
-      else if typ.ty == TDouble then normalize(Div(newDoubleNum(1), l).typed(typ))
-      else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
+    case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
+    case (lTerm, lBinOp@BinOp(l, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble =>
+//      if typ.ty == TInt then normalize(Div(newIntNum(1), l).typed(typ))
+      /*else if typ.ty == TDouble then */ normalize(Div(newDoubleNum(1), l).typed(typ))
+//      else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
 
     case (BinOp(lhs, rhs, "+"),denom) => distributivity(denom,lhs,rhs,Add,Div,typ)
 
