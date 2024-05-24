@@ -81,6 +81,9 @@
 .type JVMDescriptor = symbol
 .decl isJVMDescriptor(?jvmd:JVMDescriptor)
 
+// JVM method descriptor
+.decl Method_JVMDescriptor(?method:Method, ?descriptor:JVMDescriptor)
+
 .decl Method_Modifier(?mod:Modifier, ?method:Method)
 
 // Method ?method declares to throw exception ?exceptionType.
@@ -107,6 +110,8 @@
 //-----------------------------------------------------------------------------
 
 .type Value = symbol
+
+.decl isValue(?value:Value)
 
 //-----------------------------------------------------------------------------
 // [Constant numbers]
@@ -632,7 +637,6 @@ AssignHeapAllocation(?heap, ?to, ?inmethod) :-
 	AssignHeapAllocation_Heap(?insn, ?heap),
 	AssignInstruction_To(?insn, ?to).
 
-
 ReturnVar(?var, ?method) :-
 	isReturnNonvoid_Insn(?insn),
 	Instruction_Method(?insn, ?method),
@@ -1030,7 +1034,7 @@ AssignReturnValue(?invocation, ?to) :-
 
 
 // Properties
-.input Properties(filename="minijavac/Properties.facts")
+.input Properties
 
 
 .decl _OperatorAt(?instruction:Instruction, ?operator:symbol)
@@ -1136,6 +1140,12 @@ OriginalHeapAllocation_Type(?id, "java.lang.invoke.MethodType") :-
 
 .decl _NativeNameCandidate(?lib:symbol, ?function:symbol, ?name:symbol, ?offset1:number)
 .input _NativeNameCandidate(filename="minijavac/NativeNameCandidate.facts")
+
+.decl _NativeMethodId(?javaMethod:Method, ?nativeId:symbol)
+.input _NativeMethodId(filename="minijavac/NativeMethodId.facts")
+
+.decl _NativeXRef(?string:symbol, ?lib:symbol, ?function:symbol, ?dataAddr:number)
+.input _NativeXRef(filename="minijavac/NativeXRef.facts")
 
 // EmptyArray
 
@@ -1518,6 +1528,7 @@ isJVMDescriptor(?jvmDescriptor),
 Method_SimpleName(?method, ?simplename),
 Method_ParamTypes(?method, ?params),
 Method_DeclaringType(?method, ?declaringType),
+Method_JVMDescriptor(?method, ?jvmDescriptor),
 Method_Arity(?method, ?arity),
 Method_ReturnType(?method, ?returnType) :-
 	_Method(?method, ?simplename, ?params, ?declaringType, ?returnType, ?jvmDescriptor, ?arity).
@@ -2528,11 +2539,6 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	// A cross-product of method name candidates and method signature candidates.
 	.decl PossibleNativeCodeTargetMethod(?method:Method, ?function:symbol, ?file:symbol)
 
-	// JVM method descriptor
-	.decl Method_JVMDescriptor(?method:Method, ?descriptor:JVMDescriptor)
-	Method_JVMDescriptor(?method, ?jvmDescriptor) :-
-		_Method(?method, ?simplename, ?params, ?declaringType, ?returnType, ?jvmDescriptor, ?arity).
-
 	// Pair all strings (or only strings in known functions in precise mode).
 	PossibleNativeCodeTargetMethod(?method, ?function, ?file) :-
 		_NativeMethodTypeCandidate(?file, ?function, ?descriptor, _),
@@ -2544,8 +2550,6 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	// The distance between string xrefs in the code. This should be big
 	// enough to catch strings used together in major calling conventions.
 
-	.decl _NativeXRef(?string:symbol, ?lib:symbol, ?function:symbol, ?dataAddr:number)
-	.input _NativeXRef(filename="minijavac/NativeXRef.facts")
 
 	// If xref information exists, pair strings that are referenced together in code.
 	PossibleNativeCodeTargetMethod(?method, "<<UNKNOWN>>", ?file) :-
@@ -2582,9 +2586,6 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	// methods: https://chromium.googlesource.com/chromium/src/+/master/docs/android_native_libraries.md
 	.decl JNIMethod_NativeId(?javaMethod:Method, ?nativeId:symbol)
 
-	.decl _NativeMethodId(?javaMethod:Method, ?nativeId:symbol)
-	.input _NativeMethodId(filename="minijavac/NativeMethodId.facts")
-
 	// Non-overloaded native method (default, always generated).
 	JNIMethod_NativeId(?javaMethod, ?nativeId) :-
 		_NativeMethodId(?javaMethod, ?nativeId),
@@ -2620,6 +2621,8 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 
 }
 
+.init basic = Basic
+
 .comp AbstractConfiguration {
 	.type Context = symbol
 	.type HContext = symbol
@@ -2640,8 +2643,7 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	.decl InitHContextResponse(?symbol:symbol, ?hcontext:HContext)
 }
 
-.comp BasicContextSensitivity {
-	.init basic = Basic
+.comp AbstractContextSensitivity {
 	.init configuration = ContextInsensitiveConfiguration
 
 	.decl ClassInitializer(?type:Type, ?method:Method)
@@ -2654,8 +2656,6 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	.decl FakeInvocation_ThreadGroupInit(?invo: MethodInvocation)
 	.decl FakeInvocation_MainThreadInit(?invo: MethodInvocation)
 	.decl FakeInvocation_SystemThreadGroupInit(?invo: MethodInvocation)
-
-	.decl isValue(?value:Value)
 
 	.decl isContext(?ctx:configuration.Context)
 	.decl isHContext(?hctx:configuration.HContext)
@@ -2674,29 +2674,6 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	.decl MockedMethodReturns(?method:Method, ?alloc:HeapAllocation, ?type:ReferenceType)
 	.output MockedMethodReturns
 
-
-	configuration.StaticContextRequest(?callerCtx, ?invocation) :-
-		ReachableContext(?callerCtx, ?inmethod),
-		StaticMethodInvocation(?invocation, _, ?inmethod).
-
-	// The main analysis is merely looking up the previously created
-	// context objects.
-
-
-	// Original rules
-
-	isContext(?calleeCtx),
-	CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
-		configuration.ContextRequest(?callerCtx, ?hctx, ?invocation, ?value, ?tomethod, 1),
-		configuration.ContextResponse(?callerCtx, ?hctx, ?invocation, ?value, ?tomethod, ?calleeCtx).
-
-	.plan 1:(2,1)
-
-
-	isContext(?calleeCtx),
-	CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
-		configuration.StaticContextResponse(?callerCtx, ?invocation, ?calleeCtx),
-		MethodInvocation_Method(?invocation, ?tomethod).
 
 
 	// Model DriverManager.getConnection().
@@ -3068,8 +3045,8 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	VarPointsTo(?hctx, ?val, ?calleeCtx, ?formal) :-
 		InvokedynamicBootCallGraphEdge(_, ?invokedynamic, ?calleeCtx, ?bootMethod),
 		!Method_Modifier("varargs", ?bootMethod),
-		BootstrapParam(?idx, ?invokedynamic, ?actual),
 		FormalParam(?idx + 3, ?bootMethod, ?formal),
+		BootstrapParam(?idx, ?invokedynamic, ?actual),
 		VarPointsTo(?hctx, ?val, _, ?actual).
 
 
@@ -3582,19 +3559,9 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	FinalizeContextRequest(?callerCtx, ?hctx, ?fakeinvo, ?heapValue, ?register, ?formal),
 	configuration.ContextRequest(?callerCtx, ?hctx, ?fakeinvo, ?heapValue, ?register, 1) :-
 		FakeInvocation_RegisterFinalize(?heapValue, ?fakeinvo),
-		mainAllocatedObjectSupportsFinalize(?heapValue, ?inmethod),
-		!HeapAllocation_Merge(?heapValue, _),
-		ReachableContext(?callerCtx, ?inmethod),
-		?register = "<java.lang.ref.Finalizer: void register(java.lang.Object)>",
-		isMethod(?register),
-		FormalParam(0, ?register, ?formal),
-		isImmutableHContext(?hctx).
-
-	FinalizeContextRequest(?callerCtx, ?hctx, ?fakeinvo, ?heapValue, ?register, ?formal),
-	configuration.ContextRequest(?callerCtx, ?hctx, ?fakeinvo, ?heapValue, ?register, 1) :-
-		FakeInvocation_RegisterFinalize(?heapValue, ?fakeinvo),
-		mainAllocatedObjectSupportsFinalize(?heapValue, ?inmethod),
-		HeapAllocation_Merge(?heapValue, ?heapValue),  // the object retains its identity
+		basic.AllocatedObjectSupportsFinalize(?heapValue, ?inmethod),
+		(!(HeapAllocation_Merge(?heapValue, _));
+		 HeapAllocation_Merge(?heapValue, ?heapValue)),  // the object retains its identity
 		ReachableContext(?callerCtx, ?inmethod),
 		?register = "<java.lang.ref.Finalizer: void register(java.lang.Object)>",
 		isMethod(?register),
@@ -3613,7 +3580,7 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 
 	FakeInvocation_RegisterFinalize0(?val2, cat("<register-finalize ", cat(?val1, cat( "/", cat( ?val2, "  >"))))),
 	isInstruction(cat("<register-finalize ", cat(?val1, cat( "/", cat( ?val2, "  >"))))), isMethodInvocation(cat("<register-finalize ", cat(?val1, cat( "/", cat( ?val2, "  >"))))) :-
-																							  mainAllocatedObjectSupportsFinalize(?val2, ?val1),
+																							  basic.AllocatedObjectSupportsFinalize(?val2, ?val1),
 																							  isMethod(?val1),
 																							  isHeapAllocation(?val2).
 
@@ -3723,16 +3690,24 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 	// REVIEW: this is imprecise, it assigns one or more mock arguments
 	// for each parameter in a forced-reachable method.
 	Value_isMock(?mockObj), isValue(?mockObj), Value_Type(?mockObj,  ?class), Value_DeclaringType(?mockObj, "java.lang.Object"),
+	MockObjFromOpenProgramEntryPointArg(?mockObj),
 	VarPointsTo(?hctx, ?mockObj, ?ctx, ?formal) :-
 		FormalOfForcedReachableContext(?ctx, ?formal, ?formalType),
 		TypeToConcreteImplementation(?formalType, ?class),
 		isImmutableHContext(?hctx),
 		?mockObj = cat("<mock value for forced-reachable parameter ", cat(?class, ">")).
 
+	// Helper/statistics relation.
+	UnmockableFormalOfForcedReachableContext(?formal, ?formalType) :-
+		FormalOfForcedReachableContext(_, ?formal, ?formalType),
+		!TypeToConcreteImplementation(?formalType, _).
+
 
 
 	Value_isMock(?value), isValue(?value), Value_Type(?value,  ?class), Value_DeclaringType(?value, "java.lang.Object"),
-	VarPointsTo(?hctx, ?value, ?ctx, ?receiver) :-
+	VarPointsTo(?hctx, ?value, ?ctx, ?receiver),
+	MockObjFromOpenProgramEntryPointReceiver(?value),
+	MockObject(?value, ?class) :-
 		( ExercisedEntryPointMethod(?class, ?method)
 		  ; (ForcedReachable(?method), Method_DeclaringType(?method, ?class))),
 		ThisVar(?method, ?receiver),
@@ -3783,10 +3758,18 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 		MainMethodArgArrayContent(?argArrayContent).
 
 
+
+
+
+
+
+
+
 	// Populating this relation generates simulated native values.
 	.decl SimulateNativeAllocation(?strMethod: Method, ?strHeap: HeapAllocation, ?strConstructor: Method)
 
 	// Generate value.
+	AssignHeapAllocation(?strHeap, ?return, ?strMethod),
 	Value_DeclaringType(?strHeap, ?strType) :-
 		SimulateNativeAllocation(?strMethod, ?strHeap, _),
 		Method_DeclaringType(?strMethod, ?strType),
@@ -3794,8 +3777,25 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 		isHeapAllocation(?strHeap).
 
 	// Generate construction site.
+	SpecialMethodInvocation_Base(?newInstrId, ?return),
+	Instruction_Method(?newInstrId, ?strMethod),
+	MethodInvocation_Method(?newInstrId, strConstructor),
+	isInstruction(?newInstrId), isMethodInvocation(?newInstrId), isSpecialMethodInvocation_Insn(?newInstrId),
+	Instruction_Index(?newInstrId, ?index) :-
+		SimulateNativeAllocation(?strMethod, _, strConstructor),
+		isMethod(?strMethod),
+		NativeReturnVar(?return, ?strMethod),
+		isMethod(strConstructor),
+		?index = 1,
+		?newInstrId = cat(?strMethod, cat("/native ", strConstructor)).
+
 	.decl SimulatedNativeAllocation(?heap:HeapAllocation, ?method:Method)
 	.output SimulatedNativeAllocation
+
+
+
+
+
 
 
 
@@ -4785,12 +4785,12 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 		isClassType(?type).
 
 	Class_PackageHack(?type, substr(?type, 0, ?lastPos)) :-
-		!SecondLastDot(?type, _),  // there are fewer than two dots
+		!(SecondLastDot(?type, _)),  // there are fewer than two dots
 		isClassType(?type),
 		LastDot(?type, ?lastPos).
 
 	Class_PackageHack(?type, ?type) :-
-		!LastDot(?type, _),  // there are no dots
+		!(LastDot(?type, _)),  // there are no dots
 		isClassType(?type).
 
 
@@ -5902,6 +5902,33 @@ isHeapAllocation(?heap), HeapAllocation_Type(?heap,  ?type) :-
 		!PhantomType(?type).
 }
 
+.comp BasicContextSensitivity : AbstractContextSensitivity {
+
+	configuration.StaticContextRequest(?callerCtx, ?invocation) :-
+		ReachableContext(?callerCtx, ?inmethod),
+		StaticMethodInvocation(?invocation, _, ?inmethod).
+
+	// The main analysis is merely looking up the previously created
+	// context objects.
+
+
+	// Original rules
+
+	isContext(?calleeCtx),
+	CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
+		configuration.ContextRequest(?callerCtx, ?hctx, ?invocation, ?value, ?tomethod, 1),
+		configuration.ContextResponse(?callerCtx, ?hctx, ?invocation, ?value, ?tomethod, ?calleeCtx).
+
+	.plan 1:(2,1)
+
+
+	isContext(?calleeCtx),
+	CallGraphEdge(?callerCtx, ?invocation, ?calleeCtx, ?tomethod) :-
+		configuration.StaticContextResponse(?callerCtx, ?invocation, ?calleeCtx),
+		MethodInvocation_Method(?invocation, ?tomethod).
+
+
+}
 
 .init mainAnalysis = BasicContextSensitivity
 
@@ -5939,7 +5966,7 @@ mainIsImmutableHContext(?hctx) :- mainAnalysis.isImmutableHContext(?hctx).
 .decl BridgeMethod(?bridge:Method, ?type:Type)
 
 BridgeMethod(?bridge, ?type) :-
-	mainAnalysis.basic._BridgeMethod(?bridge, _, ?type).
+	basic._BridgeMethod(?bridge, _, ?type).
 
 .decl TypeHasNoApplicationConcreteImplementations(?type:Type)
 
@@ -5969,7 +5996,7 @@ NonApplicationConcreteImplementations(?class, ?staticType) :-
 	AbstractOrInterfaceTypeHasNoApplicationConcreteImplementations(?staticType),
 	isClassType(?class),
 	!ClassModifier("abstract", ?class),
-	mainAnalysis.basic.SubtypeOf(?class, ?staticType).
+	basic.SubtypeOf(?class, ?staticType).
 
 NonApplicationConcreteImplementationsOrd(?classOrd, ?staticType) :-
 	NonApplicationConcreteImplementations(_, ?staticType),
@@ -6020,7 +6047,7 @@ mainAnalysis.ReachableContext(?ctx, ?method) :-
 // Set flag to enable statistics print logic.
 
 
-mainAnalysis.Value_isMock(?mockObj), mainAnalysis.isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?concreteType), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
+mainAnalysis.Value_isMock(?mockObj), isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?concreteType), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
 mainAnalysis.VarPointsTo(?hctx, ?mockObj, ?ctx, ?param),
 MockObjFromOpenProgramEntryPointArg(?mockObj),
 MockObject(?mockObj, ?concreteType) :-
@@ -6035,7 +6062,7 @@ MockObject(?mockObj, ?concreteType) :-
 
 
 
-mainAnalysis.Value_isMock(?mockObj), mainAnalysis.isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?concreteType), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
+mainAnalysis.Value_isMock(?mockObj), isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?concreteType), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
 mainAnalysis.VarPointsTo(?hctx, ?mockObj, ?ctx, ?param),
 MockObjFromOpenProgramEntryPointArg(?mockObj),
 MockObject(?mockObj, ?concreteType) :-
@@ -6052,7 +6079,7 @@ MockObject(?mockObj, ?concreteType) :-
 mainAnalysis.VarPointsTo(?hctx, ?value, ?ctx, ?bridgeParam) :-
 	ExercisedEntryPointMethod(?entryPoint, ?bridge),
 	BridgeMethod(?bridge, ?entryPoint),
-	mainAnalysis.basic.MethodMightBeCovariantBridge(?bridge, ?method),
+	basic.MethodMightBeCovariantBridge(?bridge, ?method),
 	FormalParam(?index, ?bridge, ?bridgeParam),
 	FormalParam(?index, ?method, ?methodParam),
 	mainAnalysis.VarPointsTo(?hctx, ?value, ?ctx, ?methodParam),
@@ -6084,7 +6111,7 @@ mainAnalysis.InstanceFieldPointsTo(?hctx, ?mockBeanObject, ?injectedField, ?base
 	InjectionAnnotatedField(?injectedField),
 	!Field_Annotation(?injectedField, "javax.annotation.Resource"),
 	Field_Type(?injectedField, ?injectedFieldType),
-	(mainAnalysis.basic.SubtypeOf(?beanType, ?injectedFieldType);
+	(basic.SubtypeOf(?beanType, ?injectedFieldType);
 	 ?beanType = ?injectedFieldType),
 	!ConcreteBean_Id(_, ?injectedField),
 	MockObject(?mockBeanObject, ?beanType),
@@ -6117,7 +6144,7 @@ mainAnalysis.InstanceFieldPointsTo(?hctx, ?mockResourceValue, ?injectedField, ?b
 	Field_Annotation(?injectedField, "javax.annotation.Resource"),
 	BeanResource(?injectedField, ?resourceClass, ?mockResourceValue),
 	Field_Type(?injectedField, ?fieldType),
-	mainAnalysis.basic.SubtypeOf(?resourceClass, ?fieldType),
+	basic.SubtypeOf(?resourceClass, ?fieldType),
 	mainAnalysis.isImmutableHContext(?basehctx),
 	mainAnalysis.isImmutableHContext(?hctx).
 
@@ -6129,7 +6156,7 @@ mainAnalysis.InstanceFieldPointsTo(?hctx, ?mockBeanObject, ?injectedField, ?base
 	Field_Annotation(?injectedField, "javax.annotation.Resource"),
 	!BeanResource(?injectedField, _, _),
 	Field_Type(?injectedField, ?fieldType),
-	mainAnalysis.basic.SubtypeOf(?resourceClass, ?fieldType),
+	basic.SubtypeOf(?resourceClass, ?fieldType),
 	MockObject(?mockBeanObject, ?resourceClass),
 	mainAnalysis.isImmutableHContext(?basehctx),
 	mainAnalysis.isImmutableHContext(?hctx).
@@ -6159,7 +6186,7 @@ EntryPointClass(?type) :-
 	 match(".*_jsp", ?type);
 	 PossibleEntryPointClass(?type)).
 
-mainAnalysis.Value_isMock(?mockObj), mainAnalysis.isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?type), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
+mainAnalysis.Value_isMock(?mockObj), isValue(?mockObj), mainAnalysis.Value_Type(?mockObj,  ?type), mainAnalysis.Value_DeclaringType(?mockObj, "java.lang.Object"),
 MockObject(?mockObj, ?type) :-
 	isClassType(?type),
 	((mainAnalysis.ApplicationConcreteType(?type),
@@ -6219,7 +6246,7 @@ ExercisedEntryPointMethod(?type, ?method) :-
 
 ExercisedEntryPointMethod(?type, ?method) :-
 	ApplicationClass(?type),
-	mainAnalysis.basic.SubtypeOf(?type, "javax.servlet.jsp.tagext.TagSupport"),
+	basic.SubtypeOf(?type, "javax.servlet.jsp.tagext.TagSupport"),
 	Method_DeclaringType(?method, ?type).
 
 .decl EntryPointMethod(?method:Method)
@@ -6233,7 +6260,7 @@ EntryPointMethod(?method) :-
 
 ErasedEntryPointMethod(?method) :-
 	ExercisedEntryPointMethod(?class, ?method),
-	mainAnalysis.basic._BridgeMethod(?method, _, ?class),
+	basic._BridgeMethod(?method, _, ?class),
 	FormalParam(_, ?method, ?param),
 	Var_Type(?param, ?type),
 	?type = "java.lang.Object".
@@ -6284,7 +6311,7 @@ ExercisedEntryPointMethod(?class, ?method) :-
 	XMLNodeAttribute(?XMLFile, ?nodeId, _, "class", "class", ?class).
 
 ExercisedEntryPointMethod(?class, ?method) :-
-	mainAnalysis.basic.SubtypeOf(?class, "org.springframework.beans.factory.InitializingBean"),
+	basic.SubtypeOf(?class, "org.springframework.beans.factory.InitializingBean"),
 	Method_DeclaringType(?method, ?class),
 	Method_SimpleName(?method, "afterPropertiesSet").
 
@@ -6363,17 +6390,17 @@ MVCInterceptorBean(?class) :-
 
 AuthenticationFilterBean(?bean) :-
 	mainAnalysis.ApplicationConcreteType(?bean),
-	mainAnalysis.basic.SubtypeOf(?bean, "javax.servlet.Filter").
+	basic.SubtypeOf(?bean, "javax.servlet.Filter").
 
 AuthenticationEntryPoint(?type) :-
 	mainAnalysis.ApplicationConcreteType(?type),
-	(mainAnalysis.basic.SubtypeOf(?type, "org.springframework.security.web.AuthenticationEntryPoint");
-	 mainAnalysis.basic.SubtypeOf(?type, "org.springframework.security.web.authentication.AuthenticationSuccessHandler");
-	 mainAnalysis.basic.SubtypeOf(?type, "org.springframework.security.web.access.AccessDeniedHandler")).
+	(basic.SubtypeOf(?type, "org.springframework.security.web.AuthenticationEntryPoint");
+	 basic.SubtypeOf(?type, "org.springframework.security.web.authentication.AuthenticationSuccessHandler");
+	 basic.SubtypeOf(?type, "org.springframework.security.web.access.AccessDeniedHandler")).
 
 ApplicationListener(?type) :-
 	mainAnalysis.ApplicationConcreteType(?type),
-	mainAnalysis.basic.SubtypeOf(?type, "org.springframework.context.ApplicationListener").
+	basic.SubtypeOf(?type, "org.springframework.context.ApplicationListener").
 
 Validator(?validator) :-
 	AnnotationElement("type", _, "0.0", "0.0.0", _, ?validator, _),
@@ -6427,7 +6454,7 @@ BeanFieldInjection(?class, ?injectedField, ?mockObject) :-
 .decl BeanResource(?id:symbol, ?mapClass:Type, ?mapMockObject:Value)
 
 BeanResource(?id, ?mapClass, ?value),
-mainAnalysis.Value_isMock(?value), mainAnalysis.isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
+mainAnalysis.Value_isMock(?value), isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
 BeanMapEntry(?id, ?entryBeanKey, ?entryBeanMockObject),
 BeanMap(?id, ?mapClass, ?value) :-
 	XMLNode(?XMLFile, ?parentNodeId, _, _, "map", "util:map"),
@@ -6442,7 +6469,7 @@ BeanMap(?id, ?mapClass, ?value) :-
 
 BeanFieldInjection(?beanClass, ?injectedField, ?value),
 BeanResource(?id, ?mapClass, ?value),
-mainAnalysis.Value_isMock(?value), mainAnalysis.isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
+mainAnalysis.Value_isMock(?value), isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
 BeanMapEntry(?id, ?entryBeanKey, ?entryBeanMockObject),
 BeanMap(?id, ?mapClass, ?value) :-
 	XMLNode(?XMLFile, ?beanNodeId, _, _, "bean", "bean"),
@@ -6464,8 +6491,8 @@ mainAnalysis.InstanceFieldPointsTo(?hctx, ?entryBeanMockObject, ?valueField, ?ba
 mainAnalysis.InstanceFieldPointsTo(?hctx, ?entryBeanId, ?keyField, ?basehctx, ?nodeMockObject),
 mainAnalysis.InstanceFieldPointsTo(?hctx, ?arrayMockObject, ?tableField, ?basehctx, ?mapMockObject),
 mainAnalysis.ArrayIndexPointsTo(?hctx, ?nodeMockObject, ?basehctx, ?arrayMockObject),
-mainAnalysis.Value_isMock(?arrayMockObject), mainAnalysis.isValue(?arrayMockObject), mainAnalysis.Value_Type(?arrayMockObject,  ?arrayType), mainAnalysis.Value_DeclaringType(?arrayMockObject, "java.lang.Object"),
-mainAnalysis.Value_isMock(?nodeMockObject), mainAnalysis.isValue(?nodeMockObject), mainAnalysis.Value_Type(?nodeMockObject,  ?nodeType), mainAnalysis.Value_DeclaringType(?nodeMockObject, "java.lang.Object") :-
+mainAnalysis.Value_isMock(?arrayMockObject), isValue(?arrayMockObject), mainAnalysis.Value_Type(?arrayMockObject,  ?arrayType), mainAnalysis.Value_DeclaringType(?arrayMockObject, "java.lang.Object"),
+mainAnalysis.Value_isMock(?nodeMockObject), isValue(?nodeMockObject), mainAnalysis.Value_Type(?nodeMockObject,  ?nodeType), mainAnalysis.Value_DeclaringType(?nodeMockObject, "java.lang.Object") :-
 																																BeanMap(?id, ?mapClass, ?mapMockObject),
 																																BeanMapEntry(?id, ?entryBeanId, ?entryBeanMockObject),
 																																?arrayMockObject = cat(cat(cat(?entryBeanId, ": "), ?mapClass), "$Node[]"),
@@ -6484,7 +6511,7 @@ mainAnalysis.Value_isMock(?nodeMockObject), mainAnalysis.isValue(?nodeMockObject
 
 BeanFieldInjection(?beanClass, ?injectedField, ?value),
 BeanResource(?id, ?mapClass, ?value),
-mainAnalysis.Value_isMock(?value), mainAnalysis.isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
+mainAnalysis.Value_isMock(?value), isValue(?value), mainAnalysis.Value_Type(?value,  ?mapClass), mainAnalysis.Value_DeclaringType(?value, "java.lang.Object"),
 BeanMapEntry(?id, ?entryBeanKey, ?entryBeanMockObject),
 BeanMap(?id, ?mapClass, ?value) :-
 	XMLNode(?XMLFile, ?beanNodeId, _, _, "bean", "bean"),
@@ -6507,7 +6534,7 @@ mainAnalysis.InstanceFieldPointsTo(?hctx, ?entryBeanId, ?keyField, ?basehctx, ?n
 mainAnalysis.InstanceFieldPointsTo(?hctx, ?nodeMockObject, ?contentsField, ?basehctx, ?mapMockObject),
 //mainAnalysis.ArrayIndexPointsTo(?hctx, ?nodeMockObject, ?basehctx, ?arrayMockObject),
 //mainAnalysis.Value_isMock(?arrayMockObject), isValue(?arrayMockObject), mainAnalysis.Value_Type(?arrayMockObject,  ?arrayType), mainAnalysis.Value_DeclaringType(?arrayMockObject, "java.lang.Object"),
-mainAnalysis.Value_isMock(?nodeMockObject), mainAnalysis.isValue(?nodeMockObject), mainAnalysis.Value_Type(?nodeMockObject,  ?nodeType), mainAnalysis.Value_DeclaringType(?nodeMockObject, "java.lang.Object") :-
+mainAnalysis.Value_isMock(?nodeMockObject), isValue(?nodeMockObject), mainAnalysis.Value_Type(?nodeMockObject,  ?nodeType), mainAnalysis.Value_DeclaringType(?nodeMockObject, "java.lang.Object") :-
 																																BeanMap(?id, ?mapClass, ?mapMockObject),
 																																BeanMapEntry(?id, ?entryBeanId, ?entryBeanMockObject),
 																																//?arrayMockObject = cat(cat(cat(?entryBeanId, ": "), ?mapClass), "$Node[]"),
@@ -6896,7 +6923,7 @@ Stats_Simple_PotentiallyFailingCast(?type, ?from, ?to) :-
 	Stats_Simple_ReachableCast(_, ?type, ?to, ?from),
 	Stats_Simple_InsensVarPointsTo(?value, ?from),
 	mainAnalysis.Value_Type(?value, ?valuetype),
-	!mainAnalysis.basic.SupertypeOf(?type, ?valuetype).
+	!basic.SupertypeOf(?type, ?valuetype).
 
 Stats_Simple_Application_Cast(?type, ?from, ?to, ?inmethod) :-
 	ApplicationMethod(?inmethod),
@@ -6914,7 +6941,7 @@ Stats_Simple_Application_PotentiallyFailingCast(?type, ?from, ?to) :-
 	Stats_Simple_Application_ReachableCast(_, ?type, ?to, ?from),
 	Stats_Simple_InsensVarPointsTo(?value, ?from),
 	mainAnalysis.Value_Type(?value, ?valuetype),
-	!mainAnalysis.basic.SupertypeOf(?type, ?valuetype).
+	!basic.SupertypeOf(?type, ?valuetype).
 
 
 
@@ -7246,46 +7273,3 @@ Stats_InsensValueThrowPointsTo(?value, ?ctx, ?method) :-
 Stats_InsensThrowPointsTo(?value, ?method) :-
 	Stats_InsensValueThrowPointsTo(?value, _, ?method).
 
-AssignHeapAllocation(?strHeap, ?return, ?strMethod) :-
-	mainAnalysis.SimulateNativeAllocation(?strMethod, ?strHeap, _),
-	Method_DeclaringType(?strMethod, ?strType),
-	NativeReturnVar(?return, ?strMethod),
-	isHeapAllocation(?strHeap).
-
-SpecialMethodInvocation_Base(?newInstrId, ?return),
-Instruction_Method(?newInstrId, ?strMethod),
-MethodInvocation_Method(?newInstrId, strConstructor),
-isInstruction(?newInstrId), isMethodInvocation(?newInstrId), isSpecialMethodInvocation_Insn(?newInstrId),
-Instruction_Index(?newInstrId, ?index) :-
-	mainAnalysis.SimulateNativeAllocation(?strMethod, _, strConstructor),
-	isMethod(?strMethod),
-	NativeReturnVar(?return, ?strMethod),
-	isMethod(strConstructor),
-	?index = 1,
-	?newInstrId = cat(?strMethod, cat("/native ", strConstructor)).
-
-
-MockObjFromOpenProgramEntryPointReceiver(?value),
-MockObject(?value, ?class) :-
-	( ExercisedEntryPointMethod(?class, ?method)
-	  ; (mainAnalysis.ForcedReachable(?method), Method_DeclaringType(?method, ?class))),
-	ThisVar(?method, ?receiver),
-	?value = cat(?class, "::MockObject"),
-	mainAnalysis.isImmutableContext(?ctx),
-	mainAnalysis.isImmutableHContext(?hctx).
-
-
-MockObjFromOpenProgramEntryPointArg(?mockObj) :-
-	mainAnalysis.FormalOfForcedReachableContext(?ctx, ?formal, ?formalType),
-	mainAnalysis.TypeToConcreteImplementation(?formalType, ?class),
-	mainAnalysis.isImmutableHContext(?hctx),
-	?mockObj = cat("<mock value for forced-reachable parameter ", cat(?class, ">")).
-
-// Helper/statistics relation.
-UnmockableFormalOfForcedReachableContext(?formal, ?formalType) :-
-	mainAnalysis.FormalOfForcedReachableContext(_, ?formal, ?formalType),
-	!mainAnalysis.TypeToConcreteImplementation(?formalType, _).
-
-.decl mainAllocatedObjectSupportsFinalize(?heap:HeapAllocation, ?inmethod:Method)
-mainAllocatedObjectSupportsFinalize(?heapValue, ?inmethod) :-
-	mainAnalysis.basic.AllocatedObjectSupportsFinalize(?heapValue, ?inmethod).

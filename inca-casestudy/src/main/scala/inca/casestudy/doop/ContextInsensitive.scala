@@ -14,8 +14,8 @@ import scala.io.Source
 
 object ContextInsensitive:
   private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "context-insensitive.dl"): Unit =
-    val baseDir = "doop/"
-    val source = Source.fromResource(baseDir + file)
+    val baseDir = "doop"
+    val source = Source.fromResource(baseDir + "/" + file)
     val options = CompilerOptions.default
     //options.irLogging.logLowerings = true
     val compiled = CompiledSouffleProgram.fromSource("ContextInsensitive", source, options)
@@ -28,8 +28,10 @@ object ContextInsensitive:
       () => new module.Lowering {}
     ))
 
-    println("Load edb from files...")
-    val edbFacts = compiled.loadEdbInputs(baseDir + "minijavac")
+    println(compiled.mainUnit.lowered)
+
+    /*println("Load edb from files...")
+    val edbFacts = compiled.loadEdbInputs(baseDir)
     val outputRels = compiled.outputRelations
 
     println("Populate edb...")
@@ -43,14 +45,14 @@ object ContextInsensitive:
       val end = System.currentTimeMillis()
       println(res.name -> res.size)
       end - start
-    }.sum
+    }.sum*/
 
     /*val start = System.currentTimeMillis()
     engine.read(UnitRelation("VarPointsTo"))
     val end = System.currentTimeMillis()
-    val execTime = end - start*/
+    val execTime = end - start
 
-    println(execTime / 1000.0)
+    println(execTime / 1000.0)*/
 
   @main
   def runContextInsensitiveDL(): Unit = {

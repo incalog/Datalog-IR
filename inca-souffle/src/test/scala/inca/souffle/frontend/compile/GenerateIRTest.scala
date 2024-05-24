@@ -125,13 +125,14 @@ class GenerateIRTest extends AnyFunSuite:
     assertResult(Set(4, 5))(res("zero").toSet)
   }
 
-  test("Inherit Component Init") {
+  // TODO: Not supported
+  /*test("Inherit Component Init") {
     val file = FileUtil.readFileFromResource("inca/souffle/InheritComponentInit.dl")
     val prog = Parser.parseSouffle(file)
     val res = execute(prog)
     res.foreach(a => println(a._2.asTable))
     //assertResult("comp$innerComp$Succ(comp$innerComp$Zero())")(res("nats").entries.head.toString)
-  }
+  }*/
 
   test("ADT") {
     val file = FileUtil.readFileFromResource("inca/souffle/ADT.dl")

@@ -81,8 +81,6 @@ trait CompiledUnit:
     low
 
   lazy val lowered: Seq[Module] =
-    println(s"Lower ::::: $name")
-    
     val irLogging = compilerOptions.irLogging
     val logTyped = irLogging.logTypeInformation
     val logModule = irLogging.logModule

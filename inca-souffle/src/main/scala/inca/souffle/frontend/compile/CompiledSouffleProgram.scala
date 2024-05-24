@@ -29,11 +29,6 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
   lazy val irModules: Seq[Module] =
     val genIR = new GenerateIR
     val mods = genIR.compileProgram(program, name.name)
-    mods.foreach(println)
-    println("*****--------------------*****")
-    println("*****--------------------*****")
-    println("*****--------------------*****")
-    println("*****--------------------*****")
     mods
 
   private def loadEdbFactsFromFile(baseDir: String, attrs: Map[String, DirectiveValue]): Seq[Seq[String]] =
@@ -42,7 +37,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
       case DirectiveValue.StringLit("file") =>
         val filename = attrs.get("filename") match
           case Some(DirectiveValue.StringLit(fn)) => fn
-          case _ => throw new RuntimeException(s"Invalid or missing filename!")
+          case _ => throw new RuntimeException(s"Invalid or missing filename for $io!")
         val delimiter = attrs.get("delimiter") match
           case Some(DirectiveValue.StringLit(d)) => d
           case _ => "\t"

@@ -67,8 +67,9 @@ class GenerateIR extends GenerateIRContext:
       val compiledAdts = adts.toSeq.flatMap(compileAdtDecl)
       compiledAdts ++ compiledRels ++ compileProgramContents(decl.content)
     }
+    
     val required = lookupRequiredDeclarations(decl).flatMap {
-      case (name, relDecl: RelationDecl) =>
+      case (name, relDecl: ProgramContent.RelationDecl) =>
         val params = relDecl.attrs.map(compileAttribute)
         val req = ir.RequireRelation(ir.Name("super$" + name), params)
         Seq(req)
@@ -201,11 +202,7 @@ class GenerateIR extends GenerateIRContext:
             compileRule(decl, r, relName)
           case r: ProgramContent.Rule if currentlyInComponent(r.target) =>
             compileRule(decl, r, relName)
-          case f: ProgramContent.Rule => Seq()
-            // Call parent impl
-            Seq(ir.Body(Seq(
-              ir.Call(ir.Name(s"super$$$relName"), decl.attrs.map(compileAttribute).map(p => ir.Var(p.name).arg))
-            )))
+          case f: ProgramContent.Rule => Seq() // nothing
           case f: ProgramContent.Fact if currentlyInMainComponent =>
             // we always compile in the main component
             Seq(compileFact(decl, f))
@@ -284,7 +281,9 @@ class GenerateIR extends GenerateIRContext:
       ir.Eq(compileTerm(t1), compileTerm(t2), true)
     case Atom.Compare(t1, op, t2) =>
       irarith.BinCompare(compileTerm(t1), compileTerm(t2), op.toString)
-    case Atom.Match(t1, t2) => ???
+    case Atom.Match(t1, t2) =>
+      // TODO: Remove this dummy
+      ir.Eq(irarith.IntNum(1), irarith.IntNum(0))
     case Atom.Contains(t1, t2) => ???
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
@@ -310,7 +309,7 @@ class GenerateIR extends GenerateIRContext:
       ir.Cast(compileTerm(t), compileType(ty))
     case Term.AggregatorTerm(agg) =>
       // TODO: Ignore for now
-      irbool.BoolFalse
+      irarith.IntNum(1)
       /*val (op, args, t) = agg match
         case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
         case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
@@ -336,7 +335,9 @@ class GenerateIR extends GenerateIRContext:
       
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
-        case IntrinsicFunctor.Ord => ???
+        case IntrinsicFunctor.Ord =>
+          // TODO: Remove this dummy
+          irarith.IntNum(1)
         case IntrinsicFunctor.ToFloat => ???
         case IntrinsicFunctor.ToNumber => ???
         case IntrinsicFunctor.ToString =>
@@ -344,8 +345,12 @@ class GenerateIR extends GenerateIRContext:
         case IntrinsicFunctor.ToUnsigned => ???
         case IntrinsicFunctor.Cat =>
           irstring.StringConcat(compileTerm(args.head), compileTerm(args(1)))
-        case IntrinsicFunctor.StrLen => ???
-        case IntrinsicFunctor.Substr => ???
+        case IntrinsicFunctor.StrLen =>
+          // TODO: Remove this dummy
+          irarith.IntNum(0)
+        case IntrinsicFunctor.Substr =>
+          // TODO: Remove this dummy
+          irstring.StringLit("")
         case IntrinsicFunctor.Max =>
           irarith.Max(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.Min =>
