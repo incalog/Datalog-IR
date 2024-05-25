@@ -13,6 +13,7 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
+  def useFixPointIteration: Boolean = true      // TODO reason why always terminates
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -140,6 +141,7 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   // for printing results
   private var currentRelationName: Name = _
   private var currentBodyIndex: Int = -1
+  private var currentIteration: Int = 0
 
 
   private var relationParams: Seq[Name] = Seq()
@@ -159,13 +161,13 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
 
   private var validBody: Boolean = _
   override def visitBody(body: Body): Seq[Body] = {
-    currentBodyIndex += 1
+    if currentIteration == 0 then currentBodyIndex += 1
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+    println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after first phase\n{" + newBody + "\t}\n")
     // TODO has to check whole program: typechecker.checkProgram()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
@@ -182,7 +184,16 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
     // reset congrClasses (otherwise not known when variables are unbound)
     congrClasses.clear()
     valueNumbers.clear()
-    newerBodySeq
+
+    if (useFixPointIteration && newerBodySeq.nonEmpty){
+      if (newerBodySeq.head != body){
+        println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after second phase\n{" + newerBodySeq.head + "\t}\n")
+        currentIteration += 1
+        return visitBody(newerBodySeq.head)
+      }
+    }
+    currentIteration = 0
+    return newerBodySeq
   }
 
 
