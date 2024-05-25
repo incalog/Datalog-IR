@@ -13,7 +13,7 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
-  def useFixPointIteration: Boolean = true      // TODO reason why always terminates
+  def useFixPointIteration: Boolean = false      // TODO reason why always terminates (or is second iteration always enough?)
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =

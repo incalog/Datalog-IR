@@ -4,6 +4,7 @@ import inca.ir.*
 import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.{Inline, Outline}
 
 import scala.language.implicitConversions
 
@@ -35,7 +36,7 @@ case class RefByName[Target](name: Name) extends Ref[Target]:
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
 
-trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints with Outline with Inline:
   def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
   def arg: Arg = TermArg(this)

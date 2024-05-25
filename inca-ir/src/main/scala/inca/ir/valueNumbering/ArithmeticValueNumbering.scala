@@ -43,7 +43,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
   private def getArgumentOfOp(t: Term): Term = {
     // without visitTerm defterm might contain removed Var
-    if (this.useDefiningTerm && !isConst(t)) { // TODO interface when to outline/inline term (make sure t not contained in defterm)
+    if (this.useDefiningTerm && !isConst(t)) { // TODO use interface when to outline/inline term (make sure t not contained in defterm)
       val newTerm =  visitTerm(getDefiningTerm(t)).head.typed(t.typ.get, force = true)
 //      if (newTerm != getDefiningTerm(t) && congrClasses.contains(valueNumbers(newTerm))){
 //        getCongrClassOf(newTerm).definingTerm = newTerm // term will only get "simpler" by normalization
