@@ -53,19 +53,19 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     else return t
   }
 
-  def newIntNum(i: Int): IntNum = IntNum(i).typed(TermType(TInt,Bound))
-  def newDoubleNum(d: Double): DoubleNum = DoubleNum(d).typed(TermType(TDouble,Bound))
+  private def newIntNum(i: Int): IntNum = IntNum(i).typed(TermType(TInt,Bound))
+  private def newDoubleNum(d: Double): DoubleNum = DoubleNum(d).typed(TermType(TDouble,Bound))
 
   private def normalizeAdd(lhs: Term, rhs: Term, typ: TermType, repetition: Boolean = false): Term = getArgumentsOfOp(lhs,rhs) match {
-      case (_, IntNum(0)) | (_, DoubleNum(0)) => lhs
-      case (IntNum(0), _) | (DoubleNum(0), _) => rhs
+      case (l, IntNum(0) | DoubleNum(0)) => l
+      case (IntNum(0) | DoubleNum(0), r) => r
       case (IntNum(l), IntNum(r)) => newIntNum(l + r)
       case (DoubleNum(l), DoubleNum(r)) => newDoubleNum(l + r)
 
-      case (IntNum(l), BinOp(IntNum(r), restTerm, "+")) => associativityInt(l,r,restTerm,_+_,Add)
-      case (BinOp(IntNum(l), restTerm, "+"), IntNum(r)) => associativityInt(l,r,restTerm,_+_,Add)
-      case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "+")) => associativityDouble(l,r,restTerm,_+_,Add)
-      case (BinOp(DoubleNum(l), restTerm, "+"), DoubleNum(r)) => associativityDouble(l,r,restTerm,_+_,Add)
+      case (IntNum(l), BinOp(IntNum(r), restTerm, "+")) => associativityInt(l,r,restTerm,"+")
+      case (BinOp(IntNum(l), restTerm, "+"), IntNum(r)) => associativityInt(l,r,restTerm,"+")
+      case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "+")) => associativityDouble(l,r,restTerm,"+")
+      case (BinOp(DoubleNum(l), restTerm, "+"), DoubleNum(r)) => associativityDouble(l,r,restTerm,"+")
 
       case (term, BinOp(IntNum(-1), termNeg, "*")) if getIdOf(term) == getIdOf(termNeg) => newIntNum(0)
       case (term, BinOp(DoubleNum(-1), termNeg, "*")) if getIdOf(term) == getIdOf(termNeg) => newDoubleNum(0)
@@ -116,15 +116,15 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   private def normalizeMul(lhs: Term, rhs: Term, typ: TermType, repetition: Boolean = false): Term = getArgumentsOfOp(lhs,rhs) match {
     case (_, IntNum(0)) | (IntNum(0), _) => newIntNum(0)
     case (_, DoubleNum(0)) | (DoubleNum(0), _) => newDoubleNum(0)
-    case (IntNum(1), _) | (DoubleNum(1), _) => rhs
-    case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
+    case (IntNum(1) | DoubleNum(1), r) => r
+    case (l, IntNum(1) | DoubleNum(1)) => l
     case (IntNum(l), IntNum(r)) => newIntNum(l * r)
     case (DoubleNum(l), DoubleNum(r)) => newDoubleNum(l * r)
 
-    case (IntNum(l), BinOp(IntNum(r), restTerm, "*")) => associativityInt(l,r,restTerm,_*_,Mul)
-    case (BinOp(IntNum(l), restTerm, "*"), IntNum(r)) => associativityInt(l,r,restTerm,_*_,Mul)
-    case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "*")) => associativityDouble(l,r,restTerm,_*_,Mul)
-    case (BinOp(DoubleNum(l), restTerm, "*"), DoubleNum(r)) => associativityDouble(l,r,restTerm,_*_,Mul)
+    case (IntNum(l), BinOp(IntNum(r), restTerm, "*")) => associativityInt(l,r,restTerm,"*")
+    case (BinOp(IntNum(l), restTerm, "*"), IntNum(r)) => associativityInt(l,r,restTerm,"*")
+    case (DoubleNum(l), BinOp(DoubleNum(r), restTerm, "*")) => associativityDouble(l,r,restTerm,"*")
+    case (BinOp(DoubleNum(l), restTerm, "*"), DoubleNum(r)) => associativityDouble(l,r,restTerm,"*")
 
     case (factor, BinOp(lhs, rhs, "+")) => distributivity(factor,lhs,rhs,Add,Mul,typ)
 
@@ -135,8 +135,9 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
-    case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
-    case (l, r) if (getIdOf(l) == getIdOf(r) && getReplacementTerm(r) != IntNum(0) && getReplacementTerm(r) != DoubleNum(0)) =>
+    case (l,r) if getReplacementTerm(r) == IntNum(0) || getReplacementTerm(r) == DoubleNum(0) => Div(l,r)
+    case (l, IntNum(1) | DoubleNum(1)) => l
+    case (l, r) if getIdOf(l) == getIdOf(r) =>
       if typ.ty == TInt then newIntNum(1)
       else if typ.ty == TDouble then newDoubleNum(1)
       else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
@@ -144,10 +145,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (DoubleNum(l), DoubleNum(r)) if r != 0 => newDoubleNum(l / r)
 
     case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
-    case (lTerm, lBinOp@BinOp(l, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble =>
-//      if typ.ty == TInt then normalize(Div(newIntNum(1), l).typed(typ))
-      /*else if typ.ty == TDouble then */ normalize(Div(newDoubleNum(1), l).typed(typ))
-//      else throw new IllegalStateException(s"Sub with $lhs and $rhs with unknown type $typ normalization")
+    case (lTerm, lBinOp@BinOp(l, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), l).typed(typ))
 
     case (BinOp(lhs, rhs, "+"),denom) => distributivity(denom,lhs,rhs,Add,Div,typ)
 
@@ -155,7 +153,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
 
   private def normalizeRemainder(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
-    case (_, IntNum(1)) | (_, DoubleNum(1)) => lhs
+    case (l, IntNum(1) | DoubleNum(1)) => l
     case (IntNum(0),_) => newIntNum(0)
     case (DoubleNum(0),_) => newDoubleNum(0)
     case (IntNum(l), IntNum(r)) => newIntNum(l % r)
@@ -195,16 +193,26 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case UnOp(UnOp(term, "-"), "-") => term
     case BinOp(l, r ,"+") => normalize(BinOp(normalize(Neg(l).typed(typ)), normalize(Neg(r).typed(typ)),"+").typed(typ))
     case term =>
-      if (typ.ty == TInt) normalize(Sub(newIntNum(0), t).typed(typ))
-      else if (typ.ty == TDouble) normalize(Sub(newDoubleNum(0), t).typed(typ))
+      if (typ.ty == TInt) normalize(Sub(newIntNum(0), term).typed(typ))
+      else if (typ.ty == TDouble) normalize(Sub(newDoubleNum(0), term).typed(typ))
       else throw new IllegalStateException(s"unknown type $typ in normalization of Neg with $term")
   }
 
 
-  private def associativityInt(l: Int, r: Int, restTerm: Term, intOp: (Int, Int) => Int, op: (Term, Term) => BinOp): Term =
-    op(newIntNum(intOp(l, r)), restTerm)
-  private def associativityDouble(l: Double, r: Double, restTerm: Term, doubleOp: (Double, Double) => Double, op: (Term, Term) => BinOp): Term =
-    op(newDoubleNum(doubleOp(l, r)), restTerm)
+  private def associativityInt(l: Int, r: Int, restTerm: Term, op: String): Term = {
+    val intOp: (Int, Int) => Int = op match {
+      case "+" => _ + _
+      case "*" => _ * _
+    }
+    BinOp(newIntNum(intOp(l, r)), restTerm, op)
+  }
+  private def associativityDouble(l: Double, r: Double, restTerm: Term, op: String): Term = {
+    val doubleOp: (Double, Double) => Double = op match {
+      case "+" => _ + _
+      case "*" => _ * _
+    }
+    BinOp(newDoubleNum(doubleOp(l, r)), restTerm, op)
+  }
   private def distributivity(factor: Term, lhs: Term, rhs: Term, opOuter: (Term, Term) => BinOp, opInner: (Term, Term) => BinOp, typ: TermType): Term = {
     val innerL = opInner(lhs, factor).typed(typ)
     val innerR = opInner(rhs, factor).typed(typ)

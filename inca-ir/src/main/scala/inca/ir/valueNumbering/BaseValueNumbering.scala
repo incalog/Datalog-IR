@@ -2,18 +2,18 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
-import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.typing.{IRTypechecker, Typechecker}
 
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
 
 
 /** for value numbering constructs from BaseIR */
-trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) extends IRVisitor {
+trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
-  def useFixPointIteration: Boolean = false      // TODO reason why always terminates (or is second iteration always enough?)
+  def useFixPointIteration: Boolean = false // TODO gets cancelled by typechecking :( -> remove fixpoint-iteration again?
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -105,10 +105,22 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
     case repetition
   private var phase: Phase = _
 
+  // for printing results
+  private var currentRelationName: Name = _
+  private var currentBodyIndex: Int = -1
+  private var currentIteration: Int = 0
 
   override def visitModule(module: Module): Module = {
     println(s"before VN: \n$module\n")
-    val result = super.visitModule(module)
+    var result = super.visitModule(module)
+    typechecker.checkProgram(Seq(result))
+    if (useFixPointIteration) {
+      if (result != module) {
+        currentIteration += 1
+        currentBodyIndex = -1
+        result = super.visitModule(result)
+      }
+    }
     println(s"after VN: \n$result")
     result
   }
@@ -138,11 +150,6 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
     v
   }
 
-  // for printing results
-  private var currentRelationName: Name = _
-  private var currentBodyIndex: Int = -1
-  private var currentIteration: Int = 0
-
 
   private var relationParams: Seq[Name] = Seq()
   private def isParam(t: Term): Boolean = t match {
@@ -160,15 +167,15 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
 
 
   private var validBody: Boolean = _
-  override def visitBody(body: Body): Seq[Body] = {
-    if currentIteration == 0 then currentBodyIndex += 1
 
-    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
+  override def visitBody(body: Body): Seq[Body] = {
+    currentBodyIndex += 1
+
+    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
     println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after first phase\n{" + newBody + "\t}\n")
-    // TODO has to check whole program: typechecker.checkProgram()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
       val res = super.visitBody(newBody)
@@ -185,14 +192,6 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
     congrClasses.clear()
     valueNumbers.clear()
 
-    if (useFixPointIteration && newerBodySeq.nonEmpty){
-      if (newerBodySeq.head != body){
-        println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after second phase\n{" + newerBodySeq.head + "\t}\n")
-        currentIteration += 1
-        return visitBody(newerBodySeq.head)
-      }
-    }
-    currentIteration = 0
     return newerBodySeq
   }
 
@@ -200,23 +199,18 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {
     case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
       // in case a redundant binding is found it will be removed unless it belongs to parameter
-      treatBindingInEq(vari, e, dontRemove = isParam(vari))
+      valueNumberVar(vari, e, dontRemove = isParam(vari))
     case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
-      treatBindingInEq(vari, e, dontRemove = isParam(vari))
+      valueNumberVar(vari, e, dontRemove = isParam(vari))
     case Eq(vari@Var(_), e, false) =>
       // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-      treatComparisonEq(vari, e)
+      valueNumberVar(vari, e, dontRemove = true)
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      treatComparisonEq(vari, e)
+      valueNumberVar(vari, e, dontRemove = true)
 
     case call@Call(_, args, false) =>  treatBindingsInCall(call, args) // TODO when can equivalence of two vars be concluded from calls?
-//      super.visitAtom(atom).head match {
-//        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
-//      }
+
     case call@ExtensionalCall(_, args, false) => treatBindingsInCall(call, args)
-//      super.visitAtom(atom).head match {
-//        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
-//      }
 
     case _ => super.visitAtom(atom)
   }
@@ -263,16 +257,6 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
 
 
-  private def treatBindingInEq(vari: Var, e: Term, dontRemove: Boolean = false): Seq[Atom] = {
-   valueNumberVar(vari,e,dontRemove)
-  }
-
-  private def treatComparisonEq(vari: Var, t: Term): Seq[Atom] = {
-    // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-    valueNumberVar(vari, t, dontRemove = true)
-  }
-
-
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
 //    val tempTerm = visitTerm(t).head
     val newTerm = if isParam(t) then t else visitTerm(t).head
@@ -293,7 +277,6 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
 
       // remove "Assignment" or replace term
       if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
-//        Seq( Eq(newVari, newTerm) )
         generateEqIfNecessary(newVari, newTerm)
       }
       else {
@@ -314,8 +297,6 @@ trait BaseValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) e
         congrClasses(termId).updateCongrClassIfNecessary(newTerm, updateDefTermIfNecessary = true)
       }
 
-      // return with newTerm
-//      Seq( Eq(newVari, newTerm) )
       generateEqIfNecessary(newVari, newTerm)
     }
   }

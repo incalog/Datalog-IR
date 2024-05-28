@@ -258,8 +258,9 @@ class BasicIRAndSimpleArithmeticTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  // TODO concludes wrong equality from comparison eq... -> wrong replacement in 2nd phase
+  // concludes wrong equality from comparison eq... -> wrong replacement in 2nd phase
   //    (but assumption that no unsatisfiable atoms are included)
+  // -> now instead isConst needs to be implemented if such eq atoms are allowed
 //  test("comparison that should not be removed") {
 //    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
 //      Seq(

@@ -11,7 +11,7 @@ import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
  *
  *************************************************************************/
 
-class ValueNumbering(typechecker: BaseIRTypechecker = new IRTypechecker{}) // TODO okay? 
+class ValueNumbering(typechecker: IRTypechecker = new IRTypechecker{})
   extends BaseValueNumbering(typechecker)
     with ArithmeticValueNumbering
     with StringValueNumbering
