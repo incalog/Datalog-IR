@@ -25,10 +25,10 @@ class StringTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TString), Param("param$1", TString)), Seq(
           Body(Seq(
-            Eq(Var(Name("X")), StringLit("Hello")),
+//            Eq(Var(Name("X")), StringLit("Hello")),
             //Eq(Var(Name("Y")), Var(Name("X"))),
-            Eq(Var(Name("param$0")), Var(Name("X"))),
-            Eq(Var(Name("param$1")), Var(Name("X")))
+            Eq(Var(Name("param$0")), StringLit("Hello")),
+            Eq(Var(Name("param$1")), StringLit("Hello"))
           ))
         ))
       ))
@@ -51,10 +51,10 @@ class StringTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TString), Param("param$1", TString)), Seq(
           Body(Seq(
-            Eq(Var(Name("A")), StringConcat(StringLit("Hello"), StringLit(" World"))),
+//            Eq(Var(Name("A")), StringConcat(StringLit("Hello"), StringLit(" World"))),
 //            Eq(Var(Name("B")), StringConcat(StringLit("Hello"), StringLit(" World"))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A")))
+            Eq(Var(Name("param$0")), StringLit("Hello World")),
+            Eq(Var(Name("param$1")), StringLit("Hello World"))
           ))
         ))
       ))
@@ -78,11 +78,11 @@ class StringTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TString), Param("param$1", TString)), Seq(
           Body(Seq(
-            Eq(Var("H"),StringLit("Hello")),
-            Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
-//            Eq(Var(Name("B")), StringConcat(StringLit("Hello"), StringLit(" World"))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A")))
+//            Eq(Var("H"),StringLit("Hello")),
+//            Eq(Var(Name("A")), StringLit("Hello World")),
+//            Eq(Var(Name("B")), StringLit("Hello World")),
+            Eq(Var(Name("param$0")), StringLit("Hello World")),
+            Eq(Var(Name("param$1")), StringLit("Hello World"))
           ))
         ))
       ))
@@ -106,11 +106,11 @@ class StringTest extends ValueNumberingTestAbstract {
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TString), Param("param$1", TString)), Seq(
           Body(Seq(
-            Eq(Var("H"), StringLit("Hello")),
-            Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
-            //            Eq(Var(Name("B")), StringConcat(StringLit("Hello"), StringLit(" World"))),
-            Eq(Var(Name("param$0")), Var(Name("A"))),
-            Eq(Var(Name("param$1")), Var(Name("A")))
+//            Eq(Var("H"), StringLit("Hello")),
+//            Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
+//            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), // need to implement normalize function for this
+            Eq(Var(Name("param$0")), StringLit("Hello World")),
+            Eq(Var(Name("param$1")), StringLit("Hello World"))
           ))
         ))
       ))
