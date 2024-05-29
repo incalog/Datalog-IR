@@ -1,4 +1,4 @@
-package inca.ir.clones
+package inca.ir.valueNumbering
 
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module as IRModule}
 import inca.ir.extension.arithmetic.{IntNum, TInt}

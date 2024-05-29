@@ -106,7 +106,6 @@ trait CompiledModule:
     if (logOptimizations)
       printStep(s"Optimized: ", p2)
 
-//    val p3 = valueNumbering(p2)
 
     postProcessingPipeline.foldLeft(p2.head) { case (m, lowering) =>
       val lowFun = lowering()
@@ -127,24 +126,6 @@ trait CompiledModule:
     val checker = typechecker
     checker.checkProgram(po)
     po
-
-  
-//  var valueNumberingResult: Seq[Module] = Seq() // for Testing
-//  def valueNumbering(p: Seq[Module]): Seq[Module] = {
-//    valueNumberingResult = p.map { input =>
-//      valueNumbering(input)
-//    }
-//    valueNumberingResult
-//  }
-//
-//  def valueNumbering(module: Module): Module = {
-//    val VN = new ValueNumbering{}
-//    println(s"before VN: \n$module\n") // use printstep
-//    val result = VN.valueNumbering(module)
-//    println(s"after VN: \n$result")
-//    result
-//  }
-
 
 
 

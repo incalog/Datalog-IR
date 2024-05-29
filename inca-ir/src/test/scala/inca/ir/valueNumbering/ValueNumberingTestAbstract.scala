@@ -1,4 +1,4 @@
-package inca.ir.clones
+package inca.ir.valueNumbering
 
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
@@ -13,7 +13,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
 
   /** wraps parameters for value numbering */
   case class ConfigVN(normalize: Boolean = true,
-                      useDefiningTerm: Boolean = false
+                      useDefiningTerm: Boolean = false,
                      )
   
   val config: ConfigVN = ConfigVN()
@@ -26,7 +26,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   }
   
   def performTest(expected: IRModule, input: IRModule, config: ConfigVN = config): Unit = {
-    val VN = new ValueNumbering {
+    val VN: ValueNumbering = new ValueNumbering {
       override val normalize: Boolean = config.normalize
       override val useDefiningTerm: Boolean = config.useDefiningTerm
     }

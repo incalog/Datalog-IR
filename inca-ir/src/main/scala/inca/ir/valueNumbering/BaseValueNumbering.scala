@@ -2,18 +2,19 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
+import inca.ir.typing.{IRTypechecker, Typechecker}
 
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
 
 
 /** for value numbering constructs from BaseIR */
-trait BaseValueNumbering extends IRVisitor {
+trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
 
-  private case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
+  protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
@@ -25,30 +26,31 @@ trait BaseValueNumbering extends IRVisitor {
       if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
     }
 
-    def changeDefTermIfNecessary(t: Term): Unit = {
+    def changeDefTermIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       if (isConst(t)) definingTerm = t
-      else if (definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+      else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
     }
 
-    def updateCongrClassIfNecessary(t: Term): Unit = {
+    def updateCongrClassIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       changeLeaderIfNecessary(t)
-      changeDefTermIfNecessary(t)
+      if (updateDefTermIfNecessary) changeDefTermIfNecessary(t)
     }
 
   }
 
-  private val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
-  private val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
+  protected val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  protected val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
 
-  private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  protected def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
   protected def getReplacementTerm(t: Term): Term = {
     if (!congrClasses.contains(valueNumbers(t))) return t
 
     val leader = getCongrClassOf(t).leader
-    if (phase == Phase.repetition && t.vars.isEmpty && leader.vars.nonEmpty){
-      // for case in 2nd phase in which term was replaced with an unbound var TODO other fix below?
-      // e.g. without this param == 1 ~> param == param
+    if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
+      // for extensions for which VN not implemented: (TODO remove this ?)
+      // fixes case in 2nd phase in which term was replaced with an unbound var (since they have wrong leader)
+      // e.g. without this param == someActuallyConstantTerm ~> param == param
       return t
     }
     else{
@@ -103,10 +105,14 @@ trait BaseValueNumbering extends IRVisitor {
     case repetition
   private var phase: Phase = _
 
+  // for printing results
+  private var currentRelationName: Name = _
+  private var currentBodyIndex: Int = -1
 
   override def visitModule(module: Module): Module = {
     println(s"before VN: \n$module\n")
-    val result = super.visitModule(module)
+    var result = super.visitModule(module)
+    typechecker.checkProgram(Seq(result))
     println(s"after VN: \n$result")
     result
   }
@@ -136,10 +142,6 @@ trait BaseValueNumbering extends IRVisitor {
     v
   }
 
-  // for printing results
-  private var currentRelationName: Name = _
-  private var currentBodyIndex: Int = -1
-
 
   private var relationParams: Seq[Name] = Seq()
   private def isParam(t: Term): Boolean = t match {
@@ -157,14 +159,17 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   private var validBody: Boolean = _
+
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
 
-    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all seen Vars are bound
+    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-//    println(s"$currentRelationName: body $currentBodyIndex after first iteration\n{" + newBody + "\t}\n")
+//    println(s"$currentRelationName: body $currentBodyIndex after first phase\n{" + newBody + "\t}\n")
+//    println("results after first phase: ")
+//    printResults()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
       val res = super.visitBody(newBody)
@@ -180,30 +185,26 @@ trait BaseValueNumbering extends IRVisitor {
     // reset congrClasses (otherwise not known when variables are unbound)
     congrClasses.clear()
     valueNumbers.clear()
-    newerBodySeq
+
+    return newerBodySeq
   }
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {
     case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
       // in case a redundant binding is found it will be removed unless it belongs to parameter
-      treatBindingInEq(vari, e, dontRemove = isParam(vari))
+      valueNumberVar(vari, e, dontRemove = isParam(vari))
     case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
-      treatBindingInEq(vari, e, dontRemove = isParam(vari))
+      valueNumberVar(vari, e, dontRemove = isParam(vari))
     case Eq(vari@Var(_), e, false) =>
       // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-      treatComparisonEq(vari, e)
+      valueNumberVar(vari, e, dontRemove = true)
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      treatComparisonEq(vari, e)
+      valueNumberVar(vari, e, dontRemove = true)
 
-    case call@Call(_, _, false) =>  // TODO when can equivalence of two vars be concluded from calls?
-      super.visitAtom(atom).head match {
-        case call@Call(ref, args, false) => treatBindingsInCall(call, args)
-      }
-    case call@ExtensionalCall(_, _, false) =>
-      super.visitAtom(atom).head match {
-        case call@ExtensionalCall(ref, args, false) => treatBindingsInCall(call, args)
-      }
+    case call@Call(_, args, false) =>  treatBindingsInCall(call, args) // TODO when can equivalence of two vars be concluded from calls?
+
+    case call@ExtensionalCall(_, args, false) => treatBindingsInCall(call, args)
 
     case _ => super.visitAtom(atom)
   }
@@ -235,6 +236,9 @@ trait BaseValueNumbering extends IRVisitor {
     else {
       // normalized term already has an id -> update term and newTerm to that id
       val normId = valueNumbers(normalizedTerm)
+      if (congrClasses.contains(newTermId)) {
+        congrClasses(newTermId).updateCongrClassIfNecessary(normalizedTerm)
+      }
       if (newTermId != normId) updateValueNumbersAndCongrClasses(newTermId, normId)
 
       if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
@@ -250,18 +254,8 @@ trait BaseValueNumbering extends IRVisitor {
   private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
 
 
-  private def treatBindingInEq(vari: Var, e: Term, dontRemove: Boolean = false): Seq[Atom] = {
-   valueNumberVar(vari,e,dontRemove)
-  }
-
-  private def treatComparisonEq(vari: Var, t: Term): Seq[Atom] = {
-    // not removed since non binding Eq is comparison that might reduce number of solutions; but remember equality
-    valueNumberVar(vari, t, dontRemove = true)
-  }
-
-
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-    val newTerm = if isParam(t) then t else visitTerm(t).head
+    val newTerm = /*if isParam(t) then t else*/ visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
@@ -275,8 +269,7 @@ trait BaseValueNumbering extends IRVisitor {
       updateValueNumbersAndCongrClasses(newVari, termId)
 
       // remove "Assignment" or replace term
-      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
-//        Seq( Eq(newVari, newTerm) )
+      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that vari already computed/bound
         generateEqIfNecessary(newVari, newTerm)
       }
       else {
@@ -294,19 +287,19 @@ trait BaseValueNumbering extends IRVisitor {
       }
       else {
         congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
-        congrClasses(termId).changeLeaderIfNecessary(newTerm)
-        congrClasses(termId).changeDefTermIfNecessary(newTerm)
+        congrClasses(termId).updateCongrClassIfNecessary(newTerm, updateDefTermIfNecessary = true)
       }
 
-      // return with newTerm
-//      Seq( Eq(newVari, newTerm) )
       generateEqIfNecessary(newVari, newTerm)
     }
   }
 
   private def generateEqIfNecessary(lhs: Term, rhs: Term): Seq[Eq] = {
-    if (lhs == rhs) Seq()
-    else Seq(Eq(lhs, rhs))
+    if (lhs == rhs) {
+      Seq()
+    }
+    else
+    Seq(Eq(lhs, rhs))
   }
 
 
@@ -315,10 +308,11 @@ trait BaseValueNumbering extends IRVisitor {
       case t@TermArg(term) => term match {
 
         case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
-          val id = valueNumbers.getIdOf(vari)
-          congrClasses.update(id, CongruenceClass(id, vari, vari))
-          t
-        case _ => t
+          val newVari = if isParam(vari) then vari else visitTerm(vari).head
+          val id = valueNumbers.getIdOf(newVari)
+          congrClasses.update(id, CongruenceClass(id, newVari, newVari))
+          TermArg(newVari)
+        case _ => visitTerm(term).head
       }
       case t => t
     }
