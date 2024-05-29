@@ -1,4 +1,4 @@
-package inca.ir.clones
+package inca.ir.valueNumbering
 
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
