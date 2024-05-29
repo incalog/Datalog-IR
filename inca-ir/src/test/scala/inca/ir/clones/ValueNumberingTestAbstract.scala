@@ -14,7 +14,6 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   /** wraps parameters for value numbering */
   case class ConfigVN(normalize: Boolean = true,
                       useDefiningTerm: Boolean = false,
-                      useFixPointIteration: Boolean = false,
                      )
   
   val config: ConfigVN = ConfigVN()
@@ -30,7 +29,6 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
     val VN: ValueNumbering = new ValueNumbering {
       override val normalize: Boolean = config.normalize
       override val useDefiningTerm: Boolean = config.useDefiningTerm
-      override val useFixPointIteration: Boolean = config.useFixPointIteration
     }
     performTestInternal(expected, input, VN)
   }

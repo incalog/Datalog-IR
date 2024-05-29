@@ -13,7 +13,6 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   // config
   def normalize: Boolean = true
   def useDefiningTerm: Boolean = false
-  def useFixPointIteration: Boolean = false // TODO gets cancelled by typechecking :( -> remove fixpoint-iteration again?
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -49,8 +48,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
     val leader = getCongrClassOf(t).leader
     if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
-      // for case in 2nd phase in which term was replaced with an unbound var TODO other fix below?
-      // e.g. without this param == 1 ~> param == param
+      // for extensions for which VN not implemented: (TODO remove this ?)
+      // fixes case in 2nd phase in which term was replaced with an unbound var (since they have wrong leader)
+      // e.g. without this param == someActuallyConstantTerm ~> param == param
       return t
     }
     else{
@@ -108,19 +108,11 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   // for printing results
   private var currentRelationName: Name = _
   private var currentBodyIndex: Int = -1
-  private var currentIteration: Int = 0
 
   override def visitModule(module: Module): Module = {
     println(s"before VN: \n$module\n")
     var result = super.visitModule(module)
     typechecker.checkProgram(Seq(result))
-    if (useFixPointIteration) {
-      if (result != module) {
-        currentIteration += 1
-        currentBodyIndex = -1
-        result = super.visitModule(result)
-      }
-    }
     println(s"after VN: \n$result")
     result
   }
@@ -175,7 +167,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-    println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after first phase\n{" + newBody + "\t}\n")
+//    println(s"$currentRelationName: body $currentBodyIndex after first phase\n{" + newBody + "\t}\n")
+//    println("results after first phase: ")
+//    printResults()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
       val res = super.visitBody(newBody)
@@ -242,6 +236,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     else {
       // normalized term already has an id -> update term and newTerm to that id
       val normId = valueNumbers(normalizedTerm)
+      if (congrClasses.contains(newTermId)) {
+        congrClasses(newTermId).updateCongrClassIfNecessary(normalizedTerm)
+      }
       if (newTermId != normId) updateValueNumbersAndCongrClasses(newTermId, normId)
 
       if (congrClasses.contains(normId) && isAllowedToReplace(newTerm)) {
@@ -258,12 +255,8 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-//    val tempTerm = visitTerm(t).head
-    val newTerm = if isParam(t) then t else visitTerm(t).head
+    val newTerm = /*if isParam(t) then t else*/ visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
-//    val newTerm = if (tempTerm == newVari && !t.isInstanceOf[Var] && newVari.mode.isBinding && phase == Phase.repetition)
-//        || isParam(t) || (newVari.mode.isBinding && isConst(t)) then t
-//      else tempTerm
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
     if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
@@ -276,7 +269,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
       updateValueNumbersAndCongrClasses(newVari, termId)
 
       // remove "Assignment" or replace term
-      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that already computed/bound
+      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that vari already computed/bound
         generateEqIfNecessary(newVari, newTerm)
       }
       else {

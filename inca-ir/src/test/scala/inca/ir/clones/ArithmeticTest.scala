@@ -11,9 +11,6 @@ import inca.ir.valueNumbering.ValueNumbering
 
 class ArithmeticTest extends ValueNumberingTestAbstract{
 
-//  override val config: ConfigVN = ConfigVN(normalize = true)
-
-
   test("Add (Commutativity)") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1823,7 +1820,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call("b", Seq(TermArg(Var("Y")))),
             Eq(Var("X"), Add(Var("Y"), IntNum(2))), // now value of X also not known
             Eq(IntNum(12), Var("Z")),
-            Eq(IntNum(12), Var("X")), // <- thus this var shouldn`t be replaced either
+            Eq(IntNum(12), Var("X")), // <- thus this var important for constraining value of Y
             Eq(Var("param$0"), Var("X")),
             Eq(Var("param$1"), Var("Y"))
           ))
@@ -1861,10 +1858,10 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
-            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // 2nd: dont replace lhs because Y still there, replace X with 12
+            Eq(Var(Name("X")), Add(Var("Y"), IntNum(2))), // 2nd: dont replace rhs because Y still there, replace X with 12
             Eq(Var("W"), Add(Var("X"), IntNum(3))), // 2nd: x + 3 -> 12 + 3 -> V
-            Eq(IntNum(12), Var(Name("X"))), // 1st: now value of X is known -> W also known
-            Eq(Var("V"), Add(Var("X"), IntNum(3))), // whether redundancy recognized in 1st pass determined by which id used (of original term or newTerm with visited subterms)
+            Eq(IntNum(12), Var(Name("X"))), // 1st: now value of X is known
+            Eq(Var("V"), Add(Var("X"), IntNum(3))),
             Eq(IntNum(12), Var(Name("Z"))), // 1st: -> Z == X
             //            Eq(Var("V"), Var("Z")),
             Eq(Var(Name("param$0")), Var(Name("X"))),
@@ -1902,7 +1899,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
   test("Call and check for Equality with unknown val of var learned later 2") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)/*, Param("W", TInt)*/), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Eq(IntNum(12), Var(Name("X"))),
             Call("b", Seq(TermArg(Var("Y")))),
@@ -1923,7 +1920,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
-        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)/*, Param("W", TInt)*/), Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("b"), Seq(TermArg(Var("Y")))),
             Eq(IntNum(12), Add(IntNum(2),Var("Y"))),
@@ -2014,12 +2011,6 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("R"), Seq(Param("X", TInt)), Seq(
           Body(Seq(
-//            Call(Name("S1"), Seq(TermArg(Var("A")))),     //after 1st iteration
-////            Eq(Var("B"), IntNum(2)),
-//            Eq(Var("C"), Sub(Var("A"),IntNum(2))),
-//            Eq(Var("A"), IntNum(2)),
-////            Eq(Var("D"), IntNum(0)),
-//            Eq(Var("X"), Add(Var("C"), IntNum(0)))
             Call(Name("S1"), Seq(TermArg(IntNum(2)))),
             //            Eq(Var("B"), IntNum(2)),
 //            Eq(IntNum(0), IntNum(0)),
@@ -2047,7 +2038,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call(Name("S1"), Seq(TermArg(Var("a")))),
             Call(Name("S2"), Seq(TermArg(Var("b")))),
-            Eq(Var("H1"), Add(Var("a"), IntNum(2))), // finds equality -> H2 == b+2 but not removed (would be removed when using fix-point iteration -> see test below)
+            Eq(Var("H1"), Add(Var("a"), IntNum(2))), // finds equality -> H2 == b+2 but not removed (would be removed when using fix-point iteration -> not because second Eq that is now binding H2 would be comparison with unknown Var on rhs)
             Eq(Var("a"), Var("b")),
             Eq(Var("H2"), Add(Var("b"), IntNum(2))),
             Eq(Sub(Var("H2"), Var("H1")), Var("result")),
@@ -2101,136 +2092,6 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       ))
     performTest(expected, input)
   }
-
-  test("fixpoint iteration: Calls: Equalities S(a),S(b),a+2,a==b,b+2") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("a")))),
-            Call(Name("S2"), Seq(TermArg(Var("b")))),
-            Eq(Var("H1"), Add(Var("a"), IntNum(2))),
-            Eq(Var("a"), Var("b")),
-            Eq(Var("H2"), Add(Var("b"), IntNum(2))),  // removed by using fix-point iteration
-            Eq(Sub(Var("H2"), Var("H1")), Var("result")),
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        )),
-        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(100))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("b")))),
-            Call(Name("S2"), Seq(TermArg(Var("b")))),
-            Eq(Var("H2"), Add(IntNum(2), Var("b"))),
-            //            Eq(Var("b"), Var("b")),
-//            Eq(Var("H2"), Add(IntNum(2), Var("b"))),
-            Eq(Var("result"), IntNum(0))
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        )),
-        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(100))
-          ))
-        ))
-      ))
-    performTest(expected, input, config=ConfigVN(normalize=config.normalize,useFixPointIteration=true))
-  }
-
-  test("fixpoint iteration") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("a")))),
-            Call(Name("S2"), Seq(TermArg(Var("b")))),
-            Eq(Var("H1"), Add(Var("a"), IntNum(2))),
-            Eq(Var("a"), Var("b")),
-            Eq(Var("H2"), Add(Var("b"), IntNum(2))), // removed by using fix-point iteration
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
-            Eq(Var("H3"), Add(Var("b"), IntNum(2))),
-            Eq(Var("a"), Var("c")),
-            Eq(Var("c"), Var("b")),
-            Eq(Sub(Var("H2"), Var("H1")), Var("result")),
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        )),
-        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(100))
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
-          Body(Seq(
-            Call(Name("S1"), Seq(TermArg(Var("c")))),
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
-            Eq(Var("H1"), Add(IntNum(2), Var("c"))),
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
-            //            Eq(Var("b"), Var("b")),
-            //            Eq(Var("H2"), Add(IntNum(2), Var("b"))),
-            Eq(Var("result"), IntNum(0))
-          ))
-        )),
-        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(1))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(5))
-          ))
-        )),
-        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(10))
-          )),
-          Body(Seq(
-            Eq(Var(Name("param$0")), IntNum(100))
-          ))
-        ))
-      ))
-    performTest(expected, input, config = ConfigVN(normalize = config.normalize, useFixPointIteration = true))
-  }
-
 
   test("defining term: A + 2 == A + 1 + 1") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -2478,7 +2339,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("wrong mode of type -> fixed") { 
+  test("wrong mode of type -> fixed") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -2518,7 +2379,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("wrong mode of type 2 -> fixed by typechecking again") { 
+  test("wrong mode of type 2 -> fixed by typechecking again") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
@@ -2561,5 +2422,140 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       ))
     performTest(expected, input)
   }
+
+  test("wrong mode of type 3 -> fixed by typechecking again") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("H1"), Add(Var("a"), IntNum(2))),
+            Eq(Var("a"), Var("b")),
+            Eq(Var("H2"), Add(Var("b"), IntNum(2))), // NOT removed by using fix-point iteration because it becomes non binding comparison (containing an unknown Var)
+            Call(Name("S2"), Seq(TermArg(Var("c")))),
+            Eq(Var("H3"), Add(Var("b"), IntNum(2))),
+            Eq(Var("a"), Var("c")),
+            Eq(Var("c"), Var("b")),
+            Eq(Sub(Var("H2"), Var("H1")), Var("result")),
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("c")))),
+            Call(Name("S2"), Seq(TermArg(Var("c")))),
+            Eq(Var("H1"), Add(IntNum(2), Var("c"))),
+            Eq(Var("H1"), Add(IntNum(2), Var("c"))),
+            Call(Name("S2"), Seq(TermArg(Var("c")))),
+            //            Eq(Var("c"), Var("c")),
+//            Eq(Var("H2"), Add(IntNum(2), Var("b"))),  // this gets removed in 1st phase since a == b already known
+            Eq(Var("result"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("wrong mode of type? Learned that const in 2nd phase") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("H0"), Sub(Var("a"), Var("b"))),
+            Eq(Var("H1"), Add(Var("a"), IntNum(2))),
+            Eq(Var("a"), Var("b")),
+            Eq(Var("H2"), Add(Var("b"), IntNum(2))), // NOT removed by using fix-point iteration because it becomes non binding comparison (containing an unknown Var)
+            Eq(Add(Var("H2"), Var("H1")), Var("result")),
+            Eq(Var("result"), Var("H0"))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("b")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+//            Eq(Var("H0"), Sub(Var("a"), Var("b"))),
+            Eq(Var("H2"), Add(IntNum(2), Var("b"))),
+//            Eq(Var("a"), Var("b")),
+            Eq(Var("H2"), Add(IntNum(2), Var("b"))), // NOT removed by using fix-point iteration because it becomes non binding comparison (containing an unknown Var)
+            Eq(Var("result"), Mul(IntNum(2), Var("H2"))),
+            Eq(Var("result"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 
 }
