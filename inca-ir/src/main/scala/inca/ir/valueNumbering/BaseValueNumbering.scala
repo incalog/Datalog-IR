@@ -86,6 +86,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     }
     else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
       congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
+      valueNumbers.getAllWithId(toId).foreach(t => congrClasses(toId).updateCongrClassIfNecessary(t))
     }
     else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
       updateToCongrClass = true
@@ -265,9 +266,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     }
 
     val termId: ValueId = getIdOf(newTerm)
-    if (congrClasses.contains(termId)) {
-      updateValueNumbersAndCongrClasses(newVari, termId)
+    updateValueNumbersAndCongrClasses(newVari, termId)
 
+    if (congrClasses.contains(termId)) {
       // remove "Assignment" or replace term
       if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that vari already computed/bound
         generateEqIfNecessary(newVari, newTerm)
@@ -278,8 +279,6 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     }
 
     else {
-      updateValueNumbersAndCongrClasses(newVari,termId)
-
       // if term is a constant then use it as leader of its congruence class
       if (isConst(newTerm)) {
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
