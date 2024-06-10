@@ -1647,7 +1647,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Eq(Var("H6"), Max(IntNum(16), Var("b"))),
             Eq(Var("H7"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("b")), Mul(IntNum(-1), IntNum(16))))),
             Eq(Var("H8"), Max(Var("b"),IntNum(16))),
-            Eq(Var("result"), Add(Sub(Var("H1"),Var("H3")), Sub(Var("H6"), Var("H7"))))
+            Eq(Var("H9"), Min(Var("a"),Add(Var("b"),Var("c")))),
+            Eq(Var("H10"), Min(Add(Var("c"),Var("b")),Var("a"))),
+            Eq(Var("result"), Add(Sub(Var("H10"),Var("H9")), Sub(Var("H9"), Var("H10"))))
           ))
         )),
         Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
@@ -1690,6 +1692,8 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("H5"), IntNum(2)),
             Eq(Var("H6"), Mul(IntNum(-1), Min(IntNum(-16), Mul(IntNum(-1), Var("b"))))),
 //            Eq(Var("H7"), Mul(IntNum(-1), Min(Mul(IntNum(-1), Var("b")), Mul(IntNum(-1), IntNum(16))))),
+            Eq(Var("H9"), Min(Var("a"),Add(IntNum(2),Var("b")))),
+//            Eq(Var("H10"), Min(Add(Var("c"),Var("b")),Var("a"))),
             Eq(Var("result"), IntNum(0))
           ))
         )),
