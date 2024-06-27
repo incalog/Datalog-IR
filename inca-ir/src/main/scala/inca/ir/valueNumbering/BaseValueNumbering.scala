@@ -47,18 +47,18 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     if (!congrClasses.contains(valueNumbers(t))) return t
 
     val leader = getCongrClassOf(t).leader
-    if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
-      // for extensions for which VN not implemented: (TODO remove this ?)
-      // fixes case in 2nd phase in which term was replaced with an unbound var (since they have wrong leader)
-      // e.g. without this param == someActuallyConstantTerm ~> param == param
-      return t
-    }
-    else{
+//    if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
+//      // for extensions for which VN not implemented: 
+//      // fixes case in 2nd phase in which term was replaced with an unbound var (since they have wrong leader)
+//      // e.g. without this param == someActuallyConstantTerm ~> param == param
+//      return t
+//    }
+//    else{
       leader match {
         case vari@Var(_) => newVar(vari.name,t.typ)
         case _ => leader
       }
-    }
+//    }
   }
 
   protected def getDefiningTerm(t: Term): Term = {
@@ -126,7 +126,10 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
   protected def normalize(term: Term): Term = term
 
-  protected def isConst(term: Term): Boolean = false
+  protected def isConst(term: Term): Boolean = term match {
+    case Cast(t, ty) => isConst(t)
+    case _ => false
+  }
 
 
   def printResults(): Unit = {

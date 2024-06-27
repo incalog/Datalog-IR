@@ -116,16 +116,16 @@ trait CompiledModule:
       l
     }
 
-  def optimize(p: Seq[Module]): Seq[Module] =
-    val aeval = new IRAbstractInterpreter
-    aeval.evalModule(p.head)
-    //println("Eval module: ")
-    //println(p)
-    val opt = new IROptimizer(aeval)
-    val po = opt.visitProgram(p)
-    val checker = typechecker
-    checker.checkProgram(po)
-    po
+  def optimize(p: Seq[Module]): Seq[Module] = p
+//    val aeval = new IRAbstractInterpreter
+//    aeval.evalModule(p.head)
+//    //println("Eval module: ")
+//    //println(p)
+//    val opt = new IROptimizer(aeval)
+//    val po = opt.visitProgram(p)
+//    val checker = typechecker
+//    checker.checkProgram(po)
+//    po
 
 
 

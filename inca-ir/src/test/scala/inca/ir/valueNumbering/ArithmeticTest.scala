@@ -2561,5 +2561,64 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("test") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("c"), Add(Var("a"), Var("a"))),
+            Eq(Var("a"),Var("c")),
+            Eq(Var("result"), Add(Var("a"),Var("b")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("c")))),
+            Call(Name("S2"), Seq(TermArg(Var("b")))),
+            Eq(Var("c"), Mul(IntNum(2), Var("c"))),
+//            Eq(Var("a"),Var("c")),
+            Eq(Var("result"), Add(Var("b"),Var("c")))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        )),
+        Relation(Name("S2"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(100))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
 
 }

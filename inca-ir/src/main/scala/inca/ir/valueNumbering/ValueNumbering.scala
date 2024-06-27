@@ -15,3 +15,4 @@ class ValueNumbering(typechecker: IRTypechecker = new IRTypechecker{})
   extends BaseValueNumbering(typechecker)
     with ArithmeticValueNumbering
     with StringValueNumbering
+    with DataValueNumbering
