@@ -121,12 +121,12 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (IntNum(l), IntNum(r)) if r != 0 => newIntNum(l / r) // int/int yields int in scala
     case (DoubleNum(l), DoubleNum(r)) if r != 0 => newDoubleNum(l / r)
 
-    case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
-    case (lBinOp@BinOp(lTerm, l, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
+    case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) /*&& typ.ty* == TDouble*/ => l
+    case (lBinOp@BinOp(lTerm, l, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) /*&& typ.ty == TDouble*/ => l
     case (lTerm, lBinOp@BinOp(r, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
     case (lTerm, lBinOp@BinOp(rTerm, r, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
 
-    case (BinOp(l, r, "+"), denom) => distributivity(denom,l,r,Add,Div,typ)
+    case (BinOp(l, r, "+"), denom) if typ.ty == TDouble => distributivity(denom,l,r,Add,Div,typ)
 
     case (l, r) => Div(l,r)
   }
