@@ -16,3 +16,4 @@ class ValueNumbering(typechecker: IRTypechecker = new IRTypechecker{})
     with ArithmeticValueNumbering
     with StringValueNumbering
     with DataValueNumbering
+    with AggregateValueNumbering 

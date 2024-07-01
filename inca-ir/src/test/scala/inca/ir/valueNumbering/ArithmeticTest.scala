@@ -2621,4 +2621,42 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("call no param unbound") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Var("b"))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Eq(Var("b"), Var("a"))
+          ))
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 }

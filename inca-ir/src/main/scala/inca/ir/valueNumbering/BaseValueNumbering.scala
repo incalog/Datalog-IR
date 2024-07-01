@@ -2,6 +2,7 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.typing.{IRTypechecker, Typechecker}
 
 import scala.collection.mutable
@@ -148,7 +149,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   private var relationParams: Seq[Name] = Seq()
-  private def isParam(t: Term): Boolean = t match {
+  protected def isParam(t: Term): Boolean = t match {
     case vari@Var(_) => relationParams.contains(vari.name)
     case _ => false
   }
@@ -259,7 +260,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-    val newTerm = /*if isParam(t) then t else*/ visitTerm(t).head
+    val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
@@ -306,24 +307,28 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
-    val newArgs: Seq[Arg] = args.map {
-      case t@TermArg(term) => term match {
-
-        case vari@Var(RefByName(variName)) if vari.mode.isBinding => // add binding vars to maps
-          val newVari = if isParam(vari) then vari else visitTerm(vari).head
-          val id = valueNumbers.getIdOf(newVari)
-          congrClasses.update(id, CongruenceClass(id, newVari, newVari))
-          TermArg(newVari)
-        case _ => visitTerm(term).head
-      }
-      case t => t
-    }
+    val newArgs: Seq[Arg] = args.flatMap(visitArg)
     val newCall = call match{
       case Call(ref,_,neg) => Call(ref,newArgs,neg)
       case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
     }
     Seq(newCall)
   }
+
+
+  override def visitArg(arg: Arg): Seq[Arg] = arg match {
+    case TermArg(vari@Var(RefByName(variName))) if vari.mode.isBinding =>   // add binding vars to maps
+      Seq(TermArg(conservativeBinding(vari)))
+    case _ => super.visitArg(arg)
+  }
+
+  protected def conservativeBinding(vari: Var): Term = {
+    val newVari = if isParam(vari) then vari else visitTerm(vari).head
+    val id = valueNumbers.getIdOf(newVari)
+    congrClasses.update(id, CongruenceClass(id, newVari, newVari)) // conservative assumption that not equal to any known terms
+    newVari
+  }
+
 
 
 }
