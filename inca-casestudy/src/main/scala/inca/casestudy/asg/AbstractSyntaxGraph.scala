@@ -113,8 +113,9 @@ object AbstractSyntaxGraph:
     Seq(
       Body(Seq(
         Deconstruct(v("defs"), "Cons", Seq(v("hd"), v("tl"))),
-        Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
-        Eq(v("defname"), v("name")),
+        //Deconstruct(v("hd"), "Def", Seq(v("defname"), v("tmp"))),
+        Deconstruct(v("hd"), "Def", Seq(v("name"), v("tmp"))),
+        //Eq(v("defname"), v("name")),
         Eq(v("def"), v("hd"))
       )),
       Body(Seq(
@@ -346,7 +347,7 @@ object AbstractSyntaxGraph:
 
   @main def runAsgUsingAscent() = {
     val engine = inca.ascent.backend.Executor(Fixed(1)).instantiate(createCompiled(false))
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
