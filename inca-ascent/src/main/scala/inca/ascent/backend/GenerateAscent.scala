@@ -183,7 +183,7 @@ object GenerateAscent:
       val compiledArgs = args.map { p =>
         val termTy = argType(p)
 
-        // we added a bound variable in a deconstruct
+        // encountered a bound variable in a deconstruct
         if termTy.exists(_.mode.isBound) then
           val tmpVarName = freshTmpName()
           val tmpTerm = ir.Var(tmpVarName)

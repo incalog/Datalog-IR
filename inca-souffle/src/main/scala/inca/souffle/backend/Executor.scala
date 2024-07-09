@@ -29,6 +29,10 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       val fls = flagsToString(flags)
       Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
 
+    lazy val showRamProcess: ProcessBuilder =
+      val fls = flagsToString(flags)
+      Process(s"souffle $fls $progFilePath --show=transformed-ram")
+
     lazy val profilingProcess: ProcessBuilder =
       val fls = flagsToString(flags + ("p" -> profileFilePath))
       Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
@@ -40,8 +44,11 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     private def execute(): Unit =
       if (inputDirty)
-        config.process.!!
+        config.process.!
         inputDirty = false
+
+    def transformedRam(): String =
+      config.showRamProcess.!!
 
     // This method measures the pure execution time without any disk I/O.
     override def measure(rel: Relation): Long =
@@ -177,6 +184,12 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
+
+    println(m.lowered)
+    println()
+
+    println(souffleProg.toString)
+    println()
 
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
