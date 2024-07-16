@@ -21,23 +21,7 @@ trait Optimizer extends BaseIROptimizer:
     else
       super.visitTerm(term)
 
-  /*protected def typechecker: BaseIRTypechecker = new IRTypechecker
-
-  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
-    val aeval = new IRAbstractInterpreter
-    modules.foreach(aeval.evalModule)
-    //println("Eval module: ")
-    //println(p)
-    super.visitProgram(modules)
-
-    val opt = new IROptimizer(aeval)
-    val po = opt.visitProgram(modules)
-    val checker = typechecker
-    checker.checkProgram(po)
-    po
-
-    mods*/
-
+  // Syntactic version
   /*override def visitTerm(term: Term): Seq[Term] = term match
     case BoolOr(BoolTrue, _) => Seq(BoolTrue)
     case BoolOr(_, BoolTrue) => Seq(BoolTrue)
