@@ -66,7 +66,7 @@ object Parser:
   val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ Some('_')).void
-  val opSymbol: P[Unit] = P.charIn("!@#$%^&*()+=<>,.:?/\\_|").void
+  val opSymbol: P[Unit] = P.charIn("@#$%^&*()+=<>,.:?/\\_|").void
 
   val id: P[String] =
     (letter ~ letterDigit.rep0)
@@ -192,7 +192,7 @@ object Parser:
 
   val unaryOperator: P[String] =
     val uOps = List('-', '!')
-    P.oneOf(uOps.map(c => P.char(c).string))
+    P.oneOf(uOps.map(c => op(c) *> P.pure(c.toString)))
 
   val unaryExp: P[Expression] =
     (unaryOperator ~ recInfixExp).mapWithLoc(UnOp.apply)

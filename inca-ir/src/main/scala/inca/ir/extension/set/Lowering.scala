@@ -157,16 +157,15 @@ trait Lowering extends BaseLowering:
           val args = rel.params.map(p => Var(gensym.freshName(p.name)))
           Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
       Seq(callAddConstructor(term, setEnum))
-    case SetUnion(t1, t2) =>
-      val Seq(s1) = visitTerm(t1)
-      val memTy1 = memberType(t1)
-      val Seq(s2) = visitTerm(t2)
-      val memTy2 = memberType(t2)
+    case SetUnion(ts) =>
+      val ss = ts.flatMap(visitTerm)
+      val ms = ts.map(memberType)
+      if ss.size != ms.size then
+        throw IllegalStateException("Set union term was lowered to more than one term!")
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Disjunction(Seq(
-            DisjunctionAlternative(Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg))),
-            DisjunctionAlternative(Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg)))
+          Disjunction(
+            ss.zip(ms).map((s, memTy) => DisjunctionAlternative(Call(relNameOf(memTy), Seq(s.arg, Var(elemVar).arg)))
           ))
         )
       Seq(callAddConstructor(term, setEnum))

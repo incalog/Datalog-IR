@@ -17,9 +17,12 @@ case class SetFrom(name: Name) extends Term:
   override def toString: String = s"Set.from($name)"
   override def vars: Seq[Var] = Seq()
 
-case class SetUnion(t1: Term, t2: Term) extends Term:
-  override def toString: String = s"($t1 ∪ $t2)"
-  override def vars: Seq[Var] = t1.vars ++ t2.vars
+case class SetUnion(ts: Seq[Term]) extends Term:
+  override def toString: String = ts.mkString("(", "∪", ")")
+  override def vars: Seq[Var] = ts.flatMap(_.vars)
+object SetUnion:
+  def apply(t1: Term, t2: Term): SetUnion = SetUnion(Seq(t1, t2))
+
 
 /** Can desugar to Set(ts | ts in $t1, ts in $t2) */
 case class SetIntersection(t1: Term, t2: Term) extends Term:
