@@ -34,8 +34,10 @@ trait Typechecker extends BaseIRTypechecker:
       TSet(TAny).bound
     case SetUnion(ts) =>
       val (tys, modes) = ts.map(t => inferSetTerm(t, Mode.Bound)).unzip
-      tys.sliding(2).foreach { case Seq(TSet(ty1), TSet(ty2)) =>
-        assertComparable(ty2, ty1, term)
+      tys.sliding(2).foreach {
+        case Seq(TSet(ty)) => // nothing
+        case Seq(TSet(ty1), TSet(ty2)) =>
+          assertComparable(ty2, ty1, term)
       }
       val m = modes.tail.foldLeft(modes.head)(_ || _)
       TermType(tys.head, m)

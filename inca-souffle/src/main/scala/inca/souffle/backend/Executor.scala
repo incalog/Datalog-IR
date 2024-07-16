@@ -9,7 +9,46 @@ import inca.util.FileUtil
 import java.io.File
 import scala.sys.process.*
 import scala.util.{Failure, Success, Try}
-import ujson._
+import ujson.*
+
+class SouffleLogger extends ProcessLogger {
+  enum MessageType:
+    case Warning
+    case Error
+    case None
+
+  var warnings: Seq[String] = Seq()
+  var errors: Seq[String] = Seq()
+
+  var msgType: MessageType = MessageType.None
+
+  def clear(): Unit =
+    warnings = Seq()
+    errors = Seq()
+
+  override def out(s: => String): Unit = {
+    // nothing, ignore stdout
+  }
+
+  def buffer[T](f: => T): T = f
+
+  def err(msg: => String): Unit =
+    if msg.startsWith("Error:") then
+      msgType = MessageType.Error
+      errors :+= ""
+    else if msg.startsWith("Warning:") then
+      msgType = MessageType.Warning
+      warnings :+= ""
+
+    msgType match
+      case MessageType.Error =>
+        errors = errors.dropRight(1) :+ errors.last + "\n" + msg
+      case MessageType.Warning =>
+        warnings = warnings.dropRight(1) :+ warnings.last + "\n" + msg
+      case _ => // nothing
+}
+
+final case class SouffleCompileException(errList: Seq[String]) extends Exception(errList.mkString("\n"))
 
 // TODO we assume that directives use defaults
 // inputs are in <name>.facts of directory
@@ -42,18 +81,32 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     private var inputDirty = true
     private var cachedResult: Option[Seq[Relation]] = None
 
+    val logger = SouffleLogger()
+
+    private def stopOnError(): Unit =
+      if logger.errors.nonEmpty then
+        throw SouffleCompileException(logger.errors)
+
     private def execute(): Unit =
+      logger.clear()
       if (inputDirty)
-        config.process.!
+        config.process.!(logger)
+        stopOnError()
         inputDirty = false
 
     def transformedRam(): String =
-      config.showRamProcess.!!
+      logger.clear()
+      val ramCode = config.showRamProcess.!!(logger)
+      stopOnError()
+      ramCode
 
     // This method measures the pure execution time without any disk I/O.
     override def measure(rel: Relation): Long =
+      logger.clear()
       // Read runtime information from a profiling run
-      config.profilingProcess.!!
+      config.profilingProcess.!!(logger)
+      stopOnError()
+
       val profileJson = FileUtil.readFile(config.profileFilePath)
 
       // Get runtime (including savetimes)
@@ -185,11 +238,11 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
     val souffleProg = GenerateSouffle.compileModule(m.lowered)
 
-    println(m.lowered)
-    println()
+    //println(m.lowered)
+    //println()
 
-    println(souffleProg.toString)
-    println()
+    //println(souffleProg.toString)
+    //println()
 
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile

@@ -6,6 +6,7 @@ import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.analysis.{BooleanAbstractInterpreter, IRAbstractInterpreter, Rewriter}
 import inca.ir.extension.*
 import inca.ir.extension.bool.Optimizer
+import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.util.SourceLocation
@@ -117,6 +118,7 @@ object CompiledFunctionalModule:
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new typeparam.Lowering {},
     () => new aggregateset.Lowering {},
+    () => new SyntacticOptimizer {},
     () => new set.Lowering {},
     () => new map.Lowering {},
     //() => new block.Lowering {},

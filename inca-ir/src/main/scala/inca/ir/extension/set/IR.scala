@@ -18,7 +18,7 @@ case class SetFrom(name: Name) extends Term:
   override def vars: Seq[Var] = Seq()
 
 case class SetUnion(ts: Seq[Term]) extends Term:
-  override def toString: String = ts.mkString("(", "∪", ")")
+  override def toString: String = ts.mkString("(", " ∪ ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
 object SetUnion:
   def apply(t1: Term, t2: Term): SetUnion = SetUnion(Seq(t1, t2))
