@@ -1,15 +1,44 @@
 package inca.ir.extension.bool
 
-import inca.ir.analysis.{VBool, Value}
+import inca.ir
+import inca.ir.analysis.Value
 import inca.ir.optimize.BaseIROptimizer
-import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, Term}
+import inca.ir.{Atom, Cast, Term}
 
-// Simple syntactic optimizer
-trait Optimizer extends IRVisitor:
-  override val name: String = "SyntacticBoolOptimizer"
 
-  override def visitTerm(term: Term): Seq[Term] = term match
+trait Optimizer extends BaseIROptimizer:
+  override val name: String = "Bool Optimizer"
+
+  override def visitTerm(term: Term): Seq[Term] =
+    if (!term.typ.get.mode.isBinding)
+      (term, termResult(term)) match
+        // Preserve cast information
+        case (Cast(t, ty), Some(Value.Bool(true))) => Seq(Cast(BoolTrue, ty))
+        case (Cast(t, ty), Some(Value.Bool(false))) => Seq(Cast(BoolFalse, ty))
+        case (_, Some(Value.Bool(true))) => Seq(BoolTrue)
+        case (_, Some(Value.Bool(false))) => Seq(BoolFalse)
+        case _ => super.visitTerm(term)
+    else
+      super.visitTerm(term)
+
+  /*protected def typechecker: BaseIRTypechecker = new IRTypechecker
+
+  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+    val aeval = new IRAbstractInterpreter
+    modules.foreach(aeval.evalModule)
+    //println("Eval module: ")
+    //println(p)
+    super.visitProgram(modules)
+
+    val opt = new IROptimizer(aeval)
+    val po = opt.visitProgram(modules)
+    val checker = typechecker
+    checker.checkProgram(po)
+    po
+
+    mods*/
+
+  /*override def visitTerm(term: Term): Seq[Term] = term match
     case BoolOr(BoolTrue, _) => Seq(BoolTrue)
     case BoolOr(_, BoolTrue) => Seq(BoolTrue)
     case BoolOr(t, BoolFalse) => visitTerm(t)
@@ -19,4 +48,4 @@ trait Optimizer extends IRVisitor:
     case BoolAnd(t, BoolTrue) => visitTerm(t)
     case BoolAnd(BoolTrue, t) => visitTerm(t)
     case BoolNot(BoolNot(t)) => visitTerm(t)
-    case _ => super.visitTerm(term)
+    case _ => super.visitTerm(term)*/

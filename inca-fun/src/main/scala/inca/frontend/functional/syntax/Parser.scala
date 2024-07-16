@@ -191,7 +191,8 @@ object Parser:
     (lambdaVars.backtrack ~ (op("=>") *> recExpression)).mapWithLoc(Lambda.apply)
 
   val unaryOperator: P[String] =
-    oneOperator(List("-"))
+    val uOps = List('-', '!')
+    P.oneOf(uOps.map(c => P.char(c).string))
 
   val unaryExp: P[Expression] =
     (unaryOperator ~ recInfixExp).mapWithLoc(UnOp.apply)

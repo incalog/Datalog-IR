@@ -174,6 +174,9 @@ class GenerateIR {
         ir.Var(Name(tmp))
       )
 
+    case UnOp("!", e) => e.typ match
+      case Some(_) => bool.BoolNot(compileExp(e))
+      case _ => throw new IllegalArgumentException(s"Cannot compile code of type ${e.typ}, $e")
     case BinOp(e1, "==", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2)))
     case BinOp(e1, "!=", e2) => bool.AtomAsBool(ir.Eq(compileExp(e1), compileExp(e2), true))
 

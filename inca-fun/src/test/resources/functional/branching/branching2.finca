@@ -1,0 +1,15 @@
+module branching
+
+@main def main(): Int =
+    let x = true in
+    let y = false in
+    if (x && (x && y))
+        0
+    else if (x && !(x && y))
+        1
+    else if (y && (x && y))
+        2
+    else if (y && !(x && y))
+        3
+    else
+        4

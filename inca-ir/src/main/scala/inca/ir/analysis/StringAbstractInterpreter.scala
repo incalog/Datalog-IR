@@ -4,11 +4,6 @@ import inca.ir.extension.string.*
 import inca.ir.{Atom, Term}
 
 
-trait StringOps[V]:
-  def stringLit(s: String): V
-  def toString(v: V): V
-  def concat(v1: V, v2: V): V
-
 trait StringAbstractInterpreter[V, B] extends BaseAbstractInterpreter[V, B]:
 
   val stringOps: StringOps[V]

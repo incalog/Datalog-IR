@@ -46,6 +46,11 @@ trait FloatOps[B, V]:
 
   def absolute(v: V): V
 
+trait StringOps[V]:
+  def stringLit(s: String): V
+  def toString(v: V): V
+  def concat(v1: V, v2: V): V
+
 trait OrderingOps[V, B]:
   def lt(v1: V, v2: V): B
   def le(v1: V, v2: V): B
