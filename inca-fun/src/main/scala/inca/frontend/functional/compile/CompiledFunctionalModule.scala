@@ -121,7 +121,8 @@ object CompiledFunctionalModule:
     () => new SyntacticOptimizer {},
     () => new set.Lowering {},
     () => new map.Lowering {},
-    //() => new block.Lowering {},
+    () => new bool.SyntacticOptimizer {},
+
     //() => new disjunction.Lowering {},
     //() => new optimize.AliasElimination {},
     //() => new Rewriter(aeval => new BoolIROptimizer(aeval)) {},

@@ -11,10 +11,13 @@ import inca.ir.extension.set
 import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
-import inca.util.CSVUtil.{CSV, csvToString}
-import inca.util.FileUtil
+import inca.util.{CSVUtil, FileUtil}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
+
+// plotting
+import breeze.linalg._
+import breeze.plot._
 
 import scala.language.implicitConversions
 
@@ -81,30 +84,80 @@ object SetUnion:
     ))
 
 
-  private def run(executor: IRExecutor) = {
+  private def run(executor: IRExecutor, maxNumberSet: Int = 200, steps: Int = 20, warmups: Int = 0, runs: Int = 1): Seq[(Double, Double)] =
     // combinations + 1
-    val step = 20
-    for (i <- Range(2, 200+step, step)) {
+    for (i <- Range.inclusive(2, maxNumberSet, steps)) yield {
       val mod = createMod(i)
-      val compiled = createCompiled(mod, false)
-      val engine = executor.instantiate(compiled)
-      //val rel = engine.read(UnitRelation("main"))
-      //println(rel.asTable)
-      val diff = engine.measure(UnitRelation("main"))
-      println(s"Set union of: ${i} - ${diff}")
+
+      for (j <- Range(0, warmups)) {
+        println(s"Warmup: $j")
+        val compiled = createCompiled(mod, false)
+        val engine = executor.instantiate(compiled)
+        engine.measure(UnitRelation("main")).toDouble
+        collectGarbage()
+      }
+
+      println(s"Number of sets: $i")
+
+      val diffs = for (k <- Range(0, runs)) yield {
+        println(s"\tRun: $k")
+        val compiled = createCompiled(mod, false)
+        val engine = executor.instantiate(compiled)
+        //val rel = engine.read(UnitRelation("main"))
+        //println(rel.asTable)
+        engine.measure(UnitRelation("main")).toDouble
+      }
+      (((i + 5) / 10) * 10).toDouble -> diffs.sum / diffs.size
     }
+
+  def plotResult(res: Map[String, Seq[(Double, Double)]], file: String): Unit =
+    val f = Figure()
+    val p = f.subplot(0)
+
+    res.foreach { (name, r) =>
+      val (x, y) = r.unzip
+      val timeInMS = y.map(ns => ns / 1000000)
+      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name)
+    }
+
+    p.xlabel = "Number of Sets"
+    p.ylabel = "Running time (ms)"
+    p.legend = true
+
+    f.saveas(file)
+
+  @main def plotSetUnionFromCSV() = {
+    val csvFile = "benchmark/SetUnion/result.csv"
+    val content = FileUtil.readFile(csvFile)
+    val csv = CSVUtil.fromCSV(content, skipHeader = true)
+    val (souffleRes, viatraRes, ascentRes) = csv.map {
+      case IndexedSeq(i: String, souffle: String, viatra: String, ascent: String) =>
+        ((i.toDouble, souffle.toDouble), (i.toDouble, viatra.toDouble), (i.toDouble, ascent.toDouble))
+    }.unzip3
+
+    plotResult(Map(
+      "Souffle" -> souffleRes,
+      //"Viatra" -> viatraRes,
+      "Ascent" -> ascentRes
+    ), "benchmark/SetUnion/graph.pdf")
   }
 
-  @main def runSetUnionUsingViatra() = {
-    run(inca.viatra.backend.Executor())
-  }
+  @main def runAndPlotSetUnion() = {
+    val souffleRes = run(inca.souffle.backend.Executor(Fixed(1)))
+    val viatraRes = run(inca.viatra.backend.Executor(), warmups = 3, runs = 5)
+    val ascentRes = run(inca.ascent.backend.Executor(Fixed(1)))
 
-  @main def runSetUnionUsingSouffle() = {
-    run(inca.souffle.backend.Executor(Fixed(1)))
-  }
+    val headerLine = IndexedSeq("NumberOfSets", "Souffle", "Viatra", "Ascent")
+    val rows = for (i <- Range(0, souffleRes.size)) yield {
+        IndexedSeq(souffleRes(i)._1, souffleRes(i)._2, viatraRes(i)._2, ascentRes(i)._2)
+    }
+    FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
 
-  @main def runSetUnionUsingAscent() = {
-    run(inca.ascent.backend.Executor(Fixed(1)))
+    plotResult(Map(
+      "Souffle" -> souffleRes,
+      "Viatra" -> viatraRes,
+      "Ascent" -> ascentRes
+    ), "benchmark/SetUnion/graph.pdf")
   }
 
   
