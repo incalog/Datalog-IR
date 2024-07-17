@@ -14,6 +14,14 @@ import inca.ir.util.SourceLocation
 import inca.util.{CSVUtil, FileUtil}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
+import org.jfree.chart.{LegendItem, LegendItemCollection, LegendItemSource}
+import org.jfree.chart.annotations.XYTitleAnnotation
+import org.jfree.chart.block.{BlockBorder, ColumnArrangement, FlowArrangement}
+import org.jfree.chart.plot.XYPlot
+import org.jfree.chart.title.LegendTitle
+import org.jfree.chart.ui.{RectangleAnchor, RectangleEdge, VerticalAlignment}
+
+import java.awt.Color
 
 // plotting
 import breeze.linalg._
@@ -117,12 +125,24 @@ object SetUnion:
     res.foreach { (name, r) =>
       val (x, y) = r.unzip
       val timeInMS = y.map(ns => ns / 1000000)
-      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name)
+      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name, shapes=true)
     }
 
     p.xlabel = "Number of Sets"
     p.ylabel = "Running time (ms)"
-    p.legend = true
+
+    val plt = p.chart.getPlot.asInstanceOf[XYPlot]
+
+    // Hide the grid
+    plt.setDomainGridlinesVisible(false)
+    plt.setRangeGridlinesVisible(false)
+
+    // Configure the legend to be in the upper left corner
+    val lt = new LegendTitle(p.chart.getPlot, ColumnArrangement(), ColumnArrangement())
+    // Define legend border
+    lt.setFrame(BlockBorder(0.0, 0.0, 1.0, 1.0))
+    val ta = new XYTitleAnnotation(0.0, 1.0, lt, RectangleAnchor.TOP_LEFT)
+    plt.addAnnotation(ta)
 
     f.saveas(file)
 
@@ -136,9 +156,9 @@ object SetUnion:
     }.unzip3
 
     plotResult(Map(
-      "Souffle" -> souffleRes,
-      //"Viatra" -> viatraRes,
-      "Ascent" -> ascentRes
+      //"Souffle" -> souffleRes,
+      "Viatra" -> viatraRes,
+      //"Ascent" -> ascentRes
     ), "benchmark/SetUnion/graph.pdf")
   }
 
