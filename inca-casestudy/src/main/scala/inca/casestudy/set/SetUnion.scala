@@ -71,7 +71,7 @@ object SetUnion:
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
-      opt.irLogging.logLowerings = false
+      opt.irLogging.logLowerings = true
       opt.irLogging.logTypeInformation = false
       opt.irLogging.logStatsAfterOptimizations = false
       opt
@@ -92,7 +92,7 @@ object SetUnion:
     ))
 
 
-  private def run(executor: IRExecutor, maxNumberSet: Int = 200, steps: Int = 20, warmups: Int = 0, runs: Int = 1): Seq[(Double, Double)] =
+  private def run(executor: IRExecutor, maxNumberSet: Int = 200, steps: Int = 2, warmups: Int = 0, runs: Int = 1): Seq[(Double, Double)] =
     // combinations + 1
     for (i <- Range.inclusive(2, maxNumberSet, steps)) yield {
       val mod = createMod(i)
@@ -118,14 +118,14 @@ object SetUnion:
       (((i + 5) / 10) * 10).toDouble -> diffs.sum / diffs.size
     }
 
-  def plotResult(res: Map[String, Seq[(Double, Double)]], file: String): Unit =
+  def plotResult(res: Seq[(String, Seq[(Double, Double)])], file: String): Unit =
     val f = Figure()
     val p = f.subplot(0)
 
-    res.foreach { (name, r) =>
+    res.foreach { case (name, r) =>
       val (x, y) = r.unzip
       val timeInMS = y.map(ns => ns / 1000000)
-      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name, shapes=true)
+      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name, shapes=true, colorcode="167,209,182")
     }
 
     p.xlabel = "Number of Sets"
@@ -155,10 +155,17 @@ object SetUnion:
         ((i.toDouble, souffle.toDouble), (i.toDouble, viatra.toDouble), (i.toDouble, ascent.toDouble))
     }.unzip3
 
-    plotResult(Map(
+    println(
+      souffleRes(0)
+    )
+
+    plotResult(Seq(
       //"Souffle" -> souffleRes,
+      //"Souffle Optimized" -> souffleRes.map { case (i, _) => (i, souffleRes(0)._2) },
       "Viatra" -> viatraRes,
-      //"Ascent" -> ascentRes
+      //"Viatra Optimized" -> viatraRes.map{ case (i, _) => (i, viatraRes(0)._2) },
+      //"Ascent" -> ascentRes,
+      //"Ascent Optimized" -> ascentRes.map{ case (i, _) => (i, ascentRes(0)._2) },
     ), "benchmark/SetUnion/graph.pdf")
   }
 
@@ -171,9 +178,9 @@ object SetUnion:
     val rows = for (i <- Range(0, souffleRes.size)) yield {
         IndexedSeq(souffleRes(i)._1, souffleRes(i)._2, viatraRes(i)._2, ascentRes(i)._2)
     }
-    FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
+    //FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
 
-    plotResult(Map(
+    plotResult(Seq(
       "Souffle" -> souffleRes,
       "Viatra" -> viatraRes,
       "Ascent" -> ascentRes
