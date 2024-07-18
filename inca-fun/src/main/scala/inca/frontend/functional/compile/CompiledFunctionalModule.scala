@@ -114,7 +114,7 @@ object CompiledFunctionalModule:
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
     () => new map.Lowering {},
-    () => new bool.Optimizer {},
+//    () => new bool.Optimizer {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
     () => new block.Lowering {},

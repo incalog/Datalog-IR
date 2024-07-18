@@ -12,7 +12,8 @@ import inca.ir.visitors.IRVisitor
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
-  def normalize: Boolean = true
+  def normalize: Boolean = true // TODO
+  def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
@@ -228,6 +229,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
+//      congrClasses.update(termId, CongruenceClass(newTermId, newTerm, newTerm))
       updateValueNumbersAndCongrClasses(termId, newTermId)
     }
 
@@ -256,12 +258,14 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
-  private def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
+  protected def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
     val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
+//    val newTerm = if (isParam(t) && phase == Phase.repetition) then t else visitTerm(t).head
+//    val newVari = if (isParam(vari) && phase == Phase.repetition) then vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
     if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
@@ -322,10 +326,10 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     case _ => super.visitArg(arg)
   }
 
-  protected def conservativeBinding(vari: Var): Term = {
+  protected def conservativeBinding(vari: Var): Term = { // conservative assumption that not equal to any known terms
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
     val id = valueNumbers.getIdOf(newVari)
-    congrClasses.update(id, CongruenceClass(id, newVari, newVari)) // conservative assumption that not equal to any known terms
+    congrClasses.update(id, CongruenceClass(id, newVari, newVari)) // in the 1st pass: binding var becomes leader of its new congr class; in 2nd pass: vari was replaced with leader -> newVari was leader becomes new leader
     newVari
   }
 

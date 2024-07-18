@@ -7,5 +7,5 @@ Edge(5,4).
 Edge(6,4).
 
 Path(Int, Int).
-Path(X,Y) :- Edge(X,Y)
-          :- Edge(X,Z), Path(Z,Y).
+Path(X,Y) :- Edge(X,Y).
+Path(A,B) :- Edge(A,Z), Path(Z,B).

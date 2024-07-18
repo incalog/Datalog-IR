@@ -8,6 +8,13 @@ import inca.ir.typing.Mode.Bound
 
 trait ArithmeticValueNumbering extends BaseValueNumbering {
 
+  // when double terms not normalized then not allowed to replace non-variable terms
+  // otherwise terms that would be constant in Eqs that bind a variable replaced but var still leader -> unbound in other atoms
+  override def isAllowedToReplace(term: Term): Boolean = term match {
+    case _ if term.typ.get.ty == TDouble && !normalizeDoubles => term.isInstanceOf[Var]
+    case _ => super.isAllowedToReplace(term)
+  }
+
   protected override def isConst(term: Term): Boolean = term match {
     case IntNum(_) | DoubleNum(_) => true
     case _ => super.isConst(term)
@@ -20,6 +27,8 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
       case Some(termType: TermType) => termType
       case _ => throw new IllegalStateException(s"Untyped Term $term in normalization")
     }
+    if typ.ty == TDouble && !normalizeDoubles then return term
+
     val newTerm = term match {
       case BinOp(lhs, rhs, "+") => normalizeAdd(lhs, rhs, typ)
       case BinOp(lhs, rhs, "-") => normalizeSub(lhs, rhs, typ)
@@ -33,6 +42,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
       case _ => super.normalize(term)
     }
     newTerm.typ = term.typ
+    println(s"old: $term, new: $newTerm")
     newTerm
   }
 
@@ -104,6 +114,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (DoubleNum(l), DoubleNum(r)) => newDoubleNum(l * r)
 
     case (factor, BinOp(l, r, "+")) => distributivity(factor,l,r,Add,Mul,typ)
+    case (BinOp(l, r, "+"), factor) => distributivity(factor,l,r,Add,Mul,typ)
 
     // no such rewriting for TInt since a * (b / a) = 0 if a > b
     case (lTerm, BinOp(l, rTerm, "/")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
@@ -195,12 +206,14 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   private def getExceptionMsg(op: String, lhs: Term, rhs: Term, typ: TermType): String =
     s"unknown type $typ in normalization of $op with $lhs and $rhs"
 
-
+//  case (factor, BinOp(l, r, "+")) => distributivity(factor,l,r,Add,Mul,typ)
   private def distributivity(factor: Term, lhs: Term, rhs: Term, opOuter: (Term, Term) => BinOp, opInner: (Term, Term) => BinOp, typ: TermType): Term = {
     val innerL = opInner(lhs, factor).typed(typ)
     val innerR = opInner(rhs, factor).typed(typ)
     val res = opOuter(normalize(innerL), normalize(innerR)).typed(typ)
-    normalize(res)
+    val result = normalize(res)
+    println(result)
+    result
   }
 
   // methods for associativity and commutativity (kind of op (Add, Mul) passed as argument)
@@ -270,7 +283,8 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
 
     val newOperands = (if number != IntNum(neutralElem.toInt) && number != DoubleNum(neutralElem) then Seq(number) else Seq())
       ++ vars ++ Seq(abss, adds, muls, divs, remains, mins).flatMap(sortedByID)
-    buildOp(newOperands, typ, op)
+    val result = buildOp(newOperands, typ, op)
+    result
   }
 
   private def buildOp(operands: Seq[Term], typ: TermType, op: String): Term = {

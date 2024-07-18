@@ -179,8 +179,29 @@ object GenerateAscent:
       Seq(Atom.Not(Atom.Call(cleanName(name.name), argParam)))
     case data.Deconstruct(t, name, args, neg) =>
       val tmp = freshTmpName()
-      val compiledArgs = args.map(p => compileArg(p, noClone = true))
-      Seq(Atom.Deconstruct(compileTerm(t, noDeref = true), cleanName(name.name), tmp, compiledArgs, neg))
+      var as: Seq[Atom] = Seq()
+      val compiledArgs = args.map { p =>
+        val termTy = argType(p)
+
+        // encountered a bound variable in a deconstruct
+        if termTy.exists(_.mode.isBound) then
+          val tmpVarName = freshTmpName()
+          val tmpTerm = ir.Var(tmpVarName)
+
+          p match
+            case ir.TermArg(t) =>
+              tmpTerm.typ = termTy.map(_.ty.bound)
+              as ++= compileAtom(ir.Eq(tmpTerm, t))
+            case ir.WildcardArg() =>
+            // nothing
+            case AggregateColumnArg(t) =>
+          // Should not happen
+          tmpTerm.typ = termTy.map(_.ty.binding)
+          compileArg(tmpTerm.arg, noClone = true, noDeref = true)
+        else
+          compileArg(p, noClone = true, noDeref = true)
+      }
+      Seq(Atom.Deconstruct(compileTerm(t, noDeref = true), cleanName(name.name), tmp, compiledArgs, neg)) ++ as
 
     case agg.Aggregate(name, args, op) =>
       val Some((agg.AggregateColumnArg(aggColTerm), resultIdx)) = args.zipWithIndex.collectFirst {
@@ -284,3 +305,9 @@ object GenerateAscent:
         case Some(enclosingDataType) => typeDependencies.getOrElse(cleanDataName, Set()).contains(enclosingDataType)
         case _ => false
       FormatType.Custom(cleanDataName, needsBoxing)
+
+  private def argType(arg: Arg): Option[ir.TermType] = arg match
+    case AggregateColumnArg(t) => t.typ
+    case ir.TermArg(t) => t.typ
+    case w@ir.WildcardArg() => w.typ
+    case _ => throw new RuntimeException(s"Unsupported arg: $arg")
