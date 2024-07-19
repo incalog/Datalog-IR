@@ -44,7 +44,8 @@ case class BoolTable(t: Term):
       case Value.True => Some(BoolTrue)
       case Value.False => Some(BoolFalse)
       // we can not create the DNF if any term is undetermined
-      case _ if results.values.toSet.contains(Value.Undetermined) => None
+      case Value.Undetermined if results.values.toSet.contains(Value.Undetermined) => None
+      // the result is either true or false, that is create the DNF (not necessarily minimal)
       case _ =>
         val conjunctions = results.flatMap {
           case (varAssignment, Value.True) =>
@@ -54,6 +55,7 @@ case class BoolTable(t: Term):
             }
             val conjunction = terms.fold(BoolTrue) {
               case (BoolTrue, t) => t
+              case (t, BoolTrue) => t
               case (acc, t) => BoolAnd(acc, t)
             }
             Some(conjunction)
@@ -62,6 +64,7 @@ case class BoolTable(t: Term):
 
         val disjunctions = conjunctions.fold(BoolFalse) {
           case (BoolFalse, t) => t
+          case (t, BoolFalse) => t
           case (acc, t) => BoolOr(acc, t)
         }
         Some(disjunctions)

@@ -177,8 +177,8 @@ trait Lowering extends BaseLowering:
       val mapEnum = new MapEnum:
         override def apply(keyVar: Name, valVar: Name): Seq[Atom] = Seq(
           Disjunction(Seq(
-            DisjunctionAlternative(Call(relNameOf(keyTy1, valTy1), Seq(s1.arg, Var(keyVar), Var(valVar).arg))),
-            DisjunctionAlternative(Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar), Var(valVar).arg)))
+            DisjunctionAlternative(Call(relNameOf(keyTy1, valTy1), Seq(s1.arg, Var(keyVar).arg, Var(valVar).arg))),
+            DisjunctionAlternative(Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar).arg, Var(valVar).arg)))
           ))
         )
       Seq(callAddConstructor(term, mapEnum))
