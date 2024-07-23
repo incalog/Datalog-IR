@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, RefByName, TermArg, name2string, string2name}
+import inca.ir.{ExtensionalRelation, Language, Name, RefByName, RefByQualifiedName, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -41,6 +41,10 @@ class GenerateIR {
   val gensym: Gensym = new Gensym()
 
   def compileModule(m: Module): ir.Module =
+    val dlImports = m.imports.flatMap {
+      case DlImport(m, n, signatures) => Some(ir.Import(m, n))
+      case _ => None
+    }
     val mainFunctions = m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Some(f)
       case _ => None
@@ -53,7 +57,7 @@ class GenerateIR {
       else
         None
     }
-    val moduleEntries = m.content.flatMap {
+    val moduleEntries = dlImports ++ m.content.flatMap {
       case f: FunctionDef if f.annos.exists(_.isInstanceOf[MainFunctionAnno]) => Seq(compileMainFun(f))
       case f: FunctionDef => Seq(compileFun(f))
       case d: DataDef => compileData(d)
@@ -251,6 +255,9 @@ class GenerateIR {
         iragg.AggregateColumnArg(ir.Var(aggResult))
       val agg = iraggset.AggregateSet(ir.RefByName(name), aggArgs, aggOp)
       block.Block(Seq(agg), ir.Var(aggResult))
+
+    case DlQuery(ref) =>
+      irset.SetFrom(RefByQualifiedName(ref.path :+ ref.unqualifiedName))
 
     case _ =>
       throw new IllegalArgumentException(s"Cannot compile $e")

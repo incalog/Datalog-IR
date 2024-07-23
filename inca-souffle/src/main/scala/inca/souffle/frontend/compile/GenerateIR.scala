@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.{Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
+import inca.ir.{Import, Language, ProvideRelation, RefByName, RelationSubstitution, Require, RequireRelation}
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
@@ -96,7 +96,7 @@ class GenerateIR extends GenerateIRContext:
   private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
       case relDecl: ProgramContent.RelationDecl if currentlyInMainComponent =>
-        compileRelationDecl(relDecl)
+        compileRelationDecl(relDecl) ++ compileProvideRelationDecl(relDecl)
       case adtDecl@ProgramContent.TypeDecl(_, _: TypeDeclConstraint.ADTType) if currentlyInMainComponent =>
         compileAdtDecl(adtDecl)
       case compInit@ProgramContent.ComponentInit(initName, compTy) =>
@@ -183,6 +183,13 @@ class GenerateIR extends GenerateIRContext:
     // TODO: Adapt record IR to contain nil case and use the extension here
     ???
 
+  private def compileProvideRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
+    val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
+    names.map { relName =>
+      val params = attrs.map(compileAttribute)
+      ir.ProvideRelation(RefByName(ir.Name(relName)), params)
+    }
+    
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl

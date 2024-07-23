@@ -1,7 +1,7 @@
 package inca.frontend.functional.typechecker
 
 import inca.frontend.functional.syntax.*
-import inca.ir.Name
+import inca.ir.{Name, RefByQualifiedName}
 import inca.ir.typing.{Resolvable, TypeCastable}
 import inca.ir.util.SourceLocation
 
@@ -17,16 +17,21 @@ class Typechecker extends TypeContext with TypeIO {
    */
 
   def typecheck(module: Module): Unit = scopedTypeContext {
-    for (imp <- module.imports;
-         importedModule <- lookupModule(imp.name)) {
-      resolveTarget(imp)(importedModule)
+    for (imp <- module.imports) {
+      imp match
+        case DlImport(name, as, signatures) =>
+          signatures.foreach(decl => bindRelationDecl(decl, as))
+        case _ =>
+          for (importedModule <- lookupModule(imp.name)) {
+            resolveTarget(imp)(importedModule)
 
-      for (content <- importedModule.content if !content.vis.contains(Private)) {
-        content match {
-          case fun: FunctionDef => bindFun(fun, importedModule)
-          case data: DataDef => bindData(data, module)
-        }
-      }
+            for (content <- importedModule.content if !content.vis.contains(Private)) {
+              content match {
+                case fun: FunctionDef => bindFun(fun, importedModule)
+                case data: DataDef => bindData(data, module)
+              }
+            }
+          }
     }
 
     // bind symbols first
@@ -352,6 +357,13 @@ class Typechecker extends TypeContext with TypeIO {
           error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $tyOp")
       }
       tyFold
+
+    case DlQuery(RefByQualifiedName(ns)) =>
+      val Seq(m, query) = ns
+      lookupRelationDecl(query, m) match
+        case Some(RelationDecl(_, Seq(param))) => TSet(param.typ)
+        case Some(RelationDecl(_, params)) => TSet(TTuple(params.map(_.typ)))
+        case _ => throw IllegalArgumentException(s"Illegal type signature: $m $query")
 
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }

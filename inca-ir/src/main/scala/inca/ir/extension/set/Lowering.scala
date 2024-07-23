@@ -151,12 +151,13 @@ trait Lowering extends BaseLowering:
           else
             Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
       Seq(callAddConstructor(term, setEnum))
-    case SetFrom(name) =>
-      val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
+    case SetFrom(ref) =>
+      val rel = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
+      //val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] =
           val args = rel.params.map(p => Var(gensym.freshName(p.name)))
-          Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
+          Seq(Call(ref, args.map(_.arg), false), Eq(TupleLit.make(args), Var(elemVar)))
       Seq(callAddConstructor(term, setEnum))
     case SetUnion(t1, t2) =>
       val Seq(s1) = visitTerm(t1)

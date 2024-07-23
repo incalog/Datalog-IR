@@ -13,8 +13,8 @@ object SetLit:
   def empty: SetLit = new SetLit(Seq())
 
 /** Wraps a named relation as a set of tuples */
-case class SetFrom(name: Name) extends Term:
-  override def toString: String = s"Set.from($name)"
+case class SetFrom(ref: Ref[_ <: RelationReference]) extends Term:
+  override def toString: String = s"Set.from(${ref.name})"
   override def vars: Seq[Var] = Seq()
 
 case class SetUnion(t1: Term, t2: Term) extends Term:

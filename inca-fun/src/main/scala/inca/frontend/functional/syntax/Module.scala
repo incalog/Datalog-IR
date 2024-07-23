@@ -1,7 +1,7 @@
 package inca.frontend.functional.syntax
 
 import inca.ir.typing.Resolvable
-import inca.ir.Name
+import inca.ir.{Name, Ref}
 import inca.ir.util.SourceLocation
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
@@ -25,26 +25,38 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   override def toString: String = prettyprint("")
 }
 
-case class Import(name: Name) extends SourceLocation with Resolvable[Import.Target] {
+trait Import extends SourceLocation with Resolvable[Import.Target]:
+  def name: Name
   def prettyprint(implicit indent: String): String = s"${indent}import $name"
-}
-object Import {
+
+case class RelationDecl(name: Name, params: Seq[Param]):
+  def prettyprint(implicit indent: String): String = s"$name${params.mkString("(", ", ", ")")}"
+
+case class DlImport(override val name: Name, as: Name, signatures: Seq[RelationDecl]) extends Import:
+  override def prettyprint(implicit indent: String): String = s"${indent}dl_import $name as $as {${signatures.mkString("\n")}}"
+
+case class DlQuery(ref: Ref[RelationDecl]) extends Expression:
+  override def calls: Set[Call] = Set()
+  override def freevars: Seq[Var] = Seq()
+  override def freeTvars: Seq[TName] = Seq()
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"?$ref()"
+
+object Import:
   trait Target
-}
+  def apply(n: Name): Import = new Import:
+    override def name: Name = n
 
-sealed trait Visibility extends SourceLocation {
+sealed trait Visibility extends SourceLocation:
   def prettyprint(implicit indent: String): String
-}
 
-case class Private() extends Visibility {
+case class Private() extends Visibility:
   def prettyprint(implicit indent: String): String = "private"
-}
 
-trait ModuleContent extends SourceLocation with Annotations {
+trait ModuleContent extends SourceLocation with Annotations:
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
   def calls: Set[Call]
-}
 
 case class ParametricType(name: Name) extends TName.Target with SourceLocation:
   def prettyprint(implicit indent: String): String = name.name

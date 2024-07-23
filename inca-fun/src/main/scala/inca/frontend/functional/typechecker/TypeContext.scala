@@ -9,6 +9,7 @@ trait TypeContext extends TypeIO {
   private var vars: Map[Name, (Var.Target, Type)] = Map()
   private var tyVars: Map[Name, TName.Target] = Map()
   private var funs: MultiDict[Name, (Module, (Var.Target, TFun))] = MultiDict()
+  private var relDecls: Map[(Name, Name), RelationDecl] = Map()
   private var dataDefs: Map[Name, DataDef] = Map()
   private var modules: Map[Name, Module] = Map()
 
@@ -16,11 +17,13 @@ trait TypeContext extends TypeIO {
     val varsSaved = vars
     val tyVarsSaved = tyVars
     val funsSaved = funs
+    val relDeclSaved = relDecls
     val modulesSaved = modules
     val t = f
     vars = varsSaved
     tyVars = tyVarsSaved
     funs = funsSaved
+    relDecls = relDeclSaved
     modules = modulesSaved
     t
   }
@@ -75,6 +78,14 @@ trait TypeContext extends TypeIO {
 
   def isTypeVar(name: Name): Boolean = tyVars.contains(name)
 
+
+  def bindRelationDecl(decl: RelationDecl, moduleName: Name): Unit = {
+    relDecls += (decl.name, moduleName) -> decl
+  }
+
+  def lookupRelationDecl(name: Name, moduleName: Name): Option[RelationDecl] = {
+    relDecls.get((name, moduleName))
+  }
 
   def bindFun(fun: FunctionDef, module: Module): Unit = {
     funs += fun.name -> (module, (fun, fun.funType))

@@ -9,7 +9,7 @@ import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
 
-case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
+case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions, override val otherUnits: Seq[CompiledUnit] = Seq())
   extends CompiledUnit:
 
   override def name: Name = fun.name
@@ -99,8 +99,6 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
 
   val isClosedWorld = true
 
-  def otherUnits: Seq[CompiledUnit] = Seq()
-
   lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR
     val module = compiler.compileModule(normalizedFoldModule)
@@ -126,6 +124,8 @@ object CompiledFunctionalUnit:
     () => new demand.Lowering {},
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
+
+    () => new module.Lowering {},
 
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {},

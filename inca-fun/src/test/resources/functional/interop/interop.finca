@@ -1,0 +1,7 @@
+module SouffleImportTest
+
+dl_import SouffleHelper as sf {
+    R(x: Int)
+}
+
+@main def main(): Set[Int] = ?sf.R()

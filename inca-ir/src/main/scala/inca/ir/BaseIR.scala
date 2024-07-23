@@ -66,11 +66,11 @@ object Import:
 // relation specific module system
 trait RelationProvidable extends Providable
 
-case class RequireRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, RelationProvidable, Require:
+case class RequireRelation(name: Name, override val params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, RelationProvidable, Require:
   override def toString: String = s"require $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name=Name(name))
 
-case class ProvideRelation(exportRef: Ref[RelationProvidable], params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Provide[RelationProvidable]:
+case class ProvideRelation(exportRef: Ref[RelationProvidable], override val params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Provide[RelationProvidable]:
   override def toString: String = s"provide $exportRef(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry =
     val newRef = RefByName[RelationProvidable](name)
@@ -143,7 +143,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference, RelationProvidable:
+case class Relation(name: Name, override val params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference, RelationProvidable:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -189,7 +189,8 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-trait RelationReference extends ModuleEntry
+trait RelationReference extends ModuleEntry:
+  def params: Seq[Param] = Seq()
 
 case class Call(ref: Ref[_ <: RelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =

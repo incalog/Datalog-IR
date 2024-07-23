@@ -1,7 +1,7 @@
 package inca.frontend.functional.syntax
 
 import cats.parse.{Numbers, Parser as P, Parser0 as P0}
-import inca.ir.Name
+import inca.ir.{Name, RefByQualifiedName}
 import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
@@ -44,6 +44,8 @@ object Parser:
   val keywords = Set(
     "module",
     "import",
+    "dl_import",
+    "as",
     "private",
     "def",
     "data",
@@ -79,7 +81,8 @@ object Parser:
   val qualifiedIdentifier: P[Name] =
     spaced(id ~ (P.char('.') ~ id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
 
-
+  val qualifiedIdentifierComponents: P[Seq[Name]] =
+    spaced(id ~ (P.char('.') *> id).rep0).map((a, bs) => (a :: bs).map(Name.apply))
 
   def inParens[A](p: P0[A]): P[A] =
     op('(') *> p <* op(')')
@@ -202,10 +205,16 @@ object Parser:
       case (ty, init :: op :: set :: Nil) => P.pure(SetFold(ty, init, op, set))
       case (ty, args) => P.failWith(s"Wrong number of fold arguments, expected 3 but got ${args.size}: $args")
     }
+    
+  val queryExp: P[DlQuery] =
+    (spaced(P.char('?')) *> qualifiedIdentifierComponents <* P.string("()")).map {
+      case ns => DlQuery(RefByQualifiedName(ns)) 
+    }
 
   lazy val atomicExp: P[Expression] =
       foldExp.backtrack |
       setExp |
+      queryExp |
       lambdaExp |
       tupleExp |
       boolLit |
@@ -339,7 +348,16 @@ object Parser:
   val impor: P[Import] =
     keyword("import") *> qualifiedIdentifier.mapWithLoc(Import.apply)
 
+  val relation: P[RelationDecl] = (identifier ~ params).map {
+    case (n, ps) => RelationDecl(n, ps)
+  }
+
+  val dlImpor: P[DlImport] =
+    (((keyword("dl_import") *> identifier) <* keyword("as")) ~ qualifiedIdentifier ~ inBraces(relation.rep0)).map {
+      case ((m, n), rels) => DlImport(m, n, rels)
+    }
+
   val module: P[Module] =
     whitespaces0.with1 *>
-    keyword("module") *> (qualifiedIdentifier ~ impor.rep0 ~ content.rep0)
+    keyword("module") *> (qualifiedIdentifier ~ (impor | dlImpor).rep0 ~ content.rep0)
       .mapWithLoc { case ((name, imports),contents) => Module(name, imports, contents) }

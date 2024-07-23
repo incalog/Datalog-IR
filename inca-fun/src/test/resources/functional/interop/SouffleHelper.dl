@@ -1,0 +1,4 @@
+
+.decl R(x: number)
+R(5).
+R(4).

@@ -13,17 +13,13 @@ trait Typechecker extends BaseIRTypechecker:
       val ty = inferTerm(t, Mode.Bound).ty
       ts.foreach(checkTerm(_, ty, Mode.Bound))
       TSet(ty).bound
-    case SetFrom(name) =>
-      lookupModuleEntry(name) match
-        case Some(Relation(_, params, _)) =>
-          val tys = params.map(_.ty)
-          if (tys.size == 1)
-            TSet(tys.head).bound
-          else
-            TSet(TTuple(tys)).bound
-        case _ =>
-          error(s"Cannot find relation $name", term)
-          TSet(TAny).bound
+    case SetFrom(ref) =>
+      inferRelationRef(ref) match
+        case Seq(ty) => TSet(ty).bound
+        case tys => TSet(TTuple(tys)).bound
+        //case _ =>
+        //  error(s"Cannot find relation $name", term)
+        //  TSet(TAny).bound
     case SetIntersection(t1, t2) =>
       val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
       val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
