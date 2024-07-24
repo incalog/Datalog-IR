@@ -5,7 +5,9 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
+import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
+import inca.ir.extension.foreign.ForeignAggregationOperator
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
@@ -45,7 +47,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     for ((vt, i) <- visitTerm(t).zipWithIndex)
       yield vt -> ty(i)
   }
-
+  
   /*
      Lower the type if it is supported by the IR, otherwise throw an error.
    */

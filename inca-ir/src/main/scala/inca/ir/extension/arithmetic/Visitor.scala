@@ -13,6 +13,7 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case BinOp(lhs, rhs, op) => visitTerm(lhs).zip(visitTerm(rhs)).map((l,r) => BinOp(l, r, op))
     case UnOp(t, op) => visitTerm(t).map(tt => UnOp(tt, op))
+    case ToInt(t) => visitTerm(t).map(ToInt.apply)
     case IntNum(value) => Seq(IntNum(value))
     case DoubleNum(value) => Seq(DoubleNum(value))
     case _ => super.visitTerm(term))

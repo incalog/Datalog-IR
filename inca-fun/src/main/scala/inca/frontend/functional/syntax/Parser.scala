@@ -65,7 +65,7 @@ object Parser:
     else
       spaced(P.string(s) *> P.not(letterDigit))
 
-  val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
+  val letter: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ Some('_')).void
   val digit: P[Unit] = P.charIn('0' to '9').void
   val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ Some('_')).void
   val opSymbol: P[Unit] = P.charIn("!@#$%^&*()+=<>,.:?/\\_|").void
@@ -150,8 +150,8 @@ object Parser:
   private val recExpression: P[Expression] = P.defer(expression)
   private val recInfixExp: P[Expression] = P.defer(infixExp)
 
-  val setPredicate: P[Expression] =
-    (recExpression ~ ((op("not").?.with1 <* op("in")) ~ recInfixExp).?).mapWithLoc {
+  def setPredicate: P[Expression] =
+    (atomicExp ~ ((op("not").?.with1 <* op("in")) ~ recInfixExp).?).mapWithLoc {
       case (e, Some((hasNot, set))) => SetMember(e, set, hasNot.isDefined)
       case (e, None) => e
     }
@@ -205,10 +205,10 @@ object Parser:
       case (ty, init :: op :: set :: Nil) => P.pure(SetFold(ty, init, op, set))
       case (ty, args) => P.failWith(s"Wrong number of fold arguments, expected 3 but got ${args.size}: $args")
     }
-    
+
   val queryExp: P[DlQuery] =
-    (spaced(P.char('?')) *> qualifiedIdentifierComponents <* P.string("()")).map {
-      case ns => DlQuery(RefByQualifiedName(ns)) 
+    (spaced(P.char('?')) *> qualifiedIdentifierComponents).map { // <* P.string("()")
+      ns => DlQuery(RefByQualifiedName(ns))
     }
 
   lazy val atomicExp: P[Expression] =
@@ -307,7 +307,7 @@ object Parser:
       case (((((names, ty), _), bound), _), body) => Let(names, ty, bound, body)
     }
 
-  lazy val expression: P[Expression] = ifExp | letExp | infixExp
+  lazy val expression: P[Expression] = ifExp | letExp | infixExp | setPredicate
 
 
   /** Definitions */
@@ -348,12 +348,12 @@ object Parser:
   val impor: P[Import] =
     keyword("import") *> qualifiedIdentifier.mapWithLoc(Import.apply)
 
-  val relation: P[RelationDecl] = (identifier ~ params).map {
+  val relation: P[RelationDecl] = spaced(identifier ~ params).map {
     case (n, ps) => RelationDecl(n, ps)
   }
 
   val dlImpor: P[DlImport] =
-    (((keyword("dl_import") *> identifier) <* keyword("as")) ~ qualifiedIdentifier ~ inBraces(relation.rep0)).map {
+    (((keyword("dl_import") *> identifier) <* keyword("as")) ~ qualifiedIdentifier ~ inBraces(relation.repSep0(op(",")))).map {
       case ((m, n), rels) => DlImport(m, n, rels)
     }
 

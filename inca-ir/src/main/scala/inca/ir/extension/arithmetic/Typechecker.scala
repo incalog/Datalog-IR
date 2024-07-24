@@ -30,6 +30,9 @@ trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case BinOp(lhs, rhs, op) => inferInfixOpType(lhs, rhs, term).bound
     case UnOp(t, op) => inferUnOpType(t, term).bound
+    case ToInt(t) =>
+      inferTerm(t, Mode.Bound).ty
+      TInt.bound
     case IntNum(_) => TInt.bound
     case DoubleNum(_) => TDouble.bound
     case _ => super.inferTermExtend(term, mode)

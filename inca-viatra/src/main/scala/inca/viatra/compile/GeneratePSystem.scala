@@ -147,7 +147,6 @@ object GeneratePSystem:
     val indent = 2
 
     val mod = lowerAndTypeModule(module, options)
-
     if (mod.contents.exists(c => c.name == mod.name))
       throw IllegalArgumentException("Modules must have a unique name different from all content entries")
 

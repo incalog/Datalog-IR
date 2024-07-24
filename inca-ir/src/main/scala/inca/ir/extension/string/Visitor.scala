@@ -11,6 +11,18 @@ trait Visitor extends BaseIRVisitor:
       visitTerm(lhs).zip(visitTerm(rhs)).map(StringConcat.apply)
     case ToString(t) =>
       visitTerm(t).map(ToString.apply)
+    case Length(t) =>
+      visitTerm(t).map(Length.apply)
+    case SubstringFrom(t, index) =>
+      visitTerm(t).zip(visitTerm(index)).map(SubstringFrom.apply)
+    case SubstringFromTo(t, start, end) =>
+      visitTerm(t).flatMap { s =>
+        visitTerm(start).zip(visitTerm(end)).map { (st, en) =>
+          SubstringFromTo(s, st, en)
+        }
+      }
+    case LastIndexOf(t, sub) =>
+      visitTerm(t).zip(visitTerm(sub)).map(LastIndexOf.apply)
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type =  preserveHints(ty)(ty match

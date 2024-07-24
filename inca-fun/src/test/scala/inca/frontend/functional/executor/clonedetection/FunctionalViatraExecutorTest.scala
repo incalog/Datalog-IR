@@ -1,11 +1,11 @@
-package inca.frontend.functional.executor.interop
+package inca.frontend.functional.executor.clonedetection
 
 import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
-import inca.ir.visitors.BaseIRVisitor
 import inca.ir.extension.*
-import inca.ir.{CompiledProgram, CompiledUnit, Module, Name, optimize}
 import inca.ir.util.SourceLocation
+import inca.ir.visitors.BaseIRVisitor
+import inca.ir.{CompiledProgram, CompiledUnit, Module, Name, optimize}
 import inca.souffle.frontend.compile.GenerateIR as SouffleGenerateIR
 import inca.souffle.syntax.Parser
 import inca.util.FileUtil
@@ -35,11 +35,11 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     () => new optimize.AliasElimination {}
   ) // arith + string + data
 
-  test("Minimal interoperability") {
-    val souffleDep = FileUtil.readFileFromResource("functional/interop/SouffleHelper.dl")
+  test("CloneDetection") {
+    val souffleDep = FileUtil.readFileFromResource("functional/clonedetection/SouffleFacts.dl")
     val prog = Parser.parseSouffle(souffleDep)
     val genIR = SouffleGenerateIR()
-    val generateMods = genIR.compileProgram(prog, "SouffleHelper")
+    val generateMods = genIR.compileProgram(prog, "SouffleFacts")
 
     val compiledSouffleProg = new CompiledProgram {
       override def irModules: Seq[Module] = generateMods
@@ -50,7 +50,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
     //print(compiledSouffleProg.irModules)
 
-    val code = FileUtil.readFileFromResource("functional/interop/interop.finca")
+    val code = FileUtil.readFileFromResource("functional/clonedetection/CloneDetection.finca")
     val options = FunctionalCompilerOptions.default
 
     val exec: FunctionalExecutor = new FunctionalExecutor(inca.viatra.backend.Executor())

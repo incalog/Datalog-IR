@@ -363,7 +363,7 @@ class Typechecker extends TypeContext with TypeIO {
       lookupRelationDecl(query, m) match
         case Some(RelationDecl(_, Seq(param))) => TSet(param.typ)
         case Some(RelationDecl(_, params)) => TSet(TTuple(params.map(_.typ)))
-        case _ => throw IllegalArgumentException(s"Illegal type signature: $m $query")
+        case _ => throw IllegalArgumentException(s"Illegal type signature: $m.$query")
 
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }

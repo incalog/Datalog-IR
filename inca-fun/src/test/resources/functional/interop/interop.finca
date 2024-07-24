@@ -4,4 +4,6 @@ dl_import SouffleHelper as sf {
     R(x: Int)
 }
 
-@main def main(): Set[Int] = ?sf.R()
+def sum(i: Int, j: Int): Int = i + j
+
+@main def main(): Int = fold(0, sum, ?sf.R)

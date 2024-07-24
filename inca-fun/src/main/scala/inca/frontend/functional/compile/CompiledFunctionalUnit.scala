@@ -1,5 +1,6 @@
 package inca.frontend.functional.compile
 
+import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
@@ -9,7 +10,7 @@ import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
 
-case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions, override val otherUnits: Seq[CompiledUnit] = Seq())
+case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions, override val otherUnits: Seq[CompiledUnit] = Seq(), override val isClosedWorld: Boolean = true)
   extends CompiledUnit:
 
   override def name: Name = fun.name
@@ -96,8 +97,6 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     stopIfNeeded()
     module
   }
-
-  val isClosedWorld = true
 
   lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR

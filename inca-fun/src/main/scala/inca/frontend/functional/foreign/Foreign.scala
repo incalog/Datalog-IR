@@ -32,7 +32,7 @@ case class FunctionalIncaAggregationOperator(code: FunctionDef, initCode: Expres
     if (in.size != 1)
       Some(s"Function $code expects 1 argument, but found ${in.size} arguments in call")
     else if (FunctionalInca.compileType(aggType) != in.head)
-      Some(s"Invalid argument of type ${in.head} for parameter of type $aggType")
+      Some(s"Invalid argument of type ${in.head} for parameter of type $aggType. Did you set the postProcessingPipeline correctly?")
     else
       None
 
