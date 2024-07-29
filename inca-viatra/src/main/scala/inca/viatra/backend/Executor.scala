@@ -111,7 +111,7 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
     Relation.from(name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
 
   override type Tuple = Any
-  override def name: RelationName = queryRel.name
+  var name: RelationName = queryRel.name
   override def arity: Int = matcher.getParameterNames.size()
   override def parameterNames: Seq[String] = matcher.getParameterNames.asScala.toSeq
 

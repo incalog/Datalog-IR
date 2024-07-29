@@ -56,7 +56,8 @@ object Parser:
     "case",
     "true",
     "false",
-    "fold"
+    "fold",
+    "ext"
   )
 
   def keyword(s: String): P[Unit] =
@@ -150,8 +151,8 @@ object Parser:
   private val recExpression: P[Expression] = P.defer(expression)
   private val recInfixExp: P[Expression] = P.defer(infixExp)
 
-  def setPredicate: P[Expression] =
-    (atomicExp ~ ((op("not").?.with1 <* op("in")) ~ recInfixExp).?).mapWithLoc {
+  val setPredicate: P[Expression] =
+    (recExpression ~ ((op("not").?.with1 <* op("in")) ~ recInfixExp).?).mapWithLoc {
       case (e, Some((hasNot, set))) => SetMember(e, set, hasNot.isDefined)
       case (e, None) => e
     }
@@ -307,7 +308,7 @@ object Parser:
       case (((((names, ty), _), bound), _), body) => Let(names, ty, bound, body)
     }
 
-  lazy val expression: P[Expression] = ifExp | letExp | infixExp | setPredicate
+  lazy val expression: P[Expression] = ifExp | letExp | infixExp
 
 
   /** Definitions */

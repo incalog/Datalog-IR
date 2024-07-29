@@ -13,7 +13,7 @@ object SetLit:
   def empty: SetLit = new SetLit(Seq())
 
 /** Wraps a named relation as a set of tuples */
-case class SetFrom(ref: Ref[_ <: RelationReference]) extends Term:
+case class SetFrom(ref: Ref[RelationReference]) extends Term:
   override def toString: String = s"Set.from(${ref.name})"
   override def vars: Seq[Var] = Seq()
 

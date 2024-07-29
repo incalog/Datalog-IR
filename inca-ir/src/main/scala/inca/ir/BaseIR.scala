@@ -156,7 +156,7 @@ case class Relation(name: Name, override val params: Seq[Param], bodies: Seq[Bod
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference, RelationProvidable:
+case class ExtensionalRelation(name: Name, override val params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference, RelationProvidable:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
@@ -189,8 +189,10 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-trait RelationReference extends ModuleEntry:
+trait RelationReferenceBase extends ModuleEntry:
   def params: Seq[Param] = Seq()
+
+trait RelationReference extends RelationReferenceBase
 
 case class Call(ref: Ref[_ <: RelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
@@ -213,7 +215,7 @@ object NegCall:
       Call(RefByQualifiedName(qname), args, true)
 
 
-trait ExtensionalRelationReference extends ModuleEntry
+trait ExtensionalRelationReference extends RelationReferenceBase
 
 case class ExtensionalCall(ref: Ref[_ <: ExtensionalRelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =

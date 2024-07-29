@@ -37,6 +37,8 @@ object Mirco:
     val engine = createEngine(compiled.mainUnit)
     edbFacts.foreach(engine.insert)
 
+    engine.readAll().foreach(r => println(s"${r.name} :: ${r.size}"))
+    
     println("Execute...")
     val execTime = outputRels.map { rel =>
       val start = System.currentTimeMillis()

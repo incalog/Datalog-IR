@@ -1,0 +1,87 @@
+module VarPointsTo
+
+dl_import MicroDoop as md {
+    VarPointsTo(heap: String, vari: String),
+    Var_DeclaringMethod(vari: String, method: String),
+    AssignHeapAllocation(heap: String, to: String, inmethod: String),
+    Method_SimpleName(method: String, simpleName: String),
+    Reachable(method: String),
+    CallGraphEdge(invocation: String, method: String),
+    Instruction_Method(invocation: String, method: String),
+    StaticFieldPointsTo(obj: String, fld: String),
+    ArrayIndexPointsTo(otObj: String, fromObj: String),
+    InstanceFieldPointsTo(toObj: String, fld: String, fromObj: String)
+}
+
+@main def main(heapAllocation: String): Set[Boolean] =
+    mayEscape(heapAllocation)
+
+//  Object may escape, if it can outlive the method that allocated it
+def mayEscape(obj: String): Set[Boolean] =
+    {
+        true |
+            (obj, dc, inmethod) in ?md.AssignHeapAllocation,
+            obj in mayOutlive(inmethod)
+
+    }
+
+// All possible object that may outlive a method
+def mayOutlive(method: String): Set[String] =
+    { obj |
+        obj in reachableThroughStaticField(),
+        method in ?md.Reachable
+    } ++ {
+      obj |
+        caller in directFunctionCalls(method),
+        obj in objMayReferencedByMethod(caller)
+    } ++ {
+       toObj |
+         caller in directFunctionCalls(method),
+         fromObj in objMayReferencedByMethod(caller),
+         toObj in objectMayReach(fromObj)
+     }
+
+// all objects reachable through static fields
+def reachableThroughStaticField(): Set[String] =
+    {
+        obj |
+            (obj, dc) in ?md.StaticFieldPointsTo
+    } ++ {
+        toObj |
+            fromObj in reachableThroughStaticField(),
+            (fromObj, toObj) in objectPointsTo()
+    }
+
+// all objects another objects may reach
+def objectMayReach(fromObj: String): Set[String] = {
+        toObj | (fromObj, toObj) in objectPointsTo()
+    } ++ {
+        toObj |
+            (fromObj, interm) in objectPointsTo(),
+            (interm, toObj) in objectPointsTo()
+    }
+
+// helper relation that computes all pairs of reachable objects
+def objectPointsTo(): Set[(String, String)] =
+    {
+        (fromObj, toObj) | (toObj, fromObj) in ?md.ArrayIndexPointsTo
+    } ++ {
+         (fromObj, toObj) | (toObj, dc, fromObj) in ?md.InstanceFieldPointsTo
+     }
+
+def objMayReferencedByMethod(method: String): Set[String] =
+    {
+        obj |
+            (obj, vari) in ?md.VarPointsTo,
+            (vari, method) in ?md.Var_DeclaringMethod,
+            method in ?md.Reachable
+    }
+
+// all methods that directly call `toMethod`
+def directFunctionCalls(toMethod: String): Set[String] =
+    {
+        fromMethod |
+            (inv, toMethod) in ?md.CallGraphEdge,
+            (inv, fromMethod) in ?md.Instruction_Method,
+            fromMethod in ?md.Reachable
+    }

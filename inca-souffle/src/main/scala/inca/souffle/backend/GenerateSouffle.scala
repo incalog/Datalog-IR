@@ -33,12 +33,13 @@ object GenerateSouffle:
         }
 
         // FIXME: Although this is correct for souffle programs, we currently expect all outputs for IncA programs
-        //if (rel.hasHint(SouffleOutputHint)) {
-        val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
-        Seq(relDecl, outputDirective) ++ rules
-        //} else {
-        //  relDecl +: rules
-        //}
+        // if (rel.hasHint(SouffleOutputHint))
+        if ((rel.name.name == "main") || (rel.name.name == "Set$TBoolean$enum")) {
+          val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
+          Seq(relDecl, outputDirective) ++ rules
+        } else {
+          relDecl +: rules
+        }
 
       case edb@ir.ExtensionalRelation(name, params) =>
         val attrs = params.map { p =>
@@ -64,6 +65,7 @@ object GenerateSouffle:
         val typeDecl = ProgramContent.TypeDecl(cleanName(name), adtDef)
         Seq(typeDecl)
       case data.CaseDefinition(name, args, data) => Seq()
+      case _ => Seq()
 
     }
     Program(contents)

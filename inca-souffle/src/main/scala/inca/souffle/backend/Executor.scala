@@ -179,7 +179,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     val Seq(lowered) = m.lowered
     val souffleProg = GenerateSouffle.compileModule(lowered)
-
+    
     FileUtil.writeFile(souffleProgFile, souffleProg.toString)
     val dirFile = souffleProgFile.getParentFile
 

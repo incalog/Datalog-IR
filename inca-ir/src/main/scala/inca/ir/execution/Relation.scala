@@ -42,7 +42,7 @@ object Relation {
         // If we have too many parameters, we just fallback to a generic relation instance
         new Relation:
           override type Tuple = Seq[Any]
-          override def name: RelationName = relName
+          var name: RelationName = relName
           override def arity: Int = paramNames.size
           override def size: Int = queryMatches.size
           override def parameterNames: Seq[_root_.java.lang.String] = paramNames
@@ -55,7 +55,7 @@ object Relation {
 trait Relation {
   type Tuple
 
-  def name: RelationName
+  var name: RelationName
   def arity: Int
   def size: Int
   def nonEmpty: Boolean = size > 0
@@ -109,7 +109,7 @@ trait Relation {
   def asTable: String = Tabulator.format(s"$name - $size", parameterNames, matches.toSeq)
 }
 
-case class UnitRelation(name: RelationName) extends Relation {
+case class UnitRelation(var name: RelationName) extends Relation {
   case class Tuple()
   lazy val arity: Int = 0
   lazy val size: Int = 0
@@ -119,7 +119,7 @@ case class UnitRelation(name: RelationName) extends Relation {
   lazy val matches: Iterable[Seq[Any]] = Seq.empty
 }
 
-case class Relation1[A <: AnyRef](name: RelationName,
+case class Relation1[A <: AnyRef](var name: RelationName,
                                   parameterNames: Seq[String],
                                   matches: Iterable[Seq[Any]]) extends Relation {
   type Tuple = A
@@ -133,7 +133,7 @@ case class Relation1[A <: AnyRef](name: RelationName,
 
 case class Relation2[
   A1 <: AnyRef,
-  A2 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A2 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2)
 
@@ -148,7 +148,7 @@ case class Relation2[
 case class Relation3[
   A1 <: AnyRef,
   A2 <: AnyRef,
-  A3 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A3 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3)
 
@@ -164,7 +164,7 @@ case class Relation4[
   A1 <: AnyRef,
   A2 <: AnyRef,
   A3 <: AnyRef,
-  A4 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A4 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4)
 
@@ -181,7 +181,7 @@ case class Relation5[
   A2 <: AnyRef,
   A3 <: AnyRef,
   A4 <: AnyRef,
-  A5 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A5 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5)
 
@@ -199,7 +199,7 @@ case class Relation6[
   A3 <: AnyRef,
   A4 <: AnyRef,
   A5 <: AnyRef,
-  A6 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A6 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6)
 
@@ -218,7 +218,7 @@ case class Relation7[
   A4 <: AnyRef,
   A5 <: AnyRef,
   A6 <: AnyRef,
-  A7 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A7 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7)
 
@@ -238,7 +238,7 @@ case class Relation8[
   A5 <: AnyRef,
   A6 <: AnyRef,
   A7 <: AnyRef,
-  A8 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A8 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8)
 
@@ -262,7 +262,7 @@ case class Relation9[
   A6 <: AnyRef,
   A7 <: AnyRef,
   A8 <: AnyRef,
-  A9 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A9 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9)
 
@@ -287,7 +287,7 @@ case class Relation10[
   A7 <: AnyRef,
   A8 <: AnyRef,
   A9 <: AnyRef,
-  A10 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A10 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10)
 
@@ -313,7 +313,7 @@ case class Relation11[
   A8 <: AnyRef,
   A9 <: AnyRef,
   A10 <: AnyRef,
-  A11 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A11 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11)
 
@@ -340,7 +340,7 @@ case class Relation12[
   A9 <: AnyRef,
   A10 <: AnyRef,
   A11 <: AnyRef,
-  A12 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A12 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12)
 
@@ -368,7 +368,7 @@ case class Relation13[
   A10 <: AnyRef,
   A11 <: AnyRef,
   A12 <: AnyRef,
-  A13 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A13 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13)
 
@@ -397,7 +397,7 @@ case class Relation14[
   A11 <: AnyRef,
   A12 <: AnyRef,
   A13 <: AnyRef,
-  A14 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A14 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14)
 
@@ -427,7 +427,7 @@ case class Relation15[
   A12 <: AnyRef,
   A13 <: AnyRef,
   A14 <: AnyRef,
-  A15 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A15 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15)
 
@@ -460,7 +460,7 @@ case class Relation16[
   A13 <: AnyRef,
   A14 <: AnyRef,
   A15 <: AnyRef,
-  A16 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A16 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16)
 
@@ -494,7 +494,7 @@ case class Relation17[
   A14 <: AnyRef,
   A15 <: AnyRef,
   A16 <: AnyRef,
-  A17 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A17 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17)
 
@@ -529,7 +529,7 @@ case class Relation18[
   A15 <: AnyRef,
   A16 <: AnyRef,
   A17 <: AnyRef,
-  A18 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A18 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18)
 
@@ -565,7 +565,7 @@ case class Relation19[
   A16 <: AnyRef,
   A17 <: AnyRef,
   A18 <: AnyRef,
-  A19 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A19 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19)
 
@@ -602,7 +602,7 @@ case class Relation20[
   A17 <: AnyRef,
   A18 <: AnyRef,
   A19 <: AnyRef,
-  A20 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A20 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20)
 
@@ -639,7 +639,7 @@ case class Relation21[
   A18 <: AnyRef,
   A19 <: AnyRef,
   A20 <: AnyRef,
-  A21 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A21 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21)
 
@@ -678,7 +678,7 @@ case class Relation22[
   A19 <: AnyRef,
   A20 <: AnyRef,
   A21 <: AnyRef,
-  A22 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A22 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22)
 
@@ -718,7 +718,7 @@ case class Relation23[
   A20 <: AnyRef,
   A21 <: AnyRef,
   A22 <: AnyRef,
-  A23 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A23 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23)
 
@@ -761,7 +761,7 @@ case class Relation24[
   A21 <: AnyRef,
   A22 <: AnyRef,
   A23 <: AnyRef,
-  A24 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A24 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24)
 
@@ -805,7 +805,7 @@ case class Relation25[
   A22 <: AnyRef,
   A23 <: AnyRef,
   A24 <: AnyRef,
-  A25 <: AnyRef](name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
+  A25 <: AnyRef](var name: RelationName, parameterNames: Seq[String], matches: Iterable[Seq[Any]]) extends Relation {
 
   type Tuple = (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24, A25)
 
