@@ -23,4 +23,5 @@ class IRTypechecker extends BaseIRTypechecker
   with typeparam.Typechecker
   with edbdata.Typechecker
   with record.Typechecker
+  with list.Typechecker
 
