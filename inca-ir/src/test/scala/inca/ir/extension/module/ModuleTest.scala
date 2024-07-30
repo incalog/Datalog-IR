@@ -96,11 +96,97 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    //mods.foreach(m => { println(); println(m) } )
-
-
     val linking = new Lowering {}
     val linked = linking.visitProgram(Seq(main), deps)
+
+    checker = typechecker()
+    checker.checkProgram(linked)
+    checker.failOnWarnings()
+    checker.failOnError()
+  }
+
+  test("Provide required - nested") {
+    val lang = BaseIR.language + arith.IR
+    val defaultSig = Seq(Param("x", arith.TInt))
+
+    val a = Module("A", lang, Seq(
+      Import("B", "MyB", Seq(
+        RelationSubstitution("S", defaultSig, Seq("Q"), defaultSig)
+      )),
+      RequireRelation("Q", defaultSig),
+      ProvideRelation("Q", defaultSig),
+    ))
+
+    val b = Module("B", lang, Seq(
+      RequireRelation("S", defaultSig),
+      ProvideRelation("S", defaultSig),
+    ))
+
+    val c = Module("D", lang, Seq(
+      Import("A", "MyA", Seq(
+        RelationSubstitution("Q", defaultSig, Seq("R"), defaultSig)
+      )),
+      Relation("R", defaultSig, Seq(
+        Body(Seq(
+          Eq(Var("x"), arith.IntNum(1))
+        ))
+      ))
+    ))
+
+    // Stage 1:
+
+    var main = a
+    var deps = Seq(b)
+    var mods = main +: deps
+    //mods.foreach(m => { println(); println(m) } )
+
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
+
+    var checker = typechecker()
+    checker.checkProgram(Seq(main), deps.map(_.header))
+
+    checker.failOnWarnings()
+    checker.failOnError()
+
+    var linking = new Lowering {}
+    var linked = linking.visitProgram(Seq(main), deps)
+    //println(linked)
+
+
+    checker = typechecker()
+    checker.checkProgram(linked)
+    checker.failOnWarnings()
+    checker.failOnError()
+
+    // Stage 2:
+
+    main = c
+    deps = linked
+    mods = main +: deps
+    //mods.foreach(m => { println(); println(m) } )
+
+    deps.foreach { m =>
+      val checker = typechecker()
+      checker.checkProgram(Seq(m))
+      checker.failOnWarnings()
+      checker.failOnError()
+    }
+
+    checker = typechecker()
+    checker.checkProgram(Seq(main), deps.map(_.header))
+
+    checker.failOnWarnings()
+    checker.failOnError()
+
+    linking = new Lowering {}
+    linked = linking.visitProgram(Seq(main), deps)
+    //println(linked)
+
 
     checker = typechecker()
     checker.checkProgram(linked)
@@ -168,13 +254,15 @@ class ModuleTest extends AnyFunSuiteLike:
 
     val linking = new Lowering {}
     val linked = linking.visitProgram(Seq(main), deps)
+    //println(linked)
+
 
     checker = typechecker()
     checker.checkProgram(linked)
     checker.failOnWarnings()
     checker.failOnError()
 
-    println(linked)
+    //println(linked)
   }
 
   test("Module composition") {
@@ -246,7 +334,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    mods.foreach(m => { println(); println(m) } )
+    //mods.foreach(m => { println(); println(m) } )
 
 
     val stage1Linking = new Lowering {}
@@ -257,8 +345,8 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    println()
-    println("After Stage 1:")
+    //println()
+    //println("After Stage 1:")
 
     // Stage 2:
 
@@ -285,7 +373,7 @@ class ModuleTest extends AnyFunSuiteLike:
     deps = stage1 :+ ac
     mods = main +: deps
 
-    mods.foreach(m => { println(); println(m) })
+    //mods.foreach(m => { println(); println(m) })
 
     deps.foreach { m =>
       val checker = typechecker()
@@ -307,7 +395,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    println()
-    println("After Stage 2:")
-    println(stage2)
+    //println()
+    //println("After Stage 2:")
+    //println(stage2)
   }

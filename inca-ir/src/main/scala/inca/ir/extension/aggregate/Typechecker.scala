@@ -6,7 +6,7 @@ import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, Mode}
 trait Typechecker extends BaseIRTypechecker:
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Aggregate(ref, args, op) =>
-      val paramTys = inferRelationRef(ref, atom)
+      val paramTys = inferRelationRef(ref, false, atom)
       ref.target.foreach(addDependency(currentEntry, _, DependencyInfo.AggregationCall))
       if (paramTys.size != args.size)
         error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)

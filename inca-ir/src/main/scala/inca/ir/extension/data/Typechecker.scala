@@ -3,7 +3,7 @@ package inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, Import, ModuleEntry, Name, Providable, Provide, Ref, RefByName, RefByQualifiedName, Relation, Require, Substitution, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
+import inca.ir.{Atom, Import, ModuleEntry, Name, Provide, Ref, RefByName, RefByQualifiedName, Relation, Require, Substitution, TAny, Term, TermArg, TermType, Type, Var, WildcardArg}
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeSubst, TypeVar}
 
@@ -14,24 +14,21 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _: RequireCaseDefinition => // nothing, we check these on import
     case _ => super.checkRequire(require)
 
-  protected override def checkProvide[T <: Providable](provide: Provide[T]): Unit = provide match
-    case p: ProvideDataDefinition => inferDataDefinition(p.exportRef, p)
+  protected override def checkProvide[T <: ModuleEntry](provide: Provide[T]): Unit = provide match
+    case p@ProvideDataDefinition(exportRef) => inferDataDefinition(exportRef, p)
     case p@ProvideCaseDefinition(exportRef, pArgs, dd) => inferConstruct(exportRef, p) match
       case Some((_, _, args, data)) =>
         if pArgs.size != args.size then
           error(s"Expected ${pArgs.size} parameters, but got ${args.size}", provide)
-        pArgs.zip(args).foreach {
-          case (aTy, ty) => assertComparable(aTy, ty, provide)
-        }
-        val expected = inferDataDefinition(dd.ref, p) match
-          case Some(_, _, ty) => ty
-          case _ => // nothing
-        if expected != data then
-          error(s"Expected $expected, but got $data")
+        pArgs.zip(args).foreach((aTy, ty) => assertComparable(aTy, ty, provide))
+        inferDataDefinition(dd.ref, p) match
+          case Some(_, _, ty) if ty == data => // nothing
+          case Some(_, _, ty) => error(s"Expected $data, but got $ty")
+          case _ => error(s"Could not infer data definition ${dd.ref}")
       case _ => // nothing
     case _ => super.checkProvide(provide)
 
-  protected override def checkSubstitution(imp: Import, importable: Substitution[_, _]): Unit = importable match
+  protected override def checkSubstitution[T <: Require](imp: Import, importable: Substitution[T, _]): Unit = importable match
     case DataDefinitionSubstitution(to, from) =>
       // Make sure there is a "require" for the "to" name and resolve it
       lookupRequireRef(to, importable, imp.module.target.get)

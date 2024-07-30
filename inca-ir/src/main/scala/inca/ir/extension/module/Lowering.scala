@@ -2,9 +2,7 @@ package inca.ir.extension.module
 
 import inca.ir
 import inca.ir.Hint.preserveHints
-import inca.ir.extension.data.{CaseDefinition, CaseDefinitionSubstitution, DataDefinition, DataDefinitionSubstitution, RequireCaseDefinition, RequireDataDefinition, TData}
-import inca.ir.extension.typeparam.TypeApplication
-import inca.ir.{BaseIR, Body, Call, Import, Module, ModuleEntry, Name, Provide, Ref, RefByName, RefByQualifiedName, Relation, RelationSubstitution, Require, RequireRelation, Substitution, Var}
+import inca.ir.{BaseIR, Import, Module, ModuleEntry, Name, Provide, Ref, RefByName, RefByQualifiedName, Require, Substitution}
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
 
@@ -14,16 +12,20 @@ import PrefixModuleEntries.prefixName
 
 // modify a provided Module to be imported in the main module
 private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[_, _]]) extends IRVisitor:
-  private var renamings: Map[Name, Name] = _
+  private var renamings: Map[Name, Name] = Map()
+  // if we provide a required entry we just created an alias
+  private var aliases: Map[Name, Name] = Map()
 
-  def extract(module: Module): Seq[ModuleEntry] = visitModule(module).contents
+  def extract(module: Module): (Seq[ModuleEntry], Map[Name, Name]) =
+    (visitModule(module).contents, aliases)
 
   private def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
-    moduleEntry.withName(prefixName(moduleEntry.name, prefix))
+      moduleEntry.withName(prefixName(moduleEntry.name, prefix))
 
   private def pathComponents(ref: Ref[_]): (Seq[Name], Name) = ref match
     case RefByName(n) => (Seq(), n)
-    case RefByQualifiedName(ns) => (ns.dropRight(1), ns.last)
+    case RefByQualifiedName(ns) =>
+      (ns.dropRight(1), ns.last)
     // TODO: Handle type substitutions
     case _ => ???
 
@@ -49,26 +51,11 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
     moduleEntry match
-      case prov: Provide[_] =>
-        prov.exportRef.target match
-          case Some(RequireRelation(name, params)) =>
-            // we need to manually create a relation for this, since it does not really exist yet
-            val fromName = renamings(name)
-            val rel = Relation(Name(prefixName(name, prefix)), params.flatMap(visitParam), Seq(Body(Seq(
-              Call(fromName, params.map(p => Var(p.name).arg))
-            ))))
-            Seq(rel)
-          // TODO: Are these two cases needed / correct?
-          case Some(RequireDataDefinition(name)) =>
-            val fromName = renamings(name)
-            val dd = DataDefinition(Name(prefixName(name, prefix)))
-            Seq(dd)
-          case Some(RequireCaseDefinition(name, rArgs, data)) =>
-            val fromName = renamings(name)
-            val args = rArgs.map(visitType)
-            val cd = CaseDefinition(Name(prefixName(name, prefix)), args, visitType(data).asInstanceOf[TData])
-            Seq(cd)
-          case _ => Seq() // nothing, since we already copied this one over by copying all relations
+      case p: Provide[_] =>
+        p.exportRef.target match
+          case Some(r: Require) => aliases += Name(prefixName(p.name, prefix)) -> renamings(r.name)
+          case _ => // nothing
+        Seq()
       case _: Require => Seq()
       case _ => super.visitModuleEntry(moduleEntry).map(updateModuleEntryName)
   }
@@ -83,27 +70,42 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[
   }
 
 trait Lowering extends BaseLowering:
+  enum Phase:
+    case PrefixModules
+    case ResolveAliases
+
   override val name: String = "Module"
   override val loweredIRs: Set[BaseIR] = Set()
   override val requiredIRs: Set[BaseIR] = Set()
+  var phase: Phase = Phase.PrefixModules
 
   var moduleMap: Map[Name, ir.Module] = Map()
+  private var aliases: Map[Name, Name] = Map()
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     moduleMap = dependencies.map(m => m.name -> m).toMap
-    modules.map(visitModule)
+    phase = Phase.PrefixModules
+    val newMods = modules.map(visitModule)
+    phase = Phase.ResolveAliases
+    newMods.map(visitModule)
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
-    case Import(moduleRef, as, subst) =>
+    case Import(moduleRef, as, subst) if phase == Phase.PrefixModules =>
       val module = moduleMap(moduleRef.name)
       val extractor = ExtractModuleContent(as.name, subst)
-      extractor.extract(module)
+      val (content, modAliases) = extractor.extract(module)
+      aliases ++= modAliases
+      content
     case _ => super.visitModuleEntry(moduleEntry)
 
   override def visitRef[Target](ref: Ref[Target]): Ref[Target] = ref match
-    case RefByQualifiedName(ns) =>
+    case RefByQualifiedName(ns) if phase == Phase.PrefixModules =>
       val name = ns.dropRight(1).foldRight(ns.last) {
         case (refName, acc) => Name(prefixName(acc, refName.name))
       }
       RefByName(name)
+    case RefByName(name) if phase == Phase.ResolveAliases =>
+      aliases.get(name) match
+        case Some(alias) => RefByName(alias)
+        case _ => super.visitRef(ref)
     case _ => super.visitRef(ref)

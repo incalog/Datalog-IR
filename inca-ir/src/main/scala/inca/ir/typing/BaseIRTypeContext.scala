@@ -1,6 +1,6 @@
 package inca.ir.typing
 
-import inca.ir.{Import, Module, ModuleEntry, Name, Param, Providable, Provide, Ref, Require, Term, Type, Var}
+import inca.ir.{Import, Module, ModuleEntry, Name, Param, Provide, Ref, Require, Term, Type, Var}
 
 import scala.reflect.ClassTag
 

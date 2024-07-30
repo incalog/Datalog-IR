@@ -23,38 +23,35 @@ trait CaseDefinitionReference extends DataModuleEntry:
 
 // extend the module system
 
-trait DataDefinitionProvidable extends DataModuleEntry, Providable
-trait CaseDefinitionProvidable extends DataModuleEntry, Providable
-
-case class RequireDataDefinition(name: Name) extends DataDefinitionProvidable, Require:
+case class RequireDataDefinition(name: Name) extends DataDefinitionReference, Require:
   override def toString: String = s"require data $name"
   def withName(name: String): ModuleEntry = this.copy(name = Name(name))
 
-case class RequireCaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionReference, CaseDefinitionProvidable, Require:
+case class RequireCaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionReference, Require:
   override def toString: String = s"require case $name(${args.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name = Name(name))
 
-case class ProvideDataDefinition(exportRef: Ref[DataDefinitionProvidable]) extends DataDefinitionReference, Provide[DataDefinitionProvidable]:
+case class ProvideDataDefinition(exportRef: Ref[DataDefinitionReference]) extends DataDefinitionReference, Provide[DataDefinitionReference]:
   override def toString: String = s"provide data $exportRef"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[DataDefinitionProvidable](name)
+    val newRef = RefByName[DataDefinitionReference](name)
     newRef.target = exportRef.target
     this.copy(exportRef = newRef)
 object ProvideDataDefinition:
   def apply(exportName: Name) =
     new ProvideDataDefinition(RefByName(exportName))
 
-case class ProvideCaseDefinition(exportRef: Ref[CaseDefinitionProvidable], args: Seq[Type], data: TData) extends CaseDefinitionReference, Provide[CaseDefinitionProvidable]:
+case class ProvideCaseDefinition(exportRef: Ref[CaseDefinitionReference], args: Seq[Type], data: TData) extends CaseDefinitionReference, Provide[CaseDefinitionReference]:
   override def toString: String = s"provide case $exportRef(${args.mkString(", ")})"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[CaseDefinitionProvidable](name)
+    val newRef = RefByName[CaseDefinitionReference](name)
     newRef.target = exportRef.target
     this.copy(exportRef = newRef)
 object ProvideCaseDefinition:
   def apply(exportName: Name, args: Seq[Type], data: TData) =
     new ProvideCaseDefinition(RefByName(exportName), args, data)
 
-case class CaseDefinitionSubstitution(to: Ref[RequireCaseDefinition], toSig: Seq[Type], from: Ref[CaseDefinitionProvidable], fromSig: Seq[Type]) extends Substitution[RequireCaseDefinition, CaseDefinitionProvidable]:
+case class CaseDefinitionSubstitution(to: Ref[RequireCaseDefinition], toSig: Seq[Type], from: Ref[CaseDefinitionReference], fromSig: Seq[Type]) extends Substitution[RequireCaseDefinition, CaseDefinitionReference]:
   override def toString: String = s"case $to(${toSig.mkString(", ")}) = case ${from.name}(${fromSig.mkString(", ")})"
 object CaseDefinitionSubstitution:
   def apply(to: Name, toSig: Seq[Type], from: Seq[Name], fromSig: Seq[Type]): CaseDefinitionSubstitution =
@@ -62,7 +59,7 @@ object CaseDefinitionSubstitution:
       throw IllegalStateException("Path to a case definition must not be empty")
     new CaseDefinitionSubstitution(RefByName(to), fromSig, RefByQualifiedName(from), toSig)
 
-case class DataDefinitionSubstitution(to: Ref[RequireDataDefinition], from: Ref[DataDefinitionProvidable]) extends Substitution[RequireDataDefinition, DataDefinitionProvidable]:
+case class DataDefinitionSubstitution(to: Ref[RequireDataDefinition], from: Ref[DataDefinitionReference]) extends Substitution[RequireDataDefinition, DataDefinitionReference]:
   override def toString: String = s"data $to = data ${from.name}"
 object DataDefinitionSubstitution:
   def apply(to: Name, from: Seq[Name]): DataDefinitionSubstitution =
@@ -73,11 +70,11 @@ object DataDefinitionSubstitution:
 
 // IR
 
-case class DataDefinition(name: Name) extends DataDefinitionReference, DataDefinitionProvidable:
+case class DataDefinition(name: Name) extends DataDefinitionReference:
   def withName(name: String): DataDefinition = this.copy(name = Name(name))
   override def toString: String = s"""data $name"""
 
-case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionReference, CaseDefinitionProvidable:
+case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends CaseDefinitionReference:
   def withName(name: String): CaseDefinition = this.copy(name = Name(name))
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 

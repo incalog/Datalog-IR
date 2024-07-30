@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.{Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
+import inca.ir.{ExtensionalRelationSubstitution, Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
@@ -71,7 +71,11 @@ class GenerateIR extends GenerateIRContext:
     val required = lookupRequiredDeclarations(decl).flatMap {
       case (name, relDecl: ProgramContent.RelationDecl) =>
         val params = relDecl.attrs.map(compileAttribute)
-        val req = ir.RequireRelation(ir.Name("super$" + name), params)
+        val req =
+          if isEdbDeclaration(relDecl) then
+            ir.RequireExtensionalRelation(ir.Name("super$" + name), params)
+          else
+            ir.RequireRelation(ir.Name("super$" + name), params)
         Seq(req)
       case (name, adt@ProgramContent.TypeDecl(_, ty: ADTType)) =>
         val dataName = ir.Name("super$" + name)
@@ -84,7 +88,8 @@ class GenerateIR extends GenerateIRContext:
     }
     // provide all relations in a component
     val provided = content.collect {
-      case ir.Relation(name, params, bodies) => ir.ProvideRelation(name, params)
+      case ir.Relation(name, params, _) => ir.ProvideRelation(name, params)
+      case ir.ExtensionalRelation(name, params) => ir.ProvideExtensionalRelation(name, params)
       case irdata.DataDefinition(name) => irdata.ProvideDataDefinition(name)
       case irdata.CaseDefinition(name, args, data) => irdata.ProvideCaseDefinition(name, args, data)
     }
@@ -132,7 +137,11 @@ class GenerateIR extends GenerateIRContext:
         val params = decl.attrs.map(compileAttribute)
         val relName = ir.Name("super$" + name)
         val qualifiedFromName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromName
-        val relSubst = RelationSubstitution(relName, params, qualifiedFromName, params)
+        val relSubst =
+          if isEdbDeclaration(decl) then
+            ExtensionalRelationSubstitution(relName, params, qualifiedFromName, params)
+          else
+            RelationSubstitution(relName, params, qualifiedFromName, params)
         Seq(relSubst)
       case (name, decl@ProgramContent.TypeDecl(_, ty: ADTType)) =>
         val fromPath = if currentlyInComponent(decl.target) then Seq() else lookupPath(decl)

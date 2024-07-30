@@ -41,13 +41,12 @@ trait ModuleEntry extends SourceLocation with Hints:
 
 // Module system
 
-trait Providable extends ModuleEntry
-trait Provide[T <: Providable] extends ModuleEntry:
+trait Provide[T <: ModuleEntry] extends ModuleEntry:
   def exportRef: Ref[T]
   override val name: Name = exportRef.name
 trait Require extends ModuleEntry
 
-trait Substitution[T <: Require, S <: Providable] extends SourceLocation:
+trait Substitution[T <: Require, S <: ModuleEntry] extends SourceLocation:
   def to: Ref[T]
   def from: Ref[S]
 
@@ -63,30 +62,52 @@ object Import:
   def apply(module: Name, as: Name) = new Import(RefByName(module), as, Seq())
   def apply(module: Name, as: Name, entries: Seq[Substitution[_, _]]) = new Import(RefByName(module), as, entries)
 
-// relation specific module system
-trait RelationProvidable extends Providable
 
-case class RequireRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, RelationProvidable, Require:
+// relation specific module system
+
+case class RequireRelation(name: Name, params: Seq[Param]) extends RelationReference, Require:
   override def toString: String = s"require $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name=Name(name))
 
-case class ProvideRelation(exportRef: Ref[RelationProvidable], params: Seq[Param]) extends ExtensionalRelationReference, RelationReference, Provide[RelationProvidable]:
+case class RequireExtensionalRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, Require:
+    override def toString: String = s"require ext $name(${params.mkString(", ")})"
+    def withName(name: String): ModuleEntry = this.copy(name = Name(name))
+
+case class ProvideRelation(exportRef: Ref[RelationReference], params: Seq[Param]) extends RelationReference, Provide[RelationReference]:
   override def toString: String = s"provide $exportRef(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[RelationProvidable](name)
+    val newRef = RefByName[RelationReference](name)
     newRef.target = exportRef.target
     this.copy(exportRef=newRef)
 object ProvideRelation:
-  def apply(exportName: Name, params: Seq[Param]) =
+  def apply(exportName: Name, params: Seq[Param]): ProvideRelation =
     new ProvideRelation(RefByName(exportName), params)
 
-case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationProvidable], fromParams: Seq[Param]) extends Substitution[RequireRelation, RelationProvidable]:
+case class ProvideExtensionalRelation(exportRef: Ref[ExtensionalRelationReference], params: Seq[Param]) extends ExtensionalRelationReference, Provide[ExtensionalRelationReference]:
+  override def toString: String = s"provide ext $exportRef(${params.mkString(", ")})"
+  def withName(name: String): ModuleEntry =
+    val newRef = RefByName[ExtensionalRelationReference](name)
+    newRef.target = exportRef.target
+    this.copy(exportRef = newRef)
+object ProvideExtensionalRelation:
+  def apply(exportName: Name, params: Seq[Param]): ProvideExtensionalRelation =
+    new ProvideExtensionalRelation(RefByName(exportName), params)
+
+case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationReference], fromParams: Seq[Param]) extends Substitution[RequireRelation, RelationReference]:
   override def toString: String = s"$to(${toParams.mkString(", ")}) = ${from.name}(${fromParams.mkString(", ")})"
 object RelationSubstitution:
   def apply(to: Name, toParams: Seq[Param], from: Seq[Name], fromParams: Seq[Param]): RelationSubstitution =
     if from.isEmpty then
       throw IllegalStateException("Path to a relation must not be empty")
     new RelationSubstitution(RefByName(to), fromParams, RefByQualifiedName(from), toParams)
+
+case class ExtensionalRelationSubstitution(to: Ref[RequireExtensionalRelation], toParams: Seq[Param], from: Ref[ExtensionalRelationReference], fromParams: Seq[Param]) extends Substitution[RequireExtensionalRelation, ExtensionalRelationReference]:
+  override def toString: String = s"$to(${toParams.mkString(", ")}) = ext ${from.name}(${fromParams.mkString(", ")})"
+object ExtensionalRelationSubstitution:
+  def apply(to: Name, toParams: Seq[Param], from: Seq[Name], fromParams: Seq[Param]): ExtensionalRelationSubstitution =
+    if from.isEmpty then
+      throw IllegalStateException("Path to a relation must not be empty")
+    new ExtensionalRelationSubstitution(RefByName(to), fromParams, RefByQualifiedName(from), toParams)
 
 // IR
 
@@ -143,7 +164,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference, RelationProvidable:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -156,7 +177,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference, RelationProvidable:
+case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)

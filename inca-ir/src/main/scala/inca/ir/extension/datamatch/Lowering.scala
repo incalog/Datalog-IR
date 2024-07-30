@@ -3,7 +3,7 @@ package inca.ir.extension.datamatch
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.*
-import inca.ir.extension.data.{CaseDefinitionProvidable, Deconstruct}
+import inca.ir.extension.data.Deconstruct
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.lowering.BaseLowering
 import inca.ir.{Atom, BaseIR, Body, Term}
