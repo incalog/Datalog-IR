@@ -4,7 +4,7 @@ import cats.parse.{Numbers, Parser as P, Parser0 as P0}
 import inca.ir.util.SourceLocation
 import inca.ir.{Name, RefByName}
 import inca.souffle.syntax.Atom.Disjunction
-import inca.souffle.syntax.Parser.term
+import inca.souffle.syntax.Parser.{call, term}
 import inca.souffle.syntax.ProgramContent.*
 
 import scala.language.implicitConversions
@@ -57,6 +57,16 @@ object Parser:
     p <* whitespaces0
 
   val keywords: Set[String] = Set(
+    IntrinsicFunctor.Ord.toString,
+    IntrinsicFunctor.ToFloat.toString,
+    IntrinsicFunctor.ToNumber.toString,
+    IntrinsicFunctor.ToString.toString,
+    IntrinsicFunctor.ToUnsigned.toString,
+    IntrinsicFunctor.Cat.toString,
+    IntrinsicFunctor.StrLen.toString,
+    IntrinsicFunctor.Substr.toString,
+    IntrinsicFunctor.Max.toString,
+    IntrinsicFunctor.Min.toString,
   )
 
   def keyword(s: String): P[Unit] =
@@ -120,9 +130,11 @@ object Parser:
   def operator(s: String): P[Unit] =
     spaced(P.string(s) <* P.not(opSymbol))
 
-  def oneOperator[A](ss: List[A]): P[A] = ss match
+  /*def oneOperator[A](ss: List[A]): P[A] = ss match
     case Nil => P.fail
-    case s :: rest => op(s.toString).map(_ => s) | oneOperator(rest)
+    case s :: rest => op(s.toString).map(_ => s) | oneOperator(rest)*/
+
+  def oneOperator[A](ss: List[A]): P[A] = P.oneOf(ss.map(s => op(s.toString).map(_ => s)))
 
   /* Terms */
 
@@ -151,7 +163,25 @@ object Parser:
 
   lazy val term: P[Term] = P.defer(termRec)
 
-  private val aggregator: P[Aggregator] = P.fail
+  private val aggArgs: P[List[Atom]] =
+    val multiAtoms = inBraces(call.repSep(1, sep = op(","))).map(as => as.toList)
+    val singleAtom = call.map(a => List(a))
+    multiAtoms.backtrack | singleAtom
+    
+  private val aggregator: P[Aggregator] =
+    val minAgg = (op("min") *> (term <* op(":")) ~ aggArgs).map {
+      (t, as) => Aggregator.Min(t, as)
+    }
+    val maxAgg = (op("max") *> (term <* op(":")) ~ aggArgs).map {
+      (t, as) => Aggregator.Min(t, as)
+    }
+    val sumAgg = (op("sum") *> (term <* op(":")) ~ aggArgs).map {
+      (t, as) => Aggregator.Min(t, as)
+    }
+    val countAgg = ((op("count") ~ op(":")) *> aggArgs).map {
+      as => Aggregator.Count(as)
+    }
+    minAgg | maxAgg | sumAgg | countAgg
 
   val intrinsicFunctor: P[IntrinsicFunctor] =
     import IntrinsicFunctor.*
@@ -214,26 +244,37 @@ object Parser:
       case (t1, Some((op, t2))) => Term.Binary(t1, op, t2)
     }
 
-  val call: P[Atom.Call] =
+  lazy val call: P[Atom.Call] =
     (qualifiedIdentifier ~ inParens(term.repSep0(op(',')))).mapWithLoc {
       case (name, args) => Atom.Call(name, args)
     }
 
   val comparator: P[Comparator] =
     import Comparator.*
-    oneOperator(List(LE, LT, GE, GT, EQ, NEQ))
+    oneOperator(List(LE, LT, GE, GT, NEQ, EQ))
+    /*op("<=").map(_ => Comparator.LE) |
+    op("<").map(_ => Comparator.LT) |
+    op(">").map(_ => Comparator.GT) |
+    op(">=").map(_ => Comparator.GE) |
+    op("!=").map(_ => Comparator.NEQ) |
+    op("=").map(_ => Comparator.EQ)*/
 
   val compare: P[Atom] =
     (term ~ comparator ~ term).mapWithLoc {
       case ((lhs, op), rhs) => Atom.Compare(lhs, op, rhs)
     }
 
+  lazy val matchAtom: P[Atom.Match] =
+    (op("match") *> inParens((term <* op(",")) ~ term)).map(
+      (t1, t2) => Atom.Match(t1, t2)
+    )
+    
   lazy val atom: P[Atom] =
     inParens(P.defer(disjunction)) |
     op('!') *> P.defer(atom).map(Atom.Not.apply) |
+    matchAtom.backtrack |
     call.backtrack |
     compare |
-    // TODO match
     // TODO contains
     oneOperator(List(Atom.True, Atom.False))
 
@@ -267,7 +308,7 @@ object Parser:
     (atomList ~ (op(":-") *> (disjunction <* op('.')) ~ plan.?)).mapWithLoc { case (heads, (body, plan)) => Rule(heads, body, plan) }
 
   val fact: P[Fact] =
-    (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Fact(name, args))
+    (qualifiedIdentifier ~ inParens(argList) <* op('.')).mapWithLoc((name, args) => Fact(name, args))
 
   val attribute: P[Attribute] = ((varidentifier <* op(':')) ~ typ).map((name, ty) => Attribute(name, ty))
   private val qualifier: P[Qualifier] =
@@ -280,7 +321,7 @@ object Parser:
       Magic,
       NoInline,
       Inline,
-      Override
+      Overridable
     ))
 
   val decl: P[RelationDecl] =
@@ -289,9 +330,15 @@ object Parser:
       case ((names, attrs), quals) => RelationDecl(names.toList, attrs, quals, None)
     }
 
+
+  private val adtBranch: P[ADTConstructor] = (identifier ~ inBraces(attribute.rep0)).map {
+    case (name, attributes) => ADTConstructor(name, attributes)
+  }
+
   private val typeDeclConstraint: P[TypeDeclConstraint] =
     import TypeDeclConstraint.*
     (op("<:") *> typ).map(SubType.apply) |
+    (op("=") *> adtBranch.repSep(1, op("|")).map(a => ADTType(a.toList))).backtrack |
     (op("=") *> typ).map(EqType.apply)
 
   val typeDecl: P[TypeDecl] =
@@ -327,7 +374,7 @@ object Parser:
     (op(".init") *> identifier ~ (op('=') *> compType)).mapWithLoc((name, ty) => ComponentInit(name, ty))
 
   private lazy val programContent: P[ProgramContent] =
-    rule | fact | decl | typeDecl | directive | component | componentInit
+    fact.backtrack | rule | decl | typeDecl | directive | component | componentInit
 
   val program: P0[Program] =
     whitespaces0 *> programContent.rep0.mapWithLoc(Program.apply)

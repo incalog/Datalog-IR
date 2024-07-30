@@ -6,7 +6,7 @@ import inca.ir.extension.bool.TBoolean
 import inca.ir.typing.BaseIRTypechecker
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, Language, Module, Name, Param, Relation, TAny, TNothing, Type, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, Language, Module, Name, Param, Relation, TAny, TNothing, Type, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.ViatraRelation
 import org.scalatest.funsuite.AnyFunSuite
@@ -20,7 +20,7 @@ import inca.ir.{Body, Eq, Language, Module, Param, Relation, TNothing, Var, stri
 
 class ListTest extends AnyFunSuite {
 
-   class Compiled(val ir: Module) extends CompiledModule:
+   class Compiled(val ir: Module) extends CompiledUnit:
       setPipeline(List(
          () => new list.Lowering {},
          () => new block.Lowering {},
@@ -29,6 +29,9 @@ class ListTest extends AnyFunSuite {
          () => new demand.Lowering {}
       ))
 
+      override val isClosedWorld = true
+      override def otherUnits: Seq[CompiledUnit] = Seq()
+      override def irModules: Seq[Module] = Seq(ir)
       override def compilerOptions: CompilerOptions =
          val opt = CompilerOptions.default
          opt.irLogging.logModule = false

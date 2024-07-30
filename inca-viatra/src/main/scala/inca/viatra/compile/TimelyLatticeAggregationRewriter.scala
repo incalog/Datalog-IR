@@ -2,6 +2,7 @@ package inca.viatra.compile
 
 import inca.foreign.scala.ir.primitive
 import inca.ir
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Atom, Body, Call, Name, Param, RefByName, Relation, Var}
 import inca.ir.visitors.IRVisitor
@@ -35,16 +36,17 @@ class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor wi
   var scc: Seq[Seq[String]] = Seq()
   var relations: Map[String, Relation] = Map()
 
-  override def visitModule(module: ir.Module): ir.Module =
+  override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     module.contents.foreach(c => gensym.register(c.name.name))
     scc = DependencyGraph(module).cycles
     relations = module.relations
     val remainingContent = module.contents.filter {
       case Relation(name, params, bodies) => false
-      case _=> true
+      case _ => true
     }
     val ir.Module(name, lang, contents) = super.visitModule(module)
     ir.Module(name, lang, remainingContent ++ relations.values)
+  }
 
   var currentRelation: Relation = null
   var numberOfAggregations: Int = 0

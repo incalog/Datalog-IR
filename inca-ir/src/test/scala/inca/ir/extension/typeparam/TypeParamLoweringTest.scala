@@ -17,6 +17,7 @@ class TypeParamLoweringTest extends AnyFunSuiteLike:
     val typecheckerBefore = new IRTypechecker
     val typecheckerAfter = new IRTypechecker
     val lowering = new Lowering {}
+    //lowering.isClosedWorld = true
 
     val mod = Module("M", BaseIR.language + IR + arithmetic.IR + string.IR + tuple.IR + data.IR, entries)
     //var printedMod = false

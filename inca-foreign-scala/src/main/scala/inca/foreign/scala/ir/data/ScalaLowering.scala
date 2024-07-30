@@ -18,7 +18,7 @@ trait ScalaLowering extends BaseScalaLowering:
   var caseDef2params: Map[Name, Seq[(String, Type)]] = Map()
 
   private def translateCaseDefinition(name: Name, args: Seq[Type], data: TData): ScalaDefnModuleEntry =
-    val TData(RefByName(dName)) = data
+    val dName = data.ref.name
     val params = caseDef2params(name)
     val paramsCode = params.map {
       case (n, t) => s"$n: ${ScalaInca.compileType(t).name}"
@@ -49,8 +49,8 @@ trait ScalaLowering extends BaseScalaLowering:
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Deconstruct(term, RefByName(cName), args, true) =>
-      val caseName = cleanName(cName)
+    case Deconstruct(term, ref, args, true) =>
+      val caseName = cleanName(ref.name)
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -60,8 +60,8 @@ trait ScalaLowering extends BaseScalaLowering:
       val isInstanceOfCall = ScalaTerm(isInstanceOfCode, ScalaType.bool, visitTerm(term))
       val guard = Eq(ScalaConstantTerm.FALSE, isInstanceOfCall)
       Seq(guard)
-    case Deconstruct(term, RefByName(cName), args, false) =>
-      val caseName = cleanName(cName)
+    case Deconstruct(term, ref, args, false) =>
+      val caseName = cleanName(ref.name)
       val ty = term.typ match
         case Some(TermType(t, _)) => t
         case _ => throw IllegalArgumentException(s"Untyped expression $term")
@@ -93,12 +93,12 @@ trait ScalaLowering extends BaseScalaLowering:
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Construct(RefByName(name), args) =>
+    case Construct(ref, args) =>
       val newArgs = args.flatMap(visitTerm)
       val tyName = term.typ match
-        case Some(TermType(TData(RefByName(n)), _)) => cleanName(n)
+        case Some(TermType(TData(dataRef), _)) => cleanName(dataRef.name)
         case Some(TermType(ty, _)) => throw new IllegalArgumentException(s"Unsupported type $ty for constructor $term")
         case _ => throw new IllegalArgumentException(s"Untyped constructor expression $term")
-      Seq(ScalaTerm(cleanName(name), ScalaType(tyName), newArgs))
+      Seq(ScalaTerm(cleanName(ref.name), ScalaType(tyName), newArgs))
     case _ =>
       super.visitTerm(term)

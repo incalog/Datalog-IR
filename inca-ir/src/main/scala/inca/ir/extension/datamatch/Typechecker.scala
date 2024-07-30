@@ -14,8 +14,8 @@ trait Typechecker extends data.Typechecker with typeparam.Typechecker:
       val matcheeType = inferTerm(matchee, mode.inverted).ty
 
       checkAlternatives(cases) { case c@Case(ref, patVars, body) =>
-        val params = lookupConstruct(ref, c) match
-          case Some((typeParams, cd@CaseDefinition(_, params, data))) =>
+        val params = inferConstruct(ref, c) match
+          case Some((typeParams, cd, params, data)) =>
             addTypeDependency(cd)
             val substMap0 = matchRef(ref, typeParams, c)
 

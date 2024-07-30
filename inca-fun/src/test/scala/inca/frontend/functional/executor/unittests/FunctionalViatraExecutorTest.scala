@@ -1,6 +1,6 @@
 package inca.frontend.functional.executor.unittests
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.foreign
 import inca.ir.execution.Relation
@@ -17,7 +17,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Base 1") {
     val code = FileUtil.readFileFromResource("functional/unittests/Base1.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -26,7 +26,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Fac") {
     val code = FileUtil.readFileFromResource("functional/unittests/Fact.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(120)(res.entries.head)
@@ -35,7 +35,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Fib") {
     val code = FileUtil.readFileFromResource("functional/unittests/Fib.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(7))
     assertResult(13)(res.entries.head)
@@ -44,7 +44,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Inc") {
     val code = FileUtil.readFileFromResource("functional/unittests/Inc.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
@@ -53,7 +53,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Unary") {
     val code = FileUtil.readFileFromResource("functional/unittests/Unary.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(-5)(res.entries.head)
@@ -62,7 +62,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Var") {
     val code = FileUtil.readFileFromResource("functional/unittests/Var.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -71,7 +71,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("If") {
     val code = FileUtil.readFileFromResource("functional/unittests/If.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(7)(res.entries.head)
@@ -80,7 +80,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("If2") {
     val code = FileUtil.readFileFromResource("functional/unittests/If2.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(10)(res.entries.head)
@@ -89,7 +89,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("If3") {
     val code = FileUtil.readFileFromResource("functional/unittests/If3.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(7)(res.entries.head)
@@ -100,7 +100,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Parametric Eq") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricEq.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, 1))
     assertResult(1)(res.entries.head)
@@ -114,7 +114,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Parametric function") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricFunction.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult((12, 1))(res.entries.head)
@@ -123,7 +123,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Tuple as input") {
     val code = FileUtil.readFileFromResource("functional/unittests/TupleAsInput.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     var loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq(1, "A"))
     assertResult("A")(res.entries.head)
@@ -147,7 +147,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Plus") {
     val code = FileUtil.readFileFromResource("functional/unittests/Plus.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
@@ -157,7 +157,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Set const") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetConst.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var setAdt = res.entries.head
@@ -175,7 +175,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetIntersection.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     // Query main to get the set ADT, afterwards query the set relation
     var res = loaded.execute("main", Seq())
@@ -188,7 +188,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head
@@ -237,7 +237,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Set Ops") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetOps.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("union", Seq())
     val setAdt = res.entries.head
@@ -249,7 +249,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Parametric Datatypes") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricDatatypes.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     // TODO: Do not compare by string
@@ -259,8 +259,8 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Fold Int") {
     val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult(15)(res.entries.head)
@@ -269,8 +269,8 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Fold ADT") {
     val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("sum", Seq(1, 5))
     assertResult("V(15)")(res.entries.head.toString)
@@ -279,8 +279,8 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Bus Station") {
     val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalModule.viatraPostProcessingPipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult("BusStation(B,5)")(res.entries.head.toString)

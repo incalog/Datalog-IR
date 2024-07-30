@@ -12,6 +12,7 @@ import inca.ir.extension.not.*
 import inca.ir.extension.string.*
 import inca.viatra.backend.Executor
 import inca.viatra.runtime.context.DataModel
+import inca.ir.{stringList2nameList, termList2ArgList, term2Arg, string2name}
 
 import scala.collection.mutable.ListBuffer
 
@@ -242,7 +243,7 @@ class MarkedLambda:
     )
   )
 
-  private val meet = "meet"
+  private val meet = Name("meet")
   contents += Relation(
     meet,
     Seq(
@@ -275,8 +276,8 @@ class MarkedLambda:
         Seq(
           Deconstruct(ty(1), TArrow, Seq(ty(3), ty(4))),
           Deconstruct(ty(2), TArrow, Seq(ty(5), ty(6))),
-          Call(meet, Seq(ty(3).arg, ty(5).arg, ty(7))),
-          Call(meet, Seq(ty(4).arg, ty(6).arg, ty(8))),
+          Call(meet, Seq(ty(3), ty(5), ty(7))),
+          Call(meet, Seq(ty(4), ty(6), ty(8))),
           Eq(ty(3), ConstructTArrow(ty(7), ty(8)))
         )
       ),
@@ -284,8 +285,8 @@ class MarkedLambda:
         Seq(
           Deconstruct(ty(1), TProd, Seq(ty(3), ty(4))),
           Deconstruct(ty(2), TProd, Seq(ty(5), ty(6))),
-          Call(meet, Seq(ty(3).arg, ty(5).arg, ty(7))),
-          Call(meet, Seq(ty(4).arg, ty(6).arg, ty(8))),
+          Call(meet, Seq(ty(3), ty(5), ty(7))),
+          Call(meet, Seq(ty(4), ty(6), ty(8))),
           Eq(ty(3), ConstructTProd(ty(7), ty(8)))
         )
       )
@@ -325,11 +326,11 @@ class MarkedLambda:
           "ty" -> ty(1),
           "body" -> e(1)
         ) ++ Seq(
-          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(typeOfEdbType, Seq(ty(1), ty(2))),
           Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(3).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)), e(1), mark(1), ty(3))
           ),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTArrow(ty(2), ty(3)))
@@ -344,12 +345,12 @@ class MarkedLambda:
         ) ++ Seq(
           Call(
             synMark,
-            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+            Seq(ctx, e(1), mark(1), ty(1))
           ),
-          Call(matchedArrow, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Call(matchedArrow, Seq(ty(1), ty(2), ty)),
           Call(
             anaMark,
-            Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)
+            Seq(ctx, e(2), mark(2), ty(2))
           ),
           Eq(mark, ConstructMNone)
         )
@@ -363,12 +364,12 @@ class MarkedLambda:
         ) ++ Seq(
           Call(
             synMark,
-            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+            Seq(ctx, e(1), mark(1), ty(1))
           ),
-          // Not(Call(matchedArrow, Seq(ty(1).arg, ty(2).arg, ty.arg))),
+          // Not(Call(matchedArrow, Seq(ty(1), ty(2), ty))),
           Call(
             anaMark,
-            Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)
+            Seq(ctx, e(2), mark(2), ConstructTUnknown)
           ),
           Eq(mark, Construct(MApSynNonFun, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
@@ -384,12 +385,12 @@ class MarkedLambda:
         ) ++ Seq(
           Call(
             synMark,
-            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+            Seq(ctx, e(1), mark(1), ty(1))
           ),
           Eq(xStr, Cast(x, TString)),
           Call(
             synMark,
-            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(MapPlus(ctx, xStr, ty(1)), e(2), mark(2), ty)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -402,8 +403,8 @@ class MarkedLambda:
       ),
       Body( // MKSPlus
         EdbDeconstruct(e, "EPlus", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTNum)),
-          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTNum)),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ConstructTNum)),
+          Call(anaMark, Seq(ctx, e(2), mark(2), ConstructTNum)),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTNum)
         )
@@ -428,10 +429,10 @@ class MarkedLambda:
           "lhs" -> e(2),
           "rhs" -> e(3)
         ) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
-          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(1).arg)),
-          Call(synMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty(2).arg)),
-          Call(meet, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ConstructTBool)),
+          Call(synMark, Seq(ctx, e(2), mark(2), ty(1))),
+          Call(synMark, Seq(ctx, e(3), mark(3), ty(2))),
+          Call(meet, Seq(ty(1), ty(2), ty)),
           Eq(mark, ConstructMNone)
         )
       ),
@@ -443,45 +444,45 @@ class MarkedLambda:
           "lhs" -> e(2),
           "rhs" -> e(3)
         ) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
-          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(1).arg)),
-          Call(synMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty(2).arg)),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ConstructTBool)),
+          Call(synMark, Seq(ctx, e(2), mark(2), ty(1))),
+          Call(synMark, Seq(ctx, e(3), mark(3), ty(2))),
           Eq(mark, Construct(MInconBranches, Seq(ty(1), ty(2)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
       Body( // MKSPair
         EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Call(synMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
+          Call(synMark, Seq(ctx, e(1), mark(1), ty(1))),
+          Call(synMark, Seq(ctx, e(2), mark(2), ty(2))),
           Eq(mark, ConstructMNone),
           Eq(ty, ConstructTProd(ty(1), ty(2)))
         )
       ),
       Body( // MKSProjL1
         EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
-          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Call(matchedProd, Seq(ty(1).arg, ty.arg, ty(2).arg)),
+          Call(synMark, Seq(ctx, e(1), mark(1), ty(1))),
+          Call(matchedProd, Seq(ty(1), ty, ty(2))),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjL2
         EdbDeconstruct(e, "EProjL", "exp" -> e(1)) ++ Seq(
-          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx, e(1), mark(1), ty(1))),
           Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
       ),
       Body( // MKSProjR1
         EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
-          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Call(matchedProd, Seq(ty(1).arg, ty(2).arg, ty.arg)),
+          Call(synMark, Seq(ctx, e(1), mark(1), ty(1))),
+          Call(matchedProd, Seq(ty(1), ty(2), ty)),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKSProjR2
         EdbDeconstruct(e, "EProjR", "exp" -> e(1)) ++ Seq(
-          Call(synMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx, e(1), mark(1), ty(1))),
           Eq(mark, Construct(MProjSynNonProd, Seq(ty(1)))),
           Eq(ty, ConstructTUnknown)
         )
@@ -506,13 +507,13 @@ class MarkedLambda:
           "ty" -> ty(1),
           "body" -> e(1)
         ) ++ Seq(
-          Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
-          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
-          Call(consistent, Seq(ty(2).arg, ty(4).arg)),
+          Call(matchedArrow, Seq(ty, ty(4), ty(5))),
+          Call(typeOfEdbType, Seq(ty(1), ty(2))),
+          Call(consistent, Seq(ty(2), ty(4))),
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)), e(1), mark(1), ty(5))
           ),
           Eq(mark, ConstructMNone)
         )
@@ -525,12 +526,12 @@ class MarkedLambda:
           "ty" -> ty(1),
           "body" -> e(1)
         ) ++ Seq(
-          Call(matchedArrow, Seq(ty.arg, ty(4).arg, ty(5).arg)),
-          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(matchedArrow, Seq(ty, ty(4), ty(5))),
+          Call(typeOfEdbType, Seq(ty(1), ty(2))),
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(2)).arg, e(1).arg, mark(1).arg, ty(5).arg)
+            Seq(MapPlus(ctx, xStr, ty(2)), e(1), mark(1), ty(5))
           ),
           Eq(mark, Construct(MLamAnaInconAsc, Seq(ty(4))))
         )
@@ -543,14 +544,14 @@ class MarkedLambda:
           "ty" -> ty(1),
           "body" -> e(1)
         ) ++ Seq(
-          Call(typeOfEdbType, Seq(ty(1).arg, ty(2).arg)),
+          Call(typeOfEdbType, Seq(ty(1), ty(2))),
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
             Seq(
-              MapPlus(ctx, xStr, ty(2)).arg,
-              e(1).arg,
-              mark(1).arg,
+              MapPlus(ctx, xStr, ty(2)),
+              e(1),
+              mark(1),
               ConstructTUnknown
             )
           ),
@@ -567,12 +568,12 @@ class MarkedLambda:
         ) ++ Seq(
           Call(
             synMark,
-            Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)
+            Seq(ctx, e(1), mark(1), ty(1))
           ),
           Eq(xStr, Cast(x, TString)),
           Call(
             anaMark,
-            Seq(MapPlus(ctx, xStr, ty(1)).arg, e(2).arg, mark(2).arg, ty.arg)
+            Seq(MapPlus(ctx, xStr, ty(1)), e(2), mark(2), ty)
           ),
           Eq(mark, ConstructMNone)
         )
@@ -585,37 +586,37 @@ class MarkedLambda:
           "lhs" -> e(2),
           "rhs" -> e(3)
         ) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTBool)),
-          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty.arg)),
-          Call(anaMark, Seq(ctx.arg, e(3).arg, mark(3).arg, ty.arg)),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ConstructTBool)),
+          Call(anaMark, Seq(ctx, e(2), mark(2), ty)),
+          Call(anaMark, Seq(ctx, e(3), mark(3), ty)),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKAPair1
         EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-          Call(matchedProd, Seq(ty.arg, ty(1).arg, ty(2).arg)),
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ty(1).arg)),
-          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ty(2).arg)),
+          Call(matchedProd, Seq(ty, ty(1), ty(2))),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ty(1))),
+          Call(anaMark, Seq(ctx, e(2), mark(2), ty(2))),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKAPair2
         EdbDeconstruct(e, "EPair", "lhs" -> e(1), "rhs" -> e(2)) ++ Seq(
-          Call(anaMark, Seq(ctx.arg, e(1).arg, mark(1).arg, ConstructTUnknown)),
-          Call(anaMark, Seq(ctx.arg, e(2).arg, mark(2).arg, ConstructTUnknown)),
+          Call(anaMark, Seq(ctx, e(1), mark(1), ConstructTUnknown)),
+          Call(anaMark, Seq(ctx, e(2), mark(2), ConstructTUnknown)),
           Eq(mark, Construct(MPairAnaNonProd, Seq(ty)))
         )
       ),
       Body( // MKASubsume
         Seq(
-          Call(synMark, Seq(ctx.arg, e.arg, mark(1).arg, ty(1).arg)),
-          Call(consistent, Seq(ty.arg, ty(1).arg)),
+          Call(synMark, Seq(ctx, e, mark(1), ty(1))),
+          Call(consistent, Seq(ty, ty(1))),
           Eq(mark, ConstructMNone)
         )
       ),
       Body( // MKAInconsistentTypes
         Seq(
-          Call(synMark, Seq(ctx.arg, e.arg, mark(1).arg, ty(1).arg)),
+          Call(synMark, Seq(ctx, e, mark(1), ty(1))),
           Eq(mark, Construct(MInconTypes, Seq(ty, ty(1))))
         )
       )
@@ -641,7 +642,7 @@ class MarkedLambda:
 
 object MarkedLambda extends App:
   private val module = new MarkedLambda().module
-  private val compiled = new CompiledHazelModule(module)
+  private val compiled = new CompiledHazelUnit(module)
   println(module)
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
   try compiled.checked

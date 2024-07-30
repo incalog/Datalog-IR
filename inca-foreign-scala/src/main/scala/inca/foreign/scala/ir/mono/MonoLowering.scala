@@ -36,9 +36,10 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
 
   var convertRelations: Set[Relation] = Set()
 
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     val mod = super.visitModule(module)
     mod.copy(contents = mod.contents ++ convertRelations)
+  }
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
     case agg@Aggregate(rel, args, op) =>

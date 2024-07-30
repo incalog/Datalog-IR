@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateScala, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, GenerateScala, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -14,7 +14,7 @@ class OODLViatraExecutorSetFoldTest extends AnyFunSuite:
   test("Set fold int") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/setfold/PrimitiveSetFold.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
@@ -24,7 +24,7 @@ class OODLViatraExecutorSetFoldTest extends AnyFunSuite:
   test("Set fold case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/setfold/CaseClassSetFold.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())

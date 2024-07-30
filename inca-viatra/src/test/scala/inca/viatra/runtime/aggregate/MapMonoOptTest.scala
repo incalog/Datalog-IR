@@ -11,7 +11,7 @@ import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.impure.{Impure, MainHint}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
@@ -30,7 +30,11 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
+case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
+
   override def compilerOptions: CompilerOptions =
     val op = CompilerOptions.default
     op.irLogging.logModule = false
@@ -40,9 +44,7 @@ case class CompiledScalaMapMonoOptModule(mod: Module) extends CompiledModule:
   override def name: Name = mod.name
 
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-  override def ir: Module = mod
-
+  
   private class ScalaTypeChecker extends IRTypechecker with scalaExt.primitive.Typechecker
 
   override def typechecker: BaseIRTypechecker = new ScalaTypeChecker
@@ -104,7 +106,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledScalaMapMonoOptModule(mod)
+    val compiledMod = CompiledScalaMapMonoOptUnit(mod)
 //    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
     val exec: IRExecutor = new Executor(DRedReteBackendFactory.INSTANCE)
     exec.instantiate(compiledMod)
@@ -115,7 +117,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    val compiledMod = CompiledScalaMapMonoOptModule(mod)
+    val compiledMod = CompiledScalaMapMonoOptUnit(mod)
     val exec: IRExecutor = backend.Executor()
     exec.instantiate(compiledMod)
   

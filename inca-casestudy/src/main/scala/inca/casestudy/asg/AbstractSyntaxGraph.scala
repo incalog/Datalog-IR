@@ -247,10 +247,12 @@ object AbstractSyntaxGraph:
 
   def compiled = createCompiled(false)
 
-  def createCompiled(outlineDemand: Boolean): CompiledModule = new CompiledModule:
+  def createCompiled(outlineDemand: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
+    override def irModules: Seq[Module] = Seq(mod)
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logLowerings = false

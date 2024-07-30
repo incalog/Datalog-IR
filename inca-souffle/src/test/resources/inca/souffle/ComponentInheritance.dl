@@ -1,0 +1,22 @@
+.comp AbstractConfiguration {
+    .decl MagicNumber(x:number)
+}
+
+.comp Configuration: AbstractConfiguration {
+    MagicNumber(42).
+}
+
+.comp ConfigurationTwo: AbstractConfiguration {
+    MagicNumber(43).
+}
+
+.init config1 = Configuration
+.init config2 = ConfigurationTwo
+
+.decl S(x: number)
+S(x) :- config1.MagicNumber(x).
+S(x) :- config2.MagicNumber(x).
+
+//.output config1.a.MagicNumber2
+.output config1.MagicNumber
+.output config2.MagicNumber

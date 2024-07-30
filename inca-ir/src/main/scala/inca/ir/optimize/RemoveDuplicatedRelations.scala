@@ -1,6 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.extension.aggregateset.AggregateSet
 import inca.ir.typing.Mode
@@ -28,7 +29,7 @@ trait RemoveDuplicatedRelations extends IRVisitor:
 
   private var phase: Phase = _
 
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     // Detect all colliding relations and remove them all
     phase = Phase.CollectCollisions
     val Module(name, lang, contents) = super.visitModule(module)
@@ -50,6 +51,7 @@ trait RemoveDuplicatedRelations extends IRVisitor:
     val mod = Module(name, lang, contents ++ newRelations)
     phase = Phase.RewriteCalls
     super.visitModule(mod)
+  }
 
   override def visitRelation(relation: Relation): Seq[Relation] = phase match
     case Phase.CollectCollisions =>

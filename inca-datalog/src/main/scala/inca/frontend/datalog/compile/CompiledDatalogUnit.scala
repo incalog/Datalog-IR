@@ -1,0 +1,61 @@
+package inca.frontend.datalog.compile
+
+import inca.frontend.datalog.syntax.Module
+import inca.frontend.datalog.typecheck.Typechecker
+import inca.ir.extension.*
+import inca.ir.optimize
+import inca.ir.util.SourceLocation
+import inca.ir.visitors.BaseIRVisitor
+import inca.ir.{CompiledUnit, Name, Module as IRModule}
+
+case class CompiledDatalogUnit(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledUnit {
+
+  override def name: Name = Name("Datalog")
+
+  override def sourceLocation: SourceLocation = Name("Datalog")
+
+  val logTyped: Boolean = compilerOptions.datalogLogging.logTypeInformation
+
+  lazy val typed: Module = {
+    val logMod = compilerOptions.datalogLogging.logModule
+
+    if (logMod && !logTyped)
+      printStep("Datalog-Module", mod)
+
+    val typer: Typechecker = new Typechecker
+    typer.checkModule(mod)
+
+    if (logMod && logTyped)
+      printStep("Datalog-Module", mod)
+
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+    mod
+  }
+
+  val isClosedWorld = true
+
+  def otherUnits: Seq[CompiledUnit] = Seq()
+
+  lazy val irModules: Seq[IRModule] =
+    val compiler = new GenerateIR
+    val module = compiler.compileModule(typed)
+    Seq(module)
+}
+
+object CompiledDatalogUnit:
+  val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregateset.Lowering {},
+    () => new set.Lowering {},
+    () => new bool.Lowering {},
+    () => new datamatch.Lowering {},
+    () => new block.Lowering {},
+    () => new disjunction.Lowering {},
+    () => new not.Lowering {},
+    () => new demand.Lowering {},
+    () => new tuple.Lowering {},
+
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {}
+  ) // arith + string + data

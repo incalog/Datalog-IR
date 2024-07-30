@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -15,7 +15,7 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
   test("Count mono") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/mono/Count.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(2)(res.entries.head)
@@ -24,7 +24,7 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
   test("Map mono") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/mono/Map.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     // Important: Include post processing pipeline for custom mono type
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)
@@ -35,7 +35,7 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
   test("Map mono with nested mono.Set") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/mono/MapWithSet.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     // Important: Include post processing pipeline for custom mono type
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)
@@ -49,7 +49,7 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
   test("User mono") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/mono/User.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     // Important: Include the post processing pipeline to make sure the whole module is translated to scala as well
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)

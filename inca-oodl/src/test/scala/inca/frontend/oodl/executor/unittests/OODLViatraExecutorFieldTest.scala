@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -16,7 +16,7 @@ class OODLViatraExecutorFieldTest extends AnyFunSuite:
   test("Field access") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/field/FieldAccess.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq(16, 2))
     assertResult(8)(res.entries.head)
@@ -25,7 +25,7 @@ class OODLViatraExecutorFieldTest extends AnyFunSuite:
   test("Field access nested") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/field/FieldAccessNested.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(3)(res.entries.head)
@@ -34,7 +34,7 @@ class OODLViatraExecutorFieldTest extends AnyFunSuite:
   test("Field inheritance") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/field/FieldInheritance.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(10)(res.entries.head)

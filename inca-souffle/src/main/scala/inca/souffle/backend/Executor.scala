@@ -2,7 +2,7 @@ package inca.souffle.backend
 
 import inca.ir.execution.ThreadCount.Auto
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener, ThreadCount}
-import inca.ir.{CompiledModule, string2name}
+import inca.ir.{CompiledUnit, string2name}
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, QualifiedName, Type}
 import inca.util.FileUtil
 
@@ -233,10 +233,12 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"
 
-  override def instantiate(m: CompiledModule): Engine =
+  override def instantiate(m: CompiledUnit): Engine =
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
-    val souffleProg = GenerateSouffle.compileModule(m.lowered)
+
+    val Seq(lowered) = m.lowered
+    val souffleProg = GenerateSouffle.compileModule(lowered)
 
     //println(m.lowered)
     //println()

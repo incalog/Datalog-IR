@@ -70,10 +70,12 @@ object BooleanExpression:
   )
 
 
-  def createCompiled(mod: Module, optimizeSets: Boolean): CompiledModule = new CompiledModule:
+  def createCompiled(mod: Module, optimizeSets: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = mod.name
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
+    override def irModules: Seq[Module] = Seq(mod)
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val isClosedWorld = true
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false

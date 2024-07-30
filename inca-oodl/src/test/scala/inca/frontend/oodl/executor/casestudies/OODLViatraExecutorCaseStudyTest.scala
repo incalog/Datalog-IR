@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.casestudies
 
-import inca.frontend.oodl.compile.{CompiledOODLModule, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -19,7 +19,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
 
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/DependencyAnalysis.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq(endNode, step))
 
@@ -33,7 +33,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   test("ControlFlowGraph") {
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
 
@@ -56,7 +56,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val dRedExec: OODLExecutor = new OODLExecutor(new Executor(DRedReteBackendFactory.INSTANCE))
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
     val compiled = dRedExec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = dRedExec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())

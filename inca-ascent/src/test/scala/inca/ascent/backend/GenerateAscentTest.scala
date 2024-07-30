@@ -19,6 +19,7 @@ import inca.ir.term2Arg
 import scala.collection.immutable.Seq
 
 class GenerateAscentTest extends AnyFunSuite:
+
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new aggregateset.Lowering {},
     () => new set.Lowering {},
@@ -30,6 +31,15 @@ class GenerateAscentTest extends AnyFunSuite:
     () => new demand.Lowering {},
     () => new tuple.Lowering {}
   ) // arith + string + data
+
+  case class CompiledModule(irModule: Module) extends CompiledUnit:
+    override def name: Name = "PathExample"
+    override def compilerOptions: CompilerOptions = CompilerOptions.default
+    override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+    override def irModules: Seq[Module] = Seq(irModule)
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    setPipeline(pipeline)
 
   val edgeRel = ExtensionalRelation("edge", Seq(Param("x", arith.TInt), Param("y", arith.TInt)))
   val pathRel = Relation("path", Seq(Param("x", arith.TInt), Param("y", arith.TInt)),
@@ -118,13 +128,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test ") {
     val irModule = Module("PathExample", Language.Datalog, Seq(pathRel, edgeRel))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "PathExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 4))))
     val res = engine.read(UnitRelation("path"))
@@ -163,13 +167,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test Float path und binops") {
     val irModule = Module("FloatpathExample", Language.Datalog, Seq(floatEdgeRel, floatPathRel, floatAdd, floatSub, floatMul, floatDiv))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "FloatPathExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.read(UnitRelation("path"))
@@ -203,13 +201,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test float comparison") {
     val irModule = Module("FloatCompareExample", Language.Datalog, Seq(floatEdgeRel, floatEqual, floatNotEqual, floatGreaterEqual, floatGreater, floatLesser, floatLesserEqual))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "FloatCompareExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.readAll()
@@ -218,13 +210,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test negation") {
     val irModule = Module("NegExample", Language.Datalog, Seq(valueRel, value2Rel, negRel))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "NegExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(2), Seq(3), Seq(6), Seq(7))))
     engine.insert(Rel.from("m", Seq("x"), Seq(Seq(1), Seq(3), Seq(7))))
@@ -235,13 +221,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test add ") {
     val irModule = Module("AddExample", Language.Datalog, Seq(edgeRel, add1, add2, add3))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "AddExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -251,13 +231,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test BinOP ") {
     val irModule = Module("BinOPExample", Language.Datalog, Seq(edgeRel, add2, div, sub, mul, rem))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "BinOPExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(3, 5), Seq(2, 4), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -284,13 +258,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test Comparison") {
     val irModule = Module("ComparisonExample", Language.Datalog, Seq(edgeRel, greater, lesser, lesserEqual, greaterEqual, notEqual))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "ComparisonExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(3, 3), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -300,13 +268,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test x greater 3 ") {
     val irModule = Module("xgreater3Example", Language.Datalog, Seq(edgeRel, xGreater3))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "xGreater3Example"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -317,13 +279,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test yIs5 ") {
     val irModule = Module("yIs5Example", Language.Datalog, Seq(edgeRel, yis5))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "yIs5Example"
-      override def ir: Module = irModule
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 5), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -333,13 +289,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test yIsX") {
     val irModule = Module("yIsXExample", Language.Datalog, Seq(edgeRel, yisx))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "yIsXExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1, 2), Seq(7, 2), Seq(2, 3), Seq(3, 5), Seq(4, 2), Seq(1, 5), Seq(5, 4))))
     val rels = engine.readAll()
@@ -349,16 +299,9 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test StringConcat") {
     val irModule = Module("StringConcatExample", Language.Datalog, Seq(valueString, cat))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "StringConcatExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("1"), Seq("3"), Seq("7"))))
-    print("engine", engine)
     val rels = engine.readAll()
     assertResult(1)(rels.size)
     rels.foreach(r => assert(r.size != 0))
@@ -366,13 +309,7 @@ class GenerateAscentTest extends AnyFunSuite:
 
   test("test String ") {
     val irModule = Module("StringExample", Language.Datalog, Seq(valueString, stringRel))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "StringExample"
-      override def ir: Module = irModule
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("Wort", Seq("x"), Seq(Seq("x"), Seq("3"), Seq("7"))))
 
@@ -386,7 +323,7 @@ class GenerateAscentTest extends AnyFunSuite:
       data.CaseDefinition(Name("Nil"), Seq(), data.TData(Name("List"))),
       data.CaseDefinition(Name("Cons"), Seq(arith.TInt, data.TData(Name("List"))), data.TData(Name("List")))
     )
-    val module = Module("ADTTest", data.IR.language ++ demand.IR.language.features, listADT ++ Seq(
+    val irModule = Module("ADTTest", data.IR.language ++ demand.IR.language.features, listADT ++ Seq(
       Relation("main", Seq(Param("out", arith.TInt)), Seq(
         Body(Seq(
           Call("createADT", Seq(arith.IntNum(10), Var("obj"))),
@@ -406,13 +343,7 @@ class GenerateAscentTest extends AnyFunSuite:
         ))
       ))
     ))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "ADTTest"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = module
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     val rels = engine.readAll()
     assertResult(3)(rels.size)
@@ -445,13 +376,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val irModule = Module("AggregationExample", Language.Datalog, Seq(valueRel, valueRelWrapper, maxRel, minRel, sumRel, countRel))
     val typechecker = IRTypechecker()
     typechecker.checkProgram(Seq(irModule))
-    val compiledModule = new CompiledModule:
-      override def name: Name = "AggregationExample"
-      override def compilerOptions: CompilerOptions = CompilerOptions.default
-      override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-      override def ir: Module = irModule
-
-    compiledModule.setPipeline(pipeline)
+    val compiledModule = CompiledModule(irModule)
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("n", Seq("x"), Seq(Seq(1), Seq(31), Seq(4))))
 

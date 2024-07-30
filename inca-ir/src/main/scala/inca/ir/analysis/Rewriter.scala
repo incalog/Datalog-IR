@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.visitors.IRVisitor
 import inca.ir
-import inca.ir.BaseIR
+import inca.ir.{BaseIR}
 import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
@@ -14,7 +14,7 @@ trait Rewriter(optimizer: (IRAbstractInterpreter) => BaseIROptimizer) extends Ba
 
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
-  override def visitProgram(modules: Seq[ir.Module]): Seq[ir.Module] =
+  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     val aeval = new IRAbstractInterpreter
     modules.foreach(aeval.evalModule)
     val opt = optimizer(aeval)

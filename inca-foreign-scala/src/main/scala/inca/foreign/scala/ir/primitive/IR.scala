@@ -33,7 +33,7 @@ object ScalaInca extends ForeignLanguage:
     case TInt => ScalaType.int
     case TDouble => ScalaType.double
     case TBoolean => ScalaType.bool
-    case TData(RefByName(name)) => ScalaType(cleanName(name))
+    case TData(ref) => ScalaType(cleanName(ref.name))
     case TSet(sty) => ScalaType(s"Set[${compileType(sty).name}]")
     case TTuple(Seq(ty)) => compileType(ty)
     case TTuple(ty +: tys) => ScalaType(s"(${(ty +: tys).map(compileType.andThen(_.name)).mkString(", ")})")
@@ -113,7 +113,7 @@ case class ScalaMonoAggregationOperator(name: Name,
 
 
 case class ScalaDefnModuleEntry(name: Name, code: String) extends ForeignModuleEntry:
-  def withExtendedName(suffix: String): ScalaDefnModuleEntry = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): ScalaDefnModuleEntry = this.copy(name = Name(name))
   override val lang: ScalaInca.type = ScalaInca
   override def toString: String = code
 

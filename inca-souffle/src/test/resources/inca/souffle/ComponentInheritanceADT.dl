@@ -1,0 +1,14 @@
+.comp Component {
+    .comp InnerComponent {
+        .type Nat = Zero {  } | Succ { pred: Nat }
+    }
+
+    .init innerComp = InnerComponent
+}
+
+.init comp = Component
+
+.decl nats(n: comp.innerComp.Nat)
+nats(n) :- n = $comp.innerComp.Succ($comp.innerComp.Zero()).
+
+.output nats

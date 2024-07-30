@@ -1,0 +1,17 @@
+.decl R(X: number)
+R(42).
+
+.comp Configuration {
+    .decl MagicNumber(X: number)
+    MagicNumber(41).
+    MagicNumber(X) :- R(X).
+}
+
+.init config1 = Configuration
+.init config2 = Configuration
+
+.decl Q(x: number)
+Q(x) :- config1.MagicNumber(x).
+
+//.output config1.MagicNumber
+.output config2.MagicNumber

@@ -22,6 +22,7 @@ import org.jfree.chart.title.LegendTitle
 import org.jfree.chart.ui.{RectangleAnchor, RectangleEdge, VerticalAlignment}
 
 import java.awt.Color
+import scala.collection.immutable.Seq
 
 // plotting
 import breeze.linalg._
@@ -64,10 +65,12 @@ object SetUnion:
   )
 
 
-  def createCompiled(mod: Module, optimizeSets: Boolean): CompiledModule = new CompiledModule:
+  def createCompiled(mod: Module, optimizeSets: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = mod.name
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
+    override def irModules: Seq[Module] = Seq(mod)
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val isClosedWorld = true
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
@@ -178,7 +181,7 @@ object SetUnion:
     val rows = for (i <- Range(0, souffleRes.size)) yield {
         IndexedSeq(souffleRes(i)._1, souffleRes(i)._2, viatraRes(i)._2, ascentRes(i)._2)
     }
-    //FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
+    FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
 
     plotResult(Seq(
       "Souffle" -> souffleRes,

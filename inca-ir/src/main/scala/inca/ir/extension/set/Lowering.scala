@@ -118,12 +118,13 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module
     setTypeConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeSetDefinitions
     m.copy(contents = m.contents ++ defs)
+  }
 
   private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires typed IR, type missing in $t")).ty match
     case TSet(memTy) => visitType(memTy)

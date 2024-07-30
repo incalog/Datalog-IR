@@ -1,6 +1,6 @@
 package inca.frontend.oodl.executor.unittests
 
-import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateScala, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, GenerateScala, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.Relation
 import inca.util.FileUtil
@@ -16,7 +16,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   test("Case class") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(15)(res.entries.head)
@@ -25,7 +25,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
   test("Transitive closure") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
     val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLModule.pipeline)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head

@@ -10,14 +10,14 @@ import scala.collection.mutable.ListBuffer
 trait EdbDataModuleEntry extends ModuleEntry
 
 case class EdbNodeDefinition(name: Name, sup: Option[Name] = None) extends EdbDataModuleEntry:
-  def withExtendedName(suffix: String): EdbNodeDefinition = this.copy(name = Name(name.name + suffix))
+  def withName(name: String): EdbNodeDefinition = this.copy(name = Name(name))
   override def toString: String = s"""edb node $name""" + sup.map(" extends " + _).getOrElse("")
 object EdbNodeDefinition:
   def apply(name: Name, sup: Name): EdbNodeDefinition = new EdbNodeDefinition(name, Some(sup))
 
 case class EdbFieldDefinition(node: Name, field: Name, ty: EdbType) extends EdbDataModuleEntry:
   override val name: Name = edbFieldName(node, field)
-  def withExtendedName(suffix: String): EdbFieldDefinition = this.copy(field = Name(field.name + suffix))
+  def withName(name: String): EdbFieldDefinition = this.copy(field = Name(name))
   override def toString: String = s"""edb field $node.$field: $ty"""
 def edbFieldName(node: Name, field: Name): Name = Name(node.name + ":" + field.name)
 

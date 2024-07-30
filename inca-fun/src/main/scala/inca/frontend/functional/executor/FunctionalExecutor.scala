@@ -2,14 +2,14 @@ package inca.frontend.functional.executor
 
 import inca.ir
 import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions, GenerateIR}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions, GenerateIR}
 import inca.frontend.functional.syntax.*
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
 
 import scala.jdk.CollectionConverters.*
 
 class FunctionalExecutor(val exec: IRExecutor):
-  case class Loaded(engine: exec.Engine, compiled: CompiledFunctionalModule):
+  case class Loaded(engine: exec.Engine, compiled: CompiledFunctionalUnit):
     val logAllRelations: Boolean = compiled.compilerOptions.funLogging.verboseOutput
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
@@ -26,13 +26,13 @@ class FunctionalExecutor(val exec: IRExecutor):
       output(main, args)
     }
 
-  def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
+  def loadFunction(compiled: CompiledFunctionalUnit): Loaded = {
     // TODO: use correct DataModel
     val engine = exec.instantiate(compiled)
     Loaded(engine, compiled)
   }
 
-  def compileFunction(code: String, compilerOptions: FunctionalCompilerOptions): CompiledFunctionalModule = {
+  def compileFunction(code: String, compilerOptions: FunctionalCompilerOptions): CompiledFunctionalUnit = {
     val module = Parser.parseModule(code)
-    CompiledFunctionalModule(module, compilerOptions)
+    CompiledFunctionalUnit(module, compilerOptions)
   }

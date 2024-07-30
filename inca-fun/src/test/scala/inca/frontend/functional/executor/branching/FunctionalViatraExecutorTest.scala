@@ -1,6 +1,6 @@
 package inca.frontend.functional.executor.branching
 
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.{Relation, Relation2, UnitRelation}
 import inca.util.FileUtil
@@ -15,7 +15,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Branching") {
     val code = FileUtil.readFileFromResource("functional/branching/branching.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     //println(loaded.engine.measure(UnitRelation("main")))
     //println(loaded.engine.readAll().map(_.size).sum)
@@ -30,7 +30,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("Branching 2") {
     val code = FileUtil.readFileFromResource("functional/branching/branching2.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     //println(loaded.engine.measure(UnitRelation("main")))
     //println(loaded.engine.readAll().map(_.size).sum)
