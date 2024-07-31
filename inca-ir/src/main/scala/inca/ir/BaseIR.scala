@@ -65,35 +65,35 @@ object Import:
 
 // relation specific module system
 
-case class RequireRelation(name: Name, params: Seq[Param]) extends RelationReference, Require:
+case class RequireRelation(name: Name, params: Seq[Param]) extends RelationBase, Require:
   override def toString: String = s"require $name(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry = this.copy(name=Name(name))
 
-case class RequireExtensionalRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationReference, Require:
+case class RequireExtensionalRelation(name: Name, params: Seq[Param]) extends ExtensionalRelationBase, Require:
     override def toString: String = s"require ext $name(${params.mkString(", ")})"
     def withName(name: String): ModuleEntry = this.copy(name = Name(name))
 
-case class ProvideRelation(exportRef: Ref[RelationReference], params: Seq[Param]) extends RelationReference, Provide[RelationReference]:
+case class ProvideRelation(exportRef: Ref[RelationBase], params: Seq[Param]) extends RelationBase, Provide[RelationBase]:
   override def toString: String = s"provide $exportRef(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[RelationReference](name)
+    val newRef = RefByName[RelationBase](name)
     newRef.target = exportRef.target
     this.copy(exportRef=newRef)
 object ProvideRelation:
   def apply(exportName: Name, params: Seq[Param]): ProvideRelation =
     new ProvideRelation(RefByName(exportName), params)
 
-case class ProvideExtensionalRelation(exportRef: Ref[ExtensionalRelationReference], params: Seq[Param]) extends ExtensionalRelationReference, Provide[ExtensionalRelationReference]:
+case class ProvideExtensionalRelation(exportRef: Ref[ExtensionalRelationBase], params: Seq[Param]) extends ExtensionalRelationBase, Provide[ExtensionalRelationBase]:
   override def toString: String = s"provide ext $exportRef(${params.mkString(", ")})"
   def withName(name: String): ModuleEntry =
-    val newRef = RefByName[ExtensionalRelationReference](name)
+    val newRef = RefByName[ExtensionalRelationBase](name)
     newRef.target = exportRef.target
     this.copy(exportRef = newRef)
 object ProvideExtensionalRelation:
   def apply(exportName: Name, params: Seq[Param]): ProvideExtensionalRelation =
     new ProvideExtensionalRelation(RefByName(exportName), params)
 
-case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationReference], fromParams: Seq[Param]) extends Substitution[RequireRelation, RelationReference]:
+case class RelationSubstitution(to: Ref[RequireRelation], toParams: Seq[Param], from: Ref[RelationBase], fromParams: Seq[Param]) extends Substitution[RequireRelation, RelationBase]:
   override def toString: String = s"$to(${toParams.mkString(", ")}) = ${from.name}(${fromParams.mkString(", ")})"
 object RelationSubstitution:
   def apply(to: Name, toParams: Seq[Param], from: Seq[Name], fromParams: Seq[Param]): RelationSubstitution =
@@ -101,7 +101,7 @@ object RelationSubstitution:
       throw IllegalStateException("Path to a relation must not be empty")
     new RelationSubstitution(RefByName(to), fromParams, RefByQualifiedName(from), toParams)
 
-case class ExtensionalRelationSubstitution(to: Ref[RequireExtensionalRelation], toParams: Seq[Param], from: Ref[ExtensionalRelationReference], fromParams: Seq[Param]) extends Substitution[RequireExtensionalRelation, ExtensionalRelationReference]:
+case class ExtensionalRelationSubstitution(to: Ref[RequireExtensionalRelation], toParams: Seq[Param], from: Ref[ExtensionalRelationBase], fromParams: Seq[Param]) extends Substitution[RequireExtensionalRelation, ExtensionalRelationBase]:
   override def toString: String = s"$to(${toParams.mkString(", ")}) = ext ${from.name}(${fromParams.mkString(", ")})"
 object ExtensionalRelationSubstitution:
   def apply(to: Name, toParams: Seq[Param], from: Seq[Name], fromParams: Seq[Param]): ExtensionalRelationSubstitution =
@@ -164,7 +164,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationReference:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -177,7 +177,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationReference:
+case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationBase:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
   def signature: Seq[Type] = params.map(_.ty)
@@ -210,9 +210,9 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"$t: $ty"
   override def vars: Seq[Var] = t.vars
 
-trait RelationReference extends ModuleEntry
+trait RelationBase extends ModuleEntry
 
-case class Call(ref: Ref[_ <: RelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
+case class Call(ref: Ref[_ <: RelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"$negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
@@ -233,9 +233,9 @@ object NegCall:
       Call(RefByQualifiedName(qname), args, true)
 
 
-trait ExtensionalRelationReference extends ModuleEntry
+trait ExtensionalRelationBase extends ModuleEntry
 
-case class ExtensionalCall(ref: Ref[_ <: ExtensionalRelationReference], args: Seq[Arg], neg: Boolean) extends Atom:
+case class ExtensionalCall(ref: Ref[_ <: ExtensionalRelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString

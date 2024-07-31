@@ -12,7 +12,7 @@ import inca.viatra.backend.Executor
 
 import scala.io.Source
 
-// TODO: Links, but not yet executable since Souffle is missing features
+// TODO: Links, but not yet executable since GenerateIR for Souffle is missing features
 object ContextInsensitive:
   private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "context-insensitive.dl"): Unit =
     val baseDir = "doop"

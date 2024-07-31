@@ -1,51 +1,34 @@
 # IncA
-## Overview
-IncA is a program analysis framework. The framework provides two DSLs for defining program analyses and a runtime system that evaluates program analyses incrementally to achieve the performance that is needed for real-time feedback in IDEs. When code gets changed, the IncA runtime system incrementally updates analysis results instead of the repeated recomputation from scratch.
 
+## Overview
+<div style="text-align: left"><img src="architecture.png"  width="720"></div>
+
+IncA is a compiler framework for Datalog that can be used to support any Datalog frontend language and to target any Datalog backend.
+The centerpiece of IncA is a typed multi-level Datalog IR that supports IR extensions and guarantees executability. 
+Existing Datalog systems can provide a compiler frontend that translates their Datalog dialect to the extended IR. 
+The IR is then progressively lowered toward core Datalog, allowing optimizations at each level.
 
 ## Getting Started
 To build, install the [sbt](https://www.scala-sbt.org) build tool and run `sbt compile` from the root directory of the project.
 
 To execute the provided tests run `sbt test` from the root directory.
 
-### Architecture
-The IncA project has the following architecture:
-<div style="text-align: left"><img src="pipeline.png"  width="720"></div>
+## Frontends
+IncA supports multiple frontends that are translated to a common Datalog multi-level IR.
+All frontends ship with their own parser and thus do not require additional setup.
 
-The frontends, backend and runtime can be found in the respective packages:
-- `inca.frontend`
-- `inca.backend`
-- `inca.runtime`
+- [**bddbddb**](https://bddbddb.sourceforge.net): Untested.
+- [**Soufflé**](https://souffle-lang.github.io): Stable, limited feature set.
+- [**Functional IncA**](https://www.pl.informatik.uni-mainz.de/files/2022/06/functional-datalog.pdf): Stable.
+- [**OODL**](): Experimental.
+- **Datalog**: Stable, limited feature set.
 
-### Frontend
-IncA has two different DSLs for defining program analyses:
-- A functional frontend inspired by functional programming
-- A constraint-based frontend inspired by logic programming
+## Backends
+To use a backend, the corresponding backend needs to be installed first.
 
-We translate the two frontends to a Datalog intermediate representation (`inca.backend.ir`). The compiler of the functional frontend can be found in the package `inca.frontend.functional`, whereas `inca.frontend.constraint` contains the compiler for the constraint-based frontend.
-
-The test package `inca.examples.functional` contains example programs for the functional frontend whereas `inca.examples.constraint` provides examples using the constraint-based frontend.
-
-To execute a program of the functional frontend, we provide a `FunctionalExecutor` found in the package `inca.frontend.functional.executor`. The file `inca.frontend.integration.FunctionsTest` shows how to use the `FunctionalExecutor`.
-
-To execute a program of the constraint-based frontend we provide a `ConstraintExecutor` found in the package `inca.frontend.constraint.executor`. The usages of `ConstraintExecutor` can be seen in:
-- `inca.frontend.examples.constraint.BinaryTreeExamples`
-- `inca.frontend.examples.constraint.GraphExamples`.
-
-### Backend
-The backend consists of the following:
-- a Datalog dialect used as a intermediate representation (`inca.backend.ir`)
-- optimizations of the IR (`inca.backend.optimize`)
-- transformations of the IR necessary when compiling the functional frontend (`inca.backend.transform`)
-- analysis of the IR (`inca.backend.analyze`)
-
-### Runtime
-The runtime of IncA allows to evaluate program analyses incrementally. We store the structure of the subject program (program we run program analyses against) in a database (`inca.runtime.db.Database`). After changing the subject program we need to notify the database about the changes. We use the structural diffing algorithm [truediff](https://gitlab.rlp.net/plmz/truediff) to detect changes in the subject program. These changes are described by an edit script. We process the edit script to precisely notify the Database how the subject program changed. The Database then notifies [ViatraQuery](https://wiki.eclipse.org/VIATRA/Query) to propagate the changes accordingly to update the analysis result.
-
-### Generate Soufflé
-Additionally, IncA analyses written in the functional frontend can be compiled to the Datalog dialect of [Soufflé](https://souffle-lang.github.io/). This allows us to utilize the efficient and scalable Datalog solver provided by Soufflé. The compiler that targets Soufflé can be found at `inca.backend.souffle.CompiledFunctionalToSouffleModule` in the sub-project `souffle-frontend`. The test class `inca.backend.souffle.TestGenerateSouffle` in the sub-project `souffle-frontend` shows an example to use the compiler that generate a Soufflé
-program based on an analysis written in the functional frontend.
-
+- [**Viatra**](https://eclipse.dev/viatra/): No additonal setup required.
+- [**Soufflé**](https://souffle-lang.github.io): Install the latest [Soufflé command line tools](https://souffle-lang.github.io/install).
+- [**Ascent**](https://s-arash.github.io/ascent/): Install the latest [Rust toolchain](https://www.rust-lang.org/tools/install).
 
 ## Publications
 IncA is a research project, and its various features have been documented in the following publications:
@@ -74,4 +57,4 @@ In *Proceedings of International Workshop on Formal Techniques for Java-like Pro
 In *Proceedings of International Conference on Automated Software Engineering (ASE)*, 2016. [[pdf]](https://szabta89.github.io/publications/inca-ase.pdf)
 
 ## Project Team
-The IncA project is led by [André Pacak](https://andrepacak.de) and [Sebastian Erdweg](https://www.pl.informatik.uni-mainz.de/erdweg) at the PL research group of [JGU Mainz](https://www.pl.informatik.uni-mainz.de). [Tamas Szabó](https://szabta89.github.io/) and [Gábor Bergmann](https://inf.mit.bme.hu/en/members/bergmann) have significantly contributed to the development of IncA.
+The IncA project is led by [David Klopp](https://www.pl.informatik.uni-mainz.de/team/), [André Pacak](https://andrepacak.de) and [Sebastian Erdweg](https://www.pl.informatik.uni-mainz.de/erdweg) at the PL research group of [JGU Mainz](https://www.pl.informatik.uni-mainz.de). [Tamas Szabó](https://szabta89.github.io/) and [Gábor Bergmann](https://inf.mit.bme.hu/en/members/bergmann) have significantly contributed to the development of IncA.
