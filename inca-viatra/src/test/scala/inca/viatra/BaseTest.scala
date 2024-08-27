@@ -21,7 +21,7 @@ import inca.util.compileroptions.CompilerOptions
 class BaseTest extends AnyFunSuiteLike:
 
   /*test("Failing body") {
-    var mod = Module("Test", Language(analysis.IR), Seq(
+    var mod = Module("Test", Language(arithmetic.IR), Seq(
       Relation("main", Seq(Param("x", TInt)), Seq(
         Body(
           Seq(
