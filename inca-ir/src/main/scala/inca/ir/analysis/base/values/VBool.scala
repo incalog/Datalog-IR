@@ -16,6 +16,7 @@ case class VBool(b: Topped[Boolean]):
     case _ => VBool.Top
 
 object VBool:
+  def apply(b: Boolean): VBool = VBool(Topped.Actual(b))
   val False: VBool = VBool(Topped.Actual(false))
   val True: VBool = VBool(Topped.Actual(true))
   val Top: VBool = VBool(Topped.Top)

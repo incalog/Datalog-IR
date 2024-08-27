@@ -3,9 +3,8 @@ package inca.frontend.functional.compile
 import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
-import inca.ir.analysis.{IRAbstractInterpreter, Rewriter}
+import inca.ir.analysis.{IRAbstractInterpreter}
 import inca.ir.extension.*
-import inca.ir.extension.bool.Optimizer
 import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize
 import inca.ir.optimize.BaseIROptimizer
@@ -116,8 +115,7 @@ object CompiledFunctionalUnit:
     () => new foreign.Lowering {}
   )
 
-  class BoolIROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis)
-    with bool.Optimizer
+  //class BoolIROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis)
 
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new typeparam.Lowering {},

@@ -145,9 +145,10 @@ trait CompiledUnit:
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
+    println(p)
     aeval.evalProgram(p)
-    //println("Eval module: ")
-    //println(p)
+    println("Eval module: ")
+    println(p)
     val opt = new IROptimizer(aeval)
     val po = opt.visitProgram(p)
     val checker = typechecker

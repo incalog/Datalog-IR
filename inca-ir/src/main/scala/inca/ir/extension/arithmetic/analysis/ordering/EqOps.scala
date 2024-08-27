@@ -6,7 +6,7 @@ import inca.ir.analysis.base.values.VBool
 import inca.ir.extension.arithmetic.analysis.values.{DoubleV, IntV}
 import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
-import sturdy.values.ordering.EqOps
+import sturdy.values.ordering.{EqOps, LiftedOrderingOps}
 
 trait EqOps(using boolOps: VBoolOps) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): VBool = (v1, v2) match

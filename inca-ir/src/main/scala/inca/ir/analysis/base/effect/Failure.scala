@@ -17,5 +17,7 @@ enum Failure extends FailureKind:
   case EquiJoinError
   case EmptyVariable
   case MaybeEquiJoinError
+  case MaybeFilterError
+  case RenameError
 
 given IRFailure: Finite[Failure] with {}

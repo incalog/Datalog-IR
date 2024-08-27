@@ -11,3 +11,5 @@ trait RelationOps[V, RV, B, Var]:
   def union(rel1: RV, rel2: RV): RV
   def antiJoin(rel1: RV, rel2: RV): RV
   def natJoin(rel1: RV, rel2: RV): RV
+  def filter(rel: RV, f: Vector[V] => B): RV
+  def rename(rel: RV, cols: Vector[Var], newCols: Vector[Var]): RV

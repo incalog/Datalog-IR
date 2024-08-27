@@ -13,9 +13,9 @@ case class RelationValue(columns: Vector[String], values: Vector[Value]):
   def containsColumns(cols: Vector[String]): Boolean =
     columns.forall(s => cols.contains(s))
 
-given FiniteRV: Finite[RelationValue] with {}
+class FiniteRV extends Finite[RelationValue]
 
-given JoinRV(using j: Join[Value]): Join[RelationValue] with
+class JoinRV(using j: Join[Value]) extends Join[RelationValue]:
   override def apply(v1: RelationValue, v2: RelationValue): MaybeChanged[RelationValue] =
     if v1 == v2 then
       Unchanged(v1)

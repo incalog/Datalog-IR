@@ -2,7 +2,7 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.effect.Failure.{ AntiJoinError, UnionError, EquiJoinError, EmptyVariable, MaybeEquiJoinError }
+import inca.ir.analysis.base.effect.Failure.{ AntiJoinError, UnionError, EquiJoinError, EmptyVariable, MaybeEquiJoinError, MaybeFilterError, RenameError }
 import inca.ir.extension.arithmetic.analysis.ordering.EqOps
 import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
@@ -143,3 +143,23 @@ class RelationValueOps(using effects: EffectStack, j: Join[RelationValue], eqOps
         VBool.Top
       else
         VBool.True
+
+  override def filter(rel: RelationValue, f: Vector[Value] => VBool): RelationValue = f(rel.values) match
+    case VBool.True => RelationValue(rel.columns, Vector())
+    case VBool.False => rel
+    case VBool.Top =>
+      effects.joinWithFailure(RelationValue(rel.columns, rel.columns.map(_ => Top))) {
+        failure(MaybeFilterError, s"filtering $rel with $f may result in an empty Table")
+      }
+
+  override def rename(rel: RelationValue, cols: Vector[String], newCols: Vector[String]): RelationValue =
+    if rel.hasNoColumns then
+      empty
+    else if cols.length == newCols.length then
+      if cols.forall(s => rel.columns.contains(s)) then
+        val replacedCols = rel.columns.map(s => if cols.contains(s) then newCols(cols.indexOf(s)) else s)
+        RelationValue(replacedCols, rel.values)
+      else
+        failure(RenameError, s"$rel didn't have columns $cols")
+    else
+      failure(RenameError, s"${rel.columns} and $cols have not the same length")

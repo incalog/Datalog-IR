@@ -48,7 +48,27 @@ trait BaseAbstractInterpreter:
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[RelationValue]]
   type Fixed = FixIn => FixOut[RelationValue]
 
-  inline def enterEvalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg])(using rec: Fixed): RelationValue = ???
+  inline def enterEvalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg])(using rec: Fixed): RelationValue =
+    rec(FixIn.EnterCall(ref, args)) match {
+      case FixOut.ExitCall(rv) =>
+        val params = ref.target.get match
+          case Relation(_, p, _) => p
+          case ExtensionalRelation(_, p) => p
+
+        val bindingArgs = params.zip(args).filter((_, arg) => arg match
+          case TermArg(a) => !a.mode.isBound
+          case _ => false
+        )
+        val projectedRV = relationOps.projection(rv, bindingArgs.map((param, _) => param.name.name).toVector)
+        val renamedRV = relationOps.rename(projectedRV,
+          bindingArgs.map((param, _) => param.name.name).toVector,
+          bindingArgs.map((_, a) => a match
+            case TermArg(t) => t match
+              case Var(x) => x.name.name
+          ).toVector)
+        renamedRV
+      //TODO Support for other binding terms?
+    }
 
 
   // TermResult
@@ -76,6 +96,14 @@ trait BaseAbstractInterpreter:
           relationOps.scan(value)(identity).zip(computationResult).map((vec, cr) => vec.appended(cr))
         )
 
+    def combineWith(other: TermResult, f: (Value, Value) => Value): TermResult =
+      val newValue = relationOps.natJoin(this.asTable("_$TermResult1"), other.asTable("_$TermResult2"))
+      val ix1 = relationOps.getCols(newValue).indexOf("_$TermResult1")
+      val ix2 = relationOps.getCols(newValue).indexOf("_$TermResult2")
+      val newComputationResult = relationOps.scan(newValue)(vec => f(vec(ix1), vec(ix2)))
+      val newPurity = boolOps.and(this.pure, other.pure)
+      TermResult(relationOps.projection(newValue, relationOps.getCols(newValue).filter(s => s != "_$TermResult1" && s != "_$TermResult2")), newComputationResult, newPurity)
+
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
     override type Result = TermResult
@@ -83,23 +111,32 @@ trait BaseAbstractInterpreter:
   // Ops & Helper
 
   def relationOps: RelationValueOps
+
   def boolOps: VBoolOps
+  //given VBoolOps = boolOps
+
   def eqOps: BaseEqOps
+  //given BaseEqOps = eqOps
 
   def failure: Failure
+  //given Failure = failure
+
+  def joinV: Join[Value]
+  //given Join[Value] = joinV
+
+  def joinRV: Join[RelationValue]
+  //given Join[RelationValue] = joinRV
+
   def effects: EffectStack
+  //given EffectStack = effects
+
+  private val withJoinRV: WithJoin[RelationValue] = MakeJoined(using joinRV, effects)
+
   def IDB: Store[AllocationSiteAddr, RelationValue, WithJoin]
   def supplementaryTable: SupplementaryTable
 
-  def joinV: Join[Value]
-  def joinRV: Join[RelationValue]
-
-  given Join[Value] = joinV
-  given Join[RelationValue] = joinRV
-  given EffectStack = effects
-
   // Evaluation
-  private lazy val fixed: Fixed = fixpoint {
+  private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.EnterCall(ref, args) => FixOut.ExitCall(evalCall(ref, args))
   }
 
@@ -129,7 +166,7 @@ trait BaseAbstractInterpreter:
   protected def insertIDB(rName: String, rv: RelationValue): Unit =
     val oldRVOption = IDB.read(AllocationSiteAddr.Variable(rName)(true))
     IDB.free(AllocationSiteAddr.Variable(rName)(true))
-    val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))
+    val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))(using withJoinRV)
     IDB.write(AllocationSiteAddr.Variable(rName)(true), result)
 
   def evalRelation(r: Relation, initSuppTable: RelationValue = relationOps.empty)(using Fixed): RelationValue =
@@ -138,8 +175,8 @@ trait BaseAbstractInterpreter:
         merge(initSuppTable, false)
         evalBody(b)
         val res = relationOps.projection(supplementaryTable.getTable, r.params.map(p => p.name.name).toVector)
-        val oldIDB = IDB.readOrElse(AllocationSiteAddr.Variable(r.name)(true),
-          relationOps.makeRelation(r.params.map(p => p.name.name).toVector, Seq(Vector())))
+        val rel = relationOps.makeRelation(r.params.map(p => p.name.name).toVector, Seq(Vector()))
+        val oldIDB = IDB.readOrElse(AllocationSiteAddr.Variable(r.name)(true), rel)(using withJoinRV)
         val subsetRes = relationOps.subset(oldIDB, res)
         if subsetRes != VBool.True then
           insertIDB(r.name, res)
@@ -174,7 +211,7 @@ trait BaseAbstractInterpreter:
     val argRel = evalArgs(rel.params, args)
     val res = evalRelation(rel, argRel)
     val varRead = IDB.read(AllocationSiteAddr.Variable(rel.name)(true))
-    relationOps.natJoin(varRead.getOrElse(relationOps.empty), argRel)
+    relationOps.natJoin(varRead.getOrElse(relationOps.empty)(using withJoinRV), argRel)
 
   final private def evalExtensionalCall(rel: ExtensionalRelation, args: Seq[Arg])(using Fixed): RelationValue =
     val vals = rel.params.zip(args).map {
@@ -228,7 +265,7 @@ trait BaseAbstractInterpreter:
   def assign(assignee: Term, tr: TermResult): Unit = assignee match
     case Var(x) => merge(tr.asTable(x.name.name), false)
     case Cast(t, ty) => assign(t, tr)
-  
+
   final def evalEquals(lhs: Term, rhs: Term)(using Fixed): Unit = (rhs.mode, lhs.mode) match
     case (_, Mode.Binding) => assign(rhs, evalTerm(lhs))
     case (Mode.Binding, _) => assign(lhs, evalTerm(rhs))
