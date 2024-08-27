@@ -266,9 +266,9 @@ trait BaseAbstractInterpreter:
     case Var(x) => merge(tr.asTable(x.name.name), false)
     case Cast(t, ty) => assign(t, tr)
 
-  final def evalEquals(lhs: Term, rhs: Term)(using Fixed): Unit = (rhs.mode, lhs.mode) match
-    case (_, Mode.Binding) => assign(rhs, evalTerm(lhs))
+  final def evalEquals(lhs: Term, rhs: Term)(using Fixed): Unit = (lhs.mode, rhs.mode) match
     case (Mode.Binding, _) => assign(lhs, evalTerm(rhs))
+    case (_, Mode.Binding) => assign(rhs, evalTerm(lhs))
     case _ => evalCompare(lhs, rhs, false)
 
   final def evalTerm(t: Term)(using Fixed): TermResult =
