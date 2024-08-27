@@ -26,6 +26,7 @@ lazy val inca_ir = (project in file("inca-ir"))
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
     )

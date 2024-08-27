@@ -1,177 +1,71 @@
 package inca.ir.analysis
-import java.lang
-import scala.language.implicitConversions
 
-enum Value:
-  case Top
-  case Int(i: scala.Int)
-  case Bool(b: Boolean)
-  case Double(d: scala.Double)
-  case String(s: Predef.String)
-  case Data(name: Predef.String, args: Seq[Value])
+import inca.ir.extension.arithmetic.analysis as arith
+import inca.ir.analysis.base.effect
+import inca.ir.analysis.base.values.{BaseJoinV, RelationValue, RelationValueOps, VBool, VBoolOps, Value}
+import inca.ir.analysis.base.effect.Failure as IRFailure
+import inca.ir.analysis.base.interpreter.{BaseAbstractInterpreter, FixIn, FixOut, SupplementaryTable}
+import inca.ir.analysis.base.ordering.BaseEqOps
+import sturdy.data.WithJoin
+import sturdy.values.finitely
+import sturdy.effect.EffectStack
+import sturdy.effect.failure.{CollectedFailures, Failure}
+import sturdy.effect.store.{AStoreThreaded, Store}
+import sturdy.fix
+import sturdy.data.finiteUnit
+import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint}
+import sturdy.fix.StackConfig.StackedStates
+import sturdy.values.MaybeChanged.Unchanged
+import sturdy.values.{Changed, Join, MaybeChanged}
+import sturdy.values.booleans.BooleanOps
+import sturdy.values.references.AllocationSiteAddr
+import sturdy.values.references.given_Finite_AllocationSiteAddr
 
-  def join(that: Value): Value = (this, that) match
-    case (Top, _) | (_, Top) => Top
-    case (Int(i1), Int(i2)) if i1 == i2 => this
-    case (Double(d1), Double(d2)) if d1 == d2 => this
-    case (String(s1), String(s2)) if s1 == s2 => this
-    case (Bool(b1), Bool(b2)) if b1 == b2 => this
-    case (Data(name1, args1), Data(name2, args2))
-      if name1 == name2 && args1.size == args2.size => Data(name1, args1.zip(args2).map(_.join(_)))
-    case _ => Top
+// Implicits
+import inca.ir.analysis.base.effect.IRFailure
+import inca.ir.analysis.base.values.{ FiniteRV, JoinRV }
+import inca.ir.analysis.base.interpreter.finiteFixIn
+import inca.ir.analysis.base.interpreter.CombineFixOut
 
-  override def toString: lang.String = this match
-    case Int(i) => i.toString
-    case Double(d) => d.toString
-    case Bool(b) => b.toString
-    //case String(s) => s
-    case Top => "Top"
-    case _ => super.toString
 
-enum VBool:
-  case Top
-  case True
-  case False
-  def join(that: VBool): VBool =
-    if (this == that)
-      this
+class IRJoinV extends Join[Value]
+  with BaseJoinV
+  with arith.values.JoinV:
+
+  override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
+    if v1 == v2 then
+      Unchanged(v1)
     else
-      Top
-
-def value2bool(v: Value): VBool = v match
-  case Value.Bool(true) => VBool.True
-  case Value.Bool(false) => VBool.False
-  case Value.Top => VBool.Top
-  case _ => ???
-
-def bool2Value(b: VBool): Value = b match
-  case VBool.True => Value.Bool(true)
-  case VBool.False => Value.Bool(false)
-  case VBool.Top => Value.Top
-
-class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
-  with BooleanAbstractInterpreter[Value, VBool](value2bool, bool2Value)
-  with ArithmeticAbstractInterpreter[Value, VBool]
-  with DataAbstractInterpreter[Value, VBool]
-  with StringAbstractInterpreter[Value, VBool]
-  with AggregateAbstractInterpreter[Value, VBool]
-  with ForeignAbstractInterpreter[Value, VBool]:
-
-  override def top: Value = Value.Top
-  override def topBool: VBool = VBool.Top
+      Changed(join(v1, v2))
 
 
-  override val boolOps: BooleanOps[VBool] = new BooleanOps[VBool]:
-    import VBool.*
-    override def boolLit(b: Boolean): VBool = if (b) True else False
-    override def and(v1: VBool, v2: VBool): VBool = (v1, v2) match
-      case (True, _) => v2
-      case (_, True) => v1
-      case (False, _) => False
-      case (_, False) => False
-      case _ => Top
-    override def or(v1: VBool, v2: VBool): VBool = (v1, v2) match
-      case (True, _) => True
-      case (_, True) => True
-      case (False, _) => v2
-      case (_, False) => v1
-      case _ => Top
-    override def not(v: VBool): VBool = v match
-      case Top => Top
-      case True => False
-      case False => True
+class IREqOps(using boolOps: VBoolOps) extends BaseEqOps
+  with arith.ordering.EqOps
 
-  override val eqOps: EqOps[Value, VBool] = new EqOps[Value, VBool]:
-    override def equ(v1: Value, v2: Value): VBool = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 == i2)
-      case (Value.Double(d1), Value.Double(d2)) => boolOps.boolLit(d1 == d2)
-      case _ => VBool.Top
-    override def nequ(v1: Value, v2: Value): VBool = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 != i2)
-      case (Value.Double(d1), Value.Double(d2)) => boolOps.boolLit(d1 != d2)
-      case _ => VBool.Top
 
-  override val intOps: IntegerOps[Int, Value] = new IntegerOps[Int, Value]:
-    override def integerLit(i: Int): Value = Value.Int(i)
-    override def add(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 + i2)
-      case _ => Value.Top
-    override def sub(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 - i2)
-      case _ => Value.Top
-    override def mul(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 * i2)
-      case _ => Value.Top
-    override def max(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 max i2)
-      case _ => Value.Top
-    override def min(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 min i2)
-      case _ => Value.Top
-    override def div(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 / i2)
-      case _ => Value.Top
-    override def remainder(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => Value.Int(i1 % i2)
-      case _ => Value.Top
-    override def absolute(v: Value): Value = v match
-      case Value.Int(i) => Value.Int(i.abs)
-      case _ => Value.Top
+class IRAbstractInterpreter extends BaseAbstractInterpreter
+  with arith.interpreter.AbstractInterpreter:
 
-  override val doubleOps: FloatOps[Double, Value] = new FloatOps[Double, Value]:
-    override def floatingLit(f: Double): Value = Value.Double(f)
-    override def randomFloat(): Value = ???
-    override def add(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 + i2)
-      case _ => Value.Top
-    override def sub(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 - i2)
-      case _ => Value.Top
-    override def mul(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 * i2)
-      case _ => Value.Top
-    override def max(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 max i2)
-      case _ => Value.Top
-    override def min(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 min i2)
-      case _ => Value.Top
-    override def div(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.Double(i1), Value.Double(i2)) => Value.Double(i1 / i2)
-      case _ => Value.Top
-    override def absolute(v: Value): Value = v match
-      case Value.Double(i) => Value.Double(i.abs)
-      case _ => Value.Top
+  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[RelationValue]] = new ContextInsensitiveFixpoint[FixIn, FixOut[RelationValue]] {
+    override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[RelationValue]] ?=> Combinator[FixIn, FixOut[RelationValue]] =
+      fix.iter.innermost(StackedStates())
+  }
 
-  override val intOrderingOps: OrderingOps[Value, VBool] = new OrderingOps[Value, VBool]:
-    override def lt(v1: Value, v2: Value): VBool = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 < i2)
-      case _ => VBool.Top
-    override def le(v1: Value, v2: Value): VBool = (v1, v2) match
-      case (Value.Int(i1), Value.Int(i2)) => boolOps.boolLit(i1 <= i2)
-      case _ => VBool.Top
+  override val failure: CollectedFailures[effect.Failure] = new CollectedFailures
+  given Failure = failure
 
-  override val doubleOrderingOps: OrderingOps[Value, VBool] = new OrderingOps[Value, VBool]:
-    override def lt(v1: Value, v2: Value): VBool = VBool.Top
-    override def le(v1: Value, v2: Value): VBool = VBool.Top
+  override val boolOps: VBoolOps = new VBoolOps
+  given VBoolOps = boolOps
 
-  override val stringOps: StringOps[Value] = new StringOps[Value]:
-    override def stringLit(s: String): Value = Value.String(s)
-    override def toString(v: Value): Value = v match
-      case Value.Top => Value.Top
-      case _ => Value.String(v.toString)
-    override def concat(v1: Value, v2: Value): Value = (v1, v2) match
-      case (Value.String(s1), Value.String(s2)) => Value.String(s1 + s2)
-      case _ => Value.Top
+  override val eqOps: BaseEqOps = new IREqOps
+  given BaseEqOps = eqOps
 
-  override val dataOps: DataOps[Value] = new DataOps[Value]:
-    override def construct(name: String, args: Seq[Value]): Value = Value.Data(name, args)
-    override def deconstruct(v: Value, name: String, fail: () => AtomResult)
-                            (success: Seq[Value] => AtomResult): AtomResult = v match
-      case Value.Data(`name`, args) => success(args)
-      case Value.Top =>
-        val afail = fail()
-        val asucc = success(LazyList.continually(top))
-        AtomResult(afail.value.join(asucc.value), afail.pure.join(asucc.pure))
-      case _ => fail()
+  def joinRV: Join[RelationValue] = implicitly
+  override val joinV: Join[Value] = new IRJoinV
+  //given Join[Value] = joinV
 
+  override val relationOps: RelationValueOps = new RelationValueOps
+
+  override val supplementaryTable: SupplementaryTable = new SupplementaryTable
+  override val IDB: Store[AllocationSiteAddr, RelationValue, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RelationValue](Map())
+  override val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)

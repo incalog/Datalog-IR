@@ -64,7 +64,7 @@ object GeneratePSystem:
 
     // Do not change this order
     var lowerings: List[() => BaseIRVisitor] = List(
-      () => new arithmetic.ScalaLowering {}, // lower arithmetic
+      () => new arithmetic.ScalaLowering {}, // lower analysis
       () => new string.ScalaLowering {}, // lower strings
       () => new data.ScalaLowering {}, // lower data
       () => new BlockLowering {}, // lower reintroduced blocks

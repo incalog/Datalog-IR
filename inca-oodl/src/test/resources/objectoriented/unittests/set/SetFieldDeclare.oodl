@@ -3,7 +3,7 @@ module SetTest
 class A {
   var set: Set[Int] = Set(1, 2, 3)
   val other: Set[Int] = Set(2, 4, 6)
-  val third: String = "abc"
+  val third: String = "analysis"
 }
 
 @main def main(): Set[Int] = {

@@ -187,7 +187,7 @@ class SetLoweringTest extends AnyFunSuite {
     lower(mod)
   }*/
 
-  test("Set with arithmetic") {
+  test("Set with analysis") {
     implicit val typechecker: Typechecker = new Typechecker { }
     val mainRelation = Relation("main", Seq(Param("x", TInt)), Seq(
       Body(Seq(
@@ -205,7 +205,7 @@ class SetLoweringTest extends AnyFunSuite {
 
   }
 
-  test("Set with arithmetic 2") {
+  test("Set with analysis 2") {
     implicit val typechecker: Typechecker = new Typechecker {}
     val mainRelation = Relation("main", Seq(Param("x", TDemand(TSet(TInt))), Param("s", TSet(TInt))), Seq(
       Body(Seq(

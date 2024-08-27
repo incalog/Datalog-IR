@@ -1,9 +1,9 @@
 //package inca.ir.extension.demand
 //
 //import inca.ir.*
-//import inca.ir.extension.arithmetic.IntNum
+//import inca.ir.extension.analysis.IntNum
 //import inca.ir.extension.demand.Demand
-//import inca.ir.extension.{arithmetic, demand, not}
+//import inca.ir.extension.{analysis, demand, not}
 //import inca.ir.extension.not.Not
 //import inca.ir.typing.{BaseIRTypechecker, Typechecker}
 //import org.scalatest.funsuite.AnyFunSuiteLike
@@ -13,8 +13,8 @@
 //class AdornmentAnalysisTest extends AnyFunSuiteLike:
 //
 //  def module(relations: Relation*): MultiDict[String, String] =
-//    val typechecker = new BaseIRTypechecker with demand.Typechecker with not.Typechecker with arithmetic.Typechecker {}
-//    val adornment = new AdornmentAnalysis with demand.Visitor with not.Visitor with arithmetic.Visitor {}
+//    val typechecker = new BaseIRTypechecker with demand.Typechecker with not.Typechecker with analysis.Typechecker {}
+//    val adornment = new AdornmentAnalysis with demand.Visitor with not.Visitor with analysis.Visitor {}
 //
 //    val mod = Module("M", BaseIR.language, relations)
 //    try {

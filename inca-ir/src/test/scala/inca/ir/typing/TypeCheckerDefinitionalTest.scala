@@ -1,8 +1,8 @@
 //package inca.ir.typing
 //
 //import inca.ir.*
-//import inca.ir.extension.arithmetic
-//import inca.ir.extension.arithmetic.IntNum
+//import inca.ir.extension.analysis
+//import inca.ir.extension.analysis.IntNum
 //import inca.ir.extension.demand.TDemand
 //import inca.ir.extension.not.Not
 //import inca.ir.typing.TypeCheckerDefinitional

@@ -125,7 +125,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   // Optimize map mono:
   // m@MapMono += (1, 2)
   // ==> m1@arithMono += 2@1
-  // res = m@MapMono.get ==> relation doing aggregation on the arithmetic monos
+  // res = m@MapMono.get ==> relation doing aggregation on the analysis monos
 
   test("Map Mono basic test 1: no write mono"):
     val mainRelation = Relation("main", Seq(Param("p", TMap(TInt, TInt))), Seq(Body(Seq(

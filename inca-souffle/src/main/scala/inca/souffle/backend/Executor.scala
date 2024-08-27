@@ -187,7 +187,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       }
       tupleStrs.mkString("\n")
 
-    // we have strings, arithmetic and data as primitives
+    // we have strings, analysis and data as primitives
     // TODO support data
     private def souffleifyTupleEntry(s: Any): String = s match
       case i: Int => i.toString

@@ -145,7 +145,7 @@ trait CompiledUnit:
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val aeval = new IRAbstractInterpreter
-    p.foreach(aeval.evalModule)
+    aeval.evalProgram(p)
     //println("Eval module: ")
     //println(p)
     val opt = new IROptimizer(aeval)
