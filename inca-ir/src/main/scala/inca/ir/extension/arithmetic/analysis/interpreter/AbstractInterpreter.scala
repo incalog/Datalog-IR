@@ -13,8 +13,8 @@ import sturdy.values.ordering.OrderingOps
 
 // Constant Analysis
 trait ConstantAbstractInterpreter extends AbstractInterpreter:
-  val intOps: IntegerOps[Int, Value] = IntVOps(using failure)
-  val doubleOps: FloatOps[Double, Value] = DoubleVOps(using failure)
+  val intOps: IntegerOps[Int, Value] = IntVOps(using failure, effects)
+  val doubleOps: FloatOps[Double, Value] = DoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, VBool] = IntVOrderingOps()
   val doubleOrderingOps: OrderingOps[Value, VBool] = DoubleVOrderingOps()
 

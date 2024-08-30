@@ -1,7 +1,8 @@
 package inca.ir.analysis
 
 trait RelationOps[V, RV, B, Var]:
-  lazy val empty: RV = makeRelation(Vector(), Seq(Vector()))
+  lazy val unit: RV = makeRelation(Vector(), Seq(Vector()))
+  def empty(cols: Vector[Var]): RV = makeRelation(cols, Seq(Vector()))
   def makeRelation(cols: Vector[Var], vals: Seq[Vector[V]]): RV
   def getCols(rel: RV): Vector[Var]
   def scan[A](rel: RV)(f: Vector[V] => A): Seq[A]

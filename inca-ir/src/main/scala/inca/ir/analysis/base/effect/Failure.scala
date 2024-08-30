@@ -16,6 +16,7 @@ enum Failure extends FailureKind:
   case UnionError
   case EquiJoinError
   case EmptyVariable
+  case MissingImplementation
   case MaybeEquiJoinError
   case MaybeFilterError
   case RenameError

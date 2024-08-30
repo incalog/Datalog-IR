@@ -1,7 +1,7 @@
 package inca.ir.analysis.base.interpreter
 
 import inca.ir.*
-import inca.ir.analysis.base.effect.Failure.{MaybeEmptyCall, ProgramFailure, RefNotFound, EmptyVariable}
+import inca.ir.analysis.base.effect.Failure.{MaybeEmptyCall, ProgramFailure, RefNotFound, EmptyVariable, MissingImplementation}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{RelationValue, RelationValueOps, Top, VBool, VBoolOps, Value}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
@@ -51,30 +51,36 @@ trait BaseAbstractInterpreter:
   inline def enterEvalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg])(using rec: Fixed): RelationValue =
     rec(FixIn.EnterCall(ref, args)) match {
       case FixOut.ExitCall(rv) =>
-        val params = ref.target.get match
-          case Relation(_, p, _) => p
-          case ExtensionalRelation(_, p) => p
+        val params = ref.target match
+          case Some(r: Relation) => r.params
+          case Some(e: ExtensionalRelation) => e.params
+          case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
 
-        val bindingArgs = params.zip(args).filter((_, arg) => arg match
-          case TermArg(a) => !a.mode.isBound
+        val bindingArgs = params.zip(args).filter {
+          case (_, TermArg(a)) => !a.mode.isBound
           case _ => false
-        )
+        }
+
+        val bindingVarNames = bindingArgs.map { case (_, TermArg(t)) => t match
+          case Var(x) => x.name.name
+          case _ => ??? //TODO: Can anything else except for a variable be binding?
+        }
         val projectedRV = relationOps.projection(rv, bindingArgs.map((param, _) => param.name.name).toVector)
         val renamedRV = relationOps.rename(projectedRV,
           bindingArgs.map((param, _) => param.name.name).toVector,
-          bindingArgs.map((_, a) => a match
-            case TermArg(t) => t match
-              case Var(x) => x.name.name
-          ).toVector)
+          bindingVarNames.toVector
+        )
         renamedRV
-      //TODO Support for other binding terms?
     }
 
 
   // TermResult
   case class TermResult(value: RelationValue, computationResult: Seq[Value], pure: VBool) extends AnalysisResult:
-    val result: TermResult = this
     override val akey: TermKey.type = TermKey
+
+    def pureResult: TermResult = TermResult(value, computationResult, VBool.True)
+
+    def withValue(v: RelationValue): TermResult = TermResult(v, computationResult, pure)
 
     def mapResult(f: Value => Value): TermResult =
       TermResult(value, computationResult.map(f), pure)
@@ -135,6 +141,16 @@ trait BaseAbstractInterpreter:
   def IDB: Store[AllocationSiteAddr, RelationValue, WithJoin]
   def supplementaryTable: SupplementaryTable
 
+  // This table is used to patch up evaluated terms after a call
+  var enclosingSupplementaryTable: Option[SupplementaryTable] = None
+  def withEnclosingSupplementaryTable[A](table: SupplementaryTable)(f: => A): A = {
+    val saved = enclosingSupplementaryTable
+    enclosingSupplementaryTable = Some(table)
+    val res = f
+    enclosingSupplementaryTable = saved
+    res
+  }
+
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.EnterCall(ref, args) => FixOut.ExitCall(evalCall(ref, args))
@@ -154,7 +170,7 @@ trait BaseAbstractInterpreter:
       val hasCols = relationOps.getCols(res).nonEmpty
       val hasNoVals = relationOps.scan(res)(identity).map(_.isEmpty).reduce(_ && _)
       if hasCols && hasNoVals then
-        failure(ProgramFailure, s"Program failed, because nothing was returned by $r")
+        failure(ProgramFailure, s"Program will fail!")
     }
 
   def merge(rel: RelationValue, neg: Boolean): Unit =
@@ -169,7 +185,7 @@ trait BaseAbstractInterpreter:
     val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))(using withJoinRV)
     IDB.write(AllocationSiteAddr.Variable(rName)(true), result)
 
-  def evalRelation(r: Relation, initSuppTable: RelationValue = relationOps.empty)(using Fixed): RelationValue =
+  def evalRelation(r: Relation, initSuppTable: RelationValue = relationOps.unit)(using Fixed): RelationValue =
     relationOps.unionFold(r.bodies) { b =>
       supplementaryTable.freshScoped {
         merge(initSuppTable, false)
@@ -199,19 +215,33 @@ trait BaseAbstractInterpreter:
     if success then
       supplementaryTable.getTable
     else
-      relationOps.empty
+      relationOps.unit
 
   def evalAtom(at: Atom)(using Fixed): Unit = at match
     case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
     case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
-    case Call(ref, args, neg) => merge(enterEvalCall(ref, args), neg)
-    case ExtensionalCall(ref, args, neg) => merge(enterEvalCall(ref, args), neg)
+    case Call(ref, args, neg) =>
+      val previousSupplementary = supplementaryTable.copy
+      merge(enterEvalCall(ref, args), neg)
+      val params = ref.target match
+        case Some(r: Relation) => r.params
+        case Some(e: ExtensionalRelation) => e.params
+        case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
+      withEnclosingSupplementaryTable(previousSupplementary)(evalArgs(params, args))
+    case ExtensionalCall(ref, args, neg) =>
+      val previousSupplementary = supplementaryTable.copy
+      merge(enterEvalCall(ref, args), neg)
+      val params = ref.target match
+        case Some(r: Relation) => r.params
+        case Some(e: ExtensionalRelation) => e.params
+        case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
+      withEnclosingSupplementaryTable(previousSupplementary)(evalArgs(params, args))
 
   final private def evalIntensionalCall(rel: Relation, args: Seq[Arg])(using Fixed): RelationValue =
     val argRel = evalArgs(rel.params, args)
     val res = evalRelation(rel, argRel)
     val varRead = IDB.read(AllocationSiteAddr.Variable(rel.name)(true))
-    relationOps.natJoin(varRead.getOrElse(relationOps.empty)(using withJoinRV), argRel)
+    relationOps.natJoin(varRead.getOrElse(relationOps.unit)(using withJoinRV), argRel)
 
   final private def evalExtensionalCall(rel: ExtensionalRelation, args: Seq[Arg])(using Fixed): RelationValue =
     val vals = rel.params.zip(args).map {
@@ -243,16 +273,18 @@ trait BaseAbstractInterpreter:
 
 
   def evalArgs(params: Seq[Param], args: Seq[Arg])(using Fixed): RelationValue =
-    params.zip(args).filter {
+    val boundParams = params.zip(args).filter {
       case (_, TermArg(t)) =>
         val cols = relationOps.getCols(supplementaryTable.getTable)
         cols.containsSlice(t.vars.map(v => v.name.name))
       case (_, WildcardArg()) =>
         false
-    }.map {
+    }
+
+    boundParams.map {
       case (Param(name, _), TermArg(t)) => evalTerm(t).asTable(name.name)
-      case _ => relationOps.empty
-    }.fold(relationOps.empty)(relationOps.natJoin)
+      case _ => relationOps.unit
+    }.fold(relationOps.unit)(relationOps.natJoin)
 
   final private def evalCompare(lhs: Term, rhs: Term, neg: Boolean)(using Fixed): Unit =
     val tr1 = evalTerm(lhs)
@@ -260,11 +292,14 @@ trait BaseAbstractInterpreter:
     val natJoined = relationOps.natJoin(tr1.asTable("_$temporaryResult"), tr2.asTable("_$temporaryResult"))
     merge(relationOps.projection(natJoined, relationOps.getCols(natJoined).filter(s => s != "_$temporaryResult")), true)
 
-  final def evalNotEquals(lhs: Term, rhs: Term)(using Fixed): Unit = evalCompare(lhs, rhs, true)
+  final def evalNotEquals(lhs: Term, rhs: Term)(using Fixed): Unit =
+    evalCompare(lhs, rhs, true)
 
   def assign(assignee: Term, tr: TermResult): Unit = assignee match
-    case Var(x) => merge(tr.asTable(x.name.name), false)
-    case Cast(t, ty) => assign(t, tr)
+    case Var(x) =>
+      merge(tr.asTable(x.name.name), false)
+      assignee.storeAnalysisResult(tr.pureResult)
+    case Cast(t, _) => assign(t, tr)
 
   final def evalEquals(lhs: Term, rhs: Term)(using Fixed): Unit = (lhs.mode, rhs.mode) match
     case (Mode.Binding, _) => assign(lhs, evalTerm(rhs))
@@ -273,15 +308,22 @@ trait BaseAbstractInterpreter:
 
   final def evalTerm(t: Term)(using Fixed): TermResult =
     val r = evalTermExtend(t)
-    t.storeAnalysisResult(r)
+    enclosingSupplementaryTable match
+      case Some(supp) => t.storeAnalysisResult(r.withValue(supp.getTable))
+      case _ => t.storeAnalysisResult(r)
     r
 
   def evalTermExtend(t: Term)(using Fixed): TermResult =
     val currSupTab = supplementaryTable.getTable
     t match
-      case Var(RefByName(x)) if relationOps.getCols(currSupTab).contains(x.name) =>
-        TermResult(currSupTab, relationOps.scan(relationOps.projection(currSupTab, Vector(x.name)))(vec => vec.head), VBool.True)
-      case Var(RefByName(x)) =>
-        failure(EmptyVariable, s"$x was referenced, but is not bound in $currSupTab")
+      case Var(ref) if relationOps.getCols(currSupTab).contains(ref.name.name) =>
+        TermResult(
+          currSupTab,
+          relationOps.scan(relationOps.projection(currSupTab, Vector(ref.name.name)))(vec => vec.head),
+          VBool.True
+        )
+      case Var(ref) =>
+        failure(EmptyVariable, s"$ref was referenced, but is not bound in $currSupTab")
       case Cast(t, ty) => evalTerm(t)
-      case _ => TermResult(relationOps.empty, Seq(), VBool.Top)
+      case _ => failure(MissingImplementation, s"Unknown term: $t")
+      //case _ => TermResult(relationOps.unit, Seq(), VBool.Top)

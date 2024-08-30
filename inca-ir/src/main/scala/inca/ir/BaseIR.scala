@@ -149,9 +149,13 @@ case class TermArg(t: Term) extends Arg:
   override def toString: String = t.toString
 
 // We still need type information on wildcards for lowerings (e.g. Tuple)
-case class WildcardArg() extends Arg with Typeable[TermType]:
+case class WildcardArg() extends Arg with Typeable[TermType] with Analyzable:
   def vars: Seq[Var] = Seq()
-  override def toString: String = "_"
+  override def toString: String =
+    if (typ.isEmpty)
+      s"_" + analysisString
+    else
+      s"_: ${typ.get}" + analysisString
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String =

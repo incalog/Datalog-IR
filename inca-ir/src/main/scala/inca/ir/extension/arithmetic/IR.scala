@@ -10,11 +10,11 @@ case object TDouble extends Type
 
 case class IntNum(value: Int) extends Term:
   override def vars: Seq[Var] = Seq()
-  override def toString: String = value.toString
+  override def toString: String = value.toString + analysisString
 
 case class DoubleNum(value: Double) extends Term:
   override def vars: Seq[Var] = Seq()
-  override def toString: String = value.toString
+  override def toString: String = value.toString + analysisString
 
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def toString: String =

@@ -19,4 +19,6 @@ trait Analyzable:
     if (analysis.isEmpty)
       ""
     else
-      analysis.mkString("{",", ","}")
+      val ansiColorBlue = "\u001b[34m";
+      val colorStop = "\u001b[m"
+      ansiColorBlue + analysis.mkString("{",", ","}") + colorStop

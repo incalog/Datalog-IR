@@ -7,4 +7,5 @@ trait BaseJoinV:
         case _ => Top
 
 trait Value
+object Value
 case object Top extends Value

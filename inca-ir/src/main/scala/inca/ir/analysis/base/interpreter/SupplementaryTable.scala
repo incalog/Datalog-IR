@@ -31,3 +31,8 @@ class SupplementaryTable(using j: Join[RelationValue], w: Widen[RelationValue], 
     this.supTable = st
   override def join: Join[RelationValue] = implicitly
   override def widen: Widen[RelationValue] = implicitly
+  override def copy: SupplementaryTable =
+    val c = new SupplementaryTable(using j, w, failure)
+    c.supTable = supTable
+    c
+    
