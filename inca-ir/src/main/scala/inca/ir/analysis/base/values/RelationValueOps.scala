@@ -18,7 +18,9 @@ class RelationValueOps(using effects: EffectStack, j: Join[RelationValue], eqOps
 
   override def getCols(rel: RelationValue): Vector[String] = rel.columns
 
-  override def scan[A](rel: RelationValue)(f: Vector[Value] => A): Seq[A] = Seq(f(rel.values))
+  def scan[A](rel: RelationValue)(f: Vector[Value] => A): A = f(rel.values)
+
+  def isEmpty[A](rel: RelationValue): Boolean = rel.isEmptyTable
 
   override def unionFold[A](itr: Iterable[A])(f: A => RelationValue): RelationValue = itr.size match
     case 0 => unit

@@ -11,7 +11,7 @@ trait Optimizer extends BaseIROptimizer:
   
   override def visitTerm(term: Term): Seq[Term] =
     if (!term.typ.get.mode.isBinding)
-      (term, termResult(term)) match
+      (term, termResults(term)) match
         // TODO: handle TermResult
         // Preserve cast information
         /*case (Cast(t, ty), Some(IntV(Topped.Actual(i)))) => Seq(Cast(IntNum(i), ty))

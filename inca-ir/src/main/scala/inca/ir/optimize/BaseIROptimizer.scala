@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic.analysis as arith
 trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
   import analysis.{ TermKey, TermResult }
 
-  def termResult(term: Term): Option[TermResult] =
+  def termResults(term: Term): Set[TermResult] =
     term.getAnalysisResult(TermKey)
 
   var params: Set[Ref[Var.Target]] = _

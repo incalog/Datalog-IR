@@ -23,8 +23,9 @@ trait RelationAbstraction[K, V]:
 
 case class RelationValue(columns: Vector[String], values: Vector[Value]) extends RelationAbstraction[String, Value]:
   override def toString: String = columns.map { c =>
-    c -> (if hasValueForColumn(c) then this(c) else "None")
-  }.mkString("{", ",", "}")
+    val v = (if hasValueForColumn(c) then this(c) else "None")
+    s"$c -> $v"
+  }.mkString("{", ", ", "}")
 
 
 
