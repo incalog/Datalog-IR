@@ -21,7 +21,12 @@ object VBool:
   val True: VBool = VBool(Topped.Actual(true))
   val Top: VBool = VBool(Topped.Top)
 
-given JoinVBool: Join[VBool] with
-  override def apply(v1: VBool, v2: VBool): MaybeChanged[VBool] = if v1 == v2 then Unchanged(v1) else Changed(v1.join(v2))
+class JoinVBool extends Join[VBool]:
+  override def apply(v1: VBool, v2: VBool): MaybeChanged[VBool] =
+    val joined = v1.join(v2)
+    if v1 == joined then
+      Unchanged(joined)
+    else
+      Changed(joined)
 
 class VBoolOps(using failure: Failure) extends LiftedBooleanOps[VBool, Topped[Boolean]](_.b, VBool.apply)

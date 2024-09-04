@@ -12,4 +12,3 @@ trait SupplementaryEnvironment[RV, J[_] <: MayJoin[_]] extends Effect:
   }
   def setTable(rv: RV): Unit
   def getTable: RV
-  def copy: SupplementaryEnvironment[RV, J]

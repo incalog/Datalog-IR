@@ -8,7 +8,7 @@ import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.{EqOps, LiftedOrderingOps}
 
-trait EqOps(using boolOps: VBoolOps) extends BaseEqOps:
+trait EqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): VBool = (v1, v2) match
     case (IntV(i1), IntV(i2)) => boolOps.boolLit(i1 == i2)
     case (DoubleV(d1), DoubleV(d2)) => boolOps.boolLit(d1 == d2)

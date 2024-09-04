@@ -1,8 +1,9 @@
 package inca.ir.analysis
 
 import inca.ir.extension.arithmetic.analysis as arith
+import inca.ir.Name
 import inca.ir.analysis.base.effect
-import inca.ir.analysis.base.values.{BaseJoinV, RelationValue, RelationValueOps, VBool, VBoolOps, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, FiniteV, JoinVBool, RelationValue, RelationValueOps, Top, VBool, VBoolOps, Value}
 import inca.ir.analysis.base.effect.Failure as IRFailure
 import inca.ir.analysis.base.interpreter.{BaseAbstractInterpreter, FixIn, FixOut, SupplementaryTable}
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -24,7 +25,7 @@ import sturdy.values.references.given_Finite_AllocationSiteAddr
 // Implicits
 import inca.ir.analysis.base.effect.IRFailure
 import inca.ir.analysis.base.values.{ FiniteRV, JoinRV }
-import inca.ir.analysis.base.interpreter.finiteFixIn
+import inca.ir.analysis.base.interpreter.{ FiniteFixIn, FiniteFixOut }
 import inca.ir.analysis.base.interpreter.CombineFixOut
 
 
@@ -33,39 +34,64 @@ class IRJoinV extends Join[Value]
   with arith.values.JoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-    if v1 == v2 then
-      Unchanged(v1)
+    val joined = join(v1, v2)
+    if v1 == joined then
+      Unchanged(joined)
     else
-      Changed(join(v1, v2))
+      Changed(joined)
 
 
-class IREqOps(using boolOps: VBoolOps) extends BaseEqOps
+class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
   with arith.ordering.EqOps
 
 
-class IRAbstractInterpreter extends BaseAbstractInterpreter
+class IRAbstractInterpreter extends BaseAbstractInterpreter[Name, Value, VBool, RelationValue[Name, Value]]
   with arith.interpreter.ConstantAbstractInterpreter:
+
+  type RV = RelationValue[Name, Value]
 
   override val failure: CollectedFailures[effect.Failure] = new CollectedFailures
 
-  override val boolOps: VBoolOps = new VBoolOps(using failure)
+  override val boolOps: BooleanOps[VBool] = new VBoolOps(using failure)
+  override val boolTop: VBool = VBool.Top
+
   override val eqOps: BaseEqOps = new IREqOps(using boolOps)
 
   override val joinV: Join[Value] = new IRJoinV
-  override val joinRV: Join[RelationValue] = new JoinRV(using joinV)
+  private val finiteV: Finite[Value] = new FiniteV
+  private val widenV: Widen[Value] = finitely(using joinV, finiteV)
+  override val top: Value = Top
 
-  private val finiteRV: Finite[RelationValue] = new FiniteRV
-  private val widenRV: Widen[RelationValue] = finitely(using joinRV, finiteRV)
+  override val joinRV: Join[RV] = new JoinRV(using joinV)
+  private val finiteRV: Finite[RV] = new FiniteRV
+  private val widenRV: Widen[RV] = finitely(using joinRV, finiteRV)
 
-  override val supplementaryTable: SupplementaryTable = new SupplementaryTable(using joinRV, widenRV, failure)
-  override val IDB: Store[AllocationSiteAddr, RelationValue, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RelationValue](Map())(using joinRV, widenRV, implicitly)
-  override val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)
+  override val supplementaryEnv: SupplementaryTable = new SupplementaryTable(using joinRV, widenRV, failure)
+  override val IDB: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())(using joinRV, widenRV, implicitly)
+  override val effects: EffectStack = EffectStack(supplementaryEnv, failure, IDB)
 
-  override val relationOps: RelationValueOps = new RelationValueOps(using effects, joinRV, eqOps, failure)
+  override val relationOps: RelationOps[Name, Value, VBool, RV] = new RelationValueOps(using effects, boolOps, eqOps, failure)
 
-  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[RelationValue]] = new ContextInsensitiveFixpoint[FixIn, FixOut[RelationValue]] {
-    override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[RelationValue]] ?=> Combinator[FixIn, FixOut[RelationValue]] =
-      given Finite[RelationValue] = finiteRV
-      given Widen[RelationValue] = widenRV
-      fix.iter.innermost(StackedStates())
+  // TODO: Use context sensitive fixpoint combinator
+  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, VBool, RV]] = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, VBool, RV]] {
+    override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, VBool, RV]] ?=> Combinator[FixIn, FixOut[Value, VBool, RV]] =
+      //given Join[RV] = joinRV
+      //given Finite[RV] = finiteRV
+      //given Widen[RV] = widenRV
+      //given Join[Value] = joinV
+      given Finite[Value] = finiteV
+      given Widen[Value] = widenV
+      given Join[VBool] = new JoinVBool
+      fix.filter(_.isLoop, fix.iter.innermost(StackedStates()))
   }
+
+  /*val observedConfig = config.withObservers(Seq())
+  override val fixpoint: fix.ContextualFixpoint[FixIn, FixOut[RV]] = new fix.ContextualFixpoint {
+    override type Ctx = observedConfig.ctx.Ctx
+    val (contextPreparation, sensitivity) = observedConfig.ctx.make[RV]
+    import observedConfig.ctx.finiteCtx
+    override protected def contextFree = phi =>
+      fix.log(controlEventLogger(Instance.this, effectStack, except), contextPreparation(phi))
+    override protected def context: Sensitivity[FixIn, Ctx] = sensitivity
+    override protected def contextSensitive = observedConfig.fix.get
+  }*/

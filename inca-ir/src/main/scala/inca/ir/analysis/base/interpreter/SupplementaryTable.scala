@@ -1,5 +1,6 @@
 package inca.ir.analysis.base.interpreter
 
+import inca.ir.Name
 import inca.ir.analysis.SupplementaryEnvironment
 import inca.ir.analysis.base.values.{RelationValue, Value}
 import sturdy.data.{MayJoin, WithJoin}
@@ -8,12 +9,12 @@ import sturdy.effect.failure.Failure
 import sturdy.values.{Join, Widen}
 
 
-class SupplementaryTable(using j: Join[RelationValue], w: Widen[RelationValue], failure: Failure)
-  extends SupplementaryEnvironment[RelationValue, WithJoin]:
+class SupplementaryTable(using j: Join[RelationValue[Name, Value]], w: Widen[RelationValue[Name, Value]], failure: Failure)
+  extends SupplementaryEnvironment[RelationValue[Name, Value], WithJoin]:
 
-  override type State = RelationValue
+  override type State = RelationValue[Name, Value]
 
-  protected var supTable: RelationValue = RelationValue(Vector(), Vector())
+  protected var supTable: RelationValue[Name, Value] = RelationValue(Seq(), Seq(Seq()))
 
   override def scoped[A](f: => A): A =
     val snapshot = supTable
@@ -21,18 +22,14 @@ class SupplementaryTable(using j: Join[RelationValue], w: Widen[RelationValue], 
       supTable = snapshot
     }
   override def clear(): Unit =
-    supTable = RelationValue(Vector(), Vector())
-  override def setTable(rv: RelationValue): Unit =
+    supTable = RelationValue(Seq(), Seq(Seq()))
+  override def setTable(rv: RelationValue[Name, Value]): Unit =
     supTable = rv
-  override def getTable: RelationValue = supTable
-  override def getState: RelationValue = supTable
+  override def getTable: RelationValue[Name, Value] = supTable
+  override def getState: RelationValue[Name, Value] = supTable
 
-  override def setState(st: RelationValue): Unit =
+  override def setState(st: RelationValue[Name, Value]): Unit =
     this.supTable = st
-  override def join: Join[RelationValue] = implicitly
-  override def widen: Widen[RelationValue] = implicitly
-  override def copy: SupplementaryTable =
-    val c = new SupplementaryTable(using j, w, failure)
-    c.supTable = supTable
-    c
+  override def join: Join[RelationValue[Name, Value]] = implicitly
+  override def widen: Widen[RelationValue[Name, Value]] = implicitly
     

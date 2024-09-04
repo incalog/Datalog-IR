@@ -1,10 +1,10 @@
 package inca.ir.analysis.base.interpreter
 
-import inca.ir.*
-import inca.ir.analysis.base.effect.Failure.{MaybeEmptyCall, ProgramFailure, RefNotFound, EmptyVariable, MissingImplementation}
+import inca.ir
+import inca.ir.analysis.base.effect.Failure.{UnknownTerm, UnknownAtom, UnknownArg, InvalidBindings, ProgramFailure, RefNotFound}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{RelationValue, RelationValueOps, Top, VBool, VBoolOps, Value}
-import inca.ir.analysis.{AnalysisKey, AnalysisResult}
+import inca.ir.analysis.base.values.{JoinVBool, RelationValue, Top, VBool, VBoolOps, Value}
+import inca.ir.analysis.{AnalysisKey, AnalysisResult, RelationOps, SupplementaryEnvironment}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.Mode
 import sturdy.data.{MayJoin, WithJoin}
@@ -19,335 +19,289 @@ import sturdy.values.references.AllocationSiteAddr
 import sturdy.data.MakeJoined
 
 enum FixIn:
-  case EnterCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], neg: Boolean)
+  case Term(term: ir.Term)
+  case Atom(atom: ir.Atom)
+  case Body(body: ir.Body)
+  case Relation(rel: ir.Relation)
+  case ExtensionalRelation(rel: ir.ExtensionalRelation)
+
+  def isLoop: Boolean = this match
+    case FixIn.Atom(c: ir.Call) => true
+    case _ => false
 
   override def toString: String = this match
-    case EnterCall(ref, args, neg) => s"${ref.name}(${args.mkString("(", ",", ")")})"
+    case FixIn.Term(t) => t.toString
+    case FixIn.Atom(a) => a.toString
+    case FixIn.Body(b) => b.toString
+    case FixIn.Relation(rel: ir.Relation) => rel.toString
+    case FixIn.ExtensionalRelation(rel: ir.ExtensionalRelation) => rel.toString
 
-enum FixOut[RV]:
-  case ExitCall(rv: RV)
+enum FixOut[V, B, RV]:
+  case Term(values: Set[V], pure: B)
+  case Atom(pure: B)
+  case Body(pure: B)
+  case Relation(pure: B)
+  case ExtensionalRelation(pure: B)
 
-given finiteFixIn: Finite[FixIn] with {}
+given FiniteFixIn: Finite[FixIn] with {}
+
+given FiniteFixOut[V, B, RV]: Finite[FixOut[V, B, RV]] with {}
 
 import inca.ir.analysis.base.interpreter.{ FixIn, FixOut }
 
-
-given CombineFixOut[RV, W <: Widening](using w: Combine[RV, W]): Combine[FixOut[RV], W] with
-  override def apply(out1: FixOut[RV], out2: FixOut[RV]): MaybeChanged[FixOut[RV]] = (out1, out2) match
-    case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) =>
-      val rv = w(rv1, rv2)
-      if rv.hasChanged then
-        Changed(FixOut.ExitCall(rv.get))
+given CombineFixOut[V, B, RV, VW <: Widening, BW <: Widening](using combineV: Combine[V, VW], combineB: Combine[B, BW]): Combine[FixOut[V, B, RV], Widening.No] with
+  override def apply(out1: FixOut[V, B, RV], out2: FixOut[V, B, RV]): MaybeChanged[FixOut[V, B, RV]] = (out1, out2) match
+    case (FixOut.Term(vs1, p1), FixOut.Term(vs2, p2)) =>
+      // We use a cartesian product here because of Datalog set semantics
+      val v = for (v1 <- vs1; v2 <- vs2) yield combineV(v1, v2)
+      val pure = combineB(p1, p2)
+      if v.exists(_.hasChanged) || pure.hasChanged then
+        Changed(FixOut.Term(v.map(_.get), pure.get))
       else
-        Unchanged(out1)
+        Unchanged(FixOut.Term(v.map(_.get), pure.get))
+    case (FixOut.Atom(p1), FixOut.Atom(p2)) =>
+      combineB(p1, p2).map(FixOut.Atom.apply)
+    case (FixOut.Body(p1), FixOut.Body(p2)) =>
+      combineB(p1, p2).map(FixOut.Body.apply)
+    case (FixOut.Relation(p1), FixOut.Relation(p2)) =>
+      combineB(p1, p2).map(FixOut.Relation.apply)
+    case (FixOut.ExtensionalRelation(p1), FixOut.ExtensionalRelation(p2)) =>
+      combineB(p1, p2).map(FixOut.ExtensionalRelation.apply)
+    case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 
-trait BaseAbstractInterpreter:
+trait BaseAbstractInterpreter[C, V, B, RV]:
 
   // Fixpoint
-  def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[RelationValue]]
-  type Fixed = FixIn => FixOut[RelationValue]
-
-  inline def enterEvalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], neg: Boolean)(using rec: Fixed): RelationValue =
-    rec(FixIn.EnterCall(ref, args, neg)) match {
-      case FixOut.ExitCall(rv) =>
-        val params = ref.target match
-          case Some(r: Relation) => r.params
-          case Some(e: ExtensionalRelation) => e.params
-          case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
-
-        val bindingArgs = params.zip(args).filter {
-          case (_, TermArg(a)) => !a.mode.isBound
-          case _ => false
-        }
-
-        val bindingVarNames = bindingArgs.map { case (_, TermArg(t)) => t match
-          case Var(x) => x.name.name
-          case _ => ??? //TODO: Can anything else except for a variable be binding?
-        }
-        val projectedRV = relationOps.projection(rv, bindingArgs.map((param, _) => param.name.name).toVector)
-        val renamedRV = relationOps.rename(projectedRV,
-          bindingArgs.map((param, _) => param.name.name).toVector,
-          bindingVarNames.toVector
-        )
-
-        //println(s"Out: $rv")
-        //println(s"Out projected: $projectedRV")
-        //println(s"Out renamed: $renamedRV")
-
-        renamedRV
-    }
-
-
-  // TermResult
-  case class TermResult(value: RelationValue, computationResult: Value, pure: VBool) extends AnalysisResult:
-    override val akey: TermKey.type = TermKey
-
-    def pureResult: TermResult = TermResult(value, computationResult, VBool.True)
-
-    def withValue(v: RelationValue): TermResult = TermResult(v, computationResult, pure)
-
-    def mapResult(f: Value => Value): TermResult =
-      TermResult(value, f(computationResult), pure)
-
-    def asTable(resultName: String): RelationValue =
-      val cols = relationOps.getCols(value)
-      if cols.contains(resultName) then
-        val otherCols = cols.filter(s => s != resultName)
-        val projected = relationOps.projection(value, otherCols)
-        val compRV = relationOps.makeRelation(
-          otherCols :+ resultName,
-          Seq(relationOps.scan(projected)(identity).appended(computationResult))
-        )
-        val res = relationOps.natJoin(compRV, value)
-        res
-      else
-        relationOps.makeRelation(
-          cols.appended(resultName),
-          Seq(relationOps.scan(value)(identity).appended(computationResult))
-        )
-
-    def combineWith(other: TermResult, f: (Value, Value) => Value): TermResult =
-      val newValue = relationOps.natJoin(this.asTable("_$TermResult1"), other.asTable("_$TermResult2"))
-      val ix1 = relationOps.getCols(newValue).indexOf("_$TermResult1")
-      val ix2 = relationOps.getCols(newValue).indexOf("_$TermResult2")
-      val newComputationResult = relationOps.scan(newValue)(vec => f(vec(ix1), vec(ix2)))
-      val newPurity = boolOps.and(this.pure, other.pure)
-      TermResult(relationOps.projection(newValue, relationOps.getCols(newValue).filter(s => s != "_$TermResult1" && s != "_$TermResult2")), newComputationResult, newPurity)
-
-  case object TermKey extends AnalysisKey:
-    override val key: String = "Term"
-    override type Result = TermResult
+  def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, B, RV]]
+  type Fixed = FixIn => FixOut[V, B, RV]
 
   // Ops & Helper
+  def relationOps: RelationOps[C, V, B, RV]
 
-  def relationOps: RelationValueOps
+  def boolOps: BooleanOps[B]
+  def boolTrue: B = boolOps.boolLit(true)
+  def boolFalse: B = boolOps.boolLit(true)
+  def boolTop: B
 
-  def boolOps: VBoolOps
-  //given VBoolOps = boolOps
-
-  def eqOps: BaseEqOps
-  //given BaseEqOps = eqOps
+  def eqOps: EqOps[V, B]
 
   def failure: Failure
-  //given Failure = failure
 
-  def joinV: Join[Value]
-  //given Join[Value] = joinV
+  def joinV: Join[V]
+  def top: V
 
-  def joinRV: Join[RelationValue]
-  //given Join[RelationValue] = joinRV
+  def joinRV: Join[RV]
 
   def effects: EffectStack
-  //given EffectStack = effects
 
-  private val withJoinRV: WithJoin[RelationValue] = MakeJoined(using joinRV, effects)
+  private val withJoinRV: WithJoin[RV] = MakeJoined(using joinRV, effects)
 
-  def IDB: Store[AllocationSiteAddr, RelationValue, WithJoin]
-  def supplementaryTable: SupplementaryTable
-
-  // This table is used to patch up evaluated terms after a call
-  var enclosingSupplementaryTable: Option[SupplementaryTable] = None
-  def withEnclosingSupplementaryTable[A](table: SupplementaryTable)(f: => A): A = {
-    val saved = enclosingSupplementaryTable
-    enclosingSupplementaryTable = Some(table)
-    val res = f
-    enclosingSupplementaryTable = saved
-    res
-  }
+  def IDB: Store[AllocationSiteAddr, RV, WithJoin]
+  def supplementaryEnv: SupplementaryEnvironment[RV, WithJoin]
 
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
-    case FixIn.EnterCall(ref, args, neg) => FixOut.ExitCall(evalCall(ref, args, neg))
+    case FixIn.Term(term) =>
+      val (v, p) = evalTermExtend(term)
+      FixOut.Term(v, p)
+    case FixIn.Atom(atom) =>
+      FixOut.Atom(evalAtomExtend(atom))
+    case FixIn.Body(body) =>
+      FixOut.Atom(evalBodyExtend(body))
+    case FixIn.Relation(rel) =>
+      FixOut.Relation(evalRelationExtend(rel))
+    case FixIn.ExtensionalRelation(rel) =>
+      FixOut.ExtensionalRelation(evalExtensionalRelationExtend(rel))
   }
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
-  def evalProgram(p: Seq[Module]): Unit = external(p.foreach(evalModule))
+  def evalProgram(p: Seq[ir.Module]): Unit = external(supplementaryEnv.scoped(p.foreach(evalModule)))
 
-  def evalModule(m: Module)(using Fixed): Unit =
-    val mainRelation = m.relations.collectFirst { case (_, r) if r.hasHint(MainHint) => r }
-    val relsToAnalyse = mainRelation match
-      case Some(rel) => Seq(rel)
+  def evalModule(m: ir.Module)(using Fixed): Unit = 
+    supplementaryEnv.setTable(relationOps.unit)
+    val relEntryPoints = m.relations.values.filter(_.hasHint(MainHint)) match
+      case mainRels if mainRels.nonEmpty => mainRels
       case _ => m.relations.values
-    relsToAnalyse.foreach { r =>
-      val res = evalRelation(r)
-      val hasCols = relationOps.getCols(res).nonEmpty
-      // TODO: Fix this error. It is easiest to just rewrite everything here...
-      //  Now that I got the idea I should start from scratch
-      val hasNoVals = relationOps.isEmpty(supplementaryTable.getTable)
-      if hasCols && hasNoVals then
-        failure(ProgramFailure, s"Program will fail!")
-    }
-
-  def merge(rel: RelationValue, neg: Boolean): Unit =
-    if neg then
-      supplementaryTable.setTable(relationOps.antiJoin(supplementaryTable.getTable, rel))
-      //enclosingSupplementaryTable.foreach(t => t.setTable(relationOps.antiJoin(t.getTable, rel)))
-    else
-      supplementaryTable.setTable(relationOps.natJoin(supplementaryTable.getTable, rel))
-      //enclosingSupplementaryTable.foreach(t => t.setTable(relationOps.natJoin(t.getTable, rel)))
-
-  protected def insertIDB(rName: String, rv: RelationValue): Unit =
-    val oldRVOption = IDB.read(AllocationSiteAddr.Variable(rName)(true))
-    IDB.free(AllocationSiteAddr.Variable(rName)(true))
-    val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))(using withJoinRV)
-    IDB.write(AllocationSiteAddr.Variable(rName)(true), result)
-
-  def evalRelation(r: Relation, initSuppTable: RelationValue = relationOps.unit)(using Fixed): RelationValue =
-    relationOps.unionFold(r.bodies) { b =>
-      supplementaryTable.freshScoped {
-        merge(initSuppTable, false)
-        evalBody(b)
-        val res = relationOps.projection(supplementaryTable.getTable, r.params.map(p => p.name.name).toVector)
-        val rel = relationOps.makeRelation(r.params.map(p => p.name.name).toVector, Seq(Vector()))
-        val oldIDB = IDB.readOrElse(AllocationSiteAddr.Variable(r.name)(true), rel)(using withJoinRV)
-        val subsetRes = relationOps.subset(oldIDB, res)
-        if subsetRes != VBool.True then
-          insertIDB(r.name, res)
-        res
+    relEntryPoints.foreach { rel =>
+      supplementaryEnv.scoped {
+        evalRelation(rel)
       }
     }
 
-  def evalBody(b: Body)(using Fixed): RelationValue =
-    var rest = b.atoms
-    var success = true
-    while (rest.nonEmpty && success) {
-      evalAtom(rest.head)
-      val hasCols = relationOps.getCols(supplementaryTable.getTable).nonEmpty
-      val hasNoValues = relationOps.isEmpty(supplementaryTable.getTable)
-      if hasCols && hasNoValues then
-        success = false
-      else
-        rest = rest.tail
+  protected def merge(rel: RV): Unit =
+    ???
+
+  protected def insertIDB(name: ir.Name, rv: RV): Unit =
+    val addr = AllocationSiteAddr.Variable(name.name)(true)
+    //val oldRVOption = IDB.read(addr)
+    //val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))(using withJoinRV)
+    IDB.free(addr)
+    IDB.write(addr, rv)
+
+  inline def evalRelation(r: ir.Relation)(using rec: Fixed): B = rec(FixIn.Relation(r)) match
+    case FixOut.Relation(p) => p
+    case _ => throw new IllegalStateException()
+
+  private def makeInitTable(rel: ir.Relation): RV =
+    // table with no entries, but not a unit or empty table!
+    //  table(X, {()}
+    relationOps.make(
+      rel.params.map(p => relationOps.makeColumnName(p.name.name)),
+      relationOps.embedRows(Seq.empty)
+    )
+
+  def evalRelationExtend(r: ir.Relation)(using Fixed): B =
+    val paramNames = r.params.map(p => relationOps.makeColumnName(p.name.name))
+    val bodyPurity = r.bodies.map { b =>
+      val (bodyRes, p) = supplementaryEnv.scoped {
+        val pure = evalBody(b)
+        val res = relationOps.project(supplementaryEnv.getTable, paramNames)
+        (res, pure)
+      }
+      merge(bodyRes)
+      p
     }
-    if success then
-      supplementaryTable.getTable
-    else
+    
+    insertIDB(r.name, supplementaryEnv.getTable)
+    bodyPurity.foldLeft(boolTrue)((acc, pure) => boolOps.and(acc, pure))
+
+  inline def evalExtensionalRelation(r: ir.ExtensionalRelation)(using rec: Fixed): B = rec(FixIn.ExtensionalRelation(r)) match
+    case FixOut.ExtensionalRelation(p) => p
+    case _ => throw new IllegalStateException()
+
+  def evalExtensionalRelationExtend(r: ir.ExtensionalRelation)(using Fixed): B =
+    ???
+
+  inline def evalBody(b: ir.Body)(using rec: Fixed): B = rec(FixIn.Body(b)) match
+    case FixOut.Body(p) => p
+    case _ => throw new IllegalStateException()
+
+  def evalBodyExtend(b: ir.Body)(using Fixed): B =
+    val atPurity = b.atoms.map(a => evalAtom(a))
+    atPurity.foldLeft(boolTrue)((acc, res) => boolOps.and(acc, res))
+
+  inline def evalAtom(at: ir.Atom)(using rec: Fixed): B = rec(FixIn.Atom(at)) match
+    case FixOut.Atom(p) => p
+    case _ => throw new IllegalStateException()
+
+  // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
+  def extractVarName(term: ir.Term): ir.Name = term match
+    case ir.Var(ref) => ref.name
+    case ir.Cast(t, _) => extractVarName(t)
+
+  private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): B =
+    val (_ , p1) = evalTerm(to)
+    val (fs, p2) = evalTerm(from)
+    val assignedName = extractVarName(to).name
+    val assignedValues = fs.map(v => Seq(v)).toSeq
+    val colName = relationOps.makeColumnName(assignedName)
+    val res = relationOps.make(Seq(colName), relationOps.embedRows(assignedValues:_*))
+    merge(res)
+    boolOps.and(p1, p2)
+
+  private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): B =
+    val (ls, p1) = evalTerm(lhs)
+    val (rs, p2) = evalTerm(rhs)
+    // TODO: Use relation ops for this?
+    val comparisonResults =
+      for (r <- ls; l <- rs) yield
+        if neg then
+          eqOps.neq(r, l) == boolTrue
+        else
+          eqOps.equ(r, l) == boolTrue
+
+    // if at least one doesn't fail we are good
+    val res = if comparisonResults.contains(true) then
       relationOps.unit
+    else
+      relationOps.empty(Seq())
+    merge(res)
 
-  def evalAtom(at: Atom)(using Fixed): Unit = at match
-    case Eq(lhs, rhs, false) => evalEquals(lhs, rhs)
-    case Eq(lhs, rhs, true) => evalNotEquals(lhs, rhs)
-    case Call(ref, args, neg) =>
-      val previousSupplementary = supplementaryTable.copy
+    boolOps.and(p1, p2)
 
-      val params = ref.target match
-        case Some(r: Relation) => r.params
-        case Some(e: ExtensionalRelation) => e.params
-        case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
+  private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): B = (lhs.mode, rhs.mode, neg) match
+    case (Mode.Binding, Mode.Binding, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
+    case (Mode.Binding, _, false) => evalAssign(lhs, rhs)
+    case (_, Mode.Binding, false) => evalAssign(rhs, lhs)
+    case (Mode.Bound, Mode.Bound, _) => evalCompare(lhs, rhs, neg)
+    case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")
 
-      val inputSupp = evalArgsAndProjectToParams(params, args)
+  def evalArg(arg: ir.Arg)(using Fixed): (Set[V], B) = arg match
+    case ir.TermArg(t) => evalTerm(t)
+    case ir.WildcardArg() => (Set(), boolTrue)
+    case _ => failure(UnknownArg, s"Unknown atom $arg")
 
-      val callEvalResult = supplementaryTable.scoped {
-        // add the input arguments before we analyze the called relation
-        merge(inputSupp, neg)
-        enterEvalCall(ref, args, neg)
-      }
-      // Merge in the call result
-      merge(callEvalResult, neg)
-      // Update the term result for all arguments after the call
-      withEnclosingSupplementaryTable(previousSupplementary)(evalArgsAndProjectToParams(params, args))
-    case ExtensionalCall(ref, args, neg) =>
-      val previousSupplementary = supplementaryTable.copy
-      merge(enterEvalCall(ref, args, neg), neg)
-      val params = ref.target match
-        case Some(r: Relation) => r.params
-        case Some(e: ExtensionalRelation) => e.params
-        case _ => failure(RefNotFound, s"Could not resolve reference for call ref")
-      withEnclosingSupplementaryTable(previousSupplementary)(evalArgsAndProjectToParams(params, args))
+  def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
+    case ir.TermArg(t) => Some(extractVarName(t))
+    case ir.WildcardArg() => None
 
-  final private def evalIntensionalCall(rel: Relation, args: Seq[Arg], neg: Boolean)(using Fixed): RelationValue =
-    val argRel = evalArgsAndProjectToParams(rel.params, args)
-    merge(argRel, neg)
-    val res = evalRelation(rel, argRel)
-    val varRead = IDB.read(AllocationSiteAddr.Variable(rel.name)(true))
-    relationOps.natJoin(varRead.getOrElse(relationOps.unit)(using withJoinRV), argRel)
+  private final def evalCall[R <: ir.ModuleEntry](ref: ir.Ref[R], args: Seq[ir.Arg], neg: Boolean)(using Fixed): B =
+    ref.target match
+      case Some(r: ir.Relation) =>
+        // eval arguments in current scope
+        val paramNames = r.params.map(p => relationOps.makeColumnName(p.name.name))
+        val (argRes, argPurity) = args.map(evalArg).unzip
+        val (relRes, relPurity) = supplementaryEnv.freshScoped {
+          val evalContext = relationOps.make(paramNames, relationOps.embedRows(argRes.map(_.toSeq): _*))
+          supplementaryEnv.setTable(evalContext)
+          val purity = evalRelation(r)
+          (supplementaryEnv.getTable, purity)
+        }
 
-  final private def evalExtensionalCall(rel: ExtensionalRelation, args: Seq[Arg])(using Fixed): RelationValue =
-    val vals = rel.params.zip(args).map {
-      case (p, TermArg(a)) => a.mode match
-        case Mode.Binding | Mode.Collapse =>
-          TermResult(
-            supplementaryTable.getTable,
-            relationOps.scan(supplementaryTable.getTable)(_ => Top),
-            VBool.True
-          ).asTable(p.name.name)
-        case Mode.Bound =>
-          evalTerm(a).asTable(p.name.name)
-      case (p, WildcardArg()) =>
-        TermResult(
-          supplementaryTable.getTable,
-          relationOps.scan(supplementaryTable.getTable)(_ => Top),
-          VBool.Top
-        ).asTable(p.name.name)
-    }
-    effects.joinWithFailure(vals.reduce(relationOps.natJoin))(failure(MaybeEmptyCall, s"$rel may return nothing"))
+        // add all variables bound by the call to the context
+        val boundVars = args.map(extractVarName)
+        val subst = boundVars.zip(paramNames).flatMap {
+          case (Some(varName), p) => Some((p, relationOps.makeColumnName(varName.name)))
+          case _ => None
+        }.toMap
+        var res = relationOps.projectAndRename(relRes, subst)
+        if neg then
+          res = relationOps.markNegative(res)
+        merge(res)
+        (argPurity :+ relPurity).foldLeft(boolTrue)((acc, res) => boolOps.and(acc, res))
+      case Some(r: ir.ExtensionalRelation) =>
+        // eval arguments in current scope
+        val paramNames = r.params.map(p => relationOps.makeColumnName(p.name.name))
+        val (argRes, argPurity) = args.map(evalArg).unzip
+        val (relRes, relPurity) = supplementaryEnv.freshScoped {
+          val evalContext = relationOps.make(paramNames, relationOps.embedRows(argRes.map(_.toSeq): _*))
+          supplementaryEnv.setTable(evalContext)
+          val purity = evalExtensionalRelation(r)
+          (supplementaryEnv.getTable, purity)
+        }
 
-  def evalCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], neg: Boolean)(using Fixed): RelationValue =
-    val rel = ref.target.getOrElse {
-      failure(RefNotFound, s"Could not resolve reference for call ref")
-    }
-    rel match
-      case r: Relation => evalIntensionalCall(r, args, neg)
-      case e: ExtensionalRelation => evalExtensionalCall(e, args)
+        // add all variables bound by the call to the context
+        val boundVars = args.map(extractVarName)
+        val subst = boundVars.zip(paramNames).flatMap {
+          case (Some(varName), p) => Some((p, relationOps.makeColumnName(varName.name)))
+          case _ => None
+        }.toMap
+        var res = relationOps.projectAndRename(relRes, subst)
+        if neg then
+          res = relationOps.markNegative(res)
+        merge(res)
+        (argPurity :+ relPurity).foldLeft(boolTrue)((acc, res) => boolOps.and(acc, res))
+      case _ => failure(RefNotFound, s"Can not find call reference $ref")
 
+  def evalAtomExtend(at: ir.Atom)(using Fixed): B = at match
+    case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
+    case ir.Call(ref, args, neg) => evalCall(ref, args, neg)
+    case ir.ExtensionalCall(ref, args, neg) => evalCall(ref, args, neg)
+    case _ => failure(UnknownAtom, s"Unknown atom $at")
 
-  def evalArgsAndProjectToParams(params: Seq[Param], args: Seq[Arg])(using Fixed): RelationValue =
-    val boundParams = params.zip(args).filter {
-      case (_, TermArg(t)) =>
-        val cols = relationOps.getCols(supplementaryTable.getTable)
-        cols.containsSlice(t.vars.map(v => v.name.name))
-      case (_, WildcardArg()) =>
-        false
-    }
-    val bb = boundParams.map {
-      case (Param(name, _), TermArg(t)) =>
-        val rv = evalTerm(t).asTable(name.name)
-        relationOps.projection(rv, Vector(name.name))
-      case _ => relationOps.unit
-    }
-    val foldRes = bb.fold(relationOps.unit)(relationOps.natJoin)
-    foldRes
+  final def evalTerm(term: ir.Term)(using rec: Fixed): (Set[V], B) = rec(FixIn.Term(term)) match
+    case FixOut.Term(v, p) => (v, p)
+    case _ => throw new IllegalStateException()
 
-  final private def evalCompare(lhs: Term, rhs: Term, neg: Boolean)(using Fixed): Unit =
-    val tr1 = evalTerm(lhs)
-    val tr2 = evalTerm(rhs)
-    val natJoined = relationOps.natJoin(tr1.asTable("_$temporaryResult"), tr2.asTable("_$temporaryResult"))
-    merge(relationOps.projection(natJoined, relationOps.getCols(natJoined).filter(s => s != "_$temporaryResult")), true)
-
-  final def evalNotEquals(lhs: Term, rhs: Term)(using Fixed): Unit =
-    evalCompare(lhs, rhs, true)
-
-  def assign(assignee: Term, tr: TermResult): Unit = assignee match
-    case Var(x) =>
-      merge(tr.asTable(x.name.name), false)
-      assignee.updateAnalysisResult(tr.pureResult)
-    case Cast(t, _) => assign(t, tr)
-
-  final def evalEquals(lhs: Term, rhs: Term)(using Fixed): Unit = (lhs.mode, rhs.mode) match
-    case (Mode.Binding, _) => assign(lhs, evalTerm(rhs))
-    case (_, Mode.Binding) => assign(rhs, evalTerm(lhs))
-    case _ => evalCompare(lhs, rhs, false)
-
-  final def evalTerm(t: Term)(using Fixed): TermResult =
-    val r = evalTermExtend(t)
-    enclosingSupplementaryTable match
-      case Some(supp) => t.updateAnalysisResult(r.withValue(supp.getTable))
-      case _ => t.updateAnalysisResult(r)
-    r
-
-  def evalTermExtend(t: Term)(using Fixed): TermResult =
-    val currSupTab = supplementaryTable.getTable
-    t match
-      case Var(ref) if relationOps.getCols(currSupTab).contains(ref.name.name) =>
-        TermResult(
-          currSupTab,
-          relationOps.scan(relationOps.projection(currSupTab, Vector(ref.name.name)))(vec => vec.head),
-          VBool.True
-        )
-      case Var(ref) =>
-        failure(EmptyVariable, s"$ref was referenced, but is not bound in $currSupTab")
-      case Cast(t, ty) => evalTerm(t)
-      case _ => failure(MissingImplementation, s"Unknown term: $t")
-      //case _ => TermResult(relationOps.unit, Seq(), VBool.Top)
+  def evalTermExtend(term: ir.Term)(using Fixed): (Set[V], B) = term match
+    case ir.Var(ref) =>
+      val currentScope = supplementaryEnv.getTable
+      val columnName = relationOps.makeColumnName(ref.name.name)
+      val varEntry = relationOps.project(currentScope, Seq(columnName))
+      // we only have a single value per row, since we projected a single column
+      val values = relationOps.entries(varEntry).map(_.head)
+      (values.toSet, boolTrue)
+    case ir.Cast(t, _) => evalTerm(t)
+    case _ => failure(UnknownTerm, s"Unknown term $term")

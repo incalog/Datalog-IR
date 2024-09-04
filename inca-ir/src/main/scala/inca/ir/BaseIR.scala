@@ -33,7 +33,7 @@ case class Module(name: Name, lang: Language, contents: Seq[ModuleEntry]) extend
     case _ => false
   })
 
-trait ModuleEntry extends SourceLocation with Hints:
+trait ModuleEntry extends SourceLocation with Hints with Analyzable:
   val name: Name
   def withName(name: String): ModuleEntry
   def withExtendedName(suffix: String): ModuleEntry = withName(Name(name.name + suffix))
@@ -173,9 +173,9 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
-      s"$prefix = nil"
+      s"$prefix = nil" + analysisString
     else
-      s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}"
+      s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}" + analysisString
   }
   def signature: Seq[Type] = params.map(_.ty)
   def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
@@ -183,7 +183,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationBase:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
-  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
+  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}" + analysisString
   def signature: Seq[Type] = params.map(_.ty)
 
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
