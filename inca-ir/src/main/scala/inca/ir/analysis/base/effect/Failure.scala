@@ -4,7 +4,7 @@ import sturdy.effect.failure.FailureKind
 import sturdy.values.Finite
 
 enum Failure extends FailureKind:
-  // BaseAbstractInterpreter
+  // BaseGenericInterpreter
   case ProgramFailure
 
   // Terms
@@ -16,8 +16,9 @@ enum Failure extends FailureKind:
   // Atoms
   case UnknownAtom
   case InvalidBindings
-
-  case TypeError
   case RefNotFound
+
+  // relation ops
+  case ColumnMismatch
 
 given IRFailure: Finite[Failure] with {}

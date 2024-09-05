@@ -5,7 +5,7 @@ import inca.ir.Name
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.values.{BaseJoinV, FiniteV, JoinVBool, RelationValue, RelationValueOps, Top, VBool, VBoolOps, Value}
 import inca.ir.analysis.base.effect.Failure as IRFailure
-import inca.ir.analysis.base.interpreter.{BaseAbstractInterpreter, FixIn, FixOut, SupplementaryTable}
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, FixIn, FixOut, SupplementaryTable}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import sturdy.data.WithJoin
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Widen, Widening, finitely}
@@ -45,8 +45,8 @@ class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
   with arith.ordering.EqOps
 
 
-class IRAbstractInterpreter extends BaseAbstractInterpreter[Name, Value, VBool, RelationValue[Name, Value]]
-  with arith.interpreter.ConstantAbstractInterpreter:
+class IRAbstractInterpreter extends BaseGenericInterpreter[Name, Value, VBool, RelationValue[Name, Value]]
+  with arith.interpreter.ConstantGenericInterpreter:
 
   type RV = RelationValue[Name, Value]
 
@@ -70,12 +70,14 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Name, Value, VBool, 
   override val IDB: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())(using joinRV, widenRV, implicitly)
   override val effects: EffectStack = EffectStack(supplementaryEnv, failure, IDB)
 
-  override val relationOps: RelationOps[Name, Value, VBool, RV] = new RelationValueOps(using effects, boolOps, eqOps, failure)
+  override val relationOps: RelationOps[Name, Value, VBool, RV] = new RelationValueOps[Name, Value, VBool](using effects, boolOps, eqOps, failure) {
+    override def makeColumnName(c: String): Name = Name(c)
+  }
 
   // TODO: Use context sensitive fixpoint combinator
   override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, VBool, RV]] = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, VBool, RV]] {
     override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, VBool, RV]] ?=> Combinator[FixIn, FixOut[Value, VBool, RV]] =
-      //given Join[RV] = joinRV
+      given Join[RV] = joinRV
       //given Finite[RV] = finiteRV
       //given Widen[RV] = widenRV
       //given Join[Value] = joinV

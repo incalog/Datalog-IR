@@ -1,6 +1,5 @@
 package inca.ir.analysis.base.values
 
-import inca.ir.analysis.base.effect.Failure.TypeError
 import sturdy.effect.failure.Failure
 import sturdy.values.{Changed, Join, MaybeChanged, Topped, Unchanged}
 import sturdy.values.ordering.EqOps
