@@ -2,7 +2,7 @@ package inca.ir.analysis.base.interpreter
 
 import inca.ir
 import inca.ir.ModuleEntry
-import inca.ir.analysis.base.effect.Failure.{InvalidBindings, ProgramFailure, RefNotFound, UnknownArg, UnknownAtom, UnknownTerm}
+import inca.ir.analysis.base.effect.Failure.{UnresolvedVariable, InvalidBindings, ProgramFailure, RefNotFound, UnknownArg, UnknownAtom, UnknownTerm}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{JoinVBool, RelationValue, Top, VBool, VBoolOps, Value}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult, RelationOps, SupplementaryEnvironment}
@@ -102,7 +102,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
 
   def boolOps: BooleanOps[B]
   def boolTrue: B = boolOps.boolLit(true)
-  def boolFalse: B = boolOps.boolLit(true)
+  def boolFalse: B = boolOps.boolLit(false)
   def boolTop: B
 
   def eqOps: EqOps[V, B]
@@ -131,7 +131,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
       FixOut.Atom(rv, p)
     case FixIn.Body(body) =>
       val (rv, p) = evalBodyExtend(body)
-      FixOut.Atom(rv, p)
+      FixOut.Body(rv, p)
     case FixIn.Relation(rel) =>
       val (rv, p) = evalRelationExtend(rel)
       FixOut.Relation(rv, p)
@@ -152,13 +152,6 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     relEntryPoints.foreach(evalRelation(_))
   }
 
-  private def collapse(rv: RV): RV = ???
-    /*val allCols = relationOps.columns(rv)
-    val allEntries = relationOps.entries(rv)
-    // join column wise
-    allEntries.map(_.map())
-    effects.joinFold(rv)(identity)*/
-
   protected def unionAll(rvs: Seq[RV]): RV =
     rvs.foldLeft(relationOps.unit)((acc, rv) => relationOps.union(acc, rv))
 
@@ -170,7 +163,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
 
   protected def mergeIntoEnv(rel: RV, neg: Boolean): Unit =
     val merged = merge(supplementaryEnv.getState, rel, neg)
-    supplementaryEnv.setState(collapse(merged))
+    supplementaryEnv.setState(merged)
 
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     val addr = AllocationSiteAddr.Variable(name.name)(true)
@@ -183,13 +176,13 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     case FixOut.Relation(p) => p
     case _ => throw new IllegalStateException()
 
-  private def makeInitTable(rel: ir.Relation): RV =
+  /*private def makeInitTable(rel: ir.Relation): RV =
     // table with no entries, but not a unit or empty table!
     //  table(X, {()}
     relationOps.make(
       rel.params.map(p => relationOps.makeColumnName(p.name.name)),
       relationOps.embedRows(Seq.empty)
-    )
+    )*/
 
   def evalRelationExtend(r: ir.Relation)(using Fixed): (RV, B) = supplementaryEnv.scoped {
     val paramNames = r.params.map(p => relationOps.makeColumnName(p.name.name))
@@ -198,7 +191,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
       (relationOps.project(res, paramNames), pure)
     }.unzip
 
-    // If all bodies fail, we say the relation failed
+    // If all bodies fail, the relation failed
     val nonEmptyResults = bodyRes.filter(relationOps.isEmpty(_) == boolFalse)
     val relRes =
       if nonEmptyResults.isEmpty then
@@ -219,7 +212,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
   }
 
   inline def evalBody(b: ir.Body)(using rec: Fixed): (RV, B) = rec(FixIn.Body(b)) match
-    case FixOut.Body(p) => p
+    case FixOut.Body(rv, p) => (rv, p)
     case _ => throw new IllegalStateException()
 
   def evalBodyExtend(b: ir.Body)(using Fixed): (RV, B) = supplementaryEnv.scoped {
@@ -243,7 +236,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     val assignedName = extractVarName(to).name
     val assignedValues = fs.map(v => Seq(v))
     val colName = relationOps.makeColumnName(assignedName)
-    val res = relationOps.make(Seq(colName), relationOps.embedRows(assignedValues:_*))
+    val res = relationOps.make(Seq(colName), assignedValues)
     mergeIntoEnv(res, false)
     (res, boolOps.and(p1, p2))
 
@@ -251,8 +244,13 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     val (ls, p1) = evalTerm(lhs)
     val (rs, p2) = evalTerm(rhs)
 
-    val lsRv = relationOps.make(Seq(), relationOps.embedRows(ls.map(v => Seq(v)):_*))
-    val rsRv = relationOps.make(Seq(), relationOps.embedRows(rs.map(v => Seq(v)):_*))
+    // 1
+    // 1, 2
+    // 1 == 1   True
+    // 1 == 2   False
+
+    val lsRv = relationOps.make(Seq(), ls.map(v => Seq(v)))
+    val rsRv = relationOps.make(Seq(), rs.map(v => Seq(v)))
     val combinations = relationOps.cartesian(lsRv, rsRv)
     val comparisonResult = relationOps.select(combinations) { case Seq(v1, v2) =>
       if neg then
@@ -260,7 +258,7 @@ trait BaseGenericInterpreter[C, V, B, RV]:
       else
         eqOps.equ(v1, v2) == boolTrue
     }
-    // if all comparisons fail we have a problem
+    // if all comparisons fail the atom failed
     val res =
       if relationOps.isEmpty(comparisonResult) == boolTrue then
         relationOps.empty(Seq())
@@ -291,7 +289,8 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     val paramNames = params.map(p => relationOps.makeColumnName(p.name.name))
     val (argRes, argPurity) = args.map(evalArg).unzip
     val (relRes, relPurity) = supplementaryEnv.freshScoped {
-      val evalContext = relationOps.make(paramNames, relationOps.embedRows(argRes.map(_.toSeq): _*))
+      val argRV = paramNames.zip(argRes).map((p, a) => relationOps.make(Seq(p), a.map(v => Seq(v))))
+      val evalContext = argRV.foldLeft(relationOps.unit)((acc, rv) => relationOps.naturalJoin(acc, rv))
       supplementaryEnv.setState(evalContext)
       evalRel(r)
     }
@@ -324,12 +323,13 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     case _ => throw new IllegalStateException()
 
   def evalTermExtend(term: ir.Term)(using Fixed): (Seq[V], B) = term match
-    case ir.Var(ref) =>
+    case ir.Var(ref) if term.mode.isBound =>
       val currentScope = supplementaryEnv.getState
       val columnName = relationOps.makeColumnName(ref.name.name)
       val varEntry = relationOps.project(currentScope, Seq(columnName))
       // we only have a single value per row, since we projected a single column
-      val values = relationOps.entries(varEntry).map(_.head)
+      val values = relationOps.entries(varEntry).iterator.map(_.head)
       (values.toSeq, boolTrue)
+    case ir.Var(ref) => (Seq(), boolTrue)
     case ir.Cast(t, _) => evalTerm(t)
     case _ => failure(UnknownTerm, s"Unknown term $term")

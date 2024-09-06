@@ -5,7 +5,7 @@ import sturdy.values.{Changed, Finite, Join, MaybeChanged, Unchanged, Widen}
 
 import scala.collection
 
-case class RelationValue[C, V](cols: Seq[C], rows: Iterable[Seq[V]]):
+case class RelationValue[C, V](cols: Seq[C], rows: Option[Seq[V]]):
   def size: Int = rows.size
 
   def isUnit: Boolean = cols.isEmpty && (rows.size == 1) && rows.head.isEmpty
@@ -15,33 +15,38 @@ class FiniteRV[C, V] extends Finite[RelationValue[C, V]]
 
 class JoinRV[C, V](using joinValue: Join[V]) extends Join[RelationValue[C, V]]:
 
-  private def collapse(v1: RelationValue[C, V]): RelationValue[C, V] = ???
-
   private def join(v1: RelationValue[C, V], v2: RelationValue[C, V]): RelationValue[C, V] =
-    // empty table == top // nope I guess
-    // unit table == bot
+    // top: RelationValue(X, Seq(Seq(Top, ..., Top)))
+    // bot: empty table
 
-    // top: RelationValue(X, Seq(Seq(Top)))
-    // 
-
-    if v1.isUnit then
-      v2
-    else if v2.isUnit then
-      v1
-    else if v1.isEmpty then
+    // When we are in a fixpoint then the result needs to stabilize when we encounter an empty table.
+    if v1.isEmpty then
       v1
     else if v2.isEmpty then
       v2
     else
-      // This is the join on the abstract domain, not the join on the tables! Use relation ops for that
-      val haveSameCols = (v1.cols.toSet == v2.cols.toSet)
-      if haveSameCols then
-        val union = RelationValue(v1.cols, v1.rows ++ v2.rows)
-        collapse(union)
-      else
+      val sharedCols = v1.cols.intersect(v2.cols)
+      val colIndicesRv = sharedCols.map(v1.cols.indexOf).filter(_ > -1)
+      val colIndicesOther = sharedCols.map(v2.cols.indexOf).filter(_ > -1)
+      val combinedCols = sharedCols
+                          ++ v1.cols.filterNot(sharedCols.contains)
+                          ++ v2.cols.filterNot(sharedCols.contains)
+      // Join all columns that v1 and v2 have in common. Keep the rest unchanged
+      val joinedRows =
+        for {
+          row1 <- v1.rows
+          row2 <- v2.rows
+        } yield
+          val sharedRow1 = colIndicesRv.map(row1.apply)
+          val sharedRow2 = colIndicesOther.map(row1.apply)
+          val sharedRow = sharedRow1.zip(sharedRow2).map(joinValue.apply).map(_.get)
+          sharedRow
+            ++ row1.filterNot(colIndicesRv.contains)
+            ++ row2.filterNot(colIndicesOther.contains)
 
+      val (sortedCols, sortedRows) = combinedCols.zip(joinedRows.get).sortBy((col, _) => col.toString).unzip
 
-
+      RelationValue(sortedCols, Some(sortedRows))
 
   override def apply(v1: RelationValue[C, V], v2: RelationValue[C, V]): MaybeChanged[RelationValue[C, V]] =
     val joined = join(v1, v2)

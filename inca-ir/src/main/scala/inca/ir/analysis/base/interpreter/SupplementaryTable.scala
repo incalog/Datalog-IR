@@ -14,14 +14,14 @@ class SupplementaryTable(using j: Join[RelationValue[Name, Value]], w: Widen[Rel
 
   override type State = RelationValue[Name, Value]
 
-  protected var supTable: RelationValue[Name, Value] = RelationValue(Seq(), Seq(Seq()))
+  protected var supTable: RelationValue[Name, Value] = RelationValue(Seq(), Some(Seq()))
 
   override def scoped[A](f: => A): A =
     val snapshot = supTable
     try f finally {
       supTable = snapshot
     }
-  override def clear(): Unit = supTable = RelationValue(Seq(), Seq(Seq()))
+  override def clear(): Unit = supTable = RelationValue(Seq(), Some(Seq()))
 
   def setTable(rv: RelationValue[Name, Value]): Unit = setState(rv)
   def getTable: RelationValue[Name, Value] = getState

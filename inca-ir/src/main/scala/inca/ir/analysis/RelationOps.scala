@@ -4,17 +4,17 @@ import inca.ir.analysis.base.effect.Failure
 import sturdy.values.booleans.BooleanOps
 
 trait RelationOps[C, V, B, RV]:
-  type I[T] = Iterable[T]
   type Row = Seq[V]
+  type I[Row] <: IterableOnce[Row]
+
 
   def makeColumnName(c: String): C
-  def embedRows(r: Row*): I[Row]
 
   def columns(rv: RV): Seq[C]
   def entries(rv: RV): I[Row]
 
   // Unit
-  def make(cols: Seq[C], vals: I[Row]): RV
+  def make(cols: Seq[C], vals: Seq[Row]): RV
   def unit: RV
 
   // Empty

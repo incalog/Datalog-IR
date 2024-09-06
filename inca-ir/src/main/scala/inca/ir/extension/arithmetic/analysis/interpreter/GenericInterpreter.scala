@@ -1,6 +1,6 @@
 package inca.ir.extension.arithmetic.analysis.interpreter
 
-import inca.ir.{Atom, Term, Name}
+import inca.ir
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{RelationValue, VBool, Value}
 import inca.ir.extension.arithmetic.analysis.ordering.{DoubleVOrderingOps, IntVOrderingOps}
@@ -12,7 +12,7 @@ import sturdy.values.floating.FloatOps
 import sturdy.values.ordering.OrderingOps
 
 // Constant Analysis
-trait ConstantGenericInterpreter extends GenericInterpreter[Name, Value, VBool, RelationValue[Name, Value]]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[ir.Name, Value, VBool, RelationValue[ir.Name, Value]]:
   val intOps: IntegerOps[Int, Value] = IntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = DoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, VBool] = IntVOrderingOps()
@@ -23,3 +23,8 @@ trait GenericInterpreter[C, V, B, RV] extends BaseGenericInterpreter[C, V, B, RV
   val doubleOps: FloatOps[Double, V]
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
+
+  override def evalTermExtend(term: ir.Term)(using Fixed): (Seq[V], B) = term match
+    case IntNum(i: Int) => (Seq(intOps.integerLit(i)), boolTrue)
+    case DoubleNum(d: Double) => (Seq(doubleOps.floatingLit(d)), boolTrue)
+    case _ => super.evalTermExtend(term)

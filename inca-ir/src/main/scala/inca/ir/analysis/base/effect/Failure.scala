@@ -6,7 +6,7 @@ import sturdy.values.Finite
 enum Failure extends FailureKind:
   // BaseGenericInterpreter
   case ProgramFailure
-
+  case UnresolvedVariable
   // Terms
   case UnknownTerm
 
