@@ -192,6 +192,10 @@ trait BaseGenericInterpreter[C, V, B, RV]:
     }.unzip
 
     // If all bodies fail, the relation failed
+    // TODO: Use if (...) {}
+    // TODO: Use failure instead of empty table
+    // TODO: Remove purity
+    // TODO: Sturdy except instead of empty table
     val nonEmptyResults = bodyRes.filter(relationOps.isEmpty(_) == boolFalse)
     val relRes =
       if nonEmptyResults.isEmpty then
@@ -243,11 +247,6 @@ trait BaseGenericInterpreter[C, V, B, RV]:
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): (RV, B) =
     val (ls, p1) = evalTerm(lhs)
     val (rs, p2) = evalTerm(rhs)
-
-    // 1
-    // 1, 2
-    // 1 == 1   True
-    // 1 == 2   False
 
     val lsRv = relationOps.make(Seq(), ls.map(v => Seq(v)))
     val rsRv = relationOps.make(Seq(), rs.map(v => Seq(v)))

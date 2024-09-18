@@ -5,10 +5,12 @@ import sturdy.values.{Changed, Finite, Join, MaybeChanged, Unchanged, Widen}
 
 import scala.collection
 
+// Schema: Map[C -> V]
+// Special cases (rows):
 case class RelationValue[C, V](cols: Seq[C], rows: Option[Seq[V]]):
   def size: Int = rows.size
 
-  def isUnit: Boolean = cols.isEmpty && (rows.size == 1) && rows.head.isEmpty
+  //def isUnit: Boolean = cols.isEmpty && (rows.size == 1) && rows.head.isEmpty
   def isEmpty: Boolean = rows.isEmpty
 
 class FiniteRV[C, V] extends Finite[RelationValue[C, V]]

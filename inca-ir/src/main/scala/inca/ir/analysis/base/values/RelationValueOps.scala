@@ -44,8 +44,8 @@ trait RelationValueOps[C, V, B](using effects: EffectStack, joinV: Join[V], bool
   val unit: RV = RelationValue(Seq(), Some(Seq.empty))
 
   // Empty
-  def empty(cols: Seq[C]): RV = make(cols, Seq())
-  def isEmpty(rv: RV): B = booleanOps.boolLit(entries(rv).isEmpty)
+  def empty(cols: Seq[C]): RV = make(cols, Seq()) 
+  def isEmpty(rv: RV): B = booleanOps.boolLit(entries(rv).isEmpty) // undecideable
 
   def rename(rv: RV, subst: Map[C, C]): RV =
     val allCols = columns(rv)
