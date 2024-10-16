@@ -16,6 +16,7 @@ import inca.ir.extension.demand
 import inca.ir.extension.demand.demandRelationName
 import inca.ir.extension.disjunction
 import inca.ir.extension.disjunction.DisjunctionAlternative
+import inca.ir.extension.impure.MainHint
 import inca.ir.extension.map as irmap
 import inca.ir.extension.not as irnot
 import inca.ir.extension.set as irset
@@ -80,7 +81,7 @@ class GenerateIR {
       edbCall ++ Seq(
         ir.Eq(ir.Var(Name(result)), compileExp(f.body))
       ) ++ setMember
-    )))
+    ))).addHint(MainHint)
     parametric(f.tyVars, rel)
 
   def compileFun(f: FunctionDef): ir.ModuleEntry =

@@ -132,6 +132,7 @@ trait Term extends Typeable[TermType] with Analyzable with SourceLocation with H
   def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
   def arg: Arg = TermArg(this)
+  def isConstant: Boolean = vars.isEmpty
 
 trait Type extends SourceLocation with Hints:
   def size: Int = 1

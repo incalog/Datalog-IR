@@ -8,6 +8,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
+import inca.ir.optimize.QueryRelation
 import inca.util.namify
 
 /*
@@ -80,7 +81,7 @@ trait Lowering extends BaseLowering:
     val memTyLowered = visitType(memTy)
     setTypeConstructors.get(memTyLowered) match
       case None => setTypeConstructors += memTyLowered -> Map()
-      case _ => //nothign
+      case _ => //nothing
 
   private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
@@ -89,6 +90,7 @@ trait Lowering extends BaseLowering:
   private def makeSetDefinitions: Seq[ModuleEntry] =
     setTypeConstructors.flatMap { case (memTy, constructors) =>
       val (datas, rel) = defunctionalizeSet(memTy, constructors.values.toSeq)
+      rel.addHint(QueryRelation)
       datas :+ rel
     }.toSeq
 

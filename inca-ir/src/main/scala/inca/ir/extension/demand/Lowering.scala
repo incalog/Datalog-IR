@@ -77,7 +77,7 @@ trait Lowering extends BaseLowering:
           val guardedBodies = vrel.bodies.map(b => Body(
             Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name).arg))
               +: b.atoms))
-          vrel.copy(bodies = guardedBodies)
+          preserveHints(vrel)(vrel.copy(bodies = guardedBodies))
         }
     case _ => super.visitRelation(rel)
 

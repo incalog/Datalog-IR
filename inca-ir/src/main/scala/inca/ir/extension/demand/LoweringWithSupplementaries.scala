@@ -106,7 +106,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
             val guardedBodies = vrel.bodies.map { case Body(ats) =>
               Body(Call(demandRelationName(vrel.name), guardArgs) +: ats)
             }
-            vrel.copy(bodies = guardedBodies)
+            preserveHints(vrel)(vrel.copy(bodies = guardedBodies))
           }
       case _ => super.visitRelation(rel)
 

@@ -141,5 +141,6 @@ object CompiledFunctionalUnit:
 
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {},
-    () => new optimize.RemoveDuplicatedRelations {}
+    () => new optimize.RemoveDuplicatedRelations {},
+    () => new optimize.RemoveUnusedParameters {}
   ) // arith + string + data
