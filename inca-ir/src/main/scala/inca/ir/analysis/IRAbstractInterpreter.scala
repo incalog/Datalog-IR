@@ -1,9 +1,11 @@
 package inca.ir.analysis
 import java.lang
+import scala.language.implicitConversions
 
 enum Value:
   case Top
   case Int(i: scala.Int)
+  case Bool(b: Boolean)
   case Double(d: scala.Double)
   case String(s: Predef.String)
   case Data(name: Predef.String, args: Seq[Value])
@@ -13,6 +15,7 @@ enum Value:
     case (Int(i1), Int(i2)) if i1 == i2 => this
     case (Double(d1), Double(d2)) if d1 == d2 => this
     case (String(s1), String(s2)) if s1 == s2 => this
+    case (Bool(b1), Bool(b2)) if b1 == b2 => this
     case (Data(name1, args1), Data(name2, args2))
       if name1 == name2 && args1.size == args2.size => Data(name1, args1.zip(args2).map(_.join(_)))
     case _ => Top
@@ -20,7 +23,9 @@ enum Value:
   override def toString: lang.String = this match
     case Int(i) => i.toString
     case Double(d) => d.toString
+    case Bool(b) => b.toString
     //case String(s) => s
+    case Top => "Top"
     case _ => super.toString
 
 enum VBool:
@@ -33,7 +38,19 @@ enum VBool:
     else
       Top
 
+def value2bool(v: Value): VBool = v match
+  case Value.Bool(true) => VBool.True
+  case Value.Bool(false) => VBool.False
+  case Value.Top => VBool.Top
+  case _ => ???
+
+def bool2Value(b: VBool): Value = b match
+  case VBool.True => Value.Bool(true)
+  case VBool.False => Value.Bool(false)
+  case VBool.Top => Value.Top
+
 class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
+  with BooleanAbstractInterpreter[Value, VBool](value2bool, bool2Value)
   with ArithmeticAbstractInterpreter[Value, VBool]
   with DataAbstractInterpreter[Value, VBool]
   with StringAbstractInterpreter[Value, VBool]
@@ -49,13 +66,15 @@ class IRAbstractInterpreter extends BaseAbstractInterpreter[Value, VBool]
     override def boolLit(b: Boolean): VBool = if (b) True else False
     override def and(v1: VBool, v2: VBool): VBool = (v1, v2) match
       case (True, _) => v2
+      case (_, True) => v1
       case (False, _) => False
-      case (Top, False) => False
+      case (_, False) => False
       case _ => Top
     override def or(v1: VBool, v2: VBool): VBool = (v1, v2) match
       case (True, _) => True
+      case (_, True) => True
       case (False, _) => v2
-      case (Top, True) => True
+      case (_, False) => v1
       case _ => Top
     override def not(v: VBool): VBool = v match
       case Top => Top

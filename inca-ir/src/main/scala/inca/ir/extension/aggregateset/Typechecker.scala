@@ -8,7 +8,7 @@ import inca.ir.extension.set.TSet
 trait Typechecker extends BaseIRTypechecker:
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case AggregateSet(rel, args, op) =>
-      val paramTys = inferRelationRef(rel, atom)
+      val paramTys = inferRelationRef(rel, false, atom)
       rel.target.foreach(addDependency(currentEntry, _, DependencyInfo.AggregationCall))
       if (paramTys.size != args.size)
         error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)

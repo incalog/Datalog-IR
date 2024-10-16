@@ -29,11 +29,18 @@ trait Typechecker extends BaseIRTypechecker:
       val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
       assertComparable(ty2, ty1, term)
       TermType(TSet(ty1), m1 || m2)
-    case SetUnion(t1, t2) =>
-      val (TSet(ty1), m1) = inferSetTerm(t1, Mode.Bound)
-      val (TSet(ty2), m2) = inferSetTerm(t2, Mode.Bound)
-      assertComparable(ty2, ty1, term)
-      TermType(TSet(ty1), m1 || m2)
+    case SetUnion(Seq()) =>
+      error("Set union must not be empty", term)
+      TSet(TAny).bound
+    case SetUnion(ts) =>
+      val (tys, modes) = ts.map(t => inferSetTerm(t, Mode.Bound)).unzip
+      tys.sliding(2).foreach {
+        case Seq(TSet(ty)) => // nothing
+        case Seq(TSet(ty1), TSet(ty2)) =>
+          assertComparable(ty2, ty1, term)
+      }
+      val m = modes.tail.foldLeft(modes.head)(_ || _)
+      TermType(tys.head, m)
     case SetComprehension(elem, atoms) => scopedTypeContext {
       atoms.foreach(checkAtom(_, Mode.Binding))
       val TermType(ty, m) = inferTerm(elem, mode)

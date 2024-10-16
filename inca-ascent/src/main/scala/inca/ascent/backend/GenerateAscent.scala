@@ -9,7 +9,7 @@ import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperator}
 import inca.ir.extension.{string, aggregate as agg, arithmetic as arith}
-import inca.ir.{Arg, Name, TAny, TermArg, WildcardArg, name2string, string2name}
+import inca.ir.{Arg, Name, TAny, TermArg, TermType, WildcardArg, name2string, string2name}
 import inca.ir.extension.data
 import inca.ir.extension.data.*
 import inca.ir.extension.string.TString
@@ -193,9 +193,9 @@ object GenerateAscent:
               tmpTerm.typ = termTy.map(_.ty.bound)
               as ++= compileAtom(ir.Eq(tmpTerm, t))
             case ir.WildcardArg() =>
-            // nothing
+              // nothing
             case AggregateColumnArg(t) =>
-          // Should not happen
+              // Should not happen
           tmpTerm.typ = termTy.map(_.ty.binding)
           compileArg(tmpTerm.arg, noClone = true, noDeref = true)
         else
@@ -236,6 +236,12 @@ object GenerateAscent:
         case Collapse =>
           throw new RuntimeException("Unexpected collapsed term as aggregation output!")
   }
+
+  private def argType(arg: Arg): Option[ir.TermType] = arg match
+    case AggregateColumnArg(t) => t.typ
+    case ir.TermArg(t) => t.typ
+    case w@ir.WildcardArg() => w.typ
+    case _ => throw new RuntimeException(s"Unsupported arg: $arg")
 
   private def compileArg(arg: ir.Arg, noDeref: Boolean = false, noClone: Boolean = false): Term = arg match
     case AggregateColumnArg(t) => compileTerm(t, noDeref, noClone)
@@ -305,9 +311,3 @@ object GenerateAscent:
         case Some(enclosingDataType) => typeDependencies.getOrElse(cleanDataName, Set()).contains(enclosingDataType)
         case _ => false
       FormatType.Custom(cleanDataName, needsBoxing)
-
-  private def argType(arg: Arg): Option[ir.TermType] = arg match
-    case AggregateColumnArg(t) => t.typ
-    case ir.TermArg(t) => t.typ
-    case w@ir.WildcardArg() => w.typ
-    case _ => throw new RuntimeException(s"Unsupported arg: $arg")

@@ -19,9 +19,9 @@ class CompilerTest extends AnyFunSuite {
   def testCompile(code: String): Unit =
     val compiler = new GenerateIR
     val module = Parser.parseModule(code)
-    val compiled = CompiledFunctionalModule(module, options)
+    val compiled = CompiledFunctionalUnit(module, options)
     compiled.checked
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.lowered
 
   Files.walkFileTree(Paths.get(uri), new FileVisitor[Path] {

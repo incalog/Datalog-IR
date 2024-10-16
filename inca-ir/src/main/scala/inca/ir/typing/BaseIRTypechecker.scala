@@ -2,6 +2,7 @@ package inca.ir.typing
 
 import inca.ir.util.SourceLocation
 import inca.ir.*
+import inca.ir.extension.data.TData
 import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
@@ -17,10 +18,16 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case (r1: Relation, _) => 1
     case _ => 0
 
-  def checkProgram(program: Seq[Module]): Unit = scopedTypeContext {
+  def checkProgram(program: Seq[Module], dependencies: Seq[Module] = Seq()): Unit = scopedTypeContext {
     assert(dependencyGraph.nodes.isEmpty, "Type checking needs to be started with a fresh type checker instance.")
 
-    program.foreach(bindModule)
+    dependencies.foreach(bindModule)
+
+    dependencies.foreach { module =>
+      module.contents.sorted.foreach(e => bindHeaderEntry(e)(module))
+      module.imports.foreach(i => bindModuleImport(i)(module))
+    }
+
     program.foreach(checkModule)
 
     val negativeCycles = dependencyGraph.negativeCycles
@@ -32,6 +39,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     this.failOnError()
   }
 
+  protected var currentModule: Module = _
   protected var currentEntry: ModuleEntry = _
 
   def addCallDependency(to: ModuleEntry, neg: Boolean = false): Unit =
@@ -40,20 +48,96 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
   protected def checkModule(module: Module): Unit = scopedTypeContext {
-    module.contents.sorted.foreach(bindModuleEntry)
+    currentModule = module
+    module.contents.sorted.foreach(e => bindModuleEntry(e))
+    module.imports.foreach(i => bindModuleImport(i)(module))
+
     module.contents.sorted.foreach { entry =>
       currentEntry = entry
       checkModuleEntry(entry)
     }
   }
 
-  protected def bindModuleEntry(entry: ModuleEntry): Unit =
-    registerModuleEntry(entry)
+  protected def bindHeaderEntry(entry: ModuleEntry)(implicit module: Module): Unit = entry match
+    case p: Provide[_] => registerProvide(p)(module)
+    case r: Require => registerRequire(r)(module)
+    case _ => // nothing
 
-  protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
-    case relation: Relation => scopedTypeContext { checkRelation(relation) }
-    case relation: ExtensionalRelation => // nothing
-    case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
+  protected def bindModuleEntry(entry: ModuleEntry): Unit = entry match
+    case _: Provide[_] => // do not register provides. We either have a "require" or another module entry with this name
+    case _ => registerModuleEntry(entry)
+
+  protected def checkRequire[T <: ModuleEntry](require: Require): Unit = require match
+    case _: Require => // nothing, we check these on import
+    case _ => error(s"Can not typecheck unknown require: $require")
+
+  protected def checkProvide[T <: ModuleEntry](provide: Provide[T]): Unit = provide match
+    case ProvideRelation(exportRef, params) =>
+      val sig = inferRelationRef(exportRef, false, provide)
+      if sig.size != params.size then
+        error(s"Expected ${sig.size} parameters, but got ${params.size}", provide)
+      params.zip(sig).foreach((param, ty) => assertComparable(param.ty, ty, provide))
+    case ProvideExtensionalRelation(exportRef, params) =>
+      val sig = inferRelationRef(exportRef, true, provide)
+      if sig.size != params.size then
+        error(s"Expected ${sig.size} parameters, but got ${params.size}", provide)
+      params.zip(sig).foreach((param, ty) => assertComparable(param.ty, ty, provide))
+    case _ => error(s"Can not typecheck unknown provide: $provide")
+
+  protected def checkImport(imp: Import): Unit = imp match
+    case Import(moduleRef, as, entries) =>
+      moduleRef.target match
+        case Some(mod) =>
+          // Make sure every substitution is valid
+          entries.foreach(i => checkSubstitution(imp, i))
+          // Make sure every required entry in the imported module is satisfied
+          val required = mod.contents.collect { case req: Require => req }.sortBy(_.name.name)
+          val importedRequired = entries.map(_.to).sortBy(_.name.name)
+          if required.size != importedRequired.size then
+            error(s"Expected ${required.size} requirements, but got ${importedRequired.size}", imp)
+          required.zip(importedRequired).foreach { (req, imp) =>
+            (imp.target, req) match
+              case (Some(reqTarget), req) if reqTarget != req =>
+                error(s"Incorrectly resolved requirement ${req.name}", imp)
+              case _ => // ok
+          }
+        case _ => error(s"Unresolved module $moduleRef", imp)
+
+  protected def checkSubstitution[T <: Require](imp: Import, importable: Substitution[T, _]): Unit = importable match
+    case RelationSubstitution(to, toSig, from, fromSig) =>
+      // Make sure the to and from signature match
+      if toSig.size != fromSig.size then
+        error(s"Expected ${toSig.size} parameters, but got ${fromSig.size}", importable)
+      fromSig.zip(toSig).foreach((fromParam, toParam) => assertComparable(fromParam.ty, toParam.ty, importable))
+      // Make sure there is a "require" for the "to" name and resolve it
+      lookupRequireRef[RequireRelation](to, importable, imp.module.target.get)
+      inferRelationRef(from, false, importable)
+    case ExtensionalRelationSubstitution(to, toSig, from, fromSig) =>
+      if toSig.size != fromSig.size then
+        error(s"Expected ${toSig.size} parameters, but got ${fromSig.size}", importable)
+      fromSig.zip(toSig).foreach((fromParam, toParam) => assertComparable(fromParam.ty, toParam.ty, importable))
+      lookupRequireRef[RequireExtensionalRelation](to, importable, imp.module.target.get)
+      inferRelationRef(from, true, importable)
+    case _ => error(s"Can not typecheck import: $importable")
+
+  protected def lookupRequireRef[R <: Require](ref: Ref[R], s: SourceLocation, module: Module)(implicit tag: ClassTag[R]): Option[R] =
+    lookupRequire[R](ref.name, module) match
+      case Some(r) =>
+        ref.resolved(r)
+        Some(r)
+      case _ =>
+        error(s"Could not resolve entry required by: ${ref.name}", s)
+        None
+
+  protected def checkModuleEntry(moduleEntry: ModuleEntry): Unit = scopedTypeContext {
+    moduleEntry match
+      case relation: Relation => checkRelation(relation)
+      case relation: ExtensionalRelation => // nothing
+      case r: Require => checkRequire(r)
+      case p: Provide[_] => checkProvide(p)
+      case i: Import => checkImport(i)
+      case _ => throw IllegalArgumentException(s"Can not typecheck unknown entry: $moduleEntry")
+  }
 
   protected def checkRelation(relation: Relation): Unit = {
     // bind parameters
@@ -94,15 +178,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     }
 
   protected def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode = term match
-    case v@Var(ref@RefByName(name)) => mode match
+    case v@Var(ref) => mode match
       case Mode.Binding => lookupVar(ref) match
         case None =>
-          registerVar(name, v, expected)
-          bindVar(name)
+          registerVar(ref.name, v, expected)
+          bindVar(ref.name)
           Mode.Binding
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
           assertComparable(ty, expected, v)
-          bindVar(name)
+          bindVar(ref.name)
           Mode.Binding
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
@@ -134,15 +218,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       m
 
   protected def inferTermExtend(term: Term, mode: Mode): TermType = term match
-    case v@Var(ref@RefByName(name)) => mode match
+    case v@Var(ref) => mode match
       case Mode.Binding => lookupVar(ref) match
         case None =>
           error(s"Cannot infer type of Undefined variable $v", v)
-          registerVar(name, v, TAny)
-          bindVar(name)
+          registerVar(ref.name, v, TAny)
+          bindVar(ref.name)
           TAny.binding
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
-          bindVar(name)
+          bindVar(ref.name)
           ty.binding
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           ty.bound
@@ -180,8 +264,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
 
-  protected def checkCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], atom: Atom, mode: Mode)(implicit tag: ClassTag[R]): Unit =
-    val paramTys = inferRelationRef(ref, atom)
+  protected def checkCall[R <: ModuleEntry](ref: Ref[R], args: Seq[Arg], atom: Atom, mode: Mode, isExtensional: Boolean): Unit =
+    val paramTys = inferRelationRef(ref, isExtensional, atom)
     ref.target.foreach(addCallDependency(_, !mode.isBinding))
     if (paramTys.size != args.size)
       error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
@@ -204,31 +288,81 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         checkTerm(t, ty, argMode)
     }
 
-  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], s: SourceLocation)(implicit tag: ClassTag[R]): Seq[Type] = ref match
-    case RefByName(name) => lookupModuleEntry(name) match
+  protected def lookupModuleByPath[R <: ModuleEntry](ref: Ref[R], s: SourceLocation*): Module =
+    ref match
+      case RefByQualifiedName(ns) =>
+        // resolve the modules in the path
+        ns.dropRight(1).foldLeft[Option[Module]](Some(currentModule)) {
+          case (None, _) => None
+          case (Some(lastMod), moduleName) =>
+            lookupModuleByAlias(moduleName)(lastMod) match
+              case Some(mod) => Some(mod)
+              case _ =>
+                error(s"Could not resolve module $moduleName", s:_*)
+                None
+        }.getOrElse(currentModule)
+      case _ => currentModule
+
+  protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, locations: SourceLocation*): Seq[Type] =
+    val targetModule = lookupModuleByPath(ref, locations:_*)
+    val (rel, tys) = if targetModule != currentModule then
+      // definitions outside the current module must be provided
+      if isExtensional then
+        val providedRel = lookupProvideRef[ProvideExtensionalRelation](ref, targetModule, locations:_*)
+        val tyOption = providedRel.map(_.params.map(_.ty))
+        (providedRel, tyOption.getOrElse(Seq()))
+      else
+        val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations:_*)
+        val tyOption = providedRel.map(_.params.map(_.ty))
+        (providedRel, tyOption.getOrElse(Seq()))
+    else
+      // definitions inside the module can either be a relation or a requirement
+      lookupRelationRef[R](ref, isExtensional, locations:_*)
+    rel.map(r => ref.resolved(r.asInstanceOf[R]))
+    tys
+
+  protected def lookupProvideRef[P <: Provide[_]](ref: Ref[_], module: Module, locations: SourceLocation*)(implicit tag: ClassTag[P]): Option[P] =
+    lookupProvide[P](ref.unqualifiedName, module) match
+      case Some(prov) => Some(prov)
+      case _ =>
+        error(s"Could not resolve entry provided by: ${ref.name}", locations:_*)
+        None
+
+  // lookup a relation in a module given a name
+  private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, s: SourceLocation*): (Option[R], Seq[Type]) =
+    lookupModuleEntry(ref.unqualifiedName) match
+      case Some(rel@Relation(_, _, _)) if isExtensional =>
+        error(s"Expected an extensional relation, but got relation ${ref.name}", s:_*)
+        (None, Seq())
       case Some(rel@Relation(_, params, _)) =>
-        if (!tag.runtimeClass.isInstance(rel))
-          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
-        ref.resolved(rel.asInstanceOf[R])
-        params.map(_.ty)
+        (Some(rel.asInstanceOf[R]), params.map(_.ty))
+      case Some(rel@ExtensionalRelation(_, _)) if !isExtensional =>
+        error(s"Expected a relation, but got extensional relation ${ref.name}", s:_*)
+        (None, Seq())
       case Some(rel@ExtensionalRelation(_, params)) =>
-        // This might e.g. happen if we perform a call on an extensional relation
-        if (!tag.runtimeClass.isInstance(rel))
-          error(s"Expected ${tag.runtimeClass.getSimpleName}, but got ${rel.getClass.getSimpleName} while resolving RelationRef", s)
-        ref.resolved(rel.asInstanceOf[R])
-        params.map(_.ty)
+        (Some(rel.asInstanceOf[R]), params.map(_.ty))
+      case Some(req@RequireRelation(_, params)) if isExtensional =>
+        error(s"Expected a relation, but got extensional relation ${ref.name}", s: _*)
+        (None, Seq())
+      case Some(req@RequireRelation(_, params)) =>
+        (Some(req.asInstanceOf[R]), params.map(_.ty))
+      case Some(req@RequireExtensionalRelation(_, params)) if !isExtensional =>
+        error(s"Expected an extensional relation, but got relation ${ref.name}", s: _*)
+        (None, Seq())
+      case Some(req@RequireExtensionalRelation(_, params)) =>
+        (Some(req.asInstanceOf[R]), params.map(_.ty))
       case None =>
-        error(s"Undefined relation $name", s)
-        Seq()
+        error(s"Undefined relation ${ref.name}", s:_*)
+        (None, Seq())
       case entry =>
-        error(s"Expected a relation $name but found $entry", s)
-        Seq()
+        error(s"Expected a relation ${ref.name} but found $entry", s:_*)
+        (None, Seq())
 
   protected def checkAtom(atom: Atom, mode: Mode): Unit = atom match
-    case Call(ref, args, false) => checkCall(ref, args, atom, mode)
-    case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
-    case ExtensionalCall(ref, args, false) => checkCall(ref, args, atom, mode)
-    case ExtensionalCall(ref, args, true) => checkCall(ref, args, atom, mode.inverted)
+    case Call(ref, args, false) => checkCall(ref, args, atom, mode, false)
+    case Call(ref, args, true) => checkCall(ref, args, atom, mode.inverted, false)
+    case ExtensionalCall(ref, args, false) => checkCall(ref, args, atom, mode, true)
+    case ExtensionalCall(ref, args, true) => checkCall(ref, args, atom, mode.inverted, true)
 
     case Eq(lhs@Var(x), rhs, false) if !lookupVar(x).exists(_.mode == VarMode.Bound) =>
       // special case to avoid backtracking for ubiquitous `x = e`  

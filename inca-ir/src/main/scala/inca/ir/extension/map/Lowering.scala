@@ -95,13 +95,14 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module
     mapTypes = Set()
     mapConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeMapDefinitions
     m.copy(contents = m.contents ++ defs)
+  }
 
   private def keyValType(t: Term): (Type,Type) = t.typ.getOrElse(throw new IllegalStateException(s"Map lowering requires typed IR, type missing in $t")).ty match
     case TMap(keyTy, valTy) => (keyTy, valTy)
@@ -164,7 +165,7 @@ trait Lowering extends BaseLowering:
             ),
             DisjunctionAlternative(
               Eq(Var(keyVar), k, neg = true),
-              Call(relNameOf(keyTy, valTy), Seq(s1.arg, Var(keyVar), Var(valVar).arg))
+              Call(relNameOf(keyTy, valTy), Seq(s1.arg, Var(keyVar).arg, Var(valVar).arg))
               )
           ))
         )
@@ -177,8 +178,8 @@ trait Lowering extends BaseLowering:
       val mapEnum = new MapEnum:
         override def apply(keyVar: Name, valVar: Name): Seq[Atom] = Seq(
           Disjunction(Seq(
-            DisjunctionAlternative(Call(relNameOf(keyTy1, valTy1), Seq(s1.arg, Var(keyVar), Var(valVar).arg))),
-            DisjunctionAlternative(Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar), Var(valVar).arg)))
+            DisjunctionAlternative(Call(relNameOf(keyTy1, valTy1), Seq(s1.arg, Var(keyVar).arg, Var(valVar).arg))),
+            DisjunctionAlternative(Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar).arg, Var(valVar).arg)))
           ))
         )
       Seq(callAddConstructor(term, mapEnum))
@@ -196,7 +197,7 @@ trait Lowering extends BaseLowering:
               Call(relNameOf(keyTy1, valTy1), Seq(s1.arg, Var(keyVar).arg, Var(valVar).arg))
             ),
             DisjunctionAlternative(
-              Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar), Var(valVar).arg))
+              Call(relNameOf(keyTy2, valTy2), Seq(s2.arg, Var(keyVar).arg, Var(valVar).arg))
             )
           ))
         )

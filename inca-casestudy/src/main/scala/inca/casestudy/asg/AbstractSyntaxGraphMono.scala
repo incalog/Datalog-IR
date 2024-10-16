@@ -17,7 +17,7 @@ import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.ir.util.SourceLocation
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, term2Arg, termList2ArgList, stringList2nameList}
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
@@ -259,10 +259,12 @@ object AbstractSyntaxGraphMono:
       )
   )
 
-  class Compiled(optMono: Boolean, outlineDemand: Boolean=false) extends CompiledModule:
+  class Compiled(optMono: Boolean, outlineDemand: Boolean=false) extends CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override val ir: Module = mod
+    override def irModules: Seq[Module] = Seq(mod)
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false

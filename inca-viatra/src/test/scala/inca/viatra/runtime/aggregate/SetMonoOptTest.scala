@@ -17,18 +17,19 @@ import inca.ir.extension.{aggregate, block, demand, disjunction, impure, mono, a
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-case class CompiledSetMonoOptModule(mod: Module) extends CompiledModule:
+case class CompiledSetMonoOptUnit(mod: Module) extends CompiledUnit:
   override def compilerOptions: CompilerOptions = CompilerOptions.default
   override def name: Name = mod.name
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-
-  override def ir: Module = mod
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
 
   private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
 
@@ -78,8 +79,8 @@ class SetMonoOptTest extends AnyFunSuiteLike:
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
-    //    val compiledMod = CompiledSetMonoModule(mod)
-    val compiledMod = CompiledSetMonoOptModule(mod)
+    //    val compiledMod = CompiledSetMonoUnit(mod)
+    val compiledMod = CompiledSetMonoOptUnit(mod)
     val exec: IRExecutor = new Executor
     exec.instantiate(compiledMod)
 

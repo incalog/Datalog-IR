@@ -1,7 +1,7 @@
 package inca.ir.extension.demand
 
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, Module, ModuleEntry, Param, Relation, TAny, Var, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, Eq, Module, ModuleEntry, Param, Relation, TAny, Var, string2name, termList2ArgList}
 import inca.ir.extension.demand
 import inca.ir.extension.arithmetic
 import inca.ir.extension.arithmetic.{IntNum, TInt}

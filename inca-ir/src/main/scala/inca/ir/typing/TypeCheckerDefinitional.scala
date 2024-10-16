@@ -95,7 +95,7 @@ object TypeCheckerDefinitional:
           val upper = tys.reduce(join)
           assertComparable(TSet(upper), expected, t)
         }
-    case SetUnion(t1, t2) => expected match
+    case SetUnion(Seq(t1, t2)) => expected match
       case TSet(ty) =>
         checkBound(t1, ctx, expected)
         checkBound(t2, ctx, expected)
@@ -148,7 +148,7 @@ object TypeCheckerDefinitional:
         case SetLit(ts) =>
           checkBound(t, ctx, expected)
           (Bound, ctx)
-        case SetUnion(t1, t2) => expected match
+        case SetUnion(Seq(t1, t2)) => expected match
           case TSet(ty) =>
             val (cl1, ctx1) = checkBinding(t1, ctx, expected)
             val (cl2, ctx2) = checkBinding(t2, ctx1, expected)
@@ -180,7 +180,7 @@ object TypeCheckerDefinitional:
         val upper = tys.reduce(join)
         TSet(upper)
       }
-    case SetUnion(t1, t2) =>
+    case SetUnion(Seq(t1, t2)) =>
       val TSet(ty1) = inferBoundSet(t1, ctx)
       val TSet(ty2) = inferBoundSet(t2, ctx)
       TSet(join(ty1, ty2))
@@ -204,7 +204,7 @@ object TypeCheckerDefinitional:
       (TTuple(tys), cl, c)
     case SetLit(ts) =>
       (inferBound(t, ctx), Bound, ctx)
-    case SetUnion(t1, t2) =>
+    case SetUnion(Seq(t1, t2)) =>
       val (TSet(ty1), cl1, ctx1) = inferBindingSet(t1, ctx)
       val (TSet(ty2), cl2, ctx2) = inferBindingSet(t2, ctx1)
       (TSet(join(ty1, ty2)), cl1 join cl2, ctx2)

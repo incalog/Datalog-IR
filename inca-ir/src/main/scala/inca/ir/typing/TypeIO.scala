@@ -27,6 +27,12 @@ trait TypeIO:
     warnings.foreach(println)
   }
 
+  def failOnWarnings(): Unit = {
+    val warnings = getWarnings
+    if (warnings.nonEmpty)
+      throw TypeErrorException(warnings)
+  }
+  
   def failOnError(): Unit = {
     val errors = getErrors
     if (errors.nonEmpty)

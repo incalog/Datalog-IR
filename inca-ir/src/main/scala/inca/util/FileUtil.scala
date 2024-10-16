@@ -1,6 +1,7 @@
 package inca.util
 
 import java.io.{File, FileWriter}
+import java.nio.file.{Files, Paths}
 
 object FileUtil:
   def readLinesFromResource(path: String): Seq[String] =
@@ -26,6 +27,7 @@ object FileUtil:
 
 
   def writeFile(file: File, content: String): Unit =
+    Files.createDirectories(Paths.get(file.getParent))
     val fileWriter = new FileWriter(file)
     try
       fileWriter.write(content)

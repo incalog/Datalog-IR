@@ -1,46 +1,31 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
-import inca.ir.Language
+import inca.ir.extension.aggregate.AggregateColumnArg
+import inca.ir.{ExtensionalRelationSubstitution, Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
 import inca.ir.extension.arithmetic.IntNum
+import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
+import inca.ir.extension.data.{RequireCaseDefinition, RequireDataDefinition}
 import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
+import inca.ir.typing.Resolvable
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
-import inca.souffle.syntax.ProgramContent.RelationDecl
+import inca.souffle.syntax.Aggregator.Min
+import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl}
+import inca.souffle.syntax.TypeDeclConstraint.ADTType
 import inca.util.Gensym
 
 import scala.annotation.tailrec
+import scala.collection.immutable.{AbstractSet, SortedSet}
 
-class GenerateIR:
-  trait Context:
-    /* These fields are relative to the ComponentInit we are in */
+implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y) match
+  case (_: ProgramContent.ComponentDecl, _: ProgramContent.ComponentDecl) => 0
+  case (_, _: ProgramContent.ComponentDecl) => -1
+  case (_: ProgramContent.ComponentDecl, _) => 1
+  case _ => 0
 
-    // The current prefix created by nested ComponentInit calls
-    val prefix: Seq[String] = Seq()
-    // The current prefix for each Rule or Type declaration
-    val declPrefixes: Map[ProgramContent, Seq[String]] = Map()
-
-    /* These fields are independent of the ComponentInit we are in */
-
-    // All rules / facts that belong to a RelationDecl
-    val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
-    // Collect for all RelationDecl if it is an edb relation or not
-    val edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = Map()
-    // Collect for all RelationDecl if it is an output or not
-    val outputDecls: Set[ProgramContent.RelationDecl] = Set()
-
-    // Create a new context for a prefix and extend it with new decls found for this prefix
-    def extend(newPrefix: Seq[String], decls: Seq[ProgramContent]): Context =
-      val obj = this
-      new Context {
-        override val prefix: Seq[String] = newPrefix
-        override val declPrefixes: Map[ProgramContent, Seq[String]] = obj.declPrefixes ++ decls.map(_ -> newPrefix).toMap
-        override val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = obj.rules
-        override val edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = obj.edbDecls
-        override val outputDecls: Set[ProgramContent.RelationDecl] = obj.outputDecls
-      }
-
+class GenerateIR extends GenerateIRContext:
   val irLang: Language = new Language(Set(ir.BaseIR)
     + irarith.IR + block.IR + irbool.IR + irdata.IR
     + irdis.IR + irnot.IR + irstring.IR
@@ -48,111 +33,135 @@ class GenerateIR:
   )
   val gensym: Gensym = new Gensym()
 
+  private var componentModules: Map[ir.Name, ir.Module] = Map()
 
-  def compileProgram(prog: Program, name: String): ir.Module =
-    val nameResolution = new NameResolution {}
-    nameResolution.resolveProgram(prog)
+  def compileProgram(prog: Program, name: String): Seq[ir.Module] =
+    initContext(prog)
+    val content = switchToMainComponent { compileProgramContents(prog.content) }
+    val souffleModule = ir.Module(ir.Name(name), irLang, content)
+    souffleModule +: componentModules.values.toSeq
 
-    val ctx = new Context {
-      override val prefix: Seq[String] = Seq()
-      override val declPrefixes: Map[ProgramContent, Seq[String]] = collectDirectDecls(prog.content).map(_ -> Seq()).toMap
-      override val rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = collectRules(prog.content)
-      override val edbDecls: Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] = collectEdbDecls(prog.content)
-      override val outputDecls: Set[ProgramContent.RelationDecl] = collectOutputDecls(prog.content)
+  private def compileProgramContents(contents: Seq[ProgramContent]): Seq[ir.ModuleEntry] =
+    contents.sorted.flatMap(compileProgramContent).distinct
+
+  private def transitivelyCollectProgramContent[A](componentDecl: ComponentDecl)(f: PartialFunction[ProgramContent, A]): Set[A] =
+    val directDecls = componentDecl.content.collect(f).toSet
+    val superComponents = componentDecl.superTys.map(_.target.get)
+    directDecls ++ superComponents.flatMap(c => transitivelyCollectProgramContent(c)(f))
+
+  private def compileComponentDecl(decl: ComponentDecl): ir.Module =
+    val modName = ir.Name(decl.ty.n)
+    componentModules.get(modName) match
+      case Some(m) => m
+      case _ => compileComponentDeclInternal(modName, decl)
+
+  private def compileComponentDeclInternal(moduleName: ir.Name, decl: ComponentDecl): ir.Module =
+    // compile all inherited components
+    val superDecls = decl.superTys.map(_.target.get)
+    superDecls.map(compileComponentDecl)
+    // collect all relation declarations defined in this component or the parent
+    val rels = transitivelyCollectProgramContent(decl){ case r: ProgramContent.RelationDecl => r }
+    val adts = transitivelyCollectProgramContent(decl){ case adt@ProgramContent.TypeDecl(_, _: ADTType) => adt }
+    val content = switchToComponent(decl) {
+      val compiledRels = rels.toSeq.flatMap(compileRelationDecl)
+      val compiledAdts = adts.toSeq.flatMap(compileAdtDecl)
+      compiledAdts ++ compiledRels ++ compileProgramContents(decl.content)
     }
-
-    ir.Module(ir.Name(name), irLang, compileProgramContents(prog.content)(ctx))
-
-  private def collectRules(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Seq[ProgramContent]] =
-    var rules: Map[ProgramContent.RelationDecl, Seq[ProgramContent]] = Map()
-    content.foreach {
-      case rule@ProgramContent.Rule(heads, _, _) =>
-        rules ++= heads.map {
-          case call: Atom.Call =>
-            val relDecl = call.target.get
-            val existingRules = rules.getOrElse(relDecl, Seq())
-            relDecl -> (existingRules :+ rule)
+    
+    val required = lookupRequiredDeclarations(decl).flatMap {
+      case (name, relDecl: ProgramContent.RelationDecl) =>
+        val params = relDecl.attrs.map(compileAttribute)
+        val req =
+          if isEdbDeclaration(relDecl) then
+            ir.RequireExtensionalRelation(ir.Name("super$" + name), params)
+          else
+            ir.RequireRelation(ir.Name("super$" + name), params)
+        Seq(req)
+      case (name, adt@ProgramContent.TypeDecl(_, ty: ADTType)) =>
+        val dataName = ir.Name("super$" + name)
+        val dataDef = irdata.RequireDataDefinition(dataName)
+        dataDef +: ty.alts.map { case ADTConstructor(n, attrs) =>
+          val args = attrs.map(compileAttribute).map(_.ty)
+          irdata.RequireCaseDefinition(ir.Name("super$" + n), args, irdata.TData(dataName))
         }
-      case fact@ProgramContent.Fact(_, _) =>
-        val relDecl = fact.target.get
-        val existingRules = rules.getOrElse(relDecl, Seq())
-        rules += relDecl -> (existingRules :+ fact)
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        rules ++= collectRules(compContent)
-      case _ => // nothing
+      case (_, d) => throw IllegalStateException(s"Unsupported declaration: $d")
     }
-    rules
-
-  private def collectEdbDecls(content: Seq[ProgramContent]): Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]] =
-    // TODO: This assumes, we do not allow cases such as
-    //  .decl A, B
-    //  .input A
-    var edbDecls = Map[ProgramContent.RelationDecl, Map[String, DirectiveValue]]()
-    content.foreach {
-      case input@ProgramContent.Directive(DirectiveQualifier.Input, _, _) =>
-        edbDecls += input.target.get -> input.attrs
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        edbDecls ++= collectEdbDecls(compContent)
-      case _ => // nothing
-    }
-    edbDecls
-
-  private def collectOutputDecls(content: Seq[ProgramContent]): Set[ProgramContent.RelationDecl] =
-    // TODO: This assumes, we do not allow cases such as
-    //  .decl A, B
-    //  .input A
-    var outputDecls = Set[ProgramContent.RelationDecl]()
-    content.foreach {
-      case output@ProgramContent.Directive(DirectiveQualifier.Output, _, _) =>
-        outputDecls += output.target.get
-      case compDecl@ProgramContent.ComponentDecl(_, _, compContent) =>
-        outputDecls ++= collectOutputDecls(compContent)
-      case _ => // nothing
-    }
-    outputDecls
-
-  private def collectDirectDecls(content: Seq[ProgramContent]): Seq[ProgramContent] =
-    content.flatMap {
-      case decl: ProgramContent.RelationDecl => Seq(decl)
-      case decl: ProgramContent.TypeDecl => Seq(decl)
-      case _ => Seq()
+    // provide all relations in a component
+    val provided = content.collect {
+      case ir.Relation(name, params, _) => ir.ProvideRelation(name, params)
+      case ir.ExtensionalRelation(name, params) => ir.ProvideExtensionalRelation(name, params)
+      case irdata.DataDefinition(name) => irdata.ProvideDataDefinition(name)
+      case irdata.CaseDefinition(name, args, data) => irdata.ProvideCaseDefinition(name, args, data)
     }
 
-  private def compileProgramContents(contents: Seq[ProgramContent])(ctx: Context): Seq[ir.ModuleEntry] =
-    contents.flatMap(c => compileProgramContent(c)(ctx))
+    val compModule = ir.Module(moduleName, irLang, content ++ required ++ provided)
+    componentModules += moduleName -> compModule
+    compModule
 
-  private def compileProgramContent(content: ProgramContent)(ctx: Context): Seq[ir.ModuleEntry] =
-    given Context = ctx
+  private def compileProgramContent(content: ProgramContent): Seq[ir.ModuleEntry] =
     content match
-      case relDecl@ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) =>
+      case relDecl: ProgramContent.RelationDecl if currentlyInMainComponent =>
         compileRelationDecl(relDecl)
-      case ProgramContent.Rule(heads, body, queryPlan) =>
-        Seq() // nothing, handled by ProgramContent.RelationDecl
-      case ProgramContent.Fact(name, args) =>
-        Seq() // nothing, handled by ProgramContent.RelationDecl
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) =>
-        compileAdtDecl(typeDecl)
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(alts)) =>
-        compileUnionTypeDecl(typeDecl)
-      case typeDecl@ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(alts)) =>
-        compileRecordTypeDecl(typeDecl)
-      case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(ty)) =>
-        throw IllegalStateException(s"Subtypes are not supported: $content")
-      case ProgramContent.TypeDecl(name, _) =>
-        Seq() // nothing
-      case ProgramContent.ComponentDecl(_, _, compContent) =>
-        Seq() // nothing, handled by ProgramContent.ComponentInit
-      case compInit@ProgramContent.ComponentInit(n, compType) =>
-        val compDecl@ProgramContent.ComponentDecl(_, _, compContent) = compInit.target.get
-        val newCtx = ctx.extend(ctx.prefix :+ n, collectDirectDecls(compContent))
-        compileProgramContents(compContent)(newCtx)
+      case adtDecl@ProgramContent.TypeDecl(_, _: TypeDeclConstraint.ADTType) if currentlyInMainComponent =>
+        compileAdtDecl(adtDecl)
+      case compInit@ProgramContent.ComponentInit(initName, compTy) =>
+        val decl = compInit.target.get
+        compileComponentDecl(decl)
+        resolveImport(compTy, initName)
       case _ =>
         Seq()
-      /*
-      case ProgramContent.Directive(dirQualifier, name, attrs) => ???
-      case ProgramContent.Override(n) => ???
-      case ProgramContent.FunctorDecl(name, params, retType, stateful) => ???
-      case ProgramContent.Pragma(option, arg) => ???*/
+
+  private def prefixedName[R <: Resolvable[ComponentDecl]](name: QName, resolvable: R, absolutePath: Boolean): ir.Name =
+    if absolutePath && declIsRequiredInComponent(QName(Seq(name.ns.last)), resolvable.target.get) then
+      // the relation is from a parent and is also required in the parent => prefix
+      ir.Name("super$" + name.ns.last)
+    else if absolutePath then
+      // the relation is from a parent, but is not required in it => no prefix
+      ir.Name(name.ns.last)
+    else if currentlyInComponent(resolvable.target) then
+      // the relation is declared in the current component => no prefix
+      ir.Name(name.ns.last)
+    else
+      // the relation is passed down from a parent to the current component and reexported => prefix
+      ir.Name("super$" + name.ns.last)
+
+  private def resolveImport(compTyp: ComponentType, as: String): Seq[ir.Import] =
+    val requiredInComponent = lookupRequiredDeclarations(compTyp.target.get)
+    var dependencies: Set[ComponentType] = Set()
+    val subst = requiredInComponent.flatMap {
+      case (name, decl: RelationDecl) =>
+        // when we are in the current component, we don't need a prefix for the export
+        val fromPath = if currentlyInComponent(decl.target) then Seq() else lookupPath(decl)
+        dependencies ++= fromPath
+        val fromName = prefixedName(name, decl, absolutePath = fromPath.nonEmpty)
+        val params = decl.attrs.map(compileAttribute)
+        val relName = ir.Name("super$" + name)
+        val qualifiedFromName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromName
+        val relSubst =
+          if isEdbDeclaration(decl) then
+            ExtensionalRelationSubstitution(relName, params, qualifiedFromName, params)
+          else
+            RelationSubstitution(relName, params, qualifiedFromName, params)
+        Seq(relSubst)
+      case (name, decl@ProgramContent.TypeDecl(_, ty: ADTType)) =>
+        val fromPath = if currentlyInComponent(decl.target) then Seq() else lookupPath(decl)
+        dependencies ++= fromPath
+        val dataName = ir.Name("super$" + name)
+        val fromDataName = prefixedName(name, decl, absolutePath = fromPath.nonEmpty)
+        val qualifiedFromDataName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromDataName
+        val dataSubst = irdata.DataDefinitionSubstitution(dataName, qualifiedFromDataName)
+        val caseSubsts = ty.alts.map { case ADTConstructor(cName, attrs) =>
+          val caseName = ir.Name("super$" + cName)
+          val fromCaseName = prefixedName(QName(Seq(cName)), decl, absolutePath = fromPath.nonEmpty)
+          val qualifiedFromCaseName = fromPath.map(compTy => ir.Name(compTy.n)) :+ fromCaseName
+          val args = attrs.map(compileAttribute).map(_.ty)
+          irdata.CaseDefinitionSubstitution(caseName, args, qualifiedFromCaseName, args)
+        }
+        dataSubst +: caseSubsts
+      case (_, d) => throw IllegalStateException(s"Unsupported declaration: $d")
+    }
+    val imp = ir.Import(ir.Name(compTyp.n), ir.Name(as), subst.toSeq)
+    dependencies.toSeq.flatMap(dep => resolveImport(dep, dep.n)) :+ imp
 
   private def cleanName(name: String): String =
     name.replace("?", "Q_")
@@ -164,72 +173,73 @@ class GenerateIR:
   private def namesToIrName(ns: Seq[String]): ir.Name =
     ir.Name(ns.map(cleanName).mkString("$"))
 
-  private def prefixedIrName(name: String)(implicit ctx: Context): ir.Name =
-    namesToIrName(ctx.prefix :+ name)
-
-  private def prefixedIrName(decl: ProgramContent, qName: QualifiedName)(implicit ctx: Context): ir.Name =
-    ctx.declPrefixes.get(decl) match
-      case Some(prefix) => namesToIrName(prefix :+ qName.ns.last) // relative name
-      case _ => namesToIrName(qName.ns) // absolute name
-
-  private def ruleHasName(rule: ProgramContent, relName: String): Boolean = rule match
-    // A single rule can have multiple names. Only a single name must match
-    case ProgramContent.Rule(heads, _, _) =>
-      heads.exists {
-        case Atom.Call(QualifiedName(ns), _) if ns.last == relName => true
-        case _ => false
-      }
-    case ProgramContent.Fact(QualifiedName(ns), args) if ns.last == relName => true
-    case _ => false
-
-  private def compileAdtDecl(decl: ProgramContent.TypeDecl)(implicit ctx: Context) =
+  private def compileAdtDecl(decl: ProgramContent.TypeDecl) =
     val ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(alts)) = decl
-    val dataDefName = prefixedIrName(name)
+    val dataDefName = ir.Name(name)
     val dataDef = irdata.DataDefinition(dataDefName)
     val caseDefs = alts.map { case ADTConstructor(caseName, attrs) =>
-      irdata.CaseDefinition(prefixedIrName(caseName), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
+      irdata.CaseDefinition(ir.Name(caseName), attrs.map(a => compileType(a.ty)), irdata.TData(dataDefName))
     }
     dataDef +: caseDefs
 
-  private def compileUnionTypeDecl(decl: ProgramContent.TypeDecl)(implicit ctx: Context) =
+  private def compileUnionTypeDecl(decl: ProgramContent.TypeDecl) =
     val ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) = decl
     // TODO: Express Union types with ADTs
     ???
 
-  private def compileRecordTypeDecl(decl: ProgramContent.TypeDecl)(implicit ctx: Context) =
+  private def compileRecordTypeDecl(decl: ProgramContent.TypeDecl) =
     val ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) = decl
-    // TODO: Introduce IR for Record types
+    // TODO: Adapt record IR to contain nil case and use the extension here
     ???
 
-  private def compileRelationDecl(decl: ProgramContent.RelationDecl)(implicit ctx: Context): Seq[ir.ModuleEntry] =
+  private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
     val ProgramContent.RelationDecl(names, attrs, qualifiers, choiceDomain) = decl
 
     names.map { relName =>
       val params = attrs.map(compileAttribute)
 
-      val edb = ctx.edbDecls.get(decl)
-      edb match
-        case Some(attrs) =>
-          ir.ExtensionalRelation(prefixedIrName(relName), params)
-            .addHint(SouffleInputHint(attrs))
-        case None =>
-          // Find all rules relevant for this relation
-          val rulesForRelation = ctx.rules(decl).filter(r => ruleHasName(r, relName))
-          val rel = ir.Relation(prefixedIrName(relName), params, rulesForRelation.flatMap {
-            case r: ProgramContent.Rule => compileRule(decl, r, relName)
-            case f: ProgramContent.Fact => Seq(compileFact(decl, f))
-            case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
-          })
-          if (ctx.outputDecls.contains(decl))
-            rel.addHint(SouffleOutputHint)
-          rel
+      if isEdbDeclaration(decl) then
+        ir.ExtensionalRelation(ir.Name(relName), params)
+          .addHint(SouffleInputHint(lookupEdbAttributes(decl)))
+      else
+        // Find all rules relevant for this relation
+        val rulesForRelation = lookupRules(relName, decl)
+        val bodies = rulesForRelation.flatMap {
+          case r: ProgramContent.Rule if currentlyInMainComponent =>
+            // we always compile in the main component
+            compileRule(decl, r, relName)
+          case r: ProgramContent.Rule if currentlyInComponent(r.target) =>
+            compileRule(decl, r, relName)
+          case f: ProgramContent.Rule => Seq() // nothing
+          case f: ProgramContent.Fact if currentlyInMainComponent =>
+            // we always compile in the main component
+            Seq(compileFact(decl, f))
+          case f: ProgramContent.Fact if currentlyInComponent(f.target.get._2) =>
+            Seq(compileFact(decl, f))
+          case f: ProgramContent.Fact => Seq() // nothing
+          case c => throw IllegalStateException(s"Found unexpected content $c for relation $relName")
+        }
+
+        // the declaration is in a parent, that is do a super call
+        val superCall = if !currentlyInComponent(decl.target) then
+          // Call parent impl
+          Some(ir.Body(Seq(
+            ir.Call(ir.Name(s"super$$$relName"), decl.attrs.map(compileAttribute).map(p => ir.Var(p.name).arg))
+          )))
+        else
+          None
+
+        val rel = ir.Relation(ir.Name(relName), params, bodies ++ superCall)
+        if isOutputDeclaration(decl) then
+          rel.addHint(SouffleOutputHint)
+        rel
     }
 
-  private def compileAttribute(attr: Attribute)(implicit ctx: Context): ir.Param =
+  private def compileAttribute(attr: Attribute): ir.Param =
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
-  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String)(implicit ctx: Context): Seq[ir.Body] =
+  private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): Seq[ir.Body] =
     val ProgramContent.Rule(heads, atom, queryPlanOption) = rule
     // need to consider that there could be multiple heads for the same rule
     // e.g. R(x), R(y) :- Q(x, y).
@@ -249,7 +259,7 @@ class GenerateIR:
     }
 
 
-  private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact)(implicit ctx: Context): ir.Body =
+  private def compileFact(decl: ProgramContent.RelationDecl, fact: ProgramContent.Fact): ir.Body =
     val ProgramContent.Fact(name, args) = fact
     ir.Body(
       args.zip(decl.attrs).map { (arg, attr) =>
@@ -257,17 +267,21 @@ class GenerateIR:
       }
     )
 
-  private def compileAtom(atom: Atom)(implicit ctx: Context): ir.Atom = atom match
+  private def compileAtom(atom: Atom): ir.Atom = atom match
     case Atom.Not(atom) =>
       irnot.Not(compileAtom(atom))
     case call@Atom.Call(qname, args) =>
       val compileArgs = args.map(compileTermAsArgument)
       val decl = call.target.get
-      ctx.edbDecls.get(decl) match
-        case Some(_) =>
-          ir.ExtensionalCall(prefixedIrName(decl, qname), compileArgs)
-        case None =>
-          ir.Call(prefixedIrName(decl, qname), compileArgs)
+
+      // find the component in which this call is declared
+      val fromPath = qname.path.map(n => ir.Name(n))
+      val fromName = prefixedName(QName(qname.ns), decl, absolutePath = fromPath.nonEmpty)
+
+      if isEdbDeclaration(decl) then
+        ir.ExtensionalCall(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
+      else
+        ir.Call(ir.RefByQualifiedName(fromPath :+ fromName), compileArgs, false)
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(atoms => irdis.DisjunctionAlternative(atoms.map(compileAtom))))
     case Atom.Compare(t1, Comparator.EQ, t2) =>
@@ -276,50 +290,80 @@ class GenerateIR:
       ir.Eq(compileTerm(t1), compileTerm(t2), true)
     case Atom.Compare(t1, op, t2) =>
       irarith.BinCompare(compileTerm(t1), compileTerm(t2), op.toString)
-    case Atom.Match(t1, t2) => ???
+    case Atom.Match(t1, t2) =>
+      // TODO: Remove this dummy
+      ir.Eq(irarith.IntNum(1), irarith.IntNum(0))
     case Atom.Contains(t1, t2) => ???
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
 
-  private def compileTermAsArgument(term: Term)(implicit ctx: Context): ir.Arg = term match
+  private def compileTermAsArgument(term: Term): ir.Arg = term match
     case Term.Var("_") => ir.WildcardArg() // Souffle only allows wildcards at argument positions
     case _ => compileTerm(term).arg
 
-  private def compileTerm(term: Term)(implicit ctx: Context): ir.Term = term match
+  private def compileTerm(term: Term): ir.Term = term match
     case Term.Var(name) => ir.Var(ir.Name(cleanName(name)))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
     case Term.FloatLit(f) => irarith.DoubleNum(f)
-    case Term.Nil() => ???
+    case Term.Nil() => ??? // record nil case
     case Term.List(s) => ???
     case constr@Term.Constr(qname, args) =>
-      val decl = constr.target.get
-      irdata.Construct(prefixedIrName(decl, qname), args.map(compileTerm))
+      val typeDecl = constr.target.get
+      val fromPath = qname.path.map(n => ir.Name(n))
+      val fromName = prefixedName(QName(qname.ns), typeDecl, absolutePath = fromPath.nonEmpty)
+      irdata.Construct(fromPath :+ fromName, args.map(compileTerm))
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
-    case Term.AggregatorTerm(agg) => ???
+    case Term.AggregatorTerm(agg) =>
+      // TODO: Ignore for now
+      irarith.IntNum(1)
+      /*val (op, args, t) = agg match
+        case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
+        case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
+        case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
+        case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
+      val outTerm = t.map(compileTerm)
+
+      Block(
+        args.map(compileAtom).map {
+          case ir.Call(ref, args, false) if args.find(_ == outTerm) =>
+            val aggIndex = args.indexOf(outTerm)
+            val aggTem = args(aggIndex) match
+              case TermArg(t) => t
+              case _ => throw IllegalStateException(s"Could not extract aggregation term for: $a")
+            val newArgs = args.updated(aggIndex, AggregateColumnArg(aggTem))
+            iragg.Aggregate(ref, newArgs, op)
+          case ir.Call(ref, args, false)  =>
+            throw IllegalStateException(s"Cound not find aggregation index for: $a")
+          case a =>
+            throw IllegalStateException(s"Unexpected aggregation atom: $a")
+        }
+      )*/
+      
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
-        case IntrinsicFunctor.Ord => ???
+        case IntrinsicFunctor.Ord =>
+          // TODO: Remove this dummy
+          irarith.IntNum(1)
         case IntrinsicFunctor.ToFloat => ???
         case IntrinsicFunctor.ToNumber => ???
-        case IntrinsicFunctor.ToString => ???
+        case IntrinsicFunctor.ToString =>
+          irstring.ToString(compileTerm(args.head))
         case IntrinsicFunctor.ToUnsigned => ???
         case IntrinsicFunctor.Cat =>
-          val lhs = args.head
-          val rhs = args(1)
-          irstring.StringConcat(compileTerm(lhs), compileTerm(rhs))
-        case IntrinsicFunctor.StrLen => ???
-        case IntrinsicFunctor.Substr => ???
+          irstring.StringConcat(compileTerm(args.head), compileTerm(args(1)))
+        case IntrinsicFunctor.StrLen =>
+          // TODO: Remove this dummy
+          irarith.IntNum(0)
+        case IntrinsicFunctor.Substr =>
+          // TODO: Remove this dummy
+          irstring.StringLit("")
         case IntrinsicFunctor.Max =>
-          val lhs = args.head
-          val rhs = args(1)
-          irarith.Max(compileTerm(lhs), compileTerm(rhs))
+          irarith.Max(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.Min =>
-          val lhs = args.head
-          val rhs = args(1)
-          irarith.Min(compileTerm(lhs), compileTerm(rhs))
+          irarith.Min(compileTerm(args.head), compileTerm(args(1)))
     case Term.UserDefFunctorApp(f, args) => ???
 
     case Term.Unary(UnOp.Neg, t) => irarith.Neg(compileTerm(t))
@@ -346,7 +390,7 @@ class GenerateIR:
     case Term.Binary(t1, BinOp.Bshru, t2) => ???
 
   @tailrec
-  private def compileType(ty: Type)(implicit ctx: Context): ir.Type = ty match
+  private def compileType(ty: Type): ir.Type = ty match
     case Type.Number => irarith.TInt
     case Type.Symbol => irstring.TString
     case Type.Unsigned => irarith.TInt
@@ -358,12 +402,12 @@ class GenerateIR:
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.EqType(eTy)) =>
           compileType(eTy)
         case decl@ProgramContent.TypeDecl(name, TypeDeclConstraint.ADTType(_)) =>
-          irdata.TData(prefixedIrName(decl, qname))
+          val fromPath = qname.path.map(n => ir.Name(n))
+          val fromName = prefixedName(QName(qname.ns), decl, absolutePath = fromPath.nonEmpty)
+          irdata.TData(fromPath :+ fromName)
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(_)) =>
           ???
-          //irdata.TData(prefixedIrName(decl, qname))
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(_)) =>
           ???
-          // irdata.TData(qNameToPrefixedIrName(qname))
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(_)) =>
           ???

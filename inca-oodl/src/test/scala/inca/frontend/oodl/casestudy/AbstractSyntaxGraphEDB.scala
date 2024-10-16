@@ -280,10 +280,12 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
   }
 
 
-  def compiled = new CompiledModule:
+  def compiled = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-    override def ir: Module = mod
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    lazy val irModules: Seq[Module] = Seq(mod)
     override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
     setPipeline(List(() => new demand.Lowering {}))
 
@@ -299,7 +301,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
     try
       compiled.lowered
       val typechecker = new IRTypechecker
-      typechecker.checkProgram(Seq(compiled.lowered))
+      typechecker.checkProgram(compiled.lowered)
       //println(typechecker.getDependencyGraph.toGraphViz)
     //finally println(compiled.lowered)
   }

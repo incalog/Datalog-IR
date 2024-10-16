@@ -8,6 +8,7 @@ import inca.foreign.scala.ir.primitive.{ScalaAggregationOperator, ScalaDefnModul
 import inca.frontend.oodl.compile.GenerateScala
 import inca.frontend.oodl.syntax.Module as OODLModule
 import inca.ir
+import inca.ir.Hint.preserveHints
 
 class Lowering(oodlModule: OODLModule) extends BaseLowering:
   override def loweredIRs: Set[BaseIR] = Set(iragg)
@@ -15,11 +16,12 @@ class Lowering(oodlModule: OODLModule) extends BaseLowering:
 
   val generateScala = new GenerateScala
 
-  override def visitModule(module: ir.Module): ir.Module =
+  override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     val scalaCode = generateScala.transModule(oodlModule)
     val scalaContent = ScalaDefnModuleEntry(s"${module.name}$$Scala", scalaCode)
     val ir.Module(name, lang, content) = super.visitModule(module)
     ir.Module(name, lang, scalaContent +: content)
+  }
 
   override def visitAtom(atom: Atom): Seq[Atom] =
     atom match

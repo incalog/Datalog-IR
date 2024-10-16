@@ -13,7 +13,7 @@ import inca.ir.extension.impure.{Impure, MainHint}
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledModule, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringConcatMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
@@ -29,14 +29,14 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import scala.collection.mutable
 
 
-case class CompiledMonoModule(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledModule:
+case class CompiledMonoUnit(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledUnit:
   override def name: Name = mod.name
   override def sourceLocation: SourceLocation = mod.name
-  override def ir: Module = mod
+  override val isClosedWorld: Boolean = true
+  override def otherUnits: Seq[CompiledUnit] = Seq()
+  lazy val irModules: Seq[Module] = Seq(mod)
   private class MonoTypeChecker extends IRTypechecker with primitive.Typechecker
   override def typechecker: BaseIRTypechecker = new MonoTypeChecker()
-  override def printStatistics(module: Module, str: String): Unit =
-    ScalaStatisticsCollector.printStatistics(module, str)
 
 
   override def optimize(p: Seq[Module]): Seq[Module] = p
@@ -79,7 +79,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   private def compile(relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val opts = CompilerOptions.default
-    val compiledMod = CompiledMonoModule(mod, opts)
+    val compiledMod = CompiledMonoUnit(mod, opts)
     val exec: IRExecutor = new Executor
     exec.instantiate(compiledMod)
 
@@ -147,7 +147,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(Param("t", TString), Param("m", TDemand(TMono(TInt, TInt, Seq(TString))))),
     Seq(
       Body(Seq(
-        ExtensionalCall(Name("leaf"), Seq(Var("t"))),
+        ExtensionalCall("leaf", Seq(Var("t"))),
         WriteMono(Var("m"), IntNum(1), Seq(Var("t")))
       ))
     )
@@ -310,7 +310,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(relationUserDefinedMono1)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    //println(res.entries.head)
+    //println(res.subst.head)
     assertResult("0.0")(res.entries.head)
   }
 

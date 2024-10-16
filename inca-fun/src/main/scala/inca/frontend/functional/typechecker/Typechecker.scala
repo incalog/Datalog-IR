@@ -227,6 +227,11 @@ class Typechecker extends TypeContext with TypeIO {
       if (!subtype(eTy, TInt) && !subtype(eTy, TDouble))
         error(s"Required numeric type, but got $eTy", e)
       eTy
+    case UnOp("!", e) =>
+      val eTy = typecheckExp(e, anno)
+      if (!subtype(eTy, TBoolean))
+        error(s"Required boolean type, but got $eTy", e)
+      eTy
     case BinOp(e1, op, e2) =>
       op match
         case "==" | "!=" =>

@@ -19,8 +19,8 @@ trait Visitor extends BaseIRVisitor:
     case SetFrom(name) => Seq(SetFrom(name))
     case SetIntersection(t1, t2) =>
       visitTerm(t1).zip(visitTerm(t2)).map(SetIntersection.apply)
-    case SetUnion(t1, t2) =>
-      visitTerm(t1).zip(visitTerm(t2)).map(SetUnion.apply)
+    case SetUnion(ts) =>
+      Seq(SetUnion(ts.flatMap(visitTerm)))
     case SetComprehension(elem, atoms) =>
       for (v <- visitTerm(elem)) yield
         SetComprehension(v, atoms.flatMap(visitAtom))

@@ -8,6 +8,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
+import inca.ir.optimize.QueryRelation
 import inca.util.namify
 
 /*
@@ -80,7 +81,7 @@ trait Lowering extends BaseLowering:
     val memTyLowered = visitType(memTy)
     setTypeConstructors.get(memTyLowered) match
       case None => setTypeConstructors += memTyLowered -> Map()
-      case _ => //nothign
+      case _ => //nothing
 
   private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
@@ -89,6 +90,7 @@ trait Lowering extends BaseLowering:
   private def makeSetDefinitions: Seq[ModuleEntry] =
     setTypeConstructors.flatMap { case (memTy, constructors) =>
       val (datas, rel) = defunctionalizeSet(memTy, constructors.values.toSeq)
+      rel.addHint(QueryRelation)
       datas :+ rel
     }.toSeq
 
@@ -118,12 +120,13 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
-  override def visitModule(module: Module): Module =
+  override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module
     setTypeConstructors = Map()
     val m = super.visitModule(module)
     val defs = makeSetDefinitions
     m.copy(contents = m.contents ++ defs)
+  }
 
   private def memberType(t: Term): Type = t.typ.getOrElse(throw new IllegalStateException(s"Set lowering requires typed IR, type missing in $t")).ty match
     case TSet(memTy) => visitType(memTy)
@@ -157,16 +160,15 @@ trait Lowering extends BaseLowering:
           val args = rel.params.map(p => Var(gensym.freshName(p.name)))
           Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
       Seq(callAddConstructor(term, setEnum))
-    case SetUnion(t1, t2) =>
-      val Seq(s1) = visitTerm(t1)
-      val memTy1 = memberType(t1)
-      val Seq(s2) = visitTerm(t2)
-      val memTy2 = memberType(t2)
+    case SetUnion(ts) =>
+      val ss = ts.flatMap(visitTerm)
+      val ms = ts.map(memberType)
+      if ss.size != ms.size then
+        throw IllegalStateException("Set union term was lowered to more than one term!")
       val setEnum = new SetEnum:
         override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Disjunction(Seq(
-            DisjunctionAlternative(Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg))),
-            DisjunctionAlternative(Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg)))
+          Disjunction(
+            ss.zip(ms).map((s, memTy) => DisjunctionAlternative(Call(relNameOf(memTy), Seq(s.arg, Var(elemVar).arg)))
           ))
         )
       Seq(callAddConstructor(term, setEnum))

@@ -2,6 +2,7 @@ package inca.ir.extension.typeparam
 
 import inca.ir.lowering.BaseLowering
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable.ListBuffer
@@ -19,7 +20,10 @@ trait Lowering extends BaseLowering:
     else
       s"$$${usage.mkString("_")}"
 
-  override def visitModule(module: Module): Module =
+  //override def visitProgram(modules: Seq[Module], dependencies: Seq[Module] = Seq()): Seq[Module] =
+  //  if isClosedWorld then super.visitProgram(modules) else modules
+
+  override def visitModule(module: Module): Module = preserveHints(module) {
     groundUsages = Map().withDefault(_ => Set())
     val mod = super.visitModule(module)
 
@@ -46,6 +50,7 @@ trait Lowering extends BaseLowering:
       }
     }
     mod.copy(contents = nonParametricEntries ++ instantiatedEntries)
+  }
 
   var currentSubst: Map[Name, Type] = Map()
 

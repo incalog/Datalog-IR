@@ -1,7 +1,7 @@
 package inca.frontend.functional.executor.itypes
 
 import inca.souffle.backend.Executor
-import inca.frontend.functional.compile.{CompiledFunctionalModule, FunctionalCompilerOptions}
+import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{Relation, UnitRelation}
@@ -19,7 +19,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
   test("TypeChecker") {
     val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalModule.pipeline)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
     //println(loaded.engine.measure(UnitRelation("main")))
     //println(loaded.engine.readAll().map(_.size).sum)

@@ -6,7 +6,7 @@ import inca.ir.extension.edbdata.*
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{Body, Call, CompiledModule, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TNothing, Var, string2name}
+import inca.ir.{Body, Call, CompiledUnit, Eq, Language, Module, ModuleEntry, Name, Param, Relation, TNothing, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import inca.viatra.runtime.context.DataModel
@@ -16,18 +16,21 @@ import truechange.*
 class EdbDataTest extends AnyFunSuiteLike:
   val exec = new Executor()
 
-  class EdbCompiledModule(val ir: Module, dataModel: DataModel) extends CompiledModule:
+  class EdbCompiledUnit(val ir: Module, dataModel: DataModel) extends CompiledUnit:
     override def name: Name = ir.name
+    override val isClosedWorld: Boolean = true
+    override def otherUnits: Seq[CompiledUnit] = Seq()
+    lazy val irModules: Seq[Module] = Seq(ir)
     override def compilerOptions: CompilerOptions = CompilerOptions.default
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
     lazy val engine: exec.Engine = exec.instantiate(this, dataModel)
 
-  def module(dataModel: DataModel, relations: ModuleEntry*): EdbCompiledModule =
+  def module(dataModel: DataModel, relations: ModuleEntry*): EdbCompiledUnit =
     val typechecker = new IRTypechecker {}
     val mod = Module("M", Language(IR), relations)
     try typechecker.checkProgram(Seq(mod))
     finally println(mod)
-    new EdbCompiledModule(mod, dataModel)
+    new EdbCompiledUnit(mod, dataModel)
 
   test("Type enumerate") {
     val mod = module(Nat.dataModel,

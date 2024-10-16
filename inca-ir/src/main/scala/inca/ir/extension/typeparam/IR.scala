@@ -13,8 +13,8 @@ case class TypeVar(name: Name) extends Type:
 
 case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) extends ModuleEntry:
   override def toString: String = s"with[${typeParams.mkString(", ")}] $entry"
-  def withExtendedName(suffix: String): ParametricModuleEntry =
-    ParametricModuleEntry(typeParams, entry.withExtendedName(suffix))
+  def withName(name: String): ParametricModuleEntry =
+    ParametricModuleEntry(typeParams, entry.withName(name))
   override val name: Name = entry.name
 object ParametricModuleEntry:
   def make(tyParams: Seq[Name], entry: ModuleEntry): ModuleEntry =
@@ -25,6 +25,8 @@ object ParametricModuleEntry:
 
 case class TypeApplication[Target <: ModuleEntry](name: Name, args: Seq[Type]) extends Ref[Target]:
   override def toString: String = s"$name[${args.mkString(", ")}]"
+  override def unqualifiedName: Name = name
+  override def path: Seq[Name] = Seq()
 object TypeApplication:
   def make[Target <: ModuleEntry](name: Name, args: Seq[Type]): Ref[Target] =
     if (args.isEmpty)

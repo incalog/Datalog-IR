@@ -187,6 +187,8 @@ lazy val inca_casestudy = (project in file("inca-casestudy"))
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalanlp" %% "breeze" % "2.1.0",
+      "org.scalanlp" %% "breeze-viz" % "2.1.0"
     )
   )
 

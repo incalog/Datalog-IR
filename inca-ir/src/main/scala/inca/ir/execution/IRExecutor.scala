@@ -1,6 +1,6 @@
 package inca.ir.execution
 
-import inca.ir.CompiledModule
+import inca.ir.CompiledUnit
 
 trait ExecutorEngine:
   /**
@@ -48,5 +48,5 @@ trait ExecutorEngine:
 trait IRExecutor:
   type Engine <: ExecutorEngine
   
-  def instantiate(m: CompiledModule): Engine
+  def instantiate(m: CompiledUnit): Engine
   

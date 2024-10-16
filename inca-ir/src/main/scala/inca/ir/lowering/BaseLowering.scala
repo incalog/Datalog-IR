@@ -6,7 +6,6 @@ import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
 
 trait BaseLowering extends IRVisitor:
-
   protected val gensym = new Gensym()
 
   def loweredIRs: Set[BaseIR]
@@ -16,7 +15,7 @@ trait BaseLowering extends IRVisitor:
 
   def lower(m: Module): Module = visitProgram(Seq(m)).head
 
-  override def visitProgram(modules: Seq[Module]): Seq[Module] = gensym.scoped {
+  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module] = Seq()): Seq[Module] = gensym.scoped {
     modules.map { module =>
       val loweredLang = module.lang -- loweredIRs
       val loweringNecessary = loweredIRs.exists { l => module.lang.features.contains(l) }

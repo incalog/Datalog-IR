@@ -17,6 +17,10 @@ trait Hints {
   def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
 //  def hasHint(hint: Hint): Boolean = this.hints.contains(hint.key)
 
+  def clearHints(): this.type = 
+    this.hints.clear()
+    this
+
   def getHint[T <: Hint](key: Hint.Key): Option[T] = this.hints.get(key) match
     case Some(value) => Some(value.asInstanceOf[T])
     case None => None

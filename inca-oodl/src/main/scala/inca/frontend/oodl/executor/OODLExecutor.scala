@@ -1,7 +1,7 @@
 package inca.frontend.oodl.executor
 
 import inca.frontend.oodl.compile.GenerateIR.{castRelationName, extensionalRelationName}
-import inca.frontend.oodl.compile.{CompiledOODLModule, GenerateIR, OODLCompilerOptions}
+import inca.frontend.oodl.compile.{CompiledOODLUnit, GenerateIR, OODLCompilerOptions}
 import inca.frontend.oodl.syntax.*
 import inca.ir
 import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
@@ -11,7 +11,7 @@ import scala.jdk.CollectionConverters.*
 case class TypeCastException(message: String) extends Exception(message, null)
 
 class OODLExecutor(val exec: IRExecutor):
-  case class Loaded(engine: exec.Engine, compiled: CompiledOODLModule):
+  case class Loaded(engine: exec.Engine, compiled: CompiledOODLUnit):
     val verboseOutput: Boolean = compiled.compilerOptions.oodlLogging.verboseOutput
 
     private def throwTypeCastExceptionIfRequired(): Unit = {
@@ -59,13 +59,13 @@ class OODLExecutor(val exec: IRExecutor):
       output(main, args)
     }
 
-  def loadOODL(compiled: CompiledOODLModule): Loaded = {
+  def loadOODL(compiled: CompiledOODLUnit): Loaded = {
     // TODO: use correct DataModel
     val engine = exec.instantiate(compiled)
     Loaded(engine, compiled)
   }
 
-  def compileOODL(code: String, compilerOptions: OODLCompilerOptions): CompiledOODLModule = {
+  def compileOODL(code: String, compilerOptions: OODLCompilerOptions): CompiledOODLUnit = {
     val module = Parser.parseModule(code)
-    CompiledOODLModule(module, compilerOptions)
+    CompiledOODLUnit(module, compilerOptions)
   }

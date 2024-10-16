@@ -10,10 +10,10 @@ case class Program(content: Seq[ProgramContent]) extends SourceLocation:
 var nextId: Int = 0
 
 enum ProgramContent extends SourceLocation:
-  case TypeDecl(name: String, rhs: TypeDeclConstraint)
-  case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain])
-  case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan])
-  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[RelationDecl]
+  case TypeDecl(name: String, rhs: TypeDeclConstraint) extends ProgramContent, Resolvable[ComponentDecl]
+  case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain]) extends ProgramContent, Resolvable[ComponentDecl]
+  case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan]) extends ProgramContent, Resolvable[ComponentDecl]
+  case Fact(name: QualifiedName, args: Seq[Term]) extends ProgramContent, Resolvable[(RelationDecl, Option[ComponentDecl])]
   case Directive(dirQualifier: DirectiveQualifier, names: List[QualifiedName], attrs: Map[String, DirectiveValue]) extends ProgramContent, Resolvable[RelationDecl]
   case ComponentDecl(ty: ComponentType, superTys: Seq[ComponentType], content: Seq[ProgramContent])
   case ComponentInit(n: String, compType: ComponentType) extends ProgramContent, Resolvable[ComponentDecl]
@@ -108,6 +108,8 @@ enum Type extends SourceLocation:
     case Name(qualName) => qualName.toString
 
 case class QualifiedName(ns: Seq[String]):
+  def path: Seq[String] = ns.dropRight(1)
+  def unqualifiedName: String = ns.last
   override def toString: String = ns.mkString(".")
 case class Record(attrs: Seq[Attribute]):
   override def toString: String = s"[${attrs.mkString(", ")}]"
@@ -288,7 +290,7 @@ enum Qualifier:
   case Magic
   case NoInline
   case Inline
-  case Override
+  case Overridable
 
   override def toString: String = this match
     case EqRel => "eqrel"
@@ -298,7 +300,7 @@ enum Qualifier:
     case Magic => "magic"
     case NoInline => "no_inline"
     case Inline => "inline"
-    case Override => "override"
+    case Overridable => "overridable"
 
 // TODO functional dependencies
 case class ChoiceDomain():
