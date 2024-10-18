@@ -2,7 +2,6 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
-import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.typing.{IRTypechecker, Typechecker}
 
 import scala.collection.mutable
@@ -12,7 +11,7 @@ import inca.ir.visitors.IRVisitor
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
-  def normalize: Boolean = true // TODO
+  def normalize: Boolean = true 
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
 

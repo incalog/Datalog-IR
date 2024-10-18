@@ -6,12 +6,12 @@ import inca.util.Tabulator
 import scala.collection.mutable
 
 
-type ValueId = Int // TODO BigInt or String but should be okay to use Int (throw an exception if overflow)
+type ValueId = Int // BigInt or String 
 
-class ValueIds[T]{ // table from term to id
+class ValueIds[T]{ // table from T to id
   private val ids: mutable.Map[T,ValueId] = mutable.Map()
 
-  private var currentId: ValueId = 0 //Int.MinValue
+  private var currentId: ValueId = Int.MinValue
   private def nextId(): ValueId = {
     if (currentId == Int.MaxValue){
       throw IllegalStateException("Too many CongruenceClasses: Overflow in ValueIds")

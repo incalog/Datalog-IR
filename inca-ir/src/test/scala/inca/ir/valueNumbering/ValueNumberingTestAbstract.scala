@@ -13,6 +13,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
 
   /** wraps parameters for value numbering */
   case class ConfigVN(normalize: Boolean = true,
+                      normalizeDoubles: Boolean = false,
                       useDefiningTerm: Boolean = false,
                      )
   
@@ -28,6 +29,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   def performTest(expected: IRModule, input: IRModule, config: ConfigVN = config): Unit = {
     val VN: ValueNumbering = new ValueNumbering {
       override val normalize: Boolean = config.normalize
+      override val normalizeDoubles: Boolean = config.normalizeDoubles
       override val useDefiningTerm: Boolean = config.useDefiningTerm
     }
     performTestInternal(expected, input, VN)

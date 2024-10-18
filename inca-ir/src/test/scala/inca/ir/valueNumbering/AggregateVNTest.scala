@@ -3,14 +3,13 @@ package inca.ir.valueNumbering
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, RefByName, Relation, TermArg, Var, Module as IRModule}
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, IntNum, TInt}
-//import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
-import inca.ir.extension.{arithmetic, data, string, aggregate}
+import inca.ir.extension.{arithmetic, string, aggregate}
 import inca.ir.*
 
 
 class AggregateVNTest extends ValueNumberingTestAbstract {
 
-  test("param binding in aggregate"){
+  test("param binding in aggregate"){ // added aggregate.typechecker in typing\Typechecker for this to work (with compiled programs there was no problem)
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new aggregate.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt)), Seq(
