@@ -42,7 +42,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
       case _ => super.normalize(term)
     }
     newTerm.typ = term.typ
-    println(s"old: $term, new: $newTerm")
+//    println(s"old: $term, new: $newTerm")
     newTerm
   }
 

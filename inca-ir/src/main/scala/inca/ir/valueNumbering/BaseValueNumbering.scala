@@ -7,6 +7,8 @@ import inca.ir.typing.{IRTypechecker, Typechecker}
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
 
+import scala.annotation.tailrec
+
 
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
@@ -14,6 +16,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   def normalize: Boolean = true 
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
+  def useFixPointIteration: Boolean = true
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -110,6 +113,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   // for printing results
   private var currentRelationName: Name = _
   private var currentBodyIndex: Int = -1
+  private var currentIteration: Int = 0
 
   override def visitModule(module: Module): Module = {
     println(s"before VN: \n$module\n")
@@ -165,21 +169,30 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
   private var validBody: Boolean = _
 
+  @tailrec
+  private def fixpointIteration(body: Body): Seq[Body] = {
+    val res = super.visitBody(body)
+    if !validBody || res.isEmpty then return Seq()
+    else if(res.head != body) then return fixpointIteration(res.head)
+    else return res
+  }
+
   override def visitBody(body: Body): Seq[Body] = {
-    currentBodyIndex += 1
+    /*if currentIteration == 0 then*/ currentBodyIndex += 1
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-//    println(s"$currentRelationName: body $currentBodyIndex after first phase\n{" + newBody + "\t}\n")
-//    println("results after first phase: ")
-//    printResults()
+    println(s"$currentRelationName: body $currentBodyIndex after first phase\n{" + newBody + "\t}\n")
+    println("results after first phase: ")
+    printResults()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
-      val res = super.visitBody(newBody)
-      if !validBody then Seq()
-      else res
+//      val res = super.visitBody(newBody)
+//      if !validBody then Seq()
+//      else res
+      fixpointIteration(newBody)
     }
     else {
       Seq()
@@ -191,6 +204,15 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     congrClasses.clear()
     valueNumbers.clear()
 
+//    if (useFixPointIteration && newerBodySeq.nonEmpty) {
+//      if (newerBodySeq.head != body) {
+//        println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after second phase\n{" + newerBodySeq.head + "\t}\n")
+//        currentIteration += 1
+//        return visitBody(newerBodySeq.head)
+//      }
+//    }
+//    currentIteration = 0
+//    println(s"$currentRelationName: body $currentBodyIndex in final iteration after second phase\n{" + newerBodySeq.head + "\t}\n")
     return newerBodySeq
   }
 
