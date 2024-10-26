@@ -32,6 +32,15 @@ To use a backend, the corresponding backend needs to be installed first.
 
 ## Publications
 IncA is a research project, and its various features have been documented in the following publications:
+* **A Typed Multi-level Datalog IR and Its Compiler Framework**, David Klopp, Sebastian Erdweg and André Pacak.
+  In *Proceedings of the ACM on Programming Languages (OOPSLA)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-ir.pdf)
+
+* **Object-Oriented Fixpoint Programming with Datalog**, David Klopp, Sebastian Erdweg and André Pacak.
+  In *Proceedings of the ACM on Programming Languages (OOPSLA)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-oop.pdf)
+
+* **Separate Compilation and Partial Linking: Modules for Datalog IR**, David Klopp, André Pacak, and Sebastian Erdweg.
+  In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-modules.pdf)
+
 * **Incremental Processing of Structured Data in Datalog**, André Pacak, Tamás Szabó, and Sebastian Erdweg.
 In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/11/incremental-structured-data.pdf)
 
