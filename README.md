@@ -6,7 +6,9 @@
 IncA is a compiler framework for Datalog that can be used to support any Datalog frontend language and to target any Datalog backend.
 The centerpiece of IncA is a typed multi-level Datalog IR that supports IR extensions and guarantees executability. 
 Existing Datalog systems can provide a compiler frontend that translates their Datalog dialect to the extended IR. 
-The IR is then progressively lowered toward core Datalog, allowing optimizations at each level.
+The IR is then progressively lowered toward core Datalog, allowing optimizations at each level. 
+
+For details on the current implementation refer to the "A Typed Multi-level Datalog IR and Its Compiler Framework" paper.
 
 ## Getting Started
 To build, install the [sbt](https://www.scala-sbt.org) build tool and run `sbt compile` from the root directory of the project.
@@ -20,7 +22,7 @@ All frontends ship with their own parser and thus do not require additional setu
 - [**bddbddb**](https://bddbddb.sourceforge.net): Untested.
 - [**Soufflé**](https://souffle-lang.github.io): Stable, limited feature set.
 - [**Functional IncA**](https://www.pl.informatik.uni-mainz.de/files/2022/06/functional-datalog.pdf): Stable.
-- [**OODL**](): Experimental.
+- [**OODL**](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-oop.pdf): Experimental.
 - **Datalog**: Stable, limited feature set.
 
 ## Backends
@@ -31,21 +33,32 @@ To use a backend, the corresponding backend needs to be installed first.
 - [**Ascent**](https://s-arash.github.io/ascent/): Install the latest [Rust toolchain](https://www.rust-lang.org/tools/install).
 
 ## Publications
-IncA is a research project, and its various features have been documented in the following publications:
+
+IncA is a research project that has undergone multiple development versions. Its various features have been documented in the following publications:
+
+### [Version 3.0](https://gitlab.rlp.net/plmz/inca-scala/-/tree/layered-ir)
+
 * **A Typed Multi-level Datalog IR and Its Compiler Framework**, David Klopp, Sebastian Erdweg and André Pacak.
   In *Proceedings of the ACM on Programming Languages (OOPSLA)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-ir.pdf)
+
+* **Separate Compilation and Partial Linking: Modules for Datalog IR**, David Klopp, André Pacak, and Sebastian Erdweg.
+  In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-modules.pdf)
+
+### [Version 2.0](https://gitlab.rlp.net/plmz/inca-scala/-/tree/master)
 
 * **Object-Oriented Fixpoint Programming with Datalog**, David Klopp, Sebastian Erdweg and André Pacak.
   In *Proceedings of the ACM on Programming Languages (OOPSLA)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-oop.pdf)
 
-* **Separate Compilation and Partial Linking: Modules for Datalog IR**, David Klopp, André Pacak, and Sebastian Erdweg.
-  In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2024. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/10/datalog-modules.pdf)
+* **Interactive Debugging of Datalog Programs**, André Pacak and Sebastian Erdweg.
+  In *Proceedings of the ACM on Programming Languages (OOPSLA)*. ACM, 2023. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2024/06/datalog-debugging.pdf)
 
 * **Incremental Processing of Structured Data in Datalog**, André Pacak, Tamás Szabó, and Sebastian Erdweg.
 In *Proceedings of Generative Programming: Concepts & Experiences (GPCE)*. ACM, 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/11/incremental-structured-data.pdf)
 
 * **Functional Programming with Datalog**, André Pacak and Sebastian Erdweg.
 In *Proceedings of European Conference on Object-Oriented Programming (ECOOP)*. 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/06/functional-datalog.pdf)
+
+### [Version 1.0](https://github.com/szabta89/IncA)
 
 * **Incremental Whole-Program Analysis in Datalog**, Tamás Szabó, Sebastian Erdweg, and Gábor Bergmann.
 In *Proceedings of Conference on Programming Languages Design and Implementation (PLDI)*, 2021. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2021/06/inca-whole-program.pdf)
