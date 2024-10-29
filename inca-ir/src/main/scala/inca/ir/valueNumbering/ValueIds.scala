@@ -56,7 +56,6 @@ class ValueIds[T]{ // table from T to id
 
   def printResults(): Unit = {
     println("VN Results: ")
-//    println(this)
     println(congrClassesStr)
     println("")
   }

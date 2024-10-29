@@ -2,7 +2,7 @@ package inca.ir.valueNumbering
 
 import inca.ir
 import inca.ir.*
-import inca.ir.typing.{IRTypechecker, Typechecker}
+import inca.ir.typing.IRTypechecker
 
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
@@ -13,10 +13,10 @@ import scala.annotation.tailrec
 /** for value numbering constructs from BaseIR */
 trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
   // config
-  def normalize: Boolean = true 
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
+  def printVNResults: Boolean = false
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -24,26 +24,29 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
     def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
       if (isConst(t)) {
-        if isConst(leader) && leader != t then throw new IllegalStateException(s"Term $t can not equal $leader with valueId $valueId")
+        if (isConst(leader) && leader != t) throw new IllegalStateException(s"Term $t can not equal $leader with valueId $valueId")
         leader = t
       }
-      if (!isParam(leader) && !isConst(leader) && isParam(t)) leader = t
+      if (!isParam(leader) && !isConst(leader) && isParam(t))
+        leader = t
     }
 
     def changeDefTermIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       if (isConst(t)) definingTerm = t
-      else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) definingTerm = t // resembles case that CongruenceClass was initially created for Var bound in Call
+      else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) // resembles case that CongruenceClass was initially created for Var bound in Call
+        definingTerm = t
     }
 
     def updateCongrClassIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
       changeLeaderIfNecessary(t)
-      if (updateDefTermIfNecessary) changeDefTermIfNecessary(t)
+      if (updateDefTermIfNecessary)
+        changeDefTermIfNecessary(t)
     }
 
   }
 
   protected val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
-  protected val valueNumbers: ValueIds[Term] = new ValueIds() // Map[Term, ValueId]
+  protected val valueNumbers: ValueIds[Term] = new ValueIds()
 
   protected def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
@@ -51,18 +54,10 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     if (!congrClasses.contains(valueNumbers(t))) return t
 
     val leader = getCongrClassOf(t).leader
-//    if (phase == Phase.repetition && t.vars.isEmpty && leader.isInstanceOf[Var]){
-//      // for extensions for which VN not implemented: 
-//      // fixes case in 2nd phase in which term was replaced with an unbound var (since they have wrong leader)
-//      // e.g. without this param == someActuallyConstantTerm ~> param == param
-//      return t
-//    }
-//    else{
       leader match {
         case vari@Var(_) => newVar(vari.name,t.typ)
         case _ => leader
       }
-//    }
   }
 
   protected def getDefiningTerm(t: Term): Term = {
@@ -110,22 +105,30 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     case repetition
   private var phase: Phase = _
 
+
   // for printing results
   private var currentRelationName: Name = _
   private var currentBodyIndex: Int = -1
-  private var currentIteration: Int = 0
+
+  def printResults(): Unit = {
+    if !printVNResults then return
+    println(s"Results from Relation $currentRelationName body $currentBodyIndex")
+    println(s"Congruence Classes Info:")
+    println("\t" + congrClasses.mkString("\n\t") + "\n")
+    valueNumbers.printResults()
+  }
+
 
   override def visitModule(module: Module): Module = {
-    println(s"before VN: \n$module\n")
-    var result = super.visitModule(module)
+    if printVNResults then println(s"before VN: \n$module\n")
+    val result = super.visitModule(module)
     typechecker.checkProgram(Seq(result))
-    println(s"after VN: \n$result")
+    if printVNResults then println(s"after VN: \n$result")
     result
   }
 
-  def valueNumbering(module: ir.Module): ir.Module = {
-    visitModule(module)
-  }
+  def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
+
 
   protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
 
@@ -137,20 +140,11 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   }
 
 
-  def printResults(): Unit = {
-    println(s"Results from Relation $currentRelationName body $currentBodyIndex")
-    println(s"Congruence Classes Info:")
-    println("\t" + congrClasses.mkString("\n\t") + "\n")
-    valueNumbers.printResults()
-  }
-
-
   private def newVar(name: Name, ty: Option[TermType] = None): Var = {
     val v = Var(RefByName(name))
     v.typ = ty
     v
   }
-
 
   private var relationParams: Seq[Name] = Seq()
   protected def isParam(t: Term): Boolean = t match {
@@ -170,29 +164,29 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   private var validBody: Boolean = _
 
   @tailrec
-  private def fixpointIteration(body: Body): Seq[Body] = {
+  private def repetitionPhase(body: Body): Seq[Body] = {
     val res = super.visitBody(body)
-    if !validBody || res.isEmpty then return Seq()
-    else if(res.head != body) then return fixpointIteration(res.head)
-    else return res
+    if (!validBody || res.isEmpty){
+      return Seq()
+    }
+    else if (res.head != body) {
+      return repetitionPhase(res.head)
+    }
+    else {
+      return res
+    }
   }
 
   override def visitBody(body: Body): Seq[Body] = {
-    /*if currentIteration == 0 then*/ currentBodyIndex += 1
+    currentBodyIndex += 1
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
-    println(s"$currentRelationName: body $currentBodyIndex after first phase\n{" + newBody + "\t}\n")
-    println("results after first phase: ")
-    printResults()
     val newerBodySeq = if (validBody){
       phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
-//      val res = super.visitBody(newBody)
-//      if !validBody then Seq()
-//      else res
-      fixpointIteration(newBody)
+      repetitionPhase(newBody)
     }
     else {
       Seq()
@@ -204,22 +198,13 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     congrClasses.clear()
     valueNumbers.clear()
 
-//    if (useFixPointIteration && newerBodySeq.nonEmpty) {
-//      if (newerBodySeq.head != body) {
-//        println(s"$currentRelationName: body $currentBodyIndex in iteration $currentIteration after second phase\n{" + newerBodySeq.head + "\t}\n")
-//        currentIteration += 1
-//        return visitBody(newerBodySeq.head)
-//      }
-//    }
-//    currentIteration = 0
-//    println(s"$currentRelationName: body $currentBodyIndex in final iteration after second phase\n{" + newerBodySeq.head + "\t}\n")
     return newerBodySeq
   }
 
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {
     case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
-      // in case a redundant binding is found it will be removed unless it belongs to parameter
+      // in case a redundant binding is found it will be removed unless it belongs to a parameter
       valueNumberVar(vari, e, dontRemove = isParam(vari))
     case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
       valueNumberVar(vari, e, dontRemove = isParam(vari))
@@ -229,7 +214,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
       valueNumberVar(vari, e, dontRemove = true)
 
-    case call@Call(_, args, false) =>  treatBindingsInCall(call, args) // TODO when can equivalence of two vars be concluded from calls?
+    case call@Call(_, args, false) =>  treatBindingsInCall(call, args)
 
     case call@ExtensionalCall(_, args, false) => treatBindingsInCall(call, args)
 
@@ -250,11 +235,10 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
-//      congrClasses.update(termId, CongruenceClass(newTermId, newTerm, newTerm))
       updateValueNumbersAndCongrClasses(termId, newTermId)
     }
 
-    val normalizedTerm = normalize(newTerm)//(true)
+    val normalizedTerm = normalize(newTerm)
     if (!valueNumbers.contains(normalizedTerm)){ // normalizedTerm not seen before
       valueNumbers.update(normalizedTerm, newTermId)
       if (congrClasses.contains(newTermId)) {
@@ -285,8 +269,6 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
     val newTerm = if isParam(t) then t else visitTerm(t).head
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
-//    val newTerm = if (isParam(t) && phase == Phase.repetition) then t else visitTerm(t).head
-//    val newVari = if (isParam(vari) && phase == Phase.repetition) then vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
     if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
@@ -342,7 +324,7 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
 
   override def visitArg(arg: Arg): Seq[Arg] = arg match {
-    case TermArg(vari@Var(RefByName(variName))) if vari.mode.isBinding =>   // add binding vars to maps
+    case TermArg(vari@Var(_)) if vari.mode.isBinding =>   // add binding vars to maps
       Seq(TermArg(conservativeBinding(vari)))
     case _ => super.visitArg(arg)
   }
@@ -350,7 +332,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   protected def conservativeBinding(vari: Var): Term = { // conservative assumption that not equal to any known terms
     val newVari = if isParam(vari) then vari else visitTerm(vari).head
     val id = valueNumbers.getIdOf(newVari)
-    congrClasses.update(id, CongruenceClass(id, newVari, newVari)) // in the 1st pass: binding var becomes leader of its new congr class; in 2nd pass: vari was replaced with leader -> newVari was leader becomes new leader
+    // in the 1st pass: binding var becomes leader of its new congr class;
+    // in 2nd pass: vari was replaced with leader -> newVari that was leader becomes new leader
+    congrClasses.update(id, CongruenceClass(id, newVari, newVari))
     newVari
   }
 

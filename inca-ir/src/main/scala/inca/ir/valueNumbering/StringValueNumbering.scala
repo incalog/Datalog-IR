@@ -12,7 +12,6 @@ trait StringValueNumbering extends BaseValueNumbering {
   }
   
   protected override def normalize(term: Term): Term =
-    if !this.normalize then return term
     term match {
       case StringLit(s) => term
       case StringConcat(lhs, rhs) => (lhs,rhs) match {

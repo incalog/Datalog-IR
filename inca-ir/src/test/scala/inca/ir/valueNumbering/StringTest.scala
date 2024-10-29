@@ -1,7 +1,6 @@
 package inca.ir.valueNumbering
 
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module as IRModule}
-import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
 import inca.ir.extension.string.{StringConcat, StringLit, TString}
 import inca.ir.string2name
@@ -96,7 +95,7 @@ class StringTest extends ValueNumberingTestAbstract {
           Body(Seq(
             Eq(Var("H"), StringLit("Hello")),
             Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
-            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), // need to implement normalize function for this
+            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), 
             Eq(Var(Name("param$0")), Var(Name("A"))),
             Eq(Var(Name("param$1")), Var(Name("B")))
           ))
@@ -108,13 +107,13 @@ class StringTest extends ValueNumberingTestAbstract {
           Body(Seq(
 //            Eq(Var("H"), StringLit("Hello")),
 //            Eq(Var(Name("A")), StringConcat(Var("H"), StringLit(" World"))),
-//            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), // need to implement normalize function for this
+//            Eq(Var(Name("B")), StringConcat(StringLit("Hell"), StringLit("o World"))), 
             Eq(Var(Name("param$0")), StringLit("Hello World")),
             Eq(Var(Name("param$1")), StringLit("Hello World"))
           ))
         ))
       ))
-    performTest(expected, input, ConfigVN(normalize=true))
+    performTest(expected, input)
   }
 
 }
