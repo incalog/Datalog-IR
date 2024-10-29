@@ -12,6 +12,8 @@ object QueryRelation extends Hint, Hint.Key:
 
 /*
 * This Optimization should be run after the demand transformation!
+* It is only applicable, if the program contains a "main"-relation. Otherwise it is not clear if a parameter is unused.
+* If no "main"-relation is found, the module is left unmodified.
 */
 
 trait RemoveUnusedParameters extends IRVisitor:
@@ -30,7 +32,6 @@ trait RemoveUnusedParameters extends IRVisitor:
   private var bindingVars: Set[Name] = Set()
   private var boundVars: Set[Name] = Set()
 
-
   private def scoped[A](f: => A): A =
     val oldRequiredVars = requiredVars
     try {
@@ -39,91 +40,86 @@ trait RemoveUnusedParameters extends IRVisitor:
     } finally {
       requiredVars = oldRequiredVars
     }
-  private def isColumnRequired(patternName: String, colIdx: Int): Boolean = {
-    if (requiredColumns.contains(patternName)) {
-      return requiredColumns(patternName).contains(colIdx)
-    }
-    false
-  }
-  private def addRequiredColumn(patternName: String, index: Int): Unit = {
+
+  private def isColumnRequired(patternName: String, colIdx: Int): Boolean =
+    requiredColumns.get(patternName) match
+      case Some(indices) => indices.contains(colIdx)
+      case None => false
+
+  private def addRequiredColumn(patternName: String, index: Int): Unit =
     if (!isColumnRequired(patternName, index)) {
       dirty = true
-      var newColumns = Set(index)
-      if (requiredColumns.contains(patternName)) {
-        newColumns = newColumns ++ requiredColumns(patternName)
-      }
-      requiredColumns = requiredColumns.updated(patternName, newColumns)
+      val newColumns = requiredColumns.get(patternName) match
+        case Some(indices) => indices + index
+        case None => Set(index)
+      requiredColumns += patternName -> newColumns
     }
-  }
 
-  private def getVariableNames(arg: Arg): Seq[Name] = {
-    arg.vars.map(_.ref.name)
-  }
+  private def getVariableNames(arg: Arg): Seq[Name] = arg.vars.map(_.ref.name)
 
-  private def getVariableNames(term: Term): Seq[Name] = {
-    term.vars.map(_.ref.name)
-  }
+  private def getVariableNames(term: Term): Seq[Name] = term.vars.map(_.ref.name)
 
   override def visitModule(module: Module): Module =
-    phase = Phase.IdentifyQueryRelations
-    var newModule = super.visitModule(module)
-    phase = Phase.MarkRequiredColumns
-    dirty = true
-    while (dirty){
-      dirty = false
-      newModule = super.visitModule(newModule)
-    }
-    phase = Phase.RemoveUnusedColumns
-    newModule = super.visitModule(newModule)
-    newModule
-  override def visitRelation(relation: Relation): Seq[Relation] =
-    preserveHints(relation) {
-      phase match
-        case Phase.IdentifyQueryRelations =>
-          if (relation.hasHint(MainHint) || relation.hasHint(QueryRelation)) {
-            relation.params.indices.foreach {
-              addRequiredColumn(relation.name, _)
-            }
-          }
-          Seq(relation)
-        case Phase.MarkRequiredColumns =>
-          scoped {
-            val requiredParams = relation.params.indices
-              .filter(paramIdx => isColumnRequired(relation.name, paramIdx))
-              .map(relation.params(_).name)
-              .toSet
-            requiredVars = requiredVars ++ requiredParams
-            super.visitRelation(relation)
-          }
-        case Phase.RemoveUnusedColumns =>
-          var newParams = Seq(): Seq[Param]
-          if (requiredColumns.contains(relation.name)) {
-            newParams = relation.params
-              .zipWithIndex
-              .filter((param, idx) => requiredColumns(relation.name).contains(idx))
-              .map((param, idx) => param)
-          }
-          if (newParams.size != relation.params.size) {
-            val removedParams = relation.params.zipWithIndex.collect {
-              case (element, index) if (relation.params.indices.toSet -- newParams.indices.toSet).contains(index) => element
-            }
-          }
-          super.visitRelation(Relation(relation.name, newParams, relation.bodies))
-        case _ => super.visitRelation(relation)
+    if (module.relations.exists(_._2.hasHint(MainHint))) {
+      phase = Phase.IdentifyQueryRelations
+      var newModule = super.visitModule(module)
+      phase = Phase.MarkRequiredColumns
+      dirty = true
+      while (dirty) {
+        dirty = false
+        newModule = super.visitModule(newModule)
+      }
+      phase = Phase.RemoveUnusedColumns
+      super.visitModule(newModule)
+    } else {
+      // No main relation found
+      module
     }
 
-  override def visitBody(body: Body): Seq[Body] =
-    preserveHints(body) {
-      phase match
-        case Phase.MarkRequiredColumns => scoped {
-          super.visitBody(body)
-          requiredVars = requiredVars ++ bindingVars.intersect(boundVars)
-          bindingVars = Set()
-          boundVars = Set()
-          super.visitBody(body)
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
+    phase match
+      case Phase.IdentifyQueryRelations =>
+        if (relation.hasHint(MainHint) || relation.hasHint(QueryRelation)) {
+          relation.params.indices.foreach(addRequiredColumn(relation.name, _))
         }
-        case _ => super.visitBody(body)
-    }
+        Seq(relation)
+      case Phase.MarkRequiredColumns =>
+        scoped {
+          val requiredParams = relation.params.indices
+            .filter(paramIdx => isColumnRequired(relation.name, paramIdx))
+            .map(relation.params(_).name)
+            .toSet
+          requiredVars = requiredVars ++ requiredParams
+          super.visitRelation(relation)
+        }
+      case Phase.RemoveUnusedColumns =>
+        var newParams = Seq(): Seq[Param]
+        if (requiredColumns.contains(relation.name)) {
+          newParams = relation.params
+            .zipWithIndex
+            .filter((param, idx) => requiredColumns(relation.name).contains(idx))
+            .map((param, idx) => param)
+        }
+        if (newParams.size != relation.params.size) {
+          val removedParams = relation.params.zipWithIndex.collect {
+            case (element, index) if (relation.params.indices.toSet -- newParams.indices.toSet).contains(index) => element
+          }
+        }
+        super.visitRelation(Relation(relation.name, newParams, relation.bodies))
+      case _ => super.visitRelation(relation)
+  }
+
+  override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
+    phase match
+      case Phase.MarkRequiredColumns => scoped {
+        super.visitBody(body)
+        requiredVars = requiredVars ++ bindingVars.intersect(boundVars)
+        bindingVars = Set()
+        boundVars = Set()
+        super.visitBody(body)
+      }
+      case _ => super.visitBody(body)
+  }
 
   override def visitTerm(term: Term): Seq[Term] =
     phase match
@@ -160,11 +156,9 @@ trait RemoveUnusedParameters extends IRVisitor:
       phase match
         case Phase.MarkRequiredColumns =>
           atom match
-            case Call(ref, args, neg) =>
-              markRequiredColumns(ref.name, args)
-            case Aggregate(rel, args, op) =>
-              markRequiredColumns(rel.name, args)
-            case _ =>
+            case Call(ref, args, neg) => markRequiredColumns(ref.name, args)
+            case Aggregate(rel, args, op) => markRequiredColumns(rel.name, args)
+            case _ => // nothing
           super.visitAtom(atom)
 
         case Phase.RemoveUnusedColumns => atom match
