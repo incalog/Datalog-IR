@@ -16,7 +16,7 @@ trait BaseValueNumbering extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = false
+  def printVNResults: Boolean = true
 
   protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
     override def toString: String =
@@ -103,6 +103,7 @@ trait BaseValueNumbering extends IRVisitor {
   private enum Phase:
     case initial
     case repetition
+    case removeInValidBodies
   private var phase: Phase = _
 
 
@@ -120,23 +121,26 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
+  
+  var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
 
-
+  
   def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
 
   override def visitModule(module: Module): Module = {
     if printVNResults then println(s"before VN: \n$module\n")
 
-    // initial phase
-    // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
-    phase = Phase.initial
+    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     val tempResult = super.visitModule(module)
-    // repetition phase
+
     phase = Phase.repetition
     val result = repetitionPhase(tempResult)
 
-    if printVNResults then println(s"after VN: \n$result")
-    result
+    phase = Phase.removeInValidBodies
+    val finalResult = removeInvalidBodies(result)
+
+    if printVNResults then println(s"after VN: \n$finalResult")
+    finalResult
   }
 
   @tailrec
@@ -150,7 +154,10 @@ trait BaseValueNumbering extends IRVisitor {
     else {
       return result
     }
+  }
 
+  private def removeInvalidBodies(module: Module): Module = {
+    super.visitModule(module)
   }
 
 
@@ -189,29 +196,35 @@ trait BaseValueNumbering extends IRVisitor {
 
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
+
+    if (phase == Phase.removeInValidBodies){
+      if (!isValidBody((currentRelationName, currentBodyIndex)))
+        return Seq()
+      else
+        return Seq(body)
+    }
+
     if (phase == Phase.repetition){
+      if (!isValidBody((currentRelationName, currentBodyIndex))) return Seq(body)
+
       congrClasses = analysisResults((currentRelationName, currentBodyIndex))._2
       valueNumbers = analysisResults((currentRelationName, currentBodyIndex))._1
     }
 
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
-    val newBody = super.visitBody(body).head
-    val newerBodySeq = if (validBody){
-      Seq(newBody)
-    }
-    else {
-      Seq()
-    }
+    val newBody = super.visitBody(body)
 
     printResults()
 
     // reset congrClasses (otherwise not known when variables are unbound)
     analysisResults = analysisResults + ((currentRelationName,currentBodyIndex) -> (valueNumbers, congrClasses))
+    isValidBody = isValidBody + ((currentRelationName,currentBodyIndex) -> validBody)
+
     congrClasses = mutable.Map[ValueId, CongruenceClass]()
     valueNumbers = new ValueIds[Term]()
 
-    return newerBodySeq
+    return newBody
   }
 
 
