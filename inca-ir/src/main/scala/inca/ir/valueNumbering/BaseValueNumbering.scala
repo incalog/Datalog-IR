@@ -11,7 +11,7 @@ import scala.annotation.tailrec
 
 
 /** for value numbering constructs from BaseIR */
-trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) extends IRVisitor {
+trait BaseValueNumbering extends IRVisitor {
   // config
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
@@ -45,8 +45,8 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
   }
 
-  protected val congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
-  protected val valueNumbers: ValueIds[Term] = new ValueIds()
+  protected var congrClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  protected var valueNumbers: ValueIds[Term] = new ValueIds()
 
   protected def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
 
@@ -106,9 +106,10 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
   private var phase: Phase = _
 
 
-  // for printing results
-  private var currentRelationName: Name = _
-  private var currentBodyIndex: Int = -1
+  type RelationName = Name
+  type BodyIndex = Int
+  private var currentRelationName: RelationName = _
+  private var currentBodyIndex: BodyIndex = -1
 
   def printResults(): Unit = {
     if !printVNResults then return
@@ -118,16 +119,39 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     valueNumbers.printResults()
   }
 
+  var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
+
+
+  def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
 
   override def visitModule(module: Module): Module = {
     if printVNResults then println(s"before VN: \n$module\n")
-    val result = super.visitModule(module)
-    typechecker.checkProgram(Seq(result))
+
+    // initial phase
+    // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
+    phase = Phase.initial
+    val tempResult = super.visitModule(module)
+    // repetition phase
+    phase = Phase.repetition
+    val result = repetitionPhase(tempResult)
+
     if printVNResults then println(s"after VN: \n$result")
     result
   }
 
-  def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
+  @tailrec
+  private def repetitionPhase(module: Module): Module = {
+    val result = super.visitModule(module)
+    val typechecker = new IRTypechecker{}
+    typechecker.checkProgram(Seq(result))
+    if (result != module && useFixPointIteration){
+      return repetitionPhase(result)
+    }
+    else {
+      return result
+    }
+
+  }
 
 
   protected def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
@@ -163,30 +187,18 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
 
   private var validBody: Boolean = _
 
-  @tailrec
-  private def repetitionPhase(body: Body): Seq[Body] = {
-    val res = super.visitBody(body)
-    if (!validBody || res.isEmpty){
-      return Seq()
-    }
-    else if (res.head != body) {
-      return repetitionPhase(res.head)
-    }
-    else {
-      return res
-    }
-  }
-
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
+    if (phase == Phase.repetition){
+      congrClasses = analysisResults((currentRelationName, currentBodyIndex))._2
+      valueNumbers = analysisResults((currentRelationName, currentBodyIndex))._1
+    }
 
-    phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
     val newerBodySeq = if (validBody){
-      phase = Phase.repetition // in repetition phase previous results are used to discover more equalities -> cant be assumed that all seen Vars are bound
-      repetitionPhase(newBody)
+      Seq(newBody)
     }
     else {
       Seq()
@@ -195,8 +207,9 @@ trait BaseValueNumbering(typechecker: IRTypechecker = new IRTypechecker{}) exten
     printResults()
 
     // reset congrClasses (otherwise not known when variables are unbound)
-    congrClasses.clear()
-    valueNumbers.clear()
+    analysisResults = analysisResults + ((currentRelationName,currentBodyIndex) -> (valueNumbers, congrClasses))
+    congrClasses = mutable.Map[ValueId, CongruenceClass]()
+    valueNumbers = new ValueIds[Term]()
 
     return newerBodySeq
   }

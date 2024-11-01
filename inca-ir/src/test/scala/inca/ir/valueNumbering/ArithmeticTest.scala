@@ -1990,7 +1990,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("fix-point iteration: variable constant in 2nd pass") {
+  test("fix-point iteration: variable constant in 2nd pass") { // result unsound without fix-point iteration since knowledge that C and X should equal 0 discarded
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("Result", TInt)), Seq(
@@ -2328,7 +2328,6 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S1"), Seq(TermArg(Var("A")))),
             Call(Name("S1"), Seq(TermArg(Var("B")))),
             Eq(Var("B"), Var("A")),
-            //            Eq(Var("param$0"), Var("A")),
             Eq(Var("param$0"), Var("B")),
             Eq(Var("param$1"), IntNum(0)),
           ))
@@ -2348,7 +2347,6 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call(Name("S1"), Seq(TermArg(Var("param$0")))),
             Call(Name("S1"), Seq(TermArg(Var("param$0")))),
-//            Eq(Var("param$0"), Var("A")),
             Eq(Var("param$1"), IntNum(0)),
           ))
         )),
