@@ -31,7 +31,7 @@ class ValueIds[T]{ // table from T to id
   def update(t: T, valueId: ValueId): Unit = ids.update(t, valueId)
 
   def clear(): Unit = {
-    currentId = 0
+    currentId = Int.MinValue
     ids.clear()
   }
 

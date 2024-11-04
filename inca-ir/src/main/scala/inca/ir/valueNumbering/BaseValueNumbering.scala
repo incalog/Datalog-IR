@@ -120,9 +120,9 @@ trait BaseValueNumbering extends IRVisitor {
     valueNumbers.printResults()
   }
 
-  var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
-  
-  var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
+  // TODO refactor 
+  private var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
+  private var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
 
   
   def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
