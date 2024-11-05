@@ -107,8 +107,8 @@ trait BaseValueNumbering extends IRVisitor {
   private var phase: Phase = _
 
 
-  type RelationName = Name
-  type BodyIndex = Int
+  private type RelationName = Name
+  private type BodyIndex = Int
   private var currentRelationName: RelationName = _
   private var currentBodyIndex: BodyIndex = -1
 
@@ -120,20 +120,26 @@ trait BaseValueNumbering extends IRVisitor {
     valueNumbers.printResults()
   }
 
-  // TODO refactor 
+  // TODO refactor
   private var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
   private var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
 
-  
+  private type ParamName = Name
+  private var paramLeaders: Map[(RelationName, ParamName), Option[Term]] = Map()
+
+  private var inputModule: Module = _  // TODO
+
+
   def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
 
   override def visitModule(module: Module): Module = {
     if printVNResults then println(s"before VN: \n$module\n")
+    inputModule = module
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     val tempResult = super.visitModule(module)
 
-    phase = Phase.repetition
+    phase = Phase.repetition // repeat with previous analysis results and rewritten bodies
     val result = repetitionPhase(tempResult)
 
     phase = Phase.removeInValidBodies
@@ -184,11 +190,56 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
+
+  private def joinParams(relation: Relation): Unit = { // TODO
+    enum LeaderLattice{
+      case Top
+      case Leader(l: Term)
+      case Bot
+
+      def join(that: LeaderLattice): LeaderLattice = (this, that) match {
+        case (Leader(l1), Leader(l2)) if l1 == l2 => Leader(l1)
+        case (_, Bot) => this
+        case (Bot, _) => that
+        case _ => Top
+      }
+      def toOption: Option[Term] = this match {
+        case Leader(l) => Some(l)
+        case _ => None
+      }
+    }
+    import LeaderLattice.*
+
+    val relName = relation.name
+    val params = relation.params
+
+    val leaders = params.map{ param =>
+      param ->
+        relation.bodies.indices.map { bodyIdx =>
+          val (bodyVN, bodyCongrClasses) = analysisResults((relName, bodyIdx))
+          val vn = bodyVN(Var(param.name))
+          val leader = bodyCongrClasses(vn).leader
+          if (isConst(leader)) Leader(leader)
+          else Top
+        }.foldRight(Bot){ (elem, tempRes) =>
+          elem.join(tempRes)
+        }
+    }.toMap
+
+    paramLeaders = paramLeaders ++ leaders.map((param, leader) => (relName, param.name) -> leader.toOption)
+
+  }
+
+
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
     relationParams = relation.params.map(_.name)
     currentBodyIndex = -1
-    super.visitRelation(relation)
+    val result = super.visitRelation(relation)
+
+    joinParams(result.head)
+
+    result
   }
 
 
@@ -242,7 +293,7 @@ trait BaseValueNumbering extends IRVisitor {
 
     case call@Call(_, args, false) =>  treatBindingsInCall(call, args)
 
-    case call@ExtensionalCall(_, args, false) => treatBindingsInCall(call, args)
+    case call@ExtensionalCall(_, args, false) => treatBindingsInExtensionalCall(call, args)
 
     case _ => super.visitAtom(atom)
   }
@@ -339,13 +390,38 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  private def treatBindingsInCall(call: Call | ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
-    val newArgs: Seq[Arg] = args.flatMap(visitArg)
-    val newCall = call match{
-      case Call(ref,_,neg) => Call(ref,newArgs,neg)
-      case ExtensionalCall(ref,_,neg) => ExtensionalCall(ref,newArgs,neg)
+  private def treatBindingsInCall(call: Call, args: Seq[Arg]): Seq[Atom] = { // TODO refactor
+    val newArgs: Seq[Arg] = args.zipWithIndex.map {
+      case (arg@TermArg(vari@Var(_)), i) if vari.mode.isBinding =>
+        val newArg = {
+          val key = (call.ref.name, inputModule.relations(call.ref.name).params(i).name)
+          if (paramLeaders.contains(key)) {
+            val leader = paramLeaders(key).getOrElse(conservativeBinding(vari))
+            val id = getIdOf(leader)
+            if (congrClasses.contains(id)) {
+              congrClasses(id).updateCongrClassIfNecessary(leader)
+            }
+            else {
+              congrClasses.update(id, CongruenceClass(id, leader, leader))
+            }
+            updateValueNumbersAndCongrClasses(vari,id)
+            if !isParam(vari) then leader
+            else vari
+          }
+          else {
+            conservativeBinding(vari)
+          }
+        }
+        TermArg(newArg)
+      case (arg,_) => visitArg(arg).head
     }
-    Seq(newCall)
+    Seq(Call(call.ref, newArgs, call.neg))
+  }
+
+
+  private def treatBindingsInExtensionalCall(call: ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
+    val newArgs: Seq[Arg] = args.flatMap(visitArg)
+    Seq(ExtensionalCall(call.ref,newArgs,call.neg))
   }
 
 

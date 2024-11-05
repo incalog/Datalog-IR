@@ -1682,6 +1682,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
           ))
         ))
       ))
@@ -1700,6 +1703,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
           ))
         ))
       ))
@@ -1725,6 +1731,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("m")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
           ))
         ))
       ))
@@ -1744,6 +1753,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("m")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
           ))
         ))
       ))
@@ -1769,6 +1781,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("m")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
           ))
         ))
       ))
@@ -1788,6 +1803,52 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var(Name("m")), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var(Name("m")), IntNum(11))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Call and check for Equality with var bound in call used in term (with global propagation of leader)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("b", Seq(TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))), // now value of X also not known
+            Eq(IntNum(12), Var("Z")),
+            Eq(IntNum(12), Var("X")), // <- thus this var important for constraining value of Y
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), Var("Y"))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(10))
+          )),
+//          Body(Seq(
+//            Call("a", Seq(TermArg(Var("m")), TermArg(Var("n"))))
+//          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call(Name("b"), Seq(TermArg(IntNum(10)))),
+            //            Eq(IntNum(12), Add(IntNum(2),Var("param$1"))),
+            //            Eq(Var(Name("Z")), IntNum(12)),
+            //            Eq(IntNum(12), IntNum(12)),
+            Eq(Var("param$0"), IntNum(12)),
+            Eq(Var("param$1"), IntNum(10))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("m", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(10))
           ))
         ))
       ))
