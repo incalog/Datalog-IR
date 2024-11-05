@@ -107,8 +107,8 @@ trait BaseValueNumbering extends IRVisitor {
   private var phase: Phase = _
 
 
-  type RelationName = Name
-  type BodyIndex = Int
+  private type RelationName = Name
+  private type BodyIndex = Int
   private var currentRelationName: RelationName = _
   private var currentBodyIndex: BodyIndex = -1
 
@@ -121,14 +121,13 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   private var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
-  
   private var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
 
-//  private var paramVNs: Map[(RelationName, Name), ValueId] = Map()
-//  private var paramCongrClasses: Map[(RelationName, Name), CongruenceClass] = Map()
-  private var paramLeaders: Map[(RelationName, Name), Option[Term]] = Map()
+  private type ParamName = Name
+  private var paramLeaders: Map[(RelationName, ParamName), Option[Term]] = Map()
 
   private var inputModule: Module = _  // TODO
+
 
   def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
 
@@ -219,7 +218,7 @@ trait BaseValueNumbering extends IRVisitor {
           val (bodyVN, bodyCongrClasses) = analysisResults((relName, bodyIdx))
           val vn = bodyVN(Var(param.name))
           val leader = bodyCongrClasses(vn).leader
-          if (isConst(leader)) then Leader(leader)
+          if (isConst(leader)) Leader(leader)
           else Top
         }.foldRight(Bot){ (elem, tempRes) =>
           elem.join(tempRes)
@@ -390,12 +389,13 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  private def treatBindingsInCall(call: Call, args: Seq[Arg]): Seq[Atom] = { // TODO
+  private def treatBindingsInCall(call: Call, args: Seq[Arg]): Seq[Atom] = { // TODO refactor
     val newArgs: Seq[Arg] = args.zipWithIndex.map {
       case (arg@TermArg(vari@Var(_)), i) if vari.mode.isBinding =>
         val newArg = {
-          if (paramLeaders.contains(call.ref.name, inputModule.relations(call.ref.name).params(i).name)) {
-            val leader = paramLeaders(call.ref.name, inputModule.relations(call.ref.name).params(i).name).getOrElse(conservativeBinding(vari))
+          val key = (call.ref.name, inputModule.relations(call.ref.name).params(i).name)
+          if (paramLeaders.contains(key)) {
+            val leader = paramLeaders(key).getOrElse(conservativeBinding(vari))
             val id = getIdOf(leader)
             if (congrClasses.contains(id)) {
               congrClasses(id).updateCongrClassIfNecessary(leader)
