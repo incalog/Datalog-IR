@@ -3,22 +3,28 @@ package inca.ir.analysis.base.effect
 import sturdy.effect.failure.FailureKind
 import sturdy.values.Finite
 
-enum Failure extends FailureKind:
-  // BaseGenericInterpreter
-  case ProgramFailure
-  case UnresolvedVariable
-  // Terms
-  case UnknownTerm
+trait BaseIRFailure extends FailureKind
+  
+// BaseGenericInterpreter
+case object ProgramFailure extends BaseIRFailure
+  
+// Terms
+case object UnknownTerm extends BaseIRFailure
+case object UnresolvedVariable extends BaseIRFailure
 
-  // Arg
-  case UnknownArg
+// Relation
+case object NoParamRelation extends BaseIRFailure
 
-  // Atoms
-  case UnknownAtom
-  case InvalidBindings
-  case RefNotFound
+// Arg
+case object UnknownArg extends BaseIRFailure
 
-  // relation ops
-  case ColumnMismatch
+// Atoms
+//case FailedComparison
+case object UnknownAtom extends BaseIRFailure
+case object InvalidBindings extends BaseIRFailure
+case object RefNotFound extends BaseIRFailure
 
-given IRFailure: Finite[Failure] with {}
+// relation ops
+case object ColumnMismatch extends BaseIRFailure
+
+given IRFailure: Finite[BaseIRFailure] with {}

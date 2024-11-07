@@ -9,12 +9,12 @@ import sturdy.effect.failure.Failure
 import sturdy.values.{Join, Widen}
 
 
-class SupplementaryTable(using j: Join[RelationValue[Name, Value]], w: Widen[RelationValue[Name, Value]], failure: Failure)
-  extends SupplementaryEnvironment[RelationValue[Name, Value], WithJoin]:
+class SupplementaryTable(using j: Join[RelationValue[Value]], w: Widen[RelationValue[Value]], failure: Failure)
+  extends SupplementaryEnvironment[RelationValue[Value], WithJoin]:
 
-  override type State = RelationValue[Name, Value]
+  override type State = RelationValue[Value]
 
-  protected var supTable: RelationValue[Name, Value] = RelationValue(Seq(), Some(Seq()))
+  protected var supTable: RelationValue[Value] = RelationValue(Seq(), Some(Seq()))
 
   override def scoped[A](f: => A): A =
     val snapshot = supTable
@@ -23,12 +23,12 @@ class SupplementaryTable(using j: Join[RelationValue[Name, Value]], w: Widen[Rel
     }
   override def clear(): Unit = supTable = RelationValue(Seq(), Some(Seq()))
 
-  def setTable(rv: RelationValue[Name, Value]): Unit = setState(rv)
-  def getTable: RelationValue[Name, Value] = getState
+  def setTable(rv: RelationValue[Value]): Unit = setState(rv)
+  def getTable: RelationValue[Value] = getState
 
-  override def getState: RelationValue[Name, Value] = supTable
-  override def setState(st: RelationValue[Name, Value]): Unit = supTable = st
+  override def getState: RelationValue[Value] = supTable
+  override def setState(st: RelationValue[Value]): Unit = supTable = st
 
-  override def join: Join[RelationValue[Name, Value]] = implicitly
-  override def widen: Widen[RelationValue[Name, Value]] = implicitly
+  override def join: Join[RelationValue[Value]] = implicitly
+  override def widen: Widen[RelationValue[Value]] = implicitly
     

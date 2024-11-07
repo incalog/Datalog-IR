@@ -42,19 +42,22 @@ class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
   with arith.ordering.EqOps
 
 
-class IRAbstractInterpreter extends BaseGenericInterpreter[Name, Value, VBool, RelationValue[Name, Value]]
+class IRAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, RelationValue[Value], WithJoin]
   with arith.interpreter.ConstantAbstractInterpreter:
 
-  type RV = RelationValue[Name, Value]
+  type RV = RelationValue[Value]
 
-  override val failure: CollectedFailures[effect.Failure] = new CollectedFailures
+  override val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
+  override val except = ???
 
   override val boolOps: BooleanOps[VBool] = new VBoolOps(using failure)
   override val boolTop: VBool = VBool.Top
 
   override val eqOps: BaseEqOps = new IREqOps(using boolOps)
 
-  override val joinV: Join[Value] = new IRJoinV
+  given IRJoinV: Join[Value]
+  override val joinV: WithJoin[Value] = implicitly //new IRJoinV
+  
   private val finiteV: Finite[Value] = new FiniteV
   private val widenV: Widen[Value] = finitely(using joinV, finiteV)
   override val top: Value = Top
@@ -67,14 +70,12 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Name, Value, VBool, R
   override val IDB: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())(using joinRV, widenRV, implicitly)
   override val effects: EffectStack = EffectStack(supplementaryEnv, failure, IDB)
 
-  override val relationOps: RelationOps[Name, Value, VBool, RV] = new RelationValueOps[Name, Value, VBool](using effects, joinV, boolOps, eqOps, failure) {
-    override def makeColumnName(c: String): Name = Name(c)
-  }
+  override val relationOps: RelationOps[Value, VBool, RV] = new RelationValueOps[Value, VBool](using effects, joinV, boolOps, eqOps, failure) {}
 
   // TODO: Use context sensitive fixpoint combinator
-  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, VBool, RV]] =
-    val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, VBool, RV]] {
-      override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, VBool, RV]] ?=> Combinator[FixIn, FixOut[Value, VBool, RV]] =
+  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] =
+    val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, RV]] {
+      override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, RV]] ?=> Combinator[FixIn, FixOut[Value, RV]] =
         given Join[RV] = joinRV
         //given Finite[RV] = finiteRV
         //given Widen[RV] = widenRV
@@ -85,12 +86,12 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Name, Value, VBool, R
         fix.filter(_.isLoop, fix.iter.innermost(StackedStates()))
     }
 
-    fixpt.addContextFreeLogger(new Logger[FixIn, FixOut[Value, VBool, RV]] {
+    fixpt.addContextFreeLogger(new Logger[FixIn, FixOut[Value, RV]] {
       override def enter(dom: FixIn): Unit = dom match
         case _ => // println(s"Enter: $dom")
 
-      override def exit(dom: FixIn, codom: TrySturdy[FixOut[Value, VBool, RV]]): Unit = (dom, codom.getOrThrow) match
-        case (_, FixOut.Term(_, _)) =>
+      override def exit(dom: FixIn, codom: TrySturdy[FixOut[Value, RV]]): Unit = (dom, codom.getOrThrow) match
+        case (_, FixOut.Term(_)) =>
         case _ =>
           println(s"Exit:\n$dom\nResult: $codom")
         //case _ => // nothing
