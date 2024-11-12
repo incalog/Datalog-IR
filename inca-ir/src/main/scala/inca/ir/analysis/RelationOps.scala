@@ -16,7 +16,8 @@ trait RelationOps[V, B, RV]:
   def project(rv: RV, cols: Seq[String]): RV
   def projectAndRename(rv: RV, subst: Map[String, String]): RV
   def cartesian(rv: RV, other: RV): RV
-  def select(rv: RV)(f: Row => Boolean): RV
+  def filter(rv: RV)(f: Row => B): RV
+  def map[A](rv: RV)(f: Row => A): I[A]
   def naturalJoin(rv: RV, other: RV): RV
   def antiJoin(rv: RV, other: RV): RV
   def union(rv: RV, other: RV): RV

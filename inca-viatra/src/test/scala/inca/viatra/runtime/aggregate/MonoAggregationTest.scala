@@ -1,6 +1,5 @@
 package inca.viatra.runtime.aggregate
 
-import inca.foreign.scala.analysis.{ScalaAbstractInterpreter, ScalaIROptimizer}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive.{ConversionElimination, ForeignScalaLowering, ScalaMonoDefinition, ScalaType}

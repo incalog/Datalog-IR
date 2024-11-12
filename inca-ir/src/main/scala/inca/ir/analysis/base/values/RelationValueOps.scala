@@ -52,10 +52,13 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
         yield row1 ++ row2
     make(allCols, cartesianValues.toSeq)
 
-  def select(rv: RV)(f: Row => Boolean): RV =
-    val newEntries = entries(rv).filter(f)
+  def filter(rv: RV)(f: Row => B): RV =
+    val newEntries = entries(rv).filter(r => booleanOps.boolLit(true) == f(r))
     make(columns(rv), newEntries.toSeq)
 
+  def map[A](rv: RV)(f: Row => A): I[A] =
+    entries(rv).map(f)
+  
   def naturalJoin(rv: RV, other: RV): RV =
     val sharedCols = columns(rv).intersect(columns(other))
     val colIndicesRv = sharedCols.map(columns(rv).indexOf).filter(_ > -1)
@@ -63,13 +66,17 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
     val combinedCols = columns(rv) ++ columns(other).filterNot(sharedCols.contains)
 
     val joinedRows =
-      for {
+      (for {
         row1 <- entries(rv)
         row2 <- entries(other)
-        if colIndicesRv.map(row1.lift) == colIndicesOther.map(row2.lift)
       } yield
-        row1 ++ row2.filterNot(colIndicesOther.contains)
-    make(combinedCols, joinedRows.toSeq)
+        row1 ++ row2.filterNot(colIndicesOther.contains)).toSeq
+
+    // sanity check
+    if (joinedRows.isEmpty || (joinedRows.head.nonEmpty && combinedCols.size != joinedRows.head.size))
+      throw IllegalStateException(s"Can not natural join values: $rv - $other")
+
+    make(combinedCols, joinedRows)
 
   def antiJoin(rv: RV, other: RV): RV =
     val sharedCols = columns(rv).intersect(columns(other))
