@@ -244,7 +244,7 @@ object Parser:
     methodCall | asIsInstanceOfOrSelect
 
   def selectExprRec(e: Expression, isFix: Boolean): P0[Expression] =
-    ((P.char('.') *> selectExprStep(e, isFix)).flatMap(e => selectExprRec(e, isFix))) | P.pure(e)
+    (P.char('.') *> selectExprStep(e, isFix)).flatMap(e => selectExprRec(e, isFix)) | P.pure(e)
 
   lazy val selectExpr: P[Expression] =
     (keyword("fix").?.with1 ~ atomicExp).flatMap {

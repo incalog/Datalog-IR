@@ -151,16 +151,16 @@ class GenerateIR:
 
   /**
    * We represent objects and structural objects as ADTs:
-   * ```
+   *
    * Identity = OID(cls, allocCount) | SID(cls, fields)
-   * ```
+   *
    * The `cls` fields are unique to each subclass. If we want to dynamically dispatch a method call, we now first need
-   * to decide if the class is a case class or a normal class. Therefore we need a disjunction with destructs, which
+   * to decide if the class is a case class or a normal class. Therefore, we need a disjunction with destructs, which
    * lowers to multiple bodies (one for each case of a case class and one for the OID):
-   * ```
+   *
    * R(this: Identity) :- ?OID(C, ...), dispatch$MethodName(C, ...)
    * R(this: Identity) :- ?SID(C, ...), dispatch$MethodName(C, ...)
-   * ```
+   *
    *
    * That is, for each relation that performs a method call we need multiple different bodies. This is inefficient.
    * To prevent this performance bottleneck we introduce this helper relation. That way, we only introduce multiple

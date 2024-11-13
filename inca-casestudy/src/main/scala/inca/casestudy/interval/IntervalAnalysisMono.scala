@@ -837,7 +837,7 @@ object IntervalAnalysisMono:
         val startLoad = System.nanoTime()
         engine.feed.processEditScript(s.loadEdits)
         val endLoad = System.nanoTime()
-        val loadTime = (endLoad - startLoad)
+        val loadTime = endLoad - startLoad
 
         val propTime = engine.measure(Relation3("main", Seq("exit", "x", "x_iv"), Seq()))
         val cflowRel = engine.read(Relation2("cflow", Seq("from", "to"), Seq()))
