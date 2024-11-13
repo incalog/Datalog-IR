@@ -1,12 +1,12 @@
 .comp AbstractConfiguration {
-    .decl MagicNumber(x:number)
+    .decl MagicNumber(x: number)
 }
 
-.comp Configuration: AbstractConfiguration {
+.comp Configuration : AbstractConfiguration {
     MagicNumber(42).
 }
 
-.comp ConfigurationTwo: AbstractConfiguration {
+.comp ConfigurationTwo : AbstractConfiguration {
     MagicNumber(43).
 }
 

@@ -21,7 +21,7 @@ trait Lowering extends BaseLowering:
     embeddedAtoms = before
     after ++ as
 
-  override def visitTerm(term: Term): Seq[Term] =  preserveHints(term)(term match
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case Block(as, t) =>
       embeddedAtoms ++= as.flatMap(visitAtom)
       visitTerm(t)

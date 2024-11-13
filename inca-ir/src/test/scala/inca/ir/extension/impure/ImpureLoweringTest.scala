@@ -22,6 +22,7 @@ class ImpureLoweringTest extends AnyFunSuiteLike:
   val impureAlloc = new ImpurityKind:
     override val name: String = "alloc"
     override val ty: Type = arithmetic.TInt
+
   def alloc(to: Term): Impure =
     val local = Name(gensym.fresh("currentAlloc"))
     Impure(RefByName(local),

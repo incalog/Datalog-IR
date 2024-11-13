@@ -5,7 +5,7 @@ class A {
 }
 
 @main def main(): Set[Int] = {
-    val a: A = new A()
-    a.set = Set(1, 2, 3)
-    return a.set
+  val a: A = new A()
+  a.set = Set(1, 2, 3)
+  return a.set
 }

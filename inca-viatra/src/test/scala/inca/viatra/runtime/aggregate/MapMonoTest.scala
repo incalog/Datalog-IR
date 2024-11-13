@@ -34,12 +34,15 @@ case class CompiledScalaMapMonoUnit(mod: Module) extends CompiledUnit:
     opts
 
   override val isClosedWorld: Boolean = true
+
   override def otherUnits: Seq[CompiledUnit] = Seq()
+
   lazy val irModules: Seq[Module] = Seq(mod)
 
   override def name: Name = mod.name
+
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-  
+
   private class ScalaTypeChecker extends IRTypechecker with scalaExt.primitive.Typechecker
 
   override def typechecker: BaseIRTypechecker = new ScalaTypeChecker
@@ -79,22 +82,21 @@ case class CompiledScalaMapMonoUnit(mod: Module) extends CompiledUnit:
   ))
 
 
-
 class ScalaMapMonoTest extends AnyFunSuiteLike {
 
   private val langs: Language = BaseIR.language +
-    set.IR +
-    arithmetic.IR +
-    block.IR +
-    mono.IR +
-    impure.IR +
-    data.IR +
-    string.IR +
-    bool.IR +
-    tupleIR +
-    map.IR +
-    disjunction.IR +
-    string.IR
+                                set.IR +
+                                arithmetic.IR +
+                                block.IR +
+                                mono.IR +
+                                impure.IR +
+                                data.IR +
+                                string.IR +
+                                bool.IR +
+                                tupleIR +
+                                map.IR +
+                                disjunction.IR +
+                                string.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -304,7 +306,6 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     assertResult((1, 1))(res.entries.head)
 
 
-
   test("Map Mono basic test 9: key is of type TTuple[TInt, TString], value mono is SetMono[TInt]"):
     val mainRelation = Relation("main",
       Seq(Param("value", TInt)),
@@ -322,7 +323,6 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
-
 
 
   test("Map Mono basic test 10: key is of type TTuple[TInt, TInt], value mono is SetMono[TInt]"):
@@ -529,10 +529,10 @@ class ScalaMapMonoTest extends AnyFunSuiteLike {
     )
 
     val engine = compile(mainRelationSucc, collNode, extLeaf, extBTree)
-//    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
+    //    val engine = compile(mainRelationFail, collNode, extLeaf, extBTree)
     engine.insert(edbLeaf)
     engine.insert(edbBTree)
-    //engine.readAll().foreach(res => println(res.asTable))
+  //engine.readAll().foreach(res => println(res.asTable))
 
 
 

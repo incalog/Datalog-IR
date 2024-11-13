@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 /** Rewrites the program so that for each fold(init, op, set) the following holds
  *  1. set == Call(Var(setName), setArgs) for some setName and setArgs
- *  2. the fold construct occurs in its own function as to avoid duplicate aggregation
+ *     2. the fold construct occurs in its own function as to avoid duplicate aggregation
  */
 class NormalizeFold extends Visitor:
   private val newFuns: ListBuffer[FunctionDef] = ListBuffer.empty

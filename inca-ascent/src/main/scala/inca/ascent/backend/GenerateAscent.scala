@@ -69,7 +69,7 @@ object GenerateAscent:
       })
     }
 
-    typeDependencies = transitiveClosure(nestedDataTypes).groupBy(_._1).map { case (k,v) => (k,v.map(_._2))}
+    typeDependencies = transitiveClosure(nestedDataTypes).groupBy(_._1).map { case (k, v) => (k, v.map(_._2)) }
 
     val contents = module.contents.flatMap {
       case ir.Relation(name, param, bodies) =>
@@ -193,9 +193,9 @@ object GenerateAscent:
               tmpTerm.typ = termTy.map(_.ty.bound)
               as ++= compileAtom(ir.Eq(tmpTerm, t))
             case ir.WildcardArg() =>
-              // nothing
+            // nothing
             case AggregateColumnArg(t) =>
-              // Should not happen
+          // Should not happen
           tmpTerm.typ = termTy.map(_.ty.binding)
           compileArg(tmpTerm.arg, noClone = true, noDeref = true)
         else
@@ -212,7 +212,7 @@ object GenerateAscent:
       val aggArgs = (ascentAgg match
         case Aggregation.Count() => args.patch(resultIdx, Seq(WildcardArg()), 1)
         case _ => args.patch(resultIdx, Seq(TermArg(aggregatorVar)), 1)
-      ).map(a => compileArg(a, noClone = true))
+        ).map(a => compileArg(a, noClone = true))
 
       val aggRelName = cleanName(name.name)
       val aggColMode = aggColTerm.typ match

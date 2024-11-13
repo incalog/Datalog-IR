@@ -11,7 +11,9 @@ object SizeIndex {
   case object Key extends VirtualKey {
     override val getStringID: String = "#size"
     override val getArity: Int = 2
+
     override def isEnumerable: Boolean = true
+
     override def factory: VirtualIndexFactory = SizeIndex.Factory
   }
 
@@ -35,9 +37,10 @@ class SizeIndex extends VirtualBinaryIndex[URI, Int] {
   lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
 
   private val anylist = ListType(AnyType)
+
   private def isList(k: URI): Boolean = database.nodeInstances(anylist).index(k) != 0
 
-  override def entries: Iterable[(URI, Int)] = parentIndex.entrySets.flatMap { case (k,v) =>
+  override def entries: Iterable[(URI, Int)] = parentIndex.entrySets.flatMap { case (k, v) =>
     if (isList(k)) {
       Some(k -> v.size)
     } else {

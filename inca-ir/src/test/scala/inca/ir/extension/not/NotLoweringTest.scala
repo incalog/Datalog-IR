@@ -15,7 +15,9 @@ class NotLoweringTest extends AnyFunSuiteLike:
   val lowering: Lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
+
   def term(i: Int): Term = Var(s"x_$i")
+
   def module(language: Language, atoms: Seq[Atom]): Module =
     val mod = Module("Test", language, Seq(
       Relation("test", Seq(), Seq(Body(atoms)))

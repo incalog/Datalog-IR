@@ -6,14 +6,17 @@ import inca.ir.extension.block
 import inca.ir.extension.bool
 
 case object TInt extends Type
+
 case object TDouble extends Type
 
 case class IntNum(value: Int) extends Term:
   override def vars: Seq[Var] = Seq()
+
   override def toString: String = value.toString + analysisString
 
 case class DoubleNum(value: Double) extends Term:
   override def vars: Seq[Var] = Seq()
+
   override def toString: String = value.toString + analysisString
 
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
@@ -22,14 +25,17 @@ case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
       s"($lhs $op $rhs)"
     else
       s"($lhs $op $rhs)" + analysisString
+
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 case class UnOp(t: Term, op: String) extends Term:
   override def toString: String = s"$op $t"
+
   override def vars: Seq[Var] = t.vars
 
 case class BinCompare(lhs: Term, rhs: Term, op: String) extends Atom:
   override def toString: String = s"$lhs $op $rhs" + analysisString
+
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
 def Add(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "+")
@@ -77,8 +83,11 @@ enum ArithmeticAggregationOperator extends AggregationOperatorBuiltIn:
       else
         Some(s"Cannot compute $this for values of type $in")
 
-object IR extends IR { }
+object IR extends IR {}
+
 trait IR extends BaseIR:
   override val name: String = "Arithmetic"
+
   override def language: Language = super.language + IR
+
   override def requires: Language = Language(IR)

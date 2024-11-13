@@ -19,13 +19,14 @@ class CompileTest extends AnyFunSuite {
     val c = compiler.compileModule(m)
     val irtypechecker = new IRTypechecker
     try irtypechecker.checkProgram(Seq(c))
-    //finally println(c)
+  //finally println(c)
 
 
   test("Edge") {
-    val m = s"""Edge(Int, Int).
-               |Edge(1,2).
-               |""".stripMargin
+    val m =
+      s"""Edge(Int, Int).
+         |Edge(1,2).
+         |""".stripMargin
     compile(Parser.relation.parseAll(m).getOrElse(???))
 
     val m2 =

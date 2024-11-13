@@ -15,6 +15,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
   val lowering = new Lowering {}
 
   def atom(i: Int): Atom = Call(s"A_$i", Seq())
+
   def term(i: Int): Term = Var(s"x_$i")
 
   def module(language: Language, atoms: Seq[Atom]): Module =
@@ -28,7 +29,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
       Eq(
         Block(Seq(atom(1), atom(2)), term(3)),
         Block(Seq(atom(4), atom(5)), term(6))
-    )))
+      )))
     val lowered = lowering.lower(mBlock)
     val bBlock = module(baseIR.language, Seq(
       atom(1), atom(2),
@@ -66,7 +67,7 @@ class BlockLoweringTest extends AnyFunSuiteLike:
         Block(Seq(), term(3)),
         Block(Seq(), term(6))
       ),
-      ))
+    ))
     val lowered = lowering.lower(mBlock)
     val bBlock = module(baseIR.language, Seq(
       Eq(term(3), term(6))

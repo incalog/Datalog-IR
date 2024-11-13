@@ -29,6 +29,7 @@ enum ProgramContent extends SourceLocation:
   override def equals(obj: Any): Boolean = obj match
     case that: ProgramContent => this.id == that.id
     case _ => false
+
   override def hashCode(): Int = id
 
   override def toString: String = this match
@@ -49,8 +50,8 @@ enum ProgramContent extends SourceLocation:
     case TypeDecl(name, rhs) => s".type $name $rhs"
     case dir@Directive(dirQual, names, attrs) =>
       val attrsStr =
-        if(attrs.isEmpty) ""
-        else "(" + attrs.map{ case (k, v) => s"$k = $v" }.mkString(", ") + ")"
+        if (attrs.isEmpty) ""
+        else "(" + attrs.map { case (k, v) => s"$k = $v" }.mkString(", ") + ")"
       s"$dirQual ${names.mkString(",")}$attrsStr" //  -> ${dir.target.get}
     case ComponentDecl(ty, superTys, contents) =>
       val superTysStr =
@@ -109,10 +110,14 @@ enum Type extends SourceLocation:
 
 case class QualifiedName(ns: Seq[String]):
   def path: Seq[String] = ns.dropRight(1)
+
   def unqualifiedName: String = ns.last
+
   override def toString: String = ns.mkString(".")
+
 case class Record(attrs: Seq[Attribute]):
   override def toString: String = s"[${attrs.mkString(", ")}]"
+
 case class ADTConstructor(name: String, attrs: Seq[Attribute]):
   override def toString: String = s"$name { ${attrs.mkString(", ")} }"
 
@@ -237,6 +242,7 @@ enum Term extends SourceLocation:
     case Binary(t1, op, t2) => s"($t1 $op $t2)"
 
 case class UserDefFunctor(name: String)
+
 enum IntrinsicFunctor:
   case Ord
   case ToFloat

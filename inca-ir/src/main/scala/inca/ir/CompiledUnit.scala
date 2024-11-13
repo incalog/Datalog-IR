@@ -14,11 +14,15 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledUnit:
   def compilerOptions: CompilerOptions
+
   def name: Name
+
   def sourceLocation: SourceLocation
 
   def isClosedWorld: Boolean
+
   def irModules: Seq[Module]
+
   def otherUnits: Seq[CompiledUnit]
 
   lazy val header: Seq[Module] = dependencies.map(_.header)
@@ -26,16 +30,19 @@ trait CompiledUnit:
   private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
+
   def allMessages: List[CompilationMessage] = messages.toList
+
   def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
+
   def warnings: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.WARNING).toList
 
   protected def stopIfNeeded(): Unit = {
     val es = errors
     val ws = es ++ warnings
-    if (/*options.stopOnWarning &&*/ warnings.nonEmpty)
+    if ( /*options.stopOnWarning &&*/ warnings.nonEmpty)
       throw CompiledUnit.Failed(this, ws)
-    if (/*options.stopOnError &&*/ errors.nonEmpty)
+    if ( /*options.stopOnError &&*/ errors.nonEmpty)
       throw CompiledUnit.Failed(this, es)
   }
 
@@ -51,11 +58,13 @@ trait CompiledUnit:
 
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.pipeline = pipeline
+
   private var pipeline: List[() => BaseIRVisitor] = List()
 
   // TODO: Make this nice
   def setPostProcessingPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.postProcessingPipeline = pipeline
+
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
   protected def printStep(title: String, content: Any): Unit =

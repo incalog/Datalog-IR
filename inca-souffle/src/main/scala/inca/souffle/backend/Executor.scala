@@ -62,7 +62,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     val progFilePath: String = progFile.getAbsolutePath
     val profileFilePath: String = s"$dirFilePath/profile.log"
 
-    def flagsToString(fls: Map[String, String]): String = fls.map((k, v) => s"-$k $v" ).mkString(" ")
+    def flagsToString(fls: Map[String, String]): String = fls.map((k, v) => s"-$k $v").mkString(" ")
 
     lazy val process: ProcessBuilder =
       val fls = flagsToString(flags)
@@ -144,11 +144,11 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
           val matches = r.entries.flatMap { el =>
             val flatEl = r.flattenEntry(el)
             val matches = rel.entries.exists { query =>
-               val flatQuery = rel.flattenEntry(query)
-               flatEl.zipAll(flatQuery, null, null).forall {
-                 case (e, null) => true
-                 case (e, q) => e == q
-               }
+              val flatQuery = rel.flattenEntry(query)
+              flatEl.zipAll(flatQuery, null, null).forall {
+                case (e, null) => true
+                case (e, q) => e == q
+              }
             }
             if (matches) Some(flatEl) else None
           }
@@ -176,7 +176,9 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       FileUtil.writeFile(file, content)
 
     override def remove(edb: Relation): Unit = throw new UnsupportedOperationException()
+
     override def addUpdateListener(up: RelationUpdateListener): Unit = throw new UnsupportedOperationException()
+
     override def removeUpdateListener(up: RelationUpdateListener): Unit = throw new UnsupportedOperationException()
 
     private def relToString(edb: Relation, directive: ProgramContent.Directive): String =
@@ -201,7 +203,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case Attribute(_, Type.Number | Type.Unsigned) => Try(el.toInt) match
         case Success(d) => d
         case Failure(_) => throw IllegalArgumentException(s"Argument $el can not be interpreted as int")
-      case Attribute(_, Type.Float) => Try (el.toFloat) match
+      case Attribute(_, Type.Float) => Try(el.toFloat) match
         case Success(d) => d
         case Failure(_) => throw IllegalArgumentException(s"Argument $el can not be interpreted as float")
       // TODO: handle DataTypes
@@ -229,6 +231,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       dir.dirQualifier match
         case DirectiveQualifier.Input => s"${config.dirFilePath}/${dir.names.head}.facts"
         case DirectiveQualifier.Output => s"${config.dirFilePath}/${dir.names.head}.csv"
+
     private def getSeperator(dir: ProgramContent.Directive): String = dir.dirQualifier match
       case DirectiveQualifier.Input => "\t"
       case DirectiveQualifier.Output => "\t"

@@ -31,9 +31,9 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     program.foreach(checkModule)
 
     val negativeCycles = dependencyGraph.negativeCycles
-    negativeCycles.foreach( cycle =>
+    negativeCycles.foreach(cycle =>
       val cycleS = dependencyGraph.prettyPrintCycle(cycle.map(_._1))
-      error(s"Negative cycle is not allowed:\n  $cycleS", program:_*)
+      error(s"Negative cycle is not allowed:\n  $cycleS", program: _*)
     )
 
     this.failOnError()
@@ -44,6 +44,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
 
   def addCallDependency(to: ModuleEntry, neg: Boolean = false): Unit =
     addDependency(currentEntry, to, if (neg) DependencyInfo.NegativeCall else DependencyInfo.PositiveCall)
+
   def addTypeDependency(to: ModuleEntry): Unit =
     addDependency(currentEntry, to, DependencyInfo.TypeReference)
 
@@ -213,7 +214,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           Mode.Bound
 
     case _ => // fallback to infer + compatibility check
-      val TermType(ty,m) = inferTerm(term, mode)
+      val TermType(ty, m) = inferTerm(term, mode)
       assertComparable(ty, expected, term)
       m
 
@@ -254,12 +255,12 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         case (tt, Nil) =>
           action.commit()
           tt.mode
-        case (tt,errsInfer) =>
+        case (tt, errsInfer) =>
           action.abort()
           withErrors(checkTerm(t, ty, mode)) match
             case (m, Nil) => m
-            case (_,errsCheck) =>
-              errsInfer.foreach(e => error(e.msg, e.sourceLocations:_*))
+            case (_, errsCheck) =>
+              errsInfer.foreach(e => error(e.msg, e.sourceLocations: _*))
               tt.mode
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
@@ -283,7 +284,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case (TermArg(t), null) => // missing param
         inferTerm(t, argMode)
       case (null, _) => // missing argument
-        // nothing
+      // nothing
       case (TermArg(t), ty) =>
         checkTerm(t, ty, argMode)
     }
@@ -298,26 +299,26 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
             lookupModuleByAlias(moduleName)(lastMod) match
               case Some(mod) => Some(mod)
               case _ =>
-                error(s"Could not resolve module $moduleName", s:_*)
+                error(s"Could not resolve module $moduleName", s: _*)
                 None
         }.getOrElse(currentModule)
       case _ => currentModule
 
   protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, locations: SourceLocation*): Seq[Type] =
-    val targetModule = lookupModuleByPath(ref, locations:_*)
+    val targetModule = lookupModuleByPath(ref, locations: _*)
     val (rel, tys) = if targetModule != currentModule then
       // definitions outside the current module must be provided
       if isExtensional then
-        val providedRel = lookupProvideRef[ProvideExtensionalRelation](ref, targetModule, locations:_*)
+        val providedRel = lookupProvideRef[ProvideExtensionalRelation](ref, targetModule, locations: _*)
         val tyOption = providedRel.map(_.params.map(_.ty))
         (providedRel, tyOption.getOrElse(Seq()))
       else
-        val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations:_*)
+        val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations: _*)
         val tyOption = providedRel.map(_.params.map(_.ty))
         (providedRel, tyOption.getOrElse(Seq()))
     else
       // definitions inside the module can either be a relation or a requirement
-      lookupRelationRef[R](ref, isExtensional, locations:_*)
+      lookupRelationRef[R](ref, isExtensional, locations: _*)
     rel.map(r => ref.resolved(r.asInstanceOf[R]))
     tys
 
@@ -325,19 +326,19 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     lookupProvide[P](ref.unqualifiedName, module) match
       case Some(prov) => Some(prov)
       case _ =>
-        error(s"Could not resolve entry provided by: ${ref.name}", locations:_*)
+        error(s"Could not resolve entry provided by: ${ref.name}", locations: _*)
         None
 
   // lookup a relation in a module given a name
   private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, s: SourceLocation*): (Option[R], Seq[Type]) =
     lookupModuleEntry(ref.unqualifiedName) match
       case Some(rel@Relation(_, _, _)) if isExtensional =>
-        error(s"Expected an extensional relation, but got relation ${ref.name}", s:_*)
+        error(s"Expected an extensional relation, but got relation ${ref.name}", s: _*)
         (None, Seq())
       case Some(rel@Relation(_, params, _)) =>
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(rel@ExtensionalRelation(_, _)) if !isExtensional =>
-        error(s"Expected a relation, but got extensional relation ${ref.name}", s:_*)
+        error(s"Expected a relation, but got extensional relation ${ref.name}", s: _*)
         (None, Seq())
       case Some(rel@ExtensionalRelation(_, params)) =>
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
@@ -352,10 +353,10 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       case Some(req@RequireExtensionalRelation(_, params)) =>
         (Some(req.asInstanceOf[R]), params.map(_.ty))
       case None =>
-        error(s"Undefined relation ${ref.name}", s:_*)
+        error(s"Undefined relation ${ref.name}", s: _*)
         (None, Seq())
       case entry =>
-        error(s"Expected a relation ${ref.name} but found $entry", s:_*)
+        error(s"Expected a relation ${ref.name} but found $entry", s: _*)
         (None, Seq())
 
   protected def checkAtom(atom: Atom, mode: Mode): Unit = atom match
@@ -371,28 +372,28 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
-        case (TermType(lty,_), Nil) =>
+        case (TermType(lty, _), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode)
         case (_, lerrs) =>
           action.abort()
           withErrors(inferTerm(rhs, Mode.Bound)) match
-            case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode)
+            case (TermType(rty, _), Nil) => checkTerm(lhs, rty, mode)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
-              lerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
-              rerrs.foreach(e => error(e.msg, e.sourceLocations:_*))
+              lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
+              rerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
 
     case Eq(lhs, rhs, true) =>
       val action = startContextTransaction()
       withErrors(inferTerm(lhs, Mode.Bound)) match
-        case (TermType(lty,_), Nil) =>
+        case (TermType(lty, _), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode.inverted)
         case (_, lerrs) =>
           action.abort()
           withErrors(inferTerm(rhs, Mode.Bound)) match
-            case (TermType(rty,_), Nil) => checkTerm(lhs, rty, mode.inverted)
+            case (TermType(rty, _), Nil) => checkTerm(lhs, rty, mode.inverted)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
               lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))

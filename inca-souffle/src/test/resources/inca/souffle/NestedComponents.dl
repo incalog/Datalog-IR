@@ -1,10 +1,10 @@
 .comp A {
-    .decl R(x:number)
+    .decl R(x: number)
     R(42).
 }
 
 .comp B {
-    .decl Q(x:number)
+    .decl Q(x: number)
     Q(41).
 
     .init a = A

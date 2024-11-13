@@ -16,6 +16,7 @@ import truechange.*
 
 class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext:
   override def isEnumerable(key: IInputKey): Boolean = key.isEnumerable
+
   override def isStateless(key: IInputKey): Boolean = key match {
     case key: IndexKey[_] => key.isStateless
     case _ => false

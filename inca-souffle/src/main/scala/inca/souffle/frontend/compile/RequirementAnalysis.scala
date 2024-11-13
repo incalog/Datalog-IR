@@ -20,6 +20,7 @@ trait RequirementAnalysis:
 
   private def initRequirement(compDecl: ComponentDecl): Unit =
     requiredDecls += compDecl -> Set()
+
   private def addRequirement(ns: Seq[String], decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
     currentComponent match
       case Some(comp) => requiredDecls += comp -> (requiredDecls(comp) + ((QName(ns), decl)))
@@ -27,6 +28,7 @@ trait RequirementAnalysis:
 
   private def initProvision(compDecl: ComponentDecl): Unit =
     providedDecls += compDecl -> Set()
+
   private def addProvision(ns: Seq[String], decl: ProgramContent, compDecl: Option[ComponentDecl]): Unit =
     currentComponent match
       case Some(comp) => providedDecls += comp -> (providedDecls(comp) + ((QName(ns), decl)))
@@ -112,14 +114,14 @@ trait RequirementAnalysis:
     case Atom.Not(atom) =>
       analyseAtom(atom)
     case call@Atom.Call(qname, args) if qname.ns.size == 1 =>
-      analyseTerms(args:_*)
+      analyseTerms(args: _*)
       val relDecl = call.target.get
       val compDecl = relDecl.target
       val relName = qname.ns
       if compDecl != currentComponent then
         addRequirement(relName, relDecl, currentComponent)
     case call@Atom.Call(qname, args) =>
-      analyseTerms(args:_*)
+      analyseTerms(args: _*)
     case Atom.Disjunction(bodys) =>
       bodys.map(_.map(analyseAtom))
     case Atom.Compare(t1, _, t2) =>
@@ -134,20 +136,20 @@ trait RequirementAnalysis:
     terms.foreach(analyseTerm)
 
   def analyseTerm(term: Term): Unit = term match
-    case Term.List(s) => analyseTerms(s:_*)
+    case Term.List(s) => analyseTerms(s: _*)
     // TODO: support qualified names
     case constr@Term.Constr(qname, args) if qname.ns.size == 1 =>
-      analyseTerms(args:_*)
+      analyseTerms(args: _*)
       val typeDecl = constr.target.get
       val compDecl = typeDecl.target
       val caseName = qname.ns
       if compDecl != currentComponent then
         addRequirement(caseName, typeDecl, currentComponent)
     case constr@Term.Constr(qname, args) =>
-      analyseTerms(args:_*)
+      analyseTerms(args: _*)
     case Term.TypeCast(t, _) => analyseTerms(t)
-    case Term.IntrinsicFunctorApp(_, args) => analyseTerms(args:_*)
-    case Term.UserDefFunctorApp(_, args) => analyseTerms(args:_*)
+    case Term.IntrinsicFunctorApp(_, args) => analyseTerms(args: _*)
+    case Term.UserDefFunctorApp(_, args) => analyseTerms(args: _*)
     case Term.Unary(_, t) => analyseTerms(t)
     case Term.Binary(t1, _, t2) => analyseTerms(t1, t2)
     case _ => // nothing

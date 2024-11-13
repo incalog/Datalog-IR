@@ -26,6 +26,7 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
       ix.insert(target)
     }
   }
+
   private def insertOrUpdate(ix: UnaryIndex[URI], target: URI): Unit = {
     val isDeleted = deletionsURI.remove(ix -> target)
     if (isDeleted) {
@@ -34,6 +35,7 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
       ix.insert(target)
     }
   }
+
   private def insertOrUpdate(ix: BinaryMapIndex[URI, PrimitiveValue], node: URI, target: PrimitiveValue): Unit = {
     val oldTarget = deletionsURILit.remove(ix -> node)
     if (oldTarget == null)
@@ -41,6 +43,7 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
     else
       ix.update(node, oldTarget, target)
   }
+
   private def insertOrUpdate(ix: BinaryMapIndex[URI, URI], node: URI, target: URI): Unit = {
     val oldTarget = deletionsURIURI.remove(ix -> node)
     if (oldTarget == null)
@@ -83,23 +86,23 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
             newLitsMap -= k
             if (oldLit != newLit) {
               db.primitiveInstances(JavaLitType(newLit.getClass)).insert(newLit)
-              db.linkPrimitiveInstances(tagname->k).update(node, oldLit, newLit)
+              db.linkPrimitiveInstances(tagname -> k).update(node, oldLit, newLit)
               deletionsLit.add(db.primitiveInstances(JavaLitType(oldLit.getClass)) -> oldLit)
             }
           case None =>
             deletionsLit.add(db.primitiveInstances(JavaLitType(oldLit.getClass)) -> oldLit)
-            deletionsURILit.put(db.linkPrimitiveInstances(tagname->k) -> node, oldLit)
+            deletionsURILit.put(db.linkPrimitiveInstances(tagname -> k) -> node, oldLit)
         }
       }
       newLitsMap.foreach { case (k, newLit) =>
         insertOrUpdate(db.primitiveInstances(JavaLitType(newLit.getClass)), newLit)
-        insertOrUpdate(db.linkPrimitiveInstances(tagname->k), node, newLit)
+        insertOrUpdate(db.linkPrimitiveInstances(tagname -> k), node, newLit)
       }
 
     // delete link, leave rest intact
     case Detach(node, _, link, parent, ptag) => link.getRawLink match {
       case NamedLink(linkname) => ptag match {
-        case NamedTag(tagname) => deletionsURIURI.put(db.linkNodeInstances(tagname->linkname) -> parent, node)
+        case NamedTag(tagname) => deletionsURIURI.put(db.linkNodeInstances(tagname -> linkname) -> parent, node)
         case ListTag(_) => editError(s"Cannot detach link $linkname from list $ptag. " + edit)
       }
       case ListFirstLink(_) => deletionsURIURI.put(db.linkListFirstInstances -> parent, node)
@@ -109,7 +112,7 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
     // add link, leave rest intact
     case Attach(node, _, link, parent, ptag) => link.getRawLink match {
       case NamedLink(linkname) => ptag match {
-        case NamedTag(tagname) => insertOrUpdate(db.linkNodeInstancesEnsure(tagname->linkname), parent, node)
+        case NamedTag(tagname) => insertOrUpdate(db.linkNodeInstancesEnsure(tagname -> linkname), parent, node)
         case ListTag(_) => editError(s"Cannot attach link $linkname from list $ptag. " + edit)
       }
       case ListFirstLink(_) => insertOrUpdate(db.linkListFirstInstances, parent, node)
@@ -132,13 +135,13 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
       }
       // insert links from node to kids
       for ((name, kid) <- kids) {
-        insertOrUpdate(db.linkNodeInstancesEnsure(tagname->name), node, kid)
+        insertOrUpdate(db.linkNodeInstancesEnsure(tagname -> name), node, kid)
       }
       // insert lits to primitiveInstances and links from node to lits
       for ((name, lit) <- lits) {
         val litTy = JavaLitType(lit.getClass)
         insertOrUpdate(db.primitiveInstancesEnsure(litTy), lit)
-        insertOrUpdate(db.linkPrimitiveInstancesEnsure(tagname->name), node, lit)
+        insertOrUpdate(db.linkPrimitiveInstancesEnsure(tagname -> name), node, lit)
       }
 
     case Unload(node, ListTag(ty), kids, lits) =>
@@ -157,13 +160,13 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
       }
       // delete links from node to kids
       for ((name, kid) <- kids) {
-        deletionsURIURI.put(db.linkNodeInstances(tagname->name) -> node, kid)
+        deletionsURIURI.put(db.linkNodeInstances(tagname -> name) -> node, kid)
       }
       // delete lits from primitiveInstances and links from node to lits
       for ((name, lit) <- lits) {
         val litTy = JavaLitType(lit.getClass)
         deletionsLit.add(db.primitiveInstances(litTy) -> lit)
-        deletionsURILit.put(db.linkPrimitiveInstances(tagname->name) -> node, lit)
+        deletionsURILit.put(db.linkPrimitiveInstances(tagname -> name) -> node, lit)
       }
   }
 }

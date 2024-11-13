@@ -39,7 +39,7 @@ class RecordLoweringTest extends AnyFunSuite {
     val lowered = lowering.visitProgram(Seq(input)).head
     val expected = Module("test", expected_lang, Seq(
       data.DataDefinition("Person$Record"),
-      data.CaseDefinition("Person",Seq(TString),TData("Person$Record")),
+      data.CaseDefinition("Person", Seq(TString), TData("Person$Record")),
       Relation(Name("R"), Seq(Param("X", TData("Person$Record"))), Seq(Body(Seq(
         Eq(Var("X"), data.Construct("Person", Seq(StringLit("green"))))
       )))),
@@ -51,7 +51,7 @@ class RecordLoweringTest extends AnyFunSuite {
   }
 
 
-  test("Terms: FieldLookup"){
+  test("Terms: FieldLookup") {
     val lowering = new Lowering {}
     val typechecker = new IRTypechecker
     val test_record = RecordDefinition("Person")
@@ -181,15 +181,15 @@ class RecordLoweringTest extends AnyFunSuite {
       test_record,
       test_field0,
       test_field1) ++
-      Seq(Relation(Name("R"), Seq(Param("HairColor", TString)), Seq(Body(Seq(
-        Eq(Var("PersonVar"), test_recordlit),
-        Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
-          (Name("haircolor"), TermArg(Var("HairColor"))),
-          (Name("height"), TermArg(Var("Height")))
-        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
-      )))))
+                                      Seq(Relation(Name("R"), Seq(Param("HairColor", TString)), Seq(Body(Seq(
+                                        Eq(Var("PersonVar"), test_recordlit),
+                                        Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
+                                          (Name("haircolor"), TermArg(Var("HairColor"))),
+                                          (Name("height"), TermArg(Var("Height")))
+                                        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
+                                      )))))
     )
-    typechecker.checkProgram(Seq(input))  
+    typechecker.checkProgram(Seq(input))
     val lowered = lowering.visitProgram(Seq(input))
     val expected = Module("test", expected_lang, Seq(
       data.DataDefinition("Person$Record"),
@@ -212,7 +212,7 @@ class RecordLoweringTest extends AnyFunSuite {
   }
 
 
-  test("Atoms: Deconstruct more complex"){
+  test("Atoms: Deconstruct more complex") {
     val lowering = new Lowering {}
     val typechecker = new IRTypechecker
     val test_record = RecordDefinition("Person")
@@ -231,16 +231,16 @@ class RecordLoweringTest extends AnyFunSuite {
       test_field0,
       test_field1,
       test_field2,
-      ) ++
-      companyRecord ++
-      Seq(Relation(Name("R"), Seq(Param("HairColor", TString)), Seq(Body(Seq(
-        Eq(Var("PersonVar"), test_recordlit),
-        Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
-          (Name("haircolor"), TermArg(Var("HairColor"))),
-          (Name("height"), TermArg(Var("Height"))),
-          (Name("employed_at"), TermArg(Var("EmployedAt")))
-        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
-      )))))
+    ) ++
+                                      companyRecord ++
+                                      Seq(Relation(Name("R"), Seq(Param("HairColor", TString)), Seq(Body(Seq(
+                                        Eq(Var("PersonVar"), test_recordlit),
+                                        Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
+                                          (Name("haircolor"), TermArg(Var("HairColor"))),
+                                          (Name("height"), TermArg(Var("Height"))),
+                                          (Name("employed_at"), TermArg(Var("EmployedAt")))
+                                        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
+                                      )))))
     )
     typechecker.checkProgram(Seq(input))
     val lowered = lowering.visitProgram(Seq(input))

@@ -31,29 +31,29 @@ object ContextInsensitive:
 
     println(compiled.mainUnit.lowered)
 
-    /*println("Load edb from files...")
-    val edbFacts = compiled.loadEdbInputs(baseDir)
-    val outputRels = compiled.outputRelations
+  /*println("Load edb from files...")
+  val edbFacts = compiled.loadEdbInputs(baseDir)
+  val outputRels = compiled.outputRelations
 
-    println("Populate edb...")
-    val engine = createEngine(compiled.mainUnit)
-    edbFacts.foreach(engine.insert)
+  println("Populate edb...")
+  val engine = createEngine(compiled.mainUnit)
+  edbFacts.foreach(engine.insert)
 
-    println("Execute...")
-    val execTime = outputRels.map { rel =>
-      val start = System.currentTimeMillis()
-      val res = engine.read(rel)
-      val end = System.currentTimeMillis()
-      println(res.name -> res.size)
-      end - start
-    }.sum*/
-
-    /*val start = System.currentTimeMillis()
-    engine.read(UnitRelation("VarPointsTo"))
+  println("Execute...")
+  val execTime = outputRels.map { rel =>
+    val start = System.currentTimeMillis()
+    val res = engine.read(rel)
     val end = System.currentTimeMillis()
-    val execTime = end - start
+    println(res.name -> res.size)
+    end - start
+  }.sum*/
 
-    println(execTime / 1000.0)*/
+  /*val start = System.currentTimeMillis()
+  engine.read(UnitRelation("VarPointsTo"))
+  val end = System.currentTimeMillis()
+  val execTime = end - start
+
+  println(execTime / 1000.0)*/
 
   @main
   def runContextInsensitiveDL(): Unit = {

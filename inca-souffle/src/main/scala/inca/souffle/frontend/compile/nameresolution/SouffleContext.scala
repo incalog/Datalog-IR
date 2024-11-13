@@ -30,7 +30,7 @@ trait SouffleContext:
     val t = f
     relDecls = declsSaved
     compDecls = compsSaved
-    typeDecls =  typeDeclsSaved
+    typeDecls = typeDeclsSaved
     compInits = compInitsSaved
     currentNestedComponent = savedCurrentNestedComponent
     t
@@ -114,7 +114,7 @@ trait SouffleContext:
     decl.rhs match
       case TypeDeclConstraint.ADTType(alts) =>
         alts.foreach { constr =>
-          adtConstrs += (constr.name-> decl)
+          adtConstrs += (constr.name -> decl)
           val updatedADTMap = componentTypeToADTConstr.getOrElse(currentNestedComponent, Map()) ++ Map(constr.name -> decl)
           componentTypeToADTConstr += (currentNestedComponent -> updatedADTMap)
         }

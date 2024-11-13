@@ -31,9 +31,11 @@ object AbstractSyntaxGraphMono:
   implicit def embed[A](a: A): Seq[A] = Seq(a)
 
   def t(s: String) = TData(s)
+
   def v(s: String) = Var(s)
 
   def tEdgePair = TTuple(Seq(t("TDef"), t("TDef")))
+
   def tEdgeSetMono = TMono(tEdgePair, TSet(tEdgePair), Seq())
 
   def datas = Seq(
@@ -69,6 +71,7 @@ object AbstractSyntaxGraphMono:
       ))
     )
   )
+
   def edgesDef = Relation("edgesDef",
     Seq(
       Param("defs", TDemand(t("TDefList"))),
@@ -246,25 +249,30 @@ object AbstractSyntaxGraphMono:
 
   private def mod = Module("AbstractSyntaxGraph", BaseIR.language + arithmetic.IR + data.IR + demand.IR + mono.IR + incaSet.IR + string.IR + impure.IR + incaTuple.IR + incaAgg.IR + incaBool.IR,
     datas ++
-      Seq(
-        edgesDefs,
-        edgesDef,
-        target,
-        findDef,
-        makeProg,
-        makeLine,
-        concat,
-        main,
-        inputMain
-      )
+    Seq(
+      edgesDefs,
+      edgesDef,
+      target,
+      findDef,
+      makeProg,
+      makeLine,
+      concat,
+      main,
+      inputMain
+    )
   )
 
-  class Compiled(optMono: Boolean, outlineDemand: Boolean=false) extends CompiledUnit:
+  class Compiled(optMono: Boolean, outlineDemand: Boolean = false) extends CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
@@ -273,9 +281,13 @@ object AbstractSyntaxGraphMono:
       opt.irLogging.logStatsAfterOptimizations = false
       opt
     }
+
     override def typechecker: BaseIRTypechecker = new IRTypechecker with primitive.Typechecker
+
     private trait demandLowering extends demand.Lowering with primitive.Visitor
+
     private trait blockLowering extends block.Lowering with primitive.Visitor
+
     private trait scalaLowering extends primitive.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
@@ -299,7 +311,7 @@ object AbstractSyntaxGraphMono:
       () => new not.Lowering {},
       () => new demandLowering {},
     ))
-  
+
   @main def benchmarkAsgMono() = {
     val maxNodes = 260
     val resultPath = "benchmark/mono"

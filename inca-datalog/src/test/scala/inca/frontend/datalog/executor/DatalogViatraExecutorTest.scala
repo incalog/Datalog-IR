@@ -41,7 +41,7 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     assertResult((1, 4, 7))(res.entries.head)
 
     res = loaded.query("SPath", Seq(1, ?, ?))
-    assertResult(Set((1, 4, 7), (1,2,4), (1,3,9)))(res.entries.toSet)
+    assertResult(Set((1, 4, 7), (1, 2, 4), (1, 3, 9)))(res.entries.toSet)
   }
 
   test("Sum Aggregation") {
@@ -118,7 +118,7 @@ class DatalogViatraExecutorTest extends AnyFunSuite:
     assertResult(3)(res.entries.head)
 
     res = loaded.query("same", Seq(?, ?))
-    assertResult(Set((0,4), (4, 0)))(res.entries.toSet)
+    assertResult(Set((0, 4), (4, 0)))(res.entries.toSet)
 
     res = loaded.query("busy")
     assertResult(Set())(res.entries.toSet)

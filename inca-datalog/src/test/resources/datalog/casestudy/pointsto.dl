@@ -51,9 +51,9 @@ cpointsto(Int, String, Int).
 cpointsto(loc, x, obj) :- new(loc, x, obj).
 cpointsto(loc2, to, obj) :- assign(loc2, to, from), cpointsto(loc1, from, obj), cpath(loc1, loc2).
 cpointsto(loc3, to, obj) :- load(loc3, to, base, f),
-                     cpointsto(loc1, base, baseobj),
-                     cfieldpointsto(loc2, baseobj, f, obj),
-                     cpath(loc1, loc3), cpath(loc2, loc3).
+                            cpointsto(loc1, base, baseobj),
+                            cfieldpointsto(loc2, baseobj, f, obj),
+                            cpath(loc1, loc3), cpath(loc2, loc3).
 
 cfieldpointsto(Int, Int, String, Int).
 cfieldpointsto(loc3, baseobj, f, obj) :- store(loc3, base, f, from),

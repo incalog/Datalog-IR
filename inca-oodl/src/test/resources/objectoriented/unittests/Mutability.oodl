@@ -1,18 +1,19 @@
 module Mutability
 
 class A(var value: Int)
+
 class B(var i: Int)
 
 @main
 def main(): Boolean = {
-    val a = new A(10)
-    val av1 = a.value
+  val a = new A(10)
+  val av1 = a.value
 
-    val b = new B(5)
-    val bi1 = b.i
+  val b = new B(5)
+  val bi1 = b.i
 
-    a.value = av1 * 10
-    val av2: Int = a.value
+  a.value = av1 * 10
+  val av2: Int = a.value
 
-    return (av1 == 10) && (av2 == 100) && (bi1 == 5)
+  return (av1 == 10) && (av2 == 100) && (bi1 == 5)
 }

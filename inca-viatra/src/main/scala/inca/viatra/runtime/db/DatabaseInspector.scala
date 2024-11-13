@@ -1,6 +1,7 @@
 package inca.viatra.runtime.db
 
 //import inca.runtime.data.{MockURI, URIValue}
+
 import inca.viatra.runtime.index.MetaElements.PrimitiveValue
 import inca.viatra.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
 import inca.viatra.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
@@ -62,14 +63,14 @@ case class DatabaseInspector(feed: Database) {
 
   def nodeChildrenOfURI(uri: URI): Map[String, URI] = {
     feed.linkNodeInstances.flatMap { case ((_, link), index) =>
-      if(index.index.containsKey(uri)) Some((link, index.index.get(uri)))
+      if (index.index.containsKey(uri)) Some((link, index.index.get(uri)))
       else None
     }.toMap
   }
 
   def primitiveChildrenOfURI(uri: URI): Map[String, Any] = {
     feed.linkPrimitiveInstances.flatMap { case ((_, link), index) =>
-      if(index.index(uri).nonEmpty) Some((link, index.index(uri).head))
+      if (index.index(uri).nonEmpty) Some((link, index.index(uri).head))
       else None
     }.toMap
   }
@@ -100,7 +101,7 @@ case class DatabaseInspector(feed: Database) {
       case Some(typ) => typ.toString
       case None => throw new IllegalArgumentException(s"$uri is not stored in the EDB")
     }
-    val prettyChildren = childrenOfURI(uri).toSeq.map { case (link, v) => s"$link: ${prettyPrint(v)}"}
+    val prettyChildren = childrenOfURI(uri).toSeq.map { case (link, v) => s"$link: ${prettyPrint(v)}" }
     s"$typTag(${prettyChildren.mkString(", ")})"
   }
 }

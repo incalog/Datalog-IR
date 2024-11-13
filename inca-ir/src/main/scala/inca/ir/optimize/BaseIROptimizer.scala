@@ -21,6 +21,7 @@ trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
     super.visitRelation(relation)
 
   var boundBodyVars: Set[Ref[Var.Target]] = _
+
   override def visitBody(body: Body): Seq[Body] =
     boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
     super.visitBody(body)
@@ -29,13 +30,13 @@ trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
     val boundVars = atom.vars.filter(_.mode.isBinding)
     boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
 
-  /*override def visitAtom(atom: Atom): Seq[Atom] = atomResult(atom) match
-    case VBool.False => throw FailedBody
-    case VBool.True if !atomBindsRelevantVar(atom) => Seq()
-    case _ =>
-      //
-      super.visitAtom(atom)*/
+/*override def visitAtom(atom: Atom): Seq[Atom] = atomResult(atom) match
+  case VBool.False => throw FailedBody
+  case VBool.True if !atomBindsRelevantVar(atom) => Seq()
+  case _ =>
+    //
+    super.visitAtom(atom)*/
 
-class IROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis) 
+class IROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis)
   with arith.optimize.Optimizer
 

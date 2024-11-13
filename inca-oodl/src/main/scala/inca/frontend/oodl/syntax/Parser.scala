@@ -24,7 +24,7 @@ object Parser:
   def parseModule(source: String): Module =
     (whitespaces0() *> module <* P.end).parseAll(source) match
       case Right(p) => p
-      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset+10)}: $err")
+      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
 
   /* LEXICAL */
 
@@ -34,6 +34,7 @@ object Parser:
   )
   val comment: P[Unit] = lineComment | blockComment
   val whitespace: P[Unit] = P.charIn(" \t\r\n").void | comment
+
   def whitespaces0(min: Int = 0): P0[Unit] = whitespace.rep0.void
 
   def spaced[A](p: P[A], min: Int = 0): P[A] =
@@ -82,7 +83,7 @@ object Parser:
     spaced(id).mapWithLoc(Name.apply)
 
   val qualifiedIdentifier: P[Name] =
-    spaced(id ~ (P.char('.') *> id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
+    spaced(id ~ (P.char('.') *> id).rep0).mapWithLoc((a, bs) => Name((a :: bs).mkString(".")))
 
   def inParens[A](p: P0[A]): P[A] =
     op('(') *> p <* op(')')
@@ -176,7 +177,7 @@ object Parser:
     }
 
   lazy val tupleExp: P[Expression] = inParens(recExpression.repSep0(op(','))).mapWithLoc {
-    case e::Nil => e
+    case e :: Nil => e
     case es => TupleExp(es)
   }
 
@@ -195,7 +196,7 @@ object Parser:
 
   val doubleLit: P[DoubleLit] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
-      case (a,b) => DoubleLit(s"$a.$b".toDouble)
+      case (a, b) => DoubleLit(s"$a.$b".toDouble)
     })
 
   val stringLit: P[StringLit] = spaced(
@@ -251,18 +252,18 @@ object Parser:
     }
 
   lazy val atomicExp: P[Expression] =
-      //foldExp.backtrack |
-      setExp |
-      setComprehensionExpr |
-      constructorExpr |
-      tupleExp |
-      nullLit |
-      boolLit |
-      stringLit |
-      doubleLit.backtrack |
-      intLit.backtrack |
-      unaryExp |
-      varExpr
+    //foldExp.backtrack |
+    setExp |
+    setComprehensionExpr |
+    constructorExpr |
+    tupleExp |
+    nullLit |
+    boolLit |
+    stringLit |
+    doubleLit.backtrack |
+    intLit.backtrack |
+    unaryExp |
+    varExpr
 
   /*val pattern: P[Pattern] =
     (identifier ~ inParens(identifier.repSep0(op(',')))).mapWithLoc { case (name, args) => ConstructorPattern(name, args.map(PatternVariable.apply).toList) }
@@ -315,7 +316,7 @@ object Parser:
   val binOpExp: P[Expression] = binBoolOrExpression
 
   def infixExpRec(e: Expression): P0[Expression] = P.pure(e)
-    //(infixExpStep(e) flatMap infixExpRec) | P.pure(e)
+  //(infixExpStep(e) flatMap infixExpRec) | P.pure(e)
 
   //def infixExpStep(e: Expression): P[Expression] =
   //  matchExp(e)
@@ -341,8 +342,8 @@ object Parser:
     inParens(param.repSep0(op(","))) | P.pure(Seq())
 
   private val function = (funcAnno.rep0 ~ visibility.?).with1 ~
-    keyword("def") ~ (identifier | P.string("+=").string.map(Name.apply)) ~ typeParams ~ params ~
-    op(":") ~ typ ~ op("=") ~ statements
+                         keyword("def") ~ (identifier | P.string("+=").string.map(Name.apply)) ~ typeParams ~ params ~
+                         op(":") ~ typ ~ op("=") ~ statements
 
   /** Statements */
 
@@ -370,7 +371,7 @@ object Parser:
     (
       expression.repSep0(1, 1, P.char(',')).map(_.map(Expr.apply)) |
       spaced(inBraces(statement.rep0(0)))
-    ).map(insertMissingReturn)
+      ).map(insertMissingReturn)
 
   lazy val statement: P[Statement] =
     valDeclStmt |
@@ -394,10 +395,10 @@ object Parser:
 
   lazy val ifElseStmt: P[If] = {
     val ifBlock = keyword("if") *>
-      inParens(P.defer(expression)) ~
-        (inBraces(P.defer(statement).rep0) | P.defer(statement).map(Seq(_)))
+                  inParens(P.defer(expression)) ~
+                  (inBraces(P.defer(statement).rep0) | P.defer(statement).map(Seq(_)))
     val elseBlock = keyword("else") *>
-      (inBraces(P.defer(statement).rep0) | P.defer(statement).map(Seq(_)))
+                    (inBraces(P.defer(statement).rep0) | P.defer(statement).map(Seq(_)))
     (ifBlock ~ elseBlock.?).mapWithLoc {
       case ((compareExpr, thnStmt), elseStmts) => If(compareExpr, thnStmt, elseStmts.getOrElse(Seq()))
     }
@@ -459,9 +460,9 @@ object Parser:
 
   val classDef: P[ClassDef] =
     ((visibility.? ~ caseClassAnno.?).with1 ~
-      (keyword("class") *> identifier) ~ typeParams.? ~ primaryConstructor ~
-      (keyword("extends") *> typ ~ inParens(expression.repSep0(op(','))).?).? ~ classContent).mapWithLoc {
-      case ((((((vis, annos), name), tys), primaryConstrFields), maybeParentCls), clsContent)  =>
+     (keyword("class") *> identifier) ~ typeParams.? ~ primaryConstructor ~
+     (keyword("extends") *> typ ~ inParens(expression.repSep0(op(','))).?).? ~ classContent).mapWithLoc {
+      case ((((((vis, annos), name), tys), primaryConstrFields), maybeParentCls), clsContent) =>
         // Inherit from Object if no superclass is specified
         var isMono = false
         val (parentCls, superArgs) = maybeParentCls match
@@ -484,7 +485,7 @@ object Parser:
         val allContent = (primaryConstrFields :+ constrDef) ++ clsContent
         val annotations =
           if (isMono)
-              Seq(MonoClassAnno())
+            Seq(MonoClassAnno())
           else
             annos match
               case Some(value) => Seq(value)
@@ -501,4 +502,4 @@ object Parser:
   val module: P[Module] =
     whitespaces0().with1 *>
     keyword("module") *> (qualifiedIdentifier ~ impor.rep0 ~ content.rep0)
-      .mapWithLoc { case ((name, imports),contents) => Module(name, imports, contents) }
+      .mapWithLoc { case ((name, imports), contents) => Module(name, imports, contents) }

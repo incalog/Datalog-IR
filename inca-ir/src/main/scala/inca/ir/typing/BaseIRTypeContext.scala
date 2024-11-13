@@ -11,7 +11,7 @@ trait BaseIRTypeContext extends TypeIO:
   var moduleImports: Map[(Module, Name), Name] = Map()
   var provides: Map[(Module, Name), Provide[_]] = Map()
   var requires: Map[(Module, Name), Require] = Map()
-  
+
   // (module, entry name) -> entry
   var entries: Map[Name, ModuleEntry] = Map()
 
@@ -22,18 +22,22 @@ trait BaseIRTypeContext extends TypeIO:
   enum Dependency:
     case Postive
     case Negative
+
   object Dependency:
     def apply(neg: Boolean): Dependency = if (neg) Negative else Postive
 
   protected val dependencyGraph: DependencyGraph = new DependencyGraph
 
   protected def startContextTransaction(): Transaction = new Transaction(vars)
+
   class Transaction(oldVars: Map[Name, VarInfo]):
     private var committed: Boolean = false
+
     def commit(): Unit =
       if (committed)
         throw IllegalStateException(s"Transaction already committed")
       committed = true
+
     def abort(): Unit =
       if (committed)
         throw IllegalStateException(s"Transaction already committed")
@@ -71,7 +75,7 @@ trait BaseIRTypeContext extends TypeIO:
     }
     modules += (name -> module)
   }
-  
+
   def bindModuleImport(imp: Import)(implicit module: Module): Unit = moduleImports.get((module, imp.as)) match
     case Some(_) => error(s"Found multiple aliases with the same name ${imp.as}", imp)
     case _ =>
@@ -96,7 +100,7 @@ trait BaseIRTypeContext extends TypeIO:
     }
     requires += ((module, name) -> entry)
   }
-  
+
   def registerModuleEntry(entry: ModuleEntry): Unit = {
     val name = entry.name
     entries.get(name).foreach { bound =>
@@ -126,17 +130,17 @@ trait BaseIRTypeContext extends TypeIO:
       case Some(req) if !tag.runtimeClass.isInstance(req) => None // not the kind of requirement we expected
       case Some(req) => Some(req.asInstanceOf[R])
       case _ => None
-  
+
   def lookupProvide[P <: Provide[_]](name: Name, module: Module)(implicit tag: ClassTag[P]): Option[P] =
     provides.get((module, name)) match
       case Some(prov) if !tag.runtimeClass.isInstance(prov) => None // not the kind of requirement we expected
       case Some(prov) => Some(prov.asInstanceOf[P])
       case _ => None
-  
+
   def lookupModule(name: Name): Option[Module] = modules.get(name)
 
   def lookupModuleEntry(name: Name): Option[ModuleEntry] = entries.get(name)
-  
+
   def lookupVar(ref: Ref[Var.Target]): Option[VarInfo] =
     vars.get(ref.name) match
       case None => None

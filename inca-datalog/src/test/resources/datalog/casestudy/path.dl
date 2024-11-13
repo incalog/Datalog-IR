@@ -1,4 +1,3 @@
-
 edb edge(Int, Int).
 
 path(Int, Int).

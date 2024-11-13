@@ -6,13 +6,13 @@ Node("B", 2).
 Node("C", 5).
 
 NodeSum(String, Int).
-NodeSum(X, sum(n)) :- Node(X,n).
+NodeSum(X, sum(n)) :- Node(X, n).
 
 NodeMax(String, Int).
-NodeMax(X, max(n)) :- Node(X,n).
+NodeMax(X, max(n)) :- Node(X, n).
 
 NodeMin(String, Int).
-NodeMin(X, min(n)) :- Node(X,n).
+NodeMin(X, min(n)) :- Node(X, n).
 
 NodeCount(String, Int).
-NodeCount(X, count(n)) :- Node(X,n).
+NodeCount(X, count(n)) :- Node(X, n).

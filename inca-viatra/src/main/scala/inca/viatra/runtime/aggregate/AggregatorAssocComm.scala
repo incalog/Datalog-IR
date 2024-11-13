@@ -9,9 +9,11 @@ import scala.jdk.CollectionConverters.*
 class AggregatorAssocComm[V](val agg: JoinAggregation[V]) extends IMultisetAggregationOperator[V, AugmentedAVLTree[V], V]:
 
   override def getShortDescription: String = agg.name
+
   override def getName: String = agg.name
 
   override def createNeutral(): AugmentedAVLTree[V] = new AugmentedAVLTree[V](agg.join)(agg.ord)
+
   override def isNeutral(acc: AugmentedAVLTree[V]): Boolean = acc.root == null
 
   override def update(acc: AugmentedAVLTree[V], v: V, isInsertion: Boolean): AugmentedAVLTree[V] = {

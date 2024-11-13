@@ -1,9 +1,9 @@
 .comp Component {
     .comp InnerComponent {
-        .type Nat = Zero {  } | Succ { pred: Nat }
-    }
+        .type Nat = Zero { } | Succ { pred: Nat }
+}
 
-    .init innerComp = InnerComponent
+.init innerComp = InnerComponent
 }
 
 .init comp = Component

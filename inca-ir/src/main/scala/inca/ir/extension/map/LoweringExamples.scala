@@ -1,6 +1,7 @@
 package inca.ir.extension.map
 
 import inca.ir.lowering.BaseLowering
+
 /*
 Example 1: Empty map
 P(m: TMap[TNothing, TNothing]) :- m = MapLit.empty.
@@ -45,7 +46,6 @@ P(m: Map$TString$TInt) :- m = !Map$TString$TInt()
 Map$TString$TInt$enum(map: TDemand(Map$TString$TInt), key: TDemand(TString), value: TInt) :-
   ?Map$TString$TInt$0(map), {key = "A", v = 1} \/ {key = "B", v = 2}.
  */
-
 
 
 trait LoweringExamples extends BaseLowering

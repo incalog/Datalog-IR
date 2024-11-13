@@ -28,7 +28,7 @@ class Database(
                 _dataModel: DataModel,
                 _dynamicIndices: Seq[DynamicIndexFactory],
                 _metaContext: IQueryMetaContext
-             )
+              )
   extends AbstractQueryRuntimeContext with IBaseIndex with ChangeFeed {
 
   def this() = this(null, Seq(), null)
@@ -46,11 +46,10 @@ class Database(
   private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] = mutable.Map()
   private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
   private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
-  private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
-  private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
+  private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI, URI](LinkListFirstKey)
+  private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI, URI](LinkListNextKey)
 
   private[runtime] val namedRelationInstances: mutable.Map[String, BagIndex] = mutable.Map()
-
 
 
   private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices.map { fact =>
@@ -106,13 +105,12 @@ class Database(
   /* BaseIndex listeners */
 
   private val baseIndexListeners: mutable.Set[ViatraBaseIndexChangeListener] = mutable.Set()
+
   override def addBaseIndexChangeListener(listener: ViatraBaseIndexChangeListener): Unit = baseIndexListeners += listener
+
   override def removeBaseIndexChangeListener(listener: ViatraBaseIndexChangeListener): Unit = baseIndexListeners -= listener
+
   def notifyBaseIndexListeners(): Unit = baseIndexListeners.foreach(_.notifyChanged(true))
-
-
-
-
 
 
   /** Process edit scripts */
@@ -146,14 +144,14 @@ class Database(
 
   override def unloadPrimitive(a: Any): Unit =
     primitiveInstancesEnsure(JavaLitType(a.getClass)).delete(a)
-    
+
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index
     f(from)
     var nextNode = index.get(from)
     while (nextNode != null) {
-        f(nextNode)
-        nextNode = index.get(nextNode)
+      f(nextNode)
+      nextNode = index.get(nextNode)
     }
   }
 
@@ -231,16 +229,22 @@ class Database(
 
   /* Unused stuff required by Viatra IQueryRuntimeContext */
 
-  override def ensureWildcardIndexing(service: IndexingService): Unit = { }
+  override def ensureWildcardIndexing(service: IndexingService): Unit = {}
+
   override def estimateCardinality(key: IInputKey, groupMask: TupleMask, requiredAccuracy: Accuracy): Optional[lang.Long] = Optional.empty()
 
   override def wrapElement(externalElement: Any): Any = externalElement
+
   override def unwrapElement(internalElement: Any): Any = internalElement
+
   override def wrapTuple(externalElements: Tuple): Tuple = externalElements
+
   override def unwrapTuple(internalElements: Tuple): Tuple = internalElements
 
   override def isCoalescing: Boolean = false
+
   override def coalesceTraversals[V](callable: Callable[V]): V = callable.call()
+
   override def executeAfterTraversal(runnable: Runnable): Unit = runnable.run()
 
 
@@ -249,9 +253,13 @@ class Database(
 
   /* Unused stuff required by Viatra IBaseIndex */
 
-  override def resampleDerivedFeatures(): Unit = { }
+  override def resampleDerivedFeatures(): Unit = {}
+
   override def addIndexingErrorListener(listener: IIndexingErrorListener): Boolean = false
+
   override def removeIndexingErrorListener(listener: IIndexingErrorListener): Boolean = false
+
   override def addInstanceObserver(observer: IInstanceObserver, observedObject: Any): Boolean = false
+
   override def removeInstanceObserver(observer: IInstanceObserver, observedObject: Any): Boolean = false
 }

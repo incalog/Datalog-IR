@@ -21,9 +21,9 @@ class PathTest extends AnyFunSuite:
 
 
   val edges =
-    (for (i <- 0 until 1000) yield Seq(i, i+1))
+    (for (i <- 0 until 1000) yield Seq(i, i + 1))
     ++
-    (for (i <- 0 until 1000 by 50) yield Seq(i+50, i))
+    (for (i <- 0 until 1000 by 50) yield Seq(i + 50, i))
   val edgeRelation = Relation2("edge", Seq("x", "y"), edges)
 
   test("path non-incremental") {
@@ -88,6 +88,7 @@ class PathTest extends AnyFunSuite:
 
     loaded.engine.addUpdateListener(new RelationUpdateListener(pathInitial) {
       override def tupleAdded(tup: rel.Tuple): Unit = println(s"Added tuple $tup")
+
       override def tupleRemoved(tup: rel.Tuple): Unit = println(s"Removed tuple $tup")
     })
     loaded.engine.insert(new Relation2("edge", Seq("x", "y"),

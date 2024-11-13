@@ -28,10 +28,15 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 case class CompiledSetMonoUnit(mod: Module) extends CompiledUnit:
   override def compilerOptions: CompilerOptions = CompilerOptions.default
+
   override def name: Name = mod.name
+
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
   override val isClosedWorld: Boolean = true
+
   override def otherUnits: Seq[CompiledUnit] = Seq()
+
   lazy val irModules: Seq[Module] = Seq(mod)
 
   private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
@@ -41,9 +46,13 @@ case class CompiledSetMonoUnit(mod: Module) extends CompiledUnit:
   override def optimize(p: Seq[Module]): Seq[Module] = p
 
   private trait demandLowering extends demand.Lowering with primitive.Visitor
+
   private trait blockLowering extends block.Lowering with primitive.Visitor
+
   private trait disjunctionLowering extends disjunction.Lowering with primitive.Visitor
+
   private trait notLowering extends not.Lowering with primitive.Visitor
+
   private trait tupleLowering extends tuple.Lowering with primitive.Visitor
 
   setPipeline(List(
@@ -69,19 +78,19 @@ case class CompiledSetMonoUnit(mod: Module) extends CompiledUnit:
 class SetMonoTest extends AnyFunSuiteLike:
 
   private val langs: Language = BaseIR.language +
-    irSet.IR +
-    incaArithmetic.IR +
-    block.IR +
-    foreign.IR +
-    mono.IR +
-    impure.IR +
-    incaData.IR +
-    incaString.IR +
-    tupleIR +
-    map.IR +
-    disjunction.IR +
-    bool.IR +
-    not.IR
+                                irSet.IR +
+                                incaArithmetic.IR +
+                                block.IR +
+                                foreign.IR +
+                                mono.IR +
+                                impure.IR +
+                                incaData.IR +
+                                incaString.IR +
+                                tupleIR +
+                                map.IR +
+                                disjunction.IR +
+                                bool.IR +
+                                not.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -89,7 +98,7 @@ class SetMonoTest extends AnyFunSuiteLike:
 
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
-    compile(TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL, relations:_*)
+    compile(TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL, relations: _*)
 
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
@@ -114,7 +123,7 @@ class SetMonoTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.size == 1)
-//    assertResult(Set(1, 17))(res.entries.head)
+  //    assertResult(Set(1, 17))(res.entries.head)
 
 
   test("Test set mono: basic test 2"):
@@ -248,9 +257,9 @@ class SetMonoTest extends AnyFunSuiteLike:
       )
     )
 
-    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs:_*)
+    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs: _*)
     engine.insert(edbEdge)
-    //engine.readAll().foreach(res => println(res.asTable))
+  //engine.readAll().foreach(res => println(res.asTable))
 
   test("Set Mono with boolean element type (type that can be lowered)"):
     val relation = Relation("main", Seq(Param("c", TBoolean)), Seq(Body(Seq(
@@ -270,8 +279,8 @@ class SetMonoTest extends AnyFunSuiteLike:
     val engine = compile(relation, relation2)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-//    assert(res.entries.nonEmpty)
-//    assertResult(true)(res.entries.head)
+  //    assert(res.entries.nonEmpty)
+  //    assertResult(true)(res.entries.head)
 
 
   test("Set Mono with tuple element type: 1"):
@@ -289,8 +298,8 @@ class SetMonoTest extends AnyFunSuiteLike:
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-//    assert(res.entries.nonEmpty)
-//    assertResult((1, 2))(res.entries.head)
+  //    assert(res.entries.nonEmpty)
+  //    assertResult((1, 2))(res.entries.head)
 
   test("Set Mono with tuple element type: 2"):
     val relation = Relation("main", Seq(Param("c", TInt), Param("d", TInt)), Seq(Body(Seq(

@@ -280,7 +280,7 @@ class TupleLoweringTest extends AnyFunSuiteLike:
     assertResult(expectedMod)(lowering.lower(mod))
   }
 
-  test("Nested tuples"){
+  test("Nested tuples") {
     val mod = Module("Test", tupleIR.language + arithIR + stringIR, Seq(
       Relation("main",
         Seq(

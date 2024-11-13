@@ -11,6 +11,6 @@ class A {
 }
 
 @main def main(): Set[Int] = {
-    val a: A = new A()
-    return a.doSomething(a.someSet())
+  val a: A = new A()
+  return a.doSomething(a.someSet())
 }

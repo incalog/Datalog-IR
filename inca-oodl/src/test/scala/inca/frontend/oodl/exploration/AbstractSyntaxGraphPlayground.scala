@@ -438,6 +438,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
    */
 
   var nextId: Int = 0
+
   def freshId(): Int =
     val id = nextId
     nextId += 1
@@ -561,18 +562,24 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
 
   def compiled = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     lazy val irModules: Seq[Module] = Seq(mod)
+
     override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
+
     setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {
     //println(mod)
     try
       compiled.checked
-      //println(compiled.dependencyGraph.toGraphViz)
+    //println(compiled.dependencyGraph.toGraphViz)
     //finally println(mod)
   }
 
@@ -581,7 +588,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       compiled.lowered
       val typechecker = new IRTypechecker
       typechecker.checkProgram(compiled.lowered)
-      //println(typechecker.getDependencyGraph.toGraphViz)
+    //println(typechecker.getDependencyGraph.toGraphViz)
     //finally println(compiled.lowered)
   }
 
@@ -607,7 +614,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
       //edbs.foreach(e => println(e.asTable))
       val start = System.nanoTime()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+      //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
       //println(relation1.asTable)
       val executionTimeInMs = (end - start) / 1000 / 1000

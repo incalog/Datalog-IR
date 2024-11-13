@@ -34,7 +34,7 @@ trait GenericInterpreter[V, B, RV, J[_] <: MayJoin[_]] extends BaseGenericInterp
       val rs = evalTermOpen(rhs)
       val combinations = cartesian(ls, rs)
       val values = op match
-        case "+" => relationOps.map(combinations){ case Seq(l, r) => intOps.add(l, r) }
+        case "+" => relationOps.map(combinations) { case Seq(l, r) => intOps.add(l, r) }
         case "-" => relationOps.map(combinations) { case Seq(l, r) => intOps.sub(l, r) }
         case "*" => relationOps.map(combinations) { case Seq(l, r) => intOps.mul(l, r) }
         case "/" => relationOps.map(combinations) { case Seq(l, r) => intOps.div(l, r) }
@@ -47,7 +47,7 @@ trait GenericInterpreter[V, B, RV, J[_] <: MayJoin[_]] extends BaseGenericInterp
       val rs = evalTermOpen(rhs)
       val combinations = cartesian(ls, rs)
       val values = op match
-        case "+" => relationOps.map(combinations){ case Seq(l, r) => doubleOps.add(l, r) }
+        case "+" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.add(l, r) }
         case "-" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.sub(l, r) }
         case "*" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.mul(l, r) }
         case "/" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.div(l, r) }

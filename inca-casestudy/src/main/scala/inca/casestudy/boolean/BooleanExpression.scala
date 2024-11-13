@@ -72,10 +72,15 @@ object BooleanExpression:
 
   def createCompiled(mod: Module, optimizeSets: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = mod.name
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override val isClosedWorld = true
+
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
@@ -101,10 +106,10 @@ object BooleanExpression:
 
 
   private def runModInEngine(executor: IRExecutor, mod: Module): execution.Relation =
-      val compiled = createCompiled(mod, true)
-      val engine = executor.instantiate(compiled)
-      engine.insert(execution.Relation2("input$main", Seq("x", "y"), Seq(Seq(1, 1))))
-      engine.read(UnitRelation("main"))
+    val compiled = createCompiled(mod, true)
+    val engine = executor.instantiate(compiled)
+    engine.insert(execution.Relation2("input$main", Seq("x", "y"), Seq(Seq(1, 1))))
+    engine.read(UnitRelation("main"))
 
   @main def runBooleanExpression() =
     val viatraRes = runModInEngine(inca.viatra.backend.Executor(), createMod())

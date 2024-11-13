@@ -11,7 +11,7 @@ class A {
 @main
 def main(): Set[Int] = {
   val a = new A()
-  for (i <- Set(1,2,3)) yield
+  for (i <- Set(1, 2, 3)) yield
     a.add(i)
   for (i <- a.nums) yield i
 }

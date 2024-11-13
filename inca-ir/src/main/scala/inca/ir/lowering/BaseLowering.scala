@@ -9,6 +9,7 @@ trait BaseLowering extends IRVisitor:
   protected val gensym = new Gensym()
 
   def loweredIRs: Set[BaseIR]
+
   def requiredIRs: Set[BaseIR]
 
   override def toString: String = s"Lowering ${loweredIRs.mkString(", ")}"
@@ -36,7 +37,9 @@ trait BaseLowering extends IRVisitor:
   }
 
   override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = moduleEntry match
-    case r: Relation => gensym.scoped { visitRelation(r) }
+    case r: Relation => gensym.scoped {
+      visitRelation(r)
+    }
     case _ => super.visitModuleEntry(moduleEntry)
 
   // Make sure to register all variables in all bodies before we process the relation

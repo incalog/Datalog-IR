@@ -44,15 +44,15 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
     case _ => super.checkSubstitution(imp, importable)
 
   private def inferDataDefinition[D <: ModuleEntry](ref: Ref[D], locations: SourceLocation*): Option[(Seq[Name], D, Type)] =
-    val targetModule = lookupModuleByPath(ref, locations:_*)
+    val targetModule = lookupModuleByPath(ref, locations: _*)
     val res = if targetModule != currentModule then
       // definitions outside the current module must be provided
       // TODO: Handle typeparams in the future
-      val providedData = lookupProvideRef[ProvideDataDefinition](ref, targetModule, locations:_*)
+      val providedData = lookupProvideRef[ProvideDataDefinition](ref, targetModule, locations: _*)
       providedData.map(p => (Seq(), p.asInstanceOf[D], TData(ref.path :+ p.exportRef.unqualifiedName)))
     else
       // definitions inside the module can either be a relation or a requirement
-      lookupDataDefinition[D](ref, locations:_*)
+      lookupDataDefinition[D](ref, locations: _*)
 
     res.map { case (_, dd, _) => ref.resolved(dd) }
     res.map { case (tys, entry, data) => (tys, entry, data) }
@@ -68,15 +68,15 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       case Some(ParametricModuleEntry(tyParams, req: RequireDataDefinition)) =>
         Some((Seq(), req.asInstanceOf[D], TData(req.name)))
       case _ =>
-        error(s"Could not find data type ${ref.name}", s:_*)
+        error(s"Could not find data type ${ref.name}", s: _*)
         None
 
   def inferConstruct[C <: ModuleEntry](ref: Ref[C], locations: SourceLocation*): Option[(Seq[Name], C, Seq[Type], TData)] =
-    val targetModule = lookupModuleByPath(ref, locations:_*)
+    val targetModule = lookupModuleByPath(ref, locations: _*)
     val res = if targetModule != currentModule then
       // definitions outside the current module must be provided
       // TODO: Handle typeparams in the future
-      val providedData = lookupProvideRef[ProvideCaseDefinition](ref, targetModule, locations:_*)
+      val providedData = lookupProvideRef[ProvideCaseDefinition](ref, targetModule, locations: _*)
       providedData.map { p =>
         // add the path suffix to all TData types
         val qualifiedDataTypes = p.args.map {
@@ -87,7 +87,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
       }
     else
       // definitions inside the module can either be a relation or a requirement
-      lookupConstruct[C](ref, locations:_*)
+      lookupConstruct[C](ref, locations: _*)
 
     res.map { case (_, cd, _, _) => ref.resolved(cd) }
     res.map { case (tys, entry, args, data) => (tys, entry, args, data) }

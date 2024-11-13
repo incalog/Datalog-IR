@@ -4,19 +4,24 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.{Atom, BaseIR, Language, ModuleEntry, Name, Ref, RefByName, Term, Type, Var}
 
-object IR extends IR { }
+object IR extends IR {}
+
 trait IR extends BaseIR:
   override val name: String = "Impure"
+
   override def language: Language = super.language + IR
+
   override def requires: Language = Language(arithmetic.IR, demand.IR)
 
 trait ImpurityKind:
   val name: String
   val ty: Type
+
   override def toString: String = name
 
 case class Impure(v: Ref[Var.Target], atoms: Seq[Atom], update: Term, kind: ImpurityKind) extends Atom with Var.Target:
   override def vars: Seq[Var] = Var(v) +: (atoms.flatMap(_.vars) ++ update.vars)
+
   override def toString: String = s"Impure($v => ${atoms.mkString(", ")}, $update)"
 
 object Impure:

@@ -1,7 +1,7 @@
 module FieldInheritance
 
 class A {
-    var value: Int = 1
+  var value: Int = 1
 }
 
 class B extends A
@@ -9,10 +9,10 @@ class B extends A
 
 @main
 def main(): Int = {
-    val b: B = new B()
-    // make sure value is initialized correctly
-    val initVal: Int = b.value
-    // make sure value can be assigned
-    b.value = 9
-    return b.value + initVal
+  val b: B = new B()
+  // make sure value is initialized correctly
+  val initVal: Int = b.value
+  // make sure value can be assigned
+  b.value = 9
+  return b.value + initVal
 }

@@ -37,14 +37,18 @@ trait Graph[N, E] {
         cycle.forall(other.contains)
       }
     }
+
     val nestedCycles = cycles.filter(isNested)
     cycles.diff(nestedCycles)
   }
 
   // based on https://www.baeldung.com/cs/detecting-cycles-in-directed-graph
   private trait VisistedFlag
+
   private case object NotVisisted extends VisistedFlag
+
   private case object InStack extends VisistedFlag
+
   private case object Done extends VisistedFlag
 
   private var locked: Boolean = false
@@ -65,16 +69,16 @@ trait Graph[N, E] {
     }
     cycles.toList
 
-  lazy val cyclesWithInfo: List[List[(N,E)]] =
+  lazy val cyclesWithInfo: List[List[(N, E)]] =
     cycles.flatMap { cycle =>
-      var prefixes: List[Vector[(N,E)]] = List(Vector())
+      var prefixes: List[Vector[(N, E)]] = List(Vector())
       val reverse = cycle.reverse
       reverse.zip(reverse.tail).foreach { (from, to) =>
         val fromEdges = edges(from)
         val fromToEdges = fromEdges.filter(_._1 == to).map(_._2)
         prefixes =
           for (prefix <- prefixes; info <- fromToEdges) yield
-            prefix :+ (from,info)
+            prefix :+ (from, info)
       }
       val last = reverse.last
       val loopEdges = edges(last).filter(_._1 == reverse.head).map(_._2)
@@ -184,18 +188,18 @@ trait Graph[N, E] {
     }
     components
 
-  lazy val stronglyConnectedComponentsWithInfo: List[List[(N,E)]] =
+  lazy val stronglyConnectedComponentsWithInfo: List[List[(N, E)]] =
     stronglyConnectedComponents.map { component =>
       component.flatMap { node =>
         edges.getOrElse(node, Set()).map { case (to, info) => (to, info) }
       }
     }
 
-  def filter(nodeFilter: N => Boolean, edgeFilter: (N,N,E) => Boolean): Graph[N, E] =
+  def filter(nodeFilter: N => Boolean, edgeFilter: (N, N, E) => Boolean): Graph[N, E] =
     val g = cloneGraph()
     for (n <- g.nodes if !nodeFilter(n))
       g.removeNode(n)
-    g.edges.mapValuesInPlace((from, tos) => tos.filter((to,info) => edgeFilter(from,to,info)))
+    g.edges.mapValuesInPlace((from, tos) => tos.filter((to, info) => edgeFilter(from, to, info)))
     g
 
   def toGraphViz: String = {
@@ -218,9 +222,12 @@ trait Graph[N, E] {
     case "edge" => "edge_"
     case _ => s.replace("$", "_")
 
-  protected def cloneGraph(): Graph[N,E]
+  protected def cloneGraph(): Graph[N, E]
+
   protected def nodeToGraphViz(n: N): String
+
   protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
+
   protected def nodeGraphVizAttributes(from: N): String
 }
 

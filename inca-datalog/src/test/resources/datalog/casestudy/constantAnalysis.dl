@@ -15,7 +15,7 @@ edb next(Any, Any).
 ceval(Any, Int).
 ceval(expr, value) :- num(expr, value).
 ceval(expr, value) :- add(expr, lhs, rhs), ceval(lhs, r1), ceval(rhs, r2), value == r1 + r2.
-ceval(expr, value) :- var(expr, name), vardef(stmt, name, initexpr), ceval(initexpr, value).
+                                                                                         ceval(expr, value) :- var(expr, name), vardef(stmt, name, initexpr), ceval(initexpr, value).
 
 cvalue(Any, String, Int).
 cvalue(s1, name, value) :- vardef(s1, name, expr), ceval(expr, value).

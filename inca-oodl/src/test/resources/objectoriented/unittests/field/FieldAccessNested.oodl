@@ -6,6 +6,6 @@ class A(b: B)
 
 @main
 def main(): Int = {
-    val a: A = new A(new B(3))
-    return a.b.num
+  val a: A = new A(new B(3))
+  return a.b.num
 }

@@ -66,7 +66,7 @@ trait GenerateIRContext {
     inits.get(currentComponent) match
       case Some(allInits) => allInits.exists(_.n == initName)
       case _ => false
-  
+
   def lookupPath(decl: ProgramContent): Seq[ComponentType] =
     paths(decl)
 

@@ -11,9 +11,11 @@ object NotNamedRelationIndex {
   case class Key(name: String, arity: Int) extends VirtualKey {
     override val getStringID: String = s"not#namedRelation#$name($arity)"
     override val getArity: Int = arity
+
     override def isEnumerable: Boolean = false
+
     /**
-     *  We assert statelessness, which is not strictly true. However:
+     * We assert statelessness, which is not strictly true. However:
      *   - we only use NotNamedRelationIndex in TypeFilterConstraint
      *   - TypeFilterConstraint defers checking until the tuple is grounded
      *   - the membership of a grounded tuple in NotNamedRelationIndex is stable, because the type of URIs cannot change
@@ -44,10 +46,13 @@ class NotNamedRelationIndex(name: String, arity: Int) extends VirtualIndex {
     case None => true
 
   override def countTuples(mask: TupleMask, seed: ITuple): Int = throw new UnsupportedOperationException()
+
   override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[tuple.Tuple] = throw new UnsupportedOperationException()
+
   override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = throw new UnsupportedOperationException()
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: tuple.Tuple): Unit = throw new UnsupportedOperationException()
+
   override def removeListener(listener: IQueryRuntimeContextListener, seed: tuple.Tuple): Unit = throw new UnsupportedOperationException()
 
   override def afterInitialization(): Unit = {

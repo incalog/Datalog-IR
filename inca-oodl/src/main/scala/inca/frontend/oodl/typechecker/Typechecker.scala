@@ -84,7 +84,7 @@ class Typechecker extends TypeContext with TypeIO:
         typecheckTy(pCls)
         pCls match
           case t: TName if t.target.exists(_.isInstanceOf[ClassDef]) =>
-            // nothing
+          // nothing
           case _ =>
             error(s"Class ${cls.name} can not inherit from none class type $pCls", cls)
       }
@@ -223,7 +223,7 @@ class Typechecker extends TypeContext with TypeIO:
         // find a common supertype
         (t1.target, t2.target) match
           case (Some(c1: ClassDef), Some(c2: ClassDef)) =>
-           c1.parentCls.find(pTy => subtype(ty2, pTy)).getOrElse(TAny)
+            c1.parentCls.find(pTy => subtype(ty2, pTy)).getOrElse(TAny)
           case _ =>
             throw IllegalAccessException(s"Can join types $ty1 and $ty2 with possible unresolved targets")
     case _ =>
@@ -423,8 +423,12 @@ class Typechecker extends TypeContext with TypeIO:
 
     case If(cnd, thn, els) =>
       val cndTyp = typecheckExp(cnd, None)
-      scopedTypeContext { typecheck(thn, rt) }
-      scopedTypeContext { typecheck(els, rt) }
+      scopedTypeContext {
+        typecheck(thn, rt)
+      }
+      scopedTypeContext {
+        typecheck(els, rt)
+      }
       assertSubtype(cndTyp, TBoolean, cnd)
     case varDecl@VarDeclare(name, annotatedType, None, immutable) =>
       error(s"Declaration of variable '$name' without a value is not allowed")
@@ -502,6 +506,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   final def typecheckExp(expression: Expression, anno: Type)(implicit classDef: Option[ClassDef]): Type =
     typecheckExp(expression, Some(anno))
+
   final def typecheckExp(expression: Expression, anno: Option[Type])(implicit classDef: Option[ClassDef]): Type =
     assignType(expression, anno)(typecheckInternal(expression))
 
@@ -771,7 +776,7 @@ class Typechecker extends TypeContext with TypeIO:
           for (aTy <- argTys.dropRight(1))
             val newTy = currentTy.tyArgs(1) match
               case mt@TName(Name("mono.Map"), _) =>
-                 mt
+                mt
               case tt =>
                 error(s"Expected nested mono.Map, but got $tt", expression)
                 return TAny

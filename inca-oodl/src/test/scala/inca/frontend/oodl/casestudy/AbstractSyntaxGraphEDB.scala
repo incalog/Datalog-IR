@@ -26,6 +26,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
   val TExp = TAny
 
   def t(s: String) = TData(s)
+
   def v(s: String) = Var(s)
 
   implicit def embed[A](a: A): Seq[A] = Seq(a)
@@ -159,6 +160,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
    */
 
   var nextId: Int = 0
+
   def freshId(): Int =
     val id = nextId
     nextId += 1
@@ -282,18 +284,24 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
 
   def compiled = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     lazy val irModules: Seq[Module] = Seq(mod)
+
     override def compilerOptions: CompilerOptions = CompilerOptions.fromResource("objectoriented/Options.ini")
+
     setPipeline(List(() => new demand.Lowering {}))
 
   test("AbstractSyntaxGraph is well-typed") {
     //println(mod)
     try
       compiled.checked
-      //println(compiled.dependencyGraph.toGraphViz)
+    //println(compiled.dependencyGraph.toGraphViz)
     //finally println(mod)
   }
 
@@ -302,7 +310,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
       compiled.lowered
       val typechecker = new IRTypechecker
       typechecker.checkProgram(compiled.lowered)
-      //println(typechecker.getDependencyGraph.toGraphViz)
+    //println(typechecker.getDependencyGraph.toGraphViz)
     //finally println(compiled.lowered)
   }
 
@@ -328,7 +336,7 @@ class AbstractSyntaxGraphEDB extends AnyFunSuiteLike:
       //edbs.foreach(e => println(e.asTable))
       val start = System.nanoTime()
       val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
-//      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
+      //      val relation2 = engine.read(Relation4("makeProg", Seq("from", "to", "step", "defs"), Seq()))
       val end = System.nanoTime()
       /*println(relation1.asTable)
       println(s"Number of tuples: ${engine.readAll().map(_.size).sum}")

@@ -9,11 +9,15 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 case class CompiledTestUnit(mod: Module) extends CompiledUnit:
   def compilerOptions: CompilerOptions = CompilerOptions.default
+
   def name: Name = mod.name
+
   def sourceLocation: SourceLocation = Name("Test")
 
   def isClosedWorld: Boolean = true
+
   def irModules: Seq[Module] = Seq(mod)
+
   def otherUnits: Seq[CompiledUnit] = Seq()
 
 
@@ -25,7 +29,7 @@ class SimpleTest extends AnyFunSuiteLike:
         Param("out", TInt)
       ), Seq(
         Body(Seq(
-          Eq(Var("out"), Mul(Add(IntNum(3), IntNum(4)), IntNum(2)) )
+          Eq(Var("out"), Mul(Add(IntNum(3), IntNum(4)), IntNum(2)))
         ))
       )).addHint(MainHint)
     ))

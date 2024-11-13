@@ -32,7 +32,9 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
   override val isClosedWorld: Boolean = true
+
   override def otherUnits: Seq[CompiledUnit] = Seq()
+
   lazy val irModules: Seq[Module] = Seq(mod)
 
   override def compilerOptions: CompilerOptions =
@@ -44,7 +46,7 @@ case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
   override def name: Name = mod.name
 
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
-  
+
   private class ScalaTypeChecker extends IRTypechecker with scalaExt.primitive.Typechecker
 
   override def typechecker: BaseIRTypechecker = new ScalaTypeChecker
@@ -87,27 +89,26 @@ case class CompiledScalaMapMonoOptUnit(mod: Module) extends CompiledUnit:
   ))
 
 
-
 class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
   private val langs: Language = BaseIR.language +
-    set.IR +
-    arithmetic.IR +
-    block.IR +
-    mono.IR +
-    impure.IR +
-    data.IR +
-    string.IR +
-    bool.IR +
-    tupleIR +
-    map.IR +
-    disjunction.IR +
-    string.IR
+                                set.IR +
+                                arithmetic.IR +
+                                block.IR +
+                                mono.IR +
+                                impure.IR +
+                                data.IR +
+                                string.IR +
+                                bool.IR +
+                                tupleIR +
+                                map.IR +
+                                disjunction.IR +
+                                string.IR
 
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
     val compiledMod = CompiledScalaMapMonoOptUnit(mod)
-//    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
+    //    val exec: IRExecutor = new inca.viatra.Executor(backendFactory)
     val exec: IRExecutor = new Executor(DRedReteBackendFactory.INSTANCE)
     exec.instantiate(compiledMod)
 
@@ -120,7 +121,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val compiledMod = CompiledScalaMapMonoOptUnit(mod)
     val exec: IRExecutor = backend.Executor()
     exec.instantiate(compiledMod)
-  
+
   // mono = new MapMono[Int, Int](arithMonoDef)
   // Optimize map mono:
   // m@MapMono += (1, 2)
@@ -285,7 +286,6 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     assertResult((1, 1))(res.entries.head)
 
 
-
   test("Map Mono basic test 9: key is of type TTuple[TInt, TString], value mono is SetMono[TInt]"):
     val mainRelation = Relation("main",
       Seq(Param("value", TInt)),
@@ -303,7 +303,6 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
     assertResult(1)(res.entries.head)
-
 
 
   test("Map Mono basic test 10: key is of type TTuple[TInt, TInt], value mono is SetMono[TInt]"):
@@ -519,24 +518,24 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
   test("Test generating nested maps from relation"):
     val mainRelation = Relation("main", Seq(
-        Param("v1", TInt),
-        Param("v2", TInt),
-        Param("v3", TInt),
-      ), Seq(Body(Seq(Eq(
-        Var("map"),
-        MapComprehension(
-          Var("k1"),
-          Var("map1"),
-          Seq(
-            Call("someRel", Seq(Var("k1").arg, WildcardArg(), WildcardArg())),
-            Eq(Var("map1"), MapComprehension(
-              Var("k2"),
-              Var("v"),
-              Seq(Call("someRel", Seq(Var("k1").arg, Var("k2").arg, Var("v").arg)))
-            )
+      Param("v1", TInt),
+      Param("v2", TInt),
+      Param("v3", TInt),
+    ), Seq(Body(Seq(Eq(
+      Var("map"),
+      MapComprehension(
+        Var("k1"),
+        Var("map1"),
+        Seq(
+          Call("someRel", Seq(Var("k1").arg, WildcardArg(), WildcardArg())),
+          Eq(Var("map1"), MapComprehension(
+            Var("k2"),
+            Var("v"),
+            Seq(Call("someRel", Seq(Var("k1").arg, Var("k2").arg, Var("v").arg)))
+          )
           ))
-        )
-      ),
+      )
+    ),
       Eq(Var("v1"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(2))),
       Eq(Var("v2"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(3))),
       Eq(Var("v3"), MapLookUp(MapLookUp(Var("map"), IntNum(2)), IntNum(2))),
@@ -555,7 +554,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
         Eq(Var("v2"), MapLookUp(MapLookUp(Var("map"), IntNum(1)), IntNum(2))),
         Eq(Var("v3"), MapLookUp(MapLookUp(Var("map"), IntNum(2)), IntNum(2))),
       ))
-    ))
+      ))
 
 
     val mapRelation = Relation("someRel", Seq(
@@ -580,7 +579,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       ))
     ))
     val engine = compile(mainRelation2, mapRelation)
-    //engine.readAll().foreach(res => println(res.asTable))
+  //engine.readAll().foreach(res => println(res.asTable))
 
   test("Map momo basic test 16: value mono is another map mono with a non-relative value mono"):
     val valueMapMono = MapMonoDefinition(TString, SumInt)
@@ -643,11 +642,11 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def makeTp[T](K: Seq[T] => T, ts: T*): T =
     if ts.size == 1 then ts.head
     else if ts.size == 2 then K(ts.toSeq)
-    else K(Seq(ts.head, makeTp(K, ts.tail:_*)))
+    else K(Seq(ts.head, makeTp(K, ts.tail: _*)))
 
   private def nmapLookUp(map: Term, keys: Term*): Term =
     if keys.size == 1 then MapLookUp(map, keys.head)
-    else if keys.size > 1 then MapLookUp(nmapLookUp(map, keys.dropRight(1):_*), keys.last)
+    else if keys.size > 1 then MapLookUp(nmapLookUp(map, keys.dropRight(1): _*), keys.last)
     else throw IllegalAccessError(s"$keys is an empty list")
 
 
@@ -668,7 +667,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
     val engine = compile(mainRelation)
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
-    assertResult(2024-1946)(res.entries.head)
+    assertResult(2024 - 1946)(res.entries.head)
     engine.readAll().map(_.asTable).foreach(println)
 
 
@@ -755,7 +754,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
     val tp1 = makeTp(
       TupleLit.apply,
-      key1 :+ Cast(StringLit("PL"), ScalaType.any):_*
+      key1 :+ Cast(StringLit("PL"), ScalaType.any): _*
     )
 
     val tp2 = makeTp(
@@ -771,7 +770,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       WriteMono(Var("mono"), tp1),
       WriteMono(Var("mono"), tp2),
       Eq(Var("map"), ReadMono(Var("mono"))),
-      Eq(Var("size"), Cast(nmapLookUp(Var("map"), key1:_*), TInt))
+      Eq(Var("size"), Cast(nmapLookUp(Var("map"), key1: _*), TInt))
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)
@@ -1023,7 +1022,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
       Eq(Var("mono"), NewMono(mapMono)),
-//      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1))),
+      //      Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1))),
       Eq(Var("x"), nmapLookUp(ReadMono(Var("mono")), IntNum(1), IntNum(1))),
     )))).addHint(MainHint)
 

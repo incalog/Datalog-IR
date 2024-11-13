@@ -1,4 +1,5 @@
 package inca.ir.visitors
+
 import inca.ir.{Atom, Body, Module, Relation, Term}
 
 object StatisticsCollector:

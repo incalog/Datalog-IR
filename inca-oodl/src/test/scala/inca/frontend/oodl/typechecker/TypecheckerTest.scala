@@ -34,6 +34,7 @@ class TypecheckerTest extends AnyFunSuite {
     override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
       //println(s"Entering ${dir.getFileName}")
       FileVisitResult.CONTINUE
+
     override def visitFile(p: Path, attrs: BasicFileAttributes): FileVisitResult =
       if (p.toString.endsWith(".oodl")) {
         test(s"Type check oodl file ${p.getFileName}") {
@@ -44,8 +45,10 @@ class TypecheckerTest extends AnyFunSuite {
         }
       }
       FileVisitResult.CONTINUE
+
     override def visitFileFailed(file: Path, exc: IOException): FileVisitResult =
       FileVisitResult.CONTINUE
+
     override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult =
       //println(s"Leaving ${dir.getFileName}")
       FileVisitResult.CONTINUE

@@ -52,13 +52,18 @@ class DatalogColumnsTest extends AnyFunSuite:
 
     val compiledMod = new CompiledUnit:
       override def compilerOptions: CompilerOptions = options
+
       override def name: Name = mod.name
+
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
       override def irModules: Seq[base.Module] = Seq(mod)
+
       override val isClosedWorld: Boolean = true
+
       override def otherUnits: Seq[CompiledUnit] = Seq()
 
-    val graph = (for i <- 0.until(numNodes) yield Seq(i, i+1)) :+ Seq(numNodes, 0)
+    val graph = (for i <- 0.until(numNodes) yield Seq(i, i + 1)) :+ Seq(numNodes, 0)
     val edbRels = ExecRelation2("edge", Seq("x", "y"), graph)
 
     val dts = for (i <- 0.until(numExec)) yield {
@@ -72,5 +77,5 @@ class DatalogColumnsTest extends AnyFunSuite:
       dt
     }
 
-    println(s"Execution time ${dts.sum/dts.size}ms")
+    println(s"Execution time ${dts.sum / dts.size}ms")
   }

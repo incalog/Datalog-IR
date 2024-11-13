@@ -13,11 +13,11 @@ class A {
 }
 
 @main def main(): Set[Int] = {
-    val a: A = new A()
-    val f1 = new Float(1.0)
-    val i1 = new Integer(10)
-    val i2 = new Integer(3)
-    // TODO: Placing constructor calls inside a set is currently not possible
-    //  The allocation counter is threaded incorrectly in this case
-    return for (v <- a.filter(Set(f1, i1, i2))) yield v.value
+  val a: A = new A()
+  val f1 = new Float(1.0)
+  val i1 = new Integer(10)
+  val i2 = new Integer(3)
+  // TODO: Placing constructor calls inside a set is currently not possible
+  //  The allocation counter is threaded incorrectly in this case
+  return for (v <- a.filter(Set(f1, i1, i2))) yield v.value
 }

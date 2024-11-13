@@ -10,7 +10,9 @@ import inca.foreign.scala.ir.primitive
 
 trait Lowering extends BaseLowering:
   override val name: String = "Foreign"
+
   override def loweredIRs: Set[BaseIR] = Set(iragg)
+
   override def requiredIRs: Set[BaseIR] = Set(iragg, primitive.IR)
 
   val generateScala = new GenerateScala

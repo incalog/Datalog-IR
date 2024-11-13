@@ -1,11 +1,12 @@
 Edge(Int, Int).
-Edge(1,2).
-Edge(2,3).
-Edge(3,5).
-Edge(3,4).
-Edge(5,4).
-Edge(6,4).
+Edge(1, 2).
+Edge(2, 3).
+Edge(3, 5).
+Edge(3, 4).
+Edge(5, 4).
+Edge(6, 4).
 
 Path(Int, Int).
-Path(X,Y) :- Edge(X,Y)
-          :- Edge(X,Z), Path(Z,Y).
+Path(X, Y) :- Edge(X, Y)
+              :-
+Edge(X, Z), Path(Z, Y).

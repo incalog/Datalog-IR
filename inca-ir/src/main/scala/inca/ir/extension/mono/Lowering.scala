@@ -18,10 +18,12 @@ import inca.ir.lowering.BaseLowering
 
 trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   override val name: String = s"Mono(optimize = $optimizeMono)"
+
   override def loweredIRs: Set[BaseIR] = Set(IR)
+
   override def requiredIRs: Set[BaseIR] = Set(aggregate.IR, demandIR, impureIR, dataIR)
 
-  private def normName(s: String) : String =
+  private def normName(s: String): String =
     Seq("(", ")", "[", "]", ", ").foldLeft(s)((s, t) => s.replace(t, "$")).replaceAll("\\${2,}", "\\$")
 
 
@@ -30,6 +32,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     TData(Name(normName(s"Mono_${tm.input}_${tm.output}$$${tm.keys.mkString("_")}")))
 
   def monoCollectName(tm: TMono): Name = Name(normName("Collect_" + monoDataType(tm).ref.name))
+
   def monoAggregateName(tm: TMono): Name = Name(normName("Aggregate_" + monoDataType(tm).ref.name))
 
   def monoDataConstructor(mono: MonoDefinition, keys: Seq[Type]): Name =
@@ -57,7 +60,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     val params = Seq(Param(Name("m"), TDemand(monoDataType(tm))), Param(Name("output"), tm.output))
     val bodies = monos.map { mono =>
       val constr = monoDataConstructor(mono, tm.keys)
-      val args = Var(Name("id")) +: Var(Name("name")) +: mono.constructorParamTypes.zipWithIndex.map((_,ix) => Var(Name(s"arg_$ix")))
+      val args = Var(Name("id")) +: Var(Name("name")) +: mono.constructorParamTypes.zipWithIndex.map((_, ix) => Var(Name(s"arg_$ix")))
       val destruct = Deconstruct(Var(Name("m")), RefByName(constr), args.map(_.arg), false)
 
       val atoms = mono match
@@ -131,7 +134,7 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     val vParam = Param(gensym.freshName(Name("value")), valTy)
     val args = collParams.map(p => Var(p.name).arg)
 
-    def projNestedTuple(tp : Term, params: Seq[Param]): Seq[Eq] = params match
+    def projNestedTuple(tp: Term, params: Seq[Param]): Seq[Eq] = params match
       case Seq(param) => Seq(Eq(tp, Var(param.name)))
       case param +: tail => Eq(Project(tp, 0), Var(param.name)) +: projNestedTuple(Project(tp, 1), tail)
 
@@ -147,9 +150,9 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     mapMonoColl += optCollRel
     val keyNum = keyParams.size
     val callAtom = Call(
-        optCollRel.name,
-        Var(Name("m")).arg +: (tm.keys.map(_ => WildcardArg()) ++
-          (0 until keyNum).map(i => Var(Name(s"k$i")).arg)) :+ WildcardArg()
+      optCollRel.name,
+      Var(Name("m")).arg +: (tm.keys.map(_ => WildcardArg()) ++
+                             (0 until keyNum).map(i => Var(Name(s"k$i")).arg)) :+ WildcardArg()
     ).addHint(DemandIgnoreCallHint)
 
 
@@ -181,7 +184,6 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     Seq(Eq(project, Var(Name("output"))))
 
 
-
   var monoDefs: Set[(MonoDefinition, Seq[Type])] = _
   var monoTypes: Set[TMono] = _
   var mapMonoColl: Set[Relation] = _
@@ -210,41 +212,43 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
       monoDataType(tm)
     case _ => super.visitType(ty)
 
-  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
-    case NewMono(mono, keys, args) =>
-      val vkeys = keys.map(visitType)
-      monoDefs += (mono, vkeys)
-      monoTypes += mono.monoType(vkeys)
-      val dataConstr = monoDataConstructor(mono, vkeys)
-      val stVar = Name(gensym.fresh("monoCount"))
-      val mVar = Var(Name(gensym.fresh("mono")))
-      // Fix for Interval analysis edb data
-      val constr = Construct(RefByName(dataConstr), Cast(Var(stVar), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
-      //val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
-      val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
-      val block = Block(imp, mVar)
-      Seq(block)
-    case NewMonoFor(mono, keys, args, uniqueFor) =>
-      val vkeys = keys.map(visitType)
-      monoDefs += (mono, vkeys)
-      monoTypes += mono.monoType(vkeys)
-      val dataConstr = monoDataConstructor(mono, vkeys)
-      val constr = Construct(RefByName(dataConstr), Cast(TupleLit.make(uniqueFor), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
-      Seq(constr)
-    case ReadMono(m) =>
-      val tm = m.typ.get.ty.asInstanceOf[TMono]
-      val output = Name(gensym.fresh("output"))
-      val name = monoAggregateName(tm)
-      val terms = visitTerm(m) :+ Var(output)
-      val call = Call(name, terms.map(_.arg))
-      Seq(Block(call, Var(output)))
-    case _ => super.visitTerm(term)
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
+    term match
+      case NewMono(mono, keys, args) =>
+        val vkeys = keys.map(visitType)
+        monoDefs += (mono, vkeys)
+        monoTypes += mono.monoType(vkeys)
+        val dataConstr = monoDataConstructor(mono, vkeys)
+        val stVar = Name(gensym.fresh("monoCount"))
+        val mVar = Var(Name(gensym.fresh("mono")))
+        // Fix for Interval analysis edb data
+        val constr = Construct(RefByName(dataConstr), Cast(Var(stVar), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+        //val constr = Construct(RefByName(dataConstr), Var(stVar) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+        val imp = Impure.counter(stVar, Eq(mVar, constr), MonoImpurityKind)
+        val block = Block(imp, mVar)
+        Seq(block)
+      case NewMonoFor(mono, keys, args, uniqueFor) =>
+        val vkeys = keys.map(visitType)
+        monoDefs += (mono, vkeys)
+        monoTypes += mono.monoType(vkeys)
+        val dataConstr = monoDataConstructor(mono, vkeys)
+        val constr = Construct(RefByName(dataConstr), Cast(TupleLit.make(uniqueFor), TAny) +: StringLit(mono.name.name) +: args.flatMap(visitTerm))
+        Seq(constr)
+      case ReadMono(m) =>
+        val tm = m.typ.get.ty.asInstanceOf[TMono]
+        val output = Name(gensym.fresh("output"))
+        val name = monoAggregateName(tm)
+        val terms = visitTerm(m) :+ Var(output)
+        val call = Call(name, terms.map(_.arg))
+        Seq(Block(call, Var(output)))
+      case _ => super.visitTerm(term)
   }
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
-    case WriteMono(m, input, keys) =>
-      val tm = m.typ.get.ty.asInstanceOf[TMono]
-      val args = visitTerm(m) ++ keys.flatMap(visitTerm) ++ visitTerm(input)
-      Seq(Call(monoCollectName(tm), args.map(_.arg)))
-    case _ => super.visitAtom(atom)
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case WriteMono(m, input, keys) =>
+        val tm = m.typ.get.ty.asInstanceOf[TMono]
+        val args = visitTerm(m) ++ keys.flatMap(visitTerm) ++ visitTerm(input)
+        Seq(Call(monoCollectName(tm), args.map(_.arg)))
+      case _ => super.visitAtom(atom)
   }

@@ -28,6 +28,7 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
 case class Import(name: Name) extends SourceLocation with Resolvable[Import.Target] {
   def prettyprint(implicit indent: String): String = s"${indent}import $name"
 }
+
 object Import {
   trait Target
 }
@@ -42,7 +43,9 @@ case class Private() extends Visibility {
 
 trait ModuleContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
+
   def prettyprint(implicit indent: String): String
+
   def calls: Set[Call]
 }
 
@@ -59,6 +62,7 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
   def freevars: Seq[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
+
   def freeTvars: Seq[TName] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
@@ -113,6 +117,7 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
 
   def constructorType(data: Name): TFun =
     TFun(paramTypes, TName(data))
+
   def constructorType: TApply =
     TApply(TName(name), paramTypes)
 
@@ -126,6 +131,7 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
     s"$indent$name($paramTypesS)"
   }
 }
+
 object DataConstructor {
   trait Target
 }

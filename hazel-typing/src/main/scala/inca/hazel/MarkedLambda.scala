@@ -111,13 +111,21 @@ class MarkedLambda:
   private val Ctx = TMap(TString, Type)
 
   private def ctx = Var("ctx")
+
   private def e = Var("e")
+
   private def e(i: Int) = Var(s"e$i")
+
   private def mark = Var("mark")
+
   private def mark(i: Int) = Var(s"mark$i")
+
   private def ty = Var("ty")
+
   private def ty(i: Int) = Var(s"ty$i")
+
   private def x = Var("x")
+
   private def xStr = Var("xStr")
 
   def q(name: String): String = s"inca.hazel.edb.$name"
@@ -651,7 +659,7 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
   println(compiled.lowered)
 
-  val dataModel = DataModel.from(edb.allNodes:_*)
+  val dataModel = DataModel.from(edb.allNodes: _*)
 
   val exec = new Executor()
   val engine = exec.instantiate(compiled, dataModel)

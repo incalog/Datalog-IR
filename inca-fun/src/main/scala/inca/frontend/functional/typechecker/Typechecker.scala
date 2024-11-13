@@ -112,7 +112,7 @@ class Typechecker extends TypeContext with TypeIO {
         case None => // nothing
       }
     case TAny => // nothing
-    case _  => throw new IllegalArgumentException(s"Currently does not support $typ")
+    case _ => throw new IllegalArgumentException(s"Currently does not support $typ")
   }
 
   /*
@@ -120,6 +120,7 @@ class Typechecker extends TypeContext with TypeIO {
    */
 
   final def typecheckExp(exp: Expression, anno: Type): Type = typecheckExp(exp, Some(anno))
+
   final def typecheckExp(exp: Expression, anno: Option[Type]): Type = assignType(exp, anno)(typecheckInternal(exp, anno))
 
   protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type =

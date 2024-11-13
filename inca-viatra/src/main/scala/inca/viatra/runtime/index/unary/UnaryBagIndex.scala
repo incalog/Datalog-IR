@@ -10,6 +10,7 @@ class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
   protected val index: MutableObjectIntMap[V] = ObjectIntMaps.mutable.empty()
 
   override def entries: Iterable[V] = index.keySet().asScala
+
   override def index(v: V): Int = Option(index.get(v)).getOrElse(0)
 
   override def insert(v: V): Unit = {

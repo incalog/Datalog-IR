@@ -13,9 +13,11 @@ import scala.jdk.FunctionWrappers.AsJavaConsumer
 /* Marker trait for binary indices that uniquely identify V from K */
 trait BinaryMapIndex[K, V] extends BinaryIndex[K, V]
 
-abstract class BinaryIndex[K,V] extends Index {
-  def entries: Iterable[(K,V)]
+abstract class BinaryIndex[K, V] extends Index {
+  def entries: Iterable[(K, V)]
+
   def index(k: K): Iterable[V]
+
   def indexInverted(v: V): Iterable[K]
 
   final override def containsTuple(tuple: ITuple): Boolean = {
@@ -35,7 +37,7 @@ abstract class BinaryIndex[K,V] extends Index {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {
         index(seed.get(0).asInstanceOf[K]).size
-      } else if (!isOrdered ) {
+      } else if (!isOrdered) {
         indexInverted(seed.get(1).asInstanceOf[V]).size
       } else {
         0
@@ -99,7 +101,9 @@ abstract class BinaryIndex[K,V] extends Index {
 
 
   def insert(k: K, v: V): Unit
+
   def delete(k: K, v: V): Unit
+
   def update(k: K, vold: V, vnew: V): Unit
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()

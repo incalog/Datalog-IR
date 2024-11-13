@@ -7,7 +7,7 @@ import inca.ir.util.SourceLocation
 import scala.language.implicitConversions
 
 /**
- *  Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
+ * Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
  */
 object Parser:
 
@@ -26,7 +26,7 @@ object Parser:
   def parseModule(source: String): Module =
     (whitespaces0 *> module <* P.end).parseAll(source) match
       case Right(p) => p
-      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset+10)}: $err")
+      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
 
   /* LEXICAL */
 
@@ -77,8 +77,7 @@ object Parser:
     spaced(id).mapWithLoc(Name.apply)
 
   val qualifiedIdentifier: P[Name] =
-    spaced(id ~ (P.char('.') ~ id).rep0).mapWithLoc((a,bs) => Name((a :: bs).mkString(".")))
-
+    spaced(id ~ (P.char('.') ~ id).rep0).mapWithLoc((a, bs) => Name((a :: bs).mkString(".")))
 
 
   def inParens[A](p: P0[A]): P[A] =
@@ -130,13 +129,13 @@ object Parser:
   val setType: P[TSet] = op("Set") *> inBrackets(recType).mapWithLoc(TSet.apply)
 
   val atomicType: P[Type] =
-    simpleType("Nothing",TNothing) |
+    simpleType("Nothing", TNothing) |
     simpleType("Any", TAny) |
     simpleType("Unit", TTuple(Seq())) |
     tupleType | setType | identifier.mapWithLoc(TName.apply)
 
   lazy val typ: P[Type] =
-    atomicType.flatMap ( t =>
+    atomicType.flatMap(t =>
       op("=>") *> recType.mapWithLoc(TFun(t, _)) |
       inBrackets(recType.repSep(op(','))).mapWithLoc(u => TApply(t, u.toList)) |
       P.pure(t)
@@ -156,13 +155,13 @@ object Parser:
   def setExpMore(e: Expression): P0[Expression] =
     (op(',') *> recExpression.repSep(op(','))).mapWithLoc(es => SetExp(e +: es.toList)) |
     (op('|') *> setPredicate.repSep(op(','))).mapWithLoc(es => SetComprehension(e, es.toList)) |
-      P.pure(SetExp(Seq(e)))
+    P.pure(SetExp(Seq(e)))
 
   lazy val setExp: P[Expression] =
     inBraces((recExpression flatMap setExpMore) | P.index.map(_ => SetExp(Seq())))
 
   lazy val tupleExp: P[Expression] = inParens(recExpression.repSep0(op(','))).mapWithLoc {
-    case e::Nil => e
+    case e :: Nil => e
     case es => Tuple(es)
   }
 
@@ -177,7 +176,7 @@ object Parser:
 
   val doubleLit: P[DoubleLit] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
-      case (a,b) => DoubleLit(s"$a.$b".toDouble)
+      case (a, b) => DoubleLit(s"$a.$b".toDouble)
     })
 
   val stringLit: P[StringLit] = spaced(
@@ -199,22 +198,22 @@ object Parser:
 
   val foldExp: P[SetFold] =
     (keyword("fold") *> inBrackets(typ).? ~
-      inParens(recExpression.repSep0(op(',')))).flatMap {
+                        inParens(recExpression.repSep0(op(',')))).flatMap {
       case (ty, init :: op :: set :: Nil) => P.pure(SetFold(ty, init, op, set))
       case (ty, args) => P.failWith(s"Wrong number of fold arguments, expected 3 but got ${args.size}: $args")
     }
 
   lazy val atomicExp: P[Expression] =
-      foldExp.backtrack |
-      setExp |
-      lambdaExp |
-      tupleExp |
-      boolLit |
-      stringLit |
-      doubleLit.backtrack |
-      intLit.backtrack |
-      unaryExp |
-      identifier.mapWithLoc(Var.apply)
+    foldExp.backtrack |
+    setExp |
+    lambdaExp |
+    tupleExp |
+    boolLit |
+    stringLit |
+    doubleLit.backtrack |
+    intLit.backtrack |
+    unaryExp |
+    identifier.mapWithLoc(Var.apply)
 
   def callExpStep(e: Expression): P[Call] =
     (inBrackets(typ.repSep(op(','))).?.with1 ~ inParens(recExpression.repSep0(op(',')))).mapWithLoc {
@@ -230,8 +229,8 @@ object Parser:
   val pattern: P[Pattern] =
     (identifier ~ inParens(identifier.repSep0(op(',')))).mapWithLoc { case (name, args) => ConstructorPattern(name, args.map(PatternVariable.apply).toList) }
 
-  lazy val matchCase: P[(Pattern,Expression)] =
-    (keyword("case") *> pattern ~ op("=>") ~ recExpression).map { case ((p, _), e) => (p,e) }
+  lazy val matchCase: P[(Pattern, Expression)] =
+    (keyword("case") *> pattern ~ op("=>") ~ recExpression).map { case ((p, _), e) => (p, e) }
 
   def matchExp(e: Expression): P[Match] =
     (keyword("match") *> inBraces(matchCase.rep)).mapWithLoc(cases => Match(e, cases.toList))
@@ -321,15 +320,15 @@ object Parser:
 
   val dataDef: P[DataDef] =
     ((annotation.rep0 ~ visibility.?).with1 ~
-      keyword("data") ~ identifier ~ typeParams ~
-      op("=") ~ dataConstructor.repSep(op('|'))).mapWithLoc {
+     keyword("data") ~ identifier ~ typeParams ~
+     op("=") ~ dataConstructor.repSep(op('|'))).mapWithLoc {
       case ((((((annos, vis), _), name), tyParams), _), constrs) => DataDef(annos, vis, name, tyParams, constrs.toList)
     }
 
   val functionDef: P[FunctionDef] =
     ((annotation.rep0 ~ visibility.?).with1 ~
-      keyword("def") ~ identifier ~ typeParams ~ params ~
-      op(":") ~ typ ~ op("=") ~ expression).mapWithLoc {
+     keyword("def") ~ identifier ~ typeParams ~ params ~
+     op(":") ~ typ ~ op("=") ~ expression).mapWithLoc {
       case (((((((((annos, vis), _), name), tyParams), params), _), ty), _), body) =>
         FunctionDef(annos, vis, name, tyParams, params, ty, body)
     }
@@ -343,4 +342,4 @@ object Parser:
   val module: P[Module] =
     whitespaces0.with1 *>
     keyword("module") *> (qualifiedIdentifier ~ impor.rep0 ~ content.rep0)
-      .mapWithLoc { case ((name, imports),contents) => Module(name, imports, contents) }
+      .mapWithLoc { case ((name, imports), contents) => Module(name, imports, contents) }

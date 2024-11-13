@@ -2,8 +2,11 @@ package inca.util
 
 trait Design:
   def top: (String, String, String, String)
+
   def header: (String, String, String, String)
+
   def bottom: (String, String, String, String)
+
   def verticalLine: String
 
 case object Classic extends Design:
@@ -47,12 +50,12 @@ object Tabulator {
 
   private def formatRows(title: String, colSizes: Seq[Int], rows: Seq[String], design: Design): String = (
     title ::
-      rowSeparator(colSizes, design.top) ::
-      rows.head ::
-      rowSeparator(colSizes, design.header) ::
-      rows.tail.toList :::
-      rowSeparator(colSizes, design.bottom) ::
-      List()).mkString("\n")
+    rowSeparator(colSizes, design.top) ::
+    rows.head ::
+    rowSeparator(colSizes, design.header) ::
+    rows.tail.toList :::
+    rowSeparator(colSizes, design.bottom) ::
+    List()).mkString("\n")
 
   private def formatRow(row: Seq[Any], colSizes: Seq[Int], design: Design): String = {
     val vertical = design.verticalLine

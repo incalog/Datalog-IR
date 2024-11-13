@@ -13,21 +13,21 @@ import inca.ir.Name
  * Proposed solution based on an example:
  *
  * class A:
- *  def something(): Unit
+ * def something(): Unit
  * case class B(var i: Int) extends A
  * case class C (var j: Int) extends A:
- *  override def something(): Unt = ...
+ * override def something(): Unt = ...
  *
  * ~> SID$Int(TString, TInt) used to represent instances of B and C
  *
- *  def something$(this: ID): Unit =
- *    val cls = this$0 match
- *      case OID(c, _) => c
- *      case SID$Int$Int(c, _, _) => c
- *    cls match
- *      case "A" => something$A()
- *      case "B" => something$A() // does not override the method
- *      case "C" => something$C()
+ * def something$(this: ID): Unit =
+ * val cls = this$0 match
+ * case OID(c, _) => c
+ * case SID$Int$Int(c, _, _) => c
+ * cls match
+ * case "A" => something$A()
+ * case "B" => something$A() // does not override the method
+ * case "C" => something$C()
  *
  * That way we can write OODL code such as:
  * val s = new C(0)
@@ -289,20 +289,20 @@ class GenerateScala:
     case TName(name, tyArgs) => "ID"
     case TSet(ty) => s"Set[${transType(ty)}]"
 
-  /*def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
-    val scalaTy = transType(typ)
-    val funCode = op match
-      case v: Var => v.target match
-        case Some(f: FunctionDef) => transFunctionDef(f)
-        case _ => throw IllegalStateException(s"Unresolved operator target $op")
-      case _ => throw IllegalStateException(s"Unexpected operator $op")
-    s"""
-     |new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
-     |${funCode.indent(2)}
-     |  override val name = "$name"
-     |  override def init: $scalaTy = ${transExpression(init)}
-     |  override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExpression(op)}(v1, v2)
-     |  override val isAssociative = true
-     |  override val isCommutative = true
-     }""".stripMargin
-  }*/
+/*def genAggregation(name: String, init: Expression, op: Expression, typ: Type): Code = {
+  val scalaTy = transType(typ)
+  val funCode = op match
+    case v: Var => v.target match
+      case Some(f: FunctionDef) => transFunctionDef(f)
+      case _ => throw IllegalStateException(s"Unresolved operator target $op")
+    case _ => throw IllegalStateException(s"Unexpected operator $op")
+  s"""
+   |new inca.viatra.runtime.aggregate.JoinAggregation[$scalaTy] {
+   |${funCode.indent(2)}
+   |  override val name = "$name"
+   |  override def init: $scalaTy = ${transExpression(init)}
+   |  override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = ${transExpression(op)}(v1, v2)
+   |  override val isAssociative = true
+   |  override val isCommutative = true
+   }""".stripMargin
+}*/

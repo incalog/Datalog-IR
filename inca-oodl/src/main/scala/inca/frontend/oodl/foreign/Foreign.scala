@@ -12,7 +12,7 @@ object OODL extends ForeignLanguage:
   def compileType(ty: Type): ir.Type =
     new GenerateIR().compileType(ty)
 
-case class OODLAggregationOperator(code: FunctionDef,  initCode: Expression, addCode: Expression)extends ForeignAggregationOperator:
+case class OODLAggregationOperator(code: FunctionDef, initCode: Expression, addCode: Expression) extends ForeignAggregationOperator:
   override val lang: OODL.type = OODL
   override val name: Name = code.name
 
@@ -24,9 +24,9 @@ case class OODLAggregationOperator(code: FunctionDef,  initCode: Expression, add
   override def resultType: ir.Type = OODL.compileType(aggType)
 
   override def typecheck(in: Seq[ir.Type]): Option[String] =
-      if (in.size != 1)
-        Some(s"Function $code expects 1 argument, but found ${in.size} arguments in call")
-      else if (OODL.compileType(aggType) != in.head)
-        Some(s"Invalid argument of type ${in.head} for parameter of type $aggType")
-      else
-        None
+    if (in.size != 1)
+      Some(s"Function $code expects 1 argument, but found ${in.size} arguments in call")
+    else if (OODL.compileType(aggType) != in.head)
+      Some(s"Invalid argument of type ${in.head} for parameter of type $aggType")
+    else
+      None

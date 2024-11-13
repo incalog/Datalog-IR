@@ -9,7 +9,7 @@ import inca.ir.util.SourceLocation
 case class Program(content: Seq[ProgramContent]) extends SourceLocation:
   override def toString: String = content.mkString("\n")
 
-case class QualifiedName(ns: Seq[String])  extends SourceLocation:
+case class QualifiedName(ns: Seq[String]) extends SourceLocation:
   override def toString: String = ns.mkString(".")
 
 enum DirectiveQualifier extends SourceLocation:
@@ -110,9 +110,10 @@ enum ProgramContent extends SourceLocation:
 
 case class Domain(name: Name) extends SourceLocation:
   override def toString: String = name.toString
+
   lazy val canonicalName: Name = Name(name.toString.replaceAll("\\d+$", ""))
 
-case class Attribute(name: Name, domain: Domain) extends SourceLocation  with Resolvable[Domain]:
+case class Attribute(name: Name, domain: Domain) extends SourceLocation with Resolvable[Domain]:
   this.target = Some(this.domain)
 
   override def toString: String = s"$name: $domain"

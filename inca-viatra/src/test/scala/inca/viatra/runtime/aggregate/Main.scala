@@ -27,7 +27,7 @@ object Main {
 
     object Path extends PSystem.Module {
 
-      override val patterns: Map[String, () => Specification] = Map("edge" -> (() => edge.instance),"path" -> (() => path.instance))
+      override val patterns: Map[String, () => Specification] = Map("edge" -> (() => edge.instance), "path" -> (() => path.instance))
 
       object edge {
         lazy val instance: Specification = new Specification(generatedPQuery)
@@ -52,7 +52,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`1`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(1)
               }
@@ -60,7 +62,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`2`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(2)
               }
@@ -84,7 +88,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`2`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(2)
               }
@@ -92,7 +98,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`3`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(3)
               }
@@ -116,7 +124,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`3`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(3)
               }
@@ -124,7 +134,9 @@ object Main {
 
             new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
               override def getShortDescription: String = """"eval(`((s: Any) => s.toString)(`4`)`)""""
+
               override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
               override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
                 ((s: Any) => s.toString)(4)
               }
@@ -135,8 +147,10 @@ object Main {
           })
 
           override def getFullyQualifiedName: String = "Path_edge"
-          override def getParameters: util.List[PParameter] = util.List.of(param_x,param_y)
-          override def getParameterNames: util.List[String] = util.List.of("x","y")
+
+          override def getParameters: util.List[PParameter] = util.List.of(param_x, param_y)
+
+          override def getParameterNames: util.List[String] = util.List.of("x", "y")
         }
       }
 
@@ -159,9 +173,7 @@ object Main {
             body.setSymbolicParameters(exportedParams)
 
 
-
-
-            new PositivePatternCall(body, Tuples.flatTupleOf(var_x,var_y), Path.edge.instance.getInternalQueryRepresentation)
+            new PositivePatternCall(body, Tuples.flatTupleOf(var_x, var_y), Path.edge.instance.getInternalQueryRepresentation)
             body
           }, {
             val body: PBody = new PBody(this)
@@ -175,19 +187,20 @@ object Main {
             val var_z: PVariable = body.getOrCreateVariableByName("z")
 
 
-
-            new PositivePatternCall(body, Tuples.flatTupleOf(var_x,var_z), Path.path.instance.getInternalQueryRepresentation)
-            new PositivePatternCall(body, Tuples.flatTupleOf(var_z,var_y), Path.path.instance.getInternalQueryRepresentation)
+            new PositivePatternCall(body, Tuples.flatTupleOf(var_x, var_z), Path.path.instance.getInternalQueryRepresentation)
+            new PositivePatternCall(body, Tuples.flatTupleOf(var_z, var_y), Path.path.instance.getInternalQueryRepresentation)
             body
           })
 
           override def getFullyQualifiedName: String = "Path_path"
-          override def getParameters: util.List[PParameter] = util.List.of(param_x,param_y)
-          override def getParameterNames: util.List[String] = util.List.of("x","y")
+
+          override def getParameters: util.List[PParameter] = util.List.of(param_x, param_y)
+
+          override def getParameterNames: util.List[String] = util.List.of("x", "y")
         }
       }
 
-    }
-    ; Path
+    };
+    Path
   }
 }

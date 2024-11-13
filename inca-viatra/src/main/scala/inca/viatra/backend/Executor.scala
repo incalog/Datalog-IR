@@ -73,7 +73,7 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
 
   override def instantiate(m: CompiledUnit): Engine =
     instantiate(m, new DataModel())
-  
+
   def instantiate(m: CompiledUnit, dataModel: DataModel): Engine =
     val options = m.compilerOptions
     val code = GeneratePSystem.compileModules(m.lowered, options)
@@ -87,16 +87,19 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
 
 /** Rewrites matcher into Scala relation on-demand only */
 class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Query.Matcher) extends Relation:
+
   import scala.jdk.CollectionConverters.*
 
   private var evaled: Boolean = false
   lazy val outputRel =
     evaled = true
+
     def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
       val params = parameterNames.zip(values).map { case (p, v) => spec.getPositionOfParameter(p) -> v }.toMap
       val arr = Seq.range(0, arity).map(params.getOrElse(_, null))
       Query.Match(spec, arr.toArray, isMutable = false)
     }
+
     val output =
       if (queryRel.nonEmpty)
         queryRel.entries.flatMap { t =>
@@ -111,13 +114,19 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
     Relation.from(name, parameterNames, output.toSeq.map(_.toArray.toSeq).distinct)
 
   override type Tuple = Any
+
   override def name: RelationName = queryRel.name
+
   override def arity: Int = matcher.getParameterNames.size()
+
   override def parameterNames: Seq[String] = matcher.getParameterNames.asScala.toSeq
 
   override def size: Int = outputRel.size
+
   override def entries: Iterable[Tuple] = outputRel.entries
+
   override def unflattenEntry(entry: Seq[Any]): Any = outputRel.unflattenEntry(entry)
+
   override def matches: Iterable[Seq[Any]] = outputRel.matches
 
   override def toString: RelationName =
@@ -135,5 +144,6 @@ class ViatraRelation(queryRel: Relation, spec: Query.Specification, matcher: Que
 
 case class ViatraUpdateListener(up: RelationUpdateListener) extends IMatchUpdateListener[Query.Match]:
   override def notifyAppearance(m: Query.Match): Unit = up.tupleAdded(up.rel.unflattenEntry(m.toArray.toSeq))
+
   override def notifyDisappearance(m: Query.Match): Unit = up.tupleRemoved(up.rel.unflattenEntry(m.toArray.toSeq))
 

@@ -30,11 +30,13 @@ extension (v: Value)
 
 
 case class IntV(value: Int) extends Value
+
 case class DoubleV(value: Double) extends Value
 
 class DoubleVOps(using failure: Failure, effects: EffectStack) extends LiftedFloatOps[Double, Value, Topped[Double]](_.asDouble, Value.fromDouble)(
   using ToppedFloatOps[Double, Double](using implicitly) //  failure and effects are not needed... why?
 )
+
 class IntVOps(using failure: Failure, effects: EffectStack) extends LiftedIntegerOps[Int, Value, Topped[Int]](_.asInt, Value.fromInt)(
   using ToppedIntegerOps[Int, Int](using implicitly, failure, effects)
 )

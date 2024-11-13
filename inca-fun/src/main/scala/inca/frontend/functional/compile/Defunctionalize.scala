@@ -16,9 +16,11 @@ class Defunctionalize {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
   private case class AnonFun(typ: Type, vs: Seq[Name], body: Expression, defunName: String, freevars: Seq[Var])
+
   private val anonymousFunctions = ListBuffer[AnonFun]()
 
   private var funTypeDefun: Map[TFun, String] = Map()
+
   private def getFunTypeDefun(tfun: TFun): String = funTypeDefun.get(tfun) match {
     case Some(s) => s
     case None =>
@@ -28,6 +30,7 @@ class Defunctionalize {
   }
 
   private var relTypeDefun: Map[Type, String] = Map()
+
   private def getRelTypeDefun(ty: Type): String = relTypeDefun.get(ty) match {
     case Some(s) => s
     case None =>
@@ -38,11 +41,13 @@ class Defunctionalize {
 
   private def funData(tfun: TFun): String =
     getFunTypeDefun(transformNested(tfun))
+
   private def funApply(tfun: TFun): String =
     "apply" + getFunTypeDefun(transformNested(tfun))
 
   private def relData(tcontent: Type) =
     getRelTypeDefun(tcontent)
+
   private def relApply(tcontent: Type): String =
     "query" + getRelTypeDefun(tcontent)
 
@@ -75,7 +80,7 @@ class Defunctionalize {
           transformType(to),
           Match(Var(Name("fun")),
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
-              body.freevars.foreach{ v => v.target = None; v.typ = None }
+              body.freevars.foreach { v => v.target = None; v.typ = None }
               body.freeTvars.foreach(_.target = None)
               ConstructorPattern(Name(defunName), freevars.map(v => PatternVariable(v.name))) ->
               Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
@@ -117,6 +122,7 @@ class Defunctionalize {
 
   def transformNested(tfun: TFun): TFun =
     TFun(tfun.from.map(transformType), transformType(tfun.to))
+
   def transformNested(tset: TSet): TSet =
     TSet(transformType(tset.ty))
 

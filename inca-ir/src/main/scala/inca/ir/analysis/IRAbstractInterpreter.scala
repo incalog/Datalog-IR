@@ -27,8 +27,8 @@ import sturdy.values.exceptions.Exceptional
 // Implicits
 import sturdy.data.MakeJoined
 import inca.ir.analysis.base.effect.IRFailure
-import inca.ir.analysis.base.values.{ FiniteRV, JoinRV }
-import inca.ir.analysis.base.interpreter.{ FiniteFixIn, FiniteFixOut }
+import inca.ir.analysis.base.values.{FiniteRV, JoinRV}
+import inca.ir.analysis.base.interpreter.{FiniteFixIn, FiniteFixOut}
 import inca.ir.analysis.base.interpreter.CombineFixOut
 
 class IRJoinV extends Join[Value]
@@ -53,6 +53,7 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, Relatio
 
   given Exceptional[BaseIRException, BaseIRException, WithJoin] = new Exceptional[BaseIRException, BaseIRException, WithJoin] {
     override def exception(exc: BaseIRException): BaseIRException = exc
+
     override def handle[A](e: BaseIRException)(f: BaseIRException => A): WithJoin[A] ?=> A = f(e)
   }
 
@@ -67,15 +68,20 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, Relatio
   //override lazy val except = new JoinedExcept[BaseIRException, BaseIRException]
 
   given Failure = failure
+
   override val boolOps: BooleanOps[VBool] = new VBoolOps
   override val boolTop: VBool = VBool.Top
 
   given BooleanOps[VBool] = boolOps
+
   override val eqOps: BaseEqOps = new IREqOps
 
   given Join[Value] = new IRJoinV
+
   given Join[RV] = new JoinRV
+
   given Finite[RV] = new FiniteRV
+
   given Join[VBool] = new JoinVBool
 
   override val joinV: WithJoin[Value] = implicitly
@@ -90,6 +96,7 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, Relatio
   override val top: Value = Top
 
   given EqOps[Value, VBool] = eqOps
+
   override val relationOps: RelationOps[Value, VBool, RV] = new RelationValueOps[Value, VBool] {}
 
   // TODO: Use context sensitive fixpoint combinator
@@ -121,21 +128,20 @@ class IRAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, Relatio
           case (FixIn.Relation(rel), _) => println(s"Exit relation: ${rel.name}\tResult: $codom")
           case (FixIn.Module(mod), _) =>
             println(s"Module: ${codom.getOrThrow}")
-            //println(s"Exit:\n$dom\nResult: $codom")
+          //println(s"Exit:\n$dom\nResult: $codom")
           case _ => // nothing
     })
 
     fixpt
 
 
-
-  /*val observedConfig = config.withObservers(Seq())
-  override val fixpoint: fix.ContextualFixpoint[FixIn, FixOut[RV]] = new fix.ContextualFixpoint {
-    override type Ctx = observedConfig.ctx.Ctx
-    val (contextPreparation, sensitivity) = observedConfig.ctx.make[RV]
-    import observedConfig.ctx.finiteCtx
-    override protected def contextFree = phi =>
-      fix.log(controlEventLogger(Instance.this, effectStack, except), contextPreparation(phi))
-    override protected def context: Sensitivity[FixIn, Ctx] = sensitivity
-    override protected def contextSensitive = observedConfig.fix.get
-  }*/
+/*val observedConfig = config.withObservers(Seq())
+override val fixpoint: fix.ContextualFixpoint[FixIn, FixOut[RV]] = new fix.ContextualFixpoint {
+  override type Ctx = observedConfig.ctx.Ctx
+  val (contextPreparation, sensitivity) = observedConfig.ctx.make[RV]
+  import observedConfig.ctx.finiteCtx
+  override protected def contextFree = phi =>
+    fix.log(controlEventLogger(Instance.this, effectStack, except), contextPreparation(phi))
+  override protected def context: Sensitivity[FixIn, Ctx] = sensitivity
+  override protected def contextSensitive = observedConfig.fix.get
+}*/

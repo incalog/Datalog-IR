@@ -18,7 +18,9 @@ import inca.ir.lowering.BaseLowering
 
 trait ConversionElimination extends BaseLowering:
   override val name: String = "ConversionElimination"
+
   def loweredIRs: Set[BaseIR] = Set(foreign.IR)
+
   def requiredIRs: Set[BaseIR] = Set(bool.IR, set.IR)
 
   protected def createRelName(name: String): Name =
@@ -47,205 +49,206 @@ trait ConversionElimination extends BaseLowering:
     )
   }
 
-  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
-    case ConvertForeignIR(term, ty1, ty2) if ty1 == ty2 => Seq(term)
-    case ConvertForeignIR(term, ScalaType("Boolean"), TBoolean) =>
-      Seq(AtomAsBool(Eq(term, ScalaConstantTerm("true", ScalaType("Boolean")))))
-    case ConvertForeignIR(term, ScalaType("Int"), TInt) =>
-      Seq(Cast(term, TInt))
-    case ConvertForeignIR(term, ScalaType("Double"), TDouble) =>
-      Seq(Cast(term, TDouble))
-    case ConvertForeignIR(term, ScalaType(nm1), TData(dataRef)) if nm1 == dataRef.name.name =>
-      Seq(Cast(term, TData(dataRef.name.name)))
-    case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
-    case ConvertForeignIR(term, ScalaType(s"Set[$fty]"), TSet(irty)) =>
-      // create a relation that enumerates all items in the set
-      val setTy = s"Set[$fty]"
-      val memRelName = createRelName(s"ScalaSetToSet$$$fty")
-      val memRel = Relation(memRelName,
-        Seq(
-          Param("elem", ScalaType(fty)),
-          Param("s", TDemand(ScalaType(setTy)))
-        ),
-        Seq(
-          Body(Seq(
-            Eq(ScalaTerm(s"(s: $setTy) => s.nonEmpty", ScalaType.bool, Seq(Var("s"))), ScalaConstantTerm.TRUE),
-            Eq(ScalaTerm(s"(s: $setTy) => s.head", ScalaType(fty), Seq(Var("s"))), Var("elem"))
-          )),
-          Body(Seq(
-            Eq(ScalaTerm(s"(s: $setTy) => s.nonEmpty", ScalaType.bool, Seq(Var("s"))), ScalaConstantTerm.TRUE),
-            Call(memRelName, Seq(Var("elem").arg, ScalaTerm(s"(s: $setTy) => s.tail", ScalaType(setTy), Seq(Var("s"))).arg))
-          ))
-        )
-      )
-      setMembershipRelations += ScalaType(setTy) -> memRel
-      val elem = Name(gensym.fresh("elem"))
-      val set = SetComprehension(
-        ConvertForeignIR(Var(elem), ScalaType(fty), irty),
-        Seq(Call(memRelName, Seq(Var(elem).arg, term.arg)))
-      )
-      visitTerm(set)
-    case ConvertForeignIR(term, stup@ScalaType(s"($styStr)"), TTuple(tys)) =>
-      val stys = styStr.split(',').toSeq.map(_.trim)
-      Seq(
-        TupleLit.make(stys.zip(tys).zipWithIndex.flatMap { case ((sty,ty), ix) =>
-          val proj = ScalaTerm(s"(x:${stup.name}) => x._${ix+1}", ScalaType(sty), Seq(term))
-          visitTerm(ConvertForeignIR(proj, ScalaType(sty), ty))
-        })
-      )
-    case ConvertForeignIR(term, smap@ScalaType(s"Map[$fKVTy]"), TMap(irkTy, irvTy)) =>
-      val fmapTy = ScalaInca.compileType(TMap(irkTy, irvTy)).name
-      require(fmapTy == smap.name, s"Unmacthed type:\nScala Type: $fmapTy\nIR Type: $smap")
-      val fkTy = ScalaInca.compileType(irkTy).name
-      val fvTy = ScalaInca.compileType(irvTy).name
-      val memRelName = createRelName(s"ScalaMapToMap$$$irkTy$$$irvTy")
-      val mapTy = s"Map[$fkTy, $fvTy]"
-      val memRel = Relation(
-        memRelName,
-        Seq(
-          Param("key", ScalaType(fkTy)),
-          Param("value", ScalaType(fvTy)),
-          Param("map", TDemand(ScalaType(mapTy)))
-        ),
-        Seq(
-          Body(Seq(
-            Eq(ScalaTerm(s"(map: $mapTy) => map.nonEmpty", ScalaType.bool, Seq(Var("map"))), ScalaConstantTerm.TRUE),
-            Eq(ScalaTerm(s"(map: $mapTy) => map.head._1", ScalaType(fkTy), Seq(Var("map"))), Var("key")),
-            Eq(ScalaTerm(s"(map: $mapTy) => map.head._2", ScalaType(fvTy), Seq(Var("map"))), Var("value"))
-          )),
-          Body(Seq(
-            Eq(ScalaTerm(s"(map: $mapTy) => map.nonEmpty", ScalaType.bool, Seq(Var("map"))), ScalaConstantTerm.TRUE),
-            Call(memRelName, Seq(Var("key").arg, Var("value").arg, ScalaTerm(s"(map: $mapTy) => map.tail", ScalaType(mapTy), Seq(Var("map"))).arg))
-          ))
-        )
-      )
-      mapMembershipRelations += ScalaType(mapTy) -> memRel
-      val key = Name(gensym.freshName("key"))
-      val value = Name(gensym.freshName("value"))
-      val map = MapComprehension(
-        ConvertForeignIR(Var(key), ScalaType(fkTy), irkTy),
-        ConvertForeignIR(Var(value), ScalaType(fvTy), irvTy),
-        Seq(Call(memRelName, Seq(Var(key).arg, Var(value).arg, term.arg)))
-      )
-      visitTerm(map)
-    case ConvertForeignIR(term, ScalaType("Any"), TAny) =>
-      Seq(Cast(term, TAny))
-    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbNode(name)) =>
-      Seq(Cast(term, ety))
-    case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbList(_)) =>
-      Seq(Cast(term, ety))
-    case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
-      throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
-
-    case ConvertIRForeign(term, ty1, ty2) if ty1 == ty2 => Seq(term)
-    case ConvertIRForeign(term, TInt, ScalaType("Int")) =>
-      Seq(Cast(term, ScalaType("Int")))
-    case ConvertIRForeign(term, TDouble, ScalaType("Double")) =>
-      Seq(Cast(term, ScalaType("Double")))
-    case ConvertIRForeign(term, TString, ScalaType("String")) =>
-      Seq(Cast(term, ScalaType("String")))
-    case ConvertIRForeign(term, TAny, ScalaType("Any")) =>
-      Seq(Cast(term, ScalaType("Any")))
-    case ConvertIRForeign(term, TData(dataRef), ScalaType(nm2)) if dataRef.name.name == nm2 =>
-      Seq(Cast(term, ScalaType(nm2)))
-    case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
-      Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))
-    case ConvertIRForeign(term, TSet(irty), ScalaType(s"Set[$fty]")) =>
-      val setTy = s"Set[$fty]"
-      val memRelName = createRelName(s"SetToScalaSet$$$fty")
-      val Seq(memRel) = visitRelation(
-        Relation(memRelName,
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
+    term match
+      case ConvertForeignIR(term, ty1, ty2) if ty1 == ty2 => Seq(term)
+      case ConvertForeignIR(term, ScalaType("Boolean"), TBoolean) =>
+        Seq(AtomAsBool(Eq(term, ScalaConstantTerm("true", ScalaType("Boolean")))))
+      case ConvertForeignIR(term, ScalaType("Int"), TInt) =>
+        Seq(Cast(term, TInt))
+      case ConvertForeignIR(term, ScalaType("Double"), TDouble) =>
+        Seq(Cast(term, TDouble))
+      case ConvertForeignIR(term, ScalaType(nm1), TData(dataRef)) if nm1 == dataRef.name.name =>
+        Seq(Cast(term, TData(dataRef.name.name)))
+      case ConvertForeignIR(term, ScalaType("String"), TString) => Seq(Cast(term, TString))
+      case ConvertForeignIR(term, ScalaType(s"Set[$fty]"), TSet(irty)) =>
+        // create a relation that enumerates all items in the set
+        val setTy = s"Set[$fty]"
+        val memRelName = createRelName(s"ScalaSetToSet$$$fty")
+        val memRel = Relation(memRelName,
           Seq(
             Param("elem", ScalaType(fty)),
-            Param("s", TDemand(TSet(irty)))
+            Param("s", TDemand(ScalaType(setTy)))
           ),
-          Seq(Body(Seq(
-            SetMember(Var("elemIR"), Var("s")),
-            Eq(Var("elem"), ConvertIRForeign(Var("elemIR"), irty, ScalaType(fty)))
-          )))
-        )
-      )
-      val op = ScalaMonoAggregationOperator(
-        Name(s"ScalaSetMono$$$fty"),
-        ScalaType(s"Set[$fty]"),
-        ScalaType(fty),
-        ScalaType(s"Set[$fty]"),
-        initCode = s"Set[$fty]()",
-        addCode = s"(st: Set[$fty], a: $fty) => st + a",
-        resultCode = s"(st: Set[$fty]) => st",
-        combineCode = s"(s1: Set[$fty], s2: Set[$fty]) => s1 ++ s2"
-      )
-      scalasetMembershipRelations += TSet(irty) -> memRel
-      val elem = Name(gensym.fresh("elem"))
-      Seq(block.Block(
-        aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(elem)), term.arg), op),
-        Var(elem)
-      ))
-    case ConvertIRForeign(term, TTuple(tys), stup@ScalaType(s"($styStr)")) =>
-//      val stys = styStr.split(',').toSeq.map(_.trim)
-      val stys = tys.map(ty => ScalaInca.compileType(ty).name)
-      require(stys.mkString("(", ", ", ")") == stup.name, s"Unmatched type:\nIR type: ${TTuple(tys)}\nScalaType: $stup")
-      val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
-      val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
-      val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
-      val args = argsWithConvert.flatMap(visitTerm)
-      Seq(
-        ScalaTerm(s"$params => $tuple", stup, args)
-      )
-    case ConvertIRForeign(term, TTuple(tys), ScalaType("Any")) =>
-      //      val stys = styStr.split(',').toSeq.map(_.trim)
-      val stys = tys.map(ty => ScalaInca.compileType(ty).name)
-      val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
-      val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
-      val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
-      val args = argsWithConvert.flatMap(visitTerm)
-      Seq(
-        ScalaTerm(s"$params => $tuple", ScalaType.any, args)
-      )
-    case ConvertIRForeign(term, TMap(irkTy, irvTy), smap@ScalaType(s"Map[$fkTy, $fvTy]")) =>
-      val mapTy = s"Map[$fkTy, $fvTy]"
-      val memRelName = createRelName(s"MapToScalaMap$$$fkTy$$$fvTy")
-      val Seq(memRel) = visitRelation(
-        Relation(memRelName,
           Seq(
-            Param("kvPair", ScalaType(s"($fkTy, $fvTy)")),
-            Param("map", TDemand(TMap(irkTy, irvTy)))
-          ),
-          Seq(Body(Seq(
-            MapContains(Var("keyIR"), Var("map")),
-            Eq(Var("valueIR"), MapLookUp(Var("map"), Var("keyIR"))),
-            Eq(Var("kvPair"), ConvertIRForeign(
-              TupleLit(Seq(Var("keyIR"), Var("valueIR"))),
-              TTuple(Seq(irkTy, irvTy)),
-              ScalaType(s"($fkTy, $fvTy)")
+            Body(Seq(
+              Eq(ScalaTerm(s"(s: $setTy) => s.nonEmpty", ScalaType.bool, Seq(Var("s"))), ScalaConstantTerm.TRUE),
+              Eq(ScalaTerm(s"(s: $setTy) => s.head", ScalaType(fty), Seq(Var("s"))), Var("elem"))
+            )),
+            Body(Seq(
+              Eq(ScalaTerm(s"(s: $setTy) => s.nonEmpty", ScalaType.bool, Seq(Var("s"))), ScalaConstantTerm.TRUE),
+              Call(memRelName, Seq(Var("elem").arg, ScalaTerm(s"(s: $setTy) => s.tail", ScalaType(setTy), Seq(Var("s"))).arg))
             ))
-          )))
+          )
         )
-      )
-      val skvTy = s"($fkTy, $fvTy)"
-      val smapTy = s"Map[$fkTy, $fvTy]"
-      val op = ScalaMonoAggregationOperator(
-        Name(s"ScalaMapMono$$$fkTy$$$fvTy"),
-        ScalaType(smapTy),
-        ScalaType(skvTy),
-        ScalaType(smapTy),
-        initCode = s"$smapTy()",
-        addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)",
-        resultCode = s"(st: $smapTy) => st",
-        combineCode = s"(st1: $smapTy, st2: $smapTy) => throw new UnsupportedOperationException()"
-      )
-      scalamapMembershipRelations += TMap(irkTy, irvTy) -> memRel
-      val map = Name(gensym.fresh("map"))
-      Seq(block.Block(
-        aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(map)), term.arg), op),
-        Var(map)
-      ))
-    case ConvertIRForeign(term, TEdbNode(_), sty@ScalaType("truechange.URI")) =>
-      Seq(Cast(term, sty))
-    case ConvertIRForeign(term, TEdbList(_), sty@ScalaType("truechange.URI")) =>
-      Seq(Cast(term, sty))
-    case ConvertIRForeign(term, ty1, ScalaType(ty2)) =>
-      throw new UnsupportedOperationException(s"Cannot convert $ty1 to ScalaType $ty2")
+        setMembershipRelations += ScalaType(setTy) -> memRel
+        val elem = Name(gensym.fresh("elem"))
+        val set = SetComprehension(
+          ConvertForeignIR(Var(elem), ScalaType(fty), irty),
+          Seq(Call(memRelName, Seq(Var(elem).arg, term.arg)))
+        )
+        visitTerm(set)
+      case ConvertForeignIR(term, stup@ScalaType(s"($styStr)"), TTuple(tys)) =>
+        val stys = styStr.split(',').toSeq.map(_.trim)
+        Seq(
+          TupleLit.make(stys.zip(tys).zipWithIndex.flatMap { case ((sty, ty), ix) =>
+            val proj = ScalaTerm(s"(x:${stup.name}) => x._${ix + 1}", ScalaType(sty), Seq(term))
+            visitTerm(ConvertForeignIR(proj, ScalaType(sty), ty))
+          })
+        )
+      case ConvertForeignIR(term, smap@ScalaType(s"Map[$fKVTy]"), TMap(irkTy, irvTy)) =>
+        val fmapTy = ScalaInca.compileType(TMap(irkTy, irvTy)).name
+        require(fmapTy == smap.name, s"Unmacthed type:\nScala Type: $fmapTy\nIR Type: $smap")
+        val fkTy = ScalaInca.compileType(irkTy).name
+        val fvTy = ScalaInca.compileType(irvTy).name
+        val memRelName = createRelName(s"ScalaMapToMap$$$irkTy$$$irvTy")
+        val mapTy = s"Map[$fkTy, $fvTy]"
+        val memRel = Relation(
+          memRelName,
+          Seq(
+            Param("key", ScalaType(fkTy)),
+            Param("value", ScalaType(fvTy)),
+            Param("map", TDemand(ScalaType(mapTy)))
+          ),
+          Seq(
+            Body(Seq(
+              Eq(ScalaTerm(s"(map: $mapTy) => map.nonEmpty", ScalaType.bool, Seq(Var("map"))), ScalaConstantTerm.TRUE),
+              Eq(ScalaTerm(s"(map: $mapTy) => map.head._1", ScalaType(fkTy), Seq(Var("map"))), Var("key")),
+              Eq(ScalaTerm(s"(map: $mapTy) => map.head._2", ScalaType(fvTy), Seq(Var("map"))), Var("value"))
+            )),
+            Body(Seq(
+              Eq(ScalaTerm(s"(map: $mapTy) => map.nonEmpty", ScalaType.bool, Seq(Var("map"))), ScalaConstantTerm.TRUE),
+              Call(memRelName, Seq(Var("key").arg, Var("value").arg, ScalaTerm(s"(map: $mapTy) => map.tail", ScalaType(mapTy), Seq(Var("map"))).arg))
+            ))
+          )
+        )
+        mapMembershipRelations += ScalaType(mapTy) -> memRel
+        val key = Name(gensym.freshName("key"))
+        val value = Name(gensym.freshName("value"))
+        val map = MapComprehension(
+          ConvertForeignIR(Var(key), ScalaType(fkTy), irkTy),
+          ConvertForeignIR(Var(value), ScalaType(fvTy), irvTy),
+          Seq(Call(memRelName, Seq(Var(key).arg, Var(value).arg, term.arg)))
+        )
+        visitTerm(map)
+      case ConvertForeignIR(term, ScalaType("Any"), TAny) =>
+        Seq(Cast(term, TAny))
+      case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbNode(name)) =>
+        Seq(Cast(term, ety))
+      case ConvertForeignIR(term, ScalaType("truechange.URI"), ety@TEdbList(_)) =>
+        Seq(Cast(term, ety))
+      case ConvertForeignIR(term, ScalaType(ty1), ty2) =>
+        throw new UnsupportedOperationException(s"Cannot convert ScalaType $ty1 to $ty2")
 
-    case _ => super.visitTerm(term)
+      case ConvertIRForeign(term, ty1, ty2) if ty1 == ty2 => Seq(term)
+      case ConvertIRForeign(term, TInt, ScalaType("Int")) =>
+        Seq(Cast(term, ScalaType("Int")))
+      case ConvertIRForeign(term, TDouble, ScalaType("Double")) =>
+        Seq(Cast(term, ScalaType("Double")))
+      case ConvertIRForeign(term, TString, ScalaType("String")) =>
+        Seq(Cast(term, ScalaType("String")))
+      case ConvertIRForeign(term, TAny, ScalaType("Any")) =>
+        Seq(Cast(term, ScalaType("Any")))
+      case ConvertIRForeign(term, TData(dataRef), ScalaType(nm2)) if dataRef.name.name == nm2 =>
+        Seq(Cast(term, ScalaType(nm2)))
+      case ConvertIRForeign(term, TBoolean, ScalaType("Boolean")) =>
+        Seq(ScalaTerm("(x: Int) => x != 0", ScalaType("Boolean"), Seq(term)))
+      case ConvertIRForeign(term, TSet(irty), ScalaType(s"Set[$fty]")) =>
+        val setTy = s"Set[$fty]"
+        val memRelName = createRelName(s"SetToScalaSet$$$fty")
+        val Seq(memRel) = visitRelation(
+          Relation(memRelName,
+            Seq(
+              Param("elem", ScalaType(fty)),
+              Param("s", TDemand(TSet(irty)))
+            ),
+            Seq(Body(Seq(
+              SetMember(Var("elemIR"), Var("s")),
+              Eq(Var("elem"), ConvertIRForeign(Var("elemIR"), irty, ScalaType(fty)))
+            )))
+          )
+        )
+        val op = ScalaMonoAggregationOperator(
+          Name(s"ScalaSetMono$$$fty"),
+          ScalaType(s"Set[$fty]"),
+          ScalaType(fty),
+          ScalaType(s"Set[$fty]"),
+          initCode = s"Set[$fty]()",
+          addCode = s"(st: Set[$fty], a: $fty) => st + a",
+          resultCode = s"(st: Set[$fty]) => st",
+          combineCode = s"(s1: Set[$fty], s2: Set[$fty]) => s1 ++ s2"
+        )
+        scalasetMembershipRelations += TSet(irty) -> memRel
+        val elem = Name(gensym.fresh("elem"))
+        Seq(block.Block(
+          aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(elem)), term.arg), op),
+          Var(elem)
+        ))
+      case ConvertIRForeign(term, TTuple(tys), stup@ScalaType(s"($styStr)")) =>
+        //      val stys = styStr.split(',').toSeq.map(_.trim)
+        val stys = tys.map(ty => ScalaInca.compileType(ty).name)
+        require(stys.mkString("(", ", ", ")") == stup.name, s"Unmatched type:\nIR type: ${TTuple(tys)}\nScalaType: $stup")
+        val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
+        val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
+        val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
+        val args = argsWithConvert.flatMap(visitTerm)
+        Seq(
+          ScalaTerm(s"$params => $tuple", stup, args)
+        )
+      case ConvertIRForeign(term, TTuple(tys), ScalaType("Any")) =>
+        //      val stys = styStr.split(',').toSeq.map(_.trim)
+        val stys = tys.map(ty => ScalaInca.compileType(ty).name)
+        val params = stys.zipWithIndex.map((sty, ix) => s"x$ix: $sty").mkString("(", ", ", ")")
+        val tuple = stys.indices.map(ix => s"x$ix").mkString("(", ", ", ")")
+        val argsWithConvert = stys.indices.map(ix => ConvertIRForeign(Project(term, ix), tys(ix), ScalaType(stys(ix))))
+        val args = argsWithConvert.flatMap(visitTerm)
+        Seq(
+          ScalaTerm(s"$params => $tuple", ScalaType.any, args)
+        )
+      case ConvertIRForeign(term, TMap(irkTy, irvTy), smap@ScalaType(s"Map[$fkTy, $fvTy]")) =>
+        val mapTy = s"Map[$fkTy, $fvTy]"
+        val memRelName = createRelName(s"MapToScalaMap$$$fkTy$$$fvTy")
+        val Seq(memRel) = visitRelation(
+          Relation(memRelName,
+            Seq(
+              Param("kvPair", ScalaType(s"($fkTy, $fvTy)")),
+              Param("map", TDemand(TMap(irkTy, irvTy)))
+            ),
+            Seq(Body(Seq(
+              MapContains(Var("keyIR"), Var("map")),
+              Eq(Var("valueIR"), MapLookUp(Var("map"), Var("keyIR"))),
+              Eq(Var("kvPair"), ConvertIRForeign(
+                TupleLit(Seq(Var("keyIR"), Var("valueIR"))),
+                TTuple(Seq(irkTy, irvTy)),
+                ScalaType(s"($fkTy, $fvTy)")
+              ))
+            )))
+          )
+        )
+        val skvTy = s"($fkTy, $fvTy)"
+        val smapTy = s"Map[$fkTy, $fvTy]"
+        val op = ScalaMonoAggregationOperator(
+          Name(s"ScalaMapMono$$$fkTy$$$fvTy"),
+          ScalaType(smapTy),
+          ScalaType(skvTy),
+          ScalaType(smapTy),
+          initCode = s"$smapTy()",
+          addCode = s"(st: $smapTy, a: $skvTy) => st + (a._1 -> a._2)",
+          resultCode = s"(st: $smapTy) => st",
+          combineCode = s"(st1: $smapTy, st2: $smapTy) => throw new UnsupportedOperationException()"
+        )
+        scalamapMembershipRelations += TMap(irkTy, irvTy) -> memRel
+        val map = Name(gensym.fresh("map"))
+        Seq(block.Block(
+          aggregate.Aggregate(RefByName(memRelName), Seq(AggregateColumnArg(Var(map)), term.arg), op),
+          Var(map)
+        ))
+      case ConvertIRForeign(term, TEdbNode(_), sty@ScalaType("truechange.URI")) =>
+        Seq(Cast(term, sty))
+      case ConvertIRForeign(term, TEdbList(_), sty@ScalaType("truechange.URI")) =>
+        Seq(Cast(term, sty))
+      case ConvertIRForeign(term, ty1, ScalaType(ty2)) =>
+        throw new UnsupportedOperationException(s"Cannot convert $ty1 to ScalaType $ty2")
+
+      case _ => super.visitTerm(term)
   }

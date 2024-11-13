@@ -64,12 +64,12 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val setAdt = res.entries.head
     val query = Relation.from("Set$$TString_TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 4)
-  
+
     val expectedRes = Set(
-      ("ValDef(n, Num(5))","acc","Bot"),
-      ("ValDef(acc, Num(1))","acc","Pos"),
-      ("ValDef(acc, Num(1))","n","Pos"),
-      ("ValDef(n, Num(5))","n","Pos")
+      ("ValDef(n, Num(5))", "acc", "Bot"),
+      ("ValDef(acc, Num(1))", "acc", "Pos"),
+      ("ValDef(acc, Num(1))", "n", "Pos"),
+      ("ValDef(n, Num(5))", "n", "Pos")
     )
     assertResult(expectedRes)(res.toSet)
 

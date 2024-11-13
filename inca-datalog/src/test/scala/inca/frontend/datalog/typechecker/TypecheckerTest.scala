@@ -28,9 +28,10 @@ class TypecheckerTest extends AnyFunSuite {
   }
 
   test("Edge") {
-    val m = s"""Edge(Int, Int).
-               |Edge(1,2).
-               |""".stripMargin
+    val m =
+      s"""Edge(Int, Int).
+         |Edge(1,2).
+         |""".stripMargin
     check(Parser.relation.parseAll(m).getOrElse(???))
 
     val m2 =

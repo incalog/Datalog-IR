@@ -9,9 +9,11 @@ import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
 
 trait ScalaLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "ScalaLowering"
+
   override def loweredIRs: Set[BaseIR] = Set(primitive.IR, bool.IR, string.IR, set.IR, data.IR, arithmetic.IR, tuple.IR)
+
   override def requiredIRs: Set[BaseIR] = Set(tuple.IR, demand.IR, set.IR, tuple.IR, block.IR, not.IR, disjunction.IR)
-  
+
   def isTypeSupported(ty: Type): Boolean = ty match
     case TAny => true
     case TNothing => true
@@ -62,7 +64,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
     if (isTypeSupported(ty))
       compileType(ty)
     else
-      super.visitType(ty)  
+      super.visitType(ty)
   }
 
   protected def createRelName(name: String): Name =
@@ -70,7 +72,7 @@ trait ScalaLowering extends BaseLowering with primitive.Visitor:
       Seq("(", ")", "[", "]", ", ").foldLeft(name)((s, t) => s.replace(t, "$"))
     )
 
-trait ForeignScalaLowering extends ScalaLowering 
-  with scalaArith.ScalaLowering 
+trait ForeignScalaLowering extends ScalaLowering
+  with scalaArith.ScalaLowering
   with scalaData.ScalaLowering
   with scalaString.ScalaLowering

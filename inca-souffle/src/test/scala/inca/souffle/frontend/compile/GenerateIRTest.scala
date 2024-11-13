@@ -55,6 +55,7 @@ class GenerateIRTest extends AnyFunSuite:
     // sort modules based on a topological order of dependencies
     val compiledProg = new CompiledProgram {
       override def irModules: Seq[Module] = generateMods
+
       override def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
         Compiled(modules, otherUnits, isClosedWorld, modules.head.name)
     }
@@ -62,7 +63,9 @@ class GenerateIRTest extends AnyFunSuite:
 
     println()
     println("Generated:")
-    generateMods.foreach(m => {println(); println(m) } )
+    generateMods.foreach(m => {
+      println(); println(m)
+    })
 
     compiledProg.compiledUnits.foreach { u =>
       println()

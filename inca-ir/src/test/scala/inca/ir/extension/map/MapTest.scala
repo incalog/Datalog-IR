@@ -37,7 +37,7 @@ class MapTest extends AnyFunSuiteLike {
     val lowered = mapLowering.foldLeft(mod)((mod, l) => lower(l, mod))
     lowered
 
-  test("Empty map"){
+  test("Empty map") {
     val mainRelation = Relation(
       "main",
       Seq(
@@ -49,8 +49,8 @@ class MapTest extends AnyFunSuiteLike {
     )
     module(mainRelation)
   }
-  
-  test("Map Literal"){
+
+  test("Map Literal") {
     val mainRelation = Relation(
       "main",
       Seq(Param("m", TMap(TString, TInt))),
@@ -60,8 +60,8 @@ class MapTest extends AnyFunSuiteLike {
     )
     module(mainRelation)
   }
-  
-  test("Map union"){
+
+  test("Map union") {
     val mainRelation = Relation(
       "main",
       Seq(Param("m2", TMap(TString, TInt))),
@@ -72,8 +72,8 @@ class MapTest extends AnyFunSuiteLike {
     )
     module(mainRelation)
   }
-  
-  test("Map from"){
+
+  test("Map from") {
     val mainRelation = Relation(
       "main",
       Seq(Param("m", TMap(TString, TInt))),
@@ -98,9 +98,9 @@ class MapTest extends AnyFunSuiteLike {
 
     module(mainRelation, someCallRelation)
   }
-  
 
-  test("Map comprehension"){
+
+  test("Map comprehension") {
     val mainRelation = Relation(
       "main",
       Seq(Param("m2", TMap(TInt, TInt))),

@@ -13,9 +13,13 @@ import scala.jdk.CollectionConverters.*
 object Query:
   trait ChangeFeed:
     def processEditScript(edits: EditScript): Unit
+
     def insertExtensionalTuple(relName: String, tuple: Tuple): Unit
+
     def deleteExtensionalTuple(relName: String, tuple: Tuple): Unit
+
     def loadPrimitive(a: Any): Unit
+
     def unloadPrimitive(a: Any): Unit
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query):
@@ -91,12 +95,12 @@ object Query:
       builder.toString
     }
 
-    /*def deepPrettyPrint(db: DatabaseInspector): String = {
-      val builder = new StringBuilder
-      for (i <- 0 until values.length) {
-        if (i != 0) builder.append(", ")
-        builder.append("\"" + parameterNames.get(i) + "\"=" + DBValue.prettyPrint(values(i), db))
-      }
-      builder.toString
-    }*/
+/*def deepPrettyPrint(db: DatabaseInspector): String = {
+  val builder = new StringBuilder
+  for (i <- 0 until values.length) {
+    if (i != 0) builder.append(", ")
+    builder.append("\"" + parameterNames.get(i) + "\"=" + DBValue.prettyPrint(values(i), db))
+  }
+  builder.toString
+}*/
 

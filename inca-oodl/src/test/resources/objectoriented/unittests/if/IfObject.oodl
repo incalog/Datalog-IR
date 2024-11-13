@@ -4,11 +4,11 @@ class A
 
 @main
 def main(input: Boolean): Boolean = {
-    var out = true
-    if (input) {
-        val a = new A()
-    } else {
-        out = false
-    }
-    return out
+  var out = true
+  if (input) {
+    val a = new A()
+  } else {
+    out = false
+  }
+  return out
 }

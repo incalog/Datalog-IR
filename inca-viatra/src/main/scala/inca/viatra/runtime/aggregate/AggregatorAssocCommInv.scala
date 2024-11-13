@@ -8,9 +8,11 @@ import scala.jdk.CollectionConverters.*
 /** An aggregator for operations that are associative, commutative, and invertible */
 class AggregatorAssocCommInv[V](val agg: JoinAggregation[V]) extends AbstractMemorylessAggregationOperator[V, V]:
   override def getShortDescription: String = agg.name
+
   override def getName: String = agg.name
 
   override def createNeutral(): V = agg.init
+
   override def isNeutral(result: V): Boolean = result == agg.init
 
   override def update(oldResult: V, updateValue: V, isInsertion: Boolean): V =

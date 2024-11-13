@@ -9,12 +9,14 @@ import scala.jdk.CollectionConverters.*
 /*
  * In a BidirectionalManyToManyIndex, neither key nor value uniquely identify each other.
  */
-class BidirectionalManyToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
+class BidirectionalManyToManyIndex[K, V](val key: IndexKey[_]) extends BinaryIndex[K, V] {
   protected val index: MutableSetMultimap[K, V] = Multimaps.mutable.set.empty()
   protected val indexInverted: MutableSetMultimap[V, K] = Multimaps.mutable.set.empty()
 
   override def entries: Iterable[(K, V)] = index.keyValuePairsView().asScala.map(p => p.getOne -> p.getTwo)
+
   override def index(k: K): collection.Set[V] = index.get(k).asScala
+
   override def indexInverted(v: V): collection.Set[K] = indexInverted.get(v).asScala
 
   override def insert(k: K, v: V): Unit = {

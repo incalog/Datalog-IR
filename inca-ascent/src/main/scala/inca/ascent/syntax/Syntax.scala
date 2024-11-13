@@ -113,13 +113,13 @@ val f32Wrapper =
     |""".stripMargin
 
 def read_edb_template(size: Int): String =
-  val tyArgs = (1 until size+1).map(i => s"T$i").mkString(", ") + ","
-  val tyParamS = (1 until size+1).map(i => s"T$i: FromStr").mkString(", ")
-  val tyArgConstraintS = (1 until size+1).map(i => s"    <T$i as FromStr>::Err: std::fmt::Debug").mkString(",\n")
-  val tyFieldS = (1 until size+1).map {
-    i => s"            let field$i = record[${i-1}].parse::<T$i>().expect(&format_error_msg!($i));"
+  val tyArgs = (1 until size + 1).map(i => s"T$i").mkString(", ") + ","
+  val tyParamS = (1 until size + 1).map(i => s"T$i: FromStr").mkString(", ")
+  val tyArgConstraintS = (1 until size + 1).map(i => s"    <T$i as FromStr>::Err: std::fmt::Debug").mkString(",\n")
+  val tyFieldS = (1 until size + 1).map {
+    i => s"            let field$i = record[${i - 1}].parse::<T$i>().expect(&format_error_msg!($i));"
   }.mkString("\n")
-  val tyFillVec = (1 until size+1).map(i => s"field$i").mkString(", ")  + ","
+  val tyFillVec = (1 until size + 1).map(i => s"field$i").mkString(", ") + ","
   s"""
      |fn parse_tsv_$size<$tyParamS>(file_path: &str) -> Vec<($tyArgs)>
      |where
@@ -182,60 +182,61 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
       s"""  println!("{{\\"name\\": \\"$name\\", \\"size\\": ${decl.arg.size}, \\"elements\\": {}}}\", serde_json::to_string($jsonObject).unwrap());"""
     }.mkString("\n")
 
-    val main = s"""
-       |fn main() {
-       |  let mut prog = AscentProgram::default();
-       |$fillEdbs
-       |  use std::time::Instant;
-       |  let now = Instant::now();
-       |  prog.run();
-       |  let elapsed = now.elapsed().as_nanos();
-       |  println!("{}", elapsed); 
-       |
-       |$out
-       |}
-       |""".stripMargin
+    val main =
+      s"""
+         |fn main() {
+         |  let mut prog = AscentProgram::default();
+         |$fillEdbs
+         |  use std::time::Instant;
+         |  let now = Instant::now();
+         |  prog.run();
+         |  let elapsed = now.elapsed().as_nanos();
+         |  println!("{}", elapsed);
+         |
+         |$out
+         |}
+         |""".stripMargin
 
     val ascentCmd = if parallel then "ascent_par" else "ascent"
 
     s"""
-      |// suppress all warnings
-      |#![allow(warnings)]
-      |
-      |use ascent::$ascentCmd;
-      |use ascent::aggregators::{max,min,sum,count};
-      |${if parallel then "use ascent::boxcar::Vec;" else ""}
-      |
-      |use std::hash::{Hash,Hasher};
-      |use std::ops;
-      |use std::cmp;
-      |use std::cmp::Ordering;
-      |use std::fs::File;
-      |use std::str::FromStr;
-      |// Used for serialization to and from JSON
-      |use serde::{Serialize, Serializer};
-      |use serde::ser::SerializeSeq;
-      |
-      |macro_rules! format_error_msg {
-      |    ($$($$args:expr),*) => {
-      |        format!("Failed to parse field {} into expected type", $$($$args),*)
-      |    };
-      |}
-      |
-      |$edbReadHelper
-      |
-      |${if parallel then vecSerializeWrapper else ""}
-      |
-      |$f32Wrapper
-      |
-      |${enums.mkString("\n")}
-      |
-      |$ascentCmd!{
-      |${ascentContent.mkString("\n")}
-      |}
-      |
-      |$main
-      |""".stripMargin
+       |// suppress all warnings
+       |#![allow(warnings)]
+       |
+       |use ascent::$ascentCmd;
+       |use ascent::aggregators::{max,min,sum,count};
+       |${if parallel then "use ascent::boxcar::Vec;" else ""}
+       |
+       |use std::hash::{Hash,Hasher};
+       |use std::ops;
+       |use std::cmp;
+       |use std::cmp::Ordering;
+       |use std::fs::File;
+       |use std::str::FromStr;
+       |// Used for serialization to and from JSON
+       |use serde::{Serialize, Serializer};
+       |use serde::ser::SerializeSeq;
+       |
+       |macro_rules! format_error_msg {
+       |    ($$($$args:expr),*) => {
+       |        format!("Failed to parse field {} into expected type", $$($$args),*)
+       |    };
+       |}
+       |
+       |$edbReadHelper
+       |
+       |${if parallel then vecSerializeWrapper else ""}
+       |
+       |$f32Wrapper
+       |
+       |${enums.mkString("\n")}
+       |
+       |$ascentCmd!{
+       |${ascentContent.mkString("\n")}
+       |}
+       |
+       |$main
+       |""".stripMargin
 
 
 enum ProgramContent:

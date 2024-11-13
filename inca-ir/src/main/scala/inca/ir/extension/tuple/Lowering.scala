@@ -38,14 +38,15 @@ trait Lowering extends BaseLowering:
     cachedFlatten = Map()
     super.visitExtensionalRelation(relation)
 
-  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) { moduleEntry match
-    case CaseDefinition(name, args, data) =>
-      val visitedArgs = args.flatMap {
-        case tt@TTuple(tys) => tt.flatten
-        case arg => Seq(visitType(arg))
-      }
-      Seq(CaseDefinition(name, visitedArgs, data))
-    case _ => super.visitModuleEntry(moduleEntry)
+  override def visitModuleEntry(moduleEntry: ModuleEntry): Seq[ModuleEntry] = preserveHints(moduleEntry) {
+    moduleEntry match
+      case CaseDefinition(name, args, data) =>
+        val visitedArgs = args.flatMap {
+          case tt@TTuple(tys) => tt.flatten
+          case arg => Seq(visitType(arg))
+        }
+        Seq(CaseDefinition(name, visitedArgs, data))
+      case _ => super.visitModuleEntry(moduleEntry)
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] =
@@ -83,7 +84,7 @@ trait Lowering extends BaseLowering:
             ty
           case Some(TermType(ty@TTuple(tys), _)) if idx > tys.size =>
             throw IndexOutOfBoundsException(s"Projection index $idx out of bounds!")
-          case Some(TermType(ty,_)) =>
+          case Some(TermType(ty, _)) =>
             throw IllegalStateException(s"Term $t has type $ty, but expected TTuple.")
           case None =>
             throw IllegalStateException(s"Untyped term $t")

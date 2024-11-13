@@ -7,6 +7,7 @@ class GenerateScala:
   type Code = String
 
   private var visited: Map[Any, Seq[Code]] = Map()
+
   private def createIfNeeded(a: Any)(f: => Seq[Code]): Unit = visited.get(a) match {
     case None =>
       this.visited += a -> Seq()
@@ -33,8 +34,8 @@ class GenerateScala:
   }
 
   def transType(t: Type): Code = t match {
-    case TAny =>  "Any"
-    case TNothing =>  "Nothing"
+    case TAny => "Any"
+    case TNothing => "Nothing"
     case TTuple(ts) => ts.map(transType).mkString("(", ", ", ")")
     case t: TName if t.isBuiltIn => t.name.name
     case t: TName => t.target match {

@@ -4,9 +4,9 @@ import inca.ir.Hint.preserveHints
 import inca.ir.{Atom, ModuleEntry, Term, Type}
 import inca.ir.visitors.BaseIRVisitor
 
-trait Visitor extends BaseIRVisitor{
+trait Visitor extends BaseIRVisitor {
 
-  override def visitType(ty: Type): Type = ty match{
+  override def visitType(ty: Type): Type = ty match {
     case TRecord(name) => TRecord(name)
     case _ => super.visitType(ty)
   }
@@ -19,16 +19,16 @@ trait Visitor extends BaseIRVisitor{
 
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match {
     case RecordLit(name, fields) =>
-      val newFields = fields.flatMap { (name, term) => visitTerm(term).map((name,_)) }
+      val newFields = fields.flatMap { (name, term) => visitTerm(term).map((name, _)) }
       Seq(RecordLit(name, newFields))
-    case FieldLookup(record, field) => visitTerm(record).map(FieldLookup(_,field))
+    case FieldLookup(record, field) => visitTerm(record).map(FieldLookup(_, field))
     case _ => super.visitTerm(term)
   })
 
-  override def visitAtom(atom: Atom) : Seq[Atom] = preserveHints(atom)(atom match{
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom)(atom match {
     case Deconstruct(record, name, fields, neg) =>
       val records = visitTerm(record)
-      val aargs = fields.flatMap { case (name, arg) => visitArg(arg).map((name,_)) }
+      val aargs = fields.flatMap { case (name, arg) => visitArg(arg).map((name, _)) }
       records.map(Deconstruct(_, name, aargs, neg))
     case _ => super.visitAtom(atom)
   })

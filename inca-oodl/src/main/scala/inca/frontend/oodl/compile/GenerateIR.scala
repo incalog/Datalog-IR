@@ -30,7 +30,7 @@ import inca.ir.extension.impure
 import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
-import inca.foreign.scala.ir.primitive as  irscala
+import inca.foreign.scala.ir.primitive as irscala
 import inca.ir.optimize
 
 // TODO: Classes with same method name, but different params names that do not inherit from
@@ -53,16 +53,20 @@ case object MutationImpurityKind extends irimpure.ImpurityKind:
 
 object GenerateIR:
   def subtypeRelationName = "subtype$"
+
   def castRelationName = "cast$"
+
   def runtimeTypeRelationName = "runtimeType$"
+
   def extensionalRelationPrefix = "ext_"
+
   def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
 class GenerateIR:
   val irLang: Language = new Language(Set(ir.BaseIR)
-    + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
-    + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
-    + iragg.IR + iraggset.IR + irimpure.IR + irmono.IR + irmap.IR
+                                      + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
+                                      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
+                                      + iragg.IR + iraggset.IR + irimpure.IR + irmono.IR + irmap.IR
   )
 
   val gensym: Gensym = new Gensym()
@@ -337,7 +341,7 @@ class GenerateIR:
         ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg, irarith.IntNum(0).arg))
     }
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(body, unusedResultVar) ++ assignUserFields)))
-      //.addHint(Hints.Pure)
+  //.addHint(Hints.Pure)
 
   // Prevent compiling inherited fields multiple times
   var visitedFields: Set[(ClassDef, Name)] = Set.empty
@@ -383,7 +387,7 @@ class GenerateIR:
             RefByName(filterRelName),
             Seq(ir.Var("this").arg, ir.Var(mutVar).arg, iragg.AggregateColumnArg(maxTs)),
             irarith.ArithmeticAggregationOperator.MaxInt
-          ),//.addHint(demand.Hints.IgnoreCall),
+          ), //.addHint(demand.Hints.IgnoreCall),
           ir.Call(qualifiedName, Seq(ir.Var("this").arg, ir.Var("value").arg, maxTs.arg))
             .addHint(demand.DemandIgnoreCallHint)
         ), ir.Var(mutVar), MutationImpurityKind)
@@ -483,11 +487,11 @@ class GenerateIR:
 
   var userDefinedMonos: Map[Name, irmono.MonoDefinition] = Map()
   var genScala: GenerateScala = _
-  
+
   def compileUserDefinedMono(classDef: ClassDef): Unit = {
     val monoName = classDef.name
     val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls
-    
+
     def genClosure(methodDef: MethodDef) =
       val inArgs = methodDef.params.map(p => s"${p.name}: ${genScala.transType(p.typ)}").mkString("(", ",", ")")
       val body = genScala.transStatements(methodDef.body)
@@ -501,7 +505,7 @@ class GenerateIR:
 
     val resultMethod = classDef.methods.filter(_.name.name == "result").head
     val resultCode = genClosure(resultMethod)
-    
+
     val combineCode = "(a: Any, b: Any) => throw new UnsupportedOperationException()"
 
     val monoDef = new irscala.ScalaMonoDefinition(
@@ -605,7 +609,7 @@ class GenerateIR:
             )
           else
             block.Block(
-              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm.arg, resultVar.arg)),//.addHint(demand.Hints.IgnoreCall),
+              ir.Call(s"$qualifiedName$$Read", Seq(recvTerm.arg, resultVar.arg)), //.addHint(demand.Hints.IgnoreCall),
               resultVar
             )
         case _ => throw IllegalStateException(s"Cannot compile select from receiver type ${recv.typ}, $recv")
@@ -659,6 +663,7 @@ class GenerateIR:
                 if keys.size == 1 then irmap.MapLookUp(map, keys.head)
                 else if keys.size > 1 then irmap.MapLookUp(nmapLookUp(map, keys.dropRight(1)), keys.last)
                 else throw IllegalAccessError(s"$keys is an empty list")
+
               val readMap = nmapLookUp(irmono.ReadMono(compileExpression(recv)), args.map(compileExpression))
               ir.Cast(readMap, compileType(expr.typ.get))
         case Some(t: TName) if t.target.exists(t => t.isInstanceOf[ClassDef] && t.asInstanceOf[ClassDef].isMonoClass) =>

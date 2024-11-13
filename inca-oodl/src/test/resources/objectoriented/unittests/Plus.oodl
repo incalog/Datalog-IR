@@ -1,44 +1,44 @@
 module Plus
 
 class Nat {
-    def succ(): Succ = {
-        return new Succ(this)
-    }
+  def succ(): Succ = {
+    return new Succ(this)
+  }
 
-    def add(n: Nat): Nat = {
-        return n
-    }
+  def add(n: Nat): Nat = {
+    return n
+  }
 
-    def intValue(): Int = {
-        return -1
-    }
+  def intValue(): Int = {
+    return -1
+  }
 }
 
 class Zero extends Nat {
-    override def intValue(): Int = {
-        return 0
-    }
+  override def intValue(): Int = {
+    return 0
+  }
 }
 
 class Succ(pred: Nat) extends Nat {
-    override def intValue(): Int = {
-        return 1 + this.pred.intValue()
-    }
+  override def intValue(): Int = {
+    return 1 + this.pred.intValue()
+  }
 
-    override def add(n: Nat): Nat = {
-        return new Succ(this.pred.add(n))
-    }
+  override def add(n: Nat): Nat = {
+    return new Succ(this.pred.add(n))
+  }
 }
 
 @main
 def main(): Int = {
-    val zero: Zero = new Zero()
-    val one = new Succ(zero)
-    //val first: Nat = zero.succ().succ()
-    //val second: Nat = zero.succ().succ().succ()
-    //val result: Nat = first.add(second)
+  val zero: Zero = new Zero()
+  val one = new Succ(zero)
+  //val first: Nat = zero.succ().succ()
+  //val second: Nat = zero.succ().succ().succ()
+  //val result: Nat = first.add(second)
 
-    // Does not work, most likely because when we want to query we still pass the
-    // counter, which is wrong
-    return one.add(zero).intValue() // result.intValue()
+  // Does not work, most likely because when we want to query we still pass the
+  // counter, which is wrong
+  return one.add(zero).intValue() // result.intValue()
 }

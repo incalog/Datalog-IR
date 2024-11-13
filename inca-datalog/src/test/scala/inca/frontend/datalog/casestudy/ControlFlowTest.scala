@@ -31,6 +31,7 @@ class ControlFlowTest extends AnyFunSuite:
     override def toString: String = s"function $name = $body"
 
   import Stmt.*
+
   enum Stmt:
     case Simple(lab: String)
     case Call(name: String)
@@ -49,6 +50,7 @@ class ControlFlowTest extends AnyFunSuite:
     override def equals(obj: Any): Boolean = obj match
       case that: Stmt => this.id == that.id
       case _ => false
+
     override def hashCode(): Int = id
 
     def foreach(f: Stmt => Unit): Unit =
@@ -71,11 +73,13 @@ class ControlFlowTest extends AnyFunSuite:
     val calls = ListBuffer.empty[Stmt.Call]
     val whiles = ListBuffer.empty[Stmt.While]
     val blocks = ListBuffer.empty[Stmt.Block]
+
     def collect(s: Stmt) = s match
       case s: Stmt.Simple => simples += s
       case s: Stmt.Call => calls += s
       case s: Stmt.While => whiles += s
       case s: Stmt.Block => blocks += s
+
     s.foreach(collect)
 
     // edb simpleStmt(Int).
@@ -108,7 +112,7 @@ class ControlFlowTest extends AnyFunSuite:
 
     val s = Block(List(Simple("a"), Simple("b"), Simple("c"), Simple("d")))
     val edbs = stmtToEdbRelations(s)
-//    edbs.foreach(t => println(t.asTable))
+    //    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
 
     val stmt = loaded.query("stmt")
@@ -126,7 +130,7 @@ class ControlFlowTest extends AnyFunSuite:
 
     val s = Block(List(Simple("a"), While(Simple("b")), Simple("d"), Simple("e")))
     val edbs = stmtToEdbRelations(s)
-//    edbs.foreach(t => println(t.asTable))
+    //    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
 
     println(s)
@@ -142,11 +146,11 @@ class ControlFlowTest extends AnyFunSuite:
 
     val s = Block(List(Simple("a"), While(Block(List(Simple("b"), Simple("c")))), Simple("d"), Simple("e")))
     val edbs = stmtToEdbRelations(s)
-//    edbs.foreach(t => println(t.asTable))
+    //    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
 
     println(s)
-//    loaded.engine.readAll().map(_.asTable).foreach(println)
+    //    loaded.engine.readAll().map(_.asTable).foreach(println)
     val cflow = loaded.query("cflow")
     println(cflow.asTable)
   }
@@ -207,10 +211,11 @@ class ControlFlowTest extends AnyFunSuite:
     println("Incremental update\n")
     loaded.engine.addUpdateListener(new RelationUpdateListener(deadCode) {
       override def tupleAdded(tup: rel.Tuple): Unit = println(s"New tuple $tup")
+
       override def tupleRemoved(tup: rel.Tuple): Unit = println(s"Deleted tuple $tup")
     })
 
-    lastNonBlock(funs.head.body).foreach( last =>
+    lastNonBlock(funs.head.body).foreach(last =>
       val call = Call("fun1")
       val s = Simple("f0")
       loaded.engine.insert(Relation2("next", Seq("s1", "s2"), Seq(Seq(last, call), Seq(call, s))))

@@ -11,10 +11,12 @@ import inca.util.Gensym
 
 trait IR extends BaseIR:
   override val name: String = "Mono"
+
   override def language: Language = super.language + IR
+
   override def requires: Language = Language()
 
-object IR extends IR { }
+object IR extends IR {}
 
 // TODO: also track State type?
 case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
@@ -25,21 +27,27 @@ case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
 // TODO: is it necessary to keep args?
 case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
+
   override def toString: String = s"new ${mono.name}(${args.mkString(", ")})@{${keys.mkString(",")}}"
 
 object NewMono:
-  def apply(mono: MonoDefinition) : NewMono = NewMono(mono, Seq(), Seq())
+  def apply(mono: MonoDefinition): NewMono = NewMono(mono, Seq(), Seq())
 
 case class NewMonoFor(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term], uniqueFor: Seq[Term]) extends Term:
   override def vars: Seq[Var] = args.flatMap(_.vars)
+
   override def toString: String = s"new ${mono.name}(${args.mkString(", ")}, $uniqueFor)@{${keys.mkString(",")}}"
 
 case class ReadMono(m: Term) extends Term:
   override def vars: Seq[Var] = m.vars
+
   override def toString: String = s"$m.get"
 
 case class WriteMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
-  override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap{_.vars}
+  override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap {
+    _.vars
+  }
+
   override def toString: String =
     val prefix = s"$m += $input"
     if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
@@ -72,13 +80,17 @@ Aggregate_Mono_TBoolean_TSet$TBoolean$$(m: TDemand(Mono_TBoolean_TSet$TBoolean$$
 
 trait MonoDefinition:
   def name: Name
+
   def constructorParamTypes: Seq[Type]
+
   def typ: MonoTypes
+
   final def monoType(keys: Seq[Type]): TMono =
     val MonoTypes(input, _, output) = typ
     TMono(input, output, keys)
 
 trait BuiltInMonoDefinition extends MonoDefinition
+
 trait UserDefinedMonoDefinition extends MonoDefinition
 
 enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
@@ -96,6 +108,7 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
   override def constructorParamTypes: Seq[Type] = this match
     case CountFrom | Min => Seq(TInt)
     case _ => Seq()
+
   override def typ: MonoTypes = this match
     case MaxInt | SumInt | Min => MonoTypes(TInt, TInt, TInt)
     case Count | CountFrom => MonoTypes(TAny, TInt, TInt)
@@ -105,12 +118,16 @@ enum ArithmeticMonoDefinition extends BuiltInMonoDefinition:
 
 case class StringConcatMonoDefinition() extends BuiltInMonoDefinition:
   override def name: Name = "StringConcatMono"
+
   override def constructorParamTypes: Seq[Type] = Seq()
+
   override def typ: MonoTypes = MonoTypes(TString, TString, TString)
 
 case class DisjMonoDefinition() extends BuiltInMonoDefinition:
   override def name: Name = "DisjMono"
+
   override def constructorParamTypes: Seq[Type] = Seq()
+
   override def typ: MonoTypes = MonoTypes(TBoolean, TBoolean, TBoolean)
 
 /*
@@ -131,11 +148,15 @@ case class DisjMonoDefinition() extends BuiltInMonoDefinition:
 
 case class SetMonoDefinition(ty: Type) extends BuiltInMonoDefinition:
   override def name: Name = s"SetMonoDef_$ty"
+
   override def constructorParamTypes: Seq[Type] = Seq()
+
   override def typ: MonoTypes = MonoTypes(ty, TSet(ty), TSet(ty))
 
 
 case class MapMonoDefinition(keyTy: Type, mono: MonoDefinition) extends BuiltInMonoDefinition:
   override def name: Name = s"MapMonoDef_${keyTy}_${mono.name}"
+
   override def constructorParamTypes: Seq[Type] = Seq()
+
   override def typ: MonoTypes = MonoTypes(TTuple(Seq(keyTy, mono.typ.in)), TMap(keyTy, mono.typ.state), TMap(keyTy, mono.typ.out))

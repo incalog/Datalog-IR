@@ -35,7 +35,7 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
       typechecker.checkProgram(Seq(lowered))
     }
     for (phase <- pipeline) {
-      val (name, lower) : (String, BaseIRVisitor) = phase()
+      val (name, lower): (String, BaseIRVisitor) = phase()
       lowered = lower.visitProgram(Seq(lowered)).head
       val typechecker = new IRTypechecker {}
       try typechecker.checkProgram(Seq(lowered))
@@ -132,8 +132,8 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
     implicit val typechecker1 = new IRTypechecker {}
     module(relationCastType)
   }
-  
-  
+
+
   private lazy val relation4: Relation = Relation(
     "main",
     Seq(
@@ -256,7 +256,6 @@ class MonoTypeLoweringTest extends AnyFunSuiteLike {
   test("Lower mono: create mono in multiple relations") {
     module(relation4, relation9, extLeaf)
   }
-
 
 
 }

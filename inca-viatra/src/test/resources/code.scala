@@ -20,7 +20,9 @@ import scala.util.Try
 
 object Plus extends PSystem.Module {
   trait Nat
+
   case object Zero extends Nat
+
   case class Succ(param_0: Nat) extends Nat
 
   /*enum Nat {
@@ -49,7 +51,9 @@ object Plus extends PSystem.Module {
 
         new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
           override def getShortDescription: String = "eval(`Nat.Zero`)"
+
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList()
+
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
             (Zero)
           }
@@ -57,7 +61,9 @@ object Plus extends PSystem.Module {
 
         new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
           override def getShortDescription: String = "eval(`(Nat.Succ)(`Nat.Zero`)`)"
+
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList("out$0")
+
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
             (Succ)(env.getValue("out$0").asInstanceOf[Nat])
 
@@ -76,7 +82,9 @@ object Plus extends PSystem.Module {
       })
 
       override def getFullyQualifiedName: String = "Plus_main"
+
       override def getParameters: util.List[PParameter] = util.List.of(param_main_result$0)
+
       override def getParameterNames: util.List[String] = util.List.of("main_result$0")
     }
   }

@@ -9,15 +9,17 @@ trait Hints {
     hint.foreach(h => hints += h.key -> h)
     this
   }
+
   def withHints(h: Hints): this.type = {
     this.hints.clear()
     this.hints ++= h.hints
     this
   }
-  def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
-//  def hasHint(hint: Hint): Boolean = this.hints.contains(hint.key)
 
-  def clearHints(): this.type = 
+  def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
+  //  def hasHint(hint: Hint): Boolean = this.hints.contains(hint.key)
+
+  def clearHints(): this.type =
     this.hints.clear()
     this
 
@@ -27,9 +29,11 @@ trait Hints {
 }
 
 trait HintKey[H <: Hint]
+
 trait Hint {
   def key: Hint.Key
 }
+
 object Hint {
   trait Key
 

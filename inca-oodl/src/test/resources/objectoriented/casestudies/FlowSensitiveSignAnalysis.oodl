@@ -4,20 +4,27 @@ module WhileLang
 
 class Sign {
   def joined(that: Sign): Sign = this
+
   def add(that: Sign): Sign = this
+
   def sub(that: Sign): Sign = this
+
   def mul(that: Sign): Sign = this
+
   def gt(that: Sign): Sign = this
+
   def stringValue(): String = "Sign"
 }
 
 case class Bot extends Sign {
   override def joined(that: Sign): Sign = that
+
   override def stringValue(): String = "Bot"
 }
 
 case class Top extends Sign {
   override def joined(that: Sign): Sign = this
+
   override def stringValue(): String = "Top"
 }
 
@@ -28,24 +35,28 @@ case class Pos extends Sign {
     else
       return new Top()
   }
+
   override def add(that: Sign): Sign = {
     if (that.isInstanceOf[Pos] || that.isInstanceOf[Zero] || that.isInstanceOf[Bot])
       return this
     else
       return new Top()
   }
+
   override def sub(that: Sign): Sign = {
     if (that.isInstanceOf[Neg] || that.isInstanceOf[Zero] || that.isInstanceOf[Bot])
       return this
     else
       return new Top()
   }
+
   override def mul(that: Sign): Sign = {
     if (that.isInstanceOf[Neg] || that.isInstanceOf[Zero] || that.isInstanceOf[Pos])
       return that
     else
       return new Top()
   }
+
   override def stringValue(): String = "Pos"
 }
 
@@ -92,7 +103,9 @@ case class Zero extends Sign {
     else
       return new Top()
   }
+
   override def add(that: Sign): Sign = that
+
   override def sub(that: Sign): Sign = {
     if (that.isInstanceOf[Neg])
       return new Pos()
@@ -103,111 +116,135 @@ case class Zero extends Sign {
     else
       return new Top()
   }
+
   override def mul(that: Sign): Sign = this
+
   override def stringValue(): String = "Zero"
 }
 
 // Mark: - Expression
 
 class Exp {
-    // abstract
-    def accept(v: Visitor): Unit = { }
-    def aevalSign(p: ValueManager, s: Stm): Sign = new Bot()
-    def stringValue(): String = "Exp"
+  // abstract
+  def accept(v: Visitor): Unit = {}
+
+  def aevalSign(p: ValueManager, s: Stm): Sign = new Bot()
+
+  def stringValue(): String = "Exp"
 }
 
 class Var(val name: String) extends Exp {
-    override def accept(v: Visitor): Unit = v.visitVar(this)
-    override def aevalSign(p: ValueManager, s: Stm): Sign = p.get(s, this.name)
-    override def stringValue(): String = "Var(" + this.name + ")"
+  override def accept(v: Visitor): Unit = v.visitVar(this)
+
+  override def aevalSign(p: ValueManager, s: Stm): Sign = p.get(s, this.name)
+
+  override def stringValue(): String = "Var(" + this.name + ")"
 }
 
 class Num(val num: Int) extends Exp {
-    override def accept(v: Visitor): Unit = v.visitNum(this)
+  override def accept(v: Visitor): Unit = v.visitNum(this)
 
-    override def aevalSign(p: ValueManager, s: Stm): Sign = {
-        if (this.num == 0)
-            return new Zero()
-        else if (this.num > 0)
-            return new Pos()
-        else
-            return new Neg()
-    }
+  override def aevalSign(p: ValueManager, s: Stm): Sign = {
+    if (this.num == 0)
+      return new Zero()
+    else if (this.num > 0)
+      return new Pos()
+    else
+      return new Neg()
+  }
 
-    override def stringValue(): String = {
-        val n: Int = this.num
-        "Num(" + n.toString() + ")"
-    }
+  override def stringValue(): String = {
+    val n: Int = this.num
+    "Num(" + n.toString() + ")"
+  }
 }
 
 class BinOp(val left: Exp, val right: Exp) extends Exp {
   override def accept(v: Visitor): Unit = {
-      this.left.accept(v)
-      this.right.accept(v)
-      this.binOpAccept(v)
+    this.left.accept(v)
+    this.right.accept(v)
+    this.binOpAccept(v)
   }
+
   // abstract
-  def binOpAccept(v: Visitor): Unit = { }
+  def binOpAccept(v: Visitor): Unit = {}
 
   override def aevalSign(p: ValueManager, s: Stm): Sign = {
     this.binOpConst(this.left.aevalSign(p, s), this.right.aevalSign(p, s))
   }
+
   // abstract
   def binOpConst(c1: Sign, c2: Sign): Sign = c1
 }
 
 class Add(val left: Exp, val right: Exp) extends BinOp(left, right) {
   override def binOpAccept(v: Visitor): Unit = v.visitAdd(this)
+
   override def binOpConst(c1: Sign, c2: Sign): Sign = c1.add(c2)
+
   override def stringValue(): String = "Add(" + this.left.stringValue() + ", " + this.right.stringValue() + ")"
 }
 
 class Sub(val left: Exp, val right: Exp) extends BinOp(left, right) {
   override def binOpAccept(v: Visitor): Unit = v.visitSub(this)
+
   override def binOpConst(c1: Sign, c2: Sign): Sign = c1.sub(c2)
+
   override def stringValue(): String = "Sub(" + this.left.stringValue() + ", " + this.right.stringValue() + ")"
 }
 
 class Mul(val left: Exp, val right: Exp) extends BinOp(left, right) {
   override def binOpAccept(v: Visitor): Unit = v.visitMul(this)
+
   override def binOpConst(c1: Sign, c2: Sign): Sign = c1.mul(c2)
+
   override def stringValue(): String = "Mul(" + this.left.stringValue() + ", " + this.right.stringValue() + ")"
 }
 
 class GT(val left: Exp, val right: Exp) extends BinOp(left, right) {
   override def binOpAccept(v: Visitor): Unit = v.visitGT(this)
+
   override def binOpConst(c1: Sign, c2: Sign): Sign = c1.gt(c2)
+
   override def stringValue(): String = "GT(" + this.left.stringValue() + ", " + this.right.stringValue() + ")"
 }
 
 // Mark: - Statements
 
 class Stm {
-    // abstract
-    def accept(v: Visitor): Unit = { }
-    def first(): Stm = this
-    //def last(): Set[Stm] = Set(this)
-    def last(): Stm = this
-    def stringValue(): String = "Stm"
-    // Default: Preserve all variables
-    def transfer(from: Stm, manager: ValueManager): Unit = manager.transferAll(from, this)
+  // abstract
+  def accept(v: Visitor): Unit = {}
+
+  def first(): Stm = this
+
+  //def last(): Set[Stm] = Set(this)
+  def last(): Stm = this
+
+  def stringValue(): String = "Stm"
+
+  // Default: Preserve all variables
+  def transfer(from: Stm, manager: ValueManager): Unit = manager.transferAll(from, this)
 }
 
 class Assign(val name: String, val rhs: Exp) extends Stm {
   override def accept(v: Visitor): Unit = {
-      this.rhs.accept(v)
-      v.visitAssign(this)
+    this.rhs.accept(v)
+    v.visitAssign(this)
   }
+
   override def stringValue(): String = "Assign(" + this.name + ", " + this.rhs.stringValue() + ")"
+
   override def transfer(from: Stm, manager: ValueManager): Unit = {
-      manager.transferAll(from, this)
-      manager.put(this, this.name, this.rhs.aevalSign(manager, from))
+    manager.transferAll(from, this)
+    manager.put(this, this.name, this.rhs.aevalSign(manager, from))
   }
 }
 
 class Skip extends Stm {
   override def accept(v: Visitor): Unit = v.visitSkip(this)
+
   override def stringValue(): String = "Skip"
+
   override def transfer(from: Stm, manager: ValueManager): Unit = manager.transferAll(from, this)
 }
 
@@ -217,10 +254,14 @@ class Sequence(val s1: Stm, val s2: Stm) extends Stm {
     this.s2.accept(v)
     v.visitSequence(this)
   }
+
   override def first(): Stm = this.s1.first()
+
   //override def last(): Set[Stm] = this.s2.last()
   override def last(): Stm = this.s2.last()
+
   override def stringValue(): String = "Sequence(" + this.s1.stringValue() + ", " + this.s2.stringValue() + ")"
+
   override def transfer(from: Stm, manager: ValueManager): Unit = {
     // Does not occur
   }
@@ -251,12 +292,15 @@ class While(val cnd: Exp, val body: Stm) extends Stm {
   }
 
   override def stringValue(): String = "While(" + this.cnd.stringValue() + ", " + this.body.stringValue() + ")"
+
   override def transfer(from: Stm, manager: ValueManager): Unit = {
     manager.transferAll(from, this)
     manager.transferAll(from, this.body.first())
 
-    fix manager.transferAll(this.body.last(), this)
-    fix manager.transferAll(this.body.last(), this.body.first())
+    fix manager
+  .transferAll(this.body.last(), this)
+    fix manager
+  .transferAll(this.body.last(), this.body.first())
     /*for (l2 <- this.body.last()) yield
       manager.transferAll(l2, this)
     for (l <- this.body.last()) yield
@@ -287,6 +331,7 @@ class VarDef(val name: String, val rhs: Exp) extends Stm {
   }
 
   override def stringValue(): String = "VarDef(" + this.name + ", " + this.rhs.stringValue() + ")"
+
   override def transfer(from: Stm, manager: ValueManager): Unit = {
     manager.transferAll(from, this)
     manager.put(this, this.name, this.rhs.aevalSign(manager, from))
@@ -296,22 +341,32 @@ class VarDef(val name: String, val rhs: Exp) extends Stm {
 // Mark: - CFG
 
 class Visitor {
-    // Exp
-    def visitVar(e: Var): Unit = { }
-    def visitNum(e: Num): Unit = { }
-    def visitAdd(e: Add): Unit = { }
-    def visitSub(e: Sub): Unit = { }
-    def visitMul(e: Mul): Unit = {}
-    def visitGT(e: GT): Unit = {}
+  // Exp
+  def visitVar(e: Var): Unit = {}
 
-    // Stm
-    def visitAssign(s: Assign): Unit = { }
-    def visitSkip(s: Skip): Unit = { }
-    def visitSequence(s: Sequence): Unit = { }
-    //def visitIf(s: If): Unit = { }
-    def visitWhile(s: While): Unit = { }
-    def visitValDef(s: ValDef): Unit = { }
-    def visitVarDef(s: VarDef): Unit = { }
+  def visitNum(e: Num): Unit = {}
+
+  def visitAdd(e: Add): Unit = {}
+
+  def visitSub(e: Sub): Unit = {}
+
+  def visitMul(e: Mul): Unit = {}
+
+  def visitGT(e: GT): Unit = {}
+
+  // Stm
+  def visitAssign(s: Assign): Unit = {}
+
+  def visitSkip(s: Skip): Unit = {}
+
+  def visitSequence(s: Sequence): Unit = {}
+
+  //def visitIf(s: If): Unit = { }
+  def visitWhile(s: While): Unit = {}
+
+  def visitValDef(s: ValDef): Unit = {}
+
+  def visitVarDef(s: VarDef): Unit = {}
 }
 
 class CfgVisitor extends Visitor {
@@ -346,79 +401,83 @@ class CfgVisitor extends Visitor {
 // Mark: - Sign Analysis
 
 class ValueManager {
-    def get(s: Stm, v: String): Sign = new Bot()
-    def put(s: Stm, v: String, m: Sign): Unit = { }
-    def transferAll(from: Stm, to: Stm): Unit = { }
+  def get(s: Stm, v: String): Sign = new Bot()
+
+  def put(s: Stm, v: String, m: Sign): Unit = {}
+
+  def transferAll(from: Stm, to: Stm): Unit = {}
 }
 
 class MSign extends mono.Type[Sign, Sign, Sign] {
   def init: Sign = new Bot()
+
   def +=(state: Sign, v: Sign): Sign = state.joined(v)
+
   def result(state: Sign): Sign = state
 }
 
 class FSSignAnalysis(val head: Stm, val cfg: mono.Set[(Stm, Stm)], val varNames: Set[String]) extends ValueManager {
-    val after: mono.Map[Stm, mono.Map[String, MSign]] = new mono.Map[Stm, mono.Map[String, MSign]]()
+  val after: mono.Map[Stm, mono.Map[String, MSign]] = new mono.Map[Stm, mono.Map[String, MSign]]()
 
-    override def get(s: Stm, v: String): Sign = this.after.get(s, v)
+  override def get(s: Stm, v: String): Sign = this.after.get(s, v)
 
-    override def put(s: Stm, v: String, m: Sign): Unit = {
-      this.after += (s, (v, m))
-    }
+  override def put(s: Stm, v: String, m: Sign): Unit = {
+    this.after += (s, (v, m))
+  }
 
-    def run(): Unit = {
-      val start: Stm = new Skip()
-      for (v <- this.varNames) yield
-        this.put(start, v, new Bot())
-      this.head.transfer(start, this)
-      this.iterate()
-      return
-    }
+  def run(): Unit = {
+    val start: Stm = new Skip()
+    for (v <- this.varNames) yield
+      this.put(start, v, new Bot())
+    this.head.transfer(start, this)
+    this.iterate()
+    return
+  }
 
-    def iterate(): Unit = {
-      for (e <- this.cfg)
-          yield e._2.transfer(e._1, this)
-      return
-    }
+  def iterate(): Unit = {
+    for (e <- this.cfg)
+      yield e._2.transfer(e._1, this)
+    return
+  }
 
-    override def transferAll(from: Stm, to: Stm): Unit = {
-      for (y <- this.varNames) yield
-          this.put(to, y, this.get(from, y))
-      return
-    }
+  override def transferAll(from: Stm, to: Stm): Unit = {
+    for (y <- this.varNames) yield
+      this.put(to, y, this.get(from, y))
+    return
+  }
 }
 
 
 class Examples {
-    /*def factorial(): Stm =
-        new Sequence(new VarDef("n", new Num(5)),
-            new Sequence(new VarDef("acc", new Num(1)),
-                new While(
-                    new GT(new Var("n"), new Num(1)),
-                    new Sequence(
-                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
-                        new Assign("n", new Sub(new Var("n"), new Num(1)))
-                    )
-                )
-            )
-        )
+  /*def factorial(): Stm =
+      new Sequence(new VarDef("n", new Num(5)),
+          new Sequence(new VarDef("acc", new Num(1)),
+              new While(
+                  new GT(new Var("n"), new Num(1)),
+                  new Sequence(
+                      new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                      new Assign("n", new Sub(new Var("n"), new Num(1)))
+                  )
+              )
+          )
+      )
 
-    def assignments(): Stm =
-        new Sequence(new VarDef("m", new Num(3)),
-            new Sequence(new Assign("m", new Num(2)),
-                new Sequence(
-                    new VarDef("n", new Num(5)),
-                    new ValDef("acc", new Num(1))
-                )
-            )
-        )*/
+  def assignments(): Stm =
+      new Sequence(new VarDef("m", new Num(3)),
+          new Sequence(new Assign("m", new Num(2)),
+              new Sequence(
+                  new VarDef("n", new Num(5)),
+                  new ValDef("acc", new Num(1))
+              )
+          )
+      )*/
 
-    //TODO: Functions are faster than values. Why ?
-    def simpleAssignments(): Stm =
-        new Sequence(
-            new ValDef("n", new Num(5)),
-            new ValDef("acc", new Num(1))
-        )
+  //TODO: Functions are faster than values. Why ?
+  def simpleAssignments(): Stm =
+    new Sequence(
+      new ValDef("n", new Num(5)),
+      new ValDef("acc", new Num(1))
+    )
 }
 
 @main

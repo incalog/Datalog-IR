@@ -13,6 +13,6 @@ trait Visitor extends BaseIRVisitor:
       visitTerm(t).map(ToString.apply)
     case _ => super.visitTerm(term))
 
-  override def visitType(ty: Type): Type =  preserveHints(ty)(ty match
+  override def visitType(ty: Type): Type = preserveHints(ty)(ty match
     case TString => TString
     case _ => super.visitType(ty))

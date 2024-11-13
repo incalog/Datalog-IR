@@ -13,7 +13,8 @@ trait Visitor extends BaseIRVisitor:
       visitModuleEntry(entry).map(ParametricModuleEntry(typeParams, _))
     case _ => super.visitModuleEntry(moduleEntry)
 
-  override def visitType(ty: Type): Type = preserveHints(ty) { ty match
+  override def visitType(ty: Type): Type = preserveHints(ty) {
+    ty match
       case TypeVar(x) => TypeVar(x)
       case _ => super.visitType(ty)
   }

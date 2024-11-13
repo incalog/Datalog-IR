@@ -9,6 +9,7 @@ private trait Collector[T] extends IRVisitor with Visitor {
   private var collection: Seq[T] = Seq()
 
   protected def collect(ele: T): Unit = collection :+= ele
+
   def get(): Seq[T] = collection
 }
 
@@ -44,7 +45,7 @@ protected[viatra] class LitCollector extends Collector[(String, ScalaType)] {
     case ScalaConstantTerm(code, ty) =>
       collect((code, ty))
       Seq()
-    case ScalaTerm(_, _ , _, _) =>
+    case ScalaTerm(_, _, _, _) =>
       // Do not collect literals that are used as arguments for a scala term
       Seq()
     case _ =>
@@ -70,7 +71,7 @@ protected[viatra] class ScalaModuleEntryCollector extends Collector[ScalaDefnMod
     case defn: ScalaDefnModuleEntry =>
       collect(defn)
       super.visitModuleEntry(moduleEntry)
-    case _ => 
+    case _ =>
       super.visitModuleEntry(moduleEntry)
 }
 

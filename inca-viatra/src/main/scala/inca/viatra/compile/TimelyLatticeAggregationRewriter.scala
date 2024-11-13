@@ -26,9 +26,9 @@ class SubstituteCallsRewriter(find: Name, replace: Name) extends IRVisitor with 
  * Based on these assumptions we perform the following steps:
  * 1. Guarantee that each relation contains at most one aggregation.
  * 2. If a relation `R` contains an aggregation over a relation `Q` in the same strongly connected component (scc):
- *  2.1 Rename `R` by appending a suffix "Wrapped"
- *  2.2 Redirect all calls to `R` in the scc to `R$Wrapped`
- *  2.3 Introduce a new relation `R` that queries and aggregates over `R$Wrapped`
+ * 2.1 Rename `R` by appending a suffix "Wrapped"
+ * 2.2 Redirect all calls to `R` in the scc to `R$Wrapped`
+ * 2.3 Introduce a new relation `R` that queries and aggregates over `R$Wrapped`
  */
 class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor with primitive.Visitor:
   val gensym: Gensym = Gensym()
@@ -64,7 +64,7 @@ class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor wi
     case agg: Aggregate =>
       numberOfAggregations += 1
       val allSCCs = scc.filter(_.contains(currentRelation.name.name))
-                       .filter(_.contains(agg.rel.name))
+        .filter(_.contains(agg.rel.name))
       // only if we aggregate over a relation in the same strongly connected component
       allSCCs.foreach { currentScc =>
         createDoubleAggregation(currentScc, currentRelation, agg)
@@ -73,41 +73,41 @@ class TimelyLatticeAggregationRewriter extends edbdata.Visitor with IRVisitor wi
     case _ => super.visitAtom(atom)
 
   private def createDoubleAggregation(currentSCC: Seq[String], rel: Relation, agg: Aggregate): Unit = gensym.scoped {
-      val qualifiedName = gensym.fresh(s"${rel.name}$$Wrapped")
+    val qualifiedName = gensym.fresh(s"${rel.name}$$Wrapped")
 
-      // the wrapped relation just does whatever the original relation was doing
-      relations += qualifiedName -> Relation(Name(qualifiedName), rel.params, rel.bodies)
+    // the wrapped relation just does whatever the original relation was doing
+    relations += qualifiedName -> Relation(Name(qualifiedName), rel.params, rel.bodies)
 
-      // redirect all calls in the scc to the wrapper function
-      (currentSCC :+ qualifiedName).filter(n => n != rel.name.name).foreach { sccRelName =>
-        val relation = relations(sccRelName)
-        val rewriter = new SubstituteCallsRewriter(rel.name, Name(qualifiedName))
-        val Seq(wrappedRel) = rewriter.visitRelation(relation)
-        relations += sccRelName -> wrappedRel
-      }
+    // redirect all calls in the scc to the wrapper function
+    (currentSCC :+ qualifiedName).filter(n => n != rel.name.name).foreach { sccRelName =>
+      val relation = relations(sccRelName)
+      val rewriter = new SubstituteCallsRewriter(rel.name, Name(qualifiedName))
+      val Seq(wrappedRel) = rewriter.visitRelation(relation)
+      relations += sccRelName -> wrappedRel
+    }
 
-      // FIXME: This assumes that agg.rel and rel have the same signature.
-      //  Otherwise we don't know over which column we need to aggregate.
-      //  We could work around this, by precisely tracking the dataflow.
-      val aggRelation = relations(agg.rel.name.name)
-      aggRelation.params.zipAll(rel.params, null, null).foreach {
-        case (Param(name1, ty1), Param(name2, ty2)) if name1 == name2 && ty1 == ty2 => // nothing
-        case _ => throw IllegalStateException("Ambiguous aggregation rewrite!")
-      }
+    // FIXME: This assumes that agg.rel and rel have the same signature.
+    //  Otherwise we don't know over which column we need to aggregate.
+    //  We could work around this, by precisely tracking the dataflow.
+    val aggRelation = relations(agg.rel.name.name)
+    aggRelation.params.zipAll(rel.params, null, null).foreach {
+      case (Param(name1, ty1), Param(name2, ty2)) if name1 == name2 && ty1 == ty2 => // nothing
+      case _ => throw IllegalStateException("Ambiguous aggregation rewrite!")
+    }
 
-      // rewrite the original relation to aggregate over the wrapper relation
-      rel.params.foreach(p => gensym.register(p.name.name))
-      val Seq(aggregatedColumn) = agg.aggregationColumns
-      val aggParam = rel.params(aggregatedColumn)
-      val wildcardParam = Param(Name(gensym.fresh("dummy")), aggParam.ty)
-      val callParams = rel.params.updated(aggregatedColumn, wildcardParam)
+    // rewrite the original relation to aggregate over the wrapper relation
+    rel.params.foreach(p => gensym.register(p.name.name))
+    val Seq(aggregatedColumn) = agg.aggregationColumns
+    val aggParam = rel.params(aggregatedColumn)
+    val wildcardParam = Param(Name(gensym.fresh("dummy")), aggParam.ty)
+    val callParams = rel.params.updated(aggregatedColumn, wildcardParam)
 
-      val orgRelation = Relation(rel.name, rel.params, Seq(
-        Body(Seq(
-          Call(Name(qualifiedName), callParams.map(p => Var(p.name).arg)),
-          Aggregate(RefByName(Name(qualifiedName)), agg.args, agg.op)
-        ))
+    val orgRelation = Relation(rel.name, rel.params, Seq(
+      Body(Seq(
+        Call(Name(qualifiedName), callParams.map(p => Var(p.name).arg)),
+        Aggregate(RefByName(Name(qualifiedName)), agg.args, agg.op)
       ))
+    ))
 
-      relations += (rel.name.name -> orgRelation)
+    relations += (rel.name.name -> orgRelation)
   }

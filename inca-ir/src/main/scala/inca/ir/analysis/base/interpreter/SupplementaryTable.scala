@@ -21,14 +21,18 @@ class SupplementaryTable(using j: Join[RelationValue[Value]], w: Widen[RelationV
     try f finally {
       supTable = snapshot
     }
+
   override def clear(): Unit = supTable = RelationValue(Seq(), Some(Seq()))
 
   def setTable(rv: RelationValue[Value]): Unit = setState(rv)
+
   def getTable: RelationValue[Value] = getState
 
   override def getState: RelationValue[Value] = supTable
+
   override def setState(st: RelationValue[Value]): Unit = supTable = st
 
   override def join: Join[RelationValue[Value]] = implicitly
+
   override def widen: Widen[RelationValue[Value]] = implicitly
     

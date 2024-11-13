@@ -2,9 +2,9 @@ module IfFalseTest
 
 @main
 def main(): Boolean = {
-    if (false) {
-        return false
-    } else {
-        return true
-    }
+  if (false) {
+    return false
+  } else {
+    return true
+  }
 }

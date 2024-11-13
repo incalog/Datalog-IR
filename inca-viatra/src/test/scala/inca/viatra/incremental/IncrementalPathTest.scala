@@ -14,18 +14,20 @@ import scala.collection.mutable.ListBuffer
 class IncrementalPathTest extends AnyFunSuiteLike:
 
   def edgeRel: ExtensionalRelation = ExtensionalRelation("edge", Seq(Param("X", TInt), Param("Y", TInt)))
+
   def pathRel: Relation = Relation("path", Seq(Param("X", TInt), Param("Y", TInt)),
     Seq(
       Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Y"))))),
       Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Z"))), Call("path", Seq(Var("Z"), Var("Y"))))),
     )
   )
+
   def pathModule: Module =
     Module("Path", Language.Datalog + arithmetic.IR, Seq(edgeRel, pathRel))
 
   def initialEdges(nodes: Int, loopDistance: Int): Relation2[Integer, Integer] = Relation2("edge", Seq("from", "to"),
     (for (i <- 0 until nodes by 3) yield
-      Seq(i, i+3))
+      Seq(i, i + 3))
     ++
     (for (i <- 0 until nodes by 5) yield
       Seq(i, i + 5))
@@ -37,12 +39,12 @@ class IncrementalPathTest extends AnyFunSuiteLike:
   def moreEdges(from: Int, nodes: Int, loopDistance: Int): Relation2[Integer, Integer] = Relation2("edge", Seq("from", "to"),
     (for (i <- from until nodes by 3) yield
       Seq(i, i + 3))
-      ++
-      (for (i <- from until nodes by 5) yield
-        Seq(i, i + 5))
-      ++
-      (for (i <- from + loopDistance until nodes by loopDistance) yield
-        Seq(i, i - loopDistance))
+    ++
+    (for (i <- from until nodes by 5) yield
+      Seq(i, i + 5))
+    ++
+    (for (i <- from + loopDistance until nodes by loopDistance) yield
+      Seq(i, i - loopDistance))
   )
 
   test("Non-incremental Path"):
@@ -88,14 +90,18 @@ class IncrementalPathTest extends AnyFunSuiteLike:
     }
 
 
-
   class Compiled(val ir: Module) extends CompiledUnit:
     override def compilerOptions: CompilerOptions =
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
       opt
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     lazy val irModules: Seq[Module] = Seq(ir)
+
     override def name: Name = ir.name
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation

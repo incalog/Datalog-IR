@@ -36,7 +36,7 @@ trait TypeContext extends TypeIO:
     vars += (name -> (decl, ty, immutable))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type,Boolean)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type, Boolean)] =
     vars.get(name) match
       case Some(entry) => Some(entry)
       case None => None
@@ -52,7 +52,7 @@ trait TypeContext extends TypeIO:
       case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
       case None =>
     }
-    tyVars += name ->decl
+    tyVars += name -> decl
 
   def lookupTyVar(name: Name): Option[ParametricType] =
     tyVars.get(name) match {
@@ -158,7 +158,7 @@ trait TypeContext extends TypeIO:
       case _ => false
     }
   }
-  
+
   def lookupMethod(classDef: ClassDef, name: Name, args: Seq[Type]): Option[(ClassDef, MethodDef)] = {
     val methodCandidates = lookupMethodCandidates(classDef, name, args)
     if (methodCandidates.isEmpty) {

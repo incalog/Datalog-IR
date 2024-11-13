@@ -25,10 +25,15 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 case class CompiledSetMonoOptUnit(mod: Module) extends CompiledUnit:
   override def compilerOptions: CompilerOptions = CompilerOptions.default
+
   override def name: Name = mod.name
+
   override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
   override val isClosedWorld: Boolean = true
+
   override def otherUnits: Seq[CompiledUnit] = Seq()
+
   lazy val irModules: Seq[Module] = Seq(mod)
 
   private class ScalaSetTypeChecker extends IRTypechecker with primitive.Typechecker
@@ -38,6 +43,7 @@ case class CompiledSetMonoOptUnit(mod: Module) extends CompiledUnit:
   override def optimize(p: Seq[Module]): Seq[Module] = p
 
   private trait demandLowering extends demand.Lowering with primitive.Visitor
+
   private trait blockLowering extends block.Lowering with primitive.Visitor
 
   setPipeline(List(
@@ -61,16 +67,16 @@ case class CompiledSetMonoOptUnit(mod: Module) extends CompiledUnit:
 class SetMonoOptTest extends AnyFunSuiteLike:
 
   private val langs: Language = BaseIR.language +
-    incaSet.IR +
-    incaArithmetic.IR +
-    block.IR +
-    mono.IR +
-    impure.IR +
-    incaData.IR +
-    incaString.IR +
-    incaBool.IR +
-    tupleIR +
-    aggregate.IR
+                                incaSet.IR +
+                                incaArithmetic.IR +
+                                block.IR +
+                                mono.IR +
+                                impure.IR +
+                                incaData.IR +
+                                incaString.IR +
+                                incaBool.IR +
+                                tupleIR +
+                                aggregate.IR
 
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
@@ -214,9 +220,9 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       )
     )
 
-    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs:_*)
+    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs: _*)
     engine.insert(edbEdge)
-    //engine.readAll().foreach(res => println(res.asTable))
+  //engine.readAll().foreach(res => println(res.asTable))
 
   test("Set Mono with boolean element type (type that can be lowered)"):
     val relation = Relation("main", Seq(Param("b", TBoolean)), Seq(Body(Seq(
@@ -290,12 +296,12 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         ExtensionalCall("leaf", Seq(Var("t").arg)),
         WriteMono(Var("mono"), Var("t"))
       )),
-      Body(Seq(
-        ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
-        Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
-        Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
-        WriteMono(Var("mono"), Var("t"))
-      ))
+        Body(Seq(
+          ExtensionalCall("btree", Seq(Var("t").arg, Var("l").arg, Var("r").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("l").arg)),
+          Call("collNode", Seq(Var("mono").arg, Var("r").arg)),
+          WriteMono(Var("mono"), Var("t"))
+        ))
       ))
 
     val extLeaf: ExtensionalRelation = ExtensionalRelation(
@@ -361,7 +367,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
     //engine.readAll().foreach(res => println(res.asTable))
     val res = engine.read(UnitRelation("main"))
     assert(res.entries.nonEmpty)
-    assertResult(Set((0,-1), (6,5), (10,9), (2,1), (4,3), (8,7)))(res.entries.toSet)
+    assertResult(Set((0, -1), (6, 5), (10, 9), (2, 1), (4, 3), (8, 7)))(res.entries.toSet)
 
   test("Test set mono: nested sets"):
     val relation = Relation(

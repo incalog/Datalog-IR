@@ -74,38 +74,40 @@ object IntervalAnalysisMono:
     CaseDefinition("BFalse", Seq(), TInterval),
   )
 
-  val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
+  val dataModel: DataModel = DataModel.from(edb.allNodes: _*)
 
   private val intervalMono = ScalaMonoDefinition(
     "IntervalMono",
     initCode = "Bot()",
-    addCode = """(st: Interval, a: Interval) => (st, a) match {
-                |    case (Bot(), _) => a
-                |    case (_,Bot()) => st
-                |    case (Top(), _) => Top()
-                |    case (_, Top()) => Top()
-                |    case (BTrue(), BTrue()) => BTrue()
-                |    case (BFalse(), BFalse()) => BFalse()
-                |    case (IV(l1, l2), IV(l3, l4)) =>
-                |      val l = l1.min(l3)
-                |      val h = l2.max(l4)
-                |      if ((h - l).abs <= 5) then IV(l, h) else Top()
-                |    case _ => Top()
-                |}""".stripMargin,
+    addCode =
+      """(st: Interval, a: Interval) => (st, a) match {
+        |    case (Bot(), _) => a
+        |    case (_,Bot()) => st
+        |    case (Top(), _) => Top()
+        |    case (_, Top()) => Top()
+        |    case (BTrue(), BTrue()) => BTrue()
+        |    case (BFalse(), BFalse()) => BFalse()
+        |    case (IV(l1, l2), IV(l3, l4)) =>
+        |      val l = l1.min(l3)
+        |      val h = l2.max(l4)
+        |      if ((h - l).abs <= 5) then IV(l, h) else Top()
+        |    case _ => Top()
+        |}""".stripMargin,
     resultCode = "(st: Interval) => st", // TODO: We could widen here
-    combineCode = """(st: Interval, a: Interval) => (st, a) match {
-                    |    case (Bot(), _) => a
-                    |    case (_,Bot()) => st
-                    |    case (Top(), _) => Top()
-                    |    case (_, Top()) => Top()
-                    |    case (BTrue(), BTrue()) => BTrue()
-                    |    case (BFalse(), BFalse()) => BFalse()
-                    |    case (IV(l1, l2), IV(l3, l4)) =>
-                    |      val l = l1.min(l3)
-                    |      val h = l2.max(l4)
-                    |      if ((h - l).abs <= 5) then IV(l, h) else Top()
-                    |    case _ => Top()
-                    |}""".stripMargin,
+    combineCode =
+      """(st: Interval, a: Interval) => (st, a) match {
+        |    case (Bot(), _) => a
+        |    case (_,Bot()) => st
+        |    case (Top(), _) => Top()
+        |    case (_, Top()) => Top()
+        |    case (BTrue(), BTrue()) => BTrue()
+        |    case (BFalse(), BFalse()) => BFalse()
+        |    case (IV(l1, l2), IV(l3, l4)) =>
+        |      val l = l1.min(l3)
+        |      val h = l2.max(l4)
+        |      if ((h - l).abs <= 5) then IV(l, h) else Top()
+        |    case _ => Top()
+        |}""".stripMargin,
     constructorParamTypes = Seq(),
     typ = MonoTypes(TInterval, ScalaType("Interval"), ScalaType("Interval"))
   )
@@ -297,8 +299,8 @@ object IntervalAnalysisMono:
     Param("exit", TStmt),
     Param("x", TString),
     Param("x_iv", TInterval),
-//    Param("m", TMap(TString, TScalaInterval)),
-//    Param("mp", mapMono.monoType(Seq()).output)
+    //    Param("m", TMap(TString, TScalaInterval)),
+    //    Param("mp", mapMono.monoType(Seq()).output)
   ), Seq(
     Body(Seq(
       // output
@@ -314,8 +316,8 @@ object IntervalAnalysisMono:
 
   val transfer = Relation("transfer", Seq(
     Param("stmt", TStmt),
-//    Param("x", TString),
-//    Param("x_iv", TInterval)
+    //    Param("x", TString),
+    //    Param("x_iv", TInterval)
   ), Seq(
     Body(Seq(
       Call("traverse", Seq(Var("stmt"), Var("before"))),
@@ -377,7 +379,7 @@ object IntervalAnalysisMono:
       // first statement
       Eq(Var("stmt"), LookupEdbType(TStmt)),
       Call("cflow", Seq(Var("stmt").arg, WildcardArg()), neg = false), // has cflow
-      Call("cflow", Seq(WildcardArg(), Var("stmt").arg), neg = true),  // but no predecessor
+      Call("cflow", Seq(WildcardArg(), Var("stmt").arg), neg = true), // but no predecessor
       Eq(Var("before"), NewMonoFor(mapMono, Seq(), Seq(), Seq(Var("stmt"))))
     )),
     Body(Seq(
@@ -386,7 +388,6 @@ object IntervalAnalysisMono:
       Call("traverse", Seq(Var("pred"), Var("before")))
     ))
   ))
-
 
 
   val allVars = Relation("allVars", Seq(
@@ -409,18 +410,22 @@ object IntervalAnalysisMono:
       traverse,
       main,
       transfer,
-//      assignToVar
+      //      assignToVar
     )
   )
 
 
-
   def compiled(opt: Boolean) = new CompiledUnit:
     override def name: Name = "IntervalAnalysis"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
       op.irLogging.logModule = false
@@ -434,11 +439,14 @@ object IntervalAnalysisMono:
 
 
     private trait demandLowering extends demand.Lowering with primitive.Visitor
+
     private trait blockLowering extends block.Lowering with primitive.Visitor
+
     private trait scalaLowering extends primitive.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering
+
     override def typechecker = new IRTypechecker with Typechecker {}
 
     setPipeline(List(
@@ -458,7 +466,7 @@ object IntervalAnalysisMono:
     ))
 
   @main def check2() = {
-//    val exec = new Executor()
+    //    val exec = new Executor()
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val engine = exec.instantiate(compiled(false), dataModel)
 
@@ -475,9 +483,9 @@ object IntervalAnalysisMono:
     val a4 = edb.Assign(
       "z2", edb.Num(1)
     )
-//    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
+    //    val s = edb.Sequence(edb.Sequence(a1, a2), a3)
     val s = edb.Sequence(edb.Sequence(edb.Sequence(a1, a2), edb.Sequence(a3, a4)), edb.Exit())
-//    val s = edb.Sequence(a1, a2)
+    //    val s = edb.Sequence(a1, a2)
 
     println(s"Loading $s")
     s.loadEdits.print()

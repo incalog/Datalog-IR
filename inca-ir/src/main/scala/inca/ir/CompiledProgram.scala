@@ -1,4 +1,5 @@
 package inca.ir
+
 import inca.ir.Module as IRModule
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.Graph
@@ -15,13 +16,17 @@ private case class ModuleGraph(modules: Seq[IRModule]) extends Graph[IRModule, E
       addEdge(moduleMap(imp.module.name), m, Edge.Import)
 
   override protected def cloneGraph(): Graph[IRModule, Edge] = throw NotImplementedError()
+
   override protected def nodeToGraphViz(n: IRModule): String = n.name.toString
+
   override protected def edgeGraphVizAttributes(from: IRModule, to: IRModule, info: Edge): String = ""
+
   override protected def nodeGraphVizAttributes(from: IRModule): String = ""
 
 
 trait CompiledProgram:
   def irModules: Seq[IRModule]
+
   def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit
 
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =

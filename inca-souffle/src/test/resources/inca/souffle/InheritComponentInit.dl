@@ -1,5 +1,5 @@
 .comp A {
-    .decl R(x:number)
+    .decl R(x: number)
     R(42).
 }
 
@@ -7,8 +7,8 @@
     .init a = A
 }
 
-.comp C: B {
-    .decl Q(x:number)
+.comp C : B {
+    .decl Q(x: number)
     Q(41).
 
     Q(x) :- a.R(x).

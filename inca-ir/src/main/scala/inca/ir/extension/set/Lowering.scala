@@ -11,7 +11,7 @@ import inca.ir.lowering.BaseLowering
 import inca.util.namify
 
 /*
- * Proposal: Represent set with IDs expressed as ADTs
+ * Represent set with IDs expressed as ADTs
  * E.g
  * main(z: Set[Int]) :- y == Set(1,2,3), somCall(y, z).
  * someCall(y: Set[Int], z: Set[Int]) :- z == (y U Set(2,4))
@@ -54,6 +54,7 @@ trait Lowering extends BaseLowering:
 
   private var constructorCount: Map[Type, Int] = Map().withDefaultValue(0)
   private var setTypeConstructors: Map[Type, Map[Term, SetConstructor]] = Map()
+
   private def addConstructor(originalTerm: Term, setEnum: SetEnum): (Name, Seq[(Name, Type)]) =
     val memTy = visitType(memberType(originalTerm))
     addSetType(memTy)
@@ -71,19 +72,23 @@ trait Lowering extends BaseLowering:
         val constructorParams = freeVars.toSeq.map(v => v.name -> visitType(v.typ.get.ty))
         setTypeConstructors += memTy -> (constructors + (originalTerm -> SetConstructor(name, constructorParams, setEnum)))
         (name, constructorParams)
+
   private def callAddConstructor(originalTerm: Term, setEnum: SetEnum): Construct =
     val (name, vars) = addConstructor(originalTerm, setEnum)
     val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
-//    cons.typed(TSet(memTy).closed)
+    //    cons.typed(TSet(memTy).closed)
     cons
+
   private def addSetType(memTy: Type): Unit =
     val memTyLowered = visitType(memTy)
     setTypeConstructors.get(memTyLowered) match
       case None => setTypeConstructors += memTyLowered -> Map()
-      case _ => //nothign
+      case _ => //nothing
 
   private def dataNameOf(memTy: Type): Name = Name(s"Set$$${namify(memTy.toString)}$$")
+
   private def constructorNameOf(memTy: Type, count: Int) = Name(s"${dataNameOf(memTy)}$$$count")
+
   private def relNameOf(memTy: Type): Name = Name(s"${dataNameOf(memTy)}enum")
 
   private def makeSetDefinitions: Seq[ModuleEntry] =
@@ -109,7 +114,7 @@ trait Lowering extends BaseLowering:
       } else {
         val rule = Body(
           Deconstruct(Var(setParam.name), RefByName(consName), caseVars.map(v => Var(v._1).arg), false)
-            +: atoms)
+          +: atoms)
         (caseDef, Some(rule))
       }
     }.unzip
@@ -118,6 +123,7 @@ trait Lowering extends BaseLowering:
     (data +: cases, rel)
 
   private var currentModule: Module = _
+
   override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module
     setTypeConstructors = Map()
@@ -136,59 +142,60 @@ trait Lowering extends BaseLowering:
       case _ => super.visitType(ty)
   }
 
-  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) { term match
-    case Cast(t, ty) =>
-      ty match
-        case TSet(memTy) => addSetType(memTy)
-        case _ => // nothing
-      super.visitTerm(term)
-    case SetLit(ts) =>
-      val elems = ts.map(visitTerm)
-      val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] =
-          if (elems.isEmpty)
-            Seq()
-          else
-            Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
-      Seq(callAddConstructor(term, setEnum))
-    case SetFrom(name) =>
-      val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
-      val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] =
-          val args = rel.params.map(p => Var(gensym.freshName(p.name)))
-          Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
-      Seq(callAddConstructor(term, setEnum))
-    case SetUnion(ts) =>
-      val ss = ts.flatMap(visitTerm)
-      val ms = ts.map(memberType)
-      if ss.size != ms.size then
-        throw IllegalStateException("Set union term was lowered to more than one term!")
-      val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Disjunction(
-            ss.zip(ms).map((s, memTy) => DisjunctionAlternative(Call(relNameOf(memTy), Seq(s.arg, Var(elemVar).arg)))
-          ))
-        )
-      Seq(callAddConstructor(term, setEnum))
-    case SetIntersection(t1, t2) =>
-      val Seq(s1) = visitTerm(t1)
-      val memTy1 = memberType(t1)
-      val Seq(s2) = visitTerm(t2)
-      val memTy2 = memberType(t2)
-      val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] = Seq(
-          Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg)),
-          Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg))
-        )
-      Seq(callAddConstructor(term, setEnum))
-    case SetComprehension(build, atoms) =>
-      val ats = atoms.flatMap(visitAtom)
-      val ts = visitTerm(build)
-      val setEnum = new SetEnum:
-        override def apply(elemVar: Name): Seq[Atom] =
-          ats :+ Eq(TupleLit.make(ts), Var(elemVar))
-      Seq(callAddConstructor(term, setEnum))
-    case _ => super.visitTerm(term)
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
+    term match
+      case Cast(t, ty) =>
+        ty match
+          case TSet(memTy) => addSetType(memTy)
+          case _ => // nothing
+        super.visitTerm(term)
+      case SetLit(ts) =>
+        val elems = ts.map(visitTerm)
+        val setEnum = new SetEnum:
+          override def apply(elemVar: Name): Seq[Atom] =
+            if (elems.isEmpty)
+              Seq()
+            else
+              Seq(Disjunction(elems.map(ts => DisjunctionAlternative(ts.map(Eq(Var(elemVar), _))))))
+        Seq(callAddConstructor(term, setEnum))
+      case SetFrom(name) =>
+        val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
+        val setEnum = new SetEnum:
+          override def apply(elemVar: Name): Seq[Atom] =
+            val args = rel.params.map(p => Var(gensym.freshName(p.name)))
+            Seq(Call(name, args.map(_.arg)), Eq(TupleLit.make(args), Var(elemVar)))
+        Seq(callAddConstructor(term, setEnum))
+      case SetUnion(ts) =>
+        val ss = ts.flatMap(visitTerm)
+        val ms = ts.map(memberType)
+        if ss.size != ms.size then
+          throw IllegalStateException("Set union term was lowered to more than one term!")
+        val setEnum = new SetEnum:
+          override def apply(elemVar: Name): Seq[Atom] = Seq(
+            Disjunction(
+              ss.zip(ms).map((s, memTy) => DisjunctionAlternative(Call(relNameOf(memTy), Seq(s.arg, Var(elemVar).arg)))
+              ))
+          )
+        Seq(callAddConstructor(term, setEnum))
+      case SetIntersection(t1, t2) =>
+        val Seq(s1) = visitTerm(t1)
+        val memTy1 = memberType(t1)
+        val Seq(s2) = visitTerm(t2)
+        val memTy2 = memberType(t2)
+        val setEnum = new SetEnum:
+          override def apply(elemVar: Name): Seq[Atom] = Seq(
+            Call(relNameOf(memTy1), Seq(s1.arg, Var(elemVar).arg)),
+            Call(relNameOf(memTy2), Seq(s2.arg, Var(elemVar).arg))
+          )
+        Seq(callAddConstructor(term, setEnum))
+      case SetComprehension(build, atoms) =>
+        val ats = atoms.flatMap(visitAtom)
+        val ts = visitTerm(build)
+        val setEnum = new SetEnum:
+          override def apply(elemVar: Name): Seq[Atom] =
+            ats :+ Eq(TupleLit.make(ts), Var(elemVar))
+        Seq(callAddConstructor(term, setEnum))
+      case _ => super.visitTerm(term)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
@@ -200,10 +207,3 @@ trait Lowering extends BaseLowering:
       ts.map(elem => Call(relNameOf(memTy), Seq(s.arg, elem.arg)))
     }
     case _ => super.visitAtom(atom)
-
-/**
-
- def test(): Set[Any] =
-   {1,2,3}
-
-*/

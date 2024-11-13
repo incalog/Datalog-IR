@@ -11,10 +11,13 @@ import scala.collection.mutable.ListBuffer
 
 trait Lowering extends BaseLowering:
   override val name: String = "Not"
+
   override def loweredIRs: Set[BaseIR] = Set(IR)
+
   override def requiredIRs: Set[BaseIR] = Set()
 
   var collapseTerms: Boolean = false
+
   def collapseBindingTerms[A](f: => A): A =
     collapseTerms = true
     val t = f

@@ -94,10 +94,10 @@ trait SyntacticOptimizer extends IRVisitor:
   var cache: Map[Term, Seq[Term]] = Map()
 
   override def visitTerm(term: Term): Seq[Term] = term match
-      case BoolAnd(t1, t2) => eval(term)
-      case BoolOr(t1, t2) => eval(term)
-      case BoolNot(t1) => eval(term)
-      case _ => super.visitTerm(term)
+    case BoolAnd(t1, t2) => eval(term)
+    case BoolOr(t1, t2) => eval(term)
+    case BoolNot(t1) => eval(term)
+    case _ => super.visitTerm(term)
 
   private def eval(t: Term): Seq[Term] = cache.get(t) match
     case Some(cachedDnf) => cachedDnf

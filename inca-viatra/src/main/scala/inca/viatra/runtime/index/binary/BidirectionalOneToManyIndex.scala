@@ -11,13 +11,16 @@ import scala.jdk.CollectionConverters.*
 /*
  * In a BidirectionalOneToManyIndex, each value uniquely identifies the correponding key, but not vice versa.
  */
-class BidirectionalOneToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
+class BidirectionalOneToManyIndex[K, V](val key: IndexKey[_]) extends BinaryIndex[K, V] {
   protected val index: MutableSetMultimap[K, V] = Multimaps.mutable.set.empty()
   protected val indexInverted: MutableMap[V, K] = Maps.mutable.empty()
 
   override def entries: Iterable[(K, V)] = indexInverted.entrySet().asScala.map(e => (e.getValue, e.getKey))
+
   def entrySets: Iterable[(K, Iterable[V])] = index.keyMultiValuePairsView.asScala.map(p => p.getOne -> p.getTwo.asScala)
+
   override def index(k: K): Iterable[V] = index.get(k).asScala
+
   override def indexInverted(v: V): Iterable[K] = Option(indexInverted.get(v))
 
   override def insert(k: K, v: V): Unit = {

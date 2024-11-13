@@ -1,18 +1,18 @@
 module Fib
 
 class Fibonacci {
-    def calc(n: Int): Int = {
-      if (n == 0)
-        return 0
-      else if (n == 1)
-        return 1
-      else
-        return this.calc(n - 1) + this.calc(n - 2)
-    }
+  def calc(n: Int): Int = {
+    if (n == 0)
+      return 0
+    else if (n == 1)
+      return 1
+    else
+      return this.calc(n - 1) + this.calc(n - 2)
+  }
 }
 
 @main
 def main(n: Int): Int = {
-    val f: Fibonacci = new Fibonacci()
-    return f.calc(n)
+  val f: Fibonacci = new Fibonacci()
+  return f.calc(n)
 }

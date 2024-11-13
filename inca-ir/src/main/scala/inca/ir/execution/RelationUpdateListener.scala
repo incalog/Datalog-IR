@@ -6,12 +6,15 @@ import scala.collection.mutable.ListBuffer
 
 trait RelationUpdateListener(val rel: Relation):
   def tupleAdded(tup: rel.Tuple): Unit
+
   def tupleRemoved(tup: rel.Tuple): Unit
 
 class DeltaRelationConstructor(r: Relation) extends RelationUpdateListener(r):
   val added: ListBuffer[rel.Tuple] = ListBuffer.empty
   val removed: ListBuffer[rel.Tuple] = ListBuffer.empty
+
   override def tupleAdded(tup: rel.Tuple): Unit = added += tup
+
   override def tupleRemoved(tup: rel.Tuple): Unit = removed += tup
 
   override def toString: String =

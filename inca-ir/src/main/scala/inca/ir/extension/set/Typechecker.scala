@@ -48,7 +48,7 @@ trait Typechecker extends BaseIRTypechecker:
     }
     case _ => super.inferTermExtend(term, mode)
 
-  private def inferSetTerm(t: Term, mode: Mode): (TSet,Mode) = inferTerm(t, mode) match
+  private def inferSetTerm(t: Term, mode: Mode): (TSet, Mode) = inferTerm(t, mode) match
     case TermType(ty: TSet, m) => (ty, m)
     case TermType(ty, m) =>
       error(s"Expected set type but got $ty", t)
@@ -56,7 +56,7 @@ trait Typechecker extends BaseIRTypechecker:
 
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case SetMember(mem, s) =>
-      val (TSet(ty),_) = inferSetTerm(s, Mode.Bound)
+      val (TSet(ty), _) = inferSetTerm(s, Mode.Bound)
       checkTerm(mem, ty, mode)
     case _ => super.checkAtom(atom, mode)
 

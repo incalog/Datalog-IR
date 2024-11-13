@@ -5,18 +5,18 @@ module CaseClassTest
 // 2. Case classes can not inherit from any class that contains fields
 
 class A {
-    def add(x: Int, y: Int): Int = x + y
+  def add(x: Int, y: Int): Int = x + y
 }
 
 case class B(i: Int, j: Int) extends A {
-    def result(): Int = this.add(this.i, this.j)
+  def result(): Int = this.add(this.i, this.j)
 }
 
 @main def main(): Int = {
-    val b = new B(10, 5)
+  val b = new B(10, 5)
 
-    if (b.isInstanceOf[A])
-        return b.result()
+  if (b.isInstanceOf[A])
+    return b.result()
 
-    return -1
+  return -1
 }

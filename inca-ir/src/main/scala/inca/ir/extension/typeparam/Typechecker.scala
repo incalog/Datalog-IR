@@ -34,12 +34,12 @@ trait Typechecker extends BaseIRTypechecker:
   override def inferRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, s: SourceLocation*): Seq[Type] = ref match
     case RefByName(name) => lookupModuleEntry(name) match
       case Some(ParametricModuleEntry(tyParams, _)) =>
-        error(s"Expected type application of $name with ${tyParams.size} type arguments", s:_*)
-        super.inferRelationRef(ref, isExtensional, s:_*)
-      case _ => super.inferRelationRef(ref, isExtensional, s:_*)
+        error(s"Expected type application of $name with ${tyParams.size} type arguments", s: _*)
+        super.inferRelationRef(ref, isExtensional, s: _*)
+      case _ => super.inferRelationRef(ref, isExtensional, s: _*)
     case TypeApplication(name, args) => lookupModuleEntry(name) match
       case None =>
-        error(s"Unknown entry $name", s:_*)
+        error(s"Unknown entry $name", s: _*)
         Seq()
       case Some(ParametricModuleEntry(tyParams, entry)) =>
         ref.resolved(entry.asInstanceOf[R])
@@ -52,16 +52,16 @@ trait Typechecker extends BaseIRTypechecker:
         val typeSubst = new TypeSubst(typeMap)
         colTypes.map(typeSubst.visitType)
       case Some(entry) =>
-        error(s"Illegal type application of $args to $entry", s:_*)
+        error(s"Illegal type application of $args to $entry", s: _*)
         Seq()
-    case _ => super.inferRelationRef(ref, isExtensional, s:_*)
+    case _ => super.inferRelationRef(ref, isExtensional, s: _*)
 
   def matchRef[Target](ref: Ref[Target], typeParams: Seq[Name], s: SourceLocation): Map[Name, Type] = ref match
-      case RefByName(name) =>
-        if (typeParams.nonEmpty)
-          error(s"Missing type arguments $typeParams for constructor $name", s)
-        Map()
-      case TypeApplication(name, tyArgs) =>
-        if (typeParams.size != tyArgs.size)
-          error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", s)
-        typeParams.zip(tyArgs).toMap
+    case RefByName(name) =>
+      if (typeParams.nonEmpty)
+        error(s"Missing type arguments $typeParams for constructor $name", s)
+      Map()
+    case TypeApplication(name, tyArgs) =>
+      if (typeParams.size != tyArgs.size)
+        error(s"Wrong number of type arguments, got ${tyArgs.size} but expected ${typeParams.size} for constructor $name", s)
+      typeParams.zip(tyArgs).toMap

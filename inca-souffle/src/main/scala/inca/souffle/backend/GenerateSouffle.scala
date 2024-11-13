@@ -36,9 +36,9 @@ object GenerateSouffle:
         //if (rel.hasHint(SouffleOutputHint)) {
         val outputDirective = ProgramContent.Directive(DirectiveQualifier.Output, List(qualifyName(name)), Map())
         Seq(relDecl, outputDirective) ++ rules
-        //} else {
-        //  relDecl +: rules
-        //}
+      //} else {
+      //  relDecl +: rules
+      //}
 
       case edb@ir.ExtensionalRelation(name, params) =>
         val attrs = params.map { p =>
@@ -55,7 +55,7 @@ object GenerateSouffle:
         }
         val adtBranches = cases.map {
           case data.CaseDefinition(name, args, TData(_)) =>
-            val cotrArgs = args.zipWithIndex.map { case(ty, idx) =>
+            val cotrArgs = args.zipWithIndex.map { case (ty, idx) =>
               Attribute(s"param_$idx", compileType(ty))
             }
             ADTConstructor(cleanName(name), cotrArgs)
@@ -88,7 +88,7 @@ object GenerateSouffle:
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
       }
-      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head : @unchecked
+      val (AggregateColumnArg(ir.Var(RefByName(resultVar))), resultIdx) = result.head: @unchecked
       // TODO need to generate safely
       val aggregatorVar = ir.Var(ir.Name("aggregatorVar"))
       val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)

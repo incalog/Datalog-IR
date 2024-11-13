@@ -9,7 +9,7 @@ object FileUtil:
     val lines = source.getLines().toSeq
     source.close()
     lines
-  
+
   def readFileFromResource(path: String): String =
     val source = scala.io.Source.fromResource(path)
     val content = source.getLines().mkString("\n")

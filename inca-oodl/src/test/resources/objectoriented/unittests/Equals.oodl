@@ -1,21 +1,23 @@
 module EqualsTest
 
 class A(c: C)
+
 class B
+
 class C
 
 @main def main(): Boolean = {
-    val a: A = new A(new C())
-    //val b: B = new B()
-    //val c: C = null
+  val a: A = new A(new C())
+  //val b: B = new B()
+  //val c: C = null
 
-    return (a == a)
-        /*&& (b == b)
-        && (!(a == b))
-        && (a.c == a.c)
-        && (a != a.c)
-        && (null == null)
-        && (c == null)
-        && (a != null)
-        && (a.c != null)*/
+  return (a == a)
+  /*&& (b == b)
+  && (!(a == b))
+  && (a.c == a.c)
+  && (a != a.c)
+  && (null == null)
+  && (c == null)
+  && (a != null)
+  && (a.c != null)*/
 }

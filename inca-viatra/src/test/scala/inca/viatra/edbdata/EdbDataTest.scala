@@ -18,11 +18,17 @@ class EdbDataTest extends AnyFunSuiteLike:
 
   class EdbCompiledUnit(val ir: Module, dataModel: DataModel) extends CompiledUnit:
     override def name: Name = ir.name
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     lazy val irModules: Seq[Module] = Seq(ir)
+
     override def compilerOptions: CompilerOptions = CompilerOptions.default
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     lazy val engine: exec.Engine = exec.instantiate(this, dataModel)
 
   def module(dataModel: DataModel, relations: ModuleEntry*): EdbCompiledUnit =

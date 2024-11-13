@@ -20,7 +20,7 @@ class Visitor:
     case If(c, t, e) => If(visitExp(c), visitExp(t), visitExp(e))
     case Lambda(vs, body) => Lambda(vs, visitExp(body))
     case Let(names, anno, bound, body) => Let(names, anno, visitExp(bound), visitExp(body))
-    case Match(matchee, cases) => Match(visitExp(matchee), cases.map { case (p,e) => (p, visitExp(e)) })
+    case Match(matchee, cases) => Match(visitExp(matchee), cases.map { case (p, e) => (p, visitExp(e)) })
     case SetComprehension(build, predicates) => SetComprehension(visitExp(build), predicates.map(visitExp))
     case SetExp(es) => SetExp(es.map(visitExp))
     case SetFold(anno, init, op, set) => SetFold(anno, visitExp(init), visitExp(op), visitExp(set))

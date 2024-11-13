@@ -12,6 +12,7 @@ import inca.ir.Hint.preserveHints
 
 class Lowering(oodlModule: OODLModule) extends BaseLowering:
   override def loweredIRs: Set[BaseIR] = Set(iragg)
+
   override def requiredIRs: Set[BaseIR] = Set(iragg, irprimitive)
 
   val generateScala = new GenerateScala

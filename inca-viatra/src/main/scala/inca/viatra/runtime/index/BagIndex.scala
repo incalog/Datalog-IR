@@ -58,7 +58,7 @@ class BagIndex(val key: IndexKey[_]) extends Index {
   /** returns all tuples maintained in index associated with virtual key based on provided mask and seed */
   override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
     val maskLength = mask.indices.length
-    if (maskLength ==  0) {
+    if (maskLength == 0) {
       index.keySet().asScala
     } else {
       // enumerate tuples that have the elements in seed at position according to mask
@@ -79,7 +79,7 @@ class BagIndex(val key: IndexKey[_]) extends Index {
     } else {
       index.keySet().asScala.flatMap { t =>
         seed.getElements.zipWithIndex.flatMap { case (c, ix) =>
-          if(c == t.get(ix)) Some(c)
+          if (c == t.get(ix)) Some(c)
           else None
         }
       }

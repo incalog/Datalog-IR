@@ -15,7 +15,7 @@ trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "ArithmeticScalaLowering"
 
   override def isTypeSupported(ty: Type): Boolean = ty match
-    case TInt | TDouble  => true
+    case TInt | TDouble => true
     case _ => super.isTypeSupported(ty)
 
   override def visitAggregationOperator(op: aggregate.AggregationOperator): aggregate.AggregationOperator =

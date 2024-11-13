@@ -14,10 +14,10 @@ trait Typechecker extends BaseIRTypechecker:
       else
         error(s"Cannot compare tuples of different sizes ${tys1.size} and ${tys2.size}", t)
     case _ => super.assertComparable(ty, outside, t)
-  
+
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match {
     case TupleLit(ts) =>
-      val (tys,m)  = ts.foldRight((List.empty[Type],Mode.Bound)) { case (tt, (tys, m)) =>
+      val (tys, m) = ts.foldRight((List.empty[Type], Mode.Bound)) { case (tt, (tys, m)) =>
         val TermType(tty, ttm) = inferTerm(tt, mode)
         (tty :: tys, m || ttm)
       }

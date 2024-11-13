@@ -14,22 +14,22 @@ trait Collect[R]:
     fun.annos.flatMap(collectAnnotation) ++ fun.params.flatMap(collectParam) ++ fun.body.flatMap(collectStatement)
 
   def collectClassContent(content: ClassContent): Seq[R] = content match
-    case f : FieldDef => collectFieldDef(f)
-    case m : MethodDef => collectMethodDef(m)
-    case c : ConstructorDef => collectConstructorDef(c)
+    case f: FieldDef => collectFieldDef(f)
+    case m: MethodDef => collectMethodDef(m)
+    case c: ConstructorDef => collectConstructorDef(c)
 
   def collectFieldDef(field: FieldDef): Seq[R] =
     field.annos.flatMap(collectAnnotation) ++ field.body.flatMap(collectExpression) ++ collectType(field.typ)
 
   def collectMethodDef(method: MethodDef): Seq[R] =
     method.annos.flatMap(collectAnnotation)
-      ++ method.body.flatMap(collectStatement)
-      ++ method.params.flatMap(collectParam) ++ collectType(method.outType)
+    ++ method.body.flatMap(collectStatement)
+    ++ method.params.flatMap(collectParam) ++ collectType(method.outType)
 
   def collectConstructorDef(constructor: ConstructorDef): Seq[R] =
     constructor.annos.flatMap(collectAnnotation)
-      ++ constructor.body.flatMap(collectStatement)
-      ++ constructor.params.flatMap(collectParam)
+    ++ constructor.body.flatMap(collectStatement)
+    ++ constructor.params.flatMap(collectParam)
 
   def collectAnnotation(anno: Annotation): Seq[R] = Seq()
 

@@ -114,127 +114,126 @@ object Benchmark:
     */
   val example7 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 Sequence(
-                   Skip(),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(2)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Var("x"), Var("y"))),
+            Sequence(
+              Skip(),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
 
   // lhs of assign in while loop adds + 1
   // y = x + y -> y = (x + y) + 1
   val example8 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Add(Var("x"), Var("y")), Num(1))),
-                 Sequence(
-                   Skip(),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(2)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Add(Var("x"), Var("y")), Num(1))),
+            Sequence(
+              Skip(),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
   // insert y = y after y = x + y
   val example9 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Sequence(
-                   Assign("y", Add(Var("x"), Var("y"))),
-                   Assign("y", Var("y"))
-                 ),
-                 Sequence(
-                   Skip(),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(2)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Sequence(
+              Assign("y", Add(Var("x"), Var("y"))),
+              Assign("y", Var("y"))
+            ),
+            Sequence(
+              Skip(),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
 
   // change initial assignment of x to 3 instead of 2
 
   val example10 =
     Sequence(
-           Assign("x", Num(3)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 Sequence(
-                   Skip(),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(3)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Var("x"), Var("y"))),
+            Sequence(
+              Skip(),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
 
   // sub millisecond update time
   // introduce new var before while
   val example11 =
     Sequence(
-           Sequence(
-             Assign("z", Num(1)),
-             Assign("x", Num(2)),
-           ),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 Sequence(
-                   Skip(),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Sequence(
+        Assign("z", Num(1)),
+        Assign("x", Num(2)),
+      ),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Var("x"), Var("y"))),
+            Sequence(
+              Skip(),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
 
   // update times around 5-8 ms
   // introduce var that is static in loop
   val example12 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 Sequence(
-                   Assign("z", Num(12)),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(2)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Var("x"), Var("y"))),
+            Sequence(
+              Assign("z", Num(12)),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
 
   // update times around 10-13 ms
   // introduce var in loop that changes it value each iteration
   val example13 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Assign("y", Num(2)),
-             While(GT(Var("x"), Num(1)),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 Sequence(
-                   Assign("z", Add(Var("y"), Num(3))),
-                   Assign("x", Add(Var("x"), Num(2))))))))
-        
+      Assign("x", Num(2)),
+      Sequence(
+        Assign("y", Num(2)),
+        While(GT(Var("x"), Num(1)),
+          Sequence(
+            Assign("y", Add(Var("x"), Var("y"))),
+            Sequence(
+              Assign("z", Add(Var("y"), Num(3))),
+              Assign("x", Add(Var("x"), Num(2))))))))
+
   // add assign after while
   // x = x + 12
   // takes > 200 ms
   val example14 =
     Sequence(
-           Assign("x", Num(2)),
-           Sequence(
-             Sequence(
-               Assign("y", Num(2)),
-               While(GT(Var("x"), Num(1)),
-                 Sequence(
-                   Assign("y", Add(Var("x"), Var("y"))),
-                   Sequence(
-                     Skip(),
-                     Assign("x", Add(Var("x"), Num(2))))))),
-             Assign("x", Add(Var("x"), Num(12)))))
-     
+      Assign("x", Num(2)),
+      Sequence(
+        Sequence(
+          Assign("y", Num(2)),
+          While(GT(Var("x"), Num(1)),
+            Sequence(
+              Assign("y", Add(Var("x"), Var("y"))),
+              Sequence(
+                Skip(),
+                Assign("x", Add(Var("x"), Num(2))))))),
+        Assign("x", Add(Var("x"), Num(12)))))
 
 
   /*
@@ -254,36 +253,36 @@ object Benchmark:
     }
    */
   val example15 =
-    
-     Sequence(
-       Assign("x", Num(10)),
-       Sequence(
-         Assign("y", Num(1)),
-         While(
-           GT(Num(10), Var("x")),
-           Sequence(
-             Assign("x", Add(Var("x"), Num(1))),
-             While(
-               GT(Var("x"), Var("y")),
-               Sequence(
-                 Assign("y", Add(Var("x"), Var("y"))),
-                 While(
-                   GT(Var("x"), Num(10)),
-                   Sequence(
-                     Assign("y", Add(Var("y"), Var("y"))),
-                     While(
-                       GT(Var("y"), Num(10)),
-                       Assign("x", Add(Var("x"), Num(1)))
-                     )
-                   )
-                 )
-               )
-             )
-           )
-         )
-       )
-     )
-     
+
+    Sequence(
+      Assign("x", Num(10)),
+      Sequence(
+        Assign("y", Num(1)),
+        While(
+          GT(Num(10), Var("x")),
+          Sequence(
+            Assign("x", Add(Var("x"), Num(1))),
+            While(
+              GT(Var("x"), Var("y")),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                While(
+                  GT(Var("x"), Num(10)),
+                  Sequence(
+                    Assign("y", Add(Var("y"), Var("y"))),
+                    While(
+                      GT(Var("y"), Num(10)),
+                      Assign("x", Add(Var("x"), Num(1)))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
 
   /*
     x = 0
@@ -296,24 +295,24 @@ object Benchmark:
     }
    */
   val example16 =
-    
-     Sequence(
-       Assign("x", Num(0)),
-       While(
-         GT(Num(1000), Var("x")),
-         Sequence(
-           Assign("x", Add(Var("x"), Num(1))),
-           Sequence(
-             Assign("y", Num(0)),
-             While(
-               GT(Num(1000), Var("y")),
-               Assign("y", Add(Var("y"), Num(1))),
-             )
-           )
-         )
-       )
-     )
-     
+
+    Sequence(
+      Assign("x", Num(0)),
+      While(
+        GT(Num(1000), Var("x")),
+        Sequence(
+          Assign("x", Add(Var("x"), Num(1))),
+          Sequence(
+            Assign("y", Num(0)),
+            While(
+              GT(Num(1000), Var("y")),
+              Assign("y", Add(Var("y"), Num(1))),
+            )
+          )
+        )
+      )
+    )
+
 
   /*
    x = 0
@@ -330,122 +329,122 @@ object Benchmark:
    }
    */
   val example17 =
-    
-     Sequence(
-       Assign("x", Num(0)),
-       While(
-         GT(Num(1000), Var("x")),
-         Sequence(
-           Assign("x", Add(Var("x"), Num(1))),
-           Sequence(
-             Assign("y", Num(0)),
-             While(
-               GT(Num(1000), Var("y")),
-               Sequence(
-                 Assign("y", Add(Var("y"), Num(1))),
-                 Sequence(
-                   Assign("z", Num(0)),
-                   While(
-                     GT(Num(1000), Var("z")),
-                     Assign("z", Add(Var("z"), Num(1))),
-                   )
-                 )
-               )
-             )
-           )
-         )
-       )
-     )
-     
+
+    Sequence(
+      Assign("x", Num(0)),
+      While(
+        GT(Num(1000), Var("x")),
+        Sequence(
+          Assign("x", Add(Var("x"), Num(1))),
+          Sequence(
+            Assign("y", Num(0)),
+            While(
+              GT(Num(1000), Var("y")),
+              Sequence(
+                Assign("y", Add(Var("y"), Num(1))),
+                Sequence(
+                  Assign("z", Num(0)),
+                  While(
+                    GT(Num(1000), Var("z")),
+                    Assign("z", Add(Var("z"), Num(1))),
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
 
   val example18 =
-    
-        Sequence(
-          Assign("x", Num(99)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(99)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
   val example19 =
-    
-        Sequence(
-          Assign("x", Num(100)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(100)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
   val example20 =
-    
-        Sequence(
-          Assign("x", Num(98)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(98)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
 
   val example21 =
-    
-        Sequence(
-          Assign("x", Num(1)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(1)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
   val example22 =
-    
-        Sequence(
-          Assign("x", Num(2)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(2)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
   val example23 =
-    
-        Sequence(
-          Assign("x", Num(0)),
-          While(
-            GT(Var("x"), Num(0)),
-            Assign("x", Add(Var("x"), Num(1)))
-          )
-        )
-       
+
+    Sequence(
+      Assign("x", Num(0)),
+      While(
+        GT(Var("x"), Num(0)),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    )
+
   val example24 =
-    
+
+    Sequence(
+      Assign("x", Num(1)),
+      While(
+        GT(Var("x"), Num(0)),
         Sequence(
-          Assign("x", Num(1)),
-          While(
-            GT(Var("x"), Num(0)),
-            Sequence(
-              Assign("x", Add(Var("x"), Num(1))),
-              Skip()
-            )
-          )
+          Assign("x", Add(Var("x"), Num(1))),
+          Skip()
         )
-       
+      )
+    )
+
   val example25 =
-    
+
+    Sequence(
+      Assign("x", Num(1)),
+      While(
+        GT(Var("x"), Num(0)),
         Sequence(
-          Assign("x", Num(1)),
-          While(
-            GT(Var("x"), Num(0)),
-            Sequence(
-              Skip(),
-              Assign("x", Add(Var("x"), Num(1)))
-            )
-          )
+          Skip(),
+          Assign("x", Add(Var("x"), Num(1)))
         )
-  
-  def nestedWhileProgram(nestings: Int, repetitions: Int): edb.Stmt ={
+      )
+    )
+
+  def nestedWhileProgram(nestings: Int, repetitions: Int): edb.Stmt = {
     def nestedWhile(levels: Int): edb.Stmt =
       if (levels == 0)
         edb.Sequence(

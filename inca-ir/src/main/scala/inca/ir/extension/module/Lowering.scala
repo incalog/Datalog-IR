@@ -20,7 +20,7 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[
     (visitModule(module).contents, aliases)
 
   private def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
-      moduleEntry.withName(prefixName(moduleEntry.name, prefix))
+    moduleEntry.withName(prefixName(moduleEntry.name, prefix))
 
   private def pathComponents(ref: Ref[_]): (Seq[Name], Name) = ref match
     case RefByName(n) => (Seq(), n)

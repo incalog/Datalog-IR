@@ -9,7 +9,7 @@ nat(X) :- nat(Y), X == Y + 1, X < 10. // make it range restricted
 square(Int).
 square(X) :- nat(Y), X == Y * Y.
 
-even(Int).
+                              even(Int).
 even(X) :- nat(Y), X == Y * 2.
 
 

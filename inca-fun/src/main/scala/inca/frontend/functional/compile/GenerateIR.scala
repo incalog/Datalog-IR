@@ -28,14 +28,15 @@ import inca.util.Gensym
 
 object GenerateIR:
   def extensionalRelationPrefix = "ext_"
+
   def extensionalRelationName(name: String): String = extensionalRelationPrefix + demandRelationName(name)
 
 class GenerateIR {
 
   val irLang: Language = new Language(Set(ir.BaseIR)
-      + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
-      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
-      + iragg.IR + iraggset.IR + typeparam.IR
+                                      + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
+                                      + demand.IR + disjunction.IR + irnot.IR + irset.IR + irmap.IR + irstring.IR + irtuple.IR
+                                      + iragg.IR + iraggset.IR + typeparam.IR
   )
 
   val gensym: Gensym = new Gensym()
@@ -251,7 +252,7 @@ class GenerateIR {
       val aggResult = Name(gensym.fresh("foldResult"))
       val argTerms = args.map(compileExp)
       val aggArgs = argTerms.map(TermArg.apply) :+
-        iragg.AggregateColumnArg(ir.Var(aggResult))
+                    iragg.AggregateColumnArg(ir.Var(aggResult))
       val agg = iraggset.AggregateSet(ir.RefByName(name), aggArgs, aggOp)
       block.Block(Seq(agg), ir.Var(aggResult))
 

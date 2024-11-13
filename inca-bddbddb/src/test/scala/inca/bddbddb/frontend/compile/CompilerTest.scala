@@ -54,14 +54,14 @@ class CompilerTest extends AnyFunSuite:
     })
   }
 
-  /*test("Can compile PointsTo") {
-    val content = FileUtil.readFileFromResource("inca/bddbddb/pa.datalog")
-    val prog = Parser.parseModule(content)
-    val generateIR = new GenerateIR
-    val mod = generateIR.compileProgram(prog, "PointsTo")
-    println(mod)
+/*test("Can compile PointsTo") {
+  val content = FileUtil.readFileFromResource("inca/bddbddb/pa.datalog")
+  val prog = Parser.parseModule(content)
+  val generateIR = new GenerateIR
+  val mod = generateIR.compileProgram(prog, "PointsTo")
+  println(mod)
 
-    val typechecker = new IRTypechecker
-    typechecker.checkProgram(Seq(mod))
-    typechecker.printTypeIO()
-  }*/
+  val typechecker = new IRTypechecker
+  typechecker.checkProgram(Seq(mod))
+  typechecker.printTypeIO()
+}*/

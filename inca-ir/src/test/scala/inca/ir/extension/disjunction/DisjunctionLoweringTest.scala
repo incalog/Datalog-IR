@@ -148,7 +148,7 @@ class DisjunctionLoweringTest extends AnyFunSuiteLike:
               Call("Y", Seq(Var("a"))),
               Call("H", Seq(Var("a"))),
               Call("I", Seq(Var("a"))),
-              )),
+            )),
             Body(Seq(
               Call("A", Seq(Var("a"))),
               Call("B", Seq(Var("a"))),

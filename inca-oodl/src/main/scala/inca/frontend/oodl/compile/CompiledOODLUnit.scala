@@ -20,6 +20,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
   override def sourceLocation: SourceLocation = fun.name
 
   private class OODLTypeChecker extends IRTypechecker with primitive.Typechecker
+
   override def typechecker: BaseIRTypechecker = new OODLTypeChecker()
 
   val oodlLogging = compilerOptions.oodlLogging
@@ -73,10 +74,10 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     val module = compiler.compileModule(ssa)
     Seq(module)
 
-  /*override lazy val lowered: IRModule =
-    val low = super.lowered
-    println(low)
-    low*/
+/*override lazy val lowered: IRModule =
+  val low = super.lowered
+  println(low)
+  low*/
 
 object CompiledOODLUnit:
   // Important:

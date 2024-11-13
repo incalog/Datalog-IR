@@ -20,7 +20,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   val baseIR: BaseIR = new BaseIR {}
 
   def module(relations: ModuleEntry*)(using typechecker: Typechecker): Module =
-    val mod = Module("M", BaseIR.language+demand.IR+mono.IR+impure.IR+data.IR, relations)
+    val mod = Module("M", BaseIR.language + demand.IR + mono.IR + impure.IR + data.IR, relations)
     try typechecker.checkProgram(Seq(mod))
     finally {
       //println(mod)
@@ -30,7 +30,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
   // main(t, b) :- MkMono(m, Count, Seq(), MT[Int, Int, Seq(String)),
   //               t = "A", size(t, m), b = m.result()
-  private lazy val relation1 : Relation = Relation(
+  private lazy val relation1: Relation = Relation(
     "main",
     Seq(Param("t", TString), Param("b", TInt)),
     Seq(Body(Seq(
@@ -44,7 +44,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   // size(t, m) :- leaf(t), t += 1@(t)
   //            :- btree(t, l, r), size(l, m), size(r, m),
   //               t += 1@(t)
-  private lazy val relation2 : Relation = Relation(
+  private lazy val relation2: Relation = Relation(
     "size",
     Seq(Param("t", TString), Param("m", TDemand(TMono(TAny, TInt, Seq(TString))))),
     Seq(
@@ -63,7 +63,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
 
 
   // used to emulate ExtensionalCall leaf
-  private lazy val relation3 : Relation = Relation(
+  private lazy val relation3: Relation = Relation(
     "leaf", Seq(Param("t", TString)),
     Seq(
       Body(Seq(Eq(Var("t"), StringLit("C")))),
@@ -73,7 +73,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
   )
 
   // used to emulate ExtensionalCall btree
-  private lazy val relation4 : Relation = Relation(
+  private lazy val relation4: Relation = Relation(
     "btree",
     Seq(Param("t", TString), Param("l", TString), Param("r", TString)),
     Seq(
@@ -115,12 +115,11 @@ class MonoTypeTest extends AnyFunSuiteLike {
   )
 
 
-  test("Tree size (type-safe)"){
+  test("Tree size (type-safe)") {
     implicit val typechecker = new IRTypechecker
       with mono.Typechecker
       with string.Typechecker
-      with arithmetic.Typechecker
-      {}
+      with arithmetic.Typechecker {}
     module(relation1, relation2, relation3, relation4)
   }
 
@@ -156,7 +155,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
     )
   )
 
-  test("Demand transformation"){
+  test("Demand transformation") {
     implicit val typechecker = new IRTypechecker {}
     val lowering = new Lowering {}
     val mod = module(relation3, relation6)
@@ -173,7 +172,7 @@ class MonoTypeTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(Count, Seq(TString), Seq())),
       Eq(Var("t"), StringLit("A")),
       Call(Name("size"), Seq(Var("t"), Var("m"))),
-//      Eq(Var("b"), ResultMono(Var("m")))
+      //      Eq(Var("b"), ResultMono(Var("m")))
     )))
   )
 

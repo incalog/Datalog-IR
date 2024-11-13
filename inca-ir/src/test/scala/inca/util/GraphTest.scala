@@ -5,8 +5,11 @@ import org.scalatest.funsuite.AnyFunSuite
 class GraphTest extends AnyFunSuite:
   class SimpleGraph extends Graph[String, String] {
     override def cloneGraph(): Graph[String, String] = throw new UnsupportedOperationException("Not implemented")
+
     override def nodeToGraphViz(n: String): String = namify(n)
+
     override def edgeGraphVizAttributes(from: String, to: String, info: String): String = "color=black"
+
     override def nodeGraphVizAttributes(from: String): String = "fillcolor=black, style=filled, fontcolor=white"
   }
 
@@ -36,8 +39,8 @@ class GraphTest extends AnyFunSuite:
   }
 
   /**
-   *      A → B
-   *        ↖ ↓
+   * A → B
+   * ↖ ↓
    * E ←→ D ← C
    */
   test("Multiple SCCs") {

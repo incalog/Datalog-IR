@@ -6,6 +6,7 @@ trait JoinAggregation[V] extends Aggregation[V, V]:
   val name: String
 
   def init: V
+
   def join(v1: V, v2: V): V
 
   // induce ordering based on join operation
@@ -19,6 +20,7 @@ trait JoinAggregation[V] extends Aggregation[V, V]:
   val isCommutative: Boolean = false
 
   def hasUnjoin: Boolean = false
+
   def unjoin(v1: V, v2: V): V = throw new UnsupportedOperationException
 
   def aggregator: IMultisetAggregationOperator[V, _, V] =

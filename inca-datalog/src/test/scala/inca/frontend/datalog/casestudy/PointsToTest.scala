@@ -21,6 +21,7 @@ class PointsToTest extends AnyFunSuite:
   var nextId: Int = 0
 
   import Expr.*
+
   enum Expr:
     case Num(value: Int)
     case Add(lhs: Expr, rhs: Expr)
@@ -37,6 +38,7 @@ class PointsToTest extends AnyFunSuite:
     override def equals(obj: Any): Boolean = obj match
       case that: Expr => this.id == that.id
       case _ => false
+
     override def hashCode(): Int = id
 
     def expressions: Seq[Expr] =
@@ -45,6 +47,7 @@ class PointsToTest extends AnyFunSuite:
         case e => Seq(e)
 
   import Stmt.*
+
   enum Stmt:
     case VarDef(name: String, value: Expr)
     case Block(list: List[Stmt])
@@ -59,6 +62,7 @@ class PointsToTest extends AnyFunSuite:
     override def equals(obj: Any): Boolean = obj match
       case that: Stmt => this.id == that.id
       case _ => false
+
     override def hashCode(): Int = id
 
     def expressions: Seq[Expr] =
@@ -127,37 +131,37 @@ class PointsToTest extends AnyFunSuite:
     compiled.setPipeline(pipeline)
     val loaded = exec.loadDatalog(compiled)
 
-//    val s = Block(List(
-//      VarDef("a", Num(4)),
-//      VarDef("b", Num(2)),
-//      VarDef("c", Add(Var("a"), Var("b")))
-//    ))
-//
-//    val edbs = exprToEdbRelations(s) ++ stmtToEdbRelations(s)
-//    //    edbs.foreach(t => println(t.asTable))
-//    edbs.foreach(loaded.engine.insert)
-//    edbs.foreach(e => println(e.asTable))
+    //    val s = Block(List(
+    //      VarDef("a", Num(4)),
+    //      VarDef("b", Num(2)),
+    //      VarDef("c", Add(Var("a"), Var("b")))
+    //    ))
+    //
+    //    val edbs = exprToEdbRelations(s) ++ stmtToEdbRelations(s)
+    //    //    edbs.foreach(t => println(t.asTable))
+    //    edbs.foreach(loaded.engine.insert)
+    //    edbs.foreach(e => println(e.asTable))
 
-//    val nextEDB = Relation2("next", Seq("from", "to"), Seq(
-//      Seq(1, 2), Seq(2, 3), Seq(3, 4), Seq(5, 6), Seq(6, 7), Seq(4, 9)
-//    ))
-//    val newEDB = Relation3("new", Seq("loc", "var", "obj"), Seq(
-//      Seq(1, "a", 1), Seq(2, "b", 2), Seq(5, "c", 5)
-//    ))
-//    val assignEDB = Relation3("assign", Seq("loc", "from", "to"), Seq(
-//      Seq(8, "c", "a")
-//    ))
-//    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
-//      Seq(3, "a", "f", "b"),
-//      Seq(6, "c", "f", "a"),
-//      Seq(7, "a", "f", "c"),
-//    ))
-//    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
-//      Seq(9, "d", "c", "f"),
-//    ))
-//    val ifEDB = Relation4("if", Seq("loc", "cond", "then", "else"), Seq(
-//      Seq(4, "X", 5, 8)
-//    ))
+    //    val nextEDB = Relation2("next", Seq("from", "to"), Seq(
+    //      Seq(1, 2), Seq(2, 3), Seq(3, 4), Seq(5, 6), Seq(6, 7), Seq(4, 9)
+    //    ))
+    //    val newEDB = Relation3("new", Seq("loc", "var", "obj"), Seq(
+    //      Seq(1, "a", 1), Seq(2, "b", 2), Seq(5, "c", 5)
+    //    ))
+    //    val assignEDB = Relation3("assign", Seq("loc", "from", "to"), Seq(
+    //      Seq(8, "c", "a")
+    //    ))
+    //    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
+    //      Seq(3, "a", "f", "b"),
+    //      Seq(6, "c", "f", "a"),
+    //      Seq(7, "a", "f", "c"),
+    //    ))
+    //    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
+    //      Seq(9, "d", "c", "f"),
+    //    ))
+    //    val ifEDB = Relation4("if", Seq("loc", "cond", "then", "else"), Seq(
+    //      Seq(4, "X", 5, 8)
+    //    ))
     val nextEDB = Relation2("next", Seq("from", "to"), Seq(
       Seq(1, 2), Seq(2, 5)
     ))
@@ -167,14 +171,14 @@ class PointsToTest extends AnyFunSuite:
     val assignEDB = Relation3("assign", Seq("loc", "from", "to"), Seq(
       Seq(4, "b", "a"), Seq(5, "a", "b")
     ))
-//    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
-//      Seq(3, "a", "f", "b"),
-//      Seq(6, "c", "f", "a"),
-//      Seq(7, "a", "f", "c"),
-//    ))
-//    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
-//      Seq(9, "d", "c", "f"),
-//    ))
+    //    val storeEDB = Relation4("store", Seq("loc", "to", "f", "from"), Seq(
+    //      Seq(3, "a", "f", "b"),
+    //      Seq(6, "c", "f", "a"),
+    //      Seq(7, "a", "f", "c"),
+    //    ))
+    //    val loadEDB = Relation4("load", Seq("loc", "to", "from", "f"), Seq(
+    //      Seq(9, "d", "c", "f"),
+    //    ))
     val ifEDB = Relation4("if", Seq("loc", "cond", "then", "else"), Seq(
       Seq(2, "X", 3, 4)
     ))
@@ -197,10 +201,10 @@ class PointsToTest extends AnyFunSuite:
 
     val inserts = Seq(nextInsert, newInsert, assignInsert)
 
-//    val pointsto = loaded.query("pointsto")
-//    println(pointsto.asTable)
-//    val fieldpointsto = loaded.query("fieldpointsto")
-//    println(fieldpointsto.asTable)
+    //    val pointsto = loaded.query("pointsto")
+    //    println(pointsto.asTable)
+    //    val fieldpointsto = loaded.query("fieldpointsto")
+    //    println(fieldpointsto.asTable)
     val cpointsto = loaded.query("cpointsto")
     println(cpointsto.asTable)
 
@@ -212,8 +216,8 @@ class PointsToTest extends AnyFunSuite:
     inserts.foreach(loaded.engine.insert)
     val cpointsto3 = loaded.query("cpointsto")
     println(cpointsto3.asTable)
-//    val cfieldpointsto = loaded.query("cfieldpointsto")
-//    println(cfieldpointsto.asTable)
+    //    val cfieldpointsto = loaded.query("cfieldpointsto")
+    //    println(cfieldpointsto.asTable)
   }
 
 //  test("constant seq - reassign") {

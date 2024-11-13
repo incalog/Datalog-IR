@@ -92,7 +92,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val setAdt = res.entries.head
     val query = Relation.from("Set$$TInt_TInt$$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 3)
-    assertResult(Set((1,1), (2,1)))(res.toSet)
+    assertResult(Set((1, 1), (2, 1)))(res.toSet)
   }
 
   test("Set comprehension 2") {
@@ -140,7 +140,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val setAdt = res.entries.head
     val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
-    assertResult(Set(1,2,3))(res.toSet)
+    assertResult(Set(1, 2, 3))(res.toSet)
   }
 
   test("Constant set") {
@@ -311,7 +311,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val setAdt = res.entries.head
     val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
     res = loaded.engine.read(query).project(1, 2)
-    assertResult(Set(1,2,3,4))(res.toSet)
+    assertResult(Set(1, 2, 3, 4))(res.toSet)
   }
 
   test("Set union with objects") {

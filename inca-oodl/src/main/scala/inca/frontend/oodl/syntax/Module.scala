@@ -25,7 +25,7 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
     case c: ClassDef => Some(c)
     case _ => None
   }
-  
+
   def functions: Seq[FunctionDef] = content.flatMap {
     case f: FunctionDef => Some(f)
     case _ => None
@@ -43,21 +43,26 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
 
 trait ModuleContent extends SourceLocation with Annotations:
   def vis: Option[Visibility]
+
   def prettyprint(implicit indent: String): String
+
   override def toString: String = prettyprint("")
 
 case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target:
   def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
+
   def prettyprint(implicit indent: String): String = s"$name: ${typ.prettyprint}"
+
   override def toString: String = prettyprint("")
 
 case class ParametricType(name: Name) extends SourceLocation with TName.Target:
   def prettyprint(implicit indent: String): String = name.name
+
   override def toString: String = prettyprint("")
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Seq[Statement]) extends ModuleContent with Var.Target:
   def isMain: Boolean = annos.exists(_.isInstanceOf[MainFunctionAnno])
-  
+
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""
@@ -71,6 +76,7 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyParams: Seq[ParametricType], parentCls: Seq[Type], content: Seq[ClassContent]) extends ModuleContent with TName.Target:
   def isCaseClass: Boolean = annos.exists(_.isInstanceOf[CaseClassAnno])
+
   def isMonoClass: Boolean = annos.exists(_.isInstanceOf[MonoClassAnno])
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
@@ -80,7 +86,9 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   }
 
   def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
+
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
+
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
 
   def prettyprint(implicit indent: String): String = {
@@ -98,12 +106,14 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 
 trait ClassContent extends SourceLocation with Annotations:
   def vis: Option[Visibility]
+
   def prettyprint(implicit indent: String): String
+
   override def toString: String = prettyprint("")
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression], immutable: Boolean) extends ClassContent with Resolvable[ClassDef]:
   def isGeneratedConstructorField: Boolean = annos.exists(_.isInstanceOf[GeneratedConstructorFieldAnno])
-  
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
@@ -117,7 +127,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   override def prettyprint(implicit indent: String): String = {
     val tyS = if (tyVars.isEmpty) "" else tyVars.mkString("[", ", ", "]")
     val visS = if (vis.contains(Private)) "private " else ""
-    val paramsS = params.map(_.prettyprint).mkString("(" , ", ", ")")
+    val paramsS = params.map(_.prettyprint).mkString("(", ", ", ")")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
     s"""$indent$annoPrefix${visS}def $name$tyS$paramsS: $outS = {

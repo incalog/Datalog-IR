@@ -3,9 +3,13 @@ module MonoMapTest
 
 class Sign {
   def joined(that: Sign): Sign = this
+
   def add(that: Sign): Sign = this
+
   def sub(that: Sign): Sign = this
+
   def mul(that: Sign): Sign = this
+
   def gt(that: Sign): Sign = this
 }
 
@@ -46,7 +50,9 @@ case class Zero extends Sign {
 
 class MSign extends mono.Type[Sign, Sign, Sign] {
   def init: Sign = new Bot()
+
   def +=(state: Sign, v: Sign): Sign = state.joined(v)
+
   def result(state: Sign): Sign = state
 }
 

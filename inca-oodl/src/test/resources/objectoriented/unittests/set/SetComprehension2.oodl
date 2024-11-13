@@ -1,9 +1,9 @@
 module SetTest
 
 @main def main(): Set[(Int, Int, Int)] = {
-    val as: Set[Int] = Set(-1, 1, 2)
-    val bs: Set[Int] = Set(3, 4)
-    val c: Int = 5
-    return for (a <- as if (a < 2) && (a > 0); b <- bs)
-      yield (a, b, c)
+  val as: Set[Int] = Set(-1, 1, 2)
+  val bs: Set[Int] = Set(3, 4)
+  val c: Int = 5
+  return for (a <- as if (a < 2) && (a > 0); b <- bs)
+    yield (a, b, c)
 }

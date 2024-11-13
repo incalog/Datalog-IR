@@ -40,8 +40,8 @@ class JoinRV[C, V](using joinValue: Join[V]) extends Join[RelationValue[V]]:
           val sharedRow2 = colIndicesOther.map(row1.apply)
           val sharedRow = sharedRow1.zip(sharedRow2).map((v1, v2) => joinValue(v1, v2)).map(_.get)
           sharedRow
-            ++ row1.filterNot(colIndicesRv.contains)
-            ++ row2.filterNot(colIndicesOther.contains)
+          ++ row1.filterNot(colIndicesRv.contains)
+          ++ row2.filterNot(colIndicesOther.contains)
 
       val (sortedCols, sortedRows) = combinedCols.zip(joinedRows.get).sortBy((col, _) => col.toString).unzip
 

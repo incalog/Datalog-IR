@@ -16,17 +16,18 @@ import scala.collection.immutable.MultiDict
  * - subtypes represents the transitive closure of directSubtypes.
  */
 class DataModel(
-                        val types: Set[SortType],
-                        _directSupertypes: MultiDict[SortType, SortType],
-                        val links: Map[Link, Type],
-                        val litLinks: Map[Link, LitType]
-                      ) {
+                 val types: Set[SortType],
+                 _directSupertypes: MultiDict[SortType, SortType],
+                 val links: Map[Link, Type],
+                 val litLinks: Map[Link, LitType]
+               ) {
 
   override def toString: String = {
     s"DataModel($types, $directNodeSupertypes, $links, $litLinks)"
   }
 
   def this() = this(Set(), MultiDict(), Map(), Map())
+
   def ++(other: DataModel): DataModel =
     new DataModel(
       this.types ++ other.types,
@@ -58,6 +59,7 @@ class DataModel(
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
+
   def directSubtypes(ty: Type): Iterable[Type] = ty match {
     case ty: SortType => directNodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => directSubtypes(contained).map(ListType) ++ Seq(NothingType)
@@ -75,6 +77,7 @@ class DataModel(
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
+
   def subtypes(ty: Type): Iterable[Type] = ty match {
     case ty: SortType => nodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => subtypes(contained).map(ListType) ++ Seq(NothingType)

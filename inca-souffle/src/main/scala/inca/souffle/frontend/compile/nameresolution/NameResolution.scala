@@ -17,9 +17,9 @@ trait NameResolution:
     content match
       case decl: ProgramContent.TypeDecl => ctx.bindTypeDecl(decl)
       case decl: ProgramContent.RelationDecl => ctx.bindRelationDecl(decl)
-      case decl: ProgramContent.ComponentDecl => 
+      case decl: ProgramContent.ComponentDecl =>
         ctx.bindComponentDecl(decl)
-      case init: ProgramContent.ComponentInit => 
+      case init: ProgramContent.ComponentInit =>
         ctx.bindComponentInit(init)
       case _ => ()
 
@@ -38,7 +38,7 @@ trait NameResolution:
         // register all decl we inherited
         superTys.foreach { sTy =>
           ctx.lookupComponentDecl(sTy) match
-            case Some(comp) => 
+            case Some(comp) =>
               sTy.resolved(comp)
               comp.content.foreach(register)
             case _ => ???
@@ -96,7 +96,7 @@ trait NameResolution:
   private def resolveType(ty: Type): Unit = ty match
     case tyName@Type.Name(qualName) =>
       ctx.lookupTypeDeclDecl(qualName) match
-        case Some(typeDecl) =>  tyName.resolved(typeDecl)
+        case Some(typeDecl) => tyName.resolved(typeDecl)
         case None => throw IllegalArgumentException(s"Could not resolve type $qualName")
     case Type.Number => // do nothing
     case Type.Symbol => // do nothing

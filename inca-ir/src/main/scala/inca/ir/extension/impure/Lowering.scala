@@ -49,17 +49,17 @@ import scala.collection.mutable
  *
  * Wrong:
  * R(....) =
- *   alloc$1 = 0
- *   alloc$2 = alloc$1 + 1
- *   {alloc$3 = alloc$2 + 1} or {  } // first body has allocation, second body has not
- *   alloc$3 // not defined, need some kind of phi node here
+ * alloc$1 = 0
+ * alloc$2 = alloc$1 + 1
+ * {alloc$3 = alloc$2 + 1} or {  } // first body has allocation, second body has not
+ * alloc$3 // not defined, need some kind of phi node here
  *
  * Solution:
  * R(....) =
- *   alloc$1 = 0
- *   alloc$2 = alloc$1 + 1
- *   {tmp$alloc$1 = alloc$2; tmp$alloc$2 = tmp$alloc$1 +1; alloc$3 = tmp$alloc$2} or { tmp$alloc$1 = alloc$2; alloc$3 = tmp$alloc$1 } // first body has allocation, second body has not
- *   alloc$3 // is defined body the previous bodies
+ * alloc$1 = 0
+ * alloc$2 = alloc$1 + 1
+ * {tmp$alloc$1 = alloc$2; tmp$alloc$2 = tmp$alloc$1 +1; alloc$3 = tmp$alloc$2} or { tmp$alloc$1 = alloc$2; alloc$3 = tmp$alloc$1 } // first body has allocation, second body has not
+ * alloc$3 // is defined body the previous bodies
  *
  */
 
@@ -94,7 +94,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
   // All impurities required for the current relation
   private var relevantImpurities: Seq[ImpurityKind] = Seq()
 
-  private var suffixes:  Map[SourceLocation, String] = Map()
+  private var suffixes: Map[SourceLocation, String] = Map()
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     if isClosedWorld then super.visitProgram(modules) else modules
@@ -122,6 +122,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
   private def freshImpurityCounter(kind: ImpurityKind, enclosure: SourceLocation) =
     getOrCreateImpurityCounterInstance(kind, enclosure).freshCounter()
+
   private def getImpurityCounter(kind: ImpurityKind, enclosure: SourceLocation) =
     getOrCreateImpurityCounterInstance(kind, enclosure).get()
 
@@ -173,7 +174,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
         // This is the case, because visiting the body is impurity scoped
         relevantImpurities.foreach(kind => freshImpurityCounter(kind, parentEnclosure))
       case _ => // nothing
-  
+
   override def visitBody(body: Body, enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Seq[Body] = impurityScoped {
     parentEnclosureOption match
       case None =>
@@ -186,7 +187,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
           preserveHints(body)(Body(b.atoms ++ outEqs))
       case Some(parentEnclosure) =>
         // Inside a Disjunction or some other atom that contains a body
-        
+
         // Introduce temporary variables as impurity counter
         val inputImpurityConstraints = relevantImpurities.map { kind =>
           Eq(getImpurityCounter(kind, enclosure), getImpurityCounter(kind, parentEnclosure))
@@ -209,7 +210,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
       case Impure(v, Seq(), up, kind) if !up.vars.map(_.name).contains(v.name) =>
         val freshCounter = freshImpurityCounter(kind, enclosure)
         Eq(freshCounter, up) :: Nil
-      case Impure(v, atoms, up, kind)  =>
+      case Impure(v, atoms, up, kind) =>
         val counter = getImpurityCounter(kind, enclosure)
         val as = atoms.flatMap(visitAtom)
         val freshCounter = freshImpurityCounter(kind, enclosure)
@@ -236,7 +237,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
             //val freshImpurityVar = freshImpurityCounter(kind, enclosure)
             //Seq(previousImpurityVar.arg, freshImpurityVar.arg)
             Seq(previousImpurityVar.arg, WildcardArg())
-            //Seq(WildcardArg(), WildcardArg())
+          //Seq(WildcardArg(), WildcardArg())
           else
             Seq()
         }
@@ -252,9 +253,10 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
  * E.g a body of a disjunction is contained in the body of a relation, as such we say that the parent of the disjunction
  * is the relation. This visitor keeps track of such relationships and provides methods for visiting atoms and bodies
  * that includes this information.
- **/
+ * */
 trait BodyAwareVisitor extends IRVisitor:
   private def currentEnclosure: SourceLocation = _currentEnclosure.get
+
   private def parentEnclosure: Option[SourceLocation] = _parentEnclosure
 
   private var _parentEnclosure: Option[SourceLocation] = None
@@ -343,7 +345,7 @@ class CollectImpurityAffectedRelations extends IRVisitor:
     super.visitRelation(relation)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case Impure(_, _, _, kind) =>//if !currentRelation.hasHint(MainHint) =>
+    case Impure(_, _, _, kind) => //if !currentRelation.hasHint(MainHint) =>
       addAffectedRelation(currentRelation.name, kind)
       super.visitAtom(atom)
 

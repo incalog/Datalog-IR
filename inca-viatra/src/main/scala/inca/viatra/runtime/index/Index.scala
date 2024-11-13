@@ -17,15 +17,19 @@ trait Index {
 
   /** counts tuples of the associated virtual key contained in index based on provided mask and seed */
   def countTuples(mask: TupleMask, seed: ITuple): Int
-  /** returns all tuples maintained in index associated with virtual key based on provided mask and seed  */
+
+  /** returns all tuples maintained in index associated with virtual key based on provided mask and seed */
   def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple]
+
   /** enumerate all values within index associated with virtual key based on provided mask and seed */
   def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_]
+
   /** checks whether the provided tuple is contained in index */
   def containsTuple(tuple: ITuple): Boolean
 
   /** Adds a listener for changes to this index */
   def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit
+
   /** Removes a listener for changes to this index */
   def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit
 }

@@ -14,7 +14,7 @@ enum DependencyInfo:
 class DependencyGraph extends Graph[ModuleEntry, DependencyInfo]:
   def prettyPrintCycle(cycle: List[ModuleEntry]): String =
     cycle.map(_.name).mkString("", " -> ", s" -> ${cycle.head.name}")
-  
+
   def negativeCycles: List[List[(ModuleEntry, DependencyInfo)]] =
     cyclesWithInfo.filter { cycle =>
       cycle.count(_._2 == DependencyInfo.NegativeCall) % 2 != 0

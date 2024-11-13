@@ -30,11 +30,17 @@ import scala.collection.mutable
 
 case class CompiledMonoUnit(mod: Module, override val compilerOptions: CompilerOptions) extends CompiledUnit:
   override def name: Name = mod.name
+
   override def sourceLocation: SourceLocation = mod.name
+
   override val isClosedWorld: Boolean = true
+
   override def otherUnits: Seq[CompiledUnit] = Seq()
+
   lazy val irModules: Seq[Module] = Seq(mod)
+
   private class MonoTypeChecker extends IRTypechecker with primitive.Typechecker
+
   override def typechecker: BaseIRTypechecker = new MonoTypeChecker()
 
 
@@ -56,20 +62,19 @@ case class CompiledMonoUnit(mod: Module, override val compilerOptions: CompilerO
   ))
 
 
-
 class MonoAggregationTest extends AnyFunSuiteLike {
-  private val langs : Language = BaseIR.language +
-    arithmetic.IR + 
-    demand.IR + 
-    data.IR + 
-    aggregate.IR +
-    mono.IR +
-    impure.IR +
-    block.IR +
-    string.IR +
-    bool.IR +
-    map.IR
-  
+  private val langs: Language = BaseIR.language +
+                                arithmetic.IR +
+                                demand.IR +
+                                data.IR +
+                                aggregate.IR +
+                                mono.IR +
+                                impure.IR +
+                                block.IR +
+                                string.IR +
+                                bool.IR +
+                                map.IR
+
   private def module(relations: ModuleEntry*): Module =
     val mod = Module("M", langs, relations)
     mod
@@ -256,7 +261,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     assertResult((5, 1))(res.entries.head)
   }
 
-  test("Builtin mono definition test 7"){
+  test("Builtin mono definition test 7") {
     val mainRelation = Relation("main", Seq(Param("s", TString)), Seq(Body(Seq(
       Eq(Var("counter"), IntNum(0)),
       Impure(Name("counter"), Seq(), Var("counter"), MonoImpurityKind),
@@ -290,7 +295,6 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     Seq(),
     MonoTypes(TInt, TString, ScalaType.double)
   )
-
 
 
   private lazy val relationUserDefinedMono1: Relation = Relation(
@@ -341,7 +345,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     initCode = "Set[Any]()",
     addCode = "(st: Set[Any], a: Any) => st + a",
     resultCode = "(st: Set[Any]) => st.size",
-    combineCode=  s"(o1: Int, o2: Int) => o1 + o2",
+    combineCode = s"(o1: Int, o2: Int) => o1 + o2",
     constructorParamTypes = Seq(),
     typ = MonoTypes(ScalaType("Any"), ScalaType("Set[Any]"), ScalaType.int)
   )
@@ -397,7 +401,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(graphSizeMain, graphSize, extEdge)
     engine.insert(edbEdge)
     //engine.readAll().foreach(res => println(res.asTable))
-//    val res = engine.read(UnitRelation("main"))
+    //    val res = engine.read(UnitRelation("main"))
 
   }
 
@@ -416,7 +420,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
         val p = s"""Seq("${comb(k)._1}", "${comb(k)._2}")"""
         res += p
         set += k
-    //println(res.mkString(", "))
+  //println(res.mkString(", "))
 
 
   private lazy val multiMapMono = ScalaMonoDefinition(
@@ -445,7 +449,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
   )
 
 
-  test("test map mono"){
+  test("test map mono") {
 
   }
 
@@ -478,8 +482,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
     val engine = compile(mainRelation, pathRelation, edgeRel)
     engine.insert(edbBTree)
     val res = engine.read(UnitRelation("main"))
-    //engine.readAll().foreach(res => println(res.asTable))
-
+  //engine.readAll().foreach(res => println(res.asTable))
 
 
 }

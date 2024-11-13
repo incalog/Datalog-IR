@@ -33,7 +33,7 @@ trait ScalaLowering extends BaseScalaLowering:
           val params = args.zipWithIndex.map { case (ty, idx) =>
             val sty = visitType(ty) match
               case t@ScalaType(_) => t
-              case t => t//ScalaInca.compileType(t)
+              case t => t //ScalaInca.compileType(t)
             (s"param_$idx", sty)
           }
           caseDef2params += cleanName(name) -> params

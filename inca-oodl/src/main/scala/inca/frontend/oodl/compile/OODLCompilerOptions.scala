@@ -6,16 +6,23 @@ import inca.util.compileroptions.{CompilerOptions, IniParser, Section}
 case class OODLLoggingSection(override val name: String, defaults: Map[String, Any]) extends Section(name, defaults):
   // Log type information when logging a module
   def logTypeInformation: Boolean = readBoolean("typed")
+
   def logTypeInformation_=(newVal: Boolean): Unit = update("typed", newVal)
+
   // Log the main module before transformation to IR code
   def logModule: Boolean = readBoolean("module")
+
   def logModule_=(newVal: Boolean): Unit = update("module", newVal)
+
   // Log the ssa transformed module
   def logSSAModule: Boolean = readBoolean("ssa")
+
   def logSSAModule_=(newVal: Boolean): Unit = update("ssa", newVal)
+
   // Log all relations
   def verboseOutput: Boolean = readBoolean("verbose_output")
-  def verboseOutput_= (newVal: Boolean): Unit = update("verbose_output", newVal)
+
+  def verboseOutput_=(newVal: Boolean): Unit = update("verbose_output", newVal)
 
 
 final class OODLCompilerOptions private(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):

@@ -163,8 +163,9 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]):
     lhs
   }
 
-  def find(value: T):  AugmentedAVLNode[T] = find(root, value)
-  def find(node: AugmentedAVLNode[T], value: T):  AugmentedAVLNode[T] = {
+  def find(value: T): AugmentedAVLNode[T] = find(root, value)
+
+  def find(node: AugmentedAVLNode[T], value: T): AugmentedAVLNode[T] = {
     if (node == null) null
     else {
       val res = ord.compare(value, node.value)
@@ -177,6 +178,7 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]):
 object AugmentedAVLTree:
   def computeHeight[T](node: AugmentedAVLNode[T]): Int = {
     def getSetHeight(n: AugmentedAVLNode[T]): Int = if (n == null) 0 else n.height
+
     if (node == null) 0
     else 1 + Math.max(getSetHeight(node.lhs), getSetHeight(node.rhs))
   }
@@ -200,7 +202,9 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[
   private var _rhs: AugmentedAVLNode[T] = _
 
   def parent: AugmentedAVLNode[T] = _parent
+
   def lhs: AugmentedAVLNode[T] = _lhs
+
   def rhs: AugmentedAVLNode[T] = _rhs
 
   def parent_=(node: AugmentedAVLNode[T]): Unit = {
@@ -208,18 +212,18 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[
   }
 
   def lhs_=(node: AugmentedAVLNode[T]): Unit = {
-    if (_lhs ==  null ||  _lhs != node) {
+    if (_lhs == null || _lhs != node) {
       _lhs = node
-      if (_lhs  != null)
+      if (_lhs != null)
         _lhs.parent = this
       lhsChanged(node)
     }
   }
 
   def rhs_=(node: AugmentedAVLNode[T]): Unit = {
-    if (_rhs ==  null ||  _rhs != node) {
+    if (_rhs == null || _rhs != node) {
       _rhs = node
-      if (_rhs  != null)
+      if (_rhs != null)
         _rhs.parent = this
       rhsChanged(node)
     }
@@ -232,6 +236,7 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[
   var count: Int = 1
 
   def lhsChanged(newLhs: AugmentedAVLNode[T]): Unit = recompute(newLhs, rhs)
+
   def rhsChanged(newRhs: AugmentedAVLNode[T]): Unit = recompute(lhs, newRhs)
 
   def recompute(lhs: AugmentedAVLNode[T], rhs: AugmentedAVLNode[T]): Unit = {

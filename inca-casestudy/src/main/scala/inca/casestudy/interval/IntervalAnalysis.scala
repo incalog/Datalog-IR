@@ -63,7 +63,7 @@ object IntervalAnalysis:
     CaseDefinition("BFalse", Seq(), TInterval),
   )
 
-  val dataModel: DataModel = DataModel.from(edb.allNodes:_*)
+  val dataModel: DataModel = DataModel.from(edb.allNodes: _*)
 
   def mkIv(l: Term, r: Term): Term = Construct("IV", Seq(l, r))
 
@@ -273,19 +273,20 @@ object IntervalAnalysis:
     "JoinInterval",
     ScalaType("Interval"),
     "Bot()",
-    addCode = """(st: Interval, a: Interval) => (st, a) match {
-                |    case (Bot(), _) => a
-                |    case (_,Bot()) => st
-                |    case (Top(), _) => Top()
-                |    case (_, Top()) => Top()
-                |    case (BTrue(), BTrue()) => BTrue()
-                |    case (BFalse(), BFalse()) => BFalse()
-                |    case (IV(l1, l2), IV(l3, l4)) =>
-                |      val l = l1.min(l3)
-                |      val h = l2.max(l4)
-                |      if ((h - l).abs <= 5) then IV(l, h) else Top()
-                |    case _ => Top()
-                |}""".stripMargin,
+    addCode =
+      """(st: Interval, a: Interval) => (st, a) match {
+        |    case (Bot(), _) => a
+        |    case (_,Bot()) => st
+        |    case (Top(), _) => Top()
+        |    case (_, Top()) => Top()
+        |    case (BTrue(), BTrue()) => BTrue()
+        |    case (BFalse(), BFalse()) => BFalse()
+        |    case (IV(l1, l2), IV(l3, l4)) =>
+        |      val l = l1.min(l3)
+        |      val h = l2.max(l4)
+        |      if ((h - l).abs <= 5) then IV(l, h) else Top()
+        |    case _ => Top()
+        |}""".stripMargin,
   )
 
   val _intervalAfter = Relation("_intervalAfter",
@@ -402,13 +403,17 @@ object IntervalAnalysis:
   )
 
 
-
   def compiled = new CompiledUnit:
     override def name: Name = "IntervalAnalysis"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default
       op.irLogging.logModule = false
@@ -416,11 +421,14 @@ object IntervalAnalysis:
       op
 
     private trait demandLowering extends demand.Lowering with primitive.Visitor
+
     private trait blockLowering extends block.Lowering with primitive.Visitor
+
     private trait scalaLowering extends primitive.ScalaLowering
       with scalaArith.ScalaLowering
       with scalaData.ScalaLowering
       with scalaString.ScalaLowering
+
     override def typechecker = new IRTypechecker with Typechecker {}
 
     setPipeline(List(
@@ -452,7 +460,7 @@ object IntervalAnalysis:
 
     println(s"Load time ${loadTimeMs}ms")
     println(s"Propagation time ${propTimeMs}ms")
-//    println(prog.toStringWithURI)
+  //    println(prog.toStringWithURI)
 
 
   @main def measureBigWhile = {
@@ -624,6 +632,7 @@ object IntervalAnalysis:
   @main def dlCheck24 = {
     run(Benchmark.example24)
   }
+
   @main def dlCheck25 = {
     run(Benchmark.example25)
   }

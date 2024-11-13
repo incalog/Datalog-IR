@@ -10,10 +10,10 @@ trait Typechecker extends BaseIRTypechecker:
     (inferTerm(lhs, Mode.Bound).ty, inferTerm(rhs, Mode.Bound).ty) match
       case (TInt, TInt) => TInt
       case (TDouble, TDouble) => TDouble
-      case (ty1@(TInt|TDouble), ty2) =>
+      case (ty1@(TInt | TDouble), ty2) =>
         error(s"Expected $ty1 but got $ty2", rhs)
         ty1
-      case (ty1, ty2@(TInt|TDouble)) =>
+      case (ty1, ty2@(TInt | TDouble)) =>
         error(s"Expected $ty2 but got $ty1", lhs)
         ty2
       case (ty1, ty2) =>

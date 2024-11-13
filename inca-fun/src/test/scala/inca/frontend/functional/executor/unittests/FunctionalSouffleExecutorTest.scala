@@ -185,13 +185,13 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     var setAdt = res.entries.head
     var query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
-    assertResult(Set(3,4))(res.toSet)
+    assertResult(Set(3, 4))(res.toSet)
 
     res = loaded.execute("main2", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
-    assertResult(Set(1,4))(res.toSet)
+    assertResult(Set(1, 4))(res.toSet)
 
     res = loaded.execute("main3", Seq())
     setAdt = res.entries.head
@@ -209,13 +209,13 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
-    assertResult(Set(3,4))(res.toSet)
+    assertResult(Set(3, 4))(res.toSet)
 
     res = loaded.execute("main6", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
-    assertResult(Set(3,4,5))(res.toSet)
+    assertResult(Set(3, 4, 5))(res.toSet)
 
     /*res = loaded.execute("main7", Seq())
     setAdt = res.entries.head
@@ -247,33 +247,33 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     assertResult("$Cons_TBoolean(1, $Nil_TBoolean)")(res.entries.head.toString)
   }
 
-  // No recursive aggregation support in Souffle + Missing C++ lowering
-  /*test("Fold Int") {
-    val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
-    val compiled = exec.compileFunction(code)
-    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
-    val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("sum", Seq(1, 5))
-    assertResult(15)(res.entries.head)
-  }
+// No recursive aggregation support in Souffle + Missing C++ lowering
+/*test("Fold Int") {
+  val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
+  val compiled = exec.compileFunction(code)
+  compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+  compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
+  val loaded = exec.loadFunction(compiled)
+  val res = loaded.execute("sum", Seq(1, 5))
+  assertResult(15)(res.entries.head)
+}
 
-  test("Fold ADT") {
-    val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
-    val compiled = exec.compileFunction(code)
-    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
-    val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("sum", Seq(1, 5))
-    assertResult("V(15)")(res.entries.head.toString)
-  }
+test("Fold ADT") {
+  val code = FileUtil.readFileFromResource("functional/unittests/FoldADT.finca")
+  val compiled = exec.compileFunction(code)
+  compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+  compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
+  val loaded = exec.loadFunction(compiled)
+  val res = loaded.execute("sum", Seq(1, 5))
+  assertResult("V(15)")(res.entries.head.toString)
+}
 
-  test("Bus Station") {
-    val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
-    val compiled = exec.compileFunction(code)
-    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
-    val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("main", Seq())
-    assertResult("BusStation(B,5)")(res.entries.head.toString)
-  }*/
+test("Bus Station") {
+  val code = FileUtil.readFileFromResource("functional/unittests/BusStation.finca")
+  val compiled = exec.compileFunction(code)
+  compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+  compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
+  val loaded = exec.loadFunction(compiled)
+  val res = loaded.execute("main", Seq())
+  assertResult("BusStation(B,5)")(res.entries.head.toString)
+}*/

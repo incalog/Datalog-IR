@@ -14,14 +14,18 @@ trait TypeIO:
 
   def error(msg: String, sourceLocations: SourceLocation*): Unit =
     errors += CompilationMessage(msg, sourceLocations, CompilationMessage.ERROR)
+
   def warn(msg: String, sourceLocations: SourceLocation*): Unit =
     warnings += CompilationMessage(msg, sourceLocations, CompilationMessage.WARNING)
 
   def getErrors: List[CompilationMessage] = errors.toList.distinct
+
   def getWarnings: List[CompilationMessage] = warnings.toList.distinct
 
   def hasTypeErrors: Boolean = errors.nonEmpty
+
   def hasTypeWarnings: Boolean = warnings.nonEmpty
+
   def printTypeIO(): Unit = {
     errors.foreach(println)
     warnings.foreach(println)
@@ -32,7 +36,7 @@ trait TypeIO:
     if (warnings.nonEmpty)
       throw TypeErrorException(warnings)
   }
-  
+
   def failOnError(): Unit = {
     val errors = getErrors
     if (errors.nonEmpty)
@@ -49,8 +53,8 @@ trait TypeIO:
     (a, newErrors)
 
 
-
 object TypeIO:
   /* Errors that can occur in typechecking */
   case class TypeWarning(msg: String, sourceLocations: Seq[SourceLocation])
+
   case class TypeError(msg: String, sourceLocations: Seq[SourceLocation])

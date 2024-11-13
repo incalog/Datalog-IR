@@ -43,8 +43,8 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
     case dd: RecordDefinition => // nothing to check
     case FieldDefinition(name, ty, record) =>
-      checkType(ty) 
-      checkType(record) 
+      checkType(ty)
+      checkType(record)
     case _ => super.checkModuleEntry(moduleEntry)
 
   private def getAllFieldDefinitions(recName: Name): Seq[FieldDefinition] =
@@ -59,7 +59,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
         val fieldDefsOfRecord = getAllFieldDefinitions(recName)
         if (fieldDefsOfRecord.size != fields.size)
           error(s"Wrong number of field entries $fields for fields $fieldDefsOfRecord of Record Definition of ${ref.name}")
-        fields.foreach{ case (fieldRef, t) =>
+        fields.foreach { case (fieldRef, t) =>
           val expectedType = lookupFieldDefinition(fieldRef, term, ref.name) match {
             case Some((_, fd@FieldDefinition(name, ty, record))) =>
               addTypeDependency(fd)
@@ -83,7 +83,7 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
             case Some((_, fd@FieldDefinition(fieldName, ty, recordType))) =>
               checkTerm(record, recordType, mode)
               TermType(ty, Mode.Bound)
-            }
+          }
           case _ =>
             error(s"expected RecordLit but got $other")
             TermType(TAny, mode)
@@ -94,12 +94,12 @@ trait Typechecker extends BaseIRTypechecker with typeparam.Typechecker:
 
   def checkDeconstructRecord(matcheeType: Type, recordRef: Ref[RecordDefinition], s: SourceLocation): Unit = matcheeType match {
     case TRecord(matcheeRef) =>
-      if (matcheeRef.name != recordRef.name) 
+      if (matcheeRef.name != recordRef.name)
         error(s"Constructor ${recordRef.name} does not belong to matchee's data type ${matcheeRef.name}", matcheeRef)
     case ty =>
       error(s"Expected data type but got $matcheeType", s)
   }
-  
+
   override def checkAtom(atom: Atom, mode: Mode): Unit = atom match
     case Deconstruct(record, ref, fields, neg) => lookupRecordDefinition(ref, atom) match {
       case None =>

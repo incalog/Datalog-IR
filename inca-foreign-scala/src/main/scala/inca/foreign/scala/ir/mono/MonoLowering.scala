@@ -24,6 +24,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
   override def name: String = "MonoScalaLowering"
 
   override def loweredIRs: Set[BaseIR] = Set(mono.IR, aggregate.IR)
+
   override def requiredIRs: Set[BaseIR] = Set(set.IR, demand.IR, foreign.IR, aggregate.IR)
 
   /** Return the scala type name of input inca type */
@@ -41,65 +42,66 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
     mod.copy(contents = mod.contents ++ convertRelations)
   }
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
-    case agg@Aggregate(rel, args, op) =>
-      val newArgs = args.flatMap(visitArg)
-      var newAgg = Aggregate(rel, newArgs, visitAggregationOperator(op))
-      var suffix = Seq[Atom]()
-      val Seq(aggIndex) = agg.aggregationColumns
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case agg@Aggregate(rel, args, op) =>
+        val newArgs = args.flatMap(visitArg)
+        var newAgg = Aggregate(rel, newArgs, visitAggregationOperator(op))
+        var suffix = Seq[Atom]()
+        val Seq(aggIndex) = agg.aggregationColumns
 
-      inputConversion.foreach { (from, to) =>
-        // generate new collect relation using inputConversion
-        // foo(m: TDemand(A), input: TDemand(B)) { ... }
-        // ~>
-        // foo$$converted(m: A, converted: C) {
-        //   foo(m,input)#ignore
-        //   converted == convert(input)
-        // }
-        val relParams = rel.target.get.params.map(p =>
-          Param(p.name, p.ty match
-            case TDemand(ty) => ty
-            case ty => ty
+        inputConversion.foreach { (from, to) =>
+          // generate new collect relation using inputConversion
+          // foo(m: TDemand(A), input: TDemand(B)) { ... }
+          // ~>
+          // foo$$converted(m: A, converted: C) {
+          //   foo(m,input)#ignore
+          //   converted == convert(input)
+          // }
+          val relParams = rel.target.get.params.map(p =>
+            Param(p.name, p.ty match
+              case TDemand(ty) => ty
+              case ty => ty
+            )
           )
-        )
-        val convertedParam = Name(gensym.fresh("converted"))
-        val convertedParams = relParams.updated(aggIndex, Param(convertedParam, to))
+          val convertedParam = Name(gensym.fresh("converted"))
+          val convertedParams = relParams.updated(aggIndex, Param(convertedParam, to))
 
-        val convertedRel = Relation(gensym.freshName(rel.name + "$$converted"),
-          convertedParams,
-          Seq(Body(Seq(
-            Call(rel, relParams.map(p => Var(p.name).arg), false).addHint(DemandIgnoreCallHint),
-            Eq(Var(convertedParam.name), ConvertIRForeign(Var(relParams(aggIndex).name), from, to))
-          )))
-        )
-        convertRelations += convertedRel
-        newAgg = Aggregate(RefByName(convertedRel.name), newAgg.args, newAgg.op)
-      }
-
-      outputConversion.foreach { (from, to) =>
-        // outputConversion:
-        // aggregate(Collect(a,b,#c), op)
-        // ~>
-        // aggregate(Collect(a,b,#tmp), op)
-        // c == convert(tmp)
-
-        var output: Option[(Name, Term)] = None
-        val internalArgs = agg.mapAggregateColumn { t =>
-          val v = Name(gensym.fresh("convertAggOutput"))
-          output = Some((v, t))
-          AggregateColumnArg(Var(v))
+          val convertedRel = Relation(gensym.freshName(rel.name + "$$converted"),
+            convertedParams,
+            Seq(Body(Seq(
+              Call(rel, relParams.map(p => Var(p.name).arg), false).addHint(DemandIgnoreCallHint),
+              Eq(Var(convertedParam.name), ConvertIRForeign(Var(relParams(aggIndex).name), from, to))
+            )))
+          )
+          convertRelations += convertedRel
+          newAgg = Aggregate(RefByName(convertedRel.name), newAgg.args, newAgg.op)
         }
 
-        newAgg = Aggregate(newAgg.rel, internalArgs, newAgg.op)
-        suffix ++= output.map { case (name, term) =>
-          Eq(term, ConvertForeignIR(Var(name), from, to))
+        outputConversion.foreach { (from, to) =>
+          // outputConversion:
+          // aggregate(Collect(a,b,#c), op)
+          // ~>
+          // aggregate(Collect(a,b,#tmp), op)
+          // c == convert(tmp)
+
+          var output: Option[(Name, Term)] = None
+          val internalArgs = agg.mapAggregateColumn { t =>
+            val v = Name(gensym.fresh("convertAggOutput"))
+            output = Some((v, t))
+            AggregateColumnArg(Var(v))
+          }
+
+          newAgg = Aggregate(newAgg.rel, internalArgs, newAgg.op)
+          suffix ++= output.map { case (name, term) =>
+            Eq(term, ConvertForeignIR(Var(name), from, to))
+          }
         }
-      }
 
-      newAgg +: suffix
+        newAgg +: suffix
 
 
-    case _ => super.visitAtom(atom)
+      case _ => super.visitAtom(atom)
   }
 
   def scalaMono(mono: MonoDefinition, initCode: String, addCode: String, resultCode: String, combineCode: String): ScalaMonoAggregationOperator = {
@@ -167,7 +169,7 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
       )
     case MonoAggregationOperator(mm@MapMonoDefinition(keyTy, mono)) =>
       val kt = ScalaInca.compileType(keyTy).name // scala type of key
-      val inputVSTy = ScalaInca.compileType(mono.typ.in).name 
+      val inputVSTy = ScalaInca.compileType(mono.typ.in).name
       val stateVSTy = ScalaInca.compileType(mono.typ.state).name
       val outputVSTy = ScalaInca.compileType(mono.typ.out).name
       val valueAggOp = visitAggregationOperator(MonoAggregationOperator(mono)).asInstanceOf[ScalaMonoAggregationOperator]

@@ -14,7 +14,9 @@ object NodeNotLinkedIndex {
   case class Key(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSource: Boolean) extends VirtualKey {
     override val getStringID: String = s"NodeNotLinked(${nodeKey.getStringID}, ${linkKey.getStringID}, nodeIsSource=$nodeIsSource)"
     override val getArity: Int = 1
+
     override def isEnumerable: Boolean = true
+
     override def factory: VirtualIndexFactory = NodeNotLinkedIndex.Factory
   }
 

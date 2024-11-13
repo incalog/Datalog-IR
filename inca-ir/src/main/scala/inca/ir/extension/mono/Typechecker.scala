@@ -5,7 +5,7 @@ import inca.ir.typing.{BaseIRTypechecker, Mode, TypeErrorException}
 
 case class AddMonoInfo(monoTy: Type, termTy: Type, keysTy: Seq[Type])
 
-trait Typechecker extends BaseIRTypechecker{
+trait Typechecker extends BaseIRTypechecker {
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
     case NewMono(mono, keys, args) =>
       val tys = args.map(inferTerm(_, Mode.Bound).ty)
@@ -16,7 +16,7 @@ trait Typechecker extends BaseIRTypechecker{
     case NewMonoFor(mono, keys, args, uniqueFor) =>
       val tys = args.map(inferTerm(_, Mode.Bound).ty)
       uniqueFor.foreach(inferTerm(_, Mode.Bound))
-      
+
       if (mono.constructorParamTypes.size != args.size)
         error(s"Expected ${mono.constructorParamTypes.size} arguments, but got $args", term)
       args.zip(mono.constructorParamTypes).foreach((a, ty) => checkTerm(a, ty, Mode.Bound))
@@ -36,7 +36,7 @@ trait Typechecker extends BaseIRTypechecker{
           checkTerm(input, inType, Mode.Bound)
           if (keys.size != keyTypes.size)
             error(s"Expected ${keyTypes.size} keys, but got ${keys.size}", atom)
-          keys.zip(keyTypes) map {(k, ty) => checkTerm(k, ty, Mode.Bound)}
+          keys.zip(keyTypes) map { (k, ty) => checkTerm(k, ty, Mode.Bound) }
         case ty => error(s"Expected mono type but got $ty", m)
     case _ => super.checkAtom(atom, mode)
 

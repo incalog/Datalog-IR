@@ -26,7 +26,7 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
     case RequireCaseDefinition(name, args, data) =>
       Seq(RequireCaseDefinition(name, args.map(visitType), data))
     case _ => super.visitModuleEntry(moduleEntry))
-  
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term)(term match
     case Construct(ref, data) => Seq(Construct(visitRef(ref), data.flatMap(visitTerm)))
     case _ => super.visitTerm(term))

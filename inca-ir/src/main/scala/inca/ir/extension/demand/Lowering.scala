@@ -18,11 +18,14 @@ trait Lowering extends BaseLowering:
   enum Phase:
     case InsertDemandGuards
     case DeriveDemandRules
+
   private var phase: Phase = _
 
   private var demandRules: Map[Name, ListBuffer[(Seq[Atom], Seq[Term])]] = Map()
+
   private def addDemandRule(rel: Name, prefix: Seq[Atom], inputArgs: Seq[Term]): Unit =
     demandRules(rel) += ((prefix, inputArgs))
+
   private def deriveDemandRelations(): Seq[Relation] =
     for ((rel, ruleBuf) <- demandRules.toSeq) yield {
       val rules = ruleBuf.toList
@@ -34,7 +37,7 @@ trait Lowering extends BaseLowering:
       }
       val gensym = new Gensym(vars)
       val params = currentModule.relations(rel.name).params.flatMap {
-        case Param(name,TDemand(ty)) => Some(Param(gensym.freshName(name),ty))
+        case Param(name, TDemand(ty)) => Some(Param(gensym.freshName(name), ty))
         case _ => None
       }
 
@@ -76,7 +79,7 @@ trait Lowering extends BaseLowering:
           demandRules += vrel.name -> ListBuffer()
           val guardedBodies = vrel.bodies.map(b => Body(
             Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name).arg))
-              +: b.atoms))
+            +: b.atoms))
           vrel.copy(bodies = guardedBodies)
         }
     case _ => super.visitRelation(rel)
@@ -86,6 +89,7 @@ trait Lowering extends BaseLowering:
     case _ => super.visitType(ty)
 
   private val bodyPrefix: ListBuffer[Atom] = ListBuffer()
+
   override def visitBody(body: Body): Seq[Body] =
     bodyPrefix.clear()
     Seq(Body(body.atoms.flatMap { a =>

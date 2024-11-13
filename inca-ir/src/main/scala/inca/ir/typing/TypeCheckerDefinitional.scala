@@ -37,13 +37,14 @@ object TypeCheckerDefinitional:
         Binding
       else
         Bound
+
   import Boundness.*
 
   def assertComparable(ty: Type, outside: Type, t: SourceLocation): Unit = (ty, outside) match
     case (TDemand(ty1), TDemand(ty2)) => assertComparable(ty1, ty2, t)
-    case (TDemand(_),_) | (_,TDemand(_)) => throw TypeError(s"Cannot compare demanded and undemanded types $ty and $outside")
-    case (TAny,_) | (_, TAny) => // fine
-    case  (_, TNothing) => throw TypeError(s"Expected type $outside, which cannot be inhabited by $t")
+    case (TDemand(_), _) | (_, TDemand(_)) => throw TypeError(s"Cannot compare demanded and undemanded types $ty and $outside")
+    case (TAny, _) | (_, TAny) => // fine
+    case (_, TNothing) => throw TypeError(s"Expected type $outside, which cannot be inhabited by $t")
     case (TNothing, _) => throw TypeError(s"Expected type $outside, but $t has type $ty")
     case (TSet(tty1), TSet(tty2)) => assertComparable(tty1, tty2, t)
     case (TTuple(ttys1), TTuple(ttys2)) if ttys1.size == ttys2.size =>
@@ -56,7 +57,7 @@ object TypeCheckerDefinitional:
       }
 
   def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match
-    case (TAny,_) | (_, TAny) => TAny
+    case (TAny, _) | (_, TAny) => TAny
     case (TNothing, _) => ty2
     case (_, TNothing) => ty1
     case (TSet(tty1), TSet(tty2)) => TSet(join(tty1, tty2))
@@ -134,7 +135,7 @@ object TypeCheckerDefinitional:
           (Bound, ctx)
         case TupleLit(ts) => expected match
           case TTuple(tys) if ts.size == tys.size =>
-            ts.zip(tys).foldLeft((Bound,ctx)) { case ((cl,c), (tt, tty)) =>
+            ts.zip(tys).foldLeft((Bound, ctx)) { case ((cl, c), (tt, tty)) =>
               val (cl_, c_) = checkBinding(tt, c, tty)
               (cl join cl_, c_)
             }
@@ -197,7 +198,7 @@ object TypeCheckerDefinitional:
       checkBound(t2, ctx, TInt)
       (TInt, Bound, ctx)
     case TupleLit(ts) =>
-      val (tys, cl, c) = ts.foldLeft((List.empty[Type],Bound,ctx)) { case ((tys, cl, c), tt) =>
+      val (tys, cl, c) = ts.foldLeft((List.empty[Type], Bound, ctx)) { case ((tys, cl, c), tt) =>
         val (tty, cl_, c_) = inferBinding(tt, ctx)
         (tys :+ tty, cl join cl_, c_)
       }
@@ -231,7 +232,7 @@ object TypeCheckerDefinitional:
           case Success(ty2) => checkBound(t1, ctx, ty2); ctx
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomBound(at, ctx)
-//    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferBinding(tt, c)._3 }
+    //    case Demand(ts) => ts.foldLeft(ctx) {case (c, tt) => inferBinding(tt, c)._3 }
     case SetMember(mem, s) =>
       val TSet(tty) = inferBoundSet(s, ctx)
       checkBinding(mem, ctx, tty)._2
@@ -258,7 +259,7 @@ object TypeCheckerDefinitional:
           case Success(ty2) => checkBinding(t1, ctx, ty2)._2
           case Failure(err2) => throw TypeError(s"Illegal equation $a with two possible errors: " + err1.getMessage + ". " + err2.getMessage)
     case Not(at) => checkAtomBinding(at, ctx)
-//    case Demand(ts) => ts.foreach(tt => inferBound(tt, ctx)); ctx
+    //    case Demand(ts) => ts.foreach(tt => inferBound(tt, ctx)); ctx
     case SetMember(mem, s) =>
       val TSet(tty) = inferBoundSet(s, ctx)
       checkBound(mem, ctx, tty)

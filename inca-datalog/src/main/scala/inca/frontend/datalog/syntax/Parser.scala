@@ -7,7 +7,7 @@ import inca.ir.util.SourceLocation
 import scala.language.implicitConversions
 
 /**
- *  Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
+ * Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
  */
 object Parser:
 
@@ -38,7 +38,7 @@ object Parser:
   def parseModule(source: String): Module =
     (whitespaces0 *> module <* P.end).parseAll(source) match
       case Right(p) => p
-      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset+10)}: $err")
+      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
 
   /* LEXICAL */
 
@@ -123,7 +123,7 @@ object Parser:
 
   val doubleLit: P[Literal] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
-      case (a,b) => Literal.Double(s"$a.$b".toDouble)
+      case (a, b) => Literal.Double(s"$a.$b".toDouble)
     })
 
   val stringLit: P[Literal] = spaced(
@@ -141,7 +141,7 @@ object Parser:
     inParens(P.defer(term))
 
   val binop: P[String] =
-    oneOperator(List("+","-","*","/"))
+    oneOperator(List("+", "-", "*", "/"))
 
   lazy val term: P[Term] =
     (atomicTerm ~ (binop ~ P.defer(term)).?).mapWithLoc {
@@ -167,9 +167,9 @@ object Parser:
 
   val typ: P[Type] =
     keyword("Int").mapWithLoc(_ => Type.Int()) |
-      keyword("Double").mapWithLoc(_ => Type.Double()) |
-      keyword("String").mapWithLoc(_ => Type.String()) |
-      keyword("Any").mapWithLoc(_ => Type.Any())
+    keyword("Double").mapWithLoc(_ => Type.Double()) |
+    keyword("String").mapWithLoc(_ => Type.String()) |
+    keyword("Any").mapWithLoc(_ => Type.Any())
 
   val signature: P[(Name, Seq[Type])] =
     identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
@@ -179,7 +179,7 @@ object Parser:
       case (name, None) => Param.Named(name)
       case (agg, Some(name)) => Param.Aggregated(name, agg)
     } |
-      literal.mapWithLoc(Param.Constant.apply)
+    literal.mapWithLoc(Param.Constant.apply)
 
   val head: P[(Name, Seq[Param])] =
     identifier ~ inParens(param.repSep(op(',')).map(_.toList))

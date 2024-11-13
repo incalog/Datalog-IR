@@ -1,49 +1,49 @@
 module TupleTest
 
 class B {
-    val values: (Int, Int) = (9, 3)
+  val values: (Int, Int) = (9, 3)
 }
 
 class A {
-    //var tup: (Int, A) = (1, new A()) // does not work since we would call the constructor recursively
-    var tup: (Int, B) = (1, new B())
+  //var tup: (Int, A) = (1, new A()) // does not work since we would call the constructor recursively
+  var tup: (Int, B) = (1, new B())
 
-    def someMethod(arg: (Int, Int)): (Int, Int, (Int, Int)) = {
-        return (arg._1, arg._2, (arg._1 * 2, arg._2 * 2))
-    }
+  def someMethod(arg: (Int, Int)): (Int, Int, (Int, Int)) = {
+    return (arg._1, arg._2, (arg._1 * 2, arg._2 * 2))
+  }
 }
 
 @main
 def main(): (Boolean, (Boolean, Boolean)) = {
-    // access elements of a tuple expression directly
-    val test: Int = (1, (2, (3, 4, 5)))._2._2._3
+  // access elements of a tuple expression directly
+  val test: Int = (1, (2, (3, 4, 5)))._2._2._3
 
-    // assign a variable to a tuple
-    val x: (Int, Int) = (1, 2)
-    // access tuple elements
-    val y: Int = x._1
-    val z: Int = x._2
+  // assign a variable to a tuple
+  val x: (Int, Int) = (1, 2)
+  // access tuple elements
+  val y: Int = x._1
+  val z: Int = x._2
 
-    // create a nested tuple
-    val w: (String, (Int, Int)) = ("Some string", x)
-    // access a nested tuple
-    val q: Int = w._2._1
+  // create a nested tuple
+  val w: (String, (Int, Int)) = ("Some string", x)
+  // access a nested tuple
+  val q: Int = w._2._1
 
-    // assign and access tuple field variables
-    val a: A = new A()
-    a.tup = (3, new B())
+  // assign and access tuple field variables
+  val a: A = new A()
+  a.tup = (3, new B())
 
-    // store a tuple return value in a variable
-    val res: (Int, Int, (Int, Int)) = a.someMethod((2, 3))
+  // store a tuple return value in a variable
+  val res: (Int, Int, (Int, Int)) = a.someMethod((2, 3))
 
-    // check if the access is working
-    val eval1: Boolean = ((y == 1) && (z == 2))
+  // check if the access is working
+  val eval1: Boolean = ((y == 1) && (z == 2))
 
-    val eval2: Boolean = ((a.tup._2.values._1 + a.tup._1) == 12)
+  val eval2: Boolean = ((a.tup._2.values._1 + a.tup._1) == 12)
 
-    return (true, (true, true))
-    /*
-    val eval3: Boolean = ((res._1 * 2) == res._3._1) && ((res._2 * 2) == res._3._2)
+  return (true, (true, true))
+  /*
+  val eval3: Boolean = ((res._1 * 2) == res._3._1) && ((res._2 * 2) == res._3._2)
 
-    return (eval1, (eval2, eval3))*/
+  return (eval1, (eval2, eval3))*/
 }

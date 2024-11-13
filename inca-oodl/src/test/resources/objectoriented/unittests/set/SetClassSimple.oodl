@@ -9,8 +9,8 @@ class A {
 }
 
 @main def main(): Set[Int] = {
-    val n1 = new Num(1)
-    val n2 = new Num(2)
-    val n3 = new Num(3)
-    return new A().getValue(Set(n1, n2, n3))
+  val n1 = new Num(1)
+  val n2 = new Num(2)
+  val n3 = new Num(3)
+  return new A().getValue(Set(n1, n2, n3))
 }

@@ -10,6 +10,7 @@ case class Module(relations: Seq[IRelation]) extends SourceLocation {
 
 sealed trait IRelation extends SourceLocation:
   def name: Name
+
   def params: Seq[Type]
 
 case class EdbRelation(name: Name, params: Seq[Type]) extends IRelation:

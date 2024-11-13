@@ -90,7 +90,7 @@ class ModuleTest extends AnyFunSuiteLike:
       checker.failOnWarnings()
       checker.failOnError()
     }
-    
+
     var checker = typechecker()
     checker.checkProgram(Seq(main), deps.map(_.header))
     checker.failOnWarnings()

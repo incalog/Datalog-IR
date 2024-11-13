@@ -16,6 +16,7 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
   extends CompiledUnit:
 
   override def name: Name = fun.name
+
   override def sourceLocation: SourceLocation = fun.name
 
   val funLogging = compilerOptions.funLogging
@@ -108,7 +109,7 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     val compiler = new GenerateIR
     val module = compiler.compileModule(normalizedFoldModule)
     Seq(module)
-  
+
 
 object CompiledFunctionalUnit:
   val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(

@@ -10,7 +10,7 @@ class Typechecker extends TypeIO {
   var ctx: Map[Name, Type] = Map()
   var rels: Map[Name, (Seq[Type], IRelation)] = Map()
 
-  val arithOps = Set("+","-","*","/")
+  val arithOps = Set("+", "-", "*", "/")
 
   def checkModule(m: Module): Unit =
     rels = m.relations.map(r => r.name -> (r.params, r)).toMap
@@ -56,7 +56,7 @@ class Typechecker extends TypeIO {
       assertComparable(inferTerm(lhs), inferTerm(rhs), a)
     case Atom.Compare(lhs, ">=", rhs) =>
       assertComparable(inferTerm(lhs), inferTerm(rhs), a)
-    case _ => error(s"Unknown atom",a )
+    case _ => error(s"Unknown atom", a)
 
   def checkTerm(t: Term, ty: Type): Unit = t match
     case Term.Var(name) => ctx.get(name) match
@@ -72,42 +72,46 @@ class Typechecker extends TypeIO {
       error(s"Incompatible types $ty1 and $ty2 in $s", s)
 
   def inferTerm(t: Term): Type =
-    inferTermOpt(t).getOrElse { error(s"Cannot infer type of $t", t); Type.Int() }
+    inferTermOpt(t).getOrElse {
+      error(s"Cannot infer type of $t", t); Type.Int()
+    }
 
-  def inferTermOpt(t: Term): Option[Type] = assignTypeOpt(t) { t match
-    case Term.Var(name) => ctx.get(name)
-    case Term.Constant(lit) => Some(inferLiteral(lit))
-    case Term.BinOp(lhs, op, rhs) => (inferTerm(lhs), inferTerm(rhs)) match
-      case (Type.Int(), Type.Int()) =>
-        if (!arithOps.contains(op)) {
-          error(s"Unknown integer operator $op", t)
+  def inferTermOpt(t: Term): Option[Type] = assignTypeOpt(t) {
+    t match
+      case Term.Var(name) => ctx.get(name)
+      case Term.Constant(lit) => Some(inferLiteral(lit))
+      case Term.BinOp(lhs, op, rhs) => (inferTerm(lhs), inferTerm(rhs)) match
+        case (Type.Int(), Type.Int()) =>
+          if (!arithOps.contains(op)) {
+            error(s"Unknown integer operator $op", t)
+            None
+          } else {
+            Some(Type.Int())
+          }
+        case (Type.Double(), Type.Double()) =>
+          if (!arithOps.contains(op)) {
+            error(s"Unknown integer operator $op", t)
+            None
+          } else {
+            Some(Type.Double())
+          }
+        case (Type.String(), Type.String()) =>
+          if (op != "==") {
+            error(s"Unknown string operator $op", t)
+            None
+          } else {
+            Some(Type.String())
+          }
+        case (ty1, ty2) =>
+          error(s"Incompatible types $ty1 and $ty2 for operator $op", t)
           None
-        } else {
-          Some(Type.Int())
-        }
-      case (Type.Double(), Type.Double()) =>
-        if (!arithOps.contains(op)) {
-          error(s"Unknown integer operator $op", t)
-          None
-        } else {
-          Some(Type.Double())
-        }
-      case (Type.String(), Type.String()) =>
-        if (op != "==") {
-          error(s"Unknown string operator $op", t)
-          None
-        } else {
-          Some(Type.String())
-        }
-      case (ty1, ty2) =>
-        error(s"Incompatible types $ty1 and $ty2 for operator $op", t)
-        None
   }
 
-  def inferLiteral(l: Literal): Type = assignType(l) { l match
-    case Literal.Int(i) => Type.Int()
-    case Literal.Double(d) => Type.Double()
-    case Literal.String(s) => Type.String()
+  def inferLiteral(l: Literal): Type = assignType(l) {
+    l match
+      case Literal.Int(i) => Type.Int()
+      case Literal.Double(d) => Type.Double()
+      case Literal.String(s) => Type.String()
   }
 
   def assignType(t: Typeable[Type])(f: => Type): Type =

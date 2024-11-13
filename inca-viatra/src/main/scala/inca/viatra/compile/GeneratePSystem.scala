@@ -24,6 +24,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{Equality
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 
 import scala.collection.mutable.ListBuffer
+
 object GeneratePSystem:
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
@@ -32,6 +33,7 @@ object GeneratePSystem:
   val EDB_PREFIX = "edb_"
 
   private trait BlockLowering extends block.Lowering with primitive.Visitor
+
   private trait Typechecker extends typing.IRTypechecker with primitive.Typechecker
 
   val gensym = new Gensym()
@@ -205,9 +207,11 @@ object GeneratePSystem:
        |val body: PBody = new PBody(this)
        |${relation.params.map(genBodyParam).mkString("\n")}
        |val exportedParams = new util.ArrayList[ExportedParameter]()
-      ${relation.params.map { p =>
-      s"|exportedParams.add(new ExportedParameter(body, $VARPREFIX${p.name}, $PARAMPREFIX${p.name}))"
-    }.mkString("\n")}
+      ${
+      relation.params.map { p =>
+        s"|exportedParams.add(new ExportedParameter(body, $VARPREFIX${p.name}, $PARAMPREFIX${p.name}))"
+      }.mkString("\n")
+    }
        |
        |body.setSymbolicParameters(exportedParams)
        |$content
@@ -255,7 +259,7 @@ object GeneratePSystem:
       // That way, we produce the correct result when aggregating
 
       val paramConstraints = relation.params.map { p =>
-          s"new Equality(body, $VARPREFIX${p.name} ,body.newConstantVariable(null))"
+        s"new Equality(body, $VARPREFIX${p.name} ,body.newConstantVariable(null))"
       }
       val failingConstraint = s"new Equality(body, body.newConstantVariable(1), body.newConstantVariable(0))"
       val content = paramConstraints :+ failingConstraint
@@ -265,19 +269,19 @@ object GeneratePSystem:
     val bodiesS = bodies.mkString("{", "}, {", "}")
 
     s"""
-     |object ${relName} {
-     |  lazy val instance: Specification = new Specification(generatedPQuery)
-     |
-     |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-     |    ${relation.params.map(genPParam).mkString(s"\n    ")}
-     |
-     |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
-     |
-     |    override def getFullyQualifiedName: String = "$qname"
-     |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
-     |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
-     |  }
-     |}""".stripMargin.indent(indent)
+       |object ${relName} {
+       |  lazy val instance: Specification = new Specification(generatedPQuery)
+       |
+       |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+       |    ${relation.params.map(genPParam).mkString(s"\n    ")}
+       |
+       |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)
+       |
+       |    override def getFullyQualifiedName: String = "$qname"
+       |    override def getParameters: util.List[PParameter] = util.List.of(${paramTermNames.mkString(",")})
+       |    override def getParameterNames: util.List[String] = util.List.of(${paramNames.map(p => s""""$p"""").mkString(",")})
+       |  }
+       |}""".stripMargin.indent(indent)
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Unit = atom match
@@ -416,7 +420,7 @@ object GeneratePSystem:
 
     case LookupEdbType(ety) =>
       val sty = compileEdbType(ety)
-      
+
       val outName = gensym.fresh("edb_type")
       varDeclarations += genTempVar(outName)
       val pvarOut = s"$VARPREFIX$outName"
@@ -429,9 +433,9 @@ object GeneratePSystem:
     case LookupEdbField(srcTerm, link) =>
       val src = compileTerm(srcTerm)
       val trgTy = t.typ.get.ty
-//        .filter(_.ty.isInstanceOf[EdbType])
-//        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
-//        .ty.asInstanceOf[EdbType]
+      //        .filter(_.ty.isInstanceOf[EdbType])
+      //        .getOrElse(throw new IllegalStateException(s"EDB field lookup must have EDB type, but found ${t.typ}: $t"))
+      //        .ty.asInstanceOf[EdbType]
       val trgTyCompiled = compileEdbType(trgTy)
 
       val outName = gensym.fresh("edb_lookup")
@@ -506,13 +510,13 @@ object GeneratePSystem:
     case Link.Size => ???
     case Link.First => ???
     case Link.Last => ???
-  
+
   private def genPParam(param: Param): Code = param.ty match
     case ety: EdbType =>
       val (sort, key) = genEdbTypeKey(ety)
       s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}", $sort.toString, $key)"""
     case _ =>
-        s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
+      s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
 
 
   private def genBodyParam(param: Param): Code = {

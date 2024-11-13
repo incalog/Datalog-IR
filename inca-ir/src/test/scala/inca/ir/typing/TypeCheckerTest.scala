@@ -29,7 +29,7 @@ class TypeCheckerTest extends AnyFunSuiteLike:
   }
 
   test("unbound param") {
-    implicit val typechecker = () => new BaseIRTypechecker { }
+    implicit val typechecker = () => new BaseIRTypechecker {}
     assertThrows[TypeErrorException](
       module(Relation("R", Seq(Param("p", TAny)), Seq(Body(Seq()))))
     )
@@ -69,12 +69,12 @@ class TypeCheckerTest extends AnyFunSuiteLike:
         Eq(Var("x"), Var("y"), true)
       )))))
     }
-    assertThrows[TypeErrorException]{
+    assertThrows[TypeErrorException] {
       module(Relation("R", Seq(), Seq(Body(Seq(
         Eq(IntNum(0), Var("y"), true)
       )))))
     }
-    assertThrows[TypeErrorException]{
+    assertThrows[TypeErrorException] {
       module(Relation("R", Seq(), Seq(Body(Seq(
         Eq(Var("x"), IntNum(0), true)
       )))))
@@ -254,4 +254,4 @@ class TypeCheckerTest extends AnyFunSuiteLike:
     }
   }
 
-  // TODO: test extensional calls
+// TODO: test extensional calls

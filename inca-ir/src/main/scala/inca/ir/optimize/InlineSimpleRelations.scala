@@ -18,6 +18,7 @@ trait InlineSimpleRelations extends IRVisitor:
     case FindInlineableRelations
     case RemoveFalsePositives
     case InlineRelations
+
   private var phase: Phase = _
 
   val maxAtomsToInline = 100
@@ -28,7 +29,7 @@ trait InlineSimpleRelations extends IRVisitor:
   private var noneInlineableRelations: Set[Name] = _
 
   private def shouldInline(relName: Name): Boolean =
-    inlineableRelations.contains(relName) && ! noneInlineableRelations.contains(relName)
+    inlineableRelations.contains(relName) && !noneInlineableRelations.contains(relName)
 
   override def visitModule(module: ir.Module): ir.Module =
     inlineableRelations = Map()

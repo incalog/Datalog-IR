@@ -26,9 +26,10 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("Edge") {
-    val m = s"""Edge(Int, Int).
-               |Edge(1,2).
-               |""".stripMargin
+    val m =
+      s"""Edge(Int, Int).
+         |Edge(1,2).
+         |""".stripMargin
     testSuccessAny(Parser.relation)(m)
 
     val m2 =

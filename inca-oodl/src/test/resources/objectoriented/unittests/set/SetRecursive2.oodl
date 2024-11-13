@@ -3,18 +3,18 @@ module SetRecursive
 class A(n: Int)
 
 class Prog() {
-    def construct(i: Int): Set[A] = {
-        val a: A = new A(i)
-        if (i > 0) {
-            return Set[A](a) ++ this.construct(i-1)
-        } else {
-            return Set[A](a)
-        }
+  def construct(i: Int): Set[A] = {
+    val a: A = new A(i)
+    if (i > 0) {
+      return Set[A](a) ++ this.construct(i - 1)
+    } else {
+      return Set[A](a)
     }
+  }
 }
 
 @main def main(): Set[A] = {
-    val p: Prog = new Prog()
-    val s: Set[A] = p.construct(3)
-    return s
+  val p: Prog = new Prog()
+  val s: Set[A] = p.construct(3)
+  return s
 }

@@ -2,7 +2,8 @@ module FixKeyword
 
 class A {
   def fixMethod(): Unit = {
-    fix this.fixMethod()
+    fix
+    this.fixMethod()
   }
 }
 

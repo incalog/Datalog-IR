@@ -14,7 +14,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuiteLike
-import inca.ir.{ term2Arg, termList2ArgList}
+import inca.ir.{term2Arg, termList2ArgList}
 import inca.util.compileroptions.CompilerOptions
 
 
@@ -119,24 +119,24 @@ class BaseTest extends AnyFunSuiteLike:
     assertResult(6)(res.entries.size)
   }
 
-  /*test("Test Plus from File") {
-    var code = FileUtil.readFile("code.scala")
-    code = s"$code; Plus"
+/*test("Test Plus from File") {
+  var code = FileUtil.readFile("code.scala")
+  code = s"$code; Plus"
 
-    val compiler = new ScalaCompiler()
-    val psystemModule: PSystem.Module = compiler.compileAndLoadScala(code)
-    val pathSpec = psystemModule.patterns("main")()
+  val compiler = new ScalaCompiler()
+  val psystemModule: PSystem.Module = compiler.compileAndLoadScala(code)
+  val pathSpec = psystemModule.patterns("main")()
 
-    val scope = new QueryScope(new DataModel())
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    val mainMatcher = engine.getMatcher(pathSpec)
-    feed.insertExtensionalTuple("ext_main$input", Tuples.flatTupleOf())
+  val scope = new QueryScope(new DataModel())
+  val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+  val mainMatcher = engine.getMatcher(pathSpec)
+  feed.insertExtensionalTuple("ext_main$input", Tuples.flatTupleOf())
 
-    import scala.jdk.CollectionConverters.*
+  import scala.jdk.CollectionConverters.*
 
-    val res = execution.Relation.fromMatches(
-      mainMatcher.getPatternName,
-      mainMatcher.getParameterNames.asScala.toList,
-      mainMatcher.getAllMatchArrays.map(_.toSeq))
-    println(res.asTable)
-  }*/
+  val res = execution.Relation.fromMatches(
+    mainMatcher.getPatternName,
+    mainMatcher.getParameterNames.asScala.toList,
+    mainMatcher.getAllMatchArrays.map(_.toSeq))
+  println(res.asTable)
+}*/

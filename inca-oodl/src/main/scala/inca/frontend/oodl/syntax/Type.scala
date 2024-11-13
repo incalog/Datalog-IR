@@ -6,20 +6,26 @@ import inca.ir.util.SourceLocation
 
 sealed trait Type extends SourceLocation {
   def prettyprint: String
+
   def flatten: Seq[Type]
+
   def signatureString: String = prettyprint
+
   override def toString: String = prettyprint
 }
+
 object Type:
   def signatureString(tys: Seq[Type]): String = tys.map(_.signatureString).mkString("$")
 
 case object TAny extends Type {
   override def prettyprint: String = "Any"
+
   override def flatten: Seq[Type] = Seq(this)
 }
 
 case object TNull extends Type {
   override def prettyprint: String = "Null"
+
   override def flatten: Seq[Type] = Seq(this)
 }
 
@@ -28,16 +34,20 @@ val TUnit: TTuple = TTuple(Seq.empty)
 case class TTuple(ts: Seq[Type]) extends Type {
   if (ts.size == 1)
     throw new IllegalArgumentException(s"Avoid creating 1-ary tuples.")
+
   override def prettyprint: String = ts.size match {
     case 0 => "Unit"
     case 1 => ts.head.prettyprint
     case _ => ts.map(_.prettyprint).mkString("(", ", ", ")")
   }
+
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
+
   override def signatureString: String =
     val tyString = ts.map(_.signatureString).mkString("_")
     s"Tuple_${tyString}"
 }
+
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
     case Nil => TUnit
@@ -52,7 +62,9 @@ case class TName(name: Name, tyArgs: Seq[Type]) extends Type with Resolvable[TNa
       s"""$name[${tyArgs.mkString(", ")}]"""
     else
       name.name
+
   override def flatten: Seq[Type] = Seq(this)
+
   def isBuiltIn: Boolean = builtInTypes.contains(name.name)
 
 val builtInTypes = Set("Int", "Boolean", "String", "Double")
@@ -67,6 +79,8 @@ object TName {
 
 case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
+
   override def flatten: Seq[Type] = ty.flatten
+
   override def signatureString: String = s"Set_${ty.signatureString}"
 }

@@ -16,10 +16,10 @@ ceval(Any, Any, Int). // statement, expression, value
 ceval(stmt, expr, value) :- vardef(stmt, _, e), num(expr, value).
 // stmt := v = _expr, expr := var(v),
 ceval(stmt, expr, value) :- vardef(stmt, name, e), var(expr, v), nextIDB(stmt1, stmt), name == v, ceval(stmt1, e, value1), value == value1.
-ceval(stmt, expr, value) :- vardef(stmt, name, e), var(expr, v), nextIDB(stmt1, stmt), name != v, ceval(stmt1, expr, value1), value == value1.
-ceval(stmt2, expr, value) :- vardef(stmt2, _, expr), add(expr, lhs, rhs), nextIDB(stmt1, stmt2), ceval(stmt1, lhs, res1), ceval(stmt1, rhs, res2), value == res1 + res2.
+                                                                                                                                    ceval(stmt, expr, value) :- vardef(stmt, name, e), var(expr, v), nextIDB(stmt1, stmt), name != v, ceval(stmt1, expr, value1), value == value1.
+                                                                                                                                                                                                                                                                           ceval(stmt2, expr, value) :- vardef(stmt2, _, expr), add(expr, lhs, rhs), nextIDB(stmt1, stmt2), ceval(stmt1, lhs, res1), ceval(stmt1, rhs, res2), value == res1 + res2.
 
-nextIDB(Any, Any).
+                                                                                                                                                                                                                                                                                                                                                                                                                                              nextIDB(Any, Any).
 nextIDB(stmt1, stmt2) :- next(stmt1, stmt2).
 nextIDB(stmt1, stmt1) :- first(stmt1).
 //

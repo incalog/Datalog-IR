@@ -36,7 +36,7 @@ object Parser:
   def parseModule(source: String): Program =
     (whitespaces0 *> module <* P.end).parseAll(source) match
       case Right(p) => p
-      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset+10)}: $err")
+      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
 
   /* LEXICAL */
 
@@ -97,7 +97,7 @@ object Parser:
     spaced(P.char(c))
 
   def op(s: String): P[Unit] =
-    spaced(P.string(s))//*> P.not(letterDigit))
+    spaced(P.string(s)) //*> P.not(letterDigit))
 
   def operator(s: String): P[Unit] =
     spaced(P.string(s) <* P.not(opSymbol))
@@ -253,7 +253,7 @@ object Parser:
     spaced(P.string("modifies")) *> (
       spaced(inParens(identifier.repSep0(op(',')))).mapWithLoc(RuleOption.Modifies.apply) |
       spaced(identifier).mapWithLoc(n => RuleOption.Modifies(Seq(n)))
-    )
+      )
 
   val priRuleOption: P[RuleOption] = (P.string("pri") ~ op('=') *> intNum).mapWithLoc {
     case value => RuleOption.Pri(value)
@@ -269,9 +269,9 @@ object Parser:
 
   val rule: P[ProgramContent.Rule] =
     (identifier
-      ~ inParens(atomicTerm.repSep0(op(',')))
+     ~ inParens(atomicTerm.repSep0(op(',')))
      ~ ((op(":-") *> atom.repSep0(op(','))).? <* op('.'))
-      ~ ruleOption.repSep0(whitespaces0)
+     ~ ruleOption.repSep0(whitespaces0)
       ).mapWithLoc {
       case (((name, params), atoms), options) => ProgramContent.Rule(name, params, atoms.getOrElse(Seq()), options)
     }
@@ -285,6 +285,6 @@ object Parser:
       (whitespaces0.with1 *> moduleEntry <* newLine).backtrack |
       (whitespaces0.with1 *> moduleEntry).backtrack | // File ends with a module entry
       whitespace.rep(1).map(_ => None) // File ends with a comment
-    ).rep0.map { contentOptions =>
+      ).rep0.map { contentOptions =>
       Program(contentOptions.flatten)
     }

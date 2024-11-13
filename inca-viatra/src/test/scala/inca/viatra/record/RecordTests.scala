@@ -16,7 +16,9 @@ import org.scalatest.funsuite.AnyFunSuite
 class RecordTests extends AnyFunSuite:
   class Compiled(val ir: Module) extends CompiledUnit:
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     lazy val irModules: Seq[Module] = Seq(ir)
 
     setPipeline(List(
@@ -29,8 +31,11 @@ class RecordTests extends AnyFunSuite:
       opt.irLogging.logModule = false
       opt.irLogging.logLowerings = false
       opt
+
     override def name: Name = ir.name
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def optimize(p: Seq[Module]): Seq[Module] = p
 
   val mod1 = Module("Test02", BaseIR.language + record.IR, Seq(
@@ -38,13 +43,13 @@ class RecordTests extends AnyFunSuite:
     FieldDefinition("EmployeeCount", TInt, TRecord("Company")),
     Relation("R", Seq(Param("x", TRecord("Company")), Param("f", TInt)), Seq(
       Body(Seq(
-        Eq(Var("x"), RecordLit("Company",Seq((RefByName(Name("EmployeeCount")), IntNum(4))))),
+        Eq(Var("x"), RecordLit("Company", Seq((RefByName(Name("EmployeeCount")), IntNum(4))))),
         Eq(Var("f"), FieldLookup(Var("x"), Name("EmployeeCount"))),
       ))
     ))
   ))
 
-//  val baseIR = new BaseIR {}
+  //  val baseIR = new BaseIR {}
   val slang = BaseIR.language + record.IR
 
   test("Simple Record and FieldLookup") {
@@ -83,13 +88,13 @@ class RecordTests extends AnyFunSuite:
       test_record,
       test_field0,
       test_field1) ++
-      Seq(Relation(Name("R"), Seq(Param("HairColor", TString), Param("Height", TInt)), Seq(Body(Seq(
-        Eq(Var("PersonVar"), test_recordlit),
-        record.Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
-          (Name("haircolor"), TermArg(Var("HairColor"))),
-          (Name("height"), TermArg(Var("Height"))),
-        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
-      )))))
+                                      Seq(Relation(Name("R"), Seq(Param("HairColor", TString), Param("Height", TInt)), Seq(Body(Seq(
+                                        Eq(Var("PersonVar"), test_recordlit),
+                                        record.Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
+                                          (Name("haircolor"), TermArg(Var("HairColor"))),
+                                          (Name("height"), TermArg(Var("Height"))),
+                                        )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
+                                      )))))
     )
 
     val compiled = Compiled(input)
@@ -98,7 +103,7 @@ class RecordTests extends AnyFunSuite:
     assertResult(Set(("green", 180)))(lit.toSet)
   }
 
-  test("Deconstruct more complex"){
+  test("Deconstruct more complex") {
     val test_record = RecordDefinition("Person")
     val test_type = TRecord(RefByName(Name("Person")))
     val test_field0 = FieldDefinition("height", TInt, test_type)
@@ -119,21 +124,21 @@ class RecordTests extends AnyFunSuite:
       test_field0,
       test_field1,
     ) ++
-      companyRecord ++
-      Seq(test_field2) ++
-      Seq(Relation(Name("R"), Seq(
-        Param("HairColor", TString),
-        Param("Height", TInt),
-        Param("EmployedAt", TRecord("Company"))),
-        Seq(Body(Seq(
-          Eq(Var("PersonVar"), test_recordlit),
-          record.Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
-            (Name("haircolor"), TermArg(Var("HairColor"))),
-            (Name("height"), TermArg(Var("Height"))),
-            (Name("employed_at"), TermArg(Var("EmployedAt")))
-          )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
-        )))
-      ))
+                                      companyRecord ++
+                                      Seq(test_field2) ++
+                                      Seq(Relation(Name("R"), Seq(
+                                        Param("HairColor", TString),
+                                        Param("Height", TInt),
+                                        Param("EmployedAt", TRecord("Company"))),
+                                        Seq(Body(Seq(
+                                          Eq(Var("PersonVar"), test_recordlit),
+                                          record.Deconstruct(Var("PersonVar"), RefByName(Name("Person")), Seq(
+                                            (Name("haircolor"), TermArg(Var("HairColor"))),
+                                            (Name("height"), TermArg(Var("Height"))),
+                                            (Name("employed_at"), TermArg(Var("EmployedAt")))
+                                          )) // Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean)
+                                        )))
+                                      ))
     )
     val compiled = Compiled(input)
     val engine = new Executor().instantiate(compiled)

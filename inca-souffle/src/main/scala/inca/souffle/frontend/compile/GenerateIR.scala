@@ -27,9 +27,9 @@ implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y)
 
 class GenerateIR extends GenerateIRContext:
   val irLang: Language = new Language(Set(ir.BaseIR)
-    + irarith.IR + block.IR + irbool.IR + irdata.IR
-    + irdis.IR + irnot.IR + irstring.IR
-    + iragg.IR
+                                      + irarith.IR + block.IR + irbool.IR + irdata.IR
+                                      + irdis.IR + irnot.IR + irstring.IR
+                                      + iragg.IR
   )
   val gensym: Gensym = new Gensym()
 
@@ -37,7 +37,9 @@ class GenerateIR extends GenerateIRContext:
 
   def compileProgram(prog: Program, name: String): Seq[ir.Module] =
     initContext(prog)
-    val content = switchToMainComponent { compileProgramContents(prog.content) }
+    val content = switchToMainComponent {
+      compileProgramContents(prog.content)
+    }
     val souffleModule = ir.Module(ir.Name(name), irLang, content)
     souffleModule +: componentModules.values.toSeq
 
@@ -60,14 +62,14 @@ class GenerateIR extends GenerateIRContext:
     val superDecls = decl.superTys.map(_.target.get)
     superDecls.map(compileComponentDecl)
     // collect all relation declarations defined in this component or the parent
-    val rels = transitivelyCollectProgramContent(decl){ case r: ProgramContent.RelationDecl => r }
-    val adts = transitivelyCollectProgramContent(decl){ case adt@ProgramContent.TypeDecl(_, _: ADTType) => adt }
+    val rels = transitivelyCollectProgramContent(decl) { case r: ProgramContent.RelationDecl => r }
+    val adts = transitivelyCollectProgramContent(decl) { case adt@ProgramContent.TypeDecl(_, _: ADTType) => adt }
     val content = switchToComponent(decl) {
       val compiledRels = rels.toSeq.flatMap(compileRelationDecl)
       val compiledAdts = adts.toSeq.flatMap(compileAdtDecl)
       compiledAdts ++ compiledRels ++ compileProgramContents(decl.content)
     }
-    
+
     val required = lookupRequiredDeclarations(decl).flatMap {
       case (name, relDecl: ProgramContent.RelationDecl) =>
         val params = relDecl.attrs.map(compileAttribute)
@@ -319,29 +321,29 @@ class GenerateIR extends GenerateIRContext:
     case Term.AggregatorTerm(agg) =>
       // TODO: Ignore for now
       irarith.IntNum(1)
-      /*val (op, args, t) = agg match
-        case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
-        case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
-        case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
-        case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
-      val outTerm = t.map(compileTerm)
+    /*val (op, args, t) = agg match
+      case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
+      case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
+      case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
+      case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
+    val outTerm = t.map(compileTerm)
 
-      Block(
-        args.map(compileAtom).map {
-          case ir.Call(ref, args, false) if args.find(_ == outTerm) =>
-            val aggIndex = args.indexOf(outTerm)
-            val aggTem = args(aggIndex) match
-              case TermArg(t) => t
-              case _ => throw IllegalStateException(s"Could not extract aggregation term for: $a")
-            val newArgs = args.updated(aggIndex, AggregateColumnArg(aggTem))
-            iragg.Aggregate(ref, newArgs, op)
-          case ir.Call(ref, args, false)  =>
-            throw IllegalStateException(s"Cound not find aggregation index for: $a")
-          case a =>
-            throw IllegalStateException(s"Unexpected aggregation atom: $a")
-        }
-      )*/
-      
+    Block(
+      args.map(compileAtom).map {
+        case ir.Call(ref, args, false) if args.find(_ == outTerm) =>
+          val aggIndex = args.indexOf(outTerm)
+          val aggTem = args(aggIndex) match
+            case TermArg(t) => t
+            case _ => throw IllegalStateException(s"Could not extract aggregation term for: $a")
+          val newArgs = args.updated(aggIndex, AggregateColumnArg(aggTem))
+          iragg.Aggregate(ref, newArgs, op)
+        case ir.Call(ref, args, false)  =>
+          throw IllegalStateException(s"Cound not find aggregation index for: $a")
+        case a =>
+          throw IllegalStateException(s"Unexpected aggregation atom: $a")
+      }
+    )*/
+
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
         case IntrinsicFunctor.Ord =>

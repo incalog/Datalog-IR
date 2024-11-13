@@ -6,13 +6,18 @@ import inca.util.compileroptions.{CompilerOptions, IniParser, Section}
 case class DatalogLoggingSection(override val name: String, defaults: Map[String, Any]) extends Section(name, defaults):
   // Log type information when logging a module
   def logTypeInformation: Boolean = readBoolean("typed")
+
   def logTypeInformation_=(newVal: Boolean): Unit = update("typed", newVal)
+
   // Log the main module before transformation to IR code
   def logModule: Boolean = readBoolean("module")
+
   def logModule_=(newVal: Boolean): Unit = update("module", newVal)
+
   // Log all relations
   def verboseOutput: Boolean = readBoolean("verbose_output")
-  def verboseOutput_= (newVal: Boolean): Unit = update("verbose_output", newVal)
+
+  def verboseOutput_=(newVal: Boolean): Unit = update("verbose_output", newVal)
 
 final class DatalogCompilerOptions private(defaults: Seq[(String, Seq[(String, Any)])] = Seq()) extends CompilerOptions(defaults):
   override protected def createSection(name: String, entries: Map[String, Any]): Section = name match

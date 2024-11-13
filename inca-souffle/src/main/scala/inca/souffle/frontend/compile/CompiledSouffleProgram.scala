@@ -49,6 +49,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
 
   /**
    * Get all relations marked as output in the souffle program
+   *
    * @return A sequence of relations used for output
    */
   lazy val outputRelations: Seq[ExecutionRelation] =
@@ -64,6 +65,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
 
   /**
    * Load all facts marked as input in the souffle program
+   *
    * @param baseDir The base directory to load input files from
    *                (relative to the resources directory)
    * @return A sequence of relations used for edb inputs
@@ -84,11 +86,12 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
         name,
         params.map(_.name.name),
         loadEdbFactsFromFile(baseDir, attrs).map {
-          ss => ss.zip(tys).map {
-            case (s, TInt) => s.toInt
-            case (s, TDouble) => s.toFloat
-            case (s, _) => s
-          }
+          ss =>
+            ss.zip(tys).map {
+              case (s, TInt) => s.toInt
+              case (s, TDouble) => s.toFloat
+              case (s, _) => s
+            }
         }
       )
     }.toSeq

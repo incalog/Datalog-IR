@@ -11,11 +11,15 @@ class SimpleTest extends AnyFunSuite:
   private def createAndLowerCompiledUnit(mod: Module) =
     val compiledUnit = new CompiledUnit {
       def compilerOptions: CompilerOptions = CompilerOptions.default
+
       def name: Name = mod.name
+
       def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
       def isClosedWorld: Boolean = true
+
       def irModules: Seq[Module] = Seq(mod)
+
       def otherUnits: Seq[CompiledUnit] = Seq()
     }
     compiledUnit.lowered

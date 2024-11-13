@@ -10,7 +10,7 @@ import inca.souffle.syntax.ProgramContent.*
 import scala.language.implicitConversions
 
 /**
- *  Parser for Souffle programs
+ * Parser for Souffle programs
  */
 object Parser:
 
@@ -143,7 +143,7 @@ object Parser:
 
   val doubleLit: P[Term] = spaced(
     (Numbers.signedIntString ~ (P.char('.') *> Numbers.nonNegativeIntString)).mapWithLoc {
-      case (a,b) => Term.FloatLit(s"$a.$b".toDouble)
+      case (a, b) => Term.FloatLit(s"$a.$b".toDouble)
     })
 
   val stringLit: P[String] = spaced(
@@ -167,7 +167,7 @@ object Parser:
     val multiAtoms = inBraces(call.repSep(1, sep = op(","))).map(as => as.toList)
     val singleAtom = call.map(a => List(a))
     multiAtoms.backtrack | singleAtom
-    
+
   private val aggregator: P[Aggregator] =
     val minAgg = (op("min") *> (term <* op(":")) ~ aggArgs).map {
       (t, as) => Aggregator.Min(t, as)
@@ -209,7 +209,7 @@ object Parser:
     op("nil").mapWithLoc(_ => Term.Nil.apply()) |
     inBrackets(argList).mapWithLoc(Term.List.apply) |
     P.char('$') *> (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Term.Constr(name, args)) |
-    op("as") *> inParens(term ~ (op(',') *> typ)).mapWithLoc((t,ty) => Term.TypeCast(t, ty)) |
+    op("as") *> inParens(term ~ (op(',') *> typ)).mapWithLoc((t, ty) => Term.TypeCast(t, ty)) |
     aggregator.mapWithLoc(Term.AggregatorTerm.apply) |
     (intrinsicFunctor ~ inParens(argList)).backtrack.map((f, args) => Term.IntrinsicFunctorApp(f, args)) |
     (identifier ~ inParens(argList)).backtrack.map((f, args) => Term.UserDefFunctorApp(UserDefFunctor(f), args)) |
@@ -252,12 +252,12 @@ object Parser:
   val comparator: P[Comparator] =
     import Comparator.*
     oneOperator(List(LE, LT, GE, GT, NEQ, EQ))
-    /*op("<=").map(_ => Comparator.LE) |
-    op("<").map(_ => Comparator.LT) |
-    op(">").map(_ => Comparator.GT) |
-    op(">=").map(_ => Comparator.GE) |
-    op("!=").map(_ => Comparator.NEQ) |
-    op("=").map(_ => Comparator.EQ)*/
+  /*op("<=").map(_ => Comparator.LE) |
+  op("<").map(_ => Comparator.LT) |
+  op(">").map(_ => Comparator.GT) |
+  op(">=").map(_ => Comparator.GE) |
+  op("!=").map(_ => Comparator.NEQ) |
+  op("=").map(_ => Comparator.EQ)*/
 
   val compare: P[Atom] =
     (term ~ comparator ~ term).mapWithLoc {
@@ -268,7 +268,7 @@ object Parser:
     (op("match") *> inParens((term <* op(",")) ~ term)).map(
       (t1, t2) => Atom.Match(t1, t2)
     )
-    
+
   lazy val atom: P[Atom] =
     inParens(P.defer(disjunction)) |
     op('!') *> P.defer(atom).map(Atom.Not.apply) |
@@ -284,25 +284,25 @@ object Parser:
       case (alt, Some(Disjunction(alts))) => Atom.Disjunction(alt.toList +: alts)
     }
 
-//  val signature: P[(Name, Seq[Type])] =
-//    identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
-//
-//  val param: P[Param] =
-//    (identifier ~ inParens(identifier).?).mapWithLoc {
-//      case (name, None) => Param.Named(name)
-//      case (agg, Some(name)) => Param.Aggregated(name, agg)
-//    } |
-//      literal.mapWithLoc(Param.Constant.apply)
+  //  val signature: P[(Name, Seq[Type])] =
+  //    identifier ~ inParens(typ.repSep(op(',')).map(_.toList)) <* op('.')
+  //
+  //  val param: P[Param] =
+  //    (identifier ~ inParens(identifier).?).mapWithLoc {
+  //      case (name, None) => Param.Named(name)
+  //      case (agg, Some(name)) => Param.Aggregated(name, agg)
+  //    } |
+  //      literal.mapWithLoc(Param.Constant.apply)
 
   private val atomList: P[List[Atom]] = atom.repSep(op(',')).map(_.toList)
 
   val plan: P[QueryPlan] =
     op(".plan") *>
-      (
-        (intnum <* op(':')) ~
-          inParens(intnum.repSep0(op(',')))).repSep(op(',')).map( plans =>
-        QueryPlan(plans.toList.map(p => p._1 -> p._2))
-      )
+    (
+      (intnum <* op(':')) ~
+      inParens(intnum.repSep0(op(',')))).repSep(op(',')).map(plans =>
+      QueryPlan(plans.toList.map(p => p._1 -> p._2))
+    )
 
   val rule: P[Rule] =
     (atomList ~ (op(":-") *> (disjunction <* op('.')) ~ plan.?)).mapWithLoc { case (heads, (body, plan)) => Rule(heads, body, plan) }
@@ -354,8 +354,8 @@ object Parser:
   val directive: P[Directive] =
     import DirectiveQualifier.*
     (oneOperator(List(Input, Output, Printsize, Limitsize))
-      ~ qualifiedIdentifier.repSep(op(','))
-      ~ inParens((identifier ~ (op("=") *> directiveValue)).repSep0(op(','))).?).mapWithLoc {
+     ~ qualifiedIdentifier.repSep(op(','))
+     ~ inParens((identifier ~ (op("=") *> directiveValue)).repSep0(op(','))).?).mapWithLoc {
       case ((qual, names), attrs) => Directive(qual, names.toList, attrs.getOrElse(List()).toMap)
     }
 

@@ -34,11 +34,11 @@ def factorial(n: Int) = (1 to n).product
 
 object SetUnion:
   val n = 6 // choose a big enough number
-  val combinations = 2*factorial(n)
+  val combinations = 2 * factorial(n)
   println(s"Number of unique sets: $combinations")
 
-  val a = Range(1, n+1).map(arithmetic.IntNum.apply)
-  val b = Range(n+1, (n*2)+1).map(arithmetic.IntNum.apply)
+  val a = Range(1, n + 1).map(arithmetic.IntNum.apply)
+  val b = Range(n + 1, (n * 2) + 1).map(arithmetic.IntNum.apply)
 
   def main(numSets: Int) = Relation("main",
     Seq(
@@ -50,7 +50,7 @@ object SetUnion:
         Eq(
           Var("s"),
           // We represent sets with case classes, that is make them unique by permutation
-          set.SetUnion(a.permutations.zip(b.permutations).flatten {case (a,b) => Seq(a,b) }.toSeq.take(numSets).map(set.SetLit.apply))
+          set.SetUnion(a.permutations.zip(b.permutations).flatten { case (a, b) => Seq(a, b) }.toSeq.take(numSets).map(set.SetLit.apply))
         ),
         set.SetMember(Var("v"), Var("s"))
       ))
@@ -67,10 +67,15 @@ object SetUnion:
 
   def createCompiled(mod: Module, optimizeSets: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = mod.name
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override val isClosedWorld = true
+
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logModule = false
@@ -128,7 +133,7 @@ object SetUnion:
     res.foreach { case (name, r) =>
       val (x, y) = r.unzip
       val timeInMS = y.map(ns => ns / 1000000)
-      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name=name, shapes=true, colorcode="167,209,182")
+      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name = name, shapes = true, colorcode = "167,209,182")
     }
 
     p.xlabel = "Number of Sets"
@@ -179,7 +184,7 @@ object SetUnion:
 
     val headerLine = IndexedSeq("NumberOfSets", "Souffle", "Viatra", "Ascent")
     val rows = for (i <- Range(0, souffleRes.size)) yield {
-        IndexedSeq(souffleRes(i)._1, souffleRes(i)._2, viatraRes(i)._2, ascentRes(i)._2)
+      IndexedSeq(souffleRes(i)._1, souffleRes(i)._2, viatraRes(i)._2, ascentRes(i)._2)
     }
     FileUtil.writeFile("benchmark/SetUnion/result.csv", CSVUtil.csvToString(headerLine +: rows))
 

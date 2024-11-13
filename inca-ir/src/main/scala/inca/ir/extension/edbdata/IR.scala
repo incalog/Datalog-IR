@@ -11,14 +11,19 @@ trait EdbDataModuleEntry extends ModuleEntry
 
 case class EdbNodeDefinition(name: Name, sup: Option[Name] = None) extends EdbDataModuleEntry:
   def withName(name: String): EdbNodeDefinition = this.copy(name = Name(name))
+
   override def toString: String = s"""edb node $name""" + sup.map(" extends " + _).getOrElse("")
+
 object EdbNodeDefinition:
   def apply(name: Name, sup: Name): EdbNodeDefinition = new EdbNodeDefinition(name, Some(sup))
 
 case class EdbFieldDefinition(node: Name, field: Name, ty: EdbType) extends EdbDataModuleEntry:
   override val name: Name = edbFieldName(node, field)
+
   def withName(name: String): EdbFieldDefinition = this.copy(field = Name(name))
+
   override def toString: String = s"""edb field $node.$field: $ty"""
+
 def edbFieldName(node: Name, field: Name): Name = Name(node.name + ":" + field.name)
 
 trait EdbType extends Type
@@ -26,9 +31,11 @@ trait EdbType extends Type
 /** Type of atomic values in the EDB */
 case class TEdbValue(ty: Type) extends EdbType:
   override def toString: String = s"$ty@edb"
+
 /** Nominal type of tree nodes in the EDB */
 case class TEdbNode(name: Name) extends EdbType:
   override def toString: String = s"$name@edb"
+
 /** Type of lists in the EDB */
 case class TEdbList(ty: EdbType) extends EdbType:
   override def toString: String = s"List[$ty]@edb"
@@ -36,32 +43,43 @@ case class TEdbList(ty: EdbType) extends EdbType:
 
 case class LookupEdbType(ty: EdbType) extends Term:
   override def vars: Seq[Var] = Seq()
+
   override def toString: String = s"edb[$ty]"
+
 case class NotInEdbType(t: Term, ty: EdbType) extends Atom:
   override def vars: Seq[Var] = t.vars
+
   override def toString: String = s"not t in edb[$ty]"
+
 case class UndefEdbType(ty: EdbType) extends Atom:
   override def vars: Seq[Var] = Seq()
+
   override def toString: String = s"undef edb[$ty]"
 
 case class LookupEdbField(src: Term, link: Link) extends Term:
   override def vars: Seq[Var] = src.vars
+
   override def toString: String = s"($src).$link"
+
 object LookupEdbField:
   def apply(t: Term, field: Name): LookupEdbField = new LookupEdbField(t, Link.Field(field))
+
 case class UndefEdbField(src: Term, link: Link) extends Atom:
   override def vars: Seq[Var] = src.vars
+
   override def toString: String = s"undef $src.$link"
+
 case class UndefEdbFieldInverse(srcTy: EdbType, link: Link, trg: Term) extends Atom:
   override def vars: Seq[Var] = trg.vars
+
   override def toString: String = s"undef $trg.$link^⁻¹"
 
 
-def EdbDeconstruct(t: Term, node: Name, fields: (String,Term)*): Seq[Atom] =
+def EdbDeconstruct(t: Term, node: Name, fields: (String, Term)*): Seq[Atom] =
   Eq(Cast(t, TEdbNode(node)), LookupEdbType(TEdbNode(node))) +:
-    fields.map((field, a) =>
-      Eq(a, LookupEdbField(Cast(t, TEdbNode(node)), Name(field)))
-    )
+  fields.map((field, a) =>
+    Eq(a, LookupEdbField(Cast(t, TEdbNode(node)), Name(field)))
+  )
 
 enum Link:
   case Field(name: Name)
@@ -124,7 +142,10 @@ object EdbType:
     case _ => throw new UnsupportedOperationException(s"Cannot convert $lty to TEdbValue")
 
 object IR extends IR
+
 trait IR extends BaseIR:
   override val name: String = "EdbTrees"
+
   override def language: Language = super.language + new IR {}
+
   override def requires: Language = Language()

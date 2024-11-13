@@ -57,8 +57,8 @@ class Monomorph {
     }.toSeq
     Module(module.name, module.imports,
       monomorphicDataDefs.values.toSeq ++
-        transformedMonomorphicContent ++
-        monomorphicFunctionDefs.values)
+      transformedMonomorphicContent ++
+      monomorphicFunctionDefs.values)
   }
 
   private def collectPolyModuleContent(module: Module): Unit = {
@@ -92,7 +92,7 @@ class Monomorph {
           val fun = v.target match {
             case Some(_: FunctionDef) =>
               Seq(name -> tyArgs)
-            case Some(dc:DataConstructor) =>
+            case Some(dc: DataConstructor) =>
               Seq(constructToDataDef(dc.name).name -> tyArgs)
             case _ => Seq()
           }
@@ -158,13 +158,13 @@ class Monomorph {
 
   private def generateMonoFunctionDef(funDef: FunctionDef, typeArgs: Seq[Type]): Unit = {
     val monoName = polymorphicToMonomorphic(funDef.name, typeArgs)
-    val subst = funDef.tyVars.map (x => TName (x.name) ).zip (typeArgs).toMap
+    val subst = funDef.tyVars.map(x => TName(x.name)).zip(typeArgs).toMap
 
-    val monoParams = funDef.params.map {param =>
-      Param (param.name, monomorph(param.typ)(subst))
+    val monoParams = funDef.params.map { param =>
+      Param(param.name, monomorph(param.typ)(subst))
     }
     val monoOutType = monomorph(funDef.outType)(subst)
-    val monoFunDef = FunctionDef (funDef.annos, funDef.vis, monoName, Seq (), monoParams, monoOutType, monomorph (funDef.body) (subst) )
+    val monoFunDef = FunctionDef(funDef.annos, funDef.vis, monoName, Seq(), monoParams, monoOutType, monomorph(funDef.body)(subst))
     monomorphicFunctionDefs(funDef.name -> typeArgs) = monoFunDef
   }
 

@@ -22,6 +22,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
   var nextId: Int = 0
 
   import Expr.*
+
   enum Expr:
     case Num(value: Int)
     case Add(lhs: Expr, rhs: Expr)
@@ -38,6 +39,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
     override def equals(obj: Any): Boolean = obj match
       case that: Expr => this.id == that.id
       case _ => false
+
     override def hashCode(): Int = id
 
     def expressions: Seq[Expr] =
@@ -46,6 +48,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
         case e => Seq(e)
 
   import Stmt.*
+
   enum Stmt:
     case VarDef(name: String, value: Expr)
     case Block(list: List[Stmt])
@@ -60,6 +63,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
     override def equals(obj: Any): Boolean = obj match
       case that: Stmt => this.id == that.id
       case _ => false
+
     override def hashCode(): Int = id
 
     def expressions: Seq[Expr] =
@@ -135,7 +139,7 @@ class ConstantAnalysisTest extends AnyFunSuite:
     ))
 
     val edbs = exprToEdbRelations(s) ++ stmtToEdbRelations(s)
-//    edbs.foreach(t => println(t.asTable))
+    //    edbs.foreach(t => println(t.asTable))
     edbs.foreach(loaded.engine.insert)
     edbs.foreach(e => println(e.asTable))
 

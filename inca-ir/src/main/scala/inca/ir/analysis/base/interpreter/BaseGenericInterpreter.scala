@@ -95,14 +95,18 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   // Fixpoint
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, RV]]
+
   type Fixed = FixIn => FixOut[V, RV]
 
   // Ops & Helper
   def relationOps: RelationOps[V, B, RV]
 
   def boolOps: BooleanOps[B]
+
   def boolTrue: B = boolOps.boolLit(true)
+
   def boolFalse: B = boolOps.boolLit(false)
+
   def boolTop: B
 
   def eqOps: EqOps[V, B]
@@ -112,18 +116,23 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
   //def except: Except[BaseIRException, BaseIRException, J]
 
   def joinV: J[V]
+
   def top: V
 
   def joinRV: J[RV]
+
   given J[RV] = joinRV
 
   def effects: EffectStack
+
   given EffectStack = effects
 
   def IDB: Store[AllocationSiteAddr, RV, J]
+
   def supplementaryEnv: SupplementaryEnvironment[RV, J]
 
   def joinUnit: J[Unit]
+
   given J[Unit] = joinUnit
 
   // Evaluation
@@ -229,7 +238,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   inline def exitCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using rec: Fixed): RV =
     val relRes = r match
-      case rel : ir.Relation => evalRelation(rel)
+      case rel: ir.Relation => evalRelation(rel)
       case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
     // add all variables bound by the call to the context
     val boundVars = args.map(extractVarName)

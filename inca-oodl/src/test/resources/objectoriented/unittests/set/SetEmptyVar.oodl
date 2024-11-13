@@ -2,6 +2,6 @@ module SetTest
 
 @main
 def main(): Set[Int] = {
-    val emptySet: Set[Int] = Set[Int]()
-    return emptySet ++ Set(1)
+  val emptySet: Set[Int] = Set[Int]()
+  return emptySet ++ Set(1)
 }

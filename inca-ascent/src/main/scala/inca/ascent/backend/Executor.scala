@@ -141,6 +141,6 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case ThreadCount.Auto => Seq()
       case ThreadCount.Fixed(n) if n > 1 => Seq("RAYON_NUM_THREADS" -> n.toString)
       case _ => Seq()
-    val execProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env:_*)
+    val execProcess = Process(s"$rustProjectDir/target/release/ascent_project", None, env: _*)
     new Engine(execProcess, fileInputs.map(i => (i.name, i)).toMap)
   }

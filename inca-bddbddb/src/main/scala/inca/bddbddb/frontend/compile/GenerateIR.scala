@@ -9,7 +9,9 @@ import inca.util.FileUtil
 
 object GenerateIR:
   val defaultDomainName: ir.Name = ir.Name("_$default")
+
   def inputName(name: ir.Name): ir.Name = ir.Name(s"input_$name")
+
   def domainInputName(name: ir.Name): ir.Name = ir.Name(s"input_domain_$name")
 
 import GenerateIR.defaultDomainName
@@ -122,6 +124,7 @@ class GenerateIR:
         case _ => None
       }.toMap
     }
+
     given Context = ctx
 
     ir.Module(ir.Name(name), irLang, compileProgramContents(newProgContent))
@@ -173,7 +176,7 @@ class GenerateIR:
       rules.map(r => compileRule(decl, r)) ++ edbBody
     )
     Seq(rel) ++ edbRel
-  
+
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule)(implicit ctx: Context): ir.Body =
     val relName = decl.name
     val params = compileAttributes(decl.attrs)

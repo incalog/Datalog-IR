@@ -34,16 +34,22 @@ class GenerateAscentTest extends AnyFunSuite:
 
   case class CompiledModule(irModule: Module) extends CompiledUnit:
     override def name: Name = "PathExample"
+
     override def compilerOptions: CompilerOptions = CompilerOptions.default
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(irModule)
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     setPipeline(pipeline)
 
   val edgeRel = ExtensionalRelation("edge", Seq(Param("x", arith.TInt), Param("y", arith.TInt)))
   val pathRel = Relation("path", Seq(Param("x", arith.TInt), Param("y", arith.TInt)),
-  Seq(
+    Seq(
       Body(Seq(ExtensionalCall("edge", Seq(Var("x"), Var("y"))))),
       Body(Seq(ExtensionalCall("edge", Seq(Var("x"), Var("z"))), Call("path", Seq(Var("z"), Var("y"))))),
     )
@@ -171,7 +177,7 @@ class GenerateAscentTest extends AnyFunSuite:
     val engine = Executor().instantiate(compiledModule)
     engine.insert(Rel.from("edge", Seq("x", "y"), Seq(Seq(1.13, 2.8), Seq(4.0, 3.0), Seq(2.8, 4.0))))
     val rels = engine.read(UnitRelation("path"))
-    assertResult(Set((2.8,4.0), (4.0,3.0), (1.13,4.0), (1.13,3.0), (1.13,2.8), (2.8,3.0)))(rels.toSet)
+    assertResult(Set((2.8, 4.0), (4.0, 3.0), (1.13, 4.0), (1.13, 3.0), (1.13, 2.8), (2.8, 3.0)))(rels.toSet)
   }
 
   val floatLesser = Relation("Lesser", Seq(Param("x", arith.TDouble), Param("y", arith.TDouble)),

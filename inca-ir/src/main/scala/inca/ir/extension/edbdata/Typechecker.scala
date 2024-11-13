@@ -24,7 +24,7 @@ trait Typechecker extends BaseIRTypechecker:
 
   @tailrec
   private def rootEdbNodeOf(name: Name, s: SourceLocation): Option[EdbNodeDefinition] = lookupEdbNode(name, s) match
-    case Some((_,dd)) => dd.sup match
+    case Some((_, dd)) => dd.sup match
       case None => Some(dd)
       case Some(sup) => rootEdbNodeOf(sup.name, s)
     case None => None
@@ -70,14 +70,14 @@ trait Typechecker extends BaseIRTypechecker:
     case Link.Prev | Link.Next => srcTy match
       case TEdbList(ety) => ety
       case ty =>
-        error(s"Cannot lookup field $link on $ty", locations:_*)
+        error(s"Cannot lookup field $link on $ty", locations: _*)
         ty
     case Link.Field(field) => srcTy match
       case TEdbNode(node) => lookupEdbField(edbFieldName(node, field)) match
         case Some((_, EdbFieldDefinition(_, _, target))) => target
         case _ => TAny // error produced by lookupEdbConstruct
     case _ =>
-      error(s"Cannot lookup field $link on $srcTy", locations:_*)
+      error(s"Cannot lookup field $link on $srcTy", locations: _*)
       srcTy
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
@@ -86,7 +86,7 @@ trait Typechecker extends BaseIRTypechecker:
       ety.bound
     case LookupEdbField(src, link) =>
       inferTerm(src, Mode.Binding).ty match
-        case srcTy: EdbType => 
+        case srcTy: EdbType =>
           val trgTy = inferLinkLookup(srcTy, link, term)
           trgTy.bound
         case srcTy =>

@@ -25,6 +25,7 @@ object IniParser:
   private val identifier: P[String] = spaced(id)
 
   private def op(c: Char): P[Unit] = spaced(P.char(c))
+
   private def inBrackets[A](p: P0[A]): P[A] = op('[') *> p <* op(']')
 
   private val intLit: P[Int] = spaced(
@@ -49,10 +50,10 @@ object IniParser:
 
   private val lit: P[Any] =
     boolLit.backtrack |
-      intLit.backtrack |
-      doubleLit.backtrack |
-      stringLit.backtrack |
-      fallbackStringLit
+    intLit.backtrack |
+    doubleLit.backtrack |
+    stringLit.backtrack |
+    fallbackStringLit
 
   private val entry: P[(String, Any)] = (identifier <* op('=')) ~ lit
 

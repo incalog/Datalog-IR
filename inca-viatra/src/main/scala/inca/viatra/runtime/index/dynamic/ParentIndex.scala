@@ -13,6 +13,7 @@ object ParentIndex {
   case object Key extends DynamicKey {
     override val getStringID: String = "#parent"
     override val getArity: Int = 2
+
     override def isEnumerable: Boolean = true
   }
 
@@ -25,11 +26,12 @@ object ParentIndex {
   }
 
   sealed trait ParentDeletion
+
   case class ParentNodeDeletion(kid: URI, parent: URI) extends ParentDeletion
-//  case class
+  //  case class
 }
 
-class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
+class ParentIndex extends BidirectionalManyToOneIndex[URI, URI](ParentIndex.Key)
   with DynamicIndex {
 
   // maps from kid to old parent
@@ -57,7 +59,7 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
   /** processes edit to update this index accordingly */
   override def processEdit(edit: truechange.CoreEdit): Unit = edit match {
     case Update(_, _, _, _) =>
-      // nothing
+    // nothing
 
     case truechange.Attach(node, _, link, parent, _) => link.getRawLink match {
       case _: ListFirstLink =>

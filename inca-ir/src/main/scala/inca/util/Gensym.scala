@@ -4,8 +4,8 @@ import inca.ir.Name
 
 def namify(s: String): String =
   s.replaceAll(" ", "")
-   .replaceAll("[()\\[\\]{}]", "\\$")
-   .replaceAll("[,;+\\-]", "_")
+    .replaceAll("[()\\[\\]{}]", "\\$")
+    .replaceAll("[,;+\\-]", "_")
 
 class Gensym(init: Iterable[String] = Seq.empty) {
   /** map of used symbols, each of which must end with '$' */
@@ -41,7 +41,7 @@ class Gensym(init: Iterable[String] = Seq.empty) {
         base_ + 0
     }
   }
-  
+
   def freshName(base: Name): Name = Name(fresh(base.name))
 
   def freshGlobal(base: String): String = {
@@ -49,7 +49,7 @@ class Gensym(init: Iterable[String] = Seq.empty) {
     globals :+= v
     v
   }
-  
+
   private def decompileName(s: String): (String, Option[Int]) = {
     val ix = s.lastIndexOf('$')
     if (ix <= 0) {
@@ -58,7 +58,7 @@ class Gensym(init: Iterable[String] = Seq.empty) {
       val digits = s.substring(ix + 1)
       digits.toIntOption match {
         case Some(num) =>
-          val s_ = s.substring(0, ix+1)
+          val s_ = s.substring(0, ix + 1)
           (s_, Some(num))
         case None =>
           (ensureDollar(s), None)

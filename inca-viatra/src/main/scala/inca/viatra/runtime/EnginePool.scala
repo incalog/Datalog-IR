@@ -53,7 +53,8 @@ object EnginePool {
 
   def loadQuery(specification: Query.Specification,
                 scope: QueryScope,
-                backendFactory: IQueryBackendFactory): Query.Matcher = {
+                backendFactory: IQueryBackendFactory
+               ): Query.Matcher = {
     val engine = loadEngine(scope, backendFactory)
     engine.getMatcher(specification, null)
   }
@@ -71,8 +72,11 @@ object EnginePool {
 
   object DummySearchBackendFactory extends IQueryBackendFactory {
     override def create(context: IQueryBackendContext): Null = null
+
     override def getBackendClass: Null = null
+
     override def calculateRequiredCapability(query: PQuery, hint: QueryEvaluationHint): Null = null
+
     override def isCaching = false
   }
 }

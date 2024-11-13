@@ -15,20 +15,21 @@ trait Lowering extends BaseLowering:
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set(data.IR, disjunction.IR, not.IR)
 
-  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) { atom match
-    case Match(matchee, cases) =>
-      val previous: ListBuffer[Deconstruct] = ListBuffer.empty
-      val alternatives = cases.map { case Case(ref, patVars, body) =>
-        previous += Deconstruct(matchee, ref, patVars.map(_.arg), false)
-        // TODO non-overlapping patterns?
-        val notPrevious = Seq() // previous.map(not.Not.apply).toList
-        DisjunctionAlternative(
-          Deconstruct(matchee, ref, patVars.map(_.arg), false) +:
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case Match(matchee, cases) =>
+        val previous: ListBuffer[Deconstruct] = ListBuffer.empty
+        val alternatives = cases.map { case Case(ref, patVars, body) =>
+          previous += Deconstruct(matchee, ref, patVars.map(_.arg), false)
+          // TODO non-overlapping patterns?
+          val notPrevious = Seq() // previous.map(not.Not.apply).toList
+          DisjunctionAlternative(
+            Deconstruct(matchee, ref, patVars.map(_.arg), false) +:
             (notPrevious ++ body.flatMap(visitAtom))
-        )
-      }
-      Seq(Disjunction(alternatives))
-    case _ => super.visitAtom(atom)
+          )
+        }
+        Seq(Disjunction(alternatives))
+      case _ => super.visitAtom(atom)
   }
 
 // r(T) :- guard(x), x match { case Zero() => a1 a2 a3; case Succ(p) => a4 a5 a6 }

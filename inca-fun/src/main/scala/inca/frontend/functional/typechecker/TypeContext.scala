@@ -32,7 +32,7 @@ trait TypeContext extends TypeIO {
     vars += (name -> (decl, ty))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type)] =
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
@@ -61,7 +61,7 @@ trait TypeContext extends TypeIO {
       case Some(prevDecl) => error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
       case None =>
     }
-    tyVars += name ->decl
+    tyVars += name -> decl
   }
 
   def lookupTyVar(name: Name): Option[TName.Target] = {

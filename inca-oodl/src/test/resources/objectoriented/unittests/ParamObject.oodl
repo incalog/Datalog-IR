@@ -1,21 +1,21 @@
 module ParamObject
 
 class B {
-    def apply(): Int = 0
+  def apply(): Int = 0
 }
 
 class C extends B {
-    override def apply(): Int = 1
+  override def apply(): Int = 1
 }
 
 class A {
-    def get(b: B): Int = b.apply()
+  def get(b: B): Int = b.apply()
 }
 
 
 @main
 def main(): Int = {
-    val a: A = new A()
-    val c: C = new C()
-    return a.get(c)
+  val a: A = new A()
+  val c: C = new C()
+  return a.get(c)
 }

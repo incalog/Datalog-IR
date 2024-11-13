@@ -20,10 +20,12 @@ enum Mode:
   case Bound
   case Collapse
 
-//  inline def requiresBound: Boolean = this == Bound || this == Collapse
+  //  inline def requiresBound: Boolean = this == Bound || this == Collapse
 
   def isBinding: Boolean = this == Binding
+
   def isBound: Boolean = this == Bound
+
   def isCollapse: Boolean = this == Collapse
 
   def inverted: Mode = this match

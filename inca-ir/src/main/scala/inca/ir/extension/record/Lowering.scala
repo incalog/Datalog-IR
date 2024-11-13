@@ -74,7 +74,7 @@ trait Lowering extends BaseLowering:
           newVars(fieldIdx)
         )
       }
-    case _ =>  super.visitTerm(term)
+    case _ => super.visitTerm(term)
   }
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match {

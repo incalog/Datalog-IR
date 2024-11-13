@@ -27,35 +27,35 @@ trait BaseIRVisitor:
     case rel: ExtensionalRelation => visitExtensionalRelation(rel)
     case req: Require => visitRequire(req)
     case prov: Provide[_] => visitProvide(prov)
-    case imp: Import => visitImport(imp) 
+    case imp: Import => visitImport(imp)
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $moduleEntry")
   })
 
   def visitImport(imp: Import): Seq[Import] = preserveHints(imp) {
     Seq(Import(visitRef(imp.module), imp.as, imp.subst.flatMap(visitSubstitution)))
   }
-  
+
   def visitSubstitution(importable: Substitution[_, _]): Seq[Substitution[_, _]] = importable match
-    case RelationSubstitution(to, toSig, from, fromSig) => 
+    case RelationSubstitution(to, toSig, from, fromSig) =>
       Seq(RelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case ExtensionalRelationSubstitution(to, toSig, from, fromSig) =>
       Seq(ExtensionalRelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $importable")
-  
+
   def visitProvide[T <: ModuleEntry](provide: Provide[T]): Seq[Provide[_]] = preserveHints(provide) {
     provide match
       case ProvideRelation(exportRef, params) => Seq(ProvideRelation(visitRef(exportRef), params.flatMap(visitParam)))
       case ProvideExtensionalRelation(exportRef, params) => Seq(ProvideExtensionalRelation(visitRef(exportRef), params.flatMap(visitParam)))
       case _ => throw IllegalStateException(s"Can not visit unknown entry: $provide")
   }
-  
+
   def visitRequire(require: Require): Seq[Require] = preserveHints(require) {
     require match
       case RequireRelation(name, params) => Seq(RequireRelation(name, params.flatMap(visitParam)))
       case RequireExtensionalRelation(name, params) => Seq(RequireExtensionalRelation(name, params.flatMap(visitParam)))
       case _ => throw IllegalStateException(s"Can not visit unknown entry: $require")
   }
-  
+
   def visitExtensionalRelation(relation: ExtensionalRelation): Seq[ExtensionalRelation] = preserveHints(relation) {
     Seq(ExtensionalRelation(relation.name, relation.params.flatMap(visitParam)))
   }
@@ -70,7 +70,9 @@ trait BaseIRVisitor:
 
   def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     try Seq(Body(body.atoms.flatMap(visitAtom)))
-    catch { case FailedBody => Seq() }
+    catch {
+      case FailedBody => Seq()
+    }
   }
 
   def visitRef[Target](ref: Ref[Target]): Ref[Target] = preserveHints(ref)(ref match

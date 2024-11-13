@@ -14,7 +14,7 @@ class EdbDataTest extends AnyFunSuiteLike:
     typechecker.checkProgram(Seq(mod))
     mod
 
-  test("Peano schema"){
+  test("Peano schema") {
     module(
       EdbNodeDefinition("Nat"),
       EdbNodeDefinition("Zero", "Nat"),

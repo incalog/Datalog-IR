@@ -9,6 +9,7 @@ import inca.viatra.runtime.index.unary.UnaryIndex
 trait VirtualIndex extends Index {
 
   protected var database: Database = _
+
   private[virtual] def setDatabase(database: Database): Unit = {
     this.database = database
     afterInitialization()
@@ -19,11 +20,14 @@ trait VirtualIndex extends Index {
 
 trait VirtualUnaryIndex[V] extends UnaryIndex[V] with VirtualIndex {
   override def insert(v: V): Unit = throw new UnsupportedOperationException
+
   override def delete(v: V): Unit = throw new UnsupportedOperationException
 }
 
 trait VirtualBinaryIndex[K, V] extends BinaryIndex[K, V] with VirtualIndex {
   override def insert(k: K, v: V): Unit = throw new UnsupportedOperationException
+
   override def delete(k: K, v: V): Unit = throw new UnsupportedOperationException
+
   override def update(k: K, vold: V, vnew: V): Unit = throw new UnsupportedOperationException
 }

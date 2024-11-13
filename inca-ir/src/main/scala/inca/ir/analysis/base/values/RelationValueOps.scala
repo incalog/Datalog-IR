@@ -21,10 +21,11 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
     }
 
   def make(cols: Seq[String], vals: Seq[Row]): RV =
-      RelationValue(cols, Some(joinColumnWise(vals)))
-      //normalize(RelationValue(cols, Some(joinColumnWise(vals))))
+    RelationValue(cols, Some(joinColumnWise(vals)))
+  //normalize(RelationValue(cols, Some(joinColumnWise(vals))))
 
   def columns(rv: RV): Seq[String] = rv.cols
+
   def entries(rv: RV): Option[Row] = rv.rows
 
   // Unit
@@ -58,7 +59,7 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
 
   def map[A](rv: RV)(f: Row => A): I[A] =
     entries(rv).map(f)
-  
+
   def naturalJoin(rv: RV, other: RV): RV =
     val rvIsUnit = entries(rv).head.isEmpty
     val otherIsUnit = entries(other).head.isEmpty

@@ -23,6 +23,7 @@ import scala.language.implicitConversions
 object AbstractSyntaxGraph:
 
   def t(s: String) = TData(s)
+
   def v(s: String) = Var(s)
 
   implicit def embed[A](a: A): Seq[A] = Seq(a)
@@ -249,10 +250,15 @@ object AbstractSyntaxGraph:
 
   def createCompiled(outlineDemand: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
+
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
     override def irModules: Seq[Module] = Seq(mod)
+
     override val isClosedWorld: Boolean = true
+
     override def otherUnits: Seq[CompiledUnit] = Seq()
+
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
       opt.irLogging.logLowerings = false
@@ -260,11 +266,12 @@ object AbstractSyntaxGraph:
       opt.irLogging.logStatsAfterOptimizations = false
       opt
     }
+
     setPipeline(List(
       () => if outlineDemand then
-              new LoweringWithSupplementaries {}
-            else
-              new demand.Lowering {},
+        new LoweringWithSupplementaries {}
+      else
+        new demand.Lowering {},
       () => new AliasElimination {}
     ))
 
@@ -276,7 +283,7 @@ object AbstractSyntaxGraph:
     val maxNodes = 100
     val step = 10
     // Execution
-    val measurements = for (i <- Range.inclusive(10, maxNodes, step)) yield  {
+    val measurements = for (i <- Range.inclusive(10, maxNodes, step)) yield {
       // Stats
       {
         val engine = new Executor().instantiate(compiled)

@@ -33,14 +33,14 @@ class GenerateSouffleTest extends AnyFunSuite:
     () => new demand.Lowering {},
     () => new tuple.Lowering {}
   ) // arith + string + data
-  
+
   val edgeRel: ExtensionalRelation = ExtensionalRelation("edge", Seq(Param("X", arith.TInt), Param("Y", arith.TInt)))
   val pathRel: Relation = Relation("path", Seq(Param("X", arith.TInt), Param("Y", arith.TInt)),
-      Seq(
-        Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Y"))))),
-        Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Z"))), Call("path", Seq(Var("Z"), Var("Y"))))),
-      )
+    Seq(
+      Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Y"))))),
+      Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Z"))), Call("path", Seq(Var("Z"), Var("Y"))))),
     )
+  )
   val nodeRel: Relation = Relation("node", Seq(Param("X", arith.TInt)),
     Seq(
       Body(Seq(ExtensionalCall("edge", Seq(Var("X"), Var("Y"))))),
@@ -78,7 +78,7 @@ class GenerateSouffleTest extends AnyFunSuite:
       data.Deconstruct(Var("Y"), "Succ", Seq(Var("X"))),
       data.Deconstruct(Var("X"), "Zero", Seq())))
   ))
-  
+
   val edgeWithDistanceRel: ExtensionalRelation = ExtensionalRelation("edge", Seq(Param("X", arith.TInt), Param("Y", arith.TInt), Param("D", arith.TInt)))
   val pathColWithDistanceRel: Relation = Relation("pathCol", Seq(Param("X", arith.TInt), Param("Y", arith.TInt), Param("D", arith.TInt)),
     Seq(
@@ -90,10 +90,10 @@ class GenerateSouffleTest extends AnyFunSuite:
     Seq(
       Body(Seq(
         Call("pathCol", Seq(Var("X"), Var("Y"), Var("DUMMY"))),
-        aggregate.Aggregate(RefByName("pathCol"), Seq(Var("X").arg, Var("Y").arg,  AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
+        aggregate.Aggregate(RefByName("pathCol"), Seq(Var("X").arg, Var("Y").arg, AggregateColumnArg(Var("D"))), arith.ArithmeticAggregationOperator.MinInt))),
     )
   )
-  
+
   val maxTargetNode: Relation = Relation("maxTargetNode", Seq(Param("X", arith.TInt), Param("M", arith.TInt)),
     Seq(
       Body(Seq(
@@ -101,14 +101,14 @@ class GenerateSouffleTest extends AnyFunSuite:
         aggregate.Aggregate(RefByName("edge"), Seq(Var("X").arg, AggregateColumnArg(Var("M"))), arith.ArithmeticAggregationOperator.MaxInt))),
     )
   )
-  
+
   test("path example") {
     val module = Module("PathExample", Language.Datalog, Seq(edgeRel, pathRel))
     val prog = GenerateSouffle.compileModule(module)
     println(prog)
   }
   test("notconnected example") {
-    val module = Module("PathExample", Language.Datalog, Seq(edgeRel, nodeRel, pathRel, notConnectedRel) )
+    val module = Module("PathExample", Language.Datalog, Seq(edgeRel, nodeRel, pathRel, notConnectedRel))
     val prog = GenerateSouffle.compileModule(module)
     //println(prog)
   }
@@ -127,26 +127,30 @@ class GenerateSouffleTest extends AnyFunSuite:
     val prog = GenerateSouffle.compileModule(module)
     //println(prog)
   }
-  
+
   test("data example") {
     val module = Module("PathExample", Language.Datalog, natDecl :+ natRel)
     val prog = GenerateSouffle.compileModule(module)
     //println(prog)
   }
-  
+
   test("max aggregation example") {
     val module = Module("MaxExample", Language.Datalog, Seq(edgeRel, maxTargetNode))
     val prog = GenerateSouffle.compileModule(module)
     //println(prog)
   }
-  
+
   test("process test") {
     val irModule = Module("MaxExample", Language.Datalog, Seq(maxRel))
     val compiledModule = new CompiledUnit:
       override def name: Name = "MaxExample"
+
       override def sourceLocation: SourceLocation = ???
+
       override val isClosedWorld: Boolean = true
+
       override def otherUnits: Seq[CompiledUnit] = Seq()
+
       lazy val irModules: Seq[Module] = Seq(irModule)
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
@@ -155,14 +159,18 @@ class GenerateSouffleTest extends AnyFunSuite:
     val rels = engine.readAll()
     println(rels)
   }
-  
+
   test("process test 2") {
     val irModule = Module("PathExample", Language.Datalog, Seq(pathRel, edgeRel))
     val compiledModule = new CompiledUnit:
       override def name: Name = "PathExample"
+
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
+
       override val isClosedWorld: Boolean = true
+
       override def otherUnits: Seq[CompiledUnit] = Seq()
+
       lazy val irModules: Seq[Module] = Seq(irModule)
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
@@ -202,18 +210,18 @@ class GenerateSouffleTest extends AnyFunSuite:
 //    println(rels)
 //  }
 
-  /*test("lowering micro.dl times") {
-    val code = Source.fromResource("inca/souffle/doop/micro.dl").getLines().mkString("\n")
+/*test("lowering micro.dl times") {
+  val code = Source.fromResource("inca/souffle/doop/micro.dl").getLines().mkString("\n")
 
-    val times = ListBuffer[Long]()
-    for (i <- 1 to 10) {
-      val compiled = CompiledSouffleUnit.fromSourceCode("micro", code)
-      val start = System.nanoTime()
-      compiled.lowered
-      val end = System.nanoTime()
-      times += (end - start) / 1000 / 1000
-    }
-    val t = times.drop(3)
+  val times = ListBuffer[Long]()
+  for (i <- 1 to 10) {
+    val compiled = CompiledSouffleUnit.fromSourceCode("micro", code)
+    val start = System.nanoTime()
+    compiled.lowered
+    val end = System.nanoTime()
+    times += (end - start) / 1000 / 1000
+  }
+  val t = times.drop(3)
 
-    println(s"${t.sum / t.size}ms")
-  }*/
+  println(s"${t.sum / t.size}ms")
+}*/

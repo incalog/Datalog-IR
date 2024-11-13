@@ -7,8 +7,11 @@ import inca.util.DependencyGraph.{AggregationCall, DependencyEdge, NegativeCall,
 
 object DependencyGraph:
   sealed trait DependencyEdge
+
   case object PositiveCall extends DependencyEdge
+
   case object NegativeCall extends DependencyEdge
+
   case object AggregationCall extends DependencyEdge
 
 

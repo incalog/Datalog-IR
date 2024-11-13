@@ -1,11 +1,11 @@
 module SetTest
 
 class A {
-    val mySet: Set[Int] = Set[Int]()
+  val mySet: Set[Int] = Set[Int]()
 }
 
 @main
 def main(): Set[Int] = {
-    val a: A = new A()
-    return a.mySet ++ Set(1)
+  val a: A = new A()
+  return a.mySet ++ Set(1)
 }

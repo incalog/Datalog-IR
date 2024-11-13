@@ -19,7 +19,7 @@ class DemandLoweringTest extends AnyFunSuiteLike:
       l.isClosedWorld = true
       l
 
-    val mod = Module("M", BaseIR.language+demand.IR, relations)
+    val mod = Module("M", BaseIR.language + demand.IR, relations)
     //var printedMod = false
     var lowered: Module = null
     try {
