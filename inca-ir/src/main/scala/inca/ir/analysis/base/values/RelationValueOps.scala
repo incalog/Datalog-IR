@@ -60,23 +60,30 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
     entries(rv).map(f)
   
   def naturalJoin(rv: RV, other: RV): RV =
-    val sharedCols = columns(rv).intersect(columns(other))
-    val colIndicesRv = sharedCols.map(columns(rv).indexOf).filter(_ > -1)
-    val colIndicesOther = sharedCols.map(columns(other).indexOf).filter(_ > -1)
-    val combinedCols = columns(rv) ++ columns(other).filterNot(sharedCols.contains)
+    val rvIsUnit = entries(rv).head.isEmpty
+    val otherIsUnit = entries(other).head.isEmpty
+    if (rvIsUnit)
+      other
+    else if (otherIsUnit)
+      rv
+    else
+      val sharedCols = columns(rv).intersect(columns(other))
+      val colIndicesRv = sharedCols.map(columns(rv).indexOf).filter(_ > -1)
+      val colIndicesOther = sharedCols.map(columns(other).indexOf).filter(_ > -1)
+      val combinedCols = columns(rv) ++ columns(other).filterNot(sharedCols.contains)
 
-    val joinedRows =
-      (for {
-        row1 <- entries(rv)
-        row2 <- entries(other)
-      } yield
-        row1 ++ row2.filterNot(colIndicesOther.contains)).toSeq
+      val joinedRows =
+        (for {
+          row1 <- entries(rv)
+          row2 <- entries(other)
+        } yield
+          row1 ++ row2.zipWithIndex.filterNot { case (_, idx) => colIndicesOther.contains(idx) }.map(_._1)).toSeq
 
-    // sanity check
-    if (joinedRows.isEmpty || (joinedRows.head.nonEmpty && combinedCols.size != joinedRows.head.size))
-      throw IllegalStateException(s"Can not natural join values: $rv - $other")
+      // sanity check
+      if (joinedRows.isEmpty || (joinedRows.head.nonEmpty && combinedCols.size != joinedRows.head.size))
+        throw IllegalStateException(s"Can not natural join values: $rv - $other")
 
-    make(combinedCols, joinedRows)
+      make(combinedCols, joinedRows)
 
   def antiJoin(rv: RV, other: RV): RV =
     val sharedCols = columns(rv).intersect(columns(other))

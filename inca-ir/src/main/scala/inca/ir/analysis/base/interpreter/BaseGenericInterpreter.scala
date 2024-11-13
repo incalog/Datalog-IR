@@ -11,11 +11,10 @@ import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
 import sturdy.effect.store.Store
 import sturdy.fix.Fixpoint
-import sturdy.values.*
+import sturdy.values._
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
-
 import sturdy.effect.except.Except
 
 // TODO:
@@ -238,11 +237,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
       case (Some(varName), p) => Some((p.name.name, varName.name))
       case _ => None
     }.toMap
-    val res = relationOps.projectAndRename(relRes, subst)
-
-    // update the environment after the call
-    mergeIntoEnv(res, neg)
-    res
+    relationOps.projectAndRename(relRes, subst)
 
   // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
   def extractVarName(term: ir.Term): ir.Name = term match
@@ -319,10 +314,10 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
     case ir.Call(ref, args, neg) => ref.target match
-      case Some(r: ir.Relation) => call(r, r.params, args, neg)
+      case Some(r: ir.Relation) => mergeIntoEnv(call(r, r.params, args, neg), neg)
       case _ => failure(RefNotFound, s"Can not find call reference $ref")
     case ir.ExtensionalCall(ref, args, neg) => ref.target match
-      case Some(r: ir.ExtensionalRelation) => call(r, r.params, args, neg)
+      case Some(r: ir.ExtensionalRelation) => mergeIntoEnv(call(r, r.params, args, neg), neg)
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 

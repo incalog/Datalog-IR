@@ -11,7 +11,7 @@ ThisBuild / Test / parallelExecution := false
 // This patches the class path to make sbt-test work
 ThisBuild / fork := true
 
-val scalaVersionString = "3.3.0"
+val scalaVersionString = "3.5.2"
 
 
 val truediffVersion = "0.1.5-SNAPSHOT"

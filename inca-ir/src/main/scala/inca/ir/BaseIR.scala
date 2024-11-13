@@ -50,7 +50,7 @@ trait Substitution[T <: Require, S <: ModuleEntry] extends SourceLocation:
   def to: Ref[T]
   def from: Ref[S]
 
-case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[_, _]]) extends ModuleEntry:
+case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[?, ?]]) extends ModuleEntry:
   override val name: Name = Name(s"Import ${module.name} as $as")
   override def toString: String =
     if subst.nonEmpty then
@@ -60,7 +60,7 @@ case class Import(module: Ref[Module], as: Name, subst: Seq[Substitution[_, _]])
   def withName(name: String): ModuleEntry = this.copy(as = Name(name))
 object Import:
   def apply(module: Name, as: Name) = new Import(RefByName(module), as, Seq())
-  def apply(module: Name, as: Name, entries: Seq[Substitution[_, _]]) = new Import(RefByName(module), as, entries)
+  def apply(module: Name, as: Name, entries: Seq[Substitution[?, ?]]) = new Import(RefByName(module), as, entries)
 
 
 // relation specific module system
@@ -216,7 +216,7 @@ case class Cast(t: Term, ty: Type) extends Term:
 
 trait RelationBase extends ModuleEntry
 
-case class Call(ref: Ref[_ <: RelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
+case class Call(ref: Ref[? <: RelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"$negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
@@ -239,7 +239,7 @@ object NegCall:
 
 trait ExtensionalRelationBase extends ModuleEntry
 
-case class ExtensionalCall(ref: Ref[_ <: ExtensionalRelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
+case class ExtensionalCall(ref: Ref[? <: ExtensionalRelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
     s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
