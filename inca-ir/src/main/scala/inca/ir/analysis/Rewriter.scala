@@ -7,7 +7,7 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 
-/*trait Rewriter(optimizer: (IRAbstractInterpreter) => BaseIROptimizer) extends BaseLowering:
+/*trait Rewriter(optimizer: (IRConstantAbstractInterpreter) => BaseIROptimizer) extends BaseLowering:
   override def name: String = "Rewriter"
   override def loweredIRs: Set[BaseIR] = Set(ir.BaseIR)
   override def requiredIRs: Set[inca.ir.BaseIR] = Set(ir.BaseIR)
@@ -15,7 +15,7 @@ import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
   protected def typechecker: BaseIRTypechecker = new IRTypechecker
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
-    val aeval = new IRAbstractInterpreter
+    val aeval = new IRConstantAbstractInterpreter
     modules.foreach(aeval.evalModule)
     val opt = optimizer(aeval)
 

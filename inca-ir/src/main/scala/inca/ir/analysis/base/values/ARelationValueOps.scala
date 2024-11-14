@@ -2,16 +2,17 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
 import inca.ir.analysis.base.effect.*
+import sturdy.data.MayJoin
 import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
 import sturdy.values.Join
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
 
-trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], booleanOps: BooleanOps[B], eqOps: EqOps[V, B], failure: Failure)
-  extends RelationOps[V, B, RelationValue[V]]:
+trait ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], booleanOps: BooleanOps[B], eqOps: EqOps[V, B], failure: Failure)
+  extends RelationOps[V, B, ARelationValue[V]]:
 
-  type RV = RelationValue[V]
+  type RV = ARelationValue[V]
   type I[Row] = Option[Row]
 
   private def joinColumnWise(vals: Seq[Row]) =
@@ -21,15 +22,15 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
     }
 
   def make(cols: Seq[String], vals: Seq[Row]): RV =
-    RelationValue(cols, Some(joinColumnWise(vals)))
-  //normalize(RelationValue(cols, Some(joinColumnWise(vals))))
+    ARelationValue(cols, Some(joinColumnWise(vals)))
+  //normalize(ARelationValue(cols, Some(joinColumnWise(vals))))
 
   def columns(rv: RV): Seq[String] = rv.cols
 
   def entries(rv: RV): Option[Row] = rv.rows
 
   // Unit
-  //val unit: RV = RelationValue(Seq(), Some(Seq.empty))
+  //val unit: RV = ARelationValue(Seq(), Some(Seq.empty))
 
   def rename(rv: RV, subst: Map[String, String]): RV =
     val allCols = columns(rv)
@@ -63,15 +64,20 @@ trait RelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolean
   def naturalJoin(rv: RV, other: RV): RV =
     val rvIsUnit = entries(rv).head.isEmpty
     val otherIsUnit = entries(other).head.isEmpty
-    if (rvIsUnit)
+
+    val sharedCols = columns(rv).intersect(columns(other))
+    val combinedCols = columns(rv) ++ columns(other).filterNot(sharedCols.contains)
+    
+    // TODO: Can we choose a more sane representation so that we don't need those ifs? 
+    if (rvIsUnit && otherIsUnit)
+      make(combinedCols, Seq(Seq()))
+    else if (rvIsUnit)
       other
     else if (otherIsUnit)
       rv
     else
-      val sharedCols = columns(rv).intersect(columns(other))
       val colIndicesRv = sharedCols.map(columns(rv).indexOf).filter(_ > -1)
       val colIndicesOther = sharedCols.map(columns(other).indexOf).filter(_ > -1)
-      val combinedCols = columns(rv) ++ columns(other).filterNot(sharedCols.contains)
 
       val joinedRows =
         (for {

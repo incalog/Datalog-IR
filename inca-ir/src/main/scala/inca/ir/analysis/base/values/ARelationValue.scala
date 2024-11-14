@@ -7,15 +7,15 @@ import scala.collection
 
 // Schema: Map[C -> V]
 // Special cases (rows):
-case class RelationValue[V](cols: Seq[String], rows: Option[Seq[V]]):
+case class ARelationValue[V](cols: Seq[String], rows: Option[Seq[V]]):
   def size: Int = rows.size
 
-class FiniteRV[C, V] extends Finite[RelationValue[V]]
+class FiniteARelationValue[V] extends Finite[ARelationValue[V]]
 
-class JoinRV[C, V](using joinValue: Join[V]) extends Join[RelationValue[V]]:
+class JoinRV[V](using joinValue: Join[V]) extends Join[ARelationValue[V]]:
 
-  private def join(v1: RelationValue[V], v2: RelationValue[V]): RelationValue[V] =
-    // top: RelationValue(X, Seq(Seq(Top, ..., Top)))
+  private def join(v1: ARelationValue[V], v2: ARelationValue[V]): ARelationValue[V] =
+    // top: ARelationValue(X, Seq(Seq(Top, ..., Top)))
     // bot: Exception
     if (v1.rows.head.isEmpty) {
       v2
@@ -45,10 +45,10 @@ class JoinRV[C, V](using joinValue: Join[V]) extends Join[RelationValue[V]]:
 
       val (sortedCols, sortedRows) = combinedCols.zip(joinedRows.get).sortBy((col, _) => col.toString).unzip
 
-      RelationValue(sortedCols, Some(sortedRows))
+      ARelationValue(sortedCols, Some(sortedRows))
     }
 
-  override def apply(v1: RelationValue[V], v2: RelationValue[V]): MaybeChanged[RelationValue[V]] =
+  override def apply(v1: ARelationValue[V], v2: ARelationValue[V]): MaybeChanged[ARelationValue[V]] =
     val joined = join(v1, v2)
     if joined == v1 then
       Unchanged(joined)

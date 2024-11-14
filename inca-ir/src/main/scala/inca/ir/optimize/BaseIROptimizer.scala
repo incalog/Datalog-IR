@@ -2,13 +2,13 @@ package inca.ir.optimize
 
 import inca.ir.*
 import inca.ir.analysis.base.values.{VBool, Value}
-import inca.ir.analysis.IRAbstractInterpreter
+import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.extension.*
 import inca.ir.extension.arithmetic.analysis.optimize.Optimizer
 import inca.ir.visitors.IRVisitor
 import inca.ir.extension.arithmetic.analysis as arith
 
-trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
+trait BaseIROptimizer(val analysis: IRConstantAbstractInterpreter) extends IRVisitor:
   /*import analysis.{ TermKey, TermResult }
 
   def termResults(term: Term): Set[TermResult] =
@@ -37,6 +37,6 @@ trait BaseIROptimizer(val analysis: IRAbstractInterpreter) extends IRVisitor:
     //
     super.visitAtom(atom)*/
 
-class IROptimizer(analysis: IRAbstractInterpreter) extends BaseIROptimizer(analysis)
+class IROptimizer(analysis: IRConstantAbstractInterpreter) extends BaseIROptimizer(analysis)
   with arith.optimize.Optimizer
 

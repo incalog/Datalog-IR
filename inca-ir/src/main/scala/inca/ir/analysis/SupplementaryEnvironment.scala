@@ -3,7 +3,7 @@ package inca.ir.analysis
 import sturdy.data.MayJoin
 import sturdy.effect.Effect
 
-trait SupplementaryEnvironment[RV, J[_] <: MayJoin[_]] extends Effect:
+trait SupplementaryEnvironment[RV, J[_] <: MayJoin[?]] extends Effect:
   override type State = RV
 
   def scoped[A](f: => A): A

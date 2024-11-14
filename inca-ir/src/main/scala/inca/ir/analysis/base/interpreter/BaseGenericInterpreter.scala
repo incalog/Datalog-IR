@@ -58,40 +58,8 @@ given FiniteFixIn: Finite[FixIn] with {}
 
 given FiniteFixOut[V, RV]: Finite[FixOut[V, RV]] with {}
 
-given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combine[V, VW], combineRV: Combine[RV, RW]): Combine[FixOut[V, RV], Widening.No] with
-  override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] = (out1, out2) match
-    case (FixOut.Term(vs1), FixOut.Term(vs2)) =>
-      // We use a cartesian product here because of Datalog set semantics
-      val v = for (v1 <- vs1; v2 <- vs2) yield combineV(v1, v2)
-      if (v.exists(_.hasChanged)) {
-        Changed(FixOut.Term(v.map(_.get)))
-      } else {
-        Unchanged(FixOut.Term(v.map(_.get)))
-      }
-    case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
-    case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => combineRV(rv1, rv2).map(FixOut.ExitCall.apply)
-    case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)
-    case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => combineRV(rv1, rv2).map(FixOut.Relation.apply)
-    case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => combineRV(rv1, rv2).map(FixOut.ExtensionalRelation.apply)
-    case (FixOut.Module(idb1), FixOut.Module(idb2)) =>
-      val allKeys = idb1.keys ++ idb2.keys
-      val res = for (k <- allKeys) yield
-        (idb1.get(k), idb2.get(k)) match
-          case (Some(rv1), Some(rv2)) => k -> combineRV(rv1, rv2).get
-          case (Some(rv1), _) => k -> rv1
-          case (_, Some(rv2)) => k -> rv2
-          case _ => throw IllegalStateException(s"IDB key not found: $k")
-      val idb = res.toMap
-      if (idb != idb1) {
-        Changed(FixOut.Module(idb))
-      } else {
-        Unchanged(FixOut.Module(idb))
-      }
 
-    case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
-
-
-trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
+trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   // Fixpoint
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, RV]]
@@ -107,7 +75,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   def boolFalse: B = boolOps.boolLit(false)
 
-  def boolTop: B
+  //def boolTop: B
 
   def eqOps: EqOps[V, B]
 
@@ -117,19 +85,18 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   def joinV: J[V]
 
-  def top: V
+  //def top: V
 
   def joinRV: J[RV]
 
   given J[RV] = joinRV
 
-  def effects: EffectStack
-
+  def effects: EffectStack = EffectStack(failure, IDB) // supplementaryTable
   given EffectStack = effects
 
   def IDB: Store[AllocationSiteAddr, RV, J]
 
-  def supplementaryEnv: SupplementaryEnvironment[RV, J]
+  def supplementaryTable: SupplementaryEnvironment[RV, J]
 
   def joinUnit: J[Unit]
 
@@ -155,11 +122,13 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case FixOut.Module(idb) => idb
     case _ => throw new IllegalStateException()
 
-  def evalModuleOpen(m: ir.Module)(using Fixed): Map[String, RV] = supplementaryEnv.scoped {
+  def evalModuleOpen(m: ir.Module)(using Fixed): Map[String, RV] = supplementaryTable.scoped {
     val relEntryPoints = m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
       case _ => m.relations.values
-    relEntryPoints.map(r => r.name.name -> evalRelation(r)).toMap
+    relEntryPoints.map { r =>
+      r.name.name -> evalRelation(r)
+    }.toMap
   }
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
@@ -171,8 +140,8 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     res
 
   protected def mergeIntoEnv(rv: RV, neg: Boolean): Unit =
-    val merged = merge(supplementaryEnv.getState, rv, neg)
-    supplementaryEnv.setState(merged)
+    val merged = merge(supplementaryTable.getState, rv, neg)
+    supplementaryTable.setState(merged)
 
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     val addr = AllocationSiteAddr.Variable(name.name)(true)
@@ -185,24 +154,24 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case FixOut.Relation(p) => p
     case _ => throw new IllegalStateException()
 
-  def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryEnv.scoped {
+  def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
     val paramNames = r.params.map(p => p.name.name)
-    supplementaryEnv.setState(relationOps.make(paramNames, Seq(Seq())))
+
     val bodyRes = r.bodies.map { b =>
       // TODO: If all bodies fail, the relation failed, aka we produce an empty RV
       /*val res = except.tryCatch(evalBody(b)) {
         case _: BodyFailed => except.throws(RelationFailed(s"Relation $r failed"))
       }*/
-      val res = evalBody(b)
-      relationOps.project(res, paramNames)
+      val res = relationOps.project(evalBody(b), paramNames)
+      res
     }
 
     // we have at least one body res, otherwise we have thrown an exception
     val relRes = bodyRes.tail.foldLeft(bodyRes.head) {
       case (acc, rv) => relationOps.union(acc, rv)
     }
-
-    insertIDB(r.name, relRes)
+    // TODO: Is this the correct place here? Do we need to check if it is not already in the idb?
+    //insertIDB(r.name, relRes)
     relRes
   }
 
@@ -210,7 +179,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case FixOut.ExtensionalRelation(p) => p
     case _ => throw new IllegalStateException()
 
-  def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryEnv.scoped {
+  def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped {
     ???
   }
 
@@ -218,14 +187,14 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case FixOut.Body(rv) => rv
     case _ => throw new IllegalStateException()
 
-  def evalBodyOpen(b: ir.Body)(using rec: Fixed): RV = supplementaryEnv.scoped {
+  def evalBodyOpen(b: ir.Body)(using rec: Fixed): RV = supplementaryTable.scoped {
     //except.tryCatch(
     b.atoms.foreach(a => evalAtom(a))
     /*) {
       case AtomFailed(msg) => except.throws(BodyFailed(s"Body failed: $b"))
       case _ => ???
     }*/
-    supplementaryEnv.getState
+    supplementaryTable.getState
   }
 
   inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match
@@ -253,13 +222,12 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case ir.Var(ref) => ref.name
     case ir.Cast(t, _) => extractVarName(t)
 
-  inline private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): Unit =
+  inline private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
     //evalTerm(to)
     val fs = evalTerm(from)
     val assignedName = extractVarName(to).name
     val assignedValues = fs.map(v => Seq(v))
-    val res = relationOps.make(Seq(assignedName), assignedValues)
-    mergeIntoEnv(res, false)
+    relationOps.make(Seq(assignedName), assignedValues)
 
   inline final def cartesian(v1: Seq[V], v2: Seq[V]): RV =
     val lsRv = relationOps.make(Seq(), v1.map(v => Seq(v)))
@@ -285,8 +253,8 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   inline private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
     case (Mode.Binding, Mode.Binding, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
-    case (Mode.Binding, _, false) => evalAssign(lhs, rhs)
-    case (_, Mode.Binding, false) => evalAssign(rhs, lhs)
+    case (Mode.Binding, _, false) => mergeIntoEnv(evalAssign(lhs, rhs), false)
+    case (_, Mode.Binding, false) => mergeIntoEnv(evalAssign(rhs, lhs), false)
     case (Mode.Bound, Mode.Bound, _) => evalCompare(lhs, rhs, neg)
     case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")
 
@@ -300,7 +268,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
     case ir.TermArg(t) => Some(extractVarName(t))
     case ir.WildcardArg() => None
 
-  inline private final def call[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): RV =
+  inline private final def call[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     if (params.isEmpty) {
       // Relation with no parameters... This should not happen, even though viatra supports it
       failure(NoParamRelation, s"Relation ${r.name} has no Parameters!")
@@ -309,24 +277,33 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
       val paramNames = params.map(p => p.name.name)
       val argRes = args.map(evalArg)
 
+      println(s"Old sub: ${supplementaryTable.getState}")
+      println(s"Params: $paramNames")
+      println(s"Args: $argRes")
+
       // eval the actual call in a new scoped environment
-      supplementaryEnv.freshScoped {
-        // TODO: Use something like callOps to differentiate between context-sensitive and insensitive?
+      val res = supplementaryTable.freshScoped {
+        // TODO: How do we differentiate context-sensitive and insensitive?
         val argRV = paramNames.zip(argRes).map((p, a) => relationOps.make(Seq(p), a.map(v => Seq(v))))
         // since we have at least one parameter argRV is defined
         val evalContext = argRV.foldLeft(argRV.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-        supplementaryEnv.setState(evalContext)
+        println(s"Eval context: $evalContext")
+
+        supplementaryTable.setState(evalContext)
         enterCall(r, params, args, neg)
       }
+
+      // merge all variables that where bound
+      mergeIntoEnv(res, neg)
     }
 
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
     case ir.Call(ref, args, neg) => ref.target match
-      case Some(r: ir.Relation) => mergeIntoEnv(call(r, r.params, args, neg), neg)
+      case Some(r: ir.Relation) => call(r, r.params, args, neg)
       case _ => failure(RefNotFound, s"Can not find call reference $ref")
     case ir.ExtensionalCall(ref, args, neg) => ref.target match
-      case Some(r: ir.ExtensionalRelation) => mergeIntoEnv(call(r, r.params, args, neg), neg)
+      case Some(r: ir.ExtensionalRelation) => call(r, r.params, args, neg)
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 
@@ -336,7 +313,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[_]]:
 
   def evalTermOpen(term: ir.Term)(using Fixed): Seq[V] = term match
     case ir.Var(ref) if term.mode.isBound =>
-      val currentScope = supplementaryEnv.getState
+      val currentScope = supplementaryTable.getState
       val columnName = ref.name.name
       val varEntry = relationOps.project(currentScope, Seq(columnName))
       // we only have a single value per row, since we projected a single column

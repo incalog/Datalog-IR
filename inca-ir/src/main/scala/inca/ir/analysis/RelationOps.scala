@@ -1,12 +1,12 @@
 package inca.ir.analysis
 
+import sturdy.data.MayJoin
 import sturdy.values.booleans.BooleanOps
 
 trait RelationOps[V, B, RV]:
   type Row = Seq[V]
   type I[Row] <: IterableOnce[Row]
-
-
+  
   def columns(rv: RV): Seq[String]
 
   def entries(rv: RV): I[Row]

@@ -1,7 +1,7 @@
 package inca.ir
 
 import inca.ir.extension.*
-import inca.ir.analysis.IRAbstractInterpreter
+import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.{BaseIROptimizer, IROptimizer}
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
@@ -153,7 +153,7 @@ trait CompiledUnit:
 
 
   def optimize(p: Seq[Module]): Seq[Module] =
-    val aeval = new IRAbstractInterpreter
+    val aeval = new IRConstantAbstractInterpreter
     println(p)
     aeval.evalProgram(p)
     //println("Eval module: ")

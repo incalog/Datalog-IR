@@ -1,6 +1,5 @@
 package inca.ir.extension.arithmetic.analysis.optimize
 
-import inca.ir.extension.arithmetic.analysis.values.{DoubleV, IntV}
 import inca.ir.extension.arithmetic.{DoubleNum, IntNum}
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.{Atom, Cast, Term}

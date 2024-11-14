@@ -1,5 +1,6 @@
 package inca.ir.analysis.base.values
 
+import sturdy.data.NoJoin
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Topped, Unchanged}
 
 trait BaseJoinV:

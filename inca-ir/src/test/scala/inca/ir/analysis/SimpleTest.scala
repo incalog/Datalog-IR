@@ -1,27 +1,22 @@
 package inca.ir.analysis
 
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, Language, Module, Name, Param, Relation, Var, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, TInt, IR as arithIR}
 import inca.ir.extension.impure.MainHint
-import inca.ir.util.SourceLocation
-import inca.util.compileroptions.CompilerOptions
+import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
-
-case class CompiledTestUnit(mod: Module) extends CompiledUnit:
-  def compilerOptions: CompilerOptions = CompilerOptions.default
-
-  def name: Name = mod.name
-
-  def sourceLocation: SourceLocation = Name("Test")
-
-  def isClosedWorld: Boolean = true
-
-  def irModules: Seq[Module] = Seq(mod)
-
-  def otherUnits: Seq[CompiledUnit] = Seq()
 
 
 class SimpleTest extends AnyFunSuiteLike:
+
+  def interp(mod: Module, abstractInterp: Boolean = false) =
+    val typechecker = new IRTypechecker
+    typechecker.checkProgram(Seq(mod))
+
+    val aeval = if (abstractInterp) new IRConstantAbstractInterpreter else new IRConcreteInterpreter
+    println(mod)
+    println()
+    aeval.evalProgram(Seq(mod))
 
   test("Single relation - arithmetic") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(
@@ -34,8 +29,7 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val compiled = CompiledTestUnit(mod)
-    println(compiled.lowered)
+    interp(mod)
   }
 
   test("Two relation - arithmetic") {
@@ -56,8 +50,7 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val compiled = CompiledTestUnit(mod)
-    println(compiled.lowered)
+    interp(mod)
   }
 
   test("Recursive Relation") {
@@ -89,6 +82,5 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val compiled = CompiledTestUnit(mod)
-    println(compiled.lowered)
+    interp(mod)
   }
