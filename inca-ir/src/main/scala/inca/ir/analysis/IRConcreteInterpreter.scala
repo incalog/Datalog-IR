@@ -73,21 +73,8 @@ class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRela
           Changed(FixOut.Relation(combined))
         else
           Unchanged(FixOut.Relation(combined))
-      case (FixOut.Module(idb1), FixOut.Module(idb2)) =>
-        val allKeys = idb1.keys ++ idb2.keys
-        val res = for (k <- allKeys) yield
-          (idb1.get(k), idb2.get(k)) match
-            case (Some(rv1), Some(rv2)) => k -> relationOps.union(rv1, rv2)
-            case (Some(rv1), _) => k -> rv1
-            case (_, Some(rv2)) => k -> rv2
-            case _ => throw IllegalStateException(s"IDB key not found: $k")
-        val idb = res.toMap
-        if (idb != idb1) {
-          Changed(FixOut.Module(idb))
-        } else {
-          Unchanged(FixOut.Module(idb))
-        }
-
+      case (FixOut.Module(), FixOut.Module()) =>
+          Unchanged(FixOut.Module())
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
@@ -109,7 +96,7 @@ class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRela
   override val joinUnit: NoJoin[Unit] = implicitly
 
   override lazy val supplementaryTable: CSupplementaryTable = new CSupplementaryTable
-  override lazy val IDB: Store[AllocationSiteAddr, RV, NoJoin] = CStore[AllocationSiteAddr, RV](Map())
+  override lazy val idb: Store[AllocationSiteAddr, RV, NoJoin] = CStore[AllocationSiteAddr, RV](Map())
   // lazy is important because of cyclic implicits
   //override lazy val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)
 
@@ -119,50 +106,53 @@ class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRela
 
   override val relationOps: RelationOps[Value, Boolean, RV] = new CRelationValueOps[Value, Boolean] {}
 
-
-  class PrintLogger extends Logger[FixIn, FixOut[Value, RV]]:
-    var indent: Int = -1
-
-    def printlnWithIndent(msg: String): Unit =
-      val indentS = "    ".repeat(indent)
-      println(s"$indentS$msg")
-
-    override def enter(dom: FixIn): Unit =
-      dom match
-        case FixIn.Term(term) =>
-        case FixIn.Atom(atom) => printlnWithIndent(s"Enter atom: $atom")
-        case FixIn.EnterCall(_, _, _, _) => printlnWithIndent(s"Enter call: $dom")
-        case FixIn.Body(body) => printlnWithIndent(s"Enter body: ${body.hashCode()}")
-        case FixIn.Relation(rel) => printlnWithIndent(s"Enter relation: ${rel.name}")
-        case FixIn.ExtensionalRelation(rel) =>
-        case FixIn.Module(mod) =>
-      indent += 1
-
-    override def exit(dom: FixIn, codom: TrySturdy[FixOut[Value, RV]]): Unit =
-      indent -= 1
-      (dom, codom) match // getOrThrow
-        //case (_, FixOut.Term(_)) =>
-
-        case (FixIn.Atom(atom), _) => printlnWithIndent(s"Exit atom: $atom\tResult: $codom")
-        case (FixIn.EnterCall(_, _, _, _), _) =>
-          printlnWithIndent(s"Exit call: $dom\tResult: $codom")
-        case (FixIn.Body(body), _) => printlnWithIndent(s"Exit body: ${body.hashCode()}\tResult: $codom")
-        case (FixIn.Relation(rel), _) => printlnWithIndent(s"Exit relation: ${rel.name}\tResult: $codom")
-        case (FixIn.Module(mod), _) =>
-          println(s"Module: ${codom.getOrThrow}")
-        //println(s"Exit:\n$dom\nResult: $codom")
-        case _ => // nothing
-
   override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] =
     type CallString = ContextCallString[(ir.Name, Seq[ir.Arg], Boolean)]
+
+
+    class PrintLogger(contextual: Contextual[CallString, FixIn, FixOut[Value, RV]])
+      extends Logger[FixIn, FixOut[Value, RV]]:
+
+      var indent: Int = -1
+
+      def printlnWithIndent(msg: String): Unit =
+        val callS = contextual.getCurrentContext
+        val indentS = "    ".repeat(indent)
+        println(s"$indentS$callS -> $msg")
+
+      override def enter(dom: FixIn): Unit =
+        dom match
+          case FixIn.Term(term) =>
+          case FixIn.Atom(atom) => printlnWithIndent(s"Enter atom: $atom")
+          case FixIn.EnterCall(_, _, _, _) => printlnWithIndent(s"Enter call: $dom")
+          case FixIn.Body(body) => printlnWithIndent(s"Enter body: ${body.hashCode()}")
+          case FixIn.Relation(rel) => printlnWithIndent(s"Enter relation: ${rel.name}")
+          case _ =>
+
+        indent += 1
+
+      override def exit(dom: FixIn, codom: TrySturdy[FixOut[Value, RV]]): Unit =
+        indent -= 1
+        (dom, codom) match // getOrThrow
+          case (FixIn.Atom(atom), _) => printlnWithIndent(s"Exit atom: $atom\tResult: $codom")
+          case (FixIn.EnterCall(_, _, _, _), _) =>
+            printlnWithIndent(s"Exit call: $dom\tResult: $codom")
+          case (FixIn.Body(body), _) => printlnWithIndent(s"Exit body: ${body.hashCode()}\tResult: $codom")
+          case (FixIn.Relation(rel), _) => printlnWithIndent(s"Exit relation: ${rel.name}\tResult: $codom")
+          case _ => // nothing
+
+    //Fixpoint.DEBUG = true
 
     val fixpt = new ContextualFixpoint[FixIn, FixOut[Value, RV]] {
       override type Ctx = CallString
 
-      // TODO: How can we make this 1-context-sensitive? Or is it?
+      // 1-context-sensitive should be enough.
+      // TODO: Does this work correctly?
       override protected def context: Sensitivity[FixIn, Ctx] = new Sensitivity[FixIn, Ctx] {
         def emptyContext: Ctx = null.asInstanceOf[Ctx]
-        def switchCall(dom: FixIn): Boolean = true
+        def switchCall(dom: FixIn): Boolean = dom match
+          case FixIn.EnterCall(r, params, args, neg) => true
+          case _ => false
         override def apply(dom: FixIn): Ctx = dom match
           case FixIn.EnterCall(r, params, args, neg) =>
             ContextCallString(Seq((r.name, args, neg)))
@@ -176,6 +166,6 @@ class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRela
         fix.iter.innermost(StackedStates())
     }
 
-    fixpt.addContextSensitiveLogger(new PrintLogger())
+    fixpt.addContextSensitiveLogger(contextual ?=> new PrintLogger(contextual))
     fixpt
 

@@ -61,21 +61,7 @@ given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combi
     case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)
     case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => combineRV(rv1, rv2).map(FixOut.Relation.apply)
     case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => combineRV(rv1, rv2).map(FixOut.ExtensionalRelation.apply)
-    case (FixOut.Module(idb1), FixOut.Module(idb2)) =>
-      val allKeys = idb1.keys ++ idb2.keys
-      val res = for (k <- allKeys) yield
-        (idb1.get(k), idb2.get(k)) match
-          case (Some(rv1), Some(rv2)) => k -> combineRV(rv1, rv2).get
-          case (Some(rv1), _) => k -> rv1
-          case (_, Some(rv2)) => k -> rv2
-          case _ => throw IllegalStateException(s"IDB key not found: $k")
-      val idb = res.toMap
-      if (idb != idb1) {
-        Changed(FixOut.Module(idb))
-      } else {
-        Unchanged(FixOut.Module(idb))
-      }
-
+    case (FixOut.Module(), FixOut.Module()) => Unchanged(FixOut.Module())
     case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, ARelationValue[Value], WithJoin]
@@ -121,7 +107,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
   override val joinUnit: WithJoin[Unit] = implicitly
 
   override lazy val supplementaryTable: ASupplementaryTable = new ASupplementaryTable
-  override lazy val IDB: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
+  override lazy val idb: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
   // lazy is important because of cyclic implicits
   //override lazy val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)
 
@@ -175,15 +161,3 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
     })
 
     fixpt
-
-
-/*val observedConfig = config.withObservers(Seq())
-override val fixpoint: fix.ContextualFixpoint[FixIn, FixOut[RV]] = new fix.ContextualFixpoint {
-  override type Ctx = observedConfig.ctx.Ctx
-  val (contextPreparation, sensitivity) = observedConfig.ctx.make[RV]
-  import observedConfig.ctx.finiteCtx
-  override protected def contextFree = phi =>
-    fix.log(controlEventLogger(Instance.this, effectStack, except), contextPreparation(phi))
-  override protected def context: Sensitivity[FixIn, Ctx] = sensitivity
-  override protected def contextSensitive = observedConfig.fix.get
-}*/

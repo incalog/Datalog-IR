@@ -9,9 +9,9 @@ import inca.ir.typing.Mode
 import sturdy.data.MayJoin
 import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
-import sturdy.effect.store.Store
+import sturdy.effect.store.{CStore, Store}
 import sturdy.fix.Fixpoint
-import sturdy.values._
+import sturdy.values.*
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
@@ -52,7 +52,7 @@ enum FixOut[V, RV]:
   case Body(value: RV)
   case Relation(value: RV)
   case ExtensionalRelation(value: RV)
-  case Module(mod: Map[String, RV])
+  case Module()
 
 given FiniteFixIn: Finite[FixIn] with {}
 
@@ -91,10 +91,10 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   given J[RV] = joinRV
 
-  def effects: EffectStack = EffectStack(failure, IDB) // supplementaryTable
+  def effects: EffectStack = EffectStack(failure, idb) // supplementaryTable
   given EffectStack = effects
 
-  def IDB: Store[AllocationSiteAddr, RV, J]
+  def idb: Store[AllocationSiteAddr, RV, J]
 
   def supplementaryTable: SupplementaryEnvironment[RV, J]
 
@@ -110,25 +110,23 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
     case FixIn.Body(body) => FixOut.Body(evalBodyOpen(body))
     case FixIn.Relation(rel) => FixOut.Relation(evalRelationOpen(rel))
     case FixIn.ExtensionalRelation(rel) => FixOut.ExtensionalRelation(evalExtensionalRelationOpen(rel))
-    // TODO: Let this run in a fixpoint. Is this necessary?
-    case FixIn.Module(mod) => FixOut.Module(evalModuleOpen(mod))
+    // TODO: Do we need to run this in a fixpoint as well?
+    case FixIn.Module(mod) => evalModuleOpen(mod); FixOut.Module()
   }
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
   def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
 
-  def evalModule(m: ir.Module)(using rec: Fixed): Map[String, RV] = rec(FixIn.Module(m)) match
-    case FixOut.Module(idb) => idb
+  def evalModule(m: ir.Module)(using rec: Fixed): Unit = rec(FixIn.Module(m)) match
+    case FixOut.Module() => 
     case _ => throw new IllegalStateException()
 
-  def evalModuleOpen(m: ir.Module)(using Fixed): Map[String, RV] = supplementaryTable.scoped {
+  def evalModuleOpen(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
     val relEntryPoints = m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
       case _ => m.relations.values
-    relEntryPoints.map { r =>
-      r.name.name -> evalRelation(r)
-    }.toMap
+    relEntryPoints.foreach(evalRelation(_))
   }
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
@@ -145,10 +143,10 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     val addr = AllocationSiteAddr.Variable(name.name)(true)
-    val oldRVOption = IDB.read(addr)
+    val oldRVOption = idb.read(addr)
     val result = oldRVOption.option(rv)(oldRV => relationOps.union(rv, oldRV))
-    IDB.free(addr)
-    IDB.write(addr, result)
+    idb.free(addr)
+    idb.write(addr, result)
 
   inline def evalRelation(r: ir.Relation)(using rec: Fixed): RV = rec(FixIn.Relation(r)) match
     case FixOut.Relation(p) => p
@@ -162,7 +160,10 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
       /*val res = except.tryCatch(evalBody(b)) {
         case _: BodyFailed => except.throws(RelationFailed(s"Relation $r failed"))
       }*/
-      val res = relationOps.project(evalBody(b), paramNames)
+      val res = relationOps.project(evalBodyOpen(b), paramNames)
+      // TODO: Is this the correct place here? Do we need to check if it is not already in the idb?
+      insertIDB(r.name, res)
+      println(s"IDB: ${idb.asInstanceOf[CStore[AllocationSiteAddr, RV]].entries}")
       res
     }
 
@@ -170,8 +171,6 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
     val relRes = bodyRes.tail.foldLeft(bodyRes.head) {
       case (acc, rv) => relationOps.union(acc, rv)
     }
-    // TODO: Is this the correct place here? Do we need to check if it is not already in the idb?
-    //insertIDB(r.name, relRes)
     relRes
   }
 
@@ -189,7 +188,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   def evalBodyOpen(b: ir.Body)(using rec: Fixed): RV = supplementaryTable.scoped {
     //except.tryCatch(
-    b.atoms.foreach(a => evalAtom(a))
+    b.atoms.foreach(a => evalAtomOpen(a))
     /*) {
       case AtomFailed(msg) => except.throws(BodyFailed(s"Body failed: $b"))
       case _ => ???
@@ -207,7 +206,9 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   inline def exitCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using rec: Fixed): RV =
     val relRes = r match
-      case rel: ir.Relation => evalRelation(rel)
+      case rel: ir.Relation => 
+        val res = evalRelation(rel)
+        res
       case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
     // add all variables bound by the call to the context
     val boundVars = args.map(extractVarName)
@@ -215,6 +216,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
       case (Some(varName), p) => Some((p.name.name, varName.name))
       case _ => None
     }.toMap
+    // TODO: natJoin with value from IDB?
     relationOps.projectAndRename(relRes, subst)
 
   // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
@@ -224,7 +226,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   inline private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
     //evalTerm(to)
-    val fs = evalTerm(from)
+    val fs = evalTermOpen(from)
     val assignedName = extractVarName(to).name
     val assignedValues = fs.map(v => Seq(v))
     relationOps.make(Seq(assignedName), assignedValues)
@@ -262,7 +264,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
     case ir.TermArg(t) if t.mode.isBound => evalTerm(t)
     case ir.TermArg(t) => Seq()
     case ir.WildcardArg() => Seq()
-    case _ => failure(UnknownArg, s"Unknown atom $arg")
+    case _ => failure(UnknownArg, s"Unknown arg $arg")
 
   def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
     case ir.TermArg(t) => Some(extractVarName(t))
@@ -277,9 +279,9 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
       val paramNames = params.map(p => p.name.name)
       val argRes = args.map(evalArg)
 
-      println(s"Old sub: ${supplementaryTable.getState}")
-      println(s"Params: $paramNames")
-      println(s"Args: $argRes")
+      //println(s"Old sub: ${supplementaryTable.getState}")
+      //println(s"Params: $paramNames")
+      //println(s"Args: $argRes")
 
       // eval the actual call in a new scoped environment
       val res = supplementaryTable.freshScoped {
@@ -287,7 +289,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
         val argRV = paramNames.zip(argRes).map((p, a) => relationOps.make(Seq(p), a.map(v => Seq(v))))
         // since we have at least one parameter argRV is defined
         val evalContext = argRV.foldLeft(argRV.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-        println(s"Eval context: $evalContext")
+        //println(s"Eval context: $evalContext")
 
         supplementaryTable.setState(evalContext)
         enterCall(r, params, args, neg)
