@@ -160,7 +160,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
       /*val res = except.tryCatch(evalBody(b)) {
         case _: BodyFailed => except.throws(RelationFailed(s"Relation $r failed"))
       }*/
-      val res = relationOps.project(evalBodyOpen(b), paramNames)
+      val res = relationOps.project(evalBody(b), paramNames)
       // TODO: Is this the correct place here? Do we need to check if it is not already in the idb?
       insertIDB(r.name, res)
       println(s"IDB: ${idb.asInstanceOf[CStore[AllocationSiteAddr, RV]].entries}")
@@ -188,7 +188,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   def evalBodyOpen(b: ir.Body)(using rec: Fixed): RV = supplementaryTable.scoped {
     //except.tryCatch(
-    b.atoms.foreach(a => evalAtomOpen(a))
+    b.atoms.foreach(a => evalAtom(a))
     /*) {
       case AtomFailed(msg) => except.throws(BodyFailed(s"Body failed: $b"))
       case _ => ???
@@ -226,7 +226,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]:
 
   inline private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
     //evalTerm(to)
-    val fs = evalTermOpen(from)
+    val fs = evalTerm(from)
     val assignedName = extractVarName(to).name
     val assignedValues = fs.map(v => Seq(v))
     relationOps.make(Seq(assignedName), assignedValues)
