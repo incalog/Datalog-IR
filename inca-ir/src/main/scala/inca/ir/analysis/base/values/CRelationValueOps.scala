@@ -44,8 +44,8 @@ class CRelationValueOps[V](using failure: Failure)
   override def naturalJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
     rv.naturalJoin(other)
 
-  override def antiJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] = 
-    ???
+  override def antiJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
+    rv.antiJoin(other)
 
 
 

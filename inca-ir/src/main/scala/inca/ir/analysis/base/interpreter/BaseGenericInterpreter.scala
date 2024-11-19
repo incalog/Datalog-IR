@@ -283,16 +283,10 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
         relationOps.rename(evalArg(a), Map(RESULT_COLUMN -> p.name.name))
       }
 
-      //println(s"Old sub: ${supplementaryTable.getState}")
-      //println(s"Params: $paramNames")
-      //println(s"Args: $argRes")
-
       // eval the actual call in a new scoped environment
       val res = supplementaryTable.freshScoped {
         // since we have at least one parameter argRV is defined
         val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-        println(s"Eval context: $evalContext")
-
         supplementaryTable.setState(evalContext)
 
         val relRes = r match

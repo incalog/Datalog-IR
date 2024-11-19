@@ -45,7 +45,6 @@ private class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
   with arith.interpreter.ConstantEqOps
 
 
-// TODO: What widen value should be here? 
 given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combine[V, VW], combineRV: Combine[RV, RW]): Combine[FixOut[V, RV], Widening.No] with
   override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] = (out1, out2) match
     case (FixOut.Term(rv1), FixOut.Term(rv2)) => combineRV(rv1, rv2).map(FixOut.Term.apply)
@@ -110,10 +109,8 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
 
   override val relationOps: RelationOps[Value, VBool, RV] = new ARelationValueOps[Value, VBool]
 
-  // TODO: Use context sensitive fixpoint combinator
   override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] = ???
     /*val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, RV]] {
-      // TODO: Would should contextual be?
       override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, RV]] ?=> Combinator[FixIn, FixOut[Value, RV]] =
         //fix.filter(_.isLoop, fix.iter.innermost(StackedStates()))
         fix.iter.innermost(StackedStates())
