@@ -7,7 +7,7 @@ import sturdy.effect.failure.Failure
 
 import scala.util.{Success, Try}
 
-class CRelationValueOps[V](using failure: Failure)
+class CRelationValueOps[V](using failure: Failure) // except: Except[]
   extends RelationOps[V, Boolean, CRelationValue[V]]:
 
   type RV = CRelationValue[V]
@@ -45,7 +45,9 @@ class CRelationValueOps[V](using failure: Failure)
     rv.naturalJoin(other)
 
   override def antiJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
-    rv.antiJoin(other)
+    Try(rv.antiJoin(other)) match
+      case util.Failure(exception) => ??? // TODO: Except to represent empty table
+      case Success(value) => value
 
 
 

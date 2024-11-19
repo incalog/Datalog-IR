@@ -90,9 +90,8 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
           }
         }
       if (filteredRows.isEmpty)
-        CRelationValue(Seq(),  Set(Seq()))
-      else
-        CRelationValue(cols,  Set(Seq()))
+        throw IllegalStateException("Anti join resulted in empty table")
+      CRelationValue(cols,  filteredRows)
 
 given JoinCRV[V]: Join[CRelationValue[V]] with {
   override def apply(v1: CRelationValue[V], v2: CRelationValue[V]): MaybeChanged[CRelationValue[V]] =
