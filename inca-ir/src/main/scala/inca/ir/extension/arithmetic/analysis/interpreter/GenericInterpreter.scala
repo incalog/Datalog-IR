@@ -17,32 +17,39 @@ trait GenericInterpreter[V, B, RV, J[_] <: MayJoin[?]] extends BaseGenericInterp
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
-  override def evalTermOpen(term: ir.Term)(using Fixed): Seq[V] = term match
-    case IntNum(i: Int) => Seq(intOps.integerLit(i))
-    case DoubleNum(d: Double) => Seq(doubleOps.floatingLit(d))
+  override def evalTerm(term: ir.Term)(using Fixed): RV = term match
+    case IntNum(i: Int) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(intOps.integerLit(i))))
+    case DoubleNum(d: Double) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(doubleOps.floatingLit(d))))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TInt) =>
-      val ls = evalTermOpen(lhs)
-      val rs = evalTermOpen(rhs)
-      val combinations = cartesian(ls, rs)
+      // TODO: Single scan for these 3 operations
+      val ls = evalTerm(lhs)
+      val rs = evalTerm(rhs)
+      val combinations = relationOps.cartesian(
+        relationOps.rename(ls, Map(RESULT_COLUMN -> "lhs")),
+        relationOps.rename(rs, Map(RESULT_COLUMN -> "rhs"))
+      )
       val values = op match
-        case "+" => relationOps.map(combinations) { case Seq(l, r) => intOps.add(l, r) }
-        case "-" => relationOps.map(combinations) { case Seq(l, r) => intOps.sub(l, r) }
-        case "*" => relationOps.map(combinations) { case Seq(l, r) => intOps.mul(l, r) }
-        case "/" => relationOps.map(combinations) { case Seq(l, r) => intOps.div(l, r) }
-        case "%" => relationOps.map(combinations) { case Seq(l, r) => intOps.remainder(l, r) }
-        case "min" => relationOps.map(combinations) { case Seq(l, r) => intOps.min(l, r) }
-        case "max" => relationOps.map(combinations) { case Seq(l, r) => intOps.max(l, r) }
-      values.iterator.toSeq
+        case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.add(l, r) }
+        case "-" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.sub(l, r) }
+        case "*" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.mul(l, r) }
+        case "/" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.div(l, r) }
+        case "%" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.remainder(l, r) }
+        case "min" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.min(l, r) }
+        case "max" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.max(l, r) }
+      relationOps.project(values, Seq(RESULT_COLUMN))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TDouble) =>
-      val ls = evalTermOpen(lhs)
-      val rs = evalTermOpen(rhs)
-      val combinations = cartesian(ls, rs)
+      val ls = evalTerm(lhs)
+      val rs = evalTerm(rhs)
+      val combinations = relationOps.cartesian(
+        relationOps.rename(ls, Map(RESULT_COLUMN -> "lhs")),
+        relationOps.rename(rs, Map(RESULT_COLUMN -> "rhs"))
+      )
       val values = op match
-        case "+" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.add(l, r) }
-        case "-" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.sub(l, r) }
-        case "*" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.mul(l, r) }
-        case "/" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.div(l, r) }
-        case "min" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.min(l, r) }
-        case "max" => relationOps.map(combinations) { case Seq(l, r) => doubleOps.max(l, r) }
-      values.iterator.toSeq
-    case _ => super.evalTermOpen(term)
+        case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.add(l, r) }
+        case "-" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.sub(l, r) }
+        case "*" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.mul(l, r) }
+        case "/" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.div(l, r) }
+        case "min" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.min(l, r) }
+        case "max" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.max(l, r) }
+      relationOps.project(values, Seq(RESULT_COLUMN))
+    case _ => super.evalTerm(term)

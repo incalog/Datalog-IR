@@ -5,15 +5,16 @@ import inca.ir.analysis.SupplementaryEnvironment
 import inca.ir.analysis.base.values.{CRelationValue, Value}
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.failure.Failure
-import sturdy.values.{Join, Widen}
+import sturdy.values.{Join, MaybeChanged, Widen, finitely}
 
+type CRV = CRelationValue[Value]
 
-class CSupplementaryTable(using failure: Failure)
-  extends SupplementaryEnvironment[CRelationValue[Value], NoJoin]:
+class CSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
+  extends SupplementaryEnvironment[CRV, NoJoin]:
 
-  override type State = CRelationValue[Value]
+  override type State = CRV
 
-  protected var supTable: CRelationValue[Value] = CRelationValue(Seq(), Set(Seq()))
+  protected var supTable: CRV = CRelationValue(Seq(), Set(Seq()))
 
   override def scoped[A](f: => A): A =
     val snapshot = supTable
@@ -23,16 +24,15 @@ class CSupplementaryTable(using failure: Failure)
 
   override def clear(): Unit = supTable = CRelationValue(Seq(), Set(Seq()))
 
-  def setTable(rv: CRelationValue[Value]): Unit = setState(rv)
+  def setTable(rv: CRV): Unit = setState(rv)
 
-  def getTable: CRelationValue[Value] = getState
+  def getTable: CRV = getState
 
-  override def getState: CRelationValue[Value] = supTable
+  override def getState: CRV = supTable
 
-  override def setState(st: CRelationValue[Value]): Unit = supTable = st
+  override def setState(st: CRV): Unit = supTable = st
 
-  // What should these do here?
-  override def join: Join[CRelationValue[Value]] = throw IllegalStateException("Join not possible")
+  override def join: Join[CRV] = implicitly
 
-  override def widen: Widen[CRelationValue[Value]] = throw IllegalStateException("Widen not possible")
+  override def widen: Widen[CRV] = (v1: CRV, v2: CRV) => join(v1, v2)
     

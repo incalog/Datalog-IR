@@ -3,6 +3,7 @@ package inca.util
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Call, Module, Name, RefByName, Relation}
 import inca.util.DependencyGraph.{AggregationCall, DependencyEdge, NegativeCall, PositiveCall}
+import inca.util.datastructures.Graph
 
 
 object DependencyGraph:

@@ -25,10 +25,10 @@ import sturdy.values.references.given_Finite_AllocationSiteAddr
 import sturdy.values.exceptions.Exceptional
 
 // Implicits
-import sturdy.data.MakeJoined
+import sturdy.data.given 
 import inca.ir.analysis.base.effect.IRFailure
 import inca.ir.analysis.base.values.{FiniteARelationValue, JoinRV}
-import inca.ir.analysis.base.interpreter.{FiniteFixIn, FiniteFixOut}
+import inca.ir.analysis.base.interpreter.{FiniteFixIn}
 
 private class IRJoinV extends Join[Value]
   with BaseJoinV
@@ -48,14 +48,7 @@ private class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
 // TODO: What widen value should be here? 
 given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combine[V, VW], combineRV: Combine[RV, RW]): Combine[FixOut[V, RV], Widening.No] with
   override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] = (out1, out2) match
-    case (FixOut.Term(vs1), FixOut.Term(vs2)) =>
-      // We use a cartesian product here because of Datalog set semantics
-      val v = for (v1 <- vs1; v2 <- vs2) yield combineV(v1, v2)
-      if (v.exists(_.hasChanged)) {
-        Changed(FixOut.Term(v.map(_.get)))
-      } else {
-        Unchanged(FixOut.Term(v.map(_.get)))
-      }
+    case (FixOut.Term(rv1), FixOut.Term(rv2)) => combineRV(rv1, rv2).map(FixOut.Term.apply)
     case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
     case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => combineRV(rv1, rv2).map(FixOut.ExitCall.apply)
     case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)
@@ -103,7 +96,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
   given Join[VBool] = new JoinVBool
 
   override val joinV: WithJoin[Value] = implicitly
-  override val joinRV: WithJoin[RV] = implicitly
+  override val joinRV: Join[RV] = ???
   override val joinUnit: WithJoin[Unit] = implicitly
 
   override lazy val supplementaryTable: ASupplementaryTable = new ASupplementaryTable
@@ -115,11 +108,11 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
 
   given EqOps[Value, VBool] = eqOps
 
-  override val relationOps: RelationOps[Value, VBool, RV] = new ARelationValueOps[Value, VBool] {}
+  override val relationOps: RelationOps[Value, VBool, RV] = new ARelationValueOps[Value, VBool]
 
   // TODO: Use context sensitive fixpoint combinator
-  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] =
-    val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, RV]] {
+  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] = ???
+    /*val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, RV]] {
       // TODO: Would should contextual be?
       override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, RV]] ?=> Combinator[FixIn, FixOut[Value, RV]] =
         //fix.filter(_.isLoop, fix.iter.innermost(StackedStates()))
@@ -160,4 +153,4 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
           case _ => // nothing
     })
 
-    fixpt
+    fixpt*/

@@ -13,10 +13,12 @@ class SimpleTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val aeval = if (abstractInterp) new IRConstantAbstractInterpreter else new IRConcreteInterpreter
+    val interp = new IRConcreteInterpreter
     println(mod)
     println()
-    aeval.evalProgram(Seq(mod))
+    interp.evalProgram(Seq(mod))
+    //println(interp.idb.getState)
+    println(interp.idb.getState)
 
   test("Single relation - arithmetic") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(

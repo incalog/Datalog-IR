@@ -5,11 +5,8 @@ import sturdy.values.booleans.BooleanOps
 
 trait RelationOps[V, B, RV]:
   type Row = Seq[V]
-  type I[Row] <: IterableOnce[Row]
   
-  def columns(rv: RV): Seq[String]
-
-  def entries(rv: RV): I[Row]
+  def unit: RV
 
   def make(cols: Seq[String], vals: Seq[Row]): RV
 
@@ -23,7 +20,7 @@ trait RelationOps[V, B, RV]:
 
   def filter(rv: RV)(f: Row => B): RV
 
-  def map[A](rv: RV)(f: Row => A): I[A]
+  def map(rv: RV, columnName: String)(f: Row => V): RV
 
   def naturalJoin(rv: RV, other: RV): RV
 

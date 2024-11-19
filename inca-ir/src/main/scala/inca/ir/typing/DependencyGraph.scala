@@ -3,7 +3,7 @@ package inca.ir.typing
 import inca.ir.extension.data.{CaseDefinition, DataDefinition}
 import inca.ir.{ModuleEntry, Relation}
 import inca.ir.extension.demand
-import inca.util.Graph
+import inca.util.datastructures.Graph
 
 enum DependencyInfo:
   case PositiveCall

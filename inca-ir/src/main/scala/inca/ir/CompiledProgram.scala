@@ -2,7 +2,7 @@ package inca.ir
 
 import inca.ir.Module as IRModule
 import inca.ir.visitors.BaseIRVisitor
-import inca.util.Graph
+import inca.util.datastructures.Graph
 
 private enum Edge:
   case Import

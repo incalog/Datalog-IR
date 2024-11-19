@@ -4,7 +4,7 @@ import inca.ir.*
 import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
-import inca.util.Graph
+import inca.util.datastructures.Graph
 
 import java.lang.annotation.Target
 import scala.language.implicitConversions

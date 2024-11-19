@@ -1,5 +1,6 @@
 package inca.util
 
+import inca.util.datastructures.Graph
 import org.scalatest.funsuite.AnyFunSuite
 
 class GraphTest extends AnyFunSuite:
