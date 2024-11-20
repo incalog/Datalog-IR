@@ -153,17 +153,15 @@ class CRelationValueTest extends AnyFunSuiteLike:
   test("Anti Join - Table x Table (no shared columns)") {
     val table1 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = CRelationValue(Seq("c", "d"), Set(Seq(5, 6), Seq(7, 8)))
-    assertThrows[IllegalStateException] {
-      table1.antiJoin(table2)
-    }
+    val result = table1.antiJoin(table2)
+    assert(result.rows.isEmpty)
   }
 
   test("Anti Join - Table x Table (shared columns | same values)") {
     val table1 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = CRelationValue(Seq("b", "c"), Set(Seq(2, 3), Seq(4, 5)))
-    assertThrows[IllegalStateException] {
-      table1.antiJoin(table2)
-    }
+    val result = table1.antiJoin(table2)
+    assert(result.rows.isEmpty)
   }
 
   test("Anti Join - Table x Table (shared columns | different values)") {

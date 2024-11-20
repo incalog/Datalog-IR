@@ -2,14 +2,14 @@ package inca.ir.analysis.base.interpreter
 
 import inca.ir
 import inca.ir.ModuleEntry
-import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, BodyFailed, InvalidBindings, NoParamRelation, ProgramFailure, RefNotFound, RelationFailed, UnknownArg, UnknownAtom, UnknownTerm, UnresolvedVariable}
-import inca.ir.analysis.{RelationOps, SupplementaryEnvironment}
+import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, InvalidBindings, MergeFailed, NoParamRelation, ProgramFailure, RefNotFound, RelationFailed, UnknownArg, UnknownAtom, UnknownTerm, UnresolvedVariable}
+import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.Mode
 import sturdy.data.{MayJoin, mapJoin}
 import sturdy.effect.{EffectList, EffectStack}
 import sturdy.effect.failure.Failure
-import sturdy.effect.store.{CStore, Store}
+import sturdy.effect.store.Store
 import sturdy.fix.Fixpoint
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
@@ -28,27 +28,18 @@ import sturdy.data.MayJoin.WithJoin
 //  6. Optimize program
 
 enum FixIn:
-  //case Term(term: ir.Term)
-  //case Atom(atom: ir.Atom)
-  // TODO: Rename enter Relation
-  //case EnterCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)
-  //case Body(body: ir.Body)
-  // TODO: Remove this
+  case Term(term: ir.Term)
+  case Atom(atom: ir.Atom)
+  case Body(body: ir.Body)
   case Relation(rel: ir.Relation)
-  //case ExtensionalRelation(rel: ir.ExtensionalRelation)
-  // TODO: Remove it
-  //case Module(mod: ir.Module)
+  case ExtensionalRelation(rel: ir.ExtensionalRelation)
 
   override def toString: String = this match
-    //case FixIn.Term(t) => t.toString
-    //case FixIn.Atom(a) => a.toString
-    /*case FixIn.EnterCall(r, _, args, neg) =>
-      val s = r.name.name + args.mkString("(", ", ", ")")
-      if (neg) s"~$s" else s*/
-    //case FixIn.Body(b) => s"Body: ${b.hashCode()}" //b.toString
+    case FixIn.Term(t) => t.toString
+    case FixIn.Atom(a) => a.toString
+    case FixIn.Body(b) => s"Body: ${b.hashCode()}" //b.toString
     case FixIn.Relation(rel: ir.Relation) => rel.name.name //rel.toString
-    //case FixIn.ExtensionalRelation(rel: ir.ExtensionalRelation) => rel.toString
-    //case FixIn.Module(mod: ir.Module) => mod.name.name //mod.toString
+    case FixIn.ExtensionalRelation(rel: ir.ExtensionalRelation) => rel.toString
 
 enum FixOut[V, RV]:
   case Term(values: RV)
@@ -57,12 +48,11 @@ enum FixOut[V, RV]:
   case Body(value: RV)
   case Relation(value: RV)
   case ExtensionalRelation(value: RV)
-  case Module()
 
 given FiniteFixIn: Finite[FixIn] with {}
 
 
-trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
+trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   val RESULT_COLUMN: String = "result"
 
   // Fixpoint
@@ -71,31 +61,25 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
   type Fixed = FixIn => FixOut[V, RV]
 
   // Ops & Helper
-  def relationOps: RelationOps[V, B, RV]
+  val relationOps: RelationOps[V, B, RV]
 
-  //def branchOps: BooleanBranching[B, Unit]
+  val boolOps: BooleanOps[B]
 
-  def boolOps: BooleanOps[B]
+  lazy val boolTrue: B = boolOps.boolLit(true)
 
-  def boolTrue: B = boolOps.boolLit(true)
+  lazy val boolFalse: B = boolOps.boolLit(false)
 
-  def boolFalse: B = boolOps.boolLit(false)
+  val branchOps: BooleanBranching[B, Unit]
 
-  //def boolTop: B
+  val eqOps: EqOps[V, B]
 
-  def eqOps: EqOps[V, B]
+  val failure: Failure
 
-  def failure: Failure
+  val except: Except[BaseIRException, ExcV, WithJoin]
 
-  //def except: Except[BaseIRException, ExcV, J]
+  val joinV: J[V]
 
-  def joinV: J[V]
-
-  //def top: V
-
-  implicit def joinRV: Join[RV]
-
-  //given Join[RV] = joinRV
+  implicit val joinRV: Join[RV]
 
   def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, idb), {
     case _: FixIn.Relation => EffectList(supplementaryTable, failure, idb)
@@ -108,31 +92,22 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
 
   def idb: Store[AllocationSiteAddr, RV, WithJoin]
 
-  def supplementaryTable: SupplementaryEnvironment[RV, J]
+  def supplementaryTable: SupplementaryTable[RV, J]
 
   implicit def joinUnit: J[Unit]
 
-  //given J[Unit] = joinUnit
-
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
-    //case FixIn.Term(term) => FixOut.Term(evalTerm(term))
-    //case FixIn.EnterCall(r, params, args, neg) => FixOut.ExitCall(evalCall(r, params, args, neg))
-    //case FixIn.Atom(atom) => evalAtomOpen(atom); FixOut.Atom()
-    //case FixIn.Body(body) => FixOut.Body(evalBodyOpen(body))
+    case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
+    case FixIn.Atom(atom) => evalAtomOpen(atom); FixOut.Atom()
+    case FixIn.Body(body) => FixOut.Body(evalBodyOpen(body))
     case FixIn.Relation(rel) => FixOut.Relation(enterRelationOpen(rel))
-    //case FixIn.ExtensionalRelation(rel) => FixOut.ExtensionalRelation(evalExtensionalRelationOpen(rel))
-    // TODO: Do we need to run this in a fixpoint as well?
-    //case FixIn.Module(mod) => evalModuleOpen(mod); FixOut.Module()
+    case FixIn.ExtensionalRelation(rel) => FixOut.ExtensionalRelation(evalExtensionalRelationOpen(rel))
   }
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
   def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
-
-  /*def evalModule(m: ir.Module)(using rec: Fixed): Unit = rec(FixIn.Module(m)) match
-    case FixOut.Module() =>
-    case _ => throw new IllegalStateException()*/
 
   def evalModule(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
     val relEntryPoints = m.relations.values.filter(_.hasHint(MainHint)) match
@@ -147,11 +122,16 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
     } else {
       relationOps.naturalJoin(lhs, rhs)
     }
-    res
+
+    // Anti join might produce empty table
+    if (relationOps.isEmpty(res) == boolTrue)
+      except.throws(MergeFailed("Merged empty table"))
+    else
+      res
 
   protected def mergeIntoEnv(rv: RV, neg: Boolean): Unit =
-    val merged = merge(supplementaryTable.getState, rv, neg)
-    supplementaryTable.setState(merged)
+    val merged = merge(supplementaryTable.getTable, rv, neg)
+    supplementaryTable.setTable(merged)
 
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     idb.write(AllocationSiteAddr.Variable(name.name)(true), rv)
@@ -163,58 +143,47 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
   def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
     val paramNames = r.params.map(p => p.name.name)
 
-    //var bodyRes: CRV = ??? // empty table with param names as columns
-    //var isEmpty: Boolean = ???
-    mapJoin(r.bodies, { b =>
-      val res = relationOps.project(evalBody(b), paramNames)
-      // TODO: Do we need to check if it is not already in the idb?
-      insertIDB(r.name, res)
-      res
-
-      /*try {
+    var bodyRes = relationOps.make(Seq(), Seq(Seq()))
+    var allBodiesFailed: Boolean = true
+    val relRes = mapJoin(r.bodies, { b =>
+      except.tryCatch {
         val res = relationOps.project(evalBody(b), paramNames)
-        // Important, put that in the try block
-        insertIDB(r.name, res)
         bodyRes = relationOps.union(bodyRes, res)
-      } catch {
-        case _: BodyFailed => // nothing
-      }*/
+        // TODO: Should we insert res or bodyRes? Does it matter?
+        insertIDB(r.name, bodyRes)
+        allBodiesFailed = false
+        bodyRes
+      } { exc =>
+        bodyRes
+      }
     })
 
-    //if (isEmpty)
-      // except.throws....
-    //  throw RelationFailed
+    if (allBodiesFailed)
+      except.throws(RelationFailed(s"Relation ${r.name} failed"))
+    else
+      relRes
   }
 
-  /*inline def evalExtensionalRelation(r: ir.ExtensionalRelation)(using rec: Fixed): RV = rec(FixIn.ExtensionalRelation(r)) match
+  inline def evalExtensionalRelation(r: ir.ExtensionalRelation)(using rec: Fixed): RV = rec(FixIn.ExtensionalRelation(r)) match
     case FixOut.ExtensionalRelation(p) => p
-    case _ => throw new IllegalStateException()*/
+    case _ => throw new IllegalStateException()
 
-  def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped {
+  def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped {
     ???
   }
 
-  /*inline def evalBody(b: ir.Body)(using rec: Fixed): RV = rec(FixIn.Body(b)) match
+  inline def evalBody(b: ir.Body)(using rec: Fixed): RV = rec(FixIn.Body(b)) match
     case FixOut.Body(rv) => rv
-    case _ => throw new IllegalStateException()*/
-
-  def evalBody(b: ir.Body)(using rec: Fixed): RV = supplementaryTable.scoped {
-    //except.tryCatch(
-    b.atoms.foreach(a => evalAtom(a))
-    /*) {
-      case AtomFailed(msg) => except.throws(BodyFailed(s"Body failed: $b"))
-      case _ => ???
-    }*/
-    supplementaryTable.getState
-  }
-
-  /*inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match
-    case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 
-  def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using rec: Fixed): RV = rec(FixIn.EnterCall(r, params, args, neg)) match
-    case FixOut.ExitCall(rv) => rv
-    case _ => throw new IllegalStateException()*/
+  def evalBodyOpen(b: ir.Body)(using rec: Fixed): RV = supplementaryTable.scoped {
+    b.atoms.foreach(a => evalAtom(a))
+    supplementaryTable.getTable
+  }
+
+  inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match
+    case FixOut.Atom() => ()
+    case _ => throw new IllegalStateException()
 
   def enterRelationOpen(rel: ir.Relation)(using rec: Fixed): RV =
     evalRelationOpen(rel)
@@ -224,15 +193,15 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
     case ir.Var(ref) => ref.name
     case ir.Cast(t, _) => extractVarName(t)
 
-  inline private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
+  private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
     relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).name))
 
-  inline final def cartesian(rv1: RV, rv2: RV): RV =
+  final def cartesian(rv1: RV, rv2: RV): RV =
     val ls = relationOps.rename(rv1, Map(RESULT_COLUMN -> "lhs"))
     val rs = relationOps.rename(rv2, Map(RESULT_COLUMN -> "rhs"))
     relationOps.cartesian(ls, rs)
 
-  inline private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
+  private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
     val combinations = cartesian(ls, rs)
@@ -243,20 +212,13 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
         eqOps.equ(v1, v2)
       }
     }
-    // if all comparisons fail the atom failed
-    /*if (relationOps.entries(comparisonResults).iterator.isEmpty) {
+
+    branchOps.boolBranch(relationOps.isEmpty(comparisonResults)){
       val op = if neg then "!=" else "=="
-      //except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
-    }*/
+      except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
+    } { /* nothing */ }
 
-    // TODO: Use branch ops
-    /*branchOps.boolBranch(relationOps.isEmpty(comparisonResults)){
-      // TODO: throw exception
-    } {
-      // nothing
-    }*/
-
-  inline private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
+  private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
     case (Mode.Binding, Mode.Binding, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
     case (Mode.Binding, _, false) => mergeIntoEnv(evalAssign(lhs, rhs), false)
     case (_, Mode.Binding, false) => mergeIntoEnv(evalAssign(rhs, lhs), false)
@@ -287,7 +249,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
       val res = supplementaryTable.freshScoped {
         // since we have at least one parameter argRV is defined
         val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-        supplementaryTable.setState(evalContext)
+        supplementaryTable.setTable(evalContext)
 
         val relRes = r match
           case rel: ir.Relation => evalRelation(rel)
@@ -298,7 +260,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
           case (Some(varName), p) => Some((p.name.name, varName.name))
           case _ => None
         }.toMap
-        // TODO: natJoin with value from IDB?
+
         relationOps.projectAndRename(relRes, subst)
       }
 
@@ -306,7 +268,7 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
       mergeIntoEnv(res, neg)
     }
 
-  def evalAtom(at: ir.Atom)(using Fixed): Unit = at match
+  def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
     case ir.Call(ref, args, neg) => ref.target match
       case Some(r: ir.Relation) => evalCall(r, r.params, args, neg)
@@ -316,13 +278,13 @@ trait BaseGenericInterpreter[V, B, RV, J[_] <: MayJoin[?]]: // ExcV
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 
-  /*final def evalTerm(term: ir.Term)(using rec: Fixed): Seq[V] = rec(FixIn.Term(term)) match
+  inline final def evalTerm(term: ir.Term)(using rec: Fixed): RV = rec(FixIn.Term(term)) match
     case FixOut.Term(v) => v
-    case _ => throw new IllegalStateException()*/
+    case _ => throw new IllegalStateException()
 
-  def evalTerm(term: ir.Term)(using Fixed): RV = term match
+  def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
     case ir.Var(ref) if term.mode.isBound =>
-      relationOps.projectAndRename(supplementaryTable.getState, Map(ref.name.name -> RESULT_COLUMN))
+      relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
     case ir.Var(ref) =>
       failure(UnresolvedVariable, s"Unbound variable $ref")
     case ir.Cast(t, _) =>

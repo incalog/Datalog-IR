@@ -89,8 +89,6 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
             sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
           }
         }
-      if (filteredRows.isEmpty)
-        throw IllegalStateException("Anti join resulted in empty table")
       CRelationValue(cols,  filteredRows)
 
 given JoinCRV[V]: Join[CRelationValue[V]] with {

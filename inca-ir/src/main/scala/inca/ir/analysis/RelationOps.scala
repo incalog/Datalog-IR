@@ -27,3 +27,5 @@ trait RelationOps[V, B, RV]:
   def antiJoin(rv: RV, other: RV): RV
 
   def union(rv: RV, other: RV): RV
+  
+  def isEmpty(rv: RV): B

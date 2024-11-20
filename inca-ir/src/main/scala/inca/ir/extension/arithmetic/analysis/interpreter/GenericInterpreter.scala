@@ -11,13 +11,13 @@ import sturdy.values.integer.IntegerOps
 import sturdy.values.floating.FloatOps
 import sturdy.values.ordering.OrderingOps
 
-trait GenericInterpreter[V, B, RV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, J]:
+trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val intOps: IntegerOps[Int, V]
   val doubleOps: FloatOps[Double, V]
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
-  override def evalTerm(term: ir.Term)(using Fixed): RV = term match
+  override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
     case IntNum(i: Int) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(intOps.integerLit(i))))
     case DoubleNum(d: Double) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(doubleOps.floatingLit(d))))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TInt) =>
@@ -52,4 +52,4 @@ trait GenericInterpreter[V, B, RV, J[_] <: MayJoin[?]] extends BaseGenericInterp
         case "min" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.min(l, r) }
         case "max" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.max(l, r) }
       relationOps.project(values, Seq(RESULT_COLUMN))
-    case _ => super.evalTerm(term)
+    case _ => super.evalTermOpen(term)

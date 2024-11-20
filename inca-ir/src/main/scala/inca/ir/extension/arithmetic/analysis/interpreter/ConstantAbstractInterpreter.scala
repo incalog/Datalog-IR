@@ -1,5 +1,6 @@
 package inca.ir.extension.arithmetic.analysis.interpreter
 
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ARelationValue, Top, VBool, Value}
 import inca.ir.analysis.base.values.{BaseJoinV, Top, Value}
@@ -65,7 +66,7 @@ trait ConstantJoinV extends BaseJoinV:
     case _ => super.join(lhs, rhs)
 
 // Constant Analysis
-trait ConstantAbstractInterpreter[J[_] <: MayJoin[?]] extends GenericInterpreter[Value, VBool, ARelationValue[Value], J]:
+trait ConstantAbstractInterpreter[J[_] <: MayJoin[?]] extends GenericInterpreter[Value, VBool, ARelationValue[Value], Unit, J]:
   val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, VBool] = ConstantIntVOrderingOps()

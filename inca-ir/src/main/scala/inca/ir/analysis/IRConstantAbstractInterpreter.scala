@@ -14,11 +14,11 @@ import sturdy.effect.failure.{CollectedFailures, Failure}
 import sturdy.effect.store.{AStoreThreaded, Store}
 import sturdy.fix
 import sturdy.data.finiteUnit
-import sturdy.effect.except.JoinedExcept
+import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, Logger}
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.MaybeChanged.Unchanged
-import sturdy.values.booleans.BooleanOps
+import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
 import sturdy.values.references.given_Finite_AllocationSiteAddr
@@ -53,10 +53,9 @@ given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combi
     case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)
     case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => combineRV(rv1, rv2).map(FixOut.Relation.apply)
     case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => combineRV(rv1, rv2).map(FixOut.ExtensionalRelation.apply)
-    case (FixOut.Module(), FixOut.Module()) => Unchanged(FixOut.Module())
     case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
-class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, ARelationValue[Value], WithJoin]
+class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, ARelationValue[Value], Unit, WithJoin]
   with arith.interpreter.ConstantAbstractInterpreter[WithJoin]:
 
   type RV = ARelationValue[Value]
@@ -67,6 +66,10 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
     override def handle[A](e: BaseIRException)(f: BaseIRException => A): WithJoin[A] ?=> A = f(e)
   }
 
+  override val except: Except[BaseIRException, Unit, WithJoin] = ???
+  
+  override val branchOps: BooleanBranching[VBool, Unit] = ???
+
   /*given Finite[BaseIRException] = new Finite[BaseIRException] {}
 
   given Join[BaseIRException] with {
@@ -74,7 +77,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
       ???
   }*/
 
-  override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
+  override val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
   //override lazy val except = new JoinedExcept[BaseIRException, BaseIRException]
 
   given Failure = failure

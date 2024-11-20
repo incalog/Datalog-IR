@@ -20,7 +20,7 @@ class SimpleTest extends AnyFunSuiteLike:
     //println(interp.idb.getState)
     println(interp.idb.getState)
 
-  test("Single relation - arithmetic") {
+  test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(
       Relation("main", Seq(
         Param("out", TInt)
@@ -34,7 +34,7 @@ class SimpleTest extends AnyFunSuiteLike:
     interp(mod)
   }
 
-  test("Two relation - arithmetic") {
+  test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
       Relation("calc", Seq(
         Param("out", TInt)
@@ -55,7 +55,7 @@ class SimpleTest extends AnyFunSuiteLike:
     interp(mod)
   }
 
-  test("Recursive Relation") {
+  test("Recursion") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
         Param("x", TInt),
@@ -80,6 +80,27 @@ class SimpleTest extends AnyFunSuiteLike:
         Body(Seq(
           Call("edge", Seq(Var("x"), Var("z"))),
           Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod)
+  }
+
+  test("Failing atom") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3)),
+          Eq(Var("x"), Var("y")),
         ))
       )).addHint(MainHint),
     ))

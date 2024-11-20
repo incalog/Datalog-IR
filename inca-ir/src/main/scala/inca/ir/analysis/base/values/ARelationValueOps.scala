@@ -14,6 +14,8 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   type RV = ARelationValue[V]
 
+  override def isEmpty(rv: ARelationValue[V]): B = ???
+  
   override def unit: ARelationValue[V] = ???
 
   override def make(cols: Seq[String], vals: Seq[Row]): ARelationValue[V] = ???

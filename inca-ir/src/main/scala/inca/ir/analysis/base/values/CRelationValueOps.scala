@@ -2,12 +2,14 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
 import inca.ir.analysis.base.effect.*
+import sturdy.data.MayJoin
 import sturdy.effect.EffectStack
+import sturdy.effect.except.Except
 import sturdy.effect.failure.Failure
 
 import scala.util.{Success, Try}
 
-class CRelationValueOps[V](using failure: Failure) // except: Except[]
+class CRelationValueOps[V](using failure: Failure)
   extends RelationOps[V, Boolean, CRelationValue[V]]:
 
   type RV = CRelationValue[V]
@@ -45,9 +47,9 @@ class CRelationValueOps[V](using failure: Failure) // except: Except[]
     rv.naturalJoin(other)
 
   override def antiJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
-    Try(rv.antiJoin(other)) match
-      case util.Failure(exception) => ??? // TODO: Except to represent empty table
-      case Success(value) => value
+    rv.antiJoin(other)
+
+  override def isEmpty(rv: CRelationValue[V]): Boolean = rv.rows.isEmpty
 
 
 
