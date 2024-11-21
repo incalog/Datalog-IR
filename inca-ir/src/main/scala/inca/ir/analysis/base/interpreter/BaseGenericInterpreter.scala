@@ -107,13 +107,23 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
-  def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
+  def evalProgram(p: Seq[ir.Module]): Map[String, Map[String, RV]] = external(p.map(m => m.name.name -> evalModule(m)).toMap)
 
-  def evalModule(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
-    val relEntryPoints = m.relations.values.filter(_.hasHint(MainHint)) match
+  def entryPoints(m: ir.Module): Iterable[ir.Relation] = m.relations.values
+    /*m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
-      case _ => m.relations.values
-    relEntryPoints.foreach(evalRelation(_))
+      case _ => m.relations.values*/
+
+  def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = supplementaryTable.scoped {
+    //relEntryPoints.foreach(evalRelation(_))
+    entryPoints(m).map { rel =>
+      rel.name.name -> except.tryCatch {
+        evalRelation(rel)
+      } {
+        case RelationFailed(msg) =>
+          relationOps.make(rel.params.map(_.name.name), Seq())
+      }
+    }.toMap
   }
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
@@ -149,8 +159,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       except.tryCatch {
         val res = relationOps.project(evalBody(b), paramNames)
         bodyRes = relationOps.union(bodyRes, res)
-        // TODO: Should we insert res or bodyRes? Does it matter?
-        insertIDB(r.name, bodyRes)
         allBodiesFailed = false
         bodyRes
       } { exc =>
@@ -161,6 +169,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     if (allBodiesFailed)
       except.throws(RelationFailed(s"Relation ${r.name} failed"))
     else
+      insertIDB(r.name, relRes)
       relRes
   }
 

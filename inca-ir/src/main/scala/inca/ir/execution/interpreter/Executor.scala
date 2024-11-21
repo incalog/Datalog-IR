@@ -17,10 +17,13 @@ class Executor extends IRExecutor:
     private def interp(mods: Seq[ir.Module], useCache: Boolean = true): Map[String, Relation] =
       if (!useCache || inputDirty || cachedResult.isEmpty) {
         val interp = IRConcreteInterpreter()
-        interp.evalProgram(mods)
-        val res = interp.idb.getState.map { case (addr, crv) =>
-          val relName = addr.toString.drop(1)
-          relName -> InterpreterRelation(relName, crv)
+        //interp.evalProgram(mods)
+        //val res = interp.idb.getState.map { case (addr, crv) =>
+        //val relName = addr.toString.drop(1)
+        val res = interp.evalProgram(mods).flatMap { case (mod, idb) =>
+          idb.map { case (relName, crv) =>
+            relName -> InterpreterRelation(relName, crv)
+          }
         }
         cachedResult = Some(res)
       }
