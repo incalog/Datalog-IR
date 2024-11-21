@@ -38,6 +38,7 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
+    interp(mod)
     //assert(interp(mod).contains()
   }
 
@@ -172,6 +173,11 @@ class SimpleTest extends AnyFunSuiteLike:
           Eq(Var("x"), IntNum(2)),
           Eq(Var("y"), IntNum(3)),
           Eq(Var("x"), Var("y")),
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(3)),
+          Eq(Var("y"), IntNum(4)),
+          Eq(Var("x"), Var("y"), true),
         ))
       )).addHint(MainHint),
     ))

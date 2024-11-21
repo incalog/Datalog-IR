@@ -36,6 +36,13 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
     val newColumns = cols.map(c => subst.getOrElse(c,c))
     CRelationValue(newColumns, rows)
 
+  def drop(droppedCols: Seq[String]): CRelationValue[V] =
+    val droppedColsIndex = droppedCols.map(cols.indexOf).toSet
+    val preservedColsIndex: Seq[Int] = cols.indices.filterNot(droppedColsIndex.contains)
+    val newRows = rows.map(preservedColsIndex.map)
+    val newCols = preservedColsIndex.map(cols)
+    CRelationValue(newCols, newRows)
+
   def project(newColumns: Seq[String]): CRelationValue[V] =
     val colsIndex = newColumns.map(cols.indexOf)
     val newRows = rows.map(colsIndex.map)

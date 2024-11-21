@@ -13,6 +13,8 @@ trait RelationOps[V, B, RV]:
   def rename(rv: RV, subst: Map[String, String]): RV
 
   def project(rv: RV, cols: Seq[String]): RV
+  
+  def drop(rv: RV, cols: Seq[String]): RV
 
   def projectAndRename(rv: RV, subst: Map[String, String]): RV
 

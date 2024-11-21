@@ -55,6 +55,8 @@ given FiniteFixIn: Finite[FixIn] with {}
 
 trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   val RESULT_COLUMN: String = "result"
+  val LHS_COLUMN = "lhs"
+  val RHS_COLUMN = "rhs"
 
   // Fixpoint
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, RV]]
@@ -206,17 +208,41 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     evalRelationOpen(rel)
 
   // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
-  def extractVarName(term: ir.Term): ir.Name = term match
-    case ir.Var(ref) => ref.name
+  def extractVarName(term: ir.Term): Option[ir.Name] = term match
+    case ir.Var(ref) => Some(ref.name)
     case ir.Cast(t, _) => extractVarName(t)
+    case _ => None
 
-  private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): RV =
-    relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).name))
+  private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): Unit =
+    val res = relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).get.name))
+    mergeIntoEnv(res, false)
 
   final def cartesian(rv1: RV, rv2: RV): RV =
-    val ls = relationOps.rename(rv1, Map(RESULT_COLUMN -> "lhs"))
-    val rs = relationOps.rename(rv2, Map(RESULT_COLUMN -> "rhs"))
+    val ls = relationOps.rename(rv1, Map(RESULT_COLUMN -> LHS_COLUMN))
+    val rs = relationOps.rename(rv2, Map(RESULT_COLUMN -> RHS_COLUMN))
     relationOps.cartesian(ls, rs)
+
+  /**
+   * This method extracts the variables used in lhs and rhs and drops them from the supplementary.
+   * Afterward, it adds new values to the supplementary for these variables based on the values in the comparison table.
+   * @param comparisonResult The table that was produced by a comparison operation. 
+   *                         We assume the columns are named "lhs" and "rhs".
+   * @param lhs              The left-hand side IR term used for the comparison.
+   * @param rhs              The right-hand side IR term used for the comparison.
+   */
+  final def updateSupplementary(comparisonResult: RV, lhs: ir.Term, rhs: ir.Term): Unit =
+    val lhsVarOption = extractVarName(lhs)
+    val rhsVarOption = extractVarName(rhs)
+
+    // drop all vars bound in lhs and rhs from the supplementary
+    val comparedVars = lhsVarOption ++ rhsVarOption
+    val sup = relationOps.drop(supplementaryTable.getTable, comparedVars.toSeq.map(_.name))
+    supplementaryTable.setTable(sup)
+
+    // add all pairs that hold after the environment to the supplementary
+    val subst = lhsVarOption.map(LHS_COLUMN -> _.name) ++ rhsVarOption.map(RHS_COLUMN -> _.name)
+    val addRV = relationOps.projectAndRename(comparisonResult, subst.toMap)
+    mergeIntoEnv(addRV, false)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
@@ -230,25 +256,49 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       }
     }
 
-    branchOps.boolBranch(relationOps.isEmpty(comparisonResults)){
+    branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
       val op = if neg then "!=" else "=="
       except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
-    } { /* nothing */ }
+    } {
+      // This is necessary, since a top-down query might override our binding information.
+      // In this case, we need to assign only those constraints, that hold according to the comparison.
+      updateSupplementary(comparisonResults, lhs, rhs)
+    }
 
-  private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
+  private def boundInSupplementary(t: ir.Term): Boolean =
+    t.vars.forall { v =>
+      relationOps.hasColumn(supplementaryTable.getTable, v.name.name) == boolTrue
+    }
+
+  // This is not right, is it?
+  // E.g.
+  // R(x) :- x == 1
+  // What happens if I query R with R(2)? Than I should do a comparison, not an assign right?
+  /*private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
     case (Mode.Binding, Mode.Binding, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
     case (Mode.Binding, _, false) => mergeIntoEnv(evalAssign(lhs, rhs), false)
     case (_, Mode.Binding, false) => mergeIntoEnv(evalAssign(rhs, lhs), false)
     case (Mode.Bound, Mode.Bound, _) => evalCompare(lhs, rhs, neg)
-    case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")
+    case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")*/
+
+  private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
+    (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
+      case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
+      case (true, true, _) => evalCompare(lhs, rhs, neg)
+      case (false, _, false) => evalAssign(lhs, rhs)
+      case (_, false, false) => evalAssign(rhs, lhs)
+      case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
   def evalArg(arg: ir.Arg)(using Fixed): RV = arg match
     case ir.TermArg(t) =>
-      // only proceed if all vars of an argument are found in the supplementary table otherwise the term might be
-      // binding, and we return unit.
-      // Note that the binding information will not align with the type information, since it changes over time.
-      val sup = supplementaryTable.getTable
-      if (t.vars.forall(v => relationOps.hasColumn(sup, v.name.name) == boolTrue))
+      // Only proceed if all vars of an argument are found in the supplementary table otherwise the term is not bound,
+      // and we return unit.
+      // Note that the binding information will not align with the mode information of the types. E.g.
+      //   path(x, y) :- edge(>x<, >y<)
+      //   path(x, y) :- edge(>x<, >z<), path(<z>, >y<).
+      // We might query path in a top-down evaluation at some step with an adornment path_fb. But, the type information
+      // path(<z>, >y<) says y is free, even though it is bound for this particular query.
+      if (boundInSupplementary(t))
         evalTerm(t)
       else
         relationOps.unit
@@ -256,7 +306,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => failure(UnknownArg, s"Unknown arg $arg")
 
   def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
-    case ir.TermArg(t) => Some(extractVarName(t))
+    case ir.TermArg(t) => extractVarName(t)
     case ir.WildcardArg() => None
 
   private final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
@@ -307,7 +357,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => throw new IllegalStateException()
 
   def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case ir.Var(ref) if relationOps.hasColumn(supplementaryTable.getTable, ref.name.name) == boolTrue =>
+    case ir.Var(ref) if boundInSupplementary(term) =>
       relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
     case ir.Var(ref) =>
       failure(UnresolvedVariable, s"Unbound variable ${ref.name.name}")

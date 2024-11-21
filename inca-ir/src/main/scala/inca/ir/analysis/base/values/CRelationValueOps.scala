@@ -26,6 +26,9 @@ class CRelationValueOps[V](using failure: Failure)
   override def rename(rv: CRelationValue[V], subst: Map[String, String]): CRelationValue[V] =
     rv.rename(subst)
 
+  def drop(rv: CRelationValue[V], cols: Seq[String]): CRelationValue[V] =
+    rv.drop(cols)
+  
   override def project(rv: CRelationValue[V], cols: Seq[String]): CRelationValue[V] =
     rv.project(cols)
 

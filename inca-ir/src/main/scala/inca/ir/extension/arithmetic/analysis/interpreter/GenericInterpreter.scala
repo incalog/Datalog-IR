@@ -17,6 +17,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
+  // TODO: Add atoms
+
   override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
     case IntNum(i: Int) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(intOps.integerLit(i))))
     case DoubleNum(d: Double) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(doubleOps.floatingLit(d))))

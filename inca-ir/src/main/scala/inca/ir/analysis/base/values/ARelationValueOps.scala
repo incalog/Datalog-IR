@@ -24,6 +24,8 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def rename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
 
+  override def drop(rv: ARelationValue[V], cols: Seq[String]): ARelationValue[V] = ???
+  
   override def project(rv: ARelationValue[V], cols: Seq[String]): ARelationValue[V] = ???
 
   override def projectAndRename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
