@@ -144,10 +144,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     }
 
     // Anti join might produce empty table
-    if (relationOps.isEmpty(res) == boolTrue)
+    branchOps.boolBranch(relationOps.isEmpty(res)) {
       except.throws(MergeFailed("Merged empty table"))
-    else
-      res
+    } { /* nothing */ }
+
+    res
 
   protected def mergeIntoEnv(rv: RV, neg: Boolean): Unit =
     val merged = merge(supplementaryTable.getTable, rv, neg)
@@ -225,7 +226,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   /**
    * This method extracts the variables used in lhs and rhs and drops them from the supplementary.
    * Afterward, it adds new values to the supplementary for these variables based on the values in the comparison table.
-   * @param comparisonResult The table that was produced by a comparison operation. 
+   * @param comparisonResult The table that was produced by a comparison operation.
    *                         We assume the columns are named "lhs" and "rhs".
    * @param lhs              The left-hand side IR term used for the comparison.
    * @param rhs              The right-hand side IR term used for the comparison.
@@ -269,17 +270,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     t.vars.forall { v =>
       relationOps.hasColumn(supplementaryTable.getTable, v.name.name) == boolTrue
     }
-
-  // This is not right, is it?
-  // E.g.
-  // R(x) :- x == 1
-  // What happens if I query R with R(2)? Than I should do a comparison, not an assign right?
-  /*private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit = (lhs.mode, rhs.mode, neg) match
-    case (Mode.Binding, Mode.Binding, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
-    case (Mode.Binding, _, false) => mergeIntoEnv(evalAssign(lhs, rhs), false)
-    case (_, Mode.Binding, false) => mergeIntoEnv(evalAssign(rhs, lhs), false)
-    case (Mode.Bound, Mode.Bound, _) => evalCompare(lhs, rhs, neg)
-    case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")*/
 
   private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match

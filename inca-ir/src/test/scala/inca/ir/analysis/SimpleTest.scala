@@ -207,6 +207,7 @@ class SimpleTest extends AnyFunSuiteLike:
     interp(mod)
   }
 
+  // TODO: Test anti-join with empty table
   /*test("Negation") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
