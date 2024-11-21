@@ -27,6 +27,7 @@ import sturdy.values.references.AllocationSiteAddr.Variable
 //  4. Abstract Interpreter - Constant Analysis (data + arith + string + agg?)
 //  5. Logger to annotate information
 //  6. Optimize program
+//  7. EDB support + test cases
 
 enum FixIn:
   case Term(term: ir.Term)
@@ -218,11 +219,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val res = relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).get.name))
     mergeIntoEnv(res, false)
 
-  final def cartesian(rv1: RV, rv2: RV): RV =
-    val ls = relationOps.rename(rv1, Map(RESULT_COLUMN -> LHS_COLUMN))
-    val rs = relationOps.rename(rv2, Map(RESULT_COLUMN -> RHS_COLUMN))
-    relationOps.cartesian(ls, rs)
-
   /**
    * This method extracts the variables used in lhs and rhs and drops them from the supplementary.
    * Afterward, it adds new values to the supplementary for these variables based on the values in the comparison table.
@@ -248,7 +244,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
-    val combinations = cartesian(ls, rs)
+    val combinations = relationOps.cartesian(
+      relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
+      relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
+    )
     val comparisonResults = relationOps.filter(combinations) { case Seq(v1, v2) =>
       if (neg) {
         eqOps.neq(v1, v2)
@@ -261,8 +260,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val op = if neg then "!=" else "=="
       except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
     } {
-      // This is necessary, since a top-down query might override our binding information.
-      // In this case, we need to assign only those constraints, that hold according to the comparison.
+      // We need to assign only those constraints, that hold according to the comparison.
+      // E.g
+      // edge(1,2).  edge(2,3)
+      // filterEdge(x, y) :-
+      //   edge(x, y),  // supplementary (x, y) -> (1, 2), (2, 3)
+      //   x == 2.      // supplementary (x, y) -> (1, 2)
+      // ~> filterEdge(1, 2)
       updateSupplementary(comparisonResults, lhs, rhs)
     }
 

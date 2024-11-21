@@ -1,6 +1,8 @@
 package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir
+import inca.ir.Atom
+import inca.ir.analysis.base.effect.AtomFailed
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{ARelationValue, VBool, Value}
 import inca.ir.extension.arithmetic.{BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
@@ -17,7 +19,33 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
-  // TODO: Add atoms
+  override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
+    case BinCompare(lhs, rhs, op)  =>
+      val orderingOps = lhs.typ match
+        case Some(tt) if tt.ty == TInt => intOrderingOps
+        case Some(tt) if tt.ty == TDouble => doubleOrderingOps
+        case tt => throw IllegalStateException(s"Unexpected TermType $tt")
+
+      val ls = evalTerm(lhs)
+      val rs = evalTerm(rhs)
+      val combinations = relationOps.cartesian(
+        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
+        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
+      )
+
+      val comparisonResults = op match
+        case "<=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.le(l, r) }
+        case "<" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.lt(l, r) }
+        case ">" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.ge(l, r) }
+        case ">=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.gt(l, r) }
+
+      branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
+        except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
+      } {
+        updateSupplementary(comparisonResults, lhs, rhs)
+      }
+
+    case _ => super.evalAtomOpen(at)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
     case IntNum(i: Int) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(intOps.integerLit(i))))
@@ -27,8 +55,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val ls = evalTerm(lhs)
       val rs = evalTerm(rhs)
       val combinations = relationOps.cartesian(
-        relationOps.rename(ls, Map(RESULT_COLUMN -> "lhs")),
-        relationOps.rename(rs, Map(RESULT_COLUMN -> "rhs"))
+        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
+        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
       )
       val values = op match
         case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.add(l, r) }
@@ -43,8 +71,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val ls = evalTerm(lhs)
       val rs = evalTerm(rhs)
       val combinations = relationOps.cartesian(
-        relationOps.rename(ls, Map(RESULT_COLUMN -> "lhs")),
-        relationOps.rename(rs, Map(RESULT_COLUMN -> "rhs"))
+        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
+        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
       )
       val values = op match
         case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.add(l, r) }
