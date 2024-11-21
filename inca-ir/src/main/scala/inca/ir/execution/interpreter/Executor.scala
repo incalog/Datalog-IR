@@ -37,6 +37,8 @@ class Executor extends IRExecutor:
       }
       cachedResult.get
 
+    // TODO: This should not be needed, since we are pushing values down with top down evaluation, no?
+    //  But since we are context-insensitive we join all call-sides, so maybe its needed nevertheless
     def filter(res: Map[String, Relation], query: Relation): Relation =
       val rel = res.getOrElse(query.name, throw IllegalArgumentException(s"Can not find relation ${query.name}"))
       val matches = rel.entries.flatMap { el =>

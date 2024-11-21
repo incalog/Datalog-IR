@@ -18,6 +18,7 @@ import sturdy.values.references.AllocationSiteAddr
 import sturdy.effect.except.Except
 import sturdy.data.MakeJoined
 import sturdy.data.MayJoin.WithJoin
+import sturdy.values.references.AllocationSiteAddr.Variable
 
 // TODO:
 //  1. Sturdy except when an atom or a body fails
@@ -81,13 +82,20 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   implicit val joinRV: Join[RV]
 
-  def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, idb), {
-    case _: FixIn.Relation => EffectList(supplementaryTable, failure, idb)
-    case _ => EffectList(supplementaryTable, failure, idb)
+  def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
+    case _: FixIn.Relation => EffectList(except, failure, supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
+  }, {
+    case _: FixIn.Relation => EffectList(except, failure, idb) //supplementaryTable
+  })
+
+  // Workaround 1.
+  /*def effects: EffectStack = new EffectStack(EffectList(failure, idb), {
+    case _: FixIn.Relation => EffectList(failure, idb)
+    case _ => EffectList(failure, idb)
   }, {
     case _: FixIn.Relation => EffectList(failure, idb)
     case _ => EffectList(failure, idb)
-  })
+  })*/
   given EffectStack = effects
 
   def idb: Store[AllocationSiteAddr, RV, WithJoin]
@@ -109,18 +117,20 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
 
-  def entryPoints(m: ir.Module): Iterable[ir.Relation] = m.relations.values
-    /*m.relations.values.filter(_.hasHint(MainHint)) match
+  def entryPoints(m: ir.Module): Iterable[ir.Relation] = //m.relations.values
+    m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
-      case _ => m.relations.values*/
+      case _ => m.relations.values
 
   def evalModule(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
     entryPoints(m).foreach { rel =>
-      except.tryCatch {
+      val relRes = except.tryCatch {
         evalRelation(rel)
       } { case RelationFailed(msg) =>
         relationOps.make(rel.params.map(_.name.name), Seq())
       }
+      // Workaround 1.
+      //insertIDB(rel.name, relRes)
     }
   }
 
@@ -151,7 +161,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
     val paramNames = r.params.map(p => p.name.name)
 
-    var bodyRes = relationOps.make(Seq(), Seq(Seq()))
+    var bodyRes = relationOps.unit
     var allBodiesFailed: Boolean = true
     val relRes = mapJoin(r.bodies, { b =>
       except.tryCatch {
@@ -233,8 +243,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case (m1, m2, _) => failure(InvalidBindings, s"Can not evaluate equality with modes: $m1 <> $m2 and negation: $neg")
 
   def evalArg(arg: ir.Arg)(using Fixed): RV = arg match
-    case ir.TermArg(t) if t.mode.isBound => evalTerm(t)
-    case ir.TermArg(t) => relationOps.unit
+    case ir.TermArg(t) =>
+      // only proceed if all vars of an argument are found in the supplementary table otherwise the term might be
+      // binding, and we return unit.
+      // Note that the binding information will not align with the type information, since it changes over time.
+      val sup = supplementaryTable.getTable
+      if (t.vars.forall(v => relationOps.hasColumn(sup, v.name.name) == boolTrue))
+        evalTerm(t)
+      else
+        relationOps.unit
     case ir.WildcardArg() => relationOps.unit
     case _ => failure(UnknownArg, s"Unknown arg $arg")
 
@@ -290,10 +307,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => throw new IllegalStateException()
 
   def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case ir.Var(ref) if term.mode.isBound =>
+    case ir.Var(ref) if relationOps.hasColumn(supplementaryTable.getTable, ref.name.name) == boolTrue =>
       relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
     case ir.Var(ref) =>
-      failure(UnresolvedVariable, s"Unbound variable $ref")
+      failure(UnresolvedVariable, s"Unbound variable ${ref.name.name}")
     case ir.Cast(t, _) =>
       evalTerm(t)
     case _ =>

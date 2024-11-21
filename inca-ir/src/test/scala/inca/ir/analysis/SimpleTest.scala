@@ -10,7 +10,9 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 class SimpleTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module): Seq[execution.Relation] =
+  def interp(mod: Module): Unit = //Map[String, execution.Relation]
+    println(mod)
+
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -21,7 +23,9 @@ class SimpleTest extends AnyFunSuiteLike:
     res.foreach { r =>
       println(r.asTable)
     }
-    res
+    /*res.map { r =>
+      r.name ->
+    }*/
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(
@@ -34,7 +38,7 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    interp(mod)
+    //assert(interp(mod).contains()
   }
 
   test("Two relations") {
@@ -151,7 +155,6 @@ class SimpleTest extends AnyFunSuiteLike:
         ))
       )).addHint(MainHint),
     ))
-
     interp(mod)
   }
 
@@ -197,3 +200,25 @@ class SimpleTest extends AnyFunSuiteLike:
 
     interp(mod)
   }
+
+  /*test("Negation") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2)),
+          Eq(Var("x"), Var("y"))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3)),
+          Eq(Var("x"), Var("y"))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod)
+  }*/

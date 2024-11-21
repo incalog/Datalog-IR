@@ -51,6 +51,8 @@ class CRelationValueOps[V](using failure: Failure)
 
   override def isEmpty(rv: CRelationValue[V]): Boolean = rv.rows.isEmpty
 
+  override def hasColumn(rv: RV, column: String): Boolean = rv.cols.contains(column)
+
 
 
 

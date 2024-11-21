@@ -13,7 +13,7 @@ import sturdy.effect.failure.{CollectedFailures, Failure}
 import sturdy.effect.store.AStoreThreaded
 import sturdy.effect.EffectStack
 import sturdy.fix
-import sturdy.fix.StackConfig.StackedStates
+import sturdy.fix.StackConfig.{StackedCfgNodes, StackedStates}
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ConcreteBooleanOps}
 import sturdy.values.ordering.EqOps
@@ -38,7 +38,10 @@ given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.union(rv2)), out1)
       case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.union(rv2)), out1)
-      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => MaybeChanged(FixOut.Relation(rv1.union(rv2)), out1)
+      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) =>
+        //println(s"Combine: $rv1 :: $rv2")
+        //println(rv1.union(rv2))
+        MaybeChanged(FixOut.Relation(rv1.union(rv2)), out1)
       case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => MaybeChanged(FixOut.ExtensionalRelation(rv1.union(rv2)), out1)
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
@@ -95,6 +98,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
         }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
+          //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes())) // Workaround 2.
+          //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates()))
         )
 
     if (enableLogging)

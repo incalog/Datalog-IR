@@ -9,7 +9,7 @@ trait RelationOps[V, B, RV]:
   def unit: RV
 
   def make(cols: Seq[String], vals: Seq[Row]): RV
-
+  
   def rename(rv: RV, subst: Map[String, String]): RV
 
   def project(rv: RV, cols: Seq[String]): RV
@@ -29,3 +29,5 @@ trait RelationOps[V, B, RV]:
   def union(rv: RV, other: RV): RV
   
   def isEmpty(rv: RV): B
+
+  def hasColumn(rv: RV, column: String): B
