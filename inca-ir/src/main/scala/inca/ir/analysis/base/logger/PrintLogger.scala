@@ -3,9 +3,6 @@ package inca.ir.analysis.base.logger
 import sturdy.effect.TrySturdy
 import sturdy.fix.{Contextual, Logger}
 
-object PrintLogger:
-  var DEBUG: Boolean = System.getProperty("INCA_LOG_FIXPOINT", "false").toBoolean
-
 class PrintLogger[Dom, Codom]
   extends Logger[Dom, Codom]:
 
@@ -13,8 +10,7 @@ class PrintLogger[Dom, Codom]
 
   def printlnWithIndent(msg: String, enter: Boolean): Unit =
     val indentS = " ".repeat(4).repeat(indent)
-    if (PrintLogger.DEBUG)
-      println(s"$indentS$msg")
+    println(s"$indentS$msg")
 
   override def enter(dom: Dom): Unit =
     printlnWithIndent(s"=> $dom", true)

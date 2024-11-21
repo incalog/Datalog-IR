@@ -58,7 +58,7 @@ class SimpleTest extends AnyFunSuiteLike:
     interp(mod)
   }
 
-  test("Recursion") {
+  test("Right Recursion") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
         Param("x", TInt),
@@ -82,6 +82,71 @@ class SimpleTest extends AnyFunSuiteLike:
         )),
         Body(Seq(
           Call("edge", Seq(Var("x"), Var("z"))),
+          Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod)
+  }
+
+  test("Left Recursion") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("path", Seq(Var("x"), Var("z"))),
+          Call("edge", Seq(Var("z"), Var("y"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod)
+  }
+
+  // TODO: Not working why?
+  test("Left and right Recursion") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("path", Seq(Var("x"), Var("z"))),
           Call("path", Seq(Var("z"), Var("y"))),
         ))
       )).addHint(MainHint),

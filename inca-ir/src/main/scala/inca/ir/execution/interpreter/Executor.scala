@@ -5,7 +5,8 @@ import inca.ir.CompiledUnit
 import inca.ir.analysis.IRConcreteInterpreter
 import inca.ir.analysis.base.values.{CRelationValue, Value}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
-import inca.ir.extension.arithmetic.analysis.interpreter.{ CIntV, CDoubleV }
+import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
+import sturdy.values.references.AllocationSiteAddr
 
 // TODO: Support Scala code
 // TODO: Support incremental updates
@@ -17,14 +18,21 @@ class Executor extends IRExecutor:
     private def interp(mods: Seq[ir.Module], useCache: Boolean = true): Map[String, Relation] =
       if (!useCache || inputDirty || cachedResult.isEmpty) {
         val interp = IRConcreteInterpreter()
-        //interp.evalProgram(mods)
-        //val res = interp.idb.getState.map { case (addr, crv) =>
-        //val relName = addr.toString.drop(1)
-        val res = interp.evalProgram(mods).flatMap { case (mod, idb) =>
-          idb.map { case (relName, crv) =>
-            relName -> InterpreterRelation(relName, crv)
-          }
-        }
+        interp.evalProgram(mods)
+        val idb = interp.idb.getState
+        val allRels = mods.flatMap(_.relations.values)
+        val res = allRels.map { rel =>
+          val addr = AllocationSiteAddr.Variable(rel.name.name)(true)
+          val out = idb.get(addr) match
+            case Some(crv) => 
+              InterpreterRelation(rel.name.name, crv)
+            case None =>
+              // In case a relation failed
+              val emptyTable = CRelationValue[Value](rel.params.map(_.name.name), Set())
+              InterpreterRelation(rel.name.name, emptyTable)
+          rel.name.name -> out
+        }.toMap
+        
         cachedResult = Some(res)
       }
       cachedResult.get
