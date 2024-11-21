@@ -1,16 +1,13 @@
 package inca.ir.analysis
 
-import inca.ir.Name
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut}
 import inca.ir.analysis.base.logger.PrintLogger
-import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as arith
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
-import sturdy.data.{NoJoin, finiteUnit}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.{CollectedFailures, Failure}
 import sturdy.effect.store.AStoreThreaded
@@ -46,7 +43,8 @@ given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 
-class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]
+class IRConcreteInterpreter(val enableLogging: Boolean = false)
+  extends BaseGenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]
   with arith.interpreter.ConcreteInterpreter:
 
   type CRV = CRelationValue[Value]
@@ -92,14 +90,18 @@ class IRConcreteInterpreter extends BaseGenericInterpreter[Value, Boolean, CRela
   PrintLogger.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
-    fix.log(new PrintLogger,
+    val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
         fix.filter({
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
         }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
         )
-      ).fixpoint
+
+    if (enableLogging)
+      fix.log(new PrintLogger, fixPt).fixpoint
+    else
+      fixPt.fixpoint
 
 
     /*val fixpt = new ContextualFixpoint[FixIn, FixOut[Value, CRV]] {

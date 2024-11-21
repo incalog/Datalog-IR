@@ -1,6 +1,7 @@
 package inca.ir.analysis
 
-import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, string2name, term2Arg, termList2ArgList}
+import inca.ir.execution.interpreter.Executor
+import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, Module, Param, Relation, Var, execution, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, TInt, IR as arithIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
@@ -9,16 +10,18 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 class SimpleTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, abstractInterp: Boolean = false) =
+  def interp(mod: Module): Seq[execution.Relation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val interp = new IRConcreteInterpreter
-    println(mod)
-    println()
-    interp.evalProgram(Seq(mod))
-    //println(interp.idb.getState)
-    println(interp.idb.getState)
+    val interp = new Executor
+    val compiled = CompiledTestUnit(mod)
+    val engine = interp.instantiate(compiled)
+    val res = engine.readAll()
+    res.foreach { r =>
+      println(r.asTable)
+    }
+    res
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(
@@ -101,6 +104,28 @@ class SimpleTest extends AnyFunSuiteLike:
           Eq(Var("x"), IntNum(2)),
           Eq(Var("y"), IntNum(3)),
           Eq(Var("x"), Var("y")),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod)
+  }
+
+  test("Body Failing") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2)),
+          Eq(Var("x"), Var("y"))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3)),
+          Eq(Var("x"), Var("y"))
         ))
       )).addHint(MainHint),
     ))
