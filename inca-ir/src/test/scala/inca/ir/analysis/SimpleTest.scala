@@ -10,7 +10,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 class SimpleTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Seq[execution.Relation] = Seq()): Unit = //Map[String, execution.Relation]
+  def interp(mod: Module, edb: Seq[execution.Relation] = Seq()): Map[String, execution.Relation] =
     println(mod)
 
     val typechecker = new IRTypechecker
@@ -24,9 +24,8 @@ class SimpleTest extends AnyFunSuiteLike:
     res.foreach { r =>
       println(r.asTable)
     }
-    /*res.map { r =>
-      r.name ->
-    }*/
+    res.map(r => r.name -> r).toMap
+
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR, Seq(
@@ -39,8 +38,9 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    interp(mod)
-    //assert(interp(mod).contains()
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == 14)
   }
 
   test("Two relations") {
@@ -61,7 +61,11 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val res = interp(mod)
+    assert(res("calc").size == 1)
+    assert(res("main").size == 1)
+    assert(res("calc").entries.head == 14)
+    assert(res("main").entries.head == 14)
   }
 
   test("Right Recursion") {
@@ -93,7 +97,17 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val pathRel = res("path")
+    assert(pathRel.size == 3)
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
   }
 
   test("Left Recursion") {
@@ -125,10 +139,19 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val pathRel = res("path")
+    assert(pathRel.size == 3)
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
   }
 
-  // TODO: Not working why?
   test("Left and right Recursion") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
@@ -157,7 +180,18 @@ class SimpleTest extends AnyFunSuiteLike:
         ))
       )).addHint(MainHint),
     ))
-    interp(mod)
+
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val pathRel = res("path")
+    assert(pathRel.size == 3)
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
   }
 
   test("Failing atom") {
@@ -183,7 +217,11 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(3, 4)))
   }
 
   test("Body Failing") {
@@ -205,7 +243,9 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 0)
   }
 
   test("EDB call") {
@@ -224,9 +264,14 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod, Seq(
+    val res = interp(mod, Seq(
       execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
     ))
+
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(3, 4)))
   }
 
   test("EDB call - Args bound") {
@@ -246,9 +291,13 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod, Seq(
+    val res = interp(mod, Seq(
       execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
     ))
+
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 1)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(5, 2)))
   }
 
   test("EDB call - Negate") {
@@ -289,18 +338,21 @@ class SimpleTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    // 5	6
     // 9	10
     // 11	12
 
-    interp(mod, Seq(
+    val res = interp(mod, Seq(
       execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 2)))
     ))
+
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(9, 10)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(11, 12)))
   }
 
 
-// TODO: Test anti-join with empty table
-  /*test("Negation") {
+  test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
         Param("x", TInt),
@@ -309,15 +361,27 @@ class SimpleTest extends AnyFunSuiteLike:
         Body(Seq(
           Eq(Var("x"), IntNum(1)),
           Eq(Var("y"), IntNum(2)),
-          Eq(Var("x"), Var("y"))
         )),
         Body(Seq(
           Eq(Var("x"), IntNum(2)),
           Eq(Var("y"), IntNum(3)),
-          Eq(Var("x"), Var("y"))
+        ))
+      )),
+      Relation("filterEdge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(IntNum(3).arg, WildcardArg()), true),
+          Eq(Var("x"), IntNum(4)),
+          Eq(Var("y"), IntNum(5)),
         ))
       )).addHint(MainHint),
     ))
 
-    interp(mod)
-  }*/
+    val res = interp(mod)
+
+    val edgeRel = res("filterEdge")
+    assert(edgeRel.size == 1)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(4, 5)))
+  }

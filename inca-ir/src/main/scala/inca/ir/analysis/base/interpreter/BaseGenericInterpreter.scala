@@ -125,7 +125,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     edb += relName -> rv
 
   def removeEDB(relName: String, rv: RV): Unit =
-    // TODO: Filter edb and remove tuples accordingly
+    // TODO: Filter edb and remove tuples accordingly. Look at evalExtensionRelation
     ???
 
   def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))

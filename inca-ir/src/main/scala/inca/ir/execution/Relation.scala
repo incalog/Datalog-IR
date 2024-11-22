@@ -39,7 +39,7 @@ object Relation {
       case 24 => Relation24(relName, paramNames, queryMatches)
       case 25 => Relation25(relName, paramNames, queryMatches)
       case _ =>
-        // If we have too many parameters, we just fallback to a generic relation instance
+        // If we have too many parameters, we just fall back to a generic relation instance
         new Relation:
           override type Tuple = Seq[Any]
 

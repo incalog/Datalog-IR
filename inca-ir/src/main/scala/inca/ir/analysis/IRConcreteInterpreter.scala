@@ -85,7 +85,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV](Map())
 
   override def resetIDB(): Unit = idb.setState(Map())
-  
+
   given EqOps[Value, Boolean] = eqOps
 
   override val relationOps: RelationOps[Value, Boolean, CRV] = new CRelationValueOps[Value]
@@ -99,8 +99,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         fix.filter({
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
-          //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes())) // Workaround 2.
+        }, //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
+          fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes())) // Workaround 2.
           //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates()))
         )
 
