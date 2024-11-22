@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir.execution.interpreter.Executor
-import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, Module, Param, Relation, Var, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, TInt, IR as arithIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
@@ -10,7 +10,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 
 class SimpleTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module): Unit = //Map[String, execution.Relation]
+  def interp(mod: Module, edb: Seq[execution.Relation] = Seq()): Unit = //Map[String, execution.Relation]
     println(mod)
 
     val typechecker = new IRTypechecker
@@ -19,6 +19,7 @@ class SimpleTest extends AnyFunSuiteLike:
     val interp = new Executor
     val compiled = CompiledTestUnit(mod)
     val engine = interp.instantiate(compiled)
+    edb.foreach(engine.insert)
     val res = engine.readAll()
     res.foreach { r =>
       println(r.asTable)
@@ -207,7 +208,98 @@ class SimpleTest extends AnyFunSuiteLike:
     interp(mod)
   }
 
-  // TODO: Test anti-join with empty table
+  test("EDB call") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_edge", Seq(
+        Param("a", TInt),
+        Param("b", TInt)
+      )),
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(Var("x"), Var("y"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod, Seq(
+      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
+    ))
+  }
+
+  test("EDB call - Args bound") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_edge", Seq(
+        Param("a", TInt),
+        Param("b", TInt)
+      )),
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(IntNum(1), Var("y"))),
+          Eq(Var("x"), IntNum(5))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    interp(mod, Seq(
+      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
+    ))
+  }
+
+  test("EDB call - Negate") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_edge", Seq(
+        Param("a", TInt),
+        Param("b", TInt)
+      )),
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(IntNum(1).arg, WildcardArg()), true),
+          Eq(Var("x"), IntNum(5)),
+          Eq(Var("y"), IntNum(6))
+        )),
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(IntNum(1), IntNum(2)), true),
+          Eq(Var("x"), IntNum(7)),
+          Eq(Var("y"), IntNum(8))
+        )),
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(IntNum(2), IntNum(2)), true),
+          Eq(Var("x"), IntNum(9)),
+          Eq(Var("y"), IntNum(10))
+        )),
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(IntNum(4), IntNum(4)), true),
+          Eq(Var("x"), IntNum(11)),
+          Eq(Var("y"), IntNum(12))
+        )),
+        Body(Seq(
+          ExtensionalCall("input_edge", Seq(WildcardArg(), IntNum(2).arg), true),
+          Eq(Var("x"), IntNum(13)),
+          Eq(Var("y"), IntNum(14))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    // 5	6
+    // 9	10
+    // 11	12
+
+    interp(mod, Seq(
+      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 2)))
+    ))
+  }
+
+
+// TODO: Test anti-join with empty table
   /*test("Negation") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(

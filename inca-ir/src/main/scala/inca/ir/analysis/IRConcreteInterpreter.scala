@@ -84,6 +84,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val supplementaryTable: CSupplementaryTable = new CSupplementaryTable
   override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV](Map())
 
+  override def resetIDB(): Unit = idb.setState(Map())
+  
   given EqOps[Value, Boolean] = eqOps
 
   override val relationOps: RelationOps[Value, Boolean, CRV] = new CRelationValueOps[Value]

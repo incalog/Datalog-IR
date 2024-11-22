@@ -7,7 +7,8 @@ trait RelationOps[V, B, RV]:
   type Row = Seq[V]
   
   def unit: RV
-
+  
+  // might produce empty table
   def make(cols: Seq[String], vals: Seq[Row]): RV
   
   def rename(rv: RV, subst: Map[String, String]): RV
@@ -20,12 +21,14 @@ trait RelationOps[V, B, RV]:
 
   def cartesian(rv: RV, other: RV): RV
 
+  // might produce empty table
   def filter(rv: RV)(f: Row => B): RV
 
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
   def naturalJoin(rv: RV, other: RV): RV
 
+  // might produce empty table
   def antiJoin(rv: RV, other: RV): RV
 
   def union(rv: RV, other: RV): RV

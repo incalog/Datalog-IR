@@ -42,7 +42,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
         except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
       } {
-        updateSupplementary(comparisonResults, lhs, rhs)
+        val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
+        updateSupplementary(comparisonResults, mapping.toMap)
       }
 
     case _ => super.evalAtomOpen(at)

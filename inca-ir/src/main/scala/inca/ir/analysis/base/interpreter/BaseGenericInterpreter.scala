@@ -18,7 +18,6 @@ import sturdy.values.references.AllocationSiteAddr
 import sturdy.effect.except.Except
 import sturdy.data.MakeJoined
 import sturdy.data.MayJoin.WithJoin
-import sturdy.values.references.AllocationSiteAddr.Variable
 
 // TODO:
 //  1. Sturdy except when an atom or a body fails
@@ -83,6 +82,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val joinV: J[V]
 
+  private var edb: Map[String, RV] = Map()
+
   implicit val joinRV: Join[RV]
 
   def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
@@ -118,6 +119,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
+  def resetIDB(): Unit
+
+  def insertEDB(relName: String, rv: RV): Unit =
+    edb += relName -> rv
+
+  def removeEDB(relName: String, rv: RV): Unit =
+    // TODO: Filter edb and remove tuples accordingly
+    ???
+
   def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
 
   def entryPoints(m: ir.Module): Iterable[ir.Relation] = //m.relations.values
@@ -139,6 +149,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
     val res = if (neg) {
+      // TODO: Remove the next line in the future. This is just for debugging the concrete interpreter
+      assert(boolOps.or(relationOps.isEmpty(lhs), relationOps.isEmpty(rhs)) == boolFalse)
       relationOps.antiJoin(lhs, rhs)
     } else {
       relationOps.naturalJoin(lhs, rhs)
@@ -190,7 +202,37 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => throw new IllegalStateException()
 
   def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped {
-    ???
+    val relName = r.name.name
+    val paramNames = r.params.map(_.name.name)
+    val rv = edb.get(relName) match
+      case Some(value) => value
+      case _ => failure(RefNotFound, s"No EDB relation with name $relName found")
+
+    // Make sure we have an edb entry for each column
+    if (paramNames.exists(p => relationOps.hasColumn(rv, p) == boolFalse))
+      failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
+
+    // Filter the edb entries based on the current supplementary
+    val res = relationOps.filter(rv) { row =>
+      val bs = paramNames.zip(row).map { (p, r) =>
+        if (boundInSupplementary(p))
+          val combinations = relationOps.cartesian(
+            relationOps.projectAndRename(supplementaryTable.getTable, Map(p -> LHS_COLUMN)),
+            relationOps.make(Seq(RHS_COLUMN), Seq(Seq(r)))
+          )
+          val comparisonResults = relationOps.filter(combinations) { case Seq(v1, v2) => eqOps.equ(v1, v2) }
+          boolOps.not(relationOps.isEmpty(comparisonResults))
+        else
+          boolTrue
+      }
+      bs.foldLeft(boolTrue)((acc, b) => boolOps.and(acc, b))
+    }
+
+    branchOps.boolBranch(relationOps.isEmpty(res)) {
+      except.throws(RelationFailed(s"EDB relation $relName failed"))
+    } { /* nothing */ }
+
+    res
   }
 
   inline def evalBody(b: ir.Body)(using rec: Fixed): RV = rec(FixIn.Body(b)) match
@@ -220,25 +262,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     mergeIntoEnv(res, false)
 
   /**
-   * This method extracts the variables used in lhs and rhs and drops them from the supplementary.
-   * Afterward, it adds new values to the supplementary for these variables based on the values in the comparison table.
-   * @param comparisonResult The table that was produced by a comparison operation.
-   *                         We assume the columns are named "lhs" and "rhs".
-   * @param lhs              The left-hand side IR term used for the comparison.
-   * @param rhs              The right-hand side IR term used for the comparison.
+   * Update the values in the supplementary table based on the [[comparisonResult]] and a mapping of columns names
+   * as found in [[comparisonResult]] to the variable names found in the supplementary.
    */
-  final def updateSupplementary(comparisonResult: RV, lhs: ir.Term, rhs: ir.Term): Unit =
-    val lhsVarOption = extractVarName(lhs)
-    val rhsVarOption = extractVarName(rhs)
-
-    // drop all vars bound in lhs and rhs from the supplementary
-    val comparedVars = lhsVarOption ++ rhsVarOption
-    val sup = relationOps.drop(supplementaryTable.getTable, comparedVars.toSeq.map(_.name))
+  final def updateSupplementary(comparisonResult: RV, mapping: Map[String, String]): Unit =
+    // drop all old variables in the supplementary
+    val comparedVars = mapping.values
+    val sup = relationOps.drop(supplementaryTable.getTable, comparedVars.toSeq)
     supplementaryTable.setTable(sup)
 
     // add all pairs that hold after the environment to the supplementary
-    val subst = lhsVarOption.map(LHS_COLUMN -> _.name) ++ rhsVarOption.map(RHS_COLUMN -> _.name)
-    val addRV = relationOps.projectAndRename(comparisonResult, subst.toMap)
+    val addRV = relationOps.projectAndRename(comparisonResult, mapping)
     mergeIntoEnv(addRV, false)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
@@ -267,13 +301,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       //   edge(x, y),  // supplementary (x, y) -> (1, 2), (2, 3)
       //   x == 2.      // supplementary (x, y) -> (1, 2)
       // ~> filterEdge(1, 2)
-      updateSupplementary(comparisonResults, lhs, rhs)
+      val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
+      updateSupplementary(comparisonResults, mapping.toMap)
     }
 
+  private def boundInSupplementary(s: String): Boolean =
+    relationOps.hasColumn(supplementaryTable.getTable, s) == boolTrue
+
   private def boundInSupplementary(t: ir.Term): Boolean =
-    t.vars.forall { v =>
-      relationOps.hasColumn(supplementaryTable.getTable, v.name.name) == boolTrue
-    }
+    t.vars.forall { v => boundInSupplementary(v.name.name) }
 
   private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
@@ -313,27 +349,38 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         relationOps.rename(evalArg(a), Map(RESULT_COLUMN -> p.name.name))
       }
 
+      var positiveCallFailed = false
+
       // eval the actual call in a new scoped environment
-      val res = supplementaryTable.freshScoped {
-        // since we have at least one parameter argRV is defined
-        val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-        supplementaryTable.setTable(evalContext)
+      val res = except.tryCatch {
+        supplementaryTable.freshScoped {
+          // since we have at least one parameter argRV is defined
+          val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
+          supplementaryTable.setTable(evalContext)
 
-        val relRes = r match
-          case rel: ir.Relation => evalRelation(rel)
-          case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
-        // add all variables bound by the call to the context
-        val boundVars = args.map(extractVarName)
-        val subst = boundVars.zip(params).flatMap {
-          case (Some(varName), p) => Some((p.name.name, varName.name))
-          case _ => None
-        }.toMap
+          val relRes = r match
+            case rel: ir.Relation => evalRelation(rel)
+            case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
-        relationOps.projectAndRename(relRes, subst)
+          // add all variables bound by the call to the context
+          val boundVars = args.map(extractVarName)
+          val subst = boundVars.zip(params).flatMap {
+            case (Some(varName), p) => Some((p.name.name, varName.name))
+            case _ => None
+          }.toMap
+
+          relationOps.projectAndRename(relRes, subst)
+        }
+      } { exc =>
+        positiveCallFailed = true
+        relationOps.unit
       }
 
-      // merge all variables that where bound
-      mergeIntoEnv(res, neg)
+      (neg, positiveCallFailed) match
+        case (true, true) => // nothing, negative call succeeded
+        case (true, false) => except.throws(AtomFailed(s"Negative call failed: ~${r.name}(${args.mkString(",")})"))
+        case (false, true) => except.throws(AtomFailed(s"Call failed: ${r.name}(${args.mkString(",")})"))
+        case (false, false) => mergeIntoEnv(res, neg) // positive call succeeded
     }
 
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match

@@ -15,9 +15,11 @@ class Executor extends IRExecutor:
     private var inputDirty = true
     private var cachedResult: Option[Map[String, Relation]] = None
 
+    val interp = IRConcreteInterpreter()
+
     private def interp(mods: Seq[ir.Module], useCache: Boolean = true): Map[String, Relation] =
       if (!useCache || inputDirty || cachedResult.isEmpty) {
-        val interp = IRConcreteInterpreter()
+        interp.resetIDB()
         interp.evalProgram(mods)
         val idb = interp.idb.getState
         val allRels = mods.flatMap(_.relations.values)
@@ -65,14 +67,25 @@ class Executor extends IRExecutor:
     override def readAll(): Seq[Relation] =
       interp(mods).values.toSeq
 
+    private def relationToCRV(rel: Relation) =
+      CRelationValue[Value](rel.parameterNames, rel.entries.map { e =>
+        rel.flattenEntry(e).map {
+          case i: Int => CIntV(i)
+          case f: Float => CDoubleV(f)
+          case d: Double => CDoubleV(d)
+        }
+      }.toSet)
+
     override def insert(edb: Relation): Unit =
       inputDirty = true
       // TODO: handle edb
+      interp.insertEDB(edb.name, relationToCRV(edb))
+
 
     override def remove(edb: Relation): Unit =
       inputDirty = true
       // TODO: Handle edb
-      ???
+      interp.removeEDB(edb.name, relationToCRV(edb))
 
     override def addUpdateListener(up: RelationUpdateListener): Unit =
       throw IllegalArgumentException("Update listener is not supported")

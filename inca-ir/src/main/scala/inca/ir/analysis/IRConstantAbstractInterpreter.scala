@@ -102,7 +102,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
   override val joinUnit: WithJoin[Unit] = implicitly
 
   override lazy val supplementaryTable: ASupplementaryTable = new ASupplementaryTable
-  override lazy val idb: Store[AllocationSiteAddr, RV, WithJoin] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
+  override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
   // lazy is important because of cyclic implicits
   //override lazy val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)
 
@@ -112,6 +112,8 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
 
   override val relationOps: RelationOps[Value, VBool, RV] = new ARelationValueOps[Value, VBool]
 
+  override def resetIDB(): Unit = idb.setState(Map())
+  
   override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] = ???
     /*val fixpt = new ContextInsensitiveFixpoint[FixIn, FixOut[Value, RV]] {
       override protected def contextInsensitive: Contextual[Unit, FixIn, FixOut[Value, RV]] ?=> Combinator[FixIn, FixOut[Value, RV]] =
