@@ -14,7 +14,7 @@ type ValueId = Int
  * @throws IllegalStateException if number of different values exceeds range of [[Int]]
  */
 class ValueIds[T]{
-  private var ids: mutable.Map[T,ValueId] = mutable.Map()
+  private val ids: mutable.Map[T,ValueId] = mutable.Map()
 
   private var currentId: ValueId = Int.MinValue
   private def nextId(): ValueId = {
@@ -72,16 +72,6 @@ class ValueIds[T]{
   def updateAll(fromId: ValueId, toId: ValueId): Unit = {
     getAllWithId(fromId).foreach(update(_,toId))
   }
-
-  private def setState(ids: mutable.Map[T, ValueId], currentId: ValueId): Unit = {
-    this.ids = ids
-    this.currentId = currentId
-  }
-
-  override def clone(): ValueIds[T] = {
-    val newValueIds = new ValueIds[T]()
-    newValueIds.setState(ids.clone(), currentId)
-    newValueIds
-  }
+  
   
 }

@@ -233,22 +233,21 @@ trait BaseValueNumbering extends IRVisitor {
 
     val newBody = super.visitBody(body).head
 
-    if (!validBody) return {
-      println(s"body $body was identified to be invalid")
-      Seq()
+    if (!validBody) {
+      congrClasses = mutable.Map[ValueId, CongruenceClass]()
+      valueNumbers = new ValueIds[Term]()
+      return Seq()
     }
 
     printResults()
 
     // remember analysis results in body
-    newBody.VNs = valueNumbers.clone()
-    newBody.congruenceClasses = congrClasses.clone()
+    newBody.VNs = valueNumbers
+    newBody.congruenceClasses = congrClasses
 
     // reset congrClasses (otherwise not known when variables are unbound)
     congrClasses = mutable.Map[ValueId, CongruenceClass]()
     valueNumbers = new ValueIds[Term]()
-//    congrClasses.clear()
-//    valueNumbers.clear()
 
     return Seq(newBody)
   }
