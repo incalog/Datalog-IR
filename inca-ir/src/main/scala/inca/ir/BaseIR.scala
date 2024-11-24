@@ -5,7 +5,7 @@ import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 import inca.util.Graph
-import inca.ir.valueNumbering.{Inline, Outline}
+import inca.ir.valueNumbering.{Inline, Outline, VNAnalysisResults}
 
 import java.lang.annotation.Target
 import scala.language.implicitConversions
@@ -187,7 +187,7 @@ case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEnt
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
   override def toString: String = s"$name: $ty"
 
-case class Body(atoms: Seq[Atom]) extends Hints:
+case class Body(atoms: Seq[Atom]) extends Hints with VNAnalysisResults:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 

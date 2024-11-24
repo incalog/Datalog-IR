@@ -18,13 +18,17 @@ trait BaseValueNumbering extends IRVisitor {
   def useFixPointIteration: Boolean = true
   def printVNResults: Boolean = true
 
-  protected case class CongruenceClass(valueId: ValueId, var leader: Term, var definingTerm: Term) {
+  protected case class CongrClass(valueId: ValueId, var leader: Term, var definingTerm: Term) extends CongruenceClass {
     override def toString: String =
       s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
     def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
       if (isConst(t)) {
-        if (isConst(leader) && leader != t) throw new IllegalStateException(s"Term $t can not equal $leader with valueId $valueId")
+        if (isConst(leader) && leader != t) {
+          println("#############################################################################")
+          printResults()
+          throw new IllegalStateException(s"ValueNumbering: Term $t cannot equal $leader with valueId $valueId while analyzing relation $currentRelationName body with index $currentBodyIndex")
+        }
         leader = t
       }
       if (!isParam(leader) && !isConst(leader) && isParam(t))
@@ -84,7 +88,7 @@ trait BaseValueNumbering extends IRVisitor {
       congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
     }
     else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
-      congrClasses.update(toId, CongruenceClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
+      congrClasses.update(toId, CongrClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
       valueNumbers.getAllWithId(toId).foreach(t => congrClasses(toId).updateCongrClassIfNecessary(t))
     }
     else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
@@ -103,7 +107,7 @@ trait BaseValueNumbering extends IRVisitor {
   private enum Phase:
     case initial
     case repetition
-    case removeInValidBodies
+
   private var phase: Phase = _
 
 
@@ -120,13 +124,9 @@ trait BaseValueNumbering extends IRVisitor {
     valueNumbers.printResults()
   }
 
-  // TODO refactor
-  private type bodyId = (RelationName,BodyIndex)
-  private var analysisResults: Map[bodyId , (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
-  private var isValidBody: Map[bodyId, Boolean] = Map()
 
   private type ParamName = Name
-  private var paramLeaders: Map[(RelationName, ParamName), Option[Term]] = Map()
+  private var paramLeaders: Map[(RelationName, ParamName), Term] = Map() // TODO refactor ?
 
   private var inputRelations: Map[String,Relation] = _  // used to access analysis results of params of other relations than the currently processed one
 
@@ -143,11 +143,8 @@ trait BaseValueNumbering extends IRVisitor {
     phase = Phase.repetition // repeat with previous analysis results and rewritten bodies
     val result = repetitionPhase(tempResult)
 
-    phase = Phase.removeInValidBodies
-    val finalResult = removeInvalidBodies(result)
-
-    if (printVNResults) println(s"after VN: \n$finalResult")
-    finalResult
+    if (printVNResults) println(s"after VN: \n$result")
+    result
   }
 
   @tailrec
@@ -161,10 +158,6 @@ trait BaseValueNumbering extends IRVisitor {
     else {
       return result
     }
-  }
-
-  private def removeInvalidBodies(module: Module): Module = {
-    super.visitModule(module)
   }
 
 
@@ -184,66 +177,43 @@ trait BaseValueNumbering extends IRVisitor {
     v
   }
 
-  private var relationParams: Seq[Name] = Seq()
+  private var currentRelationParams: Seq[Name] = Seq()
   protected def isParam(t: Term): Boolean = t match {
-    case vari@Var(_) => relationParams.contains(vari.name)
+    case vari@Var(_) => currentRelationParams.contains(vari.name)
     case _ => false
   }
 
 
 
   private def joinParams(relation: Relation): Unit = { // TODO refactor ?
-    enum ConstLattice {
-      case Top
-      case Const(l: Term)
-      case Bot
-
-      def join(that: ConstLattice): ConstLattice = (this, that) match {
-        case (Const(l1), Const(l2)) if l1 == l2 => Const(l1)
-        case (_, Bot) => this
-        case (Bot, _) => that
-        case _ => Top
-      }
-
-      def toOption: Option[Term] = this match {
-        case Const(l) => Some(l)
-        case _ => None
-      }
-    }
-    object ConstLattice {
-      def toConst(t: Term): ConstLattice = {
-        if (isConst(t)) Const(t)
-        else Top
-      }
-    }
     import ConstLattice.*
 
     val relName = relation.name
     val params = relation.params
 
     val leaders = params.map{ param =>
-      param -> {
-        val bodyLeaders = relation.bodies.indices.map { bodyIdx =>
-          val (bodyVN, bodyCongrClasses) = analysisResults((relName, bodyIdx))
-          val vn = bodyVN(Var(param.name))
-          val leader = bodyCongrClasses(vn).leader
-          toConst(leader)
-        }
-        bodyLeaders.foldRight(Bot) { (elem, tempRes) => elem.join(tempRes) }
+      val bodyLeaders = relation.bodies.map { body =>
+        val vn = body.VNs(Var(param.name))
+        val leader = body.congruenceClasses(vn).leader
+        toConst(leader, isConst)
       }
-    }.toMap
+      val leader = bodyLeaders.foldRight(Bot) { (elem, tempRes) => elem.join(tempRes) }
+      param -> leader
+    }.filter(_._2.isConst).toMap
 
-    paramLeaders = paramLeaders ++ leaders.map((param, leader) => (relName, param.name) -> leader.toOption)
+    paramLeaders = paramLeaders ++ leaders.map { case (param, Const(t)) =>
+      (relName, param.name) -> t
+    }
   }
 
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
     currentRelationName = relation.name
-    relationParams = relation.params.map(_.name)
+    currentRelationParams = relation.params.map(_.name)
     currentBodyIndex = -1
     val result = super.visitRelation(relation)
 
-    joinParams(result.head)
+//    joinParams(result.head)
 
     result
   }
@@ -254,34 +224,33 @@ trait BaseValueNumbering extends IRVisitor {
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
 
-    if (phase == Phase.removeInValidBodies){
-      if (!isValidBody((currentRelationName, currentBodyIndex)))
-        return Seq()
-      else
-        return Seq(body)
-    }
-
     if (phase == Phase.repetition){
-      if (!isValidBody((currentRelationName, currentBodyIndex))) return Seq(body)
-
-      congrClasses = analysisResults((currentRelationName, currentBodyIndex))._2
-      valueNumbers = analysisResults((currentRelationName, currentBodyIndex))._1
+      congrClasses = body.congruenceClasses
+      valueNumbers = body.VNs
     }
 
     validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
-    val newBody = super.visitBody(body)
+    val newBody = super.visitBody(body).head
+
+    if (!validBody) return {
+      println(s"body $body was identified to be invalid")
+      Seq()
+    }
 
     printResults()
 
-    // reset congrClasses (otherwise not known when variables are unbound)
-    analysisResults = analysisResults + ((currentRelationName,currentBodyIndex) -> (valueNumbers, congrClasses))
-    isValidBody = isValidBody + ((currentRelationName,currentBodyIndex) -> validBody)
+    // remember analysis results in body
+    newBody.VNs = valueNumbers.clone()
+    newBody.congruenceClasses = congrClasses.clone()
 
+    // reset congrClasses (otherwise not known when variables are unbound)
     congrClasses = mutable.Map[ValueId, CongruenceClass]()
     valueNumbers = new ValueIds[Term]()
+//    congrClasses.clear()
+//    valueNumbers.clear()
 
-    return newBody
+    return Seq(newBody)
   }
 
 
@@ -375,11 +344,11 @@ trait BaseValueNumbering extends IRVisitor {
     else {
       // if term is a constant then use it as leader of its congruence class
       if (isConst(newTerm)) {
-        congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
+        congrClasses.update(termId, CongrClass(termId, newTerm, newTerm))
         if (!dontRemove) return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
       else {
-        congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
+        congrClasses.update(termId, CongrClass(termId, newVari, newTerm))
         congrClasses(termId).updateCongrClassIfNecessary(newTerm, updateDefTermIfNecessary = true)
       }
 
@@ -404,21 +373,21 @@ trait BaseValueNumbering extends IRVisitor {
       val key = (refName, paramName)
 
       if (paramLeaders.contains(key)) {
-        if (paramLeaders(key).nonEmpty) {
-          val leader = paramLeaders(key).get
+//        if (paramLeaders(key).nonEmpty) {
+          val leader = paramLeaders(key)//.get
           val id = getIdOf(leader)
 
           if (congrClasses.contains(id)) {
             congrClasses(id).updateCongrClassIfNecessary(leader)
           }
           else {
-            congrClasses.update(id, CongruenceClass(id, leader, leader))
+            congrClasses.update(id, CongrClass(id, leader, leader))
           }
 
           updateValueNumbersAndCongrClasses(vari, id)
           if (!isParam(vari)) return leader
           else return vari
-        }
+//        }
       }
 
       return conservativeBinding(vari)
@@ -454,7 +423,7 @@ trait BaseValueNumbering extends IRVisitor {
     val id = valueNumbers.getIdOf(newVari)
     // in the 1st pass: binding var becomes leader of its new congr class;
     // in 2nd pass: vari was replaced with leader -> newVari that was leader becomes new leader
-    congrClasses.update(id, CongruenceClass(id, newVari, newVari))
+    congrClasses.update(id, CongrClass(id, newVari, newVari))
     newVari
   }
 
