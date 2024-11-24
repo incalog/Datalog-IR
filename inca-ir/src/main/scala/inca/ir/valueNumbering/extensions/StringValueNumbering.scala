@@ -1,5 +1,6 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
 
+import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.extension.string.{StringLit,StringConcat,ToString}
 import inca.ir.{Atom, Term}
 

@@ -113,7 +113,7 @@ trait BaseValueNumbering extends IRVisitor {
   private var currentBodyIndex: BodyIndex = -1
 
   def printResults(): Unit = {
-    if !printVNResults then return
+    if (!printVNResults) return
     println(s"Results from Relation $currentRelationName body $currentBodyIndex")
     println(s"Congruence Classes Info:")
     println("\t" + congrClasses.mkString("\n\t") + "\n")
@@ -121,20 +121,21 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   // TODO refactor
-  private var analysisResults: Map[(RelationName,BodyIndex), (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
-  private var isValidBody: Map[(RelationName, BodyIndex), Boolean] = Map()
+  private type bodyId = (RelationName,BodyIndex)
+  private var analysisResults: Map[bodyId , (ValueIds[Term], mutable.Map[ValueId, CongruenceClass])] = Map()
+  private var isValidBody: Map[bodyId, Boolean] = Map()
 
   private type ParamName = Name
   private var paramLeaders: Map[(RelationName, ParamName), Option[Term]] = Map()
 
-  private var inputModule: Module = _  // TODO
+  private var inputRelations: Map[String,Relation] = _  // used to access analysis results of params of other relations than the currently processed one
 
 
   def valueNumbering(module: ir.Module): ir.Module = visitModule(module)
 
   override def visitModule(module: Module): Module = {
-    if printVNResults then println(s"before VN: \n$module\n")
-    inputModule = module
+    if (printVNResults) println(s"before VN: \n$module\n")
+    inputRelations = module.relations
 
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     val tempResult = super.visitModule(module)
@@ -145,7 +146,7 @@ trait BaseValueNumbering extends IRVisitor {
     phase = Phase.removeInValidBodies
     val finalResult = removeInvalidBodies(result)
 
-    if printVNResults then println(s"after VN: \n$finalResult")
+    if (printVNResults) println(s"after VN: \n$finalResult")
     finalResult
   }
 
@@ -191,43 +192,48 @@ trait BaseValueNumbering extends IRVisitor {
 
 
 
-  private def joinParams(relation: Relation): Unit = { // TODO
-    enum LeaderLattice{
+  private def joinParams(relation: Relation): Unit = { // TODO refactor ?
+    enum ConstLattice {
       case Top
-      case Leader(l: Term)
+      case Const(l: Term)
       case Bot
 
-      def join(that: LeaderLattice): LeaderLattice = (this, that) match {
-        case (Leader(l1), Leader(l2)) if l1 == l2 => Leader(l1)
+      def join(that: ConstLattice): ConstLattice = (this, that) match {
+        case (Const(l1), Const(l2)) if l1 == l2 => Const(l1)
         case (_, Bot) => this
         case (Bot, _) => that
         case _ => Top
       }
+
       def toOption: Option[Term] = this match {
-        case Leader(l) => Some(l)
+        case Const(l) => Some(l)
         case _ => None
       }
     }
-    import LeaderLattice.*
+    object ConstLattice {
+      def toConst(t: Term): ConstLattice = {
+        if (isConst(t)) Const(t)
+        else Top
+      }
+    }
+    import ConstLattice.*
 
     val relName = relation.name
     val params = relation.params
 
     val leaders = params.map{ param =>
-      param ->
-        relation.bodies.indices.map { bodyIdx =>
+      param -> {
+        val bodyLeaders = relation.bodies.indices.map { bodyIdx =>
           val (bodyVN, bodyCongrClasses) = analysisResults((relName, bodyIdx))
           val vn = bodyVN(Var(param.name))
           val leader = bodyCongrClasses(vn).leader
-          if (isConst(leader)) Leader(leader)
-          else Top
-        }.foldRight(Bot){ (elem, tempRes) =>
-          elem.join(tempRes)
+          toConst(leader)
         }
+        bodyLeaders.foldRight(Bot) { (elem, tempRes) => elem.join(tempRes) }
+      }
     }.toMap
 
     paramLeaders = paramLeaders ++ leaders.map((param, leader) => (relName, param.name) -> leader.toOption)
-
   }
 
 
@@ -291,9 +297,9 @@ trait BaseValueNumbering extends IRVisitor {
     case Eq(e, vari@Var(RefByName(Name(_))), false) =>
       valueNumberVar(vari, e, dontRemove = true)
 
-    case call@Call(_, args, false) =>  treatBindingsInCall(call, args)
+    case call@Call(_, _, false) => treatBindingsInCall(call)
 
-    case call@ExtensionalCall(_, args, false) => treatBindingsInExtensionalCall(call, args)
+    case call@ExtensionalCall(_, _, false) => treatBindingsInExtensionalCall(call)
 
     case _ => super.visitAtom(atom)
   }
@@ -301,8 +307,8 @@ trait BaseValueNumbering extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = {
-    if isConst(term) then return Seq(term) // dont replace constant terms and no need to normalize them
-    if (congrClasses.contains(valueNumbers(term)) && isAllowedToReplace(term)) then return Seq( getReplacementTerm(term) )
+    if (isConst(term)) return Seq(term) // dont replace constant terms and no need to normalize them
+    if (congrClasses.contains(valueNumbers(term)) && isAllowedToReplace(term)) return Seq( getReplacementTerm(term) )
 
     val newTerm = super.visitTerm(term).head
     newTerm.typ = term.typ
@@ -344,8 +350,8 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {
-    val newTerm = if isParam(t) then t else visitTerm(t).head
-    val newVari = if isParam(vari) then vari else visitTerm(vari).head
+    val newTerm = if (isParam(t)) t else visitTerm(t).head
+    val newVari = if (isParam(vari))vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
     if (isConst(getReplacementTerm(newTerm)) && isConst(getReplacementTerm(newVari)) && getReplacementTerm(newTerm) != getReplacementTerm(newVari)) {
@@ -370,7 +376,7 @@ trait BaseValueNumbering extends IRVisitor {
       // if term is a constant then use it as leader of its congruence class
       if (isConst(newTerm)) {
         congrClasses.update(termId, CongruenceClass(termId, newTerm, newTerm))
-        if !dontRemove then return Seq() // remove binding of constant -> usages of var are replaced with constant
+        if (!dontRemove) return Seq() // remove binding of constant -> usages of var are replaced with constant
       }
       else {
         congrClasses.update(termId, CongruenceClass(termId, newVari, newTerm))
@@ -390,38 +396,50 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  private def treatBindingsInCall(call: Call, args: Seq[Arg]): Seq[Atom] = { // TODO refactor
-    val newArgs: Seq[Arg] = args.zipWithIndex.map {
-      case (arg@TermArg(vari@Var(_)), i) if vari.mode.isBinding =>
-        val newArg = {
-          val key = (call.ref.name, inputModule.relations(call.ref.name).params(i).name)
-          if (paramLeaders.contains(key)) {
-            val leader = paramLeaders(key).getOrElse(conservativeBinding(vari))
-            val id = getIdOf(leader)
-            if (congrClasses.contains(id)) {
-              congrClasses(id).updateCongrClassIfNecessary(leader)
-            }
-            else {
-              congrClasses.update(id, CongruenceClass(id, leader, leader))
-            }
-            updateValueNumbersAndCongrClasses(vari,id)
-            if !isParam(vari) then leader
-            else vari
+  private def treatBindingsInCall(call: Call): Seq[Atom] = {
+
+    /** helper method for [[treatBindingsInCall]] */
+    def treatBinding(vari: Var, paramIndex: Int, refName: Name): Term = { // TODO refactor ?
+      val paramName = inputRelations(refName).params(paramIndex).name
+      val key = (refName, paramName)
+
+      if (paramLeaders.contains(key)) {
+        if (paramLeaders(key).nonEmpty) {
+          val leader = paramLeaders(key).get
+          val id = getIdOf(leader)
+
+          if (congrClasses.contains(id)) {
+            congrClasses(id).updateCongrClassIfNecessary(leader)
           }
           else {
-            conservativeBinding(vari)
+            congrClasses.update(id, CongruenceClass(id, leader, leader))
           }
+
+          updateValueNumbersAndCongrClasses(vari, id)
+          if (!isParam(vari)) return leader
+          else return vari
         }
+      }
+
+      return conservativeBinding(vari)
+    }
+
+    val Call(ref, args, neg) = call
+    val newArgs: Seq[Arg] = args.zipWithIndex.map {
+      case (TermArg(vari@Var(_)), i) if vari.mode.isBinding =>
+        val newArg = treatBinding(vari, i, ref.name)
         TermArg(newArg)
       case (arg,_) => visitArg(arg).head
     }
-    Seq(Call(call.ref, newArgs, call.neg))
+    return Seq(Call(ref, newArgs, neg))
   }
 
 
-  private def treatBindingsInExtensionalCall(call: ExtensionalCall, args: Seq[Arg]): Seq[Atom] = {
+
+  private def treatBindingsInExtensionalCall(call: ExtensionalCall): Seq[Atom] = {
+    val ExtensionalCall(ref, args, neg) = call
     val newArgs: Seq[Arg] = args.flatMap(visitArg)
-    Seq(ExtensionalCall(call.ref,newArgs,call.neg))
+    Seq(ExtensionalCall(ref, newArgs, neg))
   }
 
 
@@ -432,7 +450,7 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   protected def conservativeBinding(vari: Var): Term = { // conservative assumption that not equal to any known terms
-    val newVari = if isParam(vari) then vari else visitTerm(vari).head
+    val newVari = if (isParam(vari)) vari else visitTerm(vari).head
     val id = valueNumbers.getIdOf(newVari)
     // in the 1st pass: binding var becomes leader of its new congr class;
     // in 2nd pass: vari was replaced with leader -> newVari that was leader becomes new leader

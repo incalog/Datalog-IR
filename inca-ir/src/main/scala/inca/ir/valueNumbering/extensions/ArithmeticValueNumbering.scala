@@ -1,5 +1,6 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
 
+import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.{Term, TermType, Var}
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound

@@ -1,4 +1,6 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
+
+import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.{Arg, Atom, Ref, RefByName, Term, TermArg, Var}
 import inca.ir.extension.data.{CaseDefinition, Construct, Deconstruct}
 

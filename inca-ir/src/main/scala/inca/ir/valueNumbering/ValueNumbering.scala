@@ -1,7 +1,7 @@
 package inca.ir.valueNumbering
 
-import inca.ir
-import inca.ir.*
+import inca.ir.valueNumbering.BaseValueNumbering
+import inca.ir.valueNumbering.extensions.*
 
 /*************************************************************************
  *  Assumptions:
