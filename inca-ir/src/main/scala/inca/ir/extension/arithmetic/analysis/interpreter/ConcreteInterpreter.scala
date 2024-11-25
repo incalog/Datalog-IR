@@ -14,9 +14,11 @@ import sturdy.values.booleans.BooleanOps
 import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps}
 import sturdy.values.ordering.{ConcreteOrderingOps, EqOps, OrderingOps}
 
-case class CIntV(value: Int) extends Value
+case class CIntV(value: Int) extends Value:
+  override def toString: String = value.toString
 
-case class CDoubleV(value: Double) extends Value
+case class CDoubleV(value: Double) extends Value:
+  override def toString: String = value.toString
 
 private def fromInt(value: Int): Value = value match
     case i => CIntV(i)
