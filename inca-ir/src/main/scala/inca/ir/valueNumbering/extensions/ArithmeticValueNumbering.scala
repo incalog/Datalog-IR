@@ -53,7 +53,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   private def getArgumentOfOp(t: Term): Term = {
     // without visitTerm defterm might contain removed Var
     if (this.useDefiningTerm && !isConst(t)) { // TODO use interface when to outline/inline term (make sure t not contained in defterm)
-      val newTerm =  visitTerm(getDefiningTerm(t)).head.typed(t.typ.get, force = true)
+      val newTerm =  visitTerm(vnTables.getDefiningTerm(t)).head.typed(t.typ.get, force = true)
       return newTerm
     }
     else return t
@@ -122,7 +122,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
-    case (l,r) if getReplacementTerm(r) == IntNum(0) || getReplacementTerm(r) == DoubleNum(0) => Div(l,r)
+    case (l,r) if vnTables.getReplacementTerm(r) == IntNum(0) || vnTables.getReplacementTerm(r) == DoubleNum(0) => Div(l,r)
     case (l, IntNum(1) | DoubleNum(1)) => l
     case (l, r) if getIdOf(l) == getIdOf(r) =>
       if typ.ty == TInt then newIntNum(1)

@@ -5,7 +5,7 @@ import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 import inca.util.Graph
-import inca.ir.valueNumbering.{Inline, Outline, VNAnalysisResults}
+import inca.ir.valueNumbering.{Inline, Outline, VNAnalysisResults, VNAnalysisResultsParams}
 
 import java.lang.annotation.Target
 import scala.language.implicitConversions
@@ -166,7 +166,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase, VNAnalysisResultsParams:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"

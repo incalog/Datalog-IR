@@ -1,14 +1,18 @@
 package inca.ir.valueNumbering
 
-import inca.ir.Term
+import inca.ir.{Name, Term}
 
 import scala.collection.mutable
 
 
 
 trait VNAnalysisResults {
-
   var VNs: ValueIds[Term] = ValueIds[Term]()
-  var congruenceClasses: mutable.Map[ValueId, CongruenceClass] = mutable.Map()
+  var congruenceClasses: CongrClassesTable = new CongrClassesTable()
+}
 
+
+trait VNAnalysisResultsParams {
+  type ParamName = Name
+  var paramLeaders: Map[ParamName, Term] = Map()
 }
