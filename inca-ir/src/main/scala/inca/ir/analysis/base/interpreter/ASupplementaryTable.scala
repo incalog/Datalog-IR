@@ -10,7 +10,7 @@ import sturdy.values.{Join, Widen}
 
 
 class ASupplementaryTable(using j: Join[ARelationValue[Value]], w: Widen[ARelationValue[Value]], failure: Failure)
-  extends SupplementaryTable[ARelationValue[Value], WithJoin]:
+  extends SupplementaryTable[ARelationValue[Value]]:
 
   protected var supTable: ARelationValue[Value] = ARelationValue(Seq(), Some(Seq()))
 

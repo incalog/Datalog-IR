@@ -194,6 +194,58 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
   }
 
+  test("Left and right Recursion - Start query") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("path", Seq(Var("x"), Var("z"))),
+          Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("path", Seq(IntNum(1), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+
+    println(res)
+
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val pathRel = res("path")
+    assert(pathRel.size == 3)
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
+  }
+
   test("Failing atom") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(

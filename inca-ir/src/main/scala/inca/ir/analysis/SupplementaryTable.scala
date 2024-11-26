@@ -3,7 +3,7 @@ package inca.ir.analysis
 import sturdy.data.MayJoin
 import sturdy.effect.Effect
 
-trait SupplementaryTable[RV, J[_] <: MayJoin[?]] extends Effect:
+trait SupplementaryTable[RV] extends Effect:
 
   def scoped[A](f: => A): A
 

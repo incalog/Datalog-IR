@@ -87,24 +87,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   implicit val joinRV: Join[RV]
 
   def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
-    case _: FixIn.Relation => EffectList(except, failure, supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
+    case _: FixIn.Relation => EffectList(supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
   }, {
     case _: FixIn.Relation => EffectList(except, failure, idb) //supplementaryTable
   })
-
-  // Workaround 1.
-  /*def effects: EffectStack = new EffectStack(EffectList(failure, idb), {
-    case _: FixIn.Relation => EffectList(failure, idb)
-    case _ => EffectList(failure, idb)
-  }, {
-    case _: FixIn.Relation => EffectList(failure, idb)
-    case _ => EffectList(failure, idb)
-  })*/
+  
   given EffectStack = effects
 
   def idb: Store[AllocationSiteAddr, RV, WithJoin]
 
-  def supplementaryTable: SupplementaryTable[RV, J]
+  def supplementaryTable: SupplementaryTable[RV]
 
   implicit def joinUnit: J[Unit]
 
@@ -142,8 +134,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       } { case RelationFailed(msg) =>
         relationOps.make(rel.params.map(_.name.name), Seq())
       }
-      // Workaround 1.
-      //insertIDB(rel.name, relRes)
     }
   }
 
@@ -331,6 +321,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       if (boundInSupplementary(t))
         evalTerm(t)
       else
+        // empty context. We need unit so that mergeIntoEnv is working.
         relationOps.unit
     case ir.WildcardArg() => relationOps.unit
     case _ => failure(UnknownArg, s"Unknown arg $arg")
@@ -356,6 +347,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         supplementaryTable.freshScoped {
           // since we have at least one parameter argRV is defined
           val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
+          //println(s"${r.name} ${evalContext}")
           supplementaryTable.setTable(evalContext)
 
           val relRes = r match

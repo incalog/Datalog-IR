@@ -10,6 +10,8 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   if (cols.nonEmpty && rows.size == 1 && rows.head == Seq())
     throw IllegalArgumentException("Unit table must not have columns")
 
+  lazy val isEmpty: Boolean = cols.isEmpty && rows.isEmpty
+
   lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
 
   def union(other: CRelationValue[V]): CRelationValue[V] =
