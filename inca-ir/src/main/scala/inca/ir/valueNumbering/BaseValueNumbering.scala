@@ -21,8 +21,8 @@ trait BaseValueNumbering extends IRVisitor {
   private case class CongrClass(valueId: ValueId, var leader: Term, var definingTerm: Term) extends CongruenceClass {
     override val isConstTerm: Term => Boolean = isConst
     override val isParameter: Term => Boolean = isParam
-    override val errorInfoStr: String =
-      s" while analyzing relation $currentRelationName body with index $currentBodyIndex"
+    override val errorInfoStr: () => String = 
+      () => s" while analyzing relation $currentRelationName body with index $currentBodyIndex"
   }
 
   private class VNTables extends VNTablesTrait {
@@ -94,6 +94,7 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   private var currentRelationParams: Seq[Name] = Seq()
+
   protected def isParam(t: Term): Boolean = t match {
     case vari@Var(_) => currentRelationParams.contains(vari.name)
     case _ => false
@@ -189,15 +190,15 @@ trait BaseValueNumbering extends IRVisitor {
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = {
     if (isConst(term)) return Seq(term) // dont replace constant terms and no need to normalize them
-    if (vnTables.isCongrClassContained(vnTables.getIdOf(term)) && isAllowedToReplace(term)) {
+    if (vnTables.isCongrClassContained(getIdOf(term)) && isAllowedToReplace(term)) {
       return Seq(vnTables.getReplacementTerm(term))
     }
 
     val newTerm = super.visitTerm(term).head
     newTerm.typ = term.typ
 
-    val newTermId: ValueId = vnTables.getIdOf(newTerm)
-    val termId: ValueId = vnTables.getIdOf(term)
+    val newTermId: ValueId = getIdOf(newTerm)
+    val termId: ValueId = getIdOf(term)
 
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
@@ -213,7 +214,7 @@ trait BaseValueNumbering extends IRVisitor {
     }
     else {
       // normalized term already has an id -> update term and newTerm to that id
-      val normId = vnTables.getIdOf(normalizedTerm)
+      val normId = getIdOf(normalizedTerm)
       if (vnTables.isCongrClassContained(newTermId)) {
         vnTables.updateCongrClassIfNecessary(newTermId, normalizedTerm)
       }
@@ -333,7 +334,7 @@ trait BaseValueNumbering extends IRVisitor {
 
   protected def conservativeBinding(vari: Var): Term = { // conservative assumption that not equal to any known terms
     val newVari = if (isParam(vari)) vari else visitTerm(vari).head
-    val id = vnTables.getIdOf(newVari)
+    val id = getIdOf(newVari)
     // in the 1st pass: binding var becomes leader of its new congr class;
     // in 2nd pass: vari was replaced with leader -> newVari that was leader becomes new leader
     vnTables.addCongrClass(CongrClass(id, newVari, newVari))
