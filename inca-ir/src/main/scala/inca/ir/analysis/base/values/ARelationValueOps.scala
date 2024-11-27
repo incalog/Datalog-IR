@@ -17,13 +17,15 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def isEmpty(rv: ARelationValue[V]): B = ???
 
   override def hasColumn(rv: ARelationValue[V], column: String): B = ???
-  
+
+  override def columns(rv: RV): Seq[String] = ???
+
   override def unit: ARelationValue[V] = ???
 
   override def make(cols: Seq[String], vals: Seq[Row]): ARelationValue[V] = ???
 
   override def rename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
-  
+
   override def project(rv: ARelationValue[V], cols: Seq[String]): ARelationValue[V] = ???
 
   override def projectAndRename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
@@ -33,7 +35,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
 
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
-  
+
   override def foreach(rv: ARelationValue[V])(f: Row => Unit): Unit = ???
 
   override def naturalJoin(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???

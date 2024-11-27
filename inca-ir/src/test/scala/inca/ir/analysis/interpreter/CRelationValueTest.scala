@@ -60,13 +60,27 @@ class CRelationValueTest extends AnyFunSuiteLike:
     val table1 = CRelationValue(Seq(), Set(Seq[Int]()))
     val table2 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val result = table1.union(table2)
-    assert(result == table2)
+    assert(result == table1)
   }
 
   test("Union - Table x Unit Table") {
     val table1 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = CRelationValue(Seq(), Set(Seq[Int]()))
     val result = table1.union(table2)
+    assert(result == table2)
+  }
+
+  test("Union - Table x Table with Columns but no rows") {
+    val table1 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
+    val table2 = CRelationValue(Seq("a", "b"), Set(Seq[Int]()))
+    val result = table1.union(table2)
+    assert(result == table1)
+  }
+
+  test("Union -  Table with Columns but no rows x Table") {
+    val table1 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
+    val table2 = CRelationValue(Seq("a", "b"), Set(Seq[Int]()))
+    val result = table2.union(table1)
     assert(result == table1)
   }
 

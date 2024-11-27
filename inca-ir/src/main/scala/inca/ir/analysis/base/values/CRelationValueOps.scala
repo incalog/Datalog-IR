@@ -15,7 +15,13 @@ class CRelationValueOps[V](using failure: Failure)
   type RV = CRelationValue[V]
 
   override def unit: CRelationValue[V] = CRelationValue(Seq(), Set(Seq()))
+  
+  override def isEmpty(rv: CRelationValue[V]): Boolean = rv.rows.isEmpty
 
+  override def hasColumn(rv: RV, column: String): Boolean = rv.cols.contains(column)
+
+  override def columns(rv: RV): Seq[String] = rv.cols
+  
   override def make(cols: Seq[String], vals: Seq[Row]): CRelationValue[V] = CRelationValue(cols, vals.toSet)
 
   def union(rv: RV, other: RV): RV =
@@ -51,11 +57,6 @@ class CRelationValueOps[V](using failure: Failure)
 
   override def antiJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
     rv.antiJoin(other)
-
-  override def isEmpty(rv: CRelationValue[V]): Boolean = rv.rows.isEmpty
-
-  override def hasColumn(rv: RV, column: String): Boolean = rv.cols.contains(column)
-
 
 
 

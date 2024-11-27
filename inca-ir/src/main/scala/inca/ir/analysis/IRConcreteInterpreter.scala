@@ -34,6 +34,7 @@ import sturdy.values.exceptions.PowersetExceptional
 
 
 given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]], W] with
+  // TODO: use join
   override def apply(out1: FixOut[Value, CRelationValue[Value]], out2: FixOut[Value, CRelationValue[Value]]): MaybeChanged[FixOut[Value, CRelationValue[Value]]] =
     (out1, out2) match
       case (FixOut.Term(rv1), FixOut.Term(rv2)) => MaybeChanged(FixOut.Term(rv1.union(rv2)), out1)
@@ -103,7 +104,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         fix.filter({
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
+        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates(readPriorOutput = false)))
           //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes()))
           //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates()))
         )

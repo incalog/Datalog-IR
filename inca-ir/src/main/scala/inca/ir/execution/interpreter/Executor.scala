@@ -43,20 +43,24 @@ class Executor extends IRExecutor:
 
     // TODO: This should not be needed, since we are pushing values down with top down evaluation, no?
     //  But since we are context-insensitive we join all call-sides, so maybe its needed nevertheless
-    def filter(res: Map[String, Relation], query: Relation): Relation =
-      val rel = res.getOrElse(query.name, throw IllegalArgumentException(s"Can not find relation ${query.name}"))
-      val matches = rel.entries.flatMap { el =>
-        val flatEl = rel.flattenEntry(el)
-        val matches = rel.entries.exists { query =>
-          val flatQuery = rel.flattenEntry(query)
-          flatEl.zipAll(flatQuery, null, null).forall {
-            case (e, null) => true
-            case (e, q) => e == q
+    def filter(idb: Map[String, Relation], query: Relation): Relation = idb.get(query.name) match
+      case Some(rel) if query.isEmpty => rel
+      case Some(rel) =>
+        val matches = rel.entries.flatMap { el =>
+          val flatEl = rel.flattenEntry(el)
+          val matches = query.entries.exists { qt =>
+            val flatQuery = query.flattenEntry(qt)
+            flatEl.zipAll(flatQuery, null, null).forall {
+              case (e, null) => true
+              case (e, q) => e == q
+            }
           }
+          if (matches) Some(flatEl) else None
         }
-        if (matches) Some(flatEl) else None
-      }
-      Relation.from(query.name, query.parameterNames, matches)
+        Relation.from(query.name, query.parameterNames, matches)
+      case _ => throw IllegalArgumentException(s"Can not find relation ${query.name}")
+
+
 
     override def measure(rel: Relation): Long =
       val start = System.nanoTime()
@@ -64,6 +68,8 @@ class Executor extends IRExecutor:
       System.nanoTime() - start
 
     override def read(rel: Relation): Relation =
+      println(mods)
+      //println(interp(mods).map(_._2.asTable).mkString("\n"))
       filter(interp(mods), rel)
 
     override def readAll(): Seq[Relation] =
@@ -72,9 +78,9 @@ class Executor extends IRExecutor:
     private def relationToCRV(rel: Relation) =
       CRelationValue[Value](rel.parameterNames, rel.entries.map { e =>
         rel.flattenEntry(e).map {
-          case i: Int => CIntV(i)
-          case f: Float => CDoubleV(f)
-          case d: Double => CDoubleV(d)
+          case i: java.lang.Integer => CIntV(i)
+          case f: java.lang.Float => CDoubleV(f.floatValue())
+          case d: java.lang.Double => CDoubleV(d)
           case s : String => CStringV(s)
           case _ => ??? // TODO: Algebraic Data
         }

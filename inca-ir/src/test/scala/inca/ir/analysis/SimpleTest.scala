@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.execution.interpreter.Executor
 import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
-import inca.ir.extension.arithmetic.{Add, IntNum, Mul, TInt, IR as arithIR}
+import inca.ir.extension.arithmetic.{Add, Sub, IntNum, Mul, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
@@ -248,6 +248,92 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.size == 2)
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3)))
+  }
+
+  test("Factorial") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n$0"))),
+          Eq(Var("n$0"), IntNum(1), true),
+          Eq(Var("n"), Sub(Var("n$0"), IntNum(1)))
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(2)),
+        ))
+      )),
+      Relation("fac", Seq(
+        Param("n", TInt),
+        Param("r", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1)),
+          Eq(Var("r"), IntNum(1))
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1), true),
+          Call("fac", Seq(Sub(Var("n"), IntNum(1)), Var("r$0"))),
+          Eq(Var("r"), Mul(Var("n"), Var("r$0")))
+        )),
+      )).addHint(MainHint),
+      /*Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("fac", Seq(IntNum(3), Var("y")))
+        )),
+      )).addHint(MainHint)*/
+    ))
+
+    val res = interp(mod)
+    println(res)
+    /*val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(6)))*/
+  }
+
+  test("Two call sites") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+        Param("m", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("n"), IntNum(1)),
+          Eq(Var("m"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(2)),
+          Eq(Var("m"), IntNum(2)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("m", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(WildcardArg(), WildcardArg())),
+          Eq(Var("tmp"), IntNum(2)),
+          Call("input", Seq(Var("tmp"), Var("m")))
+        )),
+      )).addHint(MainHint),
+      /*Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("fac", Seq(IntNum(3), Var("y")))
+        )),
+      )).addHint(MainHint)*/
+    ))
+
+    val res = interp(mod)
+    println(res)
+    /*val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(6)))*/
   }
 
   test("Failing atom") {

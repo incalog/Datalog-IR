@@ -35,6 +35,7 @@ enum FixIn:
   case Relation(rel: ir.Relation)
   case ExtensionalRelation(rel: ir.ExtensionalRelation)
 
+
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
     case FixIn.Atom(a) => a.toString
@@ -139,16 +140,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
     val res = if (neg) {
-      println(s"Anti join: $lhs :: $rhs")
+      //println(s"Anti join: $lhs :: $rhs")
       relationOps.antiJoin(lhs, rhs)
     } else {
-      println(s"Nat join: $lhs :: $rhs")
+      //println(s"Nat join: $lhs :: $rhs")
       relationOps.naturalJoin(lhs, rhs)
     }
 
     // Anti join might produce empty table
     branchOps.boolBranch(relationOps.isEmpty(res)) {
-      println("Now its empty...")
+      //println("Now its empty...")
       except.throws(MergeFailed("Merged empty table"))
     } { /* nothing */ }
 
@@ -174,12 +175,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       except.tryCatch {
         val res = relationOps.project(evalBody(b), paramNames)
         bodyRes = relationOps.union(bodyRes, res)
+        //println(s"${r.name} :: $b :: $bodyRes")
         allBodiesFailed = false
         bodyRes
       } { exc =>
         bodyRes
       }
     })
+
 
     if (allBodiesFailed)
       except.throws(RelationFailed(s"Relation ${r.name} failed"))
@@ -199,13 +202,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case Some(value) => value
       case _ => failure(RefNotFound, s"No EDB relation with name $relName found")
 
-    // Make sure we have an edb entry for each column
-    if (paramNames.exists(p => relationOps.hasColumn(rv, p) == boolFalse))
+    // Make sure we have an edb entry for each column. We have no guarantee that the column names match.
+    val cols = relationOps.columns(rv)
+    if (cols.size != paramNames.size)
       failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
+
+    // rename column according to parameters
+    val renamedRv = relationOps.rename(rv, cols.zip(paramNames).toMap)
 
     // Filter the edb entries based on the current supplementary
     // TODO: Is there a nicer solution with anti-join
-    val res = relationOps.filter(rv) { row =>
+    val res = relationOps.filter(renamedRv) { row =>
       val bs = paramNames.zip(row).map { (p, r) =>
         if (boundInSupplementary(p))
           val combinations = relationOps.cartesian(
@@ -281,7 +288,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       //   x == 2.      // supplementary (x, y) -> (1, 2)
       // ~> filterEdge(1, 2)
       val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
+      val op = if (neg) "!=" else "=="
+      //println(s"Atom: $lhs $op $rhs")
+      //println(s"Before: ${supplementaryTable.getTable}")
+      //println(s"Drop: ${relationOps.projectAndRename(comparisonResults, mapping.toMap)}")
       mergeIntoEnv(relationOps.projectAndRename(comparisonResults, mapping.toMap), true)
+      //println(s"After: ${supplementaryTable.getTable}")
     }
 
   private def boundInSupplementary(s: String): Boolean =
@@ -343,13 +355,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
             case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
           // add all variables bound by the call to the context
-          val boundVars = args.map(extractVarName)
-          val subst = boundVars.zip(params).flatMap {
+          val boundVarsAfterCall = args.map(extractVarName)
+          val subst = boundVarsAfterCall.zip(params).flatMap {
             case (Some(varName), p) => Some((p.name.name, varName.name))
             case _ => None
           }.toMap
 
-          relationOps.projectAndRename(relRes, subst)
+          val res = relationOps.projectAndRename(relRes, subst)
+          //println(s"Eval context: $evalContext")
+          //println(s"Call ${r.name}${args.mkString("(", ", ", ")")} :: $res")
+          res
         }
       } { exc =>
         positiveCallFailed = true
