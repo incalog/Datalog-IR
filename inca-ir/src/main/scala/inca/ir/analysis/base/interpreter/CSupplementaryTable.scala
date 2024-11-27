@@ -28,6 +28,6 @@ class CSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
   override type State = CRV
   override def getState: CRV = supTable
   override def setState(st: CRV): Unit = supTable = st
-  override def join: Join[CRV] = (v1: CRV, v2: CRV) => MaybeChanged(v1.union(v2), v1)
+  override def join: Join[CRV] = (v1: CRV, v2: CRV) => MaybeChanged(v1.join(v2), v1)
   override def widen: Widen[CRV] = (v1: CRV, v2: CRV) => join(v1, v2)
     
