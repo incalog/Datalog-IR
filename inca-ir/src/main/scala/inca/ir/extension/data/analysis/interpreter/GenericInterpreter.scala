@@ -41,7 +41,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val combinations = (tRV +: argRV).foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
 
       val bindingVarsOption = args.map(extractVarName)
-      var newBindings = relationOps.unit
+      var newBindings: Option[RV] = None
 
       relationOps.foreach(combinations) { case termV :: asV =>
         val boundArgs = boundIndices.zip(asV).toMap
@@ -56,13 +56,14 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
           // All updated binding information
           if (!neg)
-            newBindings = relationOps.union(
-              newBindings,
-              relationOps.make(
-                bindingVarsOption.flatMap(_.map(_.name)),
-                Seq(bindingVarsOption.zip(deconstrRes).filter(_._1.isDefined).map(_._2))
-              )
+            val bind = relationOps.make(
+              bindingVarsOption.flatMap(_.map(_.name)),
+              Seq(bindingVarsOption.zip(deconstrRes).filter(_._1.isDefined).map(_._2))
             )
+            newBindings = newBindings match
+              case Some(bd) => Some(relationOps.union(bd, bind))
+              case _ => Some(bind)
+
         } { exc =>
           // This particular deconstruct failed. Remove the bindings if necessary (aka the term t is a variable)
           extractVarName(t) match
@@ -73,8 +74,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         }
       }
 
-      if (!neg)
-        mergeIntoEnv(newBindings, false)
+      if (!neg && newBindings.isDefined)
+        mergeIntoEnv(newBindings.get, false)
     case _ => super.evalAtomOpen(at)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match

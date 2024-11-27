@@ -7,12 +7,13 @@ import scala.collection
 case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   def size: Int = rows.size
 
-  if (cols.nonEmpty && rows.size == 1 && rows.head == Seq())
-    throw IllegalArgumentException("Unit table must not have columns")
+  //if (cols.nonEmpty && rows.size == 1 && rows.head == Seq())
+  //  throw IllegalArgumentException("Unit table must not have columns")
 
   lazy val isEmpty: Boolean = cols.isEmpty && rows.isEmpty
 
-  lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
+  lazy val isUnit: Boolean = rows.size == 1 && rows.head == Seq()
+  //cols.isEmpty && rows.size == 1 && rows.head == Seq()
 
   def union(other: CRelationValue[V]): CRelationValue[V] =
     if (cols.toSet != other.cols.toSet)

@@ -1,13 +1,7 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
-import inca.ir.analysis.base.effect.*
-import sturdy.data.MayJoin
-import sturdy.effect.EffectStack
-import sturdy.effect.except.Except
 import sturdy.effect.failure.Failure
-
-import scala.util.{Success, Try}
 
 class CRelationValueOps[V](using failure: Failure)
   extends RelationOps[V, Boolean, CRelationValue[V]]:
@@ -37,9 +31,7 @@ class CRelationValueOps[V](using failure: Failure)
     rv.projectAndRename(subst)
 
   override def cartesian(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
-    Try(rv.cartesian(other)) match
-      case util.Failure(exception) => failure(ColumnMismatch, exception.getMessage)
-      case Success(value) => value
+    rv.cartesian(other)
 
   override def filter(rv: CRelationValue[V])(f: Row => Boolean): CRelationValue[V] =
     rv.filter(f)
