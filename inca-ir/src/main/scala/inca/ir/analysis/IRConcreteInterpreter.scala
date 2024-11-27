@@ -99,7 +99,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
         fix.filter({
-          case _: FixIn.Relation => true
+          case _: FixIn.EnterRelation => true
           case _ => false // important, filter everything out we don't need
         }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
           //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes()))

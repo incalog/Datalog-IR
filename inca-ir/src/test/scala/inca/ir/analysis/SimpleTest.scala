@@ -261,7 +261,7 @@ class SimpleTest extends AnyFunSuiteLike:
           Eq(Var("n"), Sub(Var("n$0"), IntNum(1)))
         )),
         Body(Seq(
-          Eq(Var("n"), IntNum(2)),
+          Eq(Var("n"), IntNum(3)),
         ))
       )),
       Relation("fac", Seq(
@@ -290,10 +290,12 @@ class SimpleTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    println(res)
     val mainRel = res("fac")
-    assert(mainRel.size == 2)
-    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    println(mainRel.entries.map(mainRel.flattenEntry).toSet)
+    assert(mainRel.size == 3)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
   }
 
   test("Two call sites") {

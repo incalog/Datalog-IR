@@ -12,28 +12,22 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
 
   lazy val isEmpty: Boolean = cols.isEmpty && rows.isEmpty
 
-  lazy val isUnit: Boolean = rows.size == 1 && rows.head == Seq()
-  //cols.isEmpty && rows.size == 1 && rows.head == Seq()
+  lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
 
   def union(other: CRelationValue[V]): CRelationValue[V] =
     if (cols.toSet != other.cols.toSet)
       throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
-    if (isUnit)
-      other
-    else if (other.isUnit)
-      this
-    else
-      val newEntries =
-        if (cols == other.cols) {
-          rows ++ other.rows
-        } else {
-          val indexMap = cols.map(other.cols.indexOf)
-          if (indexMap.contains(-1))
-            throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
-          def rearrange(entry: Seq[V]): Seq[V] = indexMap.map(entry)
-          rows ++ other.rows.map(rearrange)
-        }
-      CRelationValue(cols, newEntries)
+    val newEntries =
+      if (cols == other.cols) {
+        rows ++ other.rows
+      } else {
+        val indexMap = cols.map(other.cols.indexOf)
+        if (indexMap.contains(-1))
+          throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
+        def rearrange(entry: Seq[V]): Seq[V] = indexMap.map(entry)
+        rows ++ other.rows.map(rearrange)
+      }
+    CRelationValue(cols, newEntries)
 
   def join(other: CRelationValue[V]): CRelationValue[V] =
     val cols1 = this.cols.toSet
@@ -86,7 +80,6 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
       val sameColsIndices = sameCols.map(cols.indexOf)
       val sameOtherColsIndices = sameCols.map(other.cols.indexOf)
       val newOtherColsIndices = otherNewCols.map(other.cols.indexOf)
-
       for {
         row <- rows
         otherRow <- other.rows
@@ -97,20 +90,17 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
     CRelationValue(cols ++ otherNewCols, newEntries)
 
   def antiJoin(other: CRelationValue[V]): CRelationValue[V] =
-    if (isUnit)
-      other
-    else if (other.isUnit)
-      this
-    else
-      val sharedCols = cols.intersect(other.cols)
-      val sameColsIndices = sharedCols.map(cols.indexOf)
-      val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
-      val filteredRows = rows.filter { row1 =>
-          !other.rows.exists { row2 =>
-            sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
-          }
-        }
-      CRelationValue(cols,  filteredRows)
+    val sharedCols = cols.intersect(other.cols)
+    if (sharedCols.isEmpty)
+      throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: $cols <-> ${other.cols}")
+    val sameColsIndices = sharedCols.map(cols.indexOf)
+    val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
+    val filteredRows = rows.filter { row1 =>
+      !other.rows.exists { row2 =>
+        sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
+      }
+    }
+    CRelationValue(cols,  filteredRows)
 
 given JoinCRV[V]: Join[CRelationValue[V]] with {
   override def apply(v1: CRelationValue[V], v2: CRelationValue[V]): MaybeChanged[CRelationValue[V]] =

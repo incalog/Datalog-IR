@@ -28,19 +28,29 @@ import sturdy.data.MayJoin.WithJoin
 //  6. Optimize program
 //  7. EDB support + test cases
 
+enum Adorn:
+  case b
+  case f
+
+  override def toString: String = this match
+    case Adorn.b => "b"
+    case Adorn.f => "f"
+
+case class Adornment(as: Seq[Adorn]):
+  override def toString: String = as.mkString("")
+
 enum FixIn:
   case Term(term: ir.Term)
   case Atom(atom: ir.Atom)
   case Body(body: ir.Body)
-  case Relation(rel: ir.Relation)
+  case EnterRelation(rel: ir.Relation, adornment: Adornment)
   case ExtensionalRelation(rel: ir.ExtensionalRelation)
-
-
+  
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
     case FixIn.Atom(a) => a.toString
     case FixIn.Body(b) => s"Body: ${b.hashCode()}" //b.toString
-    case FixIn.Relation(rel: ir.Relation) => rel.name.name //rel.toString
+    case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment" //rel.toString
     case FixIn.ExtensionalRelation(rel: ir.ExtensionalRelation) => rel.toString
 
 enum FixOut[V, RV]:
@@ -88,9 +98,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   implicit val joinRV: Join[RV]
 
   def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
-    case _: FixIn.Relation => EffectList(supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
+    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
   }, {
-    case _: FixIn.Relation => EffectList(except, failure, idb) //supplementaryTable
+    case _: FixIn.EnterRelation => EffectList(except, failure, idb) //supplementaryTable
   })
 
   given EffectStack = effects
@@ -106,7 +116,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom) => evalAtomOpen(atom); FixOut.Atom()
     case FixIn.Body(body) => FixOut.Body(evalBodyOpen(body))
-    case FixIn.Relation(rel) => FixOut.Relation(enterRelationOpen(rel))
+    case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(enterRelationOpen(rel))
     case FixIn.ExtensionalRelation(rel) => FixOut.ExtensionalRelation(evalExtensionalRelationOpen(rel))
   }
 
@@ -131,7 +141,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def evalModule(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
     entryPoints(m).foreach { rel =>
       val relRes = except.tryCatch {
-        evalRelation(rel)
+        val allFreeAdorn = Adornment(rel.params.map(_ => Adorn.f))
+        evalRelation(rel, allFreeAdorn)
       } { case RelationFailed(msg) =>
         relationOps.make(rel.params.map(_.name.name), Seq())
       }
@@ -162,7 +173,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     idb.write(AllocationSiteAddr.Variable(name.name)(true), rv)
 
-  inline def evalRelation(r: ir.Relation)(using rec: Fixed): RV = rec(FixIn.Relation(r)) match
+  inline def evalRelation(r: ir.Relation, adornment: Adornment)(using rec: Fixed): RV = rec(FixIn.EnterRelation(r, adornment)) match
     case FixOut.Relation(p) => p
     case _ => throw new IllegalStateException()
 
@@ -349,8 +360,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
           val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
           supplementaryTable.setTable(evalContext)
 
+          val boundParams = relationOps.columns(evalContext).toSet
+          val adornment = Adornment(params.map {
+            case p if boundParams.contains(p.name.name) => Adorn.b
+            case _ => Adorn.f
+          })
+
           val relRes = r match
-            case rel: ir.Relation => evalRelation(rel)
+            case rel: ir.Relation => evalRelation(rel, adornment)
             case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
           // add all variables bound by the call to the context
