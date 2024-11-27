@@ -104,9 +104,9 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         fix.filter({
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates(readPriorOutput = false)))
+        }, //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates(readPriorOutput = true)))
           //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes()))
-          //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates()))
+          fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
         )
 
     if (enableLogging)
