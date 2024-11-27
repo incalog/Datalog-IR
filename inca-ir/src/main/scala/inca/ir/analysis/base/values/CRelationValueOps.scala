@@ -25,9 +25,7 @@ class CRelationValueOps[V](using failure: Failure)
   override def make(cols: Seq[String], vals: Seq[Row]): CRelationValue[V] = CRelationValue(cols, vals.toSet)
 
   def union(rv: RV, other: RV): RV =
-    Try(rv.union(other)) match
-      case util.Failure(exception) => failure(ColumnMismatch, exception.getMessage)
-      case Success(value) => value
+    rv.union(other)
 
   override def rename(rv: CRelationValue[V], subst: Map[String, String]): CRelationValue[V] =
     rv.rename(subst)

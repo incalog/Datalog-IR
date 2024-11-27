@@ -168,18 +168,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
     val paramNames = r.params.map(p => p.name.name)
+    val emptyRes = relationOps.make(paramNames, Seq())
 
-    var bodyRes = relationOps.unit
     var allBodiesFailed: Boolean = true
     val relRes = mapJoin(r.bodies, { b =>
       except.tryCatch {
         val res = relationOps.project(evalBody(b), paramNames)
-        bodyRes = relationOps.union(bodyRes, res)
         //println(s"${r.name} :: $b :: $bodyRes")
         allBodiesFailed = false
-        bodyRes
-      } { exc =>
-        bodyRes
+        res
+      } /*catch*/ {
+        exc => emptyRes
       }
     })
 

@@ -15,13 +15,13 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
 
   def union(other: CRelationValue[V]): CRelationValue[V] =
+    if (cols.size != other.cols.size)
+      throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
     if (isUnit)
       other
     else if (other.isUnit)
       this
     else
-      if (cols.size != other.cols.size)
-        throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
       val newEntries =
         if (cols == other.cols) {
           rows ++ other.rows
