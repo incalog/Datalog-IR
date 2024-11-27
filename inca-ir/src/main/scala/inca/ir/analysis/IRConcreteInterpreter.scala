@@ -34,18 +34,15 @@ import sturdy.values.exceptions.PowersetExceptional
 
 
 given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]], W] with
-  // TODO: use join
+
   override def apply(out1: FixOut[Value, CRelationValue[Value]], out2: FixOut[Value, CRelationValue[Value]]): MaybeChanged[FixOut[Value, CRelationValue[Value]]] =
     (out1, out2) match
-      case (FixOut.Term(rv1), FixOut.Term(rv2)) => MaybeChanged(FixOut.Term(rv1.union(rv2)), out1)
+      case (FixOut.Term(rv1), FixOut.Term(rv2)) => MaybeChanged(FixOut.Term(rv1.join(rv2)), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
-      case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.union(rv2)), out1)
-      case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.union(rv2)), out1)
-      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) =>
-        //println(s"Combine: $rv1 :: $rv2")
-        //println(rv1.union(rv2))
-        MaybeChanged(FixOut.Relation(rv1.union(rv2)), out1)
-      case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => MaybeChanged(FixOut.ExtensionalRelation(rv1.union(rv2)), out1)
+      case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.join(rv2)), out1)
+      case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.join(rv2)), out1)
+      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => MaybeChanged(FixOut.Relation(rv1.join(rv2)), out1)
+      case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => MaybeChanged(FixOut.ExtensionalRelation(rv1.join(rv2)), out1)
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 
@@ -104,9 +101,9 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         fix.filter({
           case _: FixIn.Relation => true
           case _ => false // important, filter everything out we don't need
-        }, //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates(readPriorOutput = true)))
+        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
           //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes()))
-          fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
+          //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
         )
 
     if (enableLogging)

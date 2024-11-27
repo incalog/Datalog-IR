@@ -291,9 +291,9 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     println(res)
-    /*val mainRel = res("main")
-    assert(mainRel.size == 1)
-    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(6)))*/
+    val mainRel = res("fac")
+    assert(mainRel.size == 2)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
   }
 
   test("Two call sites") {
