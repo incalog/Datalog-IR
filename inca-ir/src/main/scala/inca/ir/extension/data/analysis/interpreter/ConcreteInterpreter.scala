@@ -1,0 +1,39 @@
+package inca.ir.extension.data.analysis.interpreter
+
+import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, BaseIRFailure}
+import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, CRelationValue, Top, VBool, Value}
+import sturdy.effect.{Effect, EffectStack}
+import sturdy.effect.failure.Failure
+import sturdy.values.{Powerset, Topped}
+import sturdy.data.MayJoin.{NoJoin, WithJoin}
+import sturdy.effect.except.Except
+import sturdy.values.ordering.EqOps
+
+case object InvalidDeconstruct extends BaseIRFailure
+
+case class CDataV(dataName: String, caseName: String, args: Seq[Value]) extends Value:
+  override def toString: String = s"$caseName${args.mkString("(", ", ", ")")}"
+
+private class CDataVOps(using failure: Failure, except: Except[BaseIRException, Powerset[BaseIRException], WithJoin], eqOps: EqOps[Value, Boolean]) extends DataOps[Value, Powerset[BaseIRException]]:
+  override def construct(dataName: String, caseName: String, args: Seq[Value]): Value = CDataV(dataName, caseName, args)
+
+  override def deconstruct(v: Value, dataName: String, caseName: String, args: Seq[Option[Value]], neg: Boolean): Seq[Value] = v match
+    case CDataV(`dataName`, `caseName`, cArgs) =>
+      val argsMatch = cArgs.zip(args).forall {
+        case (v1, None) => true // arg should be bound
+        case (v1, Some(v2)) => if (neg) eqOps.neq(v1, v2) else eqOps.equ(v1, v2)
+      }
+      if (!argsMatch)
+        val prefix = if (neg) "~" else ""
+        except.throws(AtomFailed(s"Deconstruct failed: $prefix?$caseName${(v +: args).mkString("(", ", ", ")") }"))
+      else if (!neg)
+        // provide values for all argument positions
+        cArgs
+      else
+        // negative calls bind nothing
+        Seq()
+    case _ => failure(InvalidDeconstruct, s"Can not deconstruct value $v")
+
+
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:
+  val dataOps: DataOps[Value, Powerset[BaseIRException]] = CDataVOps(using failure, except, eqOps)

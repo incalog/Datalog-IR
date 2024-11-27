@@ -6,6 +6,8 @@ import inca.ir.analysis.IRConcreteInterpreter
 import inca.ir.analysis.base.values.{CRelationValue, Value}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
 import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
+import inca.ir.extension.string.analysis.interpreter.CStringV
+import inca.ir.extension.data.analysis.interpreter.CDataV
 import sturdy.values.references.AllocationSiteAddr
 
 // TODO: Support Scala code
@@ -73,6 +75,8 @@ class Executor extends IRExecutor:
           case i: Int => CIntV(i)
           case f: Float => CDoubleV(f)
           case d: Double => CDoubleV(d)
+          case s : String => CStringV(s)
+          case _ => ??? // TODO: Algebraic Data
         }
       }.toSet)
 
@@ -106,6 +110,8 @@ case class InterpreterRelation(name: String, table: CRelationValue[Value]) exten
       vs.map {
         case CIntV(i) => i
         case CDoubleV(d) => d
+        case CStringV(s) => s
+        case v@CDataV(dataName, caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
       }
     }
 

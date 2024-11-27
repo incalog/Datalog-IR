@@ -68,6 +68,9 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   def map(columnName: String)(f: Seq[V] => V): CRelationValue[V] =
     CRelationValue(cols :+ columnName, rows.map(r => r :+ f(r)))
 
+  def foreach(f: Seq[V] => Unit): Unit =
+    rows.foreach(f)
+
   def naturalJoin(other: CRelationValue[V]): CRelationValue[V] =
     val (sameCols, otherNewCols) = other.cols.partition(cols.contains)
     val newEntries =

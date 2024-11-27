@@ -66,7 +66,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
     override def handle[A](e: BaseIRException)(f: BaseIRException => A): WithJoin[A] ?=> A = f(e)
   }
 
-  override val except: Except[BaseIRException, Unit, WithJoin] = ???
+  override lazy val except: Except[BaseIRException, Unit, WithJoin] = ???
   
   override val branchOps: BooleanBranching[VBool, Unit] = ???
 
@@ -77,7 +77,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
       ???
   }*/
 
-  override val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
+  override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
   //override lazy val except = new JoinedExcept[BaseIRException, BaseIRException]
 
   given Failure = failure
@@ -87,7 +87,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
 
   given BooleanOps[VBool] = boolOps
 
-  override val eqOps: BaseEqOps = new IREqOps
+  override lazy val eqOps: BaseEqOps = new IREqOps
 
   given Join[Value] = new IRJoinV
 

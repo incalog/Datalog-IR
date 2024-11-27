@@ -171,3 +171,17 @@ class CRelationValueTest extends AnyFunSuiteLike:
     val expected = CRelationValue(Seq("a", "b"), Set(Seq(1, -2)))
     assert(result == expected)
   }
+
+  /*test("Anti Join - Empty Table x Table") {
+    val table1 = CRelationValue(Seq(), Set[Seq[Int]]())
+    val table2 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
+    val result = table1.antiJoin(table2)
+    assert(result == table1)
+  }
+
+  test("Anti Join - Table x Empty Table") {
+    val table1 = CRelationValue(Seq(), Set[Seq[Int]]())
+    val table2 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
+    val result = table2.antiJoin(table1)
+    assert(result == table1)
+  }*/

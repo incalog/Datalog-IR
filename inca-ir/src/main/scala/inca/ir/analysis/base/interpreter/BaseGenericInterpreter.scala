@@ -74,11 +74,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val branchOps: BooleanBranching[B, Unit]
 
-  val eqOps: EqOps[V, B]
+  lazy val eqOps: EqOps[V, B]
 
-  val failure: Failure
+  lazy val failure: Failure
 
-  val except: Except[BaseIRException, ExcV, WithJoin]
+  lazy val except: Except[BaseIRException, ExcV, WithJoin]
 
   val joinV: J[V]
 
@@ -91,7 +91,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   }, {
     case _: FixIn.Relation => EffectList(except, failure, idb) //supplementaryTable
   })
-  
+
   given EffectStack = effects
 
   def idb: Store[AllocationSiteAddr, RV, WithJoin]
@@ -139,15 +139,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
     val res = if (neg) {
-      // TODO: Remove the next line in the future. This is just for debugging the concrete interpreter
-      assert(boolOps.or(relationOps.isEmpty(lhs), relationOps.isEmpty(rhs)) == boolFalse)
+      println(s"Anti join: $lhs :: $rhs")
       relationOps.antiJoin(lhs, rhs)
     } else {
+      println(s"Nat join: $lhs :: $rhs")
       relationOps.naturalJoin(lhs, rhs)
     }
 
     // Anti join might produce empty table
     branchOps.boolBranch(relationOps.isEmpty(res)) {
+      println("Now its empty...")
       except.throws(MergeFailed("Merged empty table"))
     } { /* nothing */ }
 
@@ -203,6 +204,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
 
     // Filter the edb entries based on the current supplementary
+    // TODO: Is there a nicer solution with anti-join
     val res = relationOps.filter(rv) { row =>
       val bs = paramNames.zip(row).map { (p, r) =>
         if (boundInSupplementary(p))
@@ -251,20 +253,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val res = relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).get.name))
     mergeIntoEnv(res, false)
 
-  /**
-   * Update the values in the supplementary table based on the [[comparisonResult]] and a mapping of columns names
-   * as found in [[comparisonResult]] to the variable names found in the supplementary.
-   */
-  final def updateSupplementary(comparisonResult: RV, mapping: Map[String, String]): Unit =
-    // drop all old variables in the supplementary
-    val comparedVars = mapping.values
-    val sup = relationOps.drop(supplementaryTable.getTable, comparedVars.toSeq)
-    supplementaryTable.setTable(sup)
-
-    // add all pairs that hold after the environment to the supplementary
-    val addRV = relationOps.projectAndRename(comparisonResult, mapping)
-    mergeIntoEnv(addRV, false)
-
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
@@ -272,19 +260,20 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
       relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
     )
+
+    // Note, this is the complement on purpose. We want to find all bindings we need to remove.
     val comparisonResults = relationOps.filter(combinations) { case Seq(v1, v2) =>
       if (neg) {
-        eqOps.neq(v1, v2)
-      } else {
         eqOps.equ(v1, v2)
+      } else {
+        eqOps.neq(v1, v2)
       }
     }
 
     branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
-      val op = if neg then "!=" else "=="
-      except.throws(AtomFailed(s"Comparison $lhs $op $rhs always fails"))
+      // Nothing, since all succeeded
     } {
-      // We need to assign only those constraints, that hold according to the comparison.
+      // At least one failed. That is, we need to filter the supplementary.
       // E.g
       // edge(1,2).  edge(2,3)
       // filterEdge(x, y) :-
@@ -292,7 +281,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       //   x == 2.      // supplementary (x, y) -> (1, 2)
       // ~> filterEdge(1, 2)
       val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
-      updateSupplementary(comparisonResults, mapping.toMap)
+      mergeIntoEnv(relationOps.projectAndRename(comparisonResults, mapping.toMap), true)
     }
 
   private def boundInSupplementary(s: String): Boolean =
@@ -347,7 +336,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         supplementaryTable.freshScoped {
           // since we have at least one parameter argRV is defined
           val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-          //println(s"${r.name} ${evalContext}")
           supplementaryTable.setTable(evalContext)
 
           val relRes = r match

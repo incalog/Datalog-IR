@@ -15,8 +15,6 @@ trait RelationOps[V, B, RV]:
 
   def project(rv: RV, cols: Seq[String]): RV
   
-  def drop(rv: RV, cols: Seq[String]): RV
-
   def projectAndRename(rv: RV, subst: Map[String, String]): RV
 
   def cartesian(rv: RV, other: RV): RV
@@ -25,6 +23,8 @@ trait RelationOps[V, B, RV]:
   def filter(rv: RV)(f: Row => B): RV
 
   def map(rv: RV, columnName: String)(f: Row => V): RV
+
+  def foreach(rv: RV)(f: Row => Unit): Unit
 
   def naturalJoin(rv: RV, other: RV): RV
 

@@ -8,6 +8,7 @@ import inca.ir.analysis.base.logger.PrintLogger
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.string.analysis as irstr
+import inca.ir.extension.data.analysis as irdata
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.{CollectedFailures, Failure}
@@ -50,25 +51,26 @@ given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]
   with irarith.interpreter.ConcreteInterpreter
-  with irstr.interpreter.ConcreteInterpreter:
+  with irstr.interpreter.ConcreteInterpreter
+  with irdata.interpreter.ConcreteInterpreter:
 
   type CRV = CRelationValue[Value]
 
-  override val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
+  override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
   given Failure = failure
 
   override val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
 
   // TODO: Which kind of ExcV should we use here?
-  override val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
+  override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
   given BooleanOps[Boolean] = boolOps
 
   override val branchOps: BooleanBranching[Boolean, Unit] = ConcreteBooleanBranching
 
 
-  override val eqOps: EqOps[Value, Boolean] = new EqOps[Value, Boolean] {
+  override lazy val eqOps: EqOps[Value, Boolean] = new EqOps[Value, Boolean] {
     def equ(v1: Value, v2: Value): Boolean = v1 == v2
     def neq(v1: Value, v2: Value): Boolean = v1 != v2
   }

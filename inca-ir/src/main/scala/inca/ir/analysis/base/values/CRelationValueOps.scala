@@ -25,9 +25,6 @@ class CRelationValueOps[V](using failure: Failure)
 
   override def rename(rv: CRelationValue[V], subst: Map[String, String]): CRelationValue[V] =
     rv.rename(subst)
-
-  def drop(rv: CRelationValue[V], cols: Seq[String]): CRelationValue[V] =
-    rv.drop(cols)
   
   override def project(rv: CRelationValue[V], cols: Seq[String]): CRelationValue[V] =
     rv.project(cols)
@@ -45,6 +42,9 @@ class CRelationValueOps[V](using failure: Failure)
 
   override def map(rv: CRelationValue[V], columnName: String)(f: Row => V): CRelationValue[V] =
     rv.map(columnName)(f)
+
+  override def foreach(rv: CRelationValue[V])(f: Row => Unit): Unit =
+    rv.foreach(f.apply)
 
   override def naturalJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
     rv.naturalJoin(other)

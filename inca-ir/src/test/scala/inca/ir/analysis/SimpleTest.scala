@@ -3,6 +3,7 @@ package inca.ir.analysis
 import inca.ir.execution.interpreter.Executor
 import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, TInt, IR as arithIR}
+import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -28,7 +29,7 @@ class SimpleTest extends AnyFunSuiteLike:
 
 
   test("Single relation") {
-    val mod = Module("Test1", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
       Relation("main", Seq(
         Param("out", TInt)
       ), Seq(
@@ -232,8 +233,6 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
 
-    println(res)
-
     val edgeRel = res("edge")
     assert(edgeRel.size == 2)
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
@@ -244,6 +243,11 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 2)))
     assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2, 3)))
     assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
+
+    val mainRel = res("main")
+    assert(mainRel.size == 2)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3)))
   }
 
   test("Failing atom") {
@@ -437,3 +441,131 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(edgeRel.size == 1)
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(4, 5)))
   }
+
+  test("ADT - Construct") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Eq(Var("x"), Construct("TCons", Seq(Var("y"), Construct("TNil", Seq())))),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 2)
+  }
+
+  test("ADT - Deconstruct") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Eq(Var("z"), Construct("TCons", Seq(Var("y"), Construct("TNil", Seq())))),
+          Deconstruct(Var("z"), "TCons", Seq(Var("x").arg, WildcardArg()), false)
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 2)
+  }
+
+  test("ADT - Deconstruct as filter") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Eq(Var("x"), Construct("TCons", Seq(Var("y"), Construct("TNil", Seq())))),
+          Deconstruct(Var("x"), "TCons", Seq(IntNum(1).arg, WildcardArg()), false)
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+  }
+
+  test("ADT - Deconstruct negative as filter") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Eq(Var("x"), Construct("TCons", Seq(Var("y"), Construct("TNil", Seq())))),
+          Deconstruct(Var("x"), "TCons", Seq(IntNum(1).arg, WildcardArg()), true)
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+  }
+
