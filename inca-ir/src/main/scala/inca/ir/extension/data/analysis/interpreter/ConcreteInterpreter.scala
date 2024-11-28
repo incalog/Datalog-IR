@@ -17,25 +17,20 @@ case class CDataV(dataName: String, caseName: String, args: Seq[Value]) extends 
 private class CDataVOps(using failure: Failure, except: Except[BaseIRException, Powerset[BaseIRException], WithJoin], eqOps: EqOps[Value, Boolean]) extends DataOps[Value, Powerset[BaseIRException]]:
   override def construct(dataName: String, caseName: String, args: Seq[Value]): Value = CDataV(dataName, caseName, args)
 
-  override def deconstruct(v: Value, dataName: String, caseName: String, args: Seq[Option[Value]], neg: Boolean): Seq[Value] = v match
+  override def deconstruct(v: Value, dataName: String, caseName: String, args: Seq[Option[Value]]): Seq[Value] = v match
     case CDataV(`dataName`, `caseName`, cArgs) =>
       val argsMatch = cArgs.zip(args).forall {
         case (v1, None) => true // arg will be bound
-        case (v1, Some(v2)) => if (neg) eqOps.neq(v1, v2) else eqOps.equ(v1, v2)
+        case (v1, Some(v2)) => eqOps.equ(v1, v2)
       }
 
       if (!argsMatch)
-        val prefix = if (neg) "~" else ""
-        except.throws(AtomFailed(s"Deconstruct failed: $prefix?$caseName${(v +: args).mkString("(", ", ", ")") }"))
+        except.throws(AtomFailed(s"Deconstruct argument mismatch: ?$caseName${(v +: args).mkString("(", ", ", ")") }"))
 
-      // provide values for all argument positions, except for negative calls. They don't bind anything
-      if (!neg) cArgs else Seq()
+      // provide values for all argument positions
+      cArgs
     case CDataV(dName, cName, cArgs) =>
-      if (neg)
-        Seq()
-      else
-        val prefix = if (neg) "~" else ""
-        except.throws(AtomFailed(s"Deconstruct failed: $prefix?$caseName${(v +: args).mkString("(", ", ", ")") }"))
+      except.throws(AtomFailed(s"Deconstruct case mismatch: ?$caseName${(v +: args).mkString("(", ", ", ")") }"))
 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:

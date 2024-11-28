@@ -18,7 +18,7 @@ trait DataOps[V, ExcV](using failure: Failure, except: Except[BaseIRException, E
   // bound before. `args` contains optionals, where `None` at position `i` indicates that the argument at position `i`
   // is unbound. For a positive call that means we should provide a value for it. For a negative call all arguments
   // are collapsing, and we should return an empty sequence.
-  def deconstruct(v: V, dataName: String, caseName: String, args: Seq[Option[V]], neg: Boolean): Seq[V]
+  def deconstruct(v: V, dataName: String, caseName: String, args: Seq[Option[V]]): Seq[V]
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val dataOps: DataOps[V, ExcV]
@@ -49,13 +49,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           var success = boolFalse
 
           except.tryCatch {
-            val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, argsV, neg)
+            println(row)
+            println(s"$termV :: $argsV")
+            val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, argsV)
+            println(s"Res: $deconstrRes")
 
-            if (!neg && (deconstrRes.size != args.size)) 
-              throw IllegalArgumentException(s"Deconstruct must provide a value for each argument")
-
-            // we found new valid binding
             if (!neg)
+              if (deconstrRes.size != args.size)
+                throw IllegalArgumentException(s"Deconstruct must provide a value for each argument")
+
+              // we found new valid binding
               val newBinding = relationOps.make(
                 destructColNames,
                 Seq(deconstrRes)
@@ -63,11 +66,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
               bindings = bindings match
                 case Some(bd) => Some(relationOps.union(bd, newBinding))
                 case _ => Some(newBinding)
-            success = boolTrue
+
+            success = boolOps.boolLit(!neg)
           } { exec =>
-            success = boolFalse
+            println(s"Exec: $exec")
+            success = boolOps.boolLit(neg)
           }
-          
+
           success
         }
 
