@@ -62,6 +62,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         case ">" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.gt(l, r) }
         case ">=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.ge(l, r) }
 
+      // TODO: Filter supplementary
       branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
         // All failed
         except.throws(AtomFailed("Comparison failed"))

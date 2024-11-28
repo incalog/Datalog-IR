@@ -288,6 +288,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       }
     }
 
+    // TODO: Filter supplementary
     branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
       // All failed
       except.throws(AtomFailed("Comparison failed"))
