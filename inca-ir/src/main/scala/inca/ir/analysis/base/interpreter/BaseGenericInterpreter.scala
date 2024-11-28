@@ -45,7 +45,7 @@ enum FixIn:
   case Body(body: ir.Body)
   case EnterRelation(rel: ir.Relation, adornment: Adornment)
   case ExtensionalRelation(rel: ir.ExtensionalRelation)
-  
+
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
     case FixIn.Atom(a) => a.toString
@@ -152,16 +152,19 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
     val res = if (neg) {
-      //println(s"Anti join: $lhs :: $rhs")
+      println(s"Anti join: $lhs :: $rhs")
       relationOps.antiJoin(lhs, rhs)
     } else {
-      //println(s"Nat join: $lhs :: $rhs")
+      println(s"Nat join: $lhs :: $rhs")
       relationOps.naturalJoin(lhs, rhs)
     }
 
+    if (relationOps.isEmpty(res) == boolTrue)
+      println("Now its empty...")
+
     // Anti join might produce empty table
     branchOps.boolBranch(relationOps.isEmpty(res)) {
-      //println("Now its empty...")
+      println("Now its empty...")
       except.throws(MergeFailed("Merged empty table"))
     } { /* nothing */ }
 
@@ -272,6 +275,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     mergeIntoEnv(res, false)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
+    // TODO: We need information about the state the bindings that were used to produce ls and rs
+    //  Idea: Thread the binding information of all variables through evalTerm in the RV. Than we can filter the supplementary
+    //  based on the bindings of variables. That is, combination would look something like this:
+    //  var0, var1, var2, LHS, RHS
+    //  we then only compare LHS and RHS, but the filter keeps the binding information
+    //  Then we can project to keep everything except LHS and RHS and use that for the anti-join
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
     val combinations = relationOps.cartesian(
@@ -284,13 +293,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       if (neg) {
         eqOps.equ(v1, v2)
       } else {
+        println(s"$v1 != $v2")
         eqOps.neq(v1, v2)
       }
     }
 
     branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
       // Nothing, since all succeeded
-    } {
+    } /* catch */ {
       // At least one failed. That is, we need to filter the supplementary.
       // E.g
       // edge(1,2).  edge(2,3)
@@ -300,11 +310,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       // ~> filterEdge(1, 2)
       val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
       val op = if (neg) "!=" else "=="
-      //println(s"Atom: $lhs $op $rhs")
-      //println(s"Before: ${supplementaryTable.getTable}")
-      //println(s"Drop: ${relationOps.projectAndRename(comparisonResults, mapping.toMap)}")
+      println(s"Atom: $lhs $op $rhs")
+      println(s"Before: ${supplementaryTable.getTable}")
+      println(s"Drop before rename: ${comparisonResults}")
+      println(s"Drop: ${relationOps.projectAndRename(comparisonResults, mapping.toMap)}")
       mergeIntoEnv(relationOps.projectAndRename(comparisonResults, mapping.toMap), true)
-      //println(s"After: ${supplementaryTable.getTable}")
+      println(s"After: ${supplementaryTable.getTable}")
     }
 
   private def boundInSupplementary(s: String): Boolean =
@@ -314,6 +325,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     t.vars.forall { v => boundInSupplementary(v.name.name) }
 
   private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
+    val op = if (neg) "!=" else "=="
+    println(s"Eval eq: $lhs $op $rhs")
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)

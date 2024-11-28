@@ -30,12 +30,14 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
     CRelationValue(cols, newEntries)
 
   def join(other: CRelationValue[V]): CRelationValue[V] =
-    val cols1 = this.cols.toSet
+    union(other)
+    // TODO: Remove this comment after debugging 
+    /*val cols1 = this.cols.toSet
     val cols2 = other.cols.toSet
     val both = cols1.intersect(cols2).toSeq
     val v1projected = this.project(both)
     val v2projected = other.project(both)
-    v1projected.union(v2projected)
+    v1projected.union(v2projected)*/
   
   def rename(subst: Map[String, String]): CRelationValue[V] =
     val newColumns = cols.map(c => subst.getOrElse(c,c))

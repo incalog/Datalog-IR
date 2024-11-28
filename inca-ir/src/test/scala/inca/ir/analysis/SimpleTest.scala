@@ -291,51 +291,10 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     val mainRel = res("fac")
-    println(mainRel.entries.map(mainRel.flattenEntry).toSet)
     assert(mainRel.size == 3)
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
-  }
-
-  test("Two call sites") {
-    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
-      Relation("input", Seq(
-        Param("n", TInt),
-        Param("m", TInt)
-      ), Seq(
-        Body(Seq(
-          Eq(Var("n"), IntNum(1)),
-          Eq(Var("m"), IntNum(1)),
-        )),
-        Body(Seq(
-          Eq(Var("n"), IntNum(2)),
-          Eq(Var("m"), IntNum(2)),
-        ))
-      )),
-      Relation("main", Seq(
-        Param("m", TInt)
-      ), Seq(
-        Body(Seq(
-          Call("input", Seq(WildcardArg(), WildcardArg())),
-          Eq(Var("tmp"), IntNum(2)),
-          Call("input", Seq(Var("tmp"), Var("m")))
-        )),
-      )).addHint(MainHint),
-      /*Relation("main", Seq(
-        Param("y", TInt)
-      ), Seq(
-        Body(Seq(
-          Call("fac", Seq(IntNum(3), Var("y")))
-        )),
-      )).addHint(MainHint)*/
-    ))
-
-    val res = interp(mod)
-    println(res)
-    /*val mainRel = res("main")
-    assert(mainRel.size == 1)
-    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(6)))*/
   }
 
   test("Failing atom") {
