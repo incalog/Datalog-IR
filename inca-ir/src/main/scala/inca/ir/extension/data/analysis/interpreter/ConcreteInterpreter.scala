@@ -20,19 +20,22 @@ private class CDataVOps(using failure: Failure, except: Except[BaseIRException, 
   override def deconstruct(v: Value, dataName: String, caseName: String, args: Seq[Option[Value]], neg: Boolean): Seq[Value] = v match
     case CDataV(`dataName`, `caseName`, cArgs) =>
       val argsMatch = cArgs.zip(args).forall {
-        case (v1, None) => true // arg should be bound
+        case (v1, None) => true // arg will be bound
         case (v1, Some(v2)) => if (neg) eqOps.neq(v1, v2) else eqOps.equ(v1, v2)
       }
+
       if (!argsMatch)
         val prefix = if (neg) "~" else ""
         except.throws(AtomFailed(s"Deconstruct failed: $prefix?$caseName${(v +: args).mkString("(", ", ", ")") }"))
-      else if (!neg)
-        // provide values for all argument positions
-        cArgs
-      else
-        // negative calls bind nothing
+
+      // provide values for all argument positions, except for negative calls. They don't bind anything
+      if (!neg) cArgs else Seq()
+    case CDataV(dName, cName, cArgs) =>
+      if (neg)
         Seq()
-    case _ => failure(InvalidDeconstruct, s"Can not deconstruct value $v")
+      else
+        val prefix = if (neg) "~" else ""
+        except.throws(AtomFailed(s"Deconstruct failed: $prefix?$caseName${(v +: args).mkString("(", ", ", ")") }"))
 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:

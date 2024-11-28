@@ -51,8 +51,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           except.tryCatch {
             val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, argsV, neg)
 
-            if (!neg && (deconstrRes.size != args.size))
-             throw IllegalArgumentException(s"Deconstruct must provide a value for each argument")
+            if (!neg && (deconstrRes.size != args.size)) 
+              throw IllegalArgumentException(s"Deconstruct must provide a value for each argument")
 
             // we found new valid binding
             if (!neg)
@@ -63,15 +63,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
               bindings = bindings match
                 case Some(bd) => Some(relationOps.union(bd, newBinding))
                 case _ => Some(newBinding)
-
             success = boolTrue
           } { exec =>
+            success = boolFalse
           }
-
+          
           success
         }
-
-        println(bindings)
 
         // TODO: Is this correct? This should do whatever a call does to bind parameters.
         if (!neg && bindings.isDefined)
@@ -79,6 +77,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         else
           filteredSup
       }
+
+      branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
+        except.throws(AtomFailed("Destruct failed"))
+      } { /* nothing */ }
     case _ => super.evalAtomOpen(at)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match

@@ -195,7 +195,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val paramNames = r.params.map(_.name.name)
     val rv = edb.get(relName) match
       case Some(value) => value
-      case _ => failure(RefNotFound, s"No EDB relation with name $relName found")
+      case _ => relationOps.make(paramNames, Seq())
 
     // Make sure we have an edb entry for each column. We have no guarantee that the column names match.
     val cols = relationOps.columns(rv)
