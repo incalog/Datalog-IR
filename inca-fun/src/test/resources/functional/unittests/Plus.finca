@@ -5,5 +5,10 @@ def plus(m: Nat, n: Nat): Nat = m match {
   case Succ(pred) => Succ(plus(pred, n))
 }
 
+/*
 @main def main(): Nat =
   plus(Succ(Succ(Succ(Zero()))), Succ(Succ(Zero())))
+  */
+
+@main def main(): Nat =
+  plus(Succ(Succ(Zero())), Zero())

@@ -21,16 +21,18 @@ private class CDataVOps(using failure: Failure, except: Except[BaseIRException, 
     case CDataV(`dataName`, `caseName`, cArgs) =>
       val argsMatch = cArgs.zip(args).forall {
         case (v1, None) => true // arg will be bound
-        case (v1, Some(v2)) => eqOps.equ(v1, v2)
+        case (v1, Some(v2)) =>
+          println(s"$v1 == $v2 :: ${eqOps.equ(v1, v2)}")
+          eqOps.equ(v1, v2)
       }
 
       if (!argsMatch)
-        except.throws(AtomFailed(s"Deconstruct argument mismatch: ?$caseName${(v +: args).mkString("(", ", ", ")") }"))
+        except.throws(AtomFailed(s"Deconstruct argument mismatch: $v = ?$caseName${args.mkString("(", ", ", ")") }"))
 
       // provide values for all argument positions
       cArgs
     case CDataV(dName, cName, cArgs) =>
-      except.throws(AtomFailed(s"Deconstruct case mismatch: ?$caseName${(v +: args).mkString("(", ", ", ")") }"))
+      except.throws(AtomFailed(s"Deconstruct case mismatch: $v = ?$caseName${args.mkString("(", ", ", ")") }"))
 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:

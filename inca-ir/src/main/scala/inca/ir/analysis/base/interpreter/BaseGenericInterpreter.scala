@@ -204,7 +204,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     // rename column according to parameters
     val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
-    val paramNamesInSup = paramNames.filter(boundInSupplementary)
+    
+    /*val paramNamesInSup = paramNames.filter(boundInSupplementary)
     val projectedSup = relationOps.project(supplementaryTable.getTable, paramNamesInSup)
     val paramMapping: Map[Int, Int] = paramNames.zipWithIndex.map {
       case (p, i) => i -> relationOps.columnIndex(projectedSup, p)
@@ -218,7 +219,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
           case (acc, (edbIx, supIx)) => boolOps.and(acc, eqOps.equ(edbRow(edbIx), supRow(supIx)))
         }
       }
-    }
+    }*/
+
+    // filter edb rows based on current supplementary 
+    val res = relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
 
     branchOps.boolBranch(relationOps.isEmpty(res)) {
       except.throws(RelationFailed(s"EDB relation $relName failed"))

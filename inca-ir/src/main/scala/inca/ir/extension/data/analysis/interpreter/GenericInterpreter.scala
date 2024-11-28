@@ -36,6 +36,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         case (_, arg) => extractVarName(arg).get.name
       }
 
+      println(s"Before: ${supplementaryTable.getTable}")
+
       supplementaryTable.update { sup =>
         val tix = relationOps.columnIndex(sup, tSup)
         val aix = argsSup.map(_.map(relationOps.columnIndex(sup, _)))
@@ -49,10 +51,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           var success = boolFalse
 
           except.tryCatch {
-            println(row)
-            println(s"$termV :: $argsV")
+            //println(row)
+            //println(s"$termV :: ${caseDef.name.name} :: $argsV")
             val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, argsV)
-            println(s"Res: $deconstrRes")
+            //println(s"Res: $deconstrRes")
 
             if (!neg)
               if (deconstrRes.size != args.size)
@@ -69,7 +71,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
             success = boolOps.boolLit(!neg)
           } { exec =>
-            println(s"Exec: $exec")
+            //println(s"Exec: $exec")
             success = boolOps.boolLit(neg)
           }
 
@@ -82,6 +84,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         else
           filteredSup
       }
+
+      println(s"After: ${supplementaryTable.getTable}")
+      println("---------------------")
 
       branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
         except.throws(AtomFailed("Destruct failed"))
