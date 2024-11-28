@@ -28,6 +28,8 @@ trait RelationOps[V, B, RV]:
   // might produce empty table
   def filter(rv: RV)(f: Row => B): RV
 
+  def filterNot(rv: RV)(f: Row => B): RV
+
   def foreach(rv: RV)(f: Row => Unit): Unit
 
   def cartesian(rv: RV, other: RV): RV

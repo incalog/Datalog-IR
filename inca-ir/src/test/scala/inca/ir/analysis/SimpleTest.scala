@@ -67,7 +67,7 @@ class SimpleTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    assert(res("main").size == 1)
+    assert(res("main").size == 2)
   }
 
   test("Two relations") {

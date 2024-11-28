@@ -33,6 +33,9 @@ class CRelationValueOps[V](using failure: Failure)
   override def cartesian(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
     rv.cartesian(other)
 
+  override def filterNot(rv: CRelationValue[V])(f: Row => Boolean): CRelationValue[V] =
+    rv.filterNot(f)
+  
   override def filter(rv: CRelationValue[V])(f: Row => Boolean): CRelationValue[V] =
     rv.filter(f)
 
