@@ -295,7 +295,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
     case ir.TermArg(t) => extractVarName(t)
-    case ir.WildcardArg() => None
+    case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
 
   private final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     if (params.isEmpty) {
@@ -326,10 +326,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
             case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
           // add all variables bound by the call to the context
-          val boundVarsAfterCall = args.map(extractVarName)
-          val subst = boundVarsAfterCall.zip(params).flatMap {
-            case (Some(varName), p) => Some((p.name.name, varName.name))
-            case _ => None
+          val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
+          val subst = argMapping.zip(params).map {
+            case (Some(before, after), _) => after -> before
+            case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
           }.toMap
 
           relationOps.projectAndRename(relRes, subst)
@@ -339,14 +339,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         relationOps.unit
       }
 
+      println(res)
+
       (neg, positiveCallFailed) match
         case (true, true) => // nothing, negative call succeeded
         case (true, false) => except.throws(AtomFailed(s"Negative call failed: ~${r.name}(${args.mkString(",")})"))
         case (false, true) => except.throws(AtomFailed(s"Call failed: ${r.name}(${args.mkString(",")})"))
         case (false, false) => // positive call succeeded
           supplementaryTable.update { sup =>
-            // FIXME: Is this correct. If I'm not mistaken, res and sup are disjunct, since res only contains those
-            //  parameters that weren't bound before. That is, the natural join is just a cartesian product here.
+            // FIXME: Is this correct.
             relationOps.naturalJoin(sup, res)
           }
     }
