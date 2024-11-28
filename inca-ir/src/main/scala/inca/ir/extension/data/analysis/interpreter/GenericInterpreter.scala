@@ -29,10 +29,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
 
-      val boundVarsAfterDeconstr = args.map(extractVarName)
-
       val tSup = evalTerm(t)
       val argsSup = args.map(evalArg)
+      val destructColNames = argsSup.zip(args).map {
+        case (Some(subCol), _) => subCol
+        case (_, arg) => extractVarName(arg).get.name
+      }
 
       supplementaryTable.update { sup =>
         val tix = relationOps.columnIndex(sup, tSup)
@@ -55,8 +57,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             // we found new valid binding
             if (!neg)
               val newBinding = relationOps.make(
-                boundVarsAfterDeconstr.flatten.map(_.name),
-                Seq(boundVarsAfterDeconstr.zip(deconstrRes).filter(_._1.isDefined).map(_._2))
+                destructColNames,
+                Seq(deconstrRes)
               )
               bindings = bindings match
                 case Some(bd) => Some(relationOps.union(bd, newBinding))
@@ -68,6 +70,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
           success
         }
+
+        println(bindings)
 
         // TODO: Is this correct? This should do whatever a call does to bind parameters.
         if (!neg && bindings.isDefined)

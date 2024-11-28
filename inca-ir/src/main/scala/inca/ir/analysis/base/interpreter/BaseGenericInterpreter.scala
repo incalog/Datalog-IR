@@ -122,7 +122,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
-  private val gensym = Gensym()
+  protected val gensym = Gensym()
 
   def resetIDB(): Unit
 
@@ -170,7 +170,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val relRes = mapJoin(r.bodies, { b =>
       except.tryCatch {
         val res = relationOps.project(evalBody(b), paramNames)
-        //println(s"${r.name} :: $b :: $bodyRes")
         allBodiesFailed = false
         res
       } /*catch*/ {
@@ -312,7 +311,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         supplementaryTable.freshScoped {
           // rename the argument according to the parameters
           supplementaryTable.update(_ => evalContext)
-          //println(s"Eval context: $evalContext")
 
           // calculate the adornment
           val adornment = Adornment(argMapping.map {
@@ -320,7 +318,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
             case None => Adorn.f
           })
 
-          // Evaluate the call
+          // evaluate the call
           val relRes = r match
             case rel: ir.Relation => evalRelation(rel, adornment)
             case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
@@ -338,8 +336,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         positiveCallFailed = true
         relationOps.unit
       }
-
-      println(res)
 
       (neg, positiveCallFailed) match
         case (true, true) => // nothing, negative call succeeded
