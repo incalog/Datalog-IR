@@ -53,8 +53,10 @@ enum FixIn:
     case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment" //rel.toString
     case FixIn.ExtensionalRelation(rel: ir.ExtensionalRelation) => rel.toString
 
+type SupColumn = String
+
 enum FixOut[V, RV]:
-  case Term(values: RV)
+  case Term(col: SupColumn)
   case Atom()
   case ExitCall(value: RV)
   case Body(value: RV)
@@ -97,7 +99,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   implicit val joinRV: Join[RV]
 
-  def effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
+  val effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
     case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
   }, {
     case _: FixIn.EnterRelation => EffectList(except, failure, idb) //supplementaryTable
@@ -268,31 +270,25 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => None
 
   private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): Unit =
-    val res = relationOps.rename(evalTerm(from), Map(RESULT_COLUMN -> extractVarName(to).get.name))
-    mergeIntoEnv(res, false)
+    val fromCol = evalTerm(from)
+    supplementaryTable.update { sup =>
+      relationOps.copyColumn(sup, fromCol, extractVarName(to).get.name)
+    }
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
-
-    val combinations = relationOps.cartesian(
-      relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
-      relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
-    )
-
-    val comparisonResults = relationOps.filter(combinations) { case Seq(v1, v2) =>
-      if (neg) {
-        eqOps.neq(v1, v2)
-      } else {
-        eqOps.equ(v1, v2)
-      }
+    val eqOp = if (neg) eqOps.neq else eqOps.equ
+    supplementaryTable.update { sup =>
+      val lix = relationOps.columnIndex(sup, ls)
+      val rix = relationOps.columnIndex(sup, rs)
+      relationOps.filter(sup){ row => eqOp(row(lix), row(rix)) }
     }
-
-    // TODO: Filter supplementary
-    branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
+    branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
       // All failed
       except.throws(AtomFailed("Comparison failed"))
-    } /* catch */ { /*nothing*/ }
+    } {
+    }
 
   private def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
@@ -397,7 +393,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 
-  inline final def evalTerm(term: ir.Term)(using rec: Fixed): RV = rec(FixIn.Term(term)) match
+
+  inline final def evalTerm(term: ir.Term)(using rec: Fixed): SupColumn = rec(FixIn.Term(term)) match
     case FixOut.Term(v) => v
     case _ => throw new IllegalStateException()
 
@@ -410,15 +407,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val mapped = relationOps.map(renamed, RESULT_COLUMN) { case Seq(l) => f(l) }
     relationOps.project(mapped, Seq(RESULT_COLUMN))
     
-  protected def binaryOp(lhs: RV, rhs: RV)(f: (V, V) => V): RV =
-    // TODO: Single scan for these 3 operations
-    val combinations = relationOps.cartesian(
-      relationOps.rename(lhs, Map(RESULT_COLUMN -> LHS_COLUMN)),
-      relationOps.rename(rhs, Map(RESULT_COLUMN -> RHS_COLUMN))
-    )
-    val mapped = relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => f(l, r) }
-    relationOps.project(mapped, Seq(RESULT_COLUMN))
-    
+  protected def binaryOp(lhs: SupColumn, rhs: SupColumn)(f: (V, V) => V): SupColumn =
+    val resName = ??? // fresh column
+    supplementaryTable.update { sup =>
+      val lhsIx = relationOps.columnIndex(sup, lhs)
+      val rhsIx = relationOps.columnIndex(sup, rhs)
+
+      relationOps.map(sup, resName) { row => f(row(lhsIx), row(rhsIx)) }
+    }
+    resName
+
   protected def naryOp(rs: Seq[RV])(f: Seq[V] => V): RV =
     val renamed = rs.zipWithIndex.map { case (r, idx) =>
       relationOps.rename(r, Map(RESULT_COLUMN -> s"Param$idx"))
@@ -427,12 +425,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val mapped = relationOps.map(combinations, RESULT_COLUMN)(f)
     relationOps.project(mapped, Seq(RESULT_COLUMN))
 
-  def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
+  def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case ir.Var(ref) =>
       if (boundInSupplementary(ref.name.name))
-        //val varEntry = relationOps.project(supplementaryTable.getTable, Seq(ref.name.name))
-      //relationOps.naturalJoin(varEntry, relationOps.rename(varEntry, Map(ref.name.name -> RESULT_COLUMN)))
-        relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
+        ref.name.name
       else
         failure(UnresolvedVariable, s"Unbound variable ${ref.name.name}")
     case ir.Cast(t, _) =>

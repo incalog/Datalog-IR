@@ -14,6 +14,9 @@ trait RelationOps[V, B, RV]:
 
   def columns(rv: RV): Seq[String]
 
+  def columnIndex(rv: RV, column: String): Int =
+    columns(rv).indexOf(column)
+    
   // might produce empty table
   def make(cols: Seq[String], vals: Seq[Row]): RV
   
@@ -41,3 +44,8 @@ trait RelationOps[V, B, RV]:
 
   // might produce empty table
   def antiJoin(rv: RV, other: RV): RV
+  
+  def copyColumn(rv: RV, from: String, to: String): RV =
+    val fromIx = columnIndex(rv, from)
+    map(rv, to) { row => row(fromIx) }
+    

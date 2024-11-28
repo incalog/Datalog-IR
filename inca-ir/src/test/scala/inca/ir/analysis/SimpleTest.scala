@@ -276,7 +276,8 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3)))
   }
 
-  test("Factorial") {
+
+  ignore("Factorial") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),

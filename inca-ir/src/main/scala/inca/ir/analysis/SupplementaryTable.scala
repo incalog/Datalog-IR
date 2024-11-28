@@ -17,3 +17,6 @@ trait SupplementaryTable[RV] extends Effect:
   def setTable(rv: RV): Unit
 
   def getTable: RV
+
+  def update(f: RV => RV): Unit =
+    setTable(f(getTable))
