@@ -34,7 +34,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
 
-  override def filterNot(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
+  override def exists(rv: ARelationValue[V])(f: Row => B): B = ???
 
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
 

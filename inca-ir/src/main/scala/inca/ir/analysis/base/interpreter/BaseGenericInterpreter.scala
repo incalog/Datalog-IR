@@ -6,6 +6,7 @@ import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, InvalidBinding
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.Mode
+import inca.util.Gensym
 import sturdy.data.{MayJoin, mapJoin}
 import sturdy.effect.{EffectList, EffectStack}
 import sturdy.effect.failure.Failure
@@ -27,6 +28,7 @@ import sturdy.data.MayJoin.WithJoin
 //  5. Logger to annotate information
 //  6. Optimize program
 //  7. EDB support + test cases
+//  8. Remove unused relation ops
 
 enum Adorn:
   case b
@@ -67,10 +69,6 @@ given FiniteFixIn: Finite[FixIn] with {}
 
 
 trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
-  val RESULT_COLUMN: String = "result"
-  val LHS_COLUMN = "lhs"
-  val RHS_COLUMN = "rhs"
-
   // Fixpoint
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, RV]]
 
@@ -124,6 +122,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
+  private val gensym = Gensym()
+
   def resetIDB(): Unit
 
   def insertEDB(relName: String, rv: RV): Unit =
@@ -152,27 +152,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     }
   }
 
-  private def merge(lhs: RV, rhs: RV, neg: Boolean): RV =
-    val res = if (neg) {
-      //println(s"Anti join: $lhs :: $rhs")
-      relationOps.antiJoin(lhs, rhs)
-    } else {
-      //println(s"Nat join: $lhs :: $rhs")
-      relationOps.naturalJoin(lhs, rhs)
-    }
-
-    // Anti join might produce empty table
-    branchOps.boolBranch(relationOps.isEmpty(res)) {
-      //println("Now its empty...")
-      except.throws(MergeFailed("Merged empty table"))
-    } { /* nothing */ }
-
-    res
-
-  protected def mergeIntoEnv(rv: RV, neg: Boolean): Unit =
-    val merged = merge(supplementaryTable.getTable, rv, neg)
-    supplementaryTable.setTable(merged)
-
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     idb.write(AllocationSiteAddr.Variable(name.name)(true), rv)
 
@@ -181,7 +160,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case FixOut.Relation(p) => p
       case _ => throw new IllegalStateException()
 
-  def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
+  def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
+    gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
+
     val paramNames = r.params.map(p => p.name.name)
     val emptyRes = relationOps.make(paramNames, Seq())
 
@@ -202,13 +183,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     else
       insertIDB(r.name, relRes)
       relRes
-  }
+  }}
 
   inline def evalExtensionalRelation(r: ir.ExtensionalRelation)(using rec: Fixed): RV = rec(FixIn.ExtensionalRelation(r)) match
     case FixOut.ExtensionalRelation(p) => p
     case _ => throw new IllegalStateException()
 
-  def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped {
+  def evalExtensionalRelationOpen(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
+    gensym.register(r.params.map(_.name.name))
+
     val relName = r.name.name
     val paramNames = r.params.map(_.name.name)
     val rv = edb.get(relName) match
@@ -221,23 +204,21 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
 
     // rename column according to parameters
-    val renamedRv = relationOps.rename(rv, cols.zip(paramNames).toMap)
+    val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
+    val paramNamesInSup = paramNames.filter(boundInSupplementary)
+    val projectedSup = relationOps.project(supplementaryTable.getTable, paramNamesInSup)
+    val paramMapping: Map[Int, Int] = paramNames.zipWithIndex.map {
+      case (p, i) => i -> relationOps.columnIndex(projectedSup, p)
+    }.toMap
 
-    // Filter the edb entries based on the current supplementary
-    // TODO: Is there a nicer solution with anti-join
-    val res = relationOps.filter(renamedRv) { row =>
-      val bs = paramNames.zip(row).map { (p, r) =>
-        if (boundInSupplementary(p))
-          val combinations = relationOps.cartesian(
-            relationOps.projectAndRename(supplementaryTable.getTable, Map(p -> LHS_COLUMN)),
-            relationOps.make(Seq(RHS_COLUMN), Seq(Seq(r)))
-          )
-          val comparisonResults = relationOps.filter(combinations) { case Seq(v1, v2) => eqOps.equ(v1, v2) }
-          boolOps.not(relationOps.isEmpty(comparisonResults))
-        else
-          boolTrue
+    // for each edb entry check if we find a match in the supplementary
+    val res = relationOps.filter(edbRV) { edbRow =>
+      relationOps.exists(projectedSup) { supRow =>
+        paramMapping.foldLeft(boolTrue) {
+          case (acc, (_, -1)) => acc // param is binding, thus any value is allowed
+          case (acc, (edbIx, supIx)) => boolOps.and(acc, eqOps.equ(edbRow(edbIx), supRow(supIx)))
+        }
       }
-      bs.foldLeft(boolTrue)((acc, b) => boolOps.and(acc, b))
     }
 
     branchOps.boolBranch(relationOps.isEmpty(res)) {
@@ -245,7 +226,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     } { /* nothing */ }
 
     res
-  }
+  }}
 
   inline def evalBody(b: ir.Body)(using rec: Fixed): RV = rec(FixIn.Body(b)) match
     case FixOut.Body(rv) => rv
@@ -285,7 +266,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       relationOps.filter(sup){ row => eqOp(row(lix), row(rix)) }
     }
     branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
-      // All failed
       except.throws(AtomFailed("Comparison failed"))
     } {
     }
@@ -293,15 +273,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  private def boundInSupplementary(t: ir.Term): Boolean =
-    t.typ match
-      case Some(TermType(_, Mode.Bound)) => true /* term is always bound, independent of current query */
-      case _ =>
-        val sup = supplementaryTable.getTable
-        t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
+  private def boundInSupplementary(t: ir.Term): Boolean = t.typ match
+    case Some(TermType(_, Mode.Bound)) => true /* term is always bound, independent of current query */
+    case _ =>
+      val sup = supplementaryTable.getTable
+      t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
 
   private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
-    //println(s"Eval eq: $lhs $op $rhs")
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)
@@ -309,21 +287,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case (_, false, false) => evalAssign(rhs, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
-  def evalArg(arg: ir.Arg)(using Fixed): RV = arg match
-    case ir.TermArg(t) =>
-      // Only proceed if all vars of an argument are found in the supplementary table otherwise the term is not bound,
-      // and we return unit.
-      // Note that the binding information will not align with the mode information of the types. E.g.
-      //   path(x, y) :- edge(>x<, >y<)
-      //   path(x, y) :- edge(>x<, >z<), path(<z>, >y<).
-      // We might query path in a top-down evaluation at some step with an adornment path_fb. But, the type information
-      // path(<z>, >y<) says y is free, even though it is bound for this particular query.
-      if (boundInSupplementary(t))
-        evalTerm(t)
-      else
-        // empty context. We need unit so that mergeIntoEnv is working.
-        relationOps.unit
-    case ir.WildcardArg() => relationOps.unit
+  def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
+    case ir.TermArg(t) if boundInSupplementary(t) => Some(evalTerm(t))
+    case ir.TermArg(t) => None
+    case ir.WildcardArg() => None
     case _ => failure(UnknownArg, s"Unknown arg $arg")
 
   def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
@@ -336,25 +303,24 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       failure(NoParamRelation, s"Relation ${r.name} has no Parameters!")
     } else {
       // eval arguments in current scope
-      val argRes = params.zip(args).map { case (p, a) =>
-        relationOps.rename(evalArg(a), Map(RESULT_COLUMN -> p.name.name))
-      }
-
-      var positiveCallFailed = false
+      val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
+      val evalContext = relationOps.projectAndRename(supplementaryTable.getTable, argMapping.flatten.toMap)
 
       // eval the actual call in a new scoped environment
+      var positiveCallFailed = false
       val res = except.tryCatch {
         supplementaryTable.freshScoped {
-          // since we have at least one parameter argRV is defined
-          val evalContext = argRes.foldLeft(argRes.head)((acc, rv) => relationOps.naturalJoin(acc, rv))
-          supplementaryTable.setTable(evalContext)
+          // rename the argument according to the parameters
+          supplementaryTable.update(_ => evalContext)
+          //println(s"Eval context: $evalContext")
 
-          val boundParams = relationOps.columns(evalContext).toSet
-          val adornment = Adornment(params.map {
-            case p if boundParams.contains(p.name.name) => Adorn.b
-            case _ => Adorn.f
+          // calculate the adornment
+          val adornment = Adornment(argMapping.map {
+            case Some(_) => Adorn.b
+            case None => Adorn.f
           })
 
+          // Evaluate the call
           val relRes = r match
             case rel: ir.Relation => evalRelation(rel, adornment)
             case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
@@ -366,10 +332,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
             case _ => None
           }.toMap
 
-          val res = relationOps.projectAndRename(relRes, subst)
-          //println(s"Eval context: $evalContext")
-          //println(s"Call ${r.name}${args.mkString("(", ", ", ")")} :: $res")
-          res
+          relationOps.projectAndRename(relRes, subst)
         }
       } { exc =>
         positiveCallFailed = true
@@ -380,7 +343,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case (true, true) => // nothing, negative call succeeded
         case (true, false) => except.throws(AtomFailed(s"Negative call failed: ~${r.name}(${args.mkString(",")})"))
         case (false, true) => except.throws(AtomFailed(s"Call failed: ${r.name}(${args.mkString(",")})"))
-        case (false, false) => mergeIntoEnv(res, neg) // positive call succeeded
+        case (false, false) => // positive call succeeded
+          supplementaryTable.update { sup =>
+            // FIXME: Is this correct
+            relationOps.naturalJoin(sup, res)
+          }
     }
 
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
@@ -398,32 +365,39 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Term(v) => v
     case _ => throw new IllegalStateException()
 
-  protected def termResult(v: V): RV =
-    relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(v)))
+  protected def termResult(v: V): SupColumn =
+    val resName = gensym.fresh("result")
+    supplementaryTable.update { sup =>
+      relationOps.map(sup, resName) { row => v }
+    }
+    resName
     
-  protected def unaryOp(lhs: RV)(f: V => V): RV =
+  protected def unaryOp(lhs: SupColumn)(f: V => V): SupColumn =
     // TODO: Single scan for these 3 operations
-    val renamed = relationOps.rename(lhs, Map(RESULT_COLUMN -> LHS_COLUMN))
-    val mapped = relationOps.map(renamed, RESULT_COLUMN) { case Seq(l) => f(l) }
-    relationOps.project(mapped, Seq(RESULT_COLUMN))
-    
+    val resName = gensym.fresh("result")
+    supplementaryTable.update { sup =>
+      val lhsIx = relationOps.columnIndex(sup, lhs)
+      relationOps.map(sup, resName) { row => f(row(lhsIx)) }
+    }
+    resName
+
   protected def binaryOp(lhs: SupColumn, rhs: SupColumn)(f: (V, V) => V): SupColumn =
-    val resName = ??? // fresh column
+    val resName = gensym.fresh("result")
     supplementaryTable.update { sup =>
       val lhsIx = relationOps.columnIndex(sup, lhs)
       val rhsIx = relationOps.columnIndex(sup, rhs)
-
       relationOps.map(sup, resName) { row => f(row(lhsIx), row(rhsIx)) }
     }
     resName
 
-  protected def naryOp(rs: Seq[RV])(f: Seq[V] => V): RV =
+  /*protected def naryOp(rs: Seq[RV])(f: Seq[V] => V): RV =
+    // TODO: Fix this
     val renamed = rs.zipWithIndex.map { case (r, idx) =>
       relationOps.rename(r, Map(RESULT_COLUMN -> s"Param$idx"))
     }
     val combinations = renamed.foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
     val mapped = relationOps.map(combinations, RESULT_COLUMN)(f)
-    relationOps.project(mapped, Seq(RESULT_COLUMN))
+    relationOps.project(mapped, Seq(RESULT_COLUMN))*/
 
   def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case ir.Var(ref) =>

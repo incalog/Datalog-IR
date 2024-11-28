@@ -364,16 +364,16 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
   }
 
-  test("Recursive sum") {
+  test("Recursive prefix sum") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
       ), Seq(
         Body(Seq(Eq(Var("n"), IntNum(1)))),
         Body(Seq(Eq(Var("n"), IntNum(2)))),
-        //Body(Seq(Eq(Var("n"), IntNum(3))))
+        Body(Seq(Eq(Var("n"), IntNum(3))))
       )),
-      Relation("sum", Seq(
+      Relation("prefixSum", Seq(
         Param("t", TInt),
         Param("n", TInt),
       ), Seq(
@@ -385,14 +385,14 @@ class SimpleTest extends AnyFunSuiteLike:
         Body(Seq(
           Call("input", Seq(Var("t"))),
           Eq(Var("t"), IntNum(1), true),
-          Call("sum", Seq(Sub(Var("t"), IntNum(1)), Var("s"))),
+          Call("prefixSum", Seq(Sub(Var("t"), IntNum(1)), Var("s"))),
           Eq(Var("n"), Add(Var("s"), Var("t"))),
         )),
       )).addHint(MainHint),
     ))
 
     val res = interp(mod)
-    val mainRel = res("sum")
+    val mainRel = res("prefixSum")
     assert(mainRel.size == 3)
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 3)))

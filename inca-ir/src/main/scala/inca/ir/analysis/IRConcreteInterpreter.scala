@@ -37,7 +37,7 @@ given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]
 
   override def apply(out1: FixOut[Value, CRelationValue[Value]], out2: FixOut[Value, CRelationValue[Value]]): MaybeChanged[FixOut[Value, CRelationValue[Value]]] =
     (out1, out2) match
-      case (FixOut.Term(rv1), FixOut.Term(rv2)) => MaybeChanged(FixOut.Term(rv1.join(rv2)), out1)
+      case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.join(rv2)), out1)
       case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.join(rv2)), out1)

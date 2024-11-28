@@ -3,7 +3,7 @@ package inca.ir.extension.data.analysis.interpreter
 import inca.ir
 import inca.ir.Atom
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, InvalidBindings}
-import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.data.{Construct, Deconstruct}
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.WithJoin
@@ -24,8 +24,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val dataOps: DataOps[V, ExcV]
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
-    case Deconstruct(t, caseRef, args, neg) =>
-      val caseDef = caseRef.target.get
+    case Deconstruct(t, caseRef, args, neg) => ???
+      /*val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
       val tRV = evalTerm(t)
 
@@ -75,12 +75,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       }
 
       if (!neg && newBindings.isDefined)
-        mergeIntoEnv(newBindings.get, false)
+        mergeIntoEnv(newBindings.get, false)*/
     case _ => super.evalAtomOpen(at)
 
-  override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case Construct(caseRef, args) =>
-      val caseDef = caseRef.target.get
+  override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
+    case Construct(caseRef, args) => ???
+      /*val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
-      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))
+      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))*/
     case _ => super.evalTermOpen(term)

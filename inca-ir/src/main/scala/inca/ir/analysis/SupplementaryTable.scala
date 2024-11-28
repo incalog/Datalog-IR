@@ -13,7 +13,7 @@ trait SupplementaryTable[RV] extends Effect:
     clear()
     f
   }
-
+  
   def setTable(rv: RV): Unit
 
   def getTable: RV

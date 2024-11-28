@@ -47,7 +47,7 @@ private class IREqOps(using boolOps: BooleanOps[VBool]) extends BaseEqOps
 
 given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combine[V, VW], combineRV: Combine[RV, RW]): Combine[FixOut[V, RV], Widening.No] with
   override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] = (out1, out2) match
-    case (FixOut.Term(rv1), FixOut.Term(rv2)) => combineRV(rv1, rv2).map(FixOut.Term.apply)
+    case (FixOut.Term(supCol1), FixOut.Term(supCol2)) => assert(supCol1 == supCol2); MaybeChanged.Unchanged(FixOut.Term(supCol1))
     case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
     case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => combineRV(rv1, rv2).map(FixOut.ExitCall.apply)
     case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)

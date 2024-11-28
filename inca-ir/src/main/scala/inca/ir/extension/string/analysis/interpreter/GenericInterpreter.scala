@@ -1,8 +1,8 @@
 package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir
-import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
-import inca.ir.extension.string.{StringLit, StringConcat, ToString}
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
+import inca.ir.extension.string.{StringConcat, StringLit, ToString}
 import sturdy.data.MayJoin
 
 trait StringOps[V]:
@@ -15,7 +15,7 @@ trait StringOps[V]:
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val stringOps: StringOps[V]
 
-  override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
+  override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case StringLit(s) => termResult(stringOps.stringLit(s))
     case ToString(t) => unaryOp(evalTerm(t))(stringOps.toString)
     case StringConcat(lhs, rhs) => binaryOp(evalTerm(lhs), evalTerm(rhs))(stringOps.concat)
