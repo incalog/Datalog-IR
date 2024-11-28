@@ -373,7 +373,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     resName
     
   protected def unaryOp(lhs: SupColumn)(f: V => V): SupColumn =
-    // TODO: Single scan for these 3 operations
     val resName = gensym.fresh("result")
     supplementaryTable.update { sup =>
       val lhsIx = relationOps.columnIndex(sup, lhs)
@@ -390,14 +389,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     }
     resName
 
-  /*protected def naryOp(rs: Seq[RV])(f: Seq[V] => V): RV =
-    // TODO: Fix this
-    val renamed = rs.zipWithIndex.map { case (r, idx) =>
-      relationOps.rename(r, Map(RESULT_COLUMN -> s"Param$idx"))
+  protected def naryOp(rs: Seq[SupColumn])(f: Seq[V] => V): SupColumn =
+    val resName = gensym.fresh("result")
+    supplementaryTable.update { sup =>
+      val idx = rs.map(relationOps.columnIndex(sup, _))
+      relationOps.map(sup, resName) { row => f(idx.map(row)) }
     }
-    val combinations = renamed.foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
-    val mapped = relationOps.map(combinations, RESULT_COLUMN)(f)
-    relationOps.project(mapped, Seq(RESULT_COLUMN))*/
+    resName
 
   def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case ir.Var(ref) =>

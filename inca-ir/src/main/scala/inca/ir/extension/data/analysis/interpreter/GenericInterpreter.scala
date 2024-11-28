@@ -24,63 +24,62 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val dataOps: DataOps[V, ExcV]
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
-    case Deconstruct(t, caseRef, args, neg) => ???
-      /*val caseDef = caseRef.target.get
+    case Deconstruct(t, caseRef, args, neg) =>
+      // TODO: How can we clean this up?
+      val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
-      val tRV = evalTerm(t)
 
-      var boundIndices: Seq[Int] = Seq()
-      val argRV = args.zipWithIndex.map { case (a, idx) =>
-        val evalRes = evalArg(a)
-        if (relationOps.hasColumn(evalRes, RESULT_COLUMN))
-          boundIndices :+= idx
-          relationOps.projectAndRename(evalRes, Map(RESULT_COLUMN -> s"$idx"))
-        else
-          evalRes
-      }
-      val combinations = (tRV +: argRV).foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
+      val boundVarsAfterDeconstr = args.map(extractVarName)
 
-      val bindingVarsOption = args.map(extractVarName)
-      var newBindings: Option[RV] = None
+      val tSup = evalTerm(t)
+      val argsSup = args.map(evalArg)
 
-      relationOps.foreach(combinations) { case termV :: asV =>
-        val boundArgs = boundIndices.zip(asV).toMap
-        val deconstrArgs = args.indices.map(boundArgs.get)
+      supplementaryTable.update { sup =>
+        val tix = relationOps.columnIndex(sup, tSup)
+        val aix = argsSup.map(_.map(relationOps.columnIndex(sup, _)))
 
-        except.tryCatch {
-          val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, deconstrArgs, neg)
+        var bindings: Option[RV] = None
 
-          // Make sure we get a value for each argument
-          if (!neg && (deconstrRes.size != args.size))
-            failure(InvalidBindings, s"Deconstruct must provide a value for each argument")
+        val filteredSup = relationOps.filter(sup) { row =>
+          val termV = row(tix)
+          val argsV = aix.map(_.map(row))
 
-          // All updated binding information
-          if (!neg)
-            val bind = relationOps.make(
-              bindingVarsOption.flatMap(_.map(_.name)),
-              Seq(bindingVarsOption.zip(deconstrRes).filter(_._1.isDefined).map(_._2))
-            )
-            newBindings = newBindings match
-              case Some(bd) => Some(relationOps.union(bd, bind))
-              case _ => Some(bind)
+          var success = boolFalse
 
-        } { exc =>
-          // This particular deconstruct failed. Remove the bindings if necessary (aka the term t is a variable)
-          extractVarName(t) match
-            case Some(varName) =>
-              val dropEntries = relationOps.make(Seq(varName.name), Seq(Seq(termV)))
-              mergeIntoEnv(dropEntries, true)
-            case _ => // nothing
+          except.tryCatch {
+            val deconstrRes = dataOps.deconstruct(termV, dataName.name, caseDef.name.name, argsV, neg)
+
+            if (!neg && (deconstrRes.size != args.size))
+             throw IllegalArgumentException(s"Deconstruct must provide a value for each argument")
+
+            // we found new valid binding
+            if (!neg)
+              val newBinding = relationOps.make(
+                boundVarsAfterDeconstr.flatten.map(_.name),
+                Seq(boundVarsAfterDeconstr.zip(deconstrRes).filter(_._1.isDefined).map(_._2))
+              )
+              bindings = bindings match
+                case Some(bd) => Some(relationOps.union(bd, newBinding))
+                case _ => Some(newBinding)
+
+            success = boolTrue
+          } { exec =>
+          }
+
+          success
         }
-      }
 
-      if (!neg && newBindings.isDefined)
-        mergeIntoEnv(newBindings.get, false)*/
+        // TODO: Is this correct?
+        if (!neg && bindings.isDefined)
+          relationOps.naturalJoin(filteredSup, bindings.get)
+        else
+          filteredSup
+      }
     case _ => super.evalAtomOpen(at)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
-    case Construct(caseRef, args) => ???
-      /*val caseDef = caseRef.target.get
+    case Construct(caseRef, args) =>
+      val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
-      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))*/
+      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))
     case _ => super.evalTermOpen(term)
