@@ -16,23 +16,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val stringOps: StringOps[V]
 
   override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case StringLit(s) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(stringOps.stringLit(s))))
-    case ToString(t) =>
-      val rv = evalTerm(t)
-      val trv = relationOps.projectAndRename(rv, Map(RESULT_COLUMN -> LHS_COLUMN))
-      relationOps.project(
-        relationOps.map(trv, RESULT_COLUMN) { case Seq(e) => stringOps.toString(e) },
-        Seq(RESULT_COLUMN)
-      )
-    case StringConcat(lhs, rhs) =>
-      val ls = evalTerm(lhs)
-      val rs = evalTerm(rhs)
-      val combinations = relationOps.cartesian(
-        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
-        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
-      )
-      relationOps.project(
-        relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => stringOps.concat(l, r) },
-        Seq(RESULT_COLUMN)
-      )
+    case StringLit(s) => termResult(stringOps.stringLit(s))
+    case ToString(t) => unaryOp(evalTerm(t))(stringOps.toString)
+    case StringConcat(lhs, rhs) => binaryOp(evalTerm(lhs), evalTerm(rhs))(stringOps.concat)
     case _ => super.evalTermOpen(term)

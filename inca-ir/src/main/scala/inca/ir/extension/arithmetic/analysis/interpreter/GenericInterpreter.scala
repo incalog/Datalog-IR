@@ -19,28 +19,28 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
-  private def binaryArithmeticComparison(op: String, ops: OrderingOps[V, B]): (V, V) => B = (l, r) => op match
-    case "<=" => ops.le(l, r)
-    case "<" => ops.lt(l, r)
-    case ">" => ops.gt(l, r)
-    case ">=" => ops.ge(l, r)
+  private def binaryArithmeticComparison(op: String, ops: OrderingOps[V, B]): (V, V) => B = op match
+    case "<=" => ops.le
+    case "<" => ops.lt
+    case ">" => ops.gt
+    case ">=" => ops.ge
 
-  private def binaryArithmeticIntOp(op: String): (V, V) => V = (l, r) => op match
-    case "+" => intOps.add(l, r)
-    case "-" => intOps.sub(l, r)
-    case "*" => intOps.mul(l, r)
-    case "/" => intOps.div(l, r)
-    case "%" => intOps.remainder(l, r)
-    case "min" => intOps.min(l, r)
-    case "max" => intOps.max(l, r)
+  private def binaryArithmeticIntOp(op: String): (V, V) => V = op match
+    case "+" => intOps.add
+    case "-" => intOps.sub
+    case "*" => intOps.mul
+    case "/" => intOps.div
+    case "%" => intOps.remainder
+    case "min" => intOps.min
+    case "max" => intOps.max
 
-  private def binaryArithmeticDoubleOp(op: String): (V, V) => V = (l, r) => op match
-    case "+" => doubleOps.add(l, r)
-    case "-" => doubleOps.sub(l, r)
-    case "*" => doubleOps.mul(l, r)
-    case "/" => doubleOps.div(l, r)
-    case "min" => doubleOps.min(l, r)
-    case "max" => doubleOps.max(l, r)
+  private def binaryArithmeticDoubleOp(op: String): (V, V) => V = op match
+    case "+" => doubleOps.add
+    case "-" => doubleOps.sub
+    case "*" => doubleOps.mul
+    case "/" => doubleOps.div
+    case "min" => doubleOps.min
+    case "max" => doubleOps.max
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case BinCompare(lhs, rhs, op)  =>
@@ -78,9 +78,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case IntNum(i: Int) => termResult(intOps.integerLit(i))
     case DoubleNum(d: Double) => termResult(doubleOps.floatingLit(d))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TInt) =>
-      // TODO: Single scan for these 3 operations
       binaryOp(evalTerm(lhs), evalTerm(rhs))(binaryArithmeticIntOp(op))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TDouble) =>
-      // TODO: Single scan for these 3 operations
       binaryOp(evalTerm(lhs), evalTerm(rhs))(binaryArithmeticDoubleOp(op))
     case _ => super.evalTermOpen(term)

@@ -82,12 +82,5 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case Construct(caseRef, args) =>
       val caseDef = caseRef.target.get
       val dataName = caseDef.data.ref.name
-      val termRV = args.zipWithIndex.map { case (t, idx) =>
-        relationOps.projectAndRename(evalTerm(t), Map(RESULT_COLUMN -> s"Param$idx"))
-      }
-      val combinations = termRV.foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
-      relationOps.project(
-        relationOps.map(combinations, RESULT_COLUMN)(dataOps.construct(dataName.name, caseDef.name.name, _)),
-        Seq(RESULT_COLUMN)
-      )
+      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))
     case _ => super.evalTermOpen(term)

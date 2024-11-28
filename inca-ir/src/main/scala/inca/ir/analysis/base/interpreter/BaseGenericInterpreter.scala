@@ -411,12 +411,25 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   protected def termResult(v: V): RV =
     relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(v)))
+  protected def unaryOp(lhs: RV)(f: V => V): RV =
+    // TODO: Single scan for these 3 operations
+    val renamed = relationOps.rename(lhs, Map(RESULT_COLUMN -> LHS_COLUMN))
+    val mapped = relationOps.map(renamed, RESULT_COLUMN) { case Seq(l) => f(l) }
+    relationOps.project(mapped, Seq(RESULT_COLUMN))
   protected def binaryOp(lhs: RV, rhs: RV)(f: (V, V) => V): RV =
+    // TODO: Single scan for these 3 operations
     val combinations = relationOps.cartesian(
       relationOps.rename(lhs, Map(RESULT_COLUMN -> LHS_COLUMN)),
       relationOps.rename(rhs, Map(RESULT_COLUMN -> RHS_COLUMN))
     )
     val mapped = relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => f(l, r) }
+    relationOps.project(mapped, Seq(RESULT_COLUMN))
+  protected def naryOp(rs: Seq[RV])(f: Seq[V] => V): RV =
+    val renamed = rs.zipWithIndex.map { case (r, idx) =>
+      relationOps.rename(r, Map(RESULT_COLUMN -> s"Param$idx"))
+    }
+    val combinations = renamed.foldLeft(relationOps.unit) { case (acc, tv) => relationOps.cartesian(acc, tv) }
+    val mapped = relationOps.map(combinations, RESULT_COLUMN)(f)
     relationOps.project(mapped, Seq(RESULT_COLUMN))
 
   def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
