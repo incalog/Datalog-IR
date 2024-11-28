@@ -16,7 +16,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def isEmpty(rv: ARelationValue[V]): B = ???
 
-  override def hasColumn(rv: ARelationValue[V], column: String): B = ???
+  override def hasColumn(rv: ARelationValue[V], column: String): Boolean = ???
 
   override def columns(rv: RV): Seq[String] = ???
 

@@ -10,7 +10,7 @@ trait RelationOps[V, B, RV]:
 
   def isEmpty(rv: RV): B
 
-  def hasColumn(rv: RV, column: String): B
+  def hasColumn(rv: RV, column: String): Boolean
 
   def columns(rv: RV): Seq[String]
 

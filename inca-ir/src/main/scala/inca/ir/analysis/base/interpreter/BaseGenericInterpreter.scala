@@ -1,7 +1,7 @@
 package inca.ir.analysis.base.interpreter
 
 import inca.ir
-import inca.ir.ModuleEntry
+import inca.ir.{ModuleEntry, TermType}
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, InvalidBindings, MergeFailed, NoParamRelation, ProgramFailure, RefNotFound, RelationFailed, UnknownArg, UnknownAtom, UnknownTerm, UnresolvedVariable}
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.extension.impure.MainHint
@@ -295,13 +295,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     } /* catch */ { /*nothing*/ }
 
   private def boundInSupplementary(s: String): Boolean =
-    relationOps.hasColumn(supplementaryTable.getTable, s) == boolTrue
+    relationOps.hasColumn(supplementaryTable.getTable, s)
 
   private def boundInSupplementary(t: ir.Term): Boolean =
-    t.vars.forall { v => boundInSupplementary(v.name.name) }
+    t.typ match
+      case Some(TermType(_, Mode.Bound)) => true /* term is always bound, independent of current query */
+      case _ =>
+        val sup = supplementaryTable.getTable
+        t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
 
   private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
-    val op = if (neg) "!=" else "=="
     //println(s"Eval eq: $lhs $op $rhs")
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
@@ -425,12 +428,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     relationOps.project(mapped, Seq(RESULT_COLUMN))
 
   def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case ir.Var(ref) if boundInSupplementary(term) =>
-      //val varEntry = relationOps.project(supplementaryTable.getTable, Seq(ref.name.name))
-      //relationOps.naturalJoin(varEntry, relationOps.rename(varEntry, Map(ref.name.name -> RESULT_COLUMN)))
-      relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
     case ir.Var(ref) =>
-      failure(UnresolvedVariable, s"Unbound variable ${ref.name.name}")
+      if (boundInSupplementary(ref.name.name))
+        //val varEntry = relationOps.project(supplementaryTable.getTable, Seq(ref.name.name))
+      //relationOps.naturalJoin(varEntry, relationOps.rename(varEntry, Map(ref.name.name -> RESULT_COLUMN)))
+        relationOps.projectAndRename(supplementaryTable.getTable, Map(ref.name.name -> RESULT_COLUMN))
+      else
+        failure(UnresolvedVariable, s"Unbound variable ${ref.name.name}")
     case ir.Cast(t, _) =>
       evalTerm(t)
     case _ =>

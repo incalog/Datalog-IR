@@ -32,7 +32,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       var boundIndices: Seq[Int] = Seq()
       val argRV = args.zipWithIndex.map { case (a, idx) =>
         val evalRes = evalArg(a)
-        if (relationOps.hasColumn(evalRes, RESULT_COLUMN) == boolTrue)
+        if (relationOps.hasColumn(evalRes, RESULT_COLUMN))
           boundIndices :+= idx
           relationOps.projectAndRename(evalRes, Map(RESULT_COLUMN -> s"$idx"))
         else
