@@ -70,6 +70,47 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(res("main").size == 2)
   }
 
+  test("Comparison 2 ") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("xs", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+        ))
+      )),
+      Relation("ys", Seq(
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("y"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("y"), IntNum(2)),
+        )),
+        Body(Seq(
+          Eq(Var("y"), IntNum(3)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("xs", Seq(Var("x"))),
+          Call("ys", Seq(Var("y"))),
+          Eq(Var("x"), Sub(Var("y"), IntNum(1)))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 2)
+  }
+
   test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
       Relation("calc", Seq(
@@ -276,8 +317,7 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3)))
   }
 
-
-  ignore("Factorial") {
+  test("Factorial") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
@@ -322,6 +362,75 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
+  }
+
+  test("Recursive sum") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(Eq(Var("n"), IntNum(1)))),
+        Body(Seq(Eq(Var("n"), IntNum(2)))),
+        //Body(Seq(Eq(Var("n"), IntNum(3))))
+      )),
+      Relation("sum", Seq(
+        Param("t", TInt),
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("t"))),
+          Eq(Var("t"), IntNum(1)),
+          Eq(Var("n"), IntNum(1)),
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("t"))),
+          Eq(Var("t"), IntNum(1), true),
+          Call("sum", Seq(Sub(Var("t"), IntNum(1)), Var("s"))),
+          Eq(Var("n"), Add(Var("s"), Var("t"))),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("sum")
+    assert(mainRel.size == 3)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
+  }
+
+  test("Negative filter") {
+    val mod = Module("Test", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("n"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(2)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(3)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("t", TInt),
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("t"))),
+          Eq(Var("t"), IntNum(1), true),
+          Eq(Var("n"), Var("t")),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.size == 2)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 3)))
   }
 
   test("Failing atom") {
