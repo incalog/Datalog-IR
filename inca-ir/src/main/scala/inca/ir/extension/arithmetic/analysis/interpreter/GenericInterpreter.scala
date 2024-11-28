@@ -56,20 +56,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
       )
 
-      // Note, this is the complement on purpose. We want to find all bindings we need to remove. 
       val comparisonResults = op match
-        case "<=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.gt(l, r) }
-        case "<" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.ge(l, r) }
-        case ">" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.le(l, r) }
-        case ">=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.lt(l, r) }
+        case "<=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.le(l, r) }
+        case "<" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.lt(l, r) }
+        case ">" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.gt(l, r) }
+        case ">=" => relationOps.filter(combinations) { case Seq(l, r) => orderingOps.ge(l, r) }
 
       branchOps.boolBranch(relationOps.isEmpty(comparisonResults)) {
-        // All succeeded
-      } {
-        // At least one failed => filter
-        val mapping = extractVarName(lhs).map(LHS_COLUMN -> _.name) ++ extractVarName(rhs).map(RHS_COLUMN -> _.name)
-        mergeIntoEnv(relationOps.projectAndRename(comparisonResults, mapping.toMap), true)
-      }
+        // All failed
+        except.throws(AtomFailed("Comparison failed"))
+      } /* catch */ { /*nothing*/ }
 
     case _ => super.evalAtomOpen(at)
 
