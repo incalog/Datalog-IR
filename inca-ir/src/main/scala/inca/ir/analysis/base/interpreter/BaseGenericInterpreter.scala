@@ -345,7 +345,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case (false, true) => except.throws(AtomFailed(s"Call failed: ${r.name}(${args.mkString(",")})"))
         case (false, false) => // positive call succeeded
           supplementaryTable.update { sup =>
-            // FIXME: Is this correct
+            // FIXME: Is this correct. If I'm not mistaken, res and sup are disjunct, since res only contains those
+            //  parameters that weren't bound before. That is, the natural join is just a cartesian product here.
             relationOps.naturalJoin(sup, res)
           }
     }

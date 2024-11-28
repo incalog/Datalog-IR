@@ -69,7 +69,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           success
         }
 
-        // TODO: Is this correct?
+        // TODO: Is this correct? This should do whatever a call does to bind parameters.
         if (!neg && bindings.isDefined)
           relationOps.naturalJoin(filteredSup, bindings.get)
         else
