@@ -44,6 +44,32 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(res("main").entries.head == 14)
   }
 
+  test("Comparison") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("nums", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("nums", Seq(Var("x"))),
+          Eq(Var("x"), Var("x"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+  }
+
   test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
       Relation("calc", Seq(
