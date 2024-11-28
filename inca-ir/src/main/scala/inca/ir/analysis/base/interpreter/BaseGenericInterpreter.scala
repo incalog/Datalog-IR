@@ -131,14 +131,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // TODO: Filter edb and remove tuples accordingly. Look at evalExtensionRelation
     ???
 
-  def evalProgram(p: Seq[ir.Module]): Unit = external(p.foreach(evalModule))
+  def evalProgram(p: Seq[ir.Module]): Unit = 
+    external(p.foreach(evalModule))
 
   def entryPoints(m: ir.Module): Iterable[ir.Relation] = //m.relations.values
     m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
       case _ => m.relations.values
 
-  def evalModule(m: ir.Module)(using Fixed): Unit = supplementaryTable.scoped {
+  def evalModule(m: ir.Module)(using Fixed): Unit = {
     entryPoints(m).foreach { rel =>
       val relRes = except.tryCatch {
         val allFreeAdorn = Adornment(rel.params.map(_ => Adorn.f))
@@ -173,9 +174,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
     idb.write(AllocationSiteAddr.Variable(name.name)(true), rv)
 
-  inline def evalRelation(r: ir.Relation, adornment: Adornment)(using rec: Fixed): RV = rec(FixIn.EnterRelation(r, adornment)) match
-    case FixOut.Relation(p) => p
-    case _ => throw new IllegalStateException()
+  inline def evalRelation(r: ir.Relation, adornment: Adornment)(using rec: Fixed): RV =
+    rec(FixIn.EnterRelation(r, adornment)) match
+      case FixOut.Relation(p) => p
+      case _ => throw new IllegalStateException()
 
   def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped {
     val paramNames = r.params.map(p => p.name.name)
@@ -192,8 +194,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         exc => emptyRes
       }
     })
-
-
+    
     if (allBodiesFailed)
       except.throws(RelationFailed(s"Relation ${r.name} failed"))
     else
@@ -407,6 +408,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   inline final def evalTerm(term: ir.Term)(using rec: Fixed): RV = rec(FixIn.Term(term)) match
     case FixOut.Term(v) => v
     case _ => throw new IllegalStateException()
+
+  protected def termResult(v: V): RV =
+    relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(v)))
+  protected def binaryOp(lhs: RV, rhs: RV)(f: (V, V) => V): RV =
+    val combinations = relationOps.cartesian(
+      relationOps.rename(lhs, Map(RESULT_COLUMN -> LHS_COLUMN)),
+      relationOps.rename(rhs, Map(RESULT_COLUMN -> RHS_COLUMN))
+    )
+    val mapped = relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => f(l, r) }
+    relationOps.project(mapped, Seq(RESULT_COLUMN))
 
   def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
     case ir.Var(ref) if boundInSupplementary(term) =>

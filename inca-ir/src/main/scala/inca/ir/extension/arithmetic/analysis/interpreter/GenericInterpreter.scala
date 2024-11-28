@@ -19,6 +19,29 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
+  private def binaryArithmeticComparison(op: String, ops: OrderingOps[V, B]): (V, V) => B = (l, r) => op match
+    case "<=" => ops.le(l, r)
+    case "<" => ops.lt(l, r)
+    case ">" => ops.gt(l, r)
+    case ">=" => ops.ge(l, r)
+
+  private def binaryArithmeticIntOp(op: String): (V, V) => V = (l, r) => op match
+    case "+" => intOps.add(l, r)
+    case "-" => intOps.sub(l, r)
+    case "*" => intOps.mul(l, r)
+    case "/" => intOps.div(l, r)
+    case "%" => intOps.remainder(l, r)
+    case "min" => intOps.min(l, r)
+    case "max" => intOps.max(l, r)
+
+  private def binaryArithmeticDoubleOp(op: String): (V, V) => V = (l, r) => op match
+    case "+" => doubleOps.add(l, r)
+    case "-" => doubleOps.sub(l, r)
+    case "*" => doubleOps.mul(l, r)
+    case "/" => doubleOps.div(l, r)
+    case "min" => doubleOps.min(l, r)
+    case "max" => doubleOps.max(l, r)
+
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case BinCompare(lhs, rhs, op)  =>
       val orderingOps = lhs.typ match
@@ -50,39 +73,14 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
     case _ => super.evalAtomOpen(at)
 
+
   override def evalTermOpen(term: ir.Term)(using Fixed): RV = term match
-    case IntNum(i: Int) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(intOps.integerLit(i))))
-    case DoubleNum(d: Double) => relationOps.make(Seq(RESULT_COLUMN), Seq(Seq(doubleOps.floatingLit(d))))
+    case IntNum(i: Int) => termResult(intOps.integerLit(i))
+    case DoubleNum(d: Double) => termResult(doubleOps.floatingLit(d))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TInt) =>
       // TODO: Single scan for these 3 operations
-      val ls = evalTerm(lhs)
-      val rs = evalTerm(rhs)
-      val combinations = relationOps.cartesian(
-        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
-        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
-      )
-      val values = op match
-        case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.add(l, r) }
-        case "-" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.sub(l, r) }
-        case "*" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.mul(l, r) }
-        case "/" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.div(l, r) }
-        case "%" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.remainder(l, r) }
-        case "min" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.min(l, r) }
-        case "max" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => intOps.max(l, r) }
-      relationOps.project(values, Seq(RESULT_COLUMN))
+      binaryOp(evalTerm(lhs), evalTerm(rhs))(binaryArithmeticIntOp(op))
     case BinOp(lhs, rhs, op) if term.typ.exists(_.ty == TDouble) =>
-      val ls = evalTerm(lhs)
-      val rs = evalTerm(rhs)
-      val combinations = relationOps.cartesian(
-        relationOps.rename(ls, Map(RESULT_COLUMN -> LHS_COLUMN)),
-        relationOps.rename(rs, Map(RESULT_COLUMN -> RHS_COLUMN))
-      )
-      val values = op match
-        case "+" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.add(l, r) }
-        case "-" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.sub(l, r) }
-        case "*" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.mul(l, r) }
-        case "/" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.div(l, r) }
-        case "min" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.min(l, r) }
-        case "max" => relationOps.map(combinations, RESULT_COLUMN) { case Seq(l, r) => doubleOps.max(l, r) }
-      relationOps.project(values, Seq(RESULT_COLUMN))
+      // TODO: Single scan for these 3 operations
+      binaryOp(evalTerm(lhs), evalTerm(rhs))(binaryArithmeticDoubleOp(op))
     case _ => super.evalTermOpen(term)
