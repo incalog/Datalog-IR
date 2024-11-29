@@ -18,8 +18,6 @@ class CSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
       supTable = snapshot
     }
 
-  override def clear(): Unit = supTable = CRelationValue(Seq(), Set(Seq()))
-
   override def setTable(rv: CRV): Unit = supTable = rv
 
   override def getTable: CRV = supTable

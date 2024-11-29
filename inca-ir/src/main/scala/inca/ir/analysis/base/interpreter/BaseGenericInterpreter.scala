@@ -186,11 +186,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       }
     })
     
-    if (allBodiesFailed)
-      except.throws(RelationFailed(s"Relation ${r.name} failed"))
-    else
-      insertIDB(r.name, relRes)
-      relRes
+    insertIDB(r.name, relRes)
+    relRes
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
@@ -211,11 +208,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
 
     // filter edb rows based on current supplementary 
-    val res = relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
-
-    branchOps.boolBranch(relationOps.isEmpty(res)) {
-      except.throws(RelationFailed(s"EDB relation $relName failed"))
-    } { res }
+    relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
   }}
 
   inline def evalBody(b: ir.Body)(using rec: Fixed): RV = rec(FixIn.Body(b)) match
@@ -287,52 +280,39 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     if (params.isEmpty) {
       // Relation with no parameters... This should not happen, even though viatra supports it
       failure(NoParamRelation, s"Relation ${r.name} has no Parameters!")
-    } else {
-      // eval arguments in current scope
-      val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
-      val evalContext = relationOps.projectAndRename(supplementaryTable.getTable, argMapping.flatten.toMap)
+    }
 
-      // eval the actual call in a new scoped environment
-      var positiveCallFailed = false
-      val res = except.tryCatch {
-        supplementaryTable.freshScoped {
-          // rename the argument according to the parameters
-          supplementaryTable.setTable(evalContext)
+    // eval arguments in current scope
+    val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
+    // rename the argument according to the parameters
+    val evalContext = relationOps.projectAndRename(supplementaryTable.getTable, argMapping.flatten.toMap)
+    // calculate the adornment
+    val adornment = Adornment(argMapping.map {
+      case Some(_) => Adorn.b
+      case None => Adorn.f
+    })
 
-          // calculate the adornment
-          val adornment = Adornment(argMapping.map {
-            case Some(_) => Adorn.b
-            case None => Adorn.f
-          })
+    // eval the actual call in a new scoped environment
+    updateSupplementaryChecked { beforeCall =>
+      supplementaryTable.setTable(evalContext)
 
-          // evaluate the call
-          val relRes = r match
-            case rel: ir.Relation => evalRelation(rel, adornment)
-            case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
+      // evaluate the call
+      val relRes = r match
+        case rel: ir.Relation => evalRelation(rel, adornment)
+        case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
-          // add all variables bound by the call to the context
-          val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
-          val subst = argMapping.zip(params).map {
-            case (Some(before, after), _) => after -> before
-            case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
-          }.toMap
+      // add all variables bound by the call to the context
+      val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
+      val subst = argMapping.zip(params).map {
+        case (Some(before, after), _) => after -> before
+        case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
+      }.toMap
 
-          relationOps.projectAndRename(relRes, subst)
-        }
-      } { exc =>
-        positiveCallFailed = true
-        relationOps.unit
-      }
-
-      (neg, positiveCallFailed) match
-        case (true, true) => // nothing, negative call succeeded
-        case (true, false) => except.throws(AtomFailed(s"Negative call failed: ~${r.name}(${args.mkString(",")})"))
-        case (false, true) => except.throws(AtomFailed(s"Call failed: ${r.name}(${args.mkString(",")})"))
-        case (false, false) => // positive call succeeded
-          supplementaryTable.update { sup =>
-            // FIXME: Is this correct.
-            relationOps.naturalJoin(sup, res)
-          }
+      val callRes = relationOps.projectAndRename(relRes, subst)
+      if (neg)
+        relationOps.antiJoin(beforeCall, callRes)
+      else
+        relationOps.naturalJoin(beforeCall, callRes)
     }
 
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match

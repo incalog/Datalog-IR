@@ -8,13 +8,6 @@ trait SupplementaryTable[RV] extends Effect:
 
   def scoped[A](f: => A): A
 
-  def clear(): Unit
-
-  def freshScoped[A](f: => A): A = scoped {
-    clear()
-    f
-  }
-  
   def setTable(rv: RV): Unit
 
   def getTable: RV

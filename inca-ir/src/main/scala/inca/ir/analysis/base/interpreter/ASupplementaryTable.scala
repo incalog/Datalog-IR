@@ -20,8 +20,6 @@ class ASupplementaryTable(using j: Join[ARelationValue[Value]], w: Widen[ARelati
       supTable = snapshot
     }
 
-  override def clear(): Unit = supTable = ARelationValue(Seq(), Some(Seq()))
-
   override def setTable(rv: ARelationValue[Value]): Unit = setState(rv)
 
   override def getTable: ARelationValue[Value] = getState
