@@ -134,9 +134,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def insertEDB(relName: String, rv: RV): Unit =
     edb += relName -> rv
 
-  def removeEDB(relName: String, rv: RV): Unit =
-    // TODO: Filter edb and remove tuples accordingly. Look at evalExtensionRelation
-    ???
+  def removeEDB(relName: String, rv: RV): Unit = edb.get(relName) match
+    case Some(edbRV) =>
+      val paramNames = relationOps.columns(edbRV)
+      val cols = relationOps.columns(rv)
+      if (cols.size != paramNames.size)
+        failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
+      val removeRVs = relationOps.rename(rv, cols.zip(paramNames).toMap)
+      edb += relName -> relationOps.antiJoin(edbRV, removeRVs)
+    case _ => // nothing
 
   def evalProgram(p: Seq[ir.Module]): Map[String, Map[String, RV]] =
     external(p.map(m => m.name.name -> evalModule(m)).toMap)
