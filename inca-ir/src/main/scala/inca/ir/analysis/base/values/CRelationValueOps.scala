@@ -24,9 +24,6 @@ class CRelationValueOps[V](using failure: Failure)
   override def project(rv: CRelationValue[V], cols: Seq[String]): CRelationValue[V] =
     rv.project(cols)
 
-  override def projectAndRename(rv: CRelationValue[V], subst: Map[String, String]): CRelationValue[V] =
-    rv.projectAndRename(subst)
-  
   override def filter(rv: CRelationValue[V])(f: Row => Boolean): CRelationValue[V] =
     rv.filter(f)
 

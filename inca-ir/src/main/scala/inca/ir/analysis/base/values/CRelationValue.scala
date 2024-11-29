@@ -55,17 +55,14 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
     val newRows = rows.map(colsIndex.map)
     CRelationValue(newColumns, newRows)
 
-  def projectAndRename(subst: Map[String, String]): CRelationValue[V] =
-    project(subst.keys.toSeq).rename(subst)
-
-  /*def cartesian(other: CRelationValue[V]): CRelationValue[V] =
+  def cartesian(other: CRelationValue[V]): CRelationValue[V] =
     if (cols.exists(other.cols.contains))
       throw IllegalArgumentException("Columns need to be disjunct for cartesian product")
     val allCols = cols ++ other.cols
     val cartesianValues =
       for (row1 <- rows; row2 <- other.rows)
         yield row1 ++ row2
-    CRelationValue(allCols, cartesianValues)*/
+    CRelationValue(allCols, cartesianValues)
 
   def filter(f: Seq[V] => Boolean): CRelationValue[V] =
     CRelationValue(cols, rows.filter(f))

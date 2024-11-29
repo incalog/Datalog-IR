@@ -1,6 +1,8 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
+import inca.ir.analysis.base.effect.*
+import sturdy.data.MayJoin
 import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
 import sturdy.values.Join
@@ -27,9 +29,9 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def project(rv: ARelationValue[V], cols: Seq[String]): ARelationValue[V] = ???
 
   override def projectAndRename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
-  
+
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
-  
+
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
 
   override def flatMap(rv: ARelationValue[V])(f: Row => ARelationValue[V]): ARelationValue[V] = ???
