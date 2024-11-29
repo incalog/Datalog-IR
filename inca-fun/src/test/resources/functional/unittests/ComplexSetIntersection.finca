@@ -1,9 +1,6 @@
 module ComplexSetIntersection
 
-def A(): Set[Int] = {3}
-def B(): Set[Int] = {3}
-def C(): Set[Int] = {3, 4}
-@main def main(): Set[Int] = A() & B() & C()
+@main def main(): Set[Int] = {3} & {3} & {3, 4}
 /*
 def A(): Set[Int] = {1, 2, 3, 4, 5}
 def B(): Set[Int] = {3, 4, 5}
