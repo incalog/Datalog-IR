@@ -2,7 +2,7 @@ package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir
 import inca.ir.Atom
-import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, InvalidBindings}
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.data.{Construct, Deconstruct}
 import sturdy.data.MayJoin

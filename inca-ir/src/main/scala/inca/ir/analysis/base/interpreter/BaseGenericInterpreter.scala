@@ -1,24 +1,23 @@
 package inca.ir.analysis.base.interpreter
 
 import inca.ir
-import inca.ir.{ModuleEntry, TermType}
-import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException, EmptySupplementary, InvalidBindings, MergeFailed, NoParamRelation, ProgramFailure, RefNotFound, RelationFailed, UnknownArg, UnknownAtom, UnknownTerm, UnresolvedVariable}
+import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.Mode
+import inca.ir.{ModuleEntry, TermType}
 import inca.util.Gensym
-import sturdy.data.{MayJoin, mapJoin}
-import sturdy.effect.{EffectList, EffectStack}
+import sturdy.data.MayJoin.WithJoin
+import sturdy.data.{MakeJoined, MayJoin, mapJoin}
+import sturdy.effect.except.Except
 import sturdy.effect.failure.Failure
 import sturdy.effect.store.Store
+import sturdy.effect.{EffectList, EffectStack}
 import sturdy.fix.Fixpoint
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
-import sturdy.effect.except.Except
-import sturdy.data.MakeJoined
-import sturdy.data.MayJoin.WithJoin
 
 // TODO:
 //  1. Sturdy except when an atom or a body fails
@@ -142,23 +141,19 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // TODO: Filter edb and remove tuples accordingly. Look at evalExtensionRelation
     ???
 
-  def evalProgram(p: Seq[ir.Module]): Unit = 
-    external(p.foreach(evalModule))
+  def evalProgram(p: Seq[ir.Module]): Map[String, Map[String, RV]] =
+    external(p.map(m => m.name.name -> evalModule(m)).toMap)
 
   def entryPoints(m: ir.Module): Iterable[ir.Relation] = //m.relations.values
     m.relations.values.filter(_.hasHint(MainHint)) match
       case mainRels if mainRels.nonEmpty => mainRels
       case _ => m.relations.values
 
-  def evalModule(m: ir.Module)(using Fixed): Unit = {
-    entryPoints(m).foreach { rel =>
-      val relRes = except.tryCatch {
-        val allFreeAdorn = Adornment(rel.params.map(_ => Adorn.f))
-        evalRelation(rel, allFreeAdorn)
-      } { case RelationFailed(msg) =>
-        relationOps.make(rel.params.map(_.name.name), Seq())
-      }
-    }
+  def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = {
+    entryPoints(m).map { rel =>
+      val allFreeAdorn = Adornment(rel.params.map(_ => Adorn.f))
+      rel.name.name -> evalRelation(rel, allFreeAdorn)
+    }.toMap
   }
 
   protected def insertIDB(name: ir.Name, rv: RV): Unit =
@@ -307,8 +302,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case (Some(before, after), _) => after -> before
         case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
       }.toMap
-
       val callRes = relationOps.projectAndRename(relRes, subst)
+
       if (neg)
         relationOps.antiJoin(beforeCall, callRes)
       else

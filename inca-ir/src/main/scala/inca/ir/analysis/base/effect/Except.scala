@@ -7,8 +7,4 @@ trait BaseIRException
 case object EmptySupplementary extends BaseIRException
 case class AtomFailed(msg: String) extends BaseIRException
 
-case class RelationFailed(msg: String) extends BaseIRException
-
-case class MergeFailed(msg: String) extends BaseIRException
-
 given IRException: Finite[BaseIRException] with {}

@@ -2,15 +2,11 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir
 import inca.ir.Atom
-import inca.ir.analysis.base.effect.AtomFailed
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
-import inca.ir.analysis.base.values.{ARelationValue, VBool, Value}
-import inca.ir.extension.arithmetic.{BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt, UnOp}
+import inca.ir.extension.arithmetic.*
 import sturdy.data.MayJoin
-import sturdy.data.MayJoin.WithJoin
-import sturdy.effect.failure.Failure
-import sturdy.values.integer.IntegerOps
 import sturdy.values.floating.FloatOps
+import sturdy.values.integer.IntegerOps
 import sturdy.values.ordering.OrderingOps
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
@@ -52,12 +48,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val ls = evalTerm(lhs)
       val rs = evalTerm(rhs)
 
-      val opFun = op match
-        case "<=" => orderingOps.le
-        case "<" => orderingOps.lt
-        case ">" => orderingOps.gt
-        case ">=" => orderingOps.ge
-
+      val opFun = binaryArithmeticComparison(op, orderingOps)
       updateSupplementaryChecked { sup =>
         val lix = relationOps.columnIndex(sup, ls)
         val rix = relationOps.columnIndex(sup, rs)
