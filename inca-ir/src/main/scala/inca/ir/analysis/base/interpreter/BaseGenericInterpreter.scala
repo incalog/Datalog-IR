@@ -296,7 +296,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case rel: ir.Relation => evalRelation(rel, adornment)
         case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
-      // add all variables bound by the call to the context
+      // add all variables from the call to the context
       val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
       val subst = argMapping.zip(params).map {
         case (Some(before, after), _) => after -> before
