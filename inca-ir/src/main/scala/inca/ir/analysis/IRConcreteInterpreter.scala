@@ -42,7 +42,6 @@ given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.join(rv2)), out1)
       case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.join(rv2)), out1)
       case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => MaybeChanged(FixOut.Relation(rv1.join(rv2)), out1)
-      case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => MaybeChanged(FixOut.ExtensionalRelation(rv1.join(rv2)), out1)
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 
@@ -65,7 +64,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   given BooleanOps[Boolean] = boolOps
 
-  override val branchOps: BooleanBranching[Boolean, Unit] = ConcreteBooleanBranching
+  override val branchOps: BooleanBranching[Boolean, CRV] = ConcreteBooleanBranching
 
 
   override lazy val eqOps: EqOps[Value, Boolean] = new EqOps[Value, Boolean] {

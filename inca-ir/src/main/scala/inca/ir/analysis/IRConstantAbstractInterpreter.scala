@@ -52,7 +52,6 @@ given CombineFixOut[V, RV, VW <: Widening, RW <: Widening](using combineV: Combi
     case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => combineRV(rv1, rv2).map(FixOut.ExitCall.apply)
     case (FixOut.Body(rv1), FixOut.Body(rv2)) => combineRV(rv1, rv2).map(FixOut.Body.apply)
     case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => combineRV(rv1, rv2).map(FixOut.Relation.apply)
-    case (FixOut.ExtensionalRelation(rv1), FixOut.ExtensionalRelation(rv2)) => combineRV(rv1, rv2).map(FixOut.ExtensionalRelation.apply)
     case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool, ARelationValue[Value], Unit, WithJoin]
@@ -68,7 +67,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
 
   override lazy val except: Except[BaseIRException, Unit, WithJoin] = ???
   
-  override val branchOps: BooleanBranching[VBool, Unit] = ???
+  override val branchOps: BooleanBranching[VBool, RV] = ???
 
   /*given Finite[BaseIRException] = new Finite[BaseIRException] {}
 

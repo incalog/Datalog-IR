@@ -38,7 +38,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       println(s"Before: ${supplementaryTable.getTable}")
 
-      supplementaryTable.update { sup =>
+      updateSupplementaryChecked { sup =>
         val tix = relationOps.columnIndex(sup, tSup)
         val aix = argsSup.map(_.map(relationOps.columnIndex(sup, _)))
 
@@ -88,9 +88,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       println(s"After: ${supplementaryTable.getTable}")
       println("---------------------")
 
-      branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
-        except.throws(AtomFailed("Destruct failed"))
-      } { /* nothing */ }
     case _ => super.evalAtomOpen(at)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match

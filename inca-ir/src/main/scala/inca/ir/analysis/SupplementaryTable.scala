@@ -1,5 +1,6 @@
 package inca.ir.analysis
 
+import inca.ir.analysis.base.effect.EmptySupplementary
 import sturdy.data.MayJoin
 import sturdy.effect.Effect
 
@@ -18,5 +19,8 @@ trait SupplementaryTable[RV] extends Effect:
 
   def getTable: RV
 
-  def update(f: RV => RV): Unit =
-    setTable(f(getTable))
+  /** updates the supplementary table; ASSUMEs the new table is non-empty */
+  def update(f: RV => RV): RV =
+    val rv = f(getTable)
+    setTable(rv)
+    rv

@@ -58,16 +58,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         case ">" => orderingOps.gt
         case ">=" => orderingOps.ge
 
-      supplementaryTable.update { sup =>
+      updateSupplementaryChecked { sup =>
         val lix = relationOps.columnIndex(sup, ls)
         val rix = relationOps.columnIndex(sup, rs)
         relationOps.filter(sup) { row => opFun(row(lix), row(rix)) }
-      }
-
-      branchOps.boolBranch(relationOps.isEmpty(supplementaryTable.getTable)) {
-        except.throws(AtomFailed("Comparison failed"))
-      } {
-        // nothing
       }
 
     case _ => super.evalAtomOpen(at)
