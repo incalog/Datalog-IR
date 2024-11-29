@@ -30,14 +30,11 @@ class CRelationValueOps[V](using failure: Failure)
   override def projectAndRename(rv: CRelationValue[V], subst: Map[String, String]): CRelationValue[V] =
     rv.projectAndRename(subst)
 
-  override def cartesian(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
-    rv.cartesian(other)
+  /*override def cartesian(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
+    rv.cartesian(other)*/
   
   override def filter(rv: CRelationValue[V])(f: Row => Boolean): CRelationValue[V] =
     rv.filter(f)
-    
-  //override def exists(rv: RV)(f: Row => Boolean): Boolean =
-  //  rv.exists(f)
 
   override def map(rv: CRelationValue[V], columnName: String)(f: Row => V): CRelationValue[V] =
     rv.map(columnName)(f)

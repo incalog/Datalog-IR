@@ -118,7 +118,7 @@ class CRelationValueTest extends AnyFunSuiteLike:
 
   // Cartesian
 
-  test("Cartesian - Unit Table x Table") {
+  /*test("Cartesian - Unit Table x Table") {
     val table1 = CRelationValue(Seq(), Set(Seq[Int]()))
     val table2 = CRelationValue(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val result = table1.cartesian(table2)
@@ -146,7 +146,7 @@ class CRelationValueTest extends AnyFunSuiteLike:
     assertThrows[IllegalArgumentException] {
       table1.cartesian(table2)
     }
-  }
+  }*/
 
   // Anti Join
 

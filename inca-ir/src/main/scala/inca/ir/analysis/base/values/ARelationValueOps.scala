@@ -28,7 +28,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def projectAndRename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
 
-  override def cartesian(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
+  //override def cartesian(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
 
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
 

@@ -20,14 +20,11 @@ import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
 
 // TODO:
-//  1. Sturdy except when an atom or a body fails
-//  2. Make Context-Sensitive + Insensitive configurable
-//  3. Concrete Interpreter (data + arith + string + agg?)
-//  4. Abstract Interpreter - Constant Analysis (data + arith + string + agg?)
-//  5. Logger to annotate information
-//  6. Optimize program
-//  7. EDB support + test cases
-//  8. Remove unused relation ops
+//  1. Make Context-Sensitive + Insensitive configurable
+//  2. Concrete Interpreter (data + arith + string + agg?)
+//  3. Abstract Interpreter - Constant Analysis (data + arith + string + agg?)
+//  4. Logger to annotate information
+//  5. Optimize program
 
 enum Adorn:
   case b
@@ -228,10 +225,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.Cast(t, _) => extractVarName(t)
     case _ => None
 
-  private final def evalAssign(to: ir.Term, from: ir.Term)(using Fixed): Unit =
+  private final def evalAssign(to: String, from: ir.Term)(using Fixed): Unit =
     val fromCol = evalTerm(from)
     updateSupplementaryUnchecked { sup =>
-      relationOps.copyColumn(sup, fromCol, extractVarName(to).get.name)
+      relationOps.copyColumn(sup, fromCol, to)
     }
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
@@ -257,8 +254,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)
-      case (false, _, false) => evalAssign(lhs, rhs)
-      case (_, false, false) => evalAssign(rhs, lhs)
+      case (false, _, false) => evalAssign(extractVarName(lhs).get.name, rhs)
+      case (_, false, false) => evalAssign(extractVarName(rhs).get.name, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
   def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
