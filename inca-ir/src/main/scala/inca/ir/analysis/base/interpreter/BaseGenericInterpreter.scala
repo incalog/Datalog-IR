@@ -302,6 +302,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case (Some(before, after), _) => after -> before
         case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
       }.toMap
+
       val callRes = relationOps.projectAndRename(relRes, subst)
 
       if (neg)

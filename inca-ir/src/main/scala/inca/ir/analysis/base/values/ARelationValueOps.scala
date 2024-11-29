@@ -1,8 +1,6 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
-import inca.ir.analysis.base.effect.*
-import sturdy.data.MayJoin
 import sturdy.effect.EffectStack
 import sturdy.effect.failure.Failure
 import sturdy.values.Join
@@ -34,7 +32,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
 
-  override def exists(rv: ARelationValue[V])(f: Row => B): B = ???
+  //override def exists(rv: ARelationValue[V])(f: Row => B): B = ???
 
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
 

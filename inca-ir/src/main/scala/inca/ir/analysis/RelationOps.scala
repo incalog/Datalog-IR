@@ -34,7 +34,7 @@ trait RelationOps[V, B, RV]:
   /** may produce empty table */
   def filter(rv: RV)(f: Row => B): RV
 
-  def exists(rv: RV)(f: Row => B): B
+  //def exists(rv: RV)(f: Row => B): B
   
   def cartesian(rv: RV, other: RV): RV
 

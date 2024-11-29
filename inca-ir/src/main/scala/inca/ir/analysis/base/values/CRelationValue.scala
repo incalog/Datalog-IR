@@ -70,8 +70,8 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   def filter(f: Seq[V] => Boolean): CRelationValue[V] =
     CRelationValue(cols, rows.filter(f))
 
-  def exists(f: Seq[V] => Boolean): Boolean =
-    rows.exists(f)
+  //def exists(f: Seq[V] => Boolean): Boolean =
+  //  rows.exists(f)
   
   def map(columnName: String)(f: Seq[V] => V): CRelationValue[V] =
     CRelationValue(cols :+ columnName, rows.map(r => r :+ f(r)))
