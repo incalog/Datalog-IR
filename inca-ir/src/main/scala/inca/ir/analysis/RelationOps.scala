@@ -1,11 +1,8 @@
 package inca.ir.analysis
 
-import sturdy.data.MayJoin
-import sturdy.values.booleans.BooleanOps
-
 trait RelationOps[V, B, RV]:
   type Row = Seq[V]
-  
+
   def unit: RV
 
   def isEmpty(rv: RV): B
@@ -33,8 +30,6 @@ trait RelationOps[V, B, RV]:
 
   /** may produce empty table */
   def filter(rv: RV)(f: Row => B): RV
-
-  def union(rv: RV, other: RV): RV
 
   /** may produce empty table */
   def naturalJoin(rv: RV, other: RV): RV

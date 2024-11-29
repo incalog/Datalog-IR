@@ -27,13 +27,9 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def project(rv: ARelationValue[V], cols: Seq[String]): ARelationValue[V] = ???
 
   override def projectAndRename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???
-
-  //override def cartesian(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
-
+  
   override def filter(rv: ARelationValue[V])(f: Row => B): ARelationValue[V] = ???
-
-  //override def exists(rv: ARelationValue[V])(f: Row => B): B = ???
-
+  
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
 
   override def flatMap(rv: ARelationValue[V])(f: Row => ARelationValue[V]): ARelationValue[V] = ???
@@ -41,5 +37,3 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def naturalJoin(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
 
   override def antiJoin(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
-
-  override def union(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
