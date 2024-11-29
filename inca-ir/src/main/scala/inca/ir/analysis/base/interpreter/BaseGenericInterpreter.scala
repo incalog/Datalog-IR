@@ -253,7 +253,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val sup = supplementaryTable.getTable
       t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
 
-  private final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
+  protected final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)

@@ -1,8 +1,10 @@
 package inca.ir.analysis
 
-import inca.ir.execution.interpreter.Executor
+import inca.ir.execution.Relation2
+import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
+import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
-import inca.ir.extension.arithmetic.{Add, Sub, IntNum, Mul, TInt, IR as arithIR}
+import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
@@ -718,6 +720,44 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     assert(res("main").size == 1)
+  }
+
+  test("ADT - Deconstruct dispatch") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), Construct("TNil", Seq()))
+        )),
+        Body(Seq(
+          Eq(Var("x"), Construct("TCons", Seq(IntNum(5), Construct("TNil", Seq()))))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TInt),Param("y", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Deconstruct(Var("y"), "TCons", Seq(Var("x").arg, WildcardArg()), false)
+        )),
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Deconstruct(Var("y"), "TNil", Seq(), false),
+          Eq(Var("x"), IntNum(-1))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main").asInstanceOf[InterpreterRelation].table
+    assert(mainRes.size == 2)
+    assert(mainRes.rows.map(t => t.head) == Set(CIntV(-1), CIntV(5)))
   }
 
   test("ADT - Deconstruct negative as filter") {

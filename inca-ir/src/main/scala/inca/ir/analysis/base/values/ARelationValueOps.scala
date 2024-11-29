@@ -38,8 +38,8 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
 
   override def map(rv: ARelationValue[V], columnName: String)(f: Row => V): ARelationValue[V] = ???
 
-  override def foreach(rv: ARelationValue[V])(f: Row => Unit): Unit = ???
-
+  override def flatMap(rv: ARelationValue[V])(f: Row => ARelationValue[V]): ARelationValue[V] = ???
+  
   override def naturalJoin(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???
 
   override def antiJoin(rv: ARelationValue[V], other: ARelationValue[V]): ARelationValue[V] = ???

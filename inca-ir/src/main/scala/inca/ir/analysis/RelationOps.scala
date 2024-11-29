@@ -16,8 +16,8 @@ trait RelationOps[V, B, RV]:
 
   def columnIndex(rv: RV, column: String): Int =
     columns(rv).indexOf(column)
-    
-  // might produce empty table
+
+  /** may produce empty table */
   def make(cols: Seq[String], vals: Seq[Row]): RV
   
   def rename(rv: RV, subst: Map[String, String]): RV
@@ -28,21 +28,22 @@ trait RelationOps[V, B, RV]:
 
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
-  // might produce empty table
+  /** may produce empty table */
+  def flatMap(rv: RV)(f: Row => RV): RV
+
+  /** may produce empty table */
   def filter(rv: RV)(f: Row => B): RV
 
   def exists(rv: RV)(f: Row => B): B
   
-  def foreach(rv: RV)(f: Row => Unit): Unit
-
   def cartesian(rv: RV, other: RV): RV
 
   def union(rv: RV, other: RV): RV
 
-  // might produce empty table
+  /** may produce empty table */
   def naturalJoin(rv: RV, other: RV): RV
 
-  // might produce empty table
+  /** may produce empty table */
   def antiJoin(rv: RV, other: RV): RV
   
   def copyColumn(rv: RV, from: String, to: String): RV =

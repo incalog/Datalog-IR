@@ -42,8 +42,10 @@ class CRelationValueOps[V](using failure: Failure)
   override def map(rv: CRelationValue[V], columnName: String)(f: Row => V): CRelationValue[V] =
     rv.map(columnName)(f)
 
-  override def foreach(rv: CRelationValue[V])(f: Row => Unit): Unit =
-    rv.foreach(f.apply)
+  override def flatMap(rv: CRelationValue[V])(f: Row => CRelationValue[V]): CRelationValue[V] =
+    assert(!rv.isEmpty)
+    val generated = rv.rows.map(f).reduce(_.union(_))
+    rv.naturalJoin(generated)
 
   override def naturalJoin(rv: CRelationValue[V], other: CRelationValue[V]): CRelationValue[V] =
     rv.naturalJoin(other)
