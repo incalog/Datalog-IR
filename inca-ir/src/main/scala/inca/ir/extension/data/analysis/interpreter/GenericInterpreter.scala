@@ -1,18 +1,10 @@
 package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir
-import inca.ir.{Atom, Name, RefByName, TermArg, Var, WildcardArg}
-import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.data.{Construct, Deconstruct}
+import inca.ir.*
 import sturdy.data.MayJoin
-import sturdy.data.MayJoin.WithJoin
-import sturdy.effect.except.Except
-import sturdy.effect.failure.Failure
-import sturdy.data.MakeJoined
-import sturdy.data.CombineUnit
-
-import java.sql.Ref
 
 trait DataOps[V, R]:
   def construct(dataName: String, caseName: String, args: Seq[V]): V

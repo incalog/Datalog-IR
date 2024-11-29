@@ -736,6 +736,9 @@ class SimpleTest extends AnyFunSuiteLike:
         )),
         Body(Seq(
           Eq(Var("x"), Construct("TCons", Seq(IntNum(5), Construct("TNil", Seq()))))
+        )),
+        Body(Seq(
+          Eq(Var("x"), Construct("TCons", Seq(IntNum(8), Construct("TNil", Seq()))))
         ))
       )),
 
@@ -756,8 +759,50 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     val mainRes = res("main").asInstanceOf[InterpreterRelation].table
+    assert(mainRes.size == 3)
+    assert(mainRes.rows.map(t => t.head) == Set(CIntV(-1), CIntV(5), CIntV(8)))
+  }
+
+  test("ADT - Deconstruct dispatch filter") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("helper", Seq(
+        Param("x", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), Construct("TNil", Seq()))
+        )),
+        Body(Seq(
+          Eq(Var("x"), Construct("TCons", Seq(IntNum(5), Construct("TNil", Seq()))))
+        )),
+        Body(Seq(
+          Eq(Var("x"), Construct("TCons", Seq(IntNum(8), Construct("TNil", Seq()))))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("x", TInt), Param("y", TData("TList")),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Deconstruct(Var("y"), "TCons", Seq(IntNum(8).arg, WildcardArg()), false),
+          Eq(Var("x"), IntNum(10))
+        )),
+        Body(Seq(
+          Call("helper", Seq(Var("y"))),
+          Deconstruct(Var("y"), "TNil", Seq(), false),
+          Eq(Var("x"), IntNum(-1))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main").asInstanceOf[InterpreterRelation].table
     assert(mainRes.size == 2)
-    assert(mainRes.rows.map(t => t.head) == Set(CIntV(-1), CIntV(5)))
+    assert(mainRes.rows.map(t => t.head) == Set(CIntV(-1), CIntV(10)))
   }
 
   test("ADT - Deconstruct negative as filter") {

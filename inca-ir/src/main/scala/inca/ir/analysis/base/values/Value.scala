@@ -11,6 +11,4 @@ class FiniteV extends Finite[Value]
 
 trait Value
 
-object Value
-
 case object Top extends Value
