@@ -16,13 +16,11 @@ trait BaseValueNumbering extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = true
+  def printVNResults: Boolean = false
 
   private case class CongrClass(valueId: ValueId, var leader: Term, var definingTerm: Term) extends CongruenceClass {
     override val isConstTerm: Term => Boolean = isConst
     override val isParameter: Term => Boolean = isParam
-    override val errorInfoStr: () => String = 
-      () => s" while analyzing relation $currentRelationName body with index $currentBodyIndex"
   }
 
   private class VNTables extends VNTablesTrait {
@@ -82,6 +80,14 @@ trait BaseValueNumbering extends IRVisitor {
     }
   }
 
+  private def updateCongrClassIfNecessary(vn: ValueId, t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
+    val isValid = vnTables.updateCongrClassIfNecessary(vn, t)
+    validBody = validBody && isValid
+  }
+
+  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId) = {
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(fromId, toId)
+  }
 
   protected def getIdOf(t: Term): ValueId = vnTables.getIdOf(t)
 
@@ -202,24 +208,25 @@ trait BaseValueNumbering extends IRVisitor {
 
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
-      vnTables.updateValueNumbersAndCongrClasses(termId, newTermId)
+      validBody &= vnTables.updateValueNumbersAndCongrClasses(termId, newTermId)
     }
 
     val normalizedTerm = normalize(newTerm)
     if (!vnTables.isValNumContained(normalizedTerm)){ // normalizedTerm not seen before
       vnTables.updateValNum(normalizedTerm, newTermId)
       if (vnTables.isCongrClassContained(newTermId)) {
-        vnTables.updateCongrClassIfNecessary(newTermId, normalizedTerm)
+        updateCongrClassIfNecessary(newTermId, normalizedTerm)
       }
     }
     else {
       // normalized term already has an id -> update term and newTerm to that id
       val normId = getIdOf(normalizedTerm)
       if (vnTables.isCongrClassContained(newTermId)) {
-        vnTables.updateCongrClassIfNecessary(newTermId, normalizedTerm)
+        updateCongrClassIfNecessary(newTermId, normalizedTerm)
       }
-      if (newTermId != normId) vnTables.updateValueNumbersAndCongrClasses(newTermId, normId)
-
+      if (newTermId != normId) {
+        validBody &= vnTables.updateValueNumbersAndCongrClasses(newTermId, normId)
+      }
       if (vnTables.isCongrClassContained(normId) && isAllowedToReplace(newTerm)) {
           return Seq(vnTables.getReplacementTerm(normalizedTerm))
         }
@@ -245,7 +252,7 @@ trait BaseValueNumbering extends IRVisitor {
     }
 
     val termId: ValueId = getIdOf(newTerm)
-    vnTables.updateValueNumbersAndCongrClasses(newVari, termId)
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(newVari, termId)
 
     if (vnTables.isCongrClassContained(termId)) {
       // remove "Assignment" or replace term
@@ -265,7 +272,7 @@ trait BaseValueNumbering extends IRVisitor {
       }
       else {
         vnTables.addCongrClass(CongrClass(termId, newVari, newTerm))
-        vnTables.updateCongrClassIfNecessary(termId, newTerm, updateDefTermIfNecessary = true)
+        updateCongrClassIfNecessary(termId, newTerm, updateDefTermIfNecessary = true)
       }
 
       generateEqIfNecessary(newVari, newTerm)
@@ -293,13 +300,13 @@ trait BaseValueNumbering extends IRVisitor {
           val id = getIdOf(leader)
 
           if (vnTables.isCongrClassContained(id)) {
-            vnTables.updateCongrClassIfNecessary(id, leader)
+            updateCongrClassIfNecessary(id, leader)
           }
           else {
             vnTables.addCongrClass(CongrClass(id, leader, leader))
           }
 
-          vnTables.updateValueNumbersAndCongrClasses(vari, id)
+          validBody &= vnTables.updateValueNumbersAndCongrClasses(vari, id)
           if (!isParam(vari)) return leader
           else return vari
       }

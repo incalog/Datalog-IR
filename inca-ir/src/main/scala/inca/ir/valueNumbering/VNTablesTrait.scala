@@ -27,7 +27,7 @@ trait VNTablesTrait {
   
   def addCongrClass(congrClass: CongruenceClass): Unit = congrClasses.update(congrClass.valueId, congrClass)
   
-  def updateCongrClassIfNecessary(vn: ValueId, term: Term, updateDefTermIfNecessary: Boolean = false): Unit = 
+  def updateCongrClassIfNecessary(vn: ValueId, term: Term, updateDefTermIfNecessary: Boolean = false): Boolean = 
     getCongrClassOf(vn).updateCongrClassIfNecessary(term)
 
   def getReplacementTerm(t: Term): Term = {
@@ -49,23 +49,25 @@ trait VNTablesTrait {
     return t
   }
 
-  def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Unit = {
+  def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Boolean = {
     val fromId = getIdOf(term)
-    if (fromId != toId) updateValueNumbersAndCongrClasses(fromId, toId)
+    if (fromId != toId) return updateValueNumbersAndCongrClasses(fromId, toId)
     else if (congrClasses.contains(toId)) {
-      congrClasses(toId).updateCongrClassIfNecessary(term)
+      return updateCongrClassIfNecessary(toId, term)
     }
+    return true 
   }
 
-  def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
+  def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Boolean = {
+    var isValid = true 
     var updateToCongrClass = false
     if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
-      congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
+      isValid &= congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
       congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
     }
     else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
       congrClasses.update(toId, newCongrClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
-      valueNumbers.getAllWithId(toId).foreach(t => congrClasses(toId).updateCongrClassIfNecessary(t))
+      valueNumbers.getAllWithId(toId).foreach(t => isValid &= updateCongrClassIfNecessary(toId, t))
     }
     else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
       updateToCongrClass = true
@@ -73,10 +75,11 @@ trait VNTablesTrait {
     valueNumbers.getAllWithId(fromId).foreach(t =>
       valueNumbers.update(t,toId)
       if (updateToCongrClass) {
-        congrClasses(toId).updateCongrClassIfNecessary(t)
+        isValid &= updateCongrClassIfNecessary(toId, t)
       }
     )
     congrClasses.remove(fromId)
+    return isValid
   }
 
   def printResults(): Unit = {

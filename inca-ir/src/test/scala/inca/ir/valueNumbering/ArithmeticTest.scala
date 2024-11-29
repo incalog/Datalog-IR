@@ -1818,9 +1818,9 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call("b", Seq(TermArg(Var("Y")))),
-            Eq(Var("X"), Add(Var("Y"), IntNum(2))), // now value of X also not known
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
             Eq(IntNum(12), Var("Z")),
-            Eq(IntNum(12), Var("X")), // <- thus this var important for constraining value of Y
+            Eq(IntNum(12), Var("X")),
             Eq(Var("param$0"), Var("X")),
             Eq(Var("param$1"), Var("Y"))
           ))
@@ -1828,10 +1828,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("b"), Seq(Param("m", TInt)), Seq(
           Body(Seq(
             Eq(Var("m"), IntNum(10))
-          )),
-//          Body(Seq(
-//            Call("a", Seq(TermArg(Var("m")), TermArg(Var("n"))))
-//          ))
+          ))
         ))
       ))
     val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -3021,6 +3018,248 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         ))
       ))
     performTest(expected, input, ConfigVN(normalizeDoubles=true))
+  }
+
+  test("Global propagation of leader") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(),TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt),Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123)),
+            Eq(Var("a"), Var("n")),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), Add(Var("a"), IntNum(23)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(IntNum(123)))),
+//            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), IntNum(125)),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt),Param("n", TInt)), Seq(
+          Body(Seq(
+//            Eq(Var("a"), IntNum(123)),
+            Eq(Var("n"), IntNum(123)),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+//            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Global propagation of leader (parameter not replaced)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(Var("param$1")))),
+            Eq(Var("param$1"), Var("param$0"))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123)),
+            Eq(Var("a"), Var("n")),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), Add(Var("a"), IntNum(23)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(Var("param$1")))),
+            Eq(Var("param$0"), Var("param$1"))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            //            Eq(Var("a"), IntNum(123)),
+            Eq(Var("n"), IntNum(123)),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            //            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Global propagation of leader (invalid body)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), IntNum(0)),
+            Eq(Var("param$1"), Var("Y"))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123)),
+            Eq(Var("a"), Var("n")),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), Add(Var("a"), IntNum(23)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            //            Eq(Var("a"), IntNum(123)),
+            Eq(Var("n"), IntNum(123)),
+            Eq(Var("m"), IntNum(10))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            //            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Global propagation of leader (circular dependence)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("m")), TermArg(Var("a")))),
+            Eq(Var("a"), Var("n")),
+            Eq(Var("m"), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), Sub(Var("a"), IntNum(100)))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(IntNum(0)))),
+//            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), IntNum(2)),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("m")), TermArg(IntNum(0)))),
+            Eq(Var("n"), IntNum(0)),
+            Eq(Var("m"), IntNum(2))
+          )),
+          Body(Seq(
+            Eq(Var("m"), IntNum(0)),
+//            Eq(Var("a"), IntNum(100)),
+            Eq(Var("n"), IntNum(0))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+
+  test("Global propagation of leader (recursion)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), IntNum(0))
+          )),
+          Body(Seq(
+            Call("R", Seq(WildcardArg(), TermArg(Var("Y")))),
+            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), Var("X")),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(1)),
+            Eq(Var("n"), IntNum(100))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(WildcardArg(), TermArg(IntNum(100)))),
+//            Eq(Var("X"), IntNum(102)),
+            Eq(Var("param$0"), IntNum(102)),
+            Eq(Var("param$1"), IntNum(0))
+          )),
+          Body(Seq(
+            Call("R", Seq(WildcardArg(), TermArg(IntNum(0)))),
+//            Eq(Var("X"), Add(Var("Y"), IntNum(2))),
+            Eq(Var("param$0"), IntNum(2)),
+            Eq(Var("param$1"), IntNum(0))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("m", TInt), Param("n", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("m"), IntNum(1)),
+            Eq(Var("n"), IntNum(100))
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
 
 

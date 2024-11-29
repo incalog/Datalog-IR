@@ -12,21 +12,23 @@ trait CongruenceClass {
   
   val isConstTerm: Term => Boolean
   val isParameter: Term => Boolean
-  
-  val errorInfoStr: () => String 
+
 
   override def toString: String =
     s"Congruence Class: Id = $valueId, leader = $leader, definingTerm = $definingTerm"
 
-  def changeLeaderIfNecessary(t: Term): Unit = { // also prevents type errors since in second pass otherwise might propagate unbound Vars
+  def changeLeaderIfNecessary(t: Term): Boolean = { 
     if (isConstTerm(t)) {
       if (isConstTerm(leader) && leader != t) {
-        throw new IllegalStateException(s"ValueNumbering: Term $t cannot equal $leader with valueId $valueId" + errorInfoStr())
+        return false
       }
       leader = t
     }
-    if (!isParameter(leader) && !isConstTerm(leader) && isParameter(t))
+    if (!isParameter(leader) && !isConstTerm(leader) && isParameter(t)) {
       leader = t
+    }
+    return true
+
   }
 
   def changeDefTermIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
@@ -35,11 +37,14 @@ trait CongruenceClass {
       definingTerm = t
   }
 
-  def updateCongrClassIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
-    changeLeaderIfNecessary(t)
-    if (updateDefTermIfNecessary)
+  def updateCongrClassIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Boolean = {
+    val isValid = changeLeaderIfNecessary(t)
+    if (updateDefTermIfNecessary) {
       changeDefTermIfNecessary(t)
+    }
+    isValid
   }
+
 }
 
 
