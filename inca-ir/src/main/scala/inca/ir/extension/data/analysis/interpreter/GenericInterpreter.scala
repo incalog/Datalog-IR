@@ -38,6 +38,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val dataIx = relationOps.columnIndex(sup, dataCol)
         relationOps.flatMap(sup) { row =>
           val data = row(dataIx)
+          //println(s"Decon: $at :: $data")
           dataOps.deconstruct(data, dataName, caseName) {
             vs => relationOps.make(deconCols, Seq(data +: vs))
           } {
@@ -52,6 +53,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         case (deconVar, TermArg(t)) => evalEq(deconVar, t, neg = false)
         case (deconVar, WildcardArg()) => // skip
       }
+
+      //println(s"Decon after: ${supplementaryTable.getTable}")
+      //println()
 
     case _ => super.evalAtomOpen(at)
 

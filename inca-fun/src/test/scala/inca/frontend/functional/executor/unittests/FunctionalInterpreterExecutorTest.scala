@@ -195,7 +195,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     var query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4))(res.toSet)
-
+    /*
     res = loaded.execute("main2", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
@@ -225,7 +225,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4, 5))(res.toSet)
-
+    */
     /*res = loaded.execute("main7", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))

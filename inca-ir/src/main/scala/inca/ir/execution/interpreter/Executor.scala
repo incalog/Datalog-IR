@@ -41,8 +41,6 @@ class Executor extends IRExecutor:
       }
       cachedResult.get
 
-    // TODO: This should not be needed, since we are pushing values down with top down evaluation, no?
-    //  But since we are context-insensitive we join all call-sides, so maybe its needed nevertheless
     def filter(idb: Map[String, Relation], query: Relation): Relation = idb.get(query.name) match
       case Some(rel) if query.isEmpty => rel
       case Some(rel) =>
@@ -60,17 +58,15 @@ class Executor extends IRExecutor:
         Relation.from(query.name, query.parameterNames, matches)
       case _ => throw IllegalArgumentException(s"Can not find relation ${query.name}")
 
-
-
     override def measure(rel: Relation): Long =
       val start = System.nanoTime()
       filter(interp(mods, useCache = false), rel)
       System.nanoTime() - start
 
     override def read(rel: Relation): Relation =
-      println(mods)
-      //println(interp(mods).map(_._2.asTable).mkString("\n"))
-      filter(interp(mods), rel)
+      val res = interp(mods)
+      //println(res.map(_._2.asTable).mkString("\n\n"))
+      filter(res, rel)
 
     override def readAll(): Seq[Relation] =
       interp(mods).values.toSeq
@@ -88,13 +84,11 @@ class Executor extends IRExecutor:
 
     override def insert(edb: Relation): Unit =
       inputDirty = true
-      // TODO: handle edb
       interp.insertEDB(edb.name, relationToCRV(edb))
 
 
     override def remove(edb: Relation): Unit =
       inputDirty = true
-      // TODO: Handle edb
       interp.removeEDB(edb.name, relationToCRV(edb))
 
     override def addUpdateListener(up: RelationUpdateListener): Unit =

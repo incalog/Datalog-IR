@@ -111,30 +111,4 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
       fixPt.fixpoint
 
 
-    /*val fixpt = new ContextualFixpoint[FixIn, FixOut[Value, CRV]] {
-      override type Ctx = CallString
-
-      // 1-context-sensitive should be enough.
-      override protected def context: Sensitivity[FixIn, Ctx] = new Sensitivity[FixIn, Ctx] {
-        def emptyContext: Ctx = null.asInstanceOf[Ctx]
-        def switchCall(dom: FixIn): Boolean = dom match
-          case FixIn.EnterCall(r, params, args, neg) => true
-          case _ => false
-        override def apply(dom: FixIn): Ctx = dom match
-          case FixIn.EnterCall(r, params, args, neg) =>
-            ContextCallString(Seq((r.name, args, neg)))
-          case _ => ContextCallString(Seq())
-      }
-
-      // TODO: Not sure what this does
-      override protected def contextFree: Combinator[FixIn, FixOut[Value, CRV]] => Combinator[FixIn, FixOut[Value, CRV]] = f => f
-
-      override protected def contextSensitive: Contextual[Ctx, FixIn, FixOut[Value, CRV]] ?=> Combinator[FixIn, FixOut[Value, CRV]] =
-        fix.iter.innermost(StackedStates())
-    }
-
-    fixpt.addContextSensitiveLogger(contextual ?=> new PrintLogger(contextual))
-    fixpt*/
-
-
 

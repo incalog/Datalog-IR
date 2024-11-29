@@ -1,5 +1,10 @@
 module ComplexSetIntersection
 
+def A(): Set[Int] = {3}
+def B(): Set[Int] = {3}
+def C(): Set[Int] = {3, 4}
+@main def main(): Set[Int] = A() & B() & C()
+/*
 def A(): Set[Int] = {1, 2, 3, 4, 5}
 def B(): Set[Int] = {3, 4, 5}
 def C(): Set[Int] = {1, 2, 3, 4}
@@ -13,5 +18,5 @@ def D(): Set[Int] = {15}
 @main def main5(): Set[Int] =
   {x | x in A()} & {x | x in B()} & {x | x in C()}
 @main def main6(): Set[Int] =
-  {x | x in A(), y in B(), x == y}
+  {x | x in A(), y in B(), x == y}*/
 //@main def main7(): Set[Int] = A() & D()

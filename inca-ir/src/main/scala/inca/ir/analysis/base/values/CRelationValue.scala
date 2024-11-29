@@ -70,9 +70,6 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
   def map(columnName: String)(f: Seq[V] => V): CRelationValue[V] =
     CRelationValue(cols :+ columnName, rows.map(r => r :+ f(r)))
 
-  def foreach(f: Seq[V] => Unit): Unit =
-    rows.foreach(f)
-
   def naturalJoin(other: CRelationValue[V]): CRelationValue[V] =
     val (sameCols, otherNewCols) = other.cols.partition(cols.contains)
     val newEntries =
@@ -103,5 +100,5 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
 
 given JoinCRV[V]: Join[CRelationValue[V]] with {
   override def apply(v1: CRelationValue[V], v2: CRelationValue[V]): MaybeChanged[CRelationValue[V]] =
-    MaybeChanged(v1.union(v2), v1)
+    MaybeChanged(v1.join(v2), v1)
 }

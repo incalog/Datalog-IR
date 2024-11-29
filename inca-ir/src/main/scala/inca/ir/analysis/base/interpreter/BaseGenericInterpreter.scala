@@ -290,6 +290,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case None => Adorn.f
     })
 
+    val cond = (extractVarName(args(0)).exists(_.name == "main_result$0") && r.name.name == "Set$TInt$enum")
+    if (cond) println(s"Before: ${r.name} :: ${supplementaryTable.getTable}")
+
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
       supplementaryTable.setTable(evalContext)
@@ -313,6 +316,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       else
         relationOps.naturalJoin(beforeCall, callRes)
     }
+
+    if (cond) println(s"Before: ${r.name} :: ${supplementaryTable.getTable}")
 
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
