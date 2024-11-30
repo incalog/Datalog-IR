@@ -2,29 +2,30 @@ package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
-import inca.ir.extension.data.{Construct, Deconstruct}
+import inca.ir.extension.data.{CaseDefinition, CaseDefinitionReference, Construct, DataDefinition, DataDefinitionReference, Deconstruct}
 import inca.ir.*
 import sturdy.data.MayJoin
 
 trait DataOps[V, R]:
-  def construct(dataName: String, caseName: String, args: Seq[V]): V
-  def deconstruct(v: V, dataName: String, caseName: String)(matching: Seq[V] => R)(notMatching: => R): R
+  def construct(data: DataDefinitionReference, cas: CaseDefinitionReference, args: Seq[V]): V
+  def deconstruct(v: V, data: DataDefinitionReference, cas: CaseDefinitionReference)(matching: Seq[V] => R)(notMatching: => R): R
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val dataOps: DataOps[V, RV]
 
+  override def evalModule(m: Module)(using Fixed): Map[SupColumn, RV] = super.evalModule(m)
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case Construct(caseRef, args) =>
       val caseDef = caseRef.target.get
-      val dataName = caseDef.data.ref.name
-      naryOp(args.map(evalTerm))(dataOps.construct(dataName.name, caseDef.name.name, _))
+      val dataDef = caseDef.data.ref.target.get
+      naryOp(args.map(evalTerm))(dataOps.construct(dataDef, caseDef, _))
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
     case Deconstruct(t, caseRef, args, neg) =>
       val caseDef = caseRef.target.get
-      val caseName = caseDef.name.name
-      val dataName = caseDef.data.ref.name.name
+      val dataDef = caseDef.data.ref.target.get
 
       if (caseDef.args.size != args.size)
         throw IllegalArgumentException(s"Deconstruct must provide a pattern for each argument")
@@ -37,9 +38,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       updateSupplementaryChecked { sup =>
         val dataIx = relationOps.columnIndex(sup, dataCol)
         relationOps.flatMap(sup) { row =>
-          val data = row(dataIx)
-          dataOps.deconstruct(data, dataName, caseName) {
-            vs => relationOps.make(deconCols, Seq(data +: vs))
+          val v = row(dataIx)
+          dataOps.deconstruct(v, dataDef, caseDef) {
+            vs => relationOps.make(deconCols, Seq(v +: vs))
           } {
             relationOps.make(deconCols, Seq())
           }

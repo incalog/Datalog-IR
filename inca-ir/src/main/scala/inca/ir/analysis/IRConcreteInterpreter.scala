@@ -3,7 +3,7 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut}
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, given}
 import inca.ir.analysis.base.logger.PrintLogger
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
@@ -31,18 +31,6 @@ import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
 import sturdy.data.MakeJoined
 import sturdy.values.exceptions.PowersetExceptional
-
-
-given CCombineFixOut[W <: Widening]: Combine[FixOut[Value, CRelationValue[Value]], W] with
-
-  override def apply(out1: FixOut[Value, CRelationValue[Value]], out2: FixOut[Value, CRelationValue[Value]]): MaybeChanged[FixOut[Value, CRelationValue[Value]]] =
-    (out1, out2) match
-      case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
-      case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
-      case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => MaybeChanged(FixOut.ExitCall(rv1.join(rv2)), out1)
-      case (FixOut.Body(rv1), FixOut.Body(rv2)) => MaybeChanged(FixOut.Body(rv1.join(rv2)), out1)
-      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => MaybeChanged(FixOut.Relation(rv1.join(rv2)), out1)
-      case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
 
 class IRConcreteInterpreter(val enableLogging: Boolean = false)

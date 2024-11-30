@@ -60,6 +60,16 @@ enum FixOut[V, RV]:
 
 given FiniteFixIn: Finite[FixIn] with {}
 
+given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut[V, RV], W] with
+  override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] =
+    (out1, out2) match
+      case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
+      case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
+      case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
+      case (FixOut.Body(rv1), FixOut.Body(rv2)) => Combine(rv1, rv2).map(FixOut.Body.apply)
+      case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => Combine(rv1, rv2).map(FixOut.Relation.apply)
+      case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
+
 
 trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   // Fixpoint

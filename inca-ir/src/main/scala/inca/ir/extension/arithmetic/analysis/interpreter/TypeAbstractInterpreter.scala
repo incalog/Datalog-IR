@@ -14,18 +14,18 @@ import sturdy.values.types.{BaseType, given}
 trait TypeAbstractInterpreter extends GenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Unit, WithJoin]:
   given Failure = failure
   override val intOps: IntegerOps[Int, TypeValue] = new LiftedIntegerOps[Int, TypeValue, BaseType[Int]](
-    {case TypeValue.AType(TInt) => BaseType[Int]},
+    {case TypeValue.AType(TInt) | TypeValue.Top => BaseType[Int]},
     _ => TypeValue.AType(TInt)
   )
   override val doubleOps: FloatOps[Double, TypeValue] = new LiftedFloatOps[Double, TypeValue, BaseType[Double]](
-    { case TypeValue.AType(TDouble) => BaseType[Double] },
+    { case TypeValue.AType(TDouble) | TypeValue.Top => BaseType[Double] },
     _ => TypeValue.AType(TDouble)
   )
   override val intOrderingOps: OrderingOps[TypeValue, Topped[Boolean]] = new LiftedOrderingOps[TypeValue, Topped[Boolean], BaseType[Int], BaseType[Boolean]](
-    {case TypeValue.AType(TInt) => BaseType[Int]},
+    {case TypeValue.AType(TInt) | TypeValue.Top => BaseType[Int]},
     _ => Topped.Top
   )
   override val doubleOrderingOps: OrderingOps[TypeValue, Topped[Boolean]] = new LiftedOrderingOps[TypeValue, Topped[Boolean], BaseType[Double], BaseType[Boolean]](
-    { case TypeValue.AType(TInt) => BaseType[Double] },
+    { case TypeValue.AType(TDouble) | TypeValue.Top => BaseType[Double] },
     _ => Topped.Top
   )

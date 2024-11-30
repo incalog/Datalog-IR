@@ -2,19 +2,20 @@ package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
 import inca.ir.analysis.base.values.{CRelationValue, Value}
-import sturdy.values.{Powerset}
+import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
+import sturdy.values.Powerset
 import sturdy.data.MayJoin.NoJoin
 
 case object InvalidDeconstruct extends BaseIRFailure
 
-case class CDataV(dataName: String, caseName: String, args: Seq[Value]) extends Value:
-  override def toString: String = s"$caseName${args.mkString("(", ",", ")")}"
+case class CDataV(dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference, args: Seq[Value]) extends Value:
+  override def toString: String = s"${caseDef.name}${args.mkString("(", ",", ")")}"
 
 private class CDataVOps[R] extends DataOps[Value, R]:
-  override def construct(dataName: String, caseName: String, args: Seq[Value]): Value = CDataV(dataName, caseName, args)
+  override def construct(dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference, args: Seq[Value]): Value = CDataV(dataDef, caseDef, args)
 
-  override def deconstruct(v: Value, dataName: String, caseName: String)(matching: Seq[Value] => R)(notMatching: => R): R = v match
-    case CDataV(`dataName`, `caseName`, cArgs) => matching(cArgs)
+  override def deconstruct(v: Value, dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference)(matching: Seq[Value] => R)(notMatching: => R): R = v match
+    case CDataV(`dataDef`, `caseDef`, cArgs) => matching(cArgs)
     case _ => notMatching
 
 
