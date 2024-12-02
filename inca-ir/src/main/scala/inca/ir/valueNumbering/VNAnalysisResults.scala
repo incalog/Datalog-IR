@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait VNAnalysisResults {
   var VNs: ValueIds[Term] = ValueIds[Term]()
-  var congruenceClasses: CongrClassesTable = new CongrClassesTable()
+  var congruenceClasses: CongrClassesTable[Term] = CongrClassesTable[Term]()
 }
 
 

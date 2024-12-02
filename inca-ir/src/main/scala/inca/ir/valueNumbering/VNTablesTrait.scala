@@ -3,57 +3,41 @@ package inca.ir.valueNumbering
 import inca.ir.{Name, RefByName, Term, TermType, Var}
 
 
-trait VNTablesTrait {
-  private var congrClasses: CongrClassesTable = CongrClassesTable()
-  private var valueNumbers: ValueIds[Term] = new ValueIds()
+trait VNTablesTrait[T] (protected val congrClasses: CongrClassesTable[T], protected val valueNumbers: ValueIds[T]) {
 
-  protected val newCongrClass: (ValueId, Term, Term) => CongruenceClass
+  protected val newCongrClass: (ValueId, T) => CongruenceClass[T]
   
-  def getCongrClasses: CongrClassesTable = congrClasses
+  def getCongrClasses: CongrClassesTable[T] = congrClasses
   
-  def getValueNumbers: ValueIds[Term] = valueNumbers
+  def getValueNumbers: ValueIds[T] = valueNumbers
   
-  def getIdOf(t: Term): ValueId = valueNumbers.getIdOf(t)
+  def getIdOf(t: T): ValueId = valueNumbers.getIdOf(t)
   
-  private def getCongrClassOf(t: Term): CongruenceClass = congrClasses(valueNumbers(t))
+  protected def getCongrClassOf(t: T): CongruenceClass[T] = congrClasses(valueNumbers(t))
   
-  def getCongrClassOf(vn: ValueId): CongruenceClass = congrClasses(vn)
+  def getCongrClassOf(vn: ValueId): CongruenceClass[T] = congrClasses(vn)
 
   def isCongrClassContained(vn: ValueId): Boolean = congrClasses.contains(vn)
   
-  def isValNumContained(term: Term): Boolean = valueNumbers.contains(term)
+  def isValNumContained(t: T): Boolean = valueNumbers.contains(t)
   
-  def updateValNum(term: Term, vn: ValueId): Unit = valueNumbers.update(term, vn)
+  def updateValNum(t: T, vn: ValueId): Unit = valueNumbers.update(t, vn)
   
-  def addCongrClass(congrClass: CongruenceClass): Unit = congrClasses.update(congrClass.valueId, congrClass)
+  def addCongrClass(congrClass: CongruenceClass[T]): Unit = congrClasses.update(congrClass.valueId, congrClass)
   
-  def updateCongrClassIfNecessary(vn: ValueId, term: Term, updateDefTermIfNecessary: Boolean = false): Boolean = 
-    getCongrClassOf(vn).updateCongrClassIfNecessary(term)
+  def updateCongrClassIfNecessary(vn: ValueId, t: T, updateDefTermIfNecessary: Boolean = false): Boolean = 
+    getCongrClassOf(vn).updateCongrClassIfNecessary(t)
 
-  def getReplacementTerm(t: Term): Term = {
+  def getReplacement(t: T): T = {
     if (!congrClasses.contains(valueNumbers(t))) return t
-
-    val leader = getCongrClassOf(t).leader
-    leader match {
-      case vari@Var(_) => VNTablesTrait.newVar(vari.name,t.typ)
-      case _ => leader
-    }
+    getCongrClassOf(t).leader
   }
 
-  def getDefiningTerm(t: Term): Term = {
-    if (valueNumbers.contains(t)){
-      if (congrClasses.contains(valueNumbers(t))) {
-        return getCongrClassOf(t).definingTerm
-      }
-    }
-    return t
-  }
-
-  def updateValueNumbersAndCongrClasses(term: Term, toId: ValueId): Boolean = {
-    val fromId = getIdOf(term)
+  def updateValueNumbersAndCongrClasses(t: T, toId: ValueId): Boolean = {
+    val fromId = getIdOf(t)
     if (fromId != toId) return updateValueNumbersAndCongrClasses(fromId, toId)
     else if (congrClasses.contains(toId)) {
-      return updateCongrClassIfNecessary(toId, term)
+      return updateCongrClassIfNecessary(toId, t)
     }
     return true 
   }
@@ -63,10 +47,9 @@ trait VNTablesTrait {
     var updateToCongrClass = false
     if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
       isValid &= congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
-      congrClasses(toId).changeDefTermIfNecessary(congrClasses(fromId).definingTerm)
     }
     else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
-      congrClasses.update(toId, newCongrClass(toId, congrClasses(fromId).leader, congrClasses(fromId).definingTerm))
+      congrClasses.update(toId, newCongrClass(toId, congrClasses(fromId).leader))
       valueNumbers.getAllWithId(toId).foreach(t => isValid &= updateCongrClassIfNecessary(toId, t))
     }
     else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
@@ -92,18 +75,80 @@ trait VNTablesTrait {
 
 
 
-object VNTablesTrait {
+
+trait VNTablesTerms extends VNTablesTrait[Term] {
+
+  override val congrClasses: CongrClassesTable[Term] = CongrClassesTable[Term]()
+
+  override protected val newCongrClass: (ValueId, Term) => CongruenceClassTerms
+  
+  
+  override def getReplacement(t: Term): Term = {
+    if (!congrClasses.contains(valueNumbers(t))) return t
+
+    val leader = getCongrClassOf(t).leader
+    leader match {
+      case vari@Var(_) => VNTablesTerms.newVar(vari.name, t.typ)
+      case _ => leader
+    }
+  }
+
+  override protected def getCongrClassOf(t: Term): CongruenceClassTerms = super.getCongrClassOf(t).asInstanceOf[CongruenceClassTerms]
+
+  override def getCongrClasses: CongrClassesTable[Term] = congrClasses
+  
+  override def getCongrClassOf(id: ValueId): CongruenceClassTerms = super.getCongrClassOf(id).asInstanceOf[CongruenceClassTerms]
+
+  def getDefiningTerm(t: Term): Term = {
+    if (valueNumbers.contains(t)) {
+      if (congrClasses.contains(valueNumbers(t))) {
+        return getCongrClassOf(t).definingTerm
+      }
+    }
+    return t
+  }
+  
+  def getDefiningTerm(id: ValueId): Term = getCongrClassOf(id).definingTerm
+
+  
+  override def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Boolean = {
+    var isValid = true
+    var updateToCongrClass = false
+    if (congrClasses.contains(fromId) && congrClasses.contains(toId)) {
+      isValid &= congrClasses(toId).changeLeaderIfNecessary(congrClasses(fromId).leader)
+      getCongrClassOf(toId).changeDefTermIfNecessary(getDefiningTerm(fromId))
+    }
+    else if (congrClasses.contains(fromId) && !congrClasses.contains(toId)) {
+      val congrCls = newCongrClass(toId, congrClasses(fromId).leader)
+      congrCls.definingTerm = getDefiningTerm(fromId)
+      congrClasses.update(toId, congrCls)
+      valueNumbers.getAllWithId(toId).foreach(t => isValid &= updateCongrClassIfNecessary(toId, t))
+    }
+    else if (!congrClasses.contains(fromId) && congrClasses.contains(toId)) {
+      updateToCongrClass = true
+    }
+    valueNumbers.getAllWithId(fromId).foreach(t =>
+      valueNumbers.update(t, toId)
+      if (updateToCongrClass) {
+        isValid &= updateCongrClassIfNecessary(toId, t)
+      }
+    )
+    congrClasses.remove(fromId)
+    return isValid
+  }
+
+  
+}
+
+
+
+
+object VNTablesTerms {
+  
   def newVar(name: Name, ty: Option[TermType] = None): Var = {
     val v = Var(RefByName(name))
     v.typ = ty
     v
-  }
-  
-  def newVNTableWith(VNs: ValueIds[Term], congrClassesTable: CongrClassesTable, constructor: () => VNTablesTrait): VNTablesTrait = {
-    val table = constructor()
-    table.valueNumbers = VNs
-    table.congrClasses = congrClassesTable
-    table
   }
   
 }

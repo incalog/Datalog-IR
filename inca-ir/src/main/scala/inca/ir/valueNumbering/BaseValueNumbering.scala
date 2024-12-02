@@ -18,18 +18,31 @@ trait BaseValueNumbering extends IRVisitor {
   def useFixPointIteration: Boolean = true
   def printVNResults: Boolean = false
 
-  private case class CongrClass(valueId: ValueId, var leader: Term, var definingTerm: Term) extends CongruenceClass {
+  private case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
     override val isConstTerm: Term => Boolean = isConst
     override val isParameter: Term => Boolean = isParam
+
+    var definingTerm: Term = _ // TODO
+  }
+  private object CongrClass{
+    def apply(valueId: ValueId, leader: Term, definingTerm: Term): CongrClass = {
+      val congrCls = CongrClass(valueId, leader)
+      congrCls.definingTerm = definingTerm
+      congrCls 
+    }
   }
 
-  private class VNTables extends VNTablesTrait {
-    override protected val newCongrClass: (ValueId, Term, Term) => CongruenceClass = CongrClass.apply
+  protected class VNTables(override val congrClasses: CongrClassesTable[Term], override val valueNumbers: ValueIds[Term])
+    extends VNTablesTerms with VNTablesTrait[Term](congrClasses, valueNumbers) {
+    override protected val newCongrClass: (ValueId, Term) => CongruenceClassTerms = CongrClass.apply
+  }
+  private object VNTables{
+    def apply(): VNTables = new VNTables(CongrClassesTable[Term](), ValueIds[Term]())
   }
 
 
-  protected var vnTables: VNTablesTrait = new VNTables()
-
+  protected var vnTables: VNTables = VNTables()
+  
 
   private enum Phase:
     case initial
@@ -85,7 +98,7 @@ trait BaseValueNumbering extends IRVisitor {
     validBody = validBody && isValid
   }
 
-  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId) = {
+  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
     validBody &= vnTables.updateValueNumbersAndCongrClasses(fromId, toId)
   }
 
@@ -146,9 +159,9 @@ trait BaseValueNumbering extends IRVisitor {
   private def setTables(body: Body): Unit = phase match {
     case Phase.initial =>
       // reset congrClasses (otherwise not known when variables are unbound)
-      vnTables = new VNTables()
+      vnTables = VNTables()
     case Phase.repetition =>
-      vnTables = VNTablesTrait.newVNTableWith(body.VNs, body.congruenceClasses, () => new VNTables())
+      vnTables = new VNTables(body.congruenceClasses, body.VNs)
   }
 
 
@@ -197,7 +210,7 @@ trait BaseValueNumbering extends IRVisitor {
   override def visitTerm(term: Term): Seq[Term] = {
     if (isConst(term)) return Seq(term) // dont replace constant terms and no need to normalize them
     if (vnTables.isCongrClassContained(getIdOf(term)) && isAllowedToReplace(term)) {
-      return Seq(vnTables.getReplacementTerm(term))
+      return Seq(vnTables.getReplacement(term))
     }
 
     val newTerm = super.visitTerm(term).head
@@ -228,7 +241,7 @@ trait BaseValueNumbering extends IRVisitor {
         validBody &= vnTables.updateValueNumbersAndCongrClasses(newTermId, normId)
       }
       if (vnTables.isCongrClassContained(normId) && isAllowedToReplace(newTerm)) {
-          return Seq(vnTables.getReplacementTerm(normalizedTerm))
+          return Seq(vnTables.getReplacement(normalizedTerm))
         }
     }
 
@@ -245,8 +258,8 @@ trait BaseValueNumbering extends IRVisitor {
     val newVari = if (isParam(vari))vari else visitTerm(vari).head
 
     // prevent learning from unsatisfiable Eq constraints and leave them in the body -> remove body later
-    if (isConst(vnTables.getReplacementTerm(newTerm)) && isConst(vnTables.getReplacementTerm(newVari)) &&
-      vnTables.getReplacementTerm(newTerm) != vnTables.getReplacementTerm(newVari)) {
+    if (isConst(vnTables.getReplacement(newTerm)) && isConst(vnTables.getReplacement(newVari)) &&
+      vnTables.getReplacement(newTerm) != vnTables.getReplacement(newVari)) {
       validBody = false
       return Seq(Eq(newVari,newTerm))
     }
@@ -347,6 +360,9 @@ trait BaseValueNumbering extends IRVisitor {
     vnTables.addCongrClass(CongrClass(id, newVari, newVari))
     newVari
   }
+
+
+
 
 
 

@@ -122,7 +122,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
 
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
-    case (l,r) if vnTables.getReplacementTerm(r) == IntNum(0) || vnTables.getReplacementTerm(r) == DoubleNum(0) => Div(l,r)
+    case (l,r) if vnTables.getReplacement(r) == IntNum(0) || vnTables.getReplacement(r) == DoubleNum(0) => Div(l,r)
     case (l, IntNum(1) | DoubleNum(1)) => l
     case (l, r) if getIdOf(l) == getIdOf(r) =>
       if typ.ty == TInt then newIntNum(1)
