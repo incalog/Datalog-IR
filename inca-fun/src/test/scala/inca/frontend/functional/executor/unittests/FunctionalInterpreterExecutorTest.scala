@@ -186,8 +186,8 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
   }
 
   // This will only work if you change the main hint to be on the set as well. Or if the interpreter uses all relations
-  // as entry points.
-  /*test("Complex set intersection") {
+  // as entry points. Otherwise you might get incomplete results for the set relations.
+  test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
@@ -198,7 +198,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4))(res.toSet)
 
-    res = loaded.execute("main2", Seq())
+    /*res = loaded.execute("main2", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
@@ -227,14 +227,14 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4, 5))(res.toSet)
-
+    */
     /*res = loaded.execute("main7", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query)
     println(res)
     assertResult(Set())(res.toSet)*/
-  }*/
+  }
 
   test("Set Ops") {
     val code = FileUtil.readFileFromResource("functional/unittests/SetOps.finca")

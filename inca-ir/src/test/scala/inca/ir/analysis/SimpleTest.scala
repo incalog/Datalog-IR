@@ -835,38 +835,63 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
   }
 
-  /**
-   * This test demonstrates that calc(1,2) is not required to answer the query if the main hint is only added to "main".
-   * This test demonstrates the problem we get with set relations.
-   */
   test("Test multiple recursive call sites") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input_calc", Seq(
         Param("x", TInt),
       ), Seq(
-        Body(Seq(Eq(Var("x"), IntNum(0)))),
-        Body(Seq(Eq(Var("x"), IntNum(1)))),
-        Body(Seq(Eq(Var("x"), IntNum(2)))),
+        Body(Seq(
+          Call("input_calc", Seq(Var("z"))),
+          Eq(Var("z"), IntNum(3)),
+          Call("calc", Seq(IntNum(0), Var("elem"))),
+          Eq(Var("x"), IntNum(2))
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("z"))),
+          Eq(Var("z"), IntNum(2)),
+          Call("calc", Seq(IntNum(0), Var("elem"))),
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("z"))),
+          Eq(Var("z"), IntNum(3)),
+          Eq(Var("x"), IntNum(0))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(3))
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("z"))),
+          Eq(Var("z"), IntNum(2)),
+          Eq(Var("x"), IntNum(0))
+        )),
       )),
       Relation("calc", Seq(
         Param("x", TInt),
-        Param("y", TInt),
+        Param("elem", TInt)
       ), Seq(
         Body(Seq(
           Call("input_calc", Seq(Var("x"))),
           Eq(Var("x"), IntNum(0)),
-          Eq(Var("y"), IntNum(2)),
-        )),
-        Body(Seq(
-          Call("input_calc", Seq(Var("x"))),
-          Eq(Var("x"), IntNum(2)),
-          Call("calc", Seq(IntNum(0), Var("y"))),
+          Eq(Var("elem"), IntNum(3))
         )),
         Body(Seq(
           Call("input_calc", Seq(Var("x"))),
           Eq(Var("x"), IntNum(1)),
-          Call("calc", Seq(IntNum(2), Var("y"))),
+          Eq(Var("elem"), IntNum(3))
         )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(2)),
+          Call("calc", Seq(IntNum(0), Var("elem"))),
+          Call("calc", Seq(IntNum(1), Var("elem")))
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(3)),
+          Call("calc", Seq(IntNum(0), Var("elem"))),
+          Call("calc", Seq(IntNum(2), Var("elem")))
+        ))
       )),
       Relation("main", Seq(
         Param("x", TInt),
@@ -879,6 +904,6 @@ class SimpleTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    assert(res("main").size == 3)
+    assert(res("main").size == 1)
   }
 
