@@ -160,8 +160,10 @@ trait BaseValueNumbering extends IRVisitor {
     case Phase.initial =>
       // reset congrClasses (otherwise not known when variables are unbound)
       vnTables = VNTables()
+      VNs_Atoms = ValueIds[Atom]()
     case Phase.repetition =>
       vnTables = new VNTables(body.congruenceClasses, body.VNs)
+      VNs_Atoms = ValueIds[Atom]() // TODO
   }
 
 
@@ -186,23 +188,26 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match {
-    case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
-      // in case a redundant binding is found it will be removed unless it belongs to a parameter
-      valueNumberVar(vari, e, dontRemove = isParam(vari))
-    case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
-      valueNumberVar(vari, e, dontRemove = isParam(vari))
-    case Eq(vari@Var(_), e, false) =>
-      // not removed (unless trivial) since non binding Eq is comparison that might reduce number of solutions; but remember equality
-      valueNumberVar(vari, e, dontRemove = true)
-    case Eq(e, vari@Var(RefByName(Name(_))), false) =>
-      valueNumberVar(vari, e, dontRemove = true)
+  override def visitAtom(atom: Atom): Seq[Atom] = {
+    val newAtom = atom match {
+      case Eq(vari@Var(_), e, false) if vari.mode.isBinding =>
+        // in case a redundant binding is found it will be removed unless it belongs to a parameter
+        valueNumberVar(vari, e, dontRemove = isParam(vari))
+      case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
+        valueNumberVar(vari, e, dontRemove = isParam(vari))
+      case Eq(vari@Var(_), e, false) =>
+        // not removed (unless trivial) since non binding Eq is comparison that might reduce number of solutions; but remember equality
+        valueNumberVar(vari, e, dontRemove = true)
+      case Eq(e, vari@Var(RefByName(Name(_))), false) =>
+        valueNumberVar(vari, e, dontRemove = true)
 
-    case call@Call(_, _, false) => treatBindingsInCall(call)
+      case call@Call(_, _, false) => treatBindingsInCall(call)
 
-    case call@ExtensionalCall(_, _, false) => treatBindingsInExtensionalCall(call)
+      case call@ExtensionalCall(_, _, false) => treatBindingsInExtensionalCall(call)
 
-    case _ => super.visitAtom(atom)
+      case _ => super.visitAtom(atom)
+    }
+    valueNumberAtoms(newAtom)
   }
 
 
@@ -363,7 +368,33 @@ trait BaseValueNumbering extends IRVisitor {
 
 
 
+  private var VNs_Atoms = ValueIds[Atom]()
 
+  
+  protected def normalizeAtom(atom: Atom): Seq[Atom] = atom match {
+    case Eq(lhs, rhs, true) if lhs == rhs => Seq()
+    case Eq(lhs, rhs, false) if isConst(lhs) && isConst(rhs) && lhs != rhs => Seq()
+    case Eq(lhs, rhs@Var(_), true) if rhs.mode.isBinding => Seq(Eq(rhs, lhs, true))
+    case Eq(lhs, rhs, bool) if getIdOf(lhs) > getIdOf(rhs) && !lhs.mode.isBinding  => Seq(Eq(rhs, lhs, bool))
+    case _ => Seq(atom)
+  }
+
+
+  private def valueNumberAtoms(atomSeq: Seq[Atom]): Seq[Atom] = {
+    if (atomSeq.isEmpty) return atomSeq
+    val atom = normalizeAtom(atomSeq.head) match {
+      case h :: _ => h
+      case _ => return Seq()
+    }
+
+    if (VNs_Atoms.contains(atom)){
+      return Seq()
+    }
+    else {
+      val vn = VNs_Atoms.getIdOf(atom)
+      return Seq(atom)
+    }
+  }
 
 
 }

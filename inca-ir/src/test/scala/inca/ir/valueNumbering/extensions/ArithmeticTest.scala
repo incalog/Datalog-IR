@@ -1,10 +1,11 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
 
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, string}
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module as IRModule}
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
+import inca.ir.valueNumbering.ValueNumberingTestAbstract
 
 
 class ArithmeticTest extends ValueNumberingTestAbstract{

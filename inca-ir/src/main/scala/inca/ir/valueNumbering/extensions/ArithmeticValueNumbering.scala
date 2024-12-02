@@ -1,7 +1,7 @@
 package inca.ir.valueNumbering.extensions
 
 import inca.ir.valueNumbering.BaseValueNumbering
-import inca.ir.{Term, TermType, Var}
+import inca.ir.{Atom, Term, TermType, Var}
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound
 
@@ -305,4 +305,19 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     }
     buildOpInner(operands)
   }
+
+
+  // TODO other cases ?
+  override protected def normalizeAtom(atom: Atom): Seq[Atom] = atom match {
+    case BinCompare(IntNum(lhs), IntNum(rhs), "<") if lhs < rhs => Seq()
+    case BinCompare(DoubleNum(lhs), DoubleNum(rhs), "<") if lhs < rhs => Seq()
+    case BinCompare(IntNum(lhs), IntNum(rhs), "<=") if lhs <= rhs => Seq()
+    case BinCompare(DoubleNum(lhs), DoubleNum(rhs), "<=") if lhs <= rhs => Seq()
+    case BinCompare(IntNum(lhs), IntNum(rhs), ">") if lhs > rhs => Seq()
+    case BinCompare(DoubleNum(lhs), DoubleNum(rhs), ">") if lhs > rhs => Seq()
+    case BinCompare(IntNum(lhs), IntNum(rhs), ">=") if lhs >= rhs => Seq()
+    case BinCompare(DoubleNum(lhs), DoubleNum(rhs), ">=") if lhs >= rhs => Seq()
+    case _ => super.normalizeAtom(atom)
+  }
+
 }

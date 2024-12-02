@@ -1,10 +1,11 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
 
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, RefByName, Relation, TermArg, Var, Module as IRModule}
 import inca.ir.extension.arithmetic.{ArithmeticAggregationOperator, IntNum, TInt}
-import inca.ir.extension.{arithmetic, string, aggregate}
+import inca.ir.extension.{aggregate, arithmetic, string}
 import inca.ir.*
+import inca.ir.valueNumbering.ValueNumberingTestAbstract
 
 
 class AggregateVNTest extends ValueNumberingTestAbstract {

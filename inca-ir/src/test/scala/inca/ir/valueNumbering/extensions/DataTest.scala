@@ -1,4 +1,4 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.extensions
 
 import inca.ir.extension.arithmetic.{IntNum, TInt}
 import inca.ir.extension.{arithmetic, data, string}
@@ -6,6 +6,7 @@ import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module a
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData}
+import inca.ir.valueNumbering.ValueNumberingTestAbstract
 
 
 class DataTest extends ValueNumberingTestAbstract {
