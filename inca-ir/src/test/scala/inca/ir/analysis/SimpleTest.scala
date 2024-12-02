@@ -1,6 +1,5 @@
 package inca.ir.analysis
 
-import inca.ir.execution.Relation2
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
@@ -366,7 +365,7 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
   }
 
-  /*test("Recursive prefix sum") {
+  test("Recursive prefix sum") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
@@ -399,7 +398,7 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 3)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
-  }*/
+  }
 
   test("Negative filter") {
     val mod = Module("Test", BaseIR.language + arithIR, Seq(
@@ -591,7 +590,6 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(9, 10)))
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(11, 12)))
   }
-
 
   test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
@@ -835,5 +833,52 @@ class SimpleTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     assert(res("main").size == 1)
+  }
+
+  /**
+   * This test demonstrates that calc(1,2) is not required to answer the query if the main hint is only added to "main".
+   * This test demonstrates the problem we get with set relations.
+   */
+  test("Test multiple recursive call sites") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input_calc", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(Eq(Var("x"), IntNum(0)))),
+        Body(Seq(Eq(Var("x"), IntNum(1)))),
+        Body(Seq(Eq(Var("x"), IntNum(2)))),
+      )),
+      Relation("calc", Seq(
+        Param("x", TInt),
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(0)),
+          Eq(Var("y"), IntNum(2)),
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(2)),
+          Call("calc", Seq(IntNum(0), Var("y"))),
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(1)),
+          Call("calc", Seq(IntNum(2), Var("y"))),
+        )),
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Call("calc", Seq(Var("x"), Var("_y")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 3)
   }
 
