@@ -307,7 +307,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   }
 
 
-  // TODO other cases ?
+
   override protected def normalizeAtom(atom: Atom): Seq[Atom] = atom match {
     case BinCompare(IntNum(lhs), IntNum(rhs), "<") if lhs < rhs => Seq()
     case BinCompare(DoubleNum(lhs), DoubleNum(rhs), "<") if lhs < rhs => Seq()
@@ -317,6 +317,10 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case BinCompare(DoubleNum(lhs), DoubleNum(rhs), ">") if lhs > rhs => Seq()
     case BinCompare(IntNum(lhs), IntNum(rhs), ">=") if lhs >= rhs => Seq()
     case BinCompare(DoubleNum(lhs), DoubleNum(rhs), ">=") if lhs >= rhs => Seq()
+
+    case BinCompare(lhs, rhs, "<") => Seq(BinCompare(rhs, lhs, ">="))
+    case BinCompare(lhs, rhs, ">") => Seq(BinCompare(rhs, lhs, "<="))
+
     case _ => super.normalizeAtom(atom)
   }
 

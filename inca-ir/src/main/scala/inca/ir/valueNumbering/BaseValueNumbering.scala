@@ -22,7 +22,7 @@ trait BaseValueNumbering extends IRVisitor {
     override val isConstTerm: Term => Boolean = isConst
     override val isParameter: Term => Boolean = isParam
 
-    var definingTerm: Term = _ // TODO
+    var definingTerm: Term = _
   }
   private object CongrClass{
     def apply(valueId: ValueId, leader: Term, definingTerm: Term): CongrClass = {
@@ -372,9 +372,10 @@ trait BaseValueNumbering extends IRVisitor {
 
   
   protected def normalizeAtom(atom: Atom): Seq[Atom] = atom match {
-    case Eq(lhs, rhs, true) if lhs == rhs => Seq()
-    case Eq(lhs, rhs, false) if isConst(lhs) && isConst(rhs) && lhs != rhs => Seq()
-    case Eq(lhs, rhs@Var(_), true) if rhs.mode.isBinding => Seq(Eq(rhs, lhs, true))
+    case Eq(lhs, rhs, false) if lhs == rhs => Seq()
+    case Eq(lhs, rhs, true) if isConst(lhs) && isConst(rhs) && lhs != rhs => Seq()
+    case Eq(Var(lhs), Var(rhs), true) if lhs == rhs => validBody = false; Seq(atom)
+    case Eq(lhs, rhs@Var(_), false) if rhs.mode.isBinding => Seq(Eq(rhs, lhs, false))
     case Eq(lhs, rhs, bool) if getIdOf(lhs) > getIdOf(rhs) && !lhs.mode.isBinding  => Seq(Eq(rhs, lhs, bool))
     case _ => Seq(atom)
   }
