@@ -60,8 +60,6 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     }
     val newEmpty = (empty, other.empty) match
       case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-      // FIXME: Don't we know this as well?
-      case (Topped.Actual(false), Topped.Actual(false)) if newTypes.exists(_.isInstanceOf[TypeValue.AType]) => Topped.Actual(false)
       case _ => Topped.Top
     TypeRelation(newCols, newTypes, newEmpty)
 
