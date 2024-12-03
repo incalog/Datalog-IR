@@ -177,7 +177,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     val loaded = exec.loadFunction(compiled)
-    // Query main to get the set ADT, afterwards query the set relation
+    // Query main to get the set ADT, afterward query the set relation
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
     val query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
@@ -185,7 +185,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     assertResult(Set(1, 3))(res.toSet)
   }
 
-  // This will only work if you change the main hint to be on the set as well. Or if the interpreter uses all relations
+  // This can only work if you change the main hint to be on the set as well. Or if the interpreter uses all relations
   // as entry points. Otherwise you might get incomplete results for the set relations.
   test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")

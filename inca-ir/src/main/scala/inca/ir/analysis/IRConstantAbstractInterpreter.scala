@@ -79,7 +79,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
   //override lazy val except = new JoinedExcept[BaseIRException, BaseIRException]
 
-  given Failure = failure
+  //given Failure = failure
 
   override val boolOps: BooleanOps[VBool] = new VBoolOps
   //override val boolTop: VBool = VBool.Top
@@ -100,7 +100,7 @@ class IRConstantAbstractInterpreter extends BaseGenericInterpreter[Value, VBool,
   override val joinRV: Join[RV] = ???
   override val joinUnit: WithJoin[Unit] = implicitly
 
-  override lazy val supplementaryTable: ASupplementaryTable = new ASupplementaryTable
+  override lazy val supplementaryTable: SupplementaryTable[ARelationValue[Value]] = ???
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
   // lazy is important because of cyclic implicits
   //override lazy val effects: EffectStack = EffectStack(supplementaryTable, failure, IDB)

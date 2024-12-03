@@ -92,6 +92,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   lazy val failure: Failure
 
+  given Failure = failure
+
   lazy val except: Except[BaseIRException, ExcV, WithJoin]
 
   val joinV: J[V]
@@ -101,9 +103,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   implicit val joinRV: Join[RV]
 
   val effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
-    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb) //EffectList(supplementaryTable, failure, idb)
+    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb)
   }, {
-    case _: FixIn.EnterRelation => EffectList(except, failure, idb) //supplementaryTable
+    case _: FixIn.EnterRelation => EffectList(except, failure, idb)
   })
 
   given EffectStack = effects

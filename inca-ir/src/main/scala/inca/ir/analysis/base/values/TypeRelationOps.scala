@@ -24,7 +24,51 @@ enum TypeValue:
     case (_, Top) => this
     case (AType(ty1), AType(ty2)) => if (ty1 == ty2) this else Bottom
 
-case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[Boolean])
+case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[Boolean]):
+  def rename(subst: Map[String, String]): TypeRelation =
+    val newColumns = cols.map(c => subst.getOrElse(c, c))
+    TypeRelation(newColumns, rows, empty)
+
+  def project(newColumns: Seq[String]): TypeRelation =
+    val colsIndex = newColumns.map(cols.indexOf)
+    val newRows = colsIndex.map(rows)
+    TypeRelation(newColumns, newRows, empty)
+
+  def map(columnName: String)(f: Seq[TypeValue] => TypeValue): TypeRelation =
+    TypeRelation(cols :+ columnName, rows :+ f(rows), empty)
+
+  def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation =
+    naturalJoin(f(rows))
+
+  def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation =
+    f(rows) match
+      case Topped.Top => copy(empty = Topped.Top)
+      case Topped.Actual(true) => this // unchanged
+      case Topped.Actual(false) => copy(empty = Topped.Actual(true)) // definitely empty
+
+  def naturalJoin(other: TypeRelation): TypeRelation =
+    val rvCols = cols.zipWithIndex.toMap
+    val otherCols = other.cols.zipWithIndex.toMap
+
+    val newCols = cols ++ other.cols.filterNot(cols.contains)
+    val newTypes = for (c <- newCols) yield {
+      (rvCols.get(c), otherCols.get(c)) match
+        case (Some(rvIx), None) => rows(rvIx)
+        case (None, Some(otherIx)) => other.rows(otherIx)
+        case (Some(rvIx), Some(otherIx)) => rows(rvIx).meet(other.rows(otherIx))
+        case (None, None) => throw new IllegalStateException()
+    }
+    val newEmpty = (empty, other.empty) match
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      case _ => Topped.Top
+    TypeRelation(newCols, newTypes, newEmpty)
+
+  def antiJoin(other: TypeRelation): TypeRelation =
+    val newEmpty = other.empty match
+      case Topped.Actual(true) => empty
+      case _ => Topped.Top
+    TypeRelation(cols, rows, newEmpty)
+
 
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
   override def unit: TypeRelation = TypeRelation(Seq(), Seq(), Topped.Actual(true))
@@ -38,50 +82,33 @@ class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelati
     TypeRelation(cols, types, Topped.Actual(vals.isEmpty))
 
   override def rename(rv: TypeRelation, subst: Map[String, String]): TypeRelation =
-    val newColumns = rv.cols.map(c => subst.getOrElse(c, c))
-    TypeRelation(newColumns, rv.rows, rv.empty)
+    rv.rename(subst)
 
   override def project(rv: TypeRelation, newColumns: Seq[String]): TypeRelation =
-    val colsIndex = newColumns.map(rv.cols.indexOf)
-    val newRows = colsIndex.map(rv.rows)
-    TypeRelation(newColumns, newRows, rv.empty)
-
-  override def projectAndRename(rv: TypeRelation, subst: Map[String, String]): TypeRelation =
-    rename(project(rv, subst.keys.toSeq), subst)
+    rv.project(newColumns)
 
   override def map(rv: TypeRelation, columnName: String)(f: Row => TypeValue): TypeRelation =
-    TypeRelation(rv.cols :+ columnName, rv.rows :+ f(rv.rows), rv.empty)
+    rv.map(columnName)(f)
 
   override def flatMap(rv: TypeRelation)(f: Row => TypeRelation): TypeRelation =
-    naturalJoin(rv, f(rv.rows))
+    rv.flatMap(f)
 
   override def filter(rv: TypeRelation)(f: Row => Topped[Boolean]): TypeRelation =
-    f(rv.rows) match
-      case Topped.Top => rv.copy(empty = Topped.Top)
-      case Topped.Actual(true) => rv // unchanged
-      case Topped.Actual(false) => rv.copy(empty = Topped.Actual(true)) // definitely empty
+    rv.filter(f)
 
   override def naturalJoin(rv: TypeRelation, other: TypeRelation): TypeRelation =
-    val rvCols = rv.cols.zipWithIndex.toMap
-    val otherCols = other.cols.zipWithIndex.toMap
-
-    val newCols = rv.cols ++ other.cols.filterNot(rv.cols.contains)
-    val newTypes = for (c <- newCols) yield {
-      (rvCols.get(c), otherCols.get(c)) match
-        case (Some(rvIx), None) => rv.rows(rvIx)
-        case (None, Some(otherIx)) => other.rows(otherIx)
-        case (Some(rvIx), Some(otherIx)) => rv.rows(rvIx).meet(other.rows(otherIx))
-        case (None, None) => throw new IllegalStateException()
-    }
-    val newEmpty = (rv.empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-      case _ => Topped.Top
-    TypeRelation(newCols, newTypes, newEmpty)
+    rv.naturalJoin(other)
 
   override def antiJoin(rv: TypeRelation, other: TypeRelation): TypeRelation =
-    val newEmpty = other.empty match
-      case Topped.Actual(true) => rv.empty
-      case _ => Topped.Top
-    TypeRelation(rv.cols, rv.rows, newEmpty)
+    rv.antiJoin(other)
 
 
+given JoinTV: Join[TypeValue] with {
+  override def apply(v1: TypeValue, v2: TypeValue): MaybeChanged[TypeValue] = 
+    MaybeChanged(v1.meet(v2), v1)
+}
+
+given JoinTRV: Join[TypeRelation] with {
+  override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
+    MaybeChanged(v1.naturalJoin(v2), v1)
+}

@@ -43,8 +43,6 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
-  given Failure = failure
-
   override val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
 
   // TODO: Which kind of ExcV should we use here?
@@ -89,8 +87,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
           case _: FixIn.EnterRelation => true
           case _ => false // important, filter everything out we don't need
         }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
-          //fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedCfgNodes()))
-          //fix.iter.outermost[FixIn, FixOut[Value, CRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
+          //fix.iter.innermost[FixIn, FixOut[Value, TRV], Unit](StackedCfgNodes()))
+          //fix.iter.outermost[FixIn, FixOut[Value, TRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
         )
 
     if (enableLogging)
