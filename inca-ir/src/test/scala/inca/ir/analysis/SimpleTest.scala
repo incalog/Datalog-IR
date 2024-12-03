@@ -835,38 +835,24 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
   }
 
-  test("Test multiple recursive call sites") {
+  test("Mutual Recursion, multiple call sites") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input_calc", Seq(
         Param("x", TInt),
       ), Seq(
         Body(Seq(
-          Call("input_calc", Seq(IntNum(3))),
+          Call("input_calc", Seq(IntNum(1))),
           Call("calc", Seq(IntNum(1), Var("elem"))),
           Eq(Var("x"), IntNum(2))
         )),
         Body(Seq(
-          //Call("input_calc", Seq(IntNum(2))),
-          //Call("calc", Seq(IntNum(1), Var("elem"))),
           Eq(Var("x"), IntNum(1))
-        )),
-        //Body(Seq(
-          //Call("input_calc", Seq(IntNum(3))),
-          //Eq(Var("x"), IntNum(0))
-        //)),
-        Body(Seq(
-          Eq(Var("x"), IntNum(3))
         ))
       )),
       Relation("calc", Seq(
         Param("x", TInt),
         Param("elem", TInt)
       ), Seq(
-        //Body(Seq(
-          //Call("input_calc", Seq(Var("x"))),
-          //Eq(Var("x"), IntNum(0)),
-          //Eq(Var("elem"), IntNum(3))
-        //)),
         Body(Seq(
           Call("input_calc", Seq(Var("x"))),
           Eq(Var("x"), IntNum(1)),
@@ -875,22 +861,14 @@ class SimpleTest extends AnyFunSuiteLike:
         Body(Seq(
           Call("input_calc", Seq(Var("x"))),
           Eq(Var("x"), IntNum(2)),
-          //Call("calc", Seq(IntNum(0), Var("elem"))),
           Call("calc", Seq(IntNum(1), Var("elem")))
         )),
-        Body(Seq(
-          Call("input_calc", Seq(Var("x"))),
-          Eq(Var("x"), IntNum(3)),
-          //Call("calc", Seq(IntNum(0), Var("elem"))),
-          Call("calc", Seq(IntNum(2), Var("elem")))
-        ))
       )),
       Relation("main", Seq(
         Param("x", TInt),
       ), Seq(
         Body(Seq(
-          //Eq(Var("x"), IntNum(3)),
-          Call("calc", Seq(IntNum(3), Var("x")))
+          Call("calc", Seq(IntNum(2), Var("x")))
         )),
       )).addHint(MainHint),
     ))
