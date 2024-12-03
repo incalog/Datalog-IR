@@ -7,8 +7,6 @@ class CRelationValueOps[V](using failure: Failure)
   extends RelationOps[V, Boolean, CRelationValue[V]]:
 
   type RV = CRelationValue[V]
-
-  override def unit: CRelationValue[V] = CRelationValue(Seq(), Set(Seq()))
   
   override def isEmpty(rv: CRelationValue[V]): Boolean = rv.rows.isEmpty
 

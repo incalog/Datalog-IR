@@ -19,9 +19,7 @@ class ARelationValueOps[V, B](using effects: EffectStack, joinV: Join[V], boolea
   override def hasColumn(rv: ARelationValue[V], column: String): Boolean = ???
 
   override def columns(rv: RV): Seq[String] = ???
-
-  override def unit: ARelationValue[V] = ???
-
+  
   override def make(cols: Seq[String], vals: Seq[Row]): ARelationValue[V] = ???
 
   override def rename(rv: ARelationValue[V], subst: Map[String, String]): ARelationValue[V] = ???

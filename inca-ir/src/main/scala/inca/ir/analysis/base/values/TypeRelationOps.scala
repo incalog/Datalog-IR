@@ -60,6 +60,8 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     }
     val newEmpty = (empty, other.empty) match
       case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      // FIXME: Don't we know this as well?
+      case (Topped.Actual(false), Topped.Actual(false)) if newTypes.exists(_.isInstanceOf[TypeValue.AType]) => Topped.Actual(false)
       case _ => Topped.Top
     TypeRelation(newCols, newTypes, newEmpty)
 
@@ -71,7 +73,6 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
 
 
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
-  override def unit: TypeRelation = TypeRelation(Seq(), Seq(), Topped.Actual(true))
   override def isEmpty(rv: TypeRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: TypeRelation, column: String): Boolean = rv.cols.contains(column)
@@ -104,11 +105,13 @@ class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelati
 
 
 given JoinTV: Join[TypeValue] with {
-  override def apply(v1: TypeValue, v2: TypeValue): MaybeChanged[TypeValue] = 
+  override def apply(v1: TypeValue, v2: TypeValue): MaybeChanged[TypeValue] =
+    println(s"$v1 :: $v2 -- ${v1.meet(v2)}")
     MaybeChanged(v1.meet(v2), v1)
 }
 
 given JoinTRV: Join[TypeRelation] with {
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
+    println(s"Rel: $v1 :: $v2 -- ${v1.naturalJoin(v2)}")
     MaybeChanged(v1.naturalJoin(v2), v1)
 }

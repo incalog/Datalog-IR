@@ -1,16 +1,12 @@
 package inca.ir.analysis
 
 import inca.ir.analysis.base.values.TypeRelation
-import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
-import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
-
-import scala.collection.immutable.Seq as mod
 
 
 class TypeTest extends AnyFunSuiteLike:

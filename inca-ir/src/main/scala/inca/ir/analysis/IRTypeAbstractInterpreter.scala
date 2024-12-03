@@ -56,7 +56,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
       case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(true)
       case (TypeValue.Bottom, _) => Topped.Actual(false)
       case (_, TypeValue.Bottom) => Topped.Actual(false)
-      case (TypeValue.Top, TypeValue.Top) => Topped.Actual(true)
+      case (TypeValue.Top, TypeValue.Top) => Topped.Top
       case (TypeValue.Top, _) => Topped.Top
       case (_, TypeValue.Top) => Topped.Top
 
@@ -65,7 +65,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
       case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(false)
       case (TypeValue.Bottom, _) => Topped.Actual(true)
       case (_, TypeValue.Bottom) => Topped.Actual(true)
-      case (TypeValue.Top, TypeValue.Top) => Topped.Actual(false)
+      case (TypeValue.Top, TypeValue.Top) => Topped.Top
       case (TypeValue.Top, _) => Topped.Top
       case (_, TypeValue.Top) => Topped.Top
   }
@@ -81,7 +81,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   override val joinUnit: WithJoin[Unit] = implicitly
 
   override val supplementaryTable: SupplementaryTable[TRV] = new ASupplementaryTable[TRV]() {
-    override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(true))
+    override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
   override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV](Map())

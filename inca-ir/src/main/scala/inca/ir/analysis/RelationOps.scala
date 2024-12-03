@@ -3,8 +3,6 @@ package inca.ir.analysis
 trait RelationOps[V, B, RV]:
   type Row = Seq[V]
 
-  def unit: RV
-
   def isEmpty(rv: RV): B
 
   def hasColumn(rv: RV, column: String): Boolean

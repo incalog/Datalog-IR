@@ -121,8 +121,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def updateSupplementaryChecked(f: RV => RV): RV =
     val rv = f(supplementaryTable.getTable)
     branchOps.boolBranch(relationOps.isEmpty(rv)) {
+      println(s"Empty sup: $rv")
       except.throws(EmptySupplementary)
     } {
+      println(s"Not empty: $rv")
       supplementaryTable.setTable(rv)
       rv
     }
@@ -192,7 +194,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         allBodiesFailed = false
         res
       } /*catch*/ {
-        exc => emptyRes
+        exc =>
+          println(s"Failed: $exc")
+          emptyRes
       }
     })
     
