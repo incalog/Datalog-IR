@@ -835,6 +835,8 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
   }
 
+  // The evaluation context of the recursive input_calc function is wrong after joining.
+  // I think a possible soution is making the fixpoint call-site sensitive.
   test("Mutual Recursion, multiple call sites") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input_calc", Seq(

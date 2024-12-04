@@ -24,6 +24,11 @@ enum TypeValue:
     case (_, Top) => this
     case (AType(ty1), AType(ty2)) => if (ty1 == ty2) this else Bottom
 
+// Currently the TypeAnalysis returns Bot for almost anything. The reason for that is, that a failing relation produces
+// Bot. However, every relation can possibly fail. We can not say anything about that with a type analysis.
+// I see two solutions here:
+// - We join instead of meet. That way we overapproximate and get less precise, but get rid of the bots
+// - We assume that relations can not fail and only produce the non-failing result.
 case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[Boolean]):
   def rename(subst: Map[String, String]): TypeRelation =
     val newColumns = cols.map(c => subst.getOrElse(c, c))
