@@ -1,7 +1,6 @@
 package inca.ir.analysis.base.values
 
-import sturdy.data.NoJoin
-import sturdy.values.{Changed, Finite, Join, MaybeChanged, Topped, Unchanged}
+import sturdy.values.Finite
 
 trait BaseJoinV:
   def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match

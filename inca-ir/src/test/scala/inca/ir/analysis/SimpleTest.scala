@@ -28,7 +28,6 @@ class SimpleTest extends AnyFunSuiteLike:
     }
     res.map(r => r.name -> r).toMap
 
-
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
       Relation("main", Seq(
@@ -363,6 +362,60 @@ class SimpleTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
+  }
+
+  test("Fibonacci") {
+    val input_n = 7
+
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n$0"))),
+          Eq(Var("n$0"), IntNum(0), true),
+          Eq(Var("n"), Sub(Var("n$0"), IntNum(1)))
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(input_n)),
+        ))
+      )),
+      Relation("fib", Seq(
+        Param("n", TInt),
+        Param("r", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(0)),
+          Eq(Var("r"), IntNum(0))
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1)),
+          Eq(Var("r"), IntNum(1))
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(0), true),
+          Eq(Var("n"), IntNum(1), true),
+          Call("fib", Seq(Sub(Var("n"), IntNum(1)), Var("r$0"))),
+          Call("fib", Seq(Sub(Var("n"), IntNum(2)), Var("r$1"))),
+          Eq(Var("r"), Add(Var("r$0"), Var("r$1")))
+        )),
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("fib", Seq(IntNum(input_n), Var("y")))
+        )),
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(13)))
   }
 
   test("Recursive prefix sum") {
@@ -836,7 +889,7 @@ class SimpleTest extends AnyFunSuiteLike:
   }
 
   // The evaluation context of the recursive input_calc function is wrong after joining.
-  // I think a possible soution is making the fixpoint call-site sensitive.
+  // Making the fixpoint parameter-sensitive could solve this problem.
   test("Mutual Recursion, multiple call sites") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input_calc", Seq(
@@ -865,6 +918,53 @@ class SimpleTest extends AnyFunSuiteLike:
           Eq(Var("x"), IntNum(2)),
           Call("calc", Seq(IntNum(1), Var("elem")))
         )),
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("calc", Seq(IntNum(2), Var("x")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+  }
+
+  test("Mutual Recursion, multiple call sites 2") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input_calc", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input_calc", Seq(IntNum(1))),
+          Call("calc", Seq(IntNum(1), Var("elem"))),
+          Eq(Var("x"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        // This body, which does not contribute anything breaks the fixpoint algorithm
+        Body(Seq(
+          Call("calc", Seq(IntNum(2), Var("elem"))),
+          Eq(Var("x"), IntNum(3))
+        ))
+      )),
+      Relation("calc", Seq(
+        Param("x", TInt),
+        Param("elem", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("elem"), IntNum(3))
+        )),
+        Body(Seq(
+          Call("input_calc", Seq(Var("x"))),
+          Eq(Var("x"), IntNum(2)),
+          Call("calc", Seq(IntNum(1), Var("elem")))
+        ))
       )),
       Relation("main", Seq(
         Param("x", TInt),

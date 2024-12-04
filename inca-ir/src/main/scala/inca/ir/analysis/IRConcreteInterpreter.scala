@@ -11,12 +11,12 @@ import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.data.analysis as irdata
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
-import sturdy.effect.failure.{CollectedFailures, Failure}
+import sturdy.effect.failure.CollectedFailures
 import sturdy.effect.store.AStoreThreaded
 import sturdy.effect.EffectStack
 import sturdy.fix
 import sturdy.fix.StackConfig.{StackedCfgNodes, StackedStates}
-import sturdy.values.MaybeChanged.Unchanged
+import sturdy.fix.context.Parameters
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ConcreteBooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.{AllocationSiteAddr, given_Finite_AllocationSiteAddr}
@@ -29,8 +29,9 @@ import inca.ir.analysis.base.effect.IRFailure
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
-import sturdy.data.MakeJoined
 import sturdy.values.exceptions.PowersetExceptional
+import sturdy.fix.context.FiniteParameters
+import inca.ir.analysis.base.values.FiniteV
 
 
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
@@ -81,7 +82,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   fix.Fixpoint.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
-    val fixPt =
+    /*val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
         fix.filter({
           case _: FixIn.EnterRelation => true
@@ -89,7 +90,26 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
           //fix.iter.innermost[FixIn, FixOut[Value, TRV], Unit](StackedCfgNodes()))
           //fix.iter.outermost[FixIn, FixOut[Value, TRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
-        )
+        )*/
+
+    // FIXME: Parameters are finite, but their values are not finite. However, if we assign an infinite set of values,
+    //  then the Datalog program does not terminate.
+    given Finite[Value] = new FiniteV
+    val fixPt = fix.contextSensitive(
+      fix.context.parameters[FixIn, String, Seq[Value]] {
+        case FixIn.EnterRelation(r, adorn) =>
+          val sup = supplementaryTable.getTable
+          val paramMap = sup.cols.zipWithIndex.map { case (c, idx) =>
+            c -> sup.rows.toSeq.map(_.apply(idx))
+          }.toMap
+          Some(paramMap)
+        case _ => None
+      },
+      fix.filter({
+        case _: FixIn.EnterRelation => true
+        case _ => false // important, filter everything out we don't need
+      }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](StackedStates()))
+    )
 
     if (enableLogging)
       fix.log(new PrintLogger, fixPt).fixpoint
