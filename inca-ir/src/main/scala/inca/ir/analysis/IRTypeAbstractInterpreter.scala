@@ -49,7 +49,6 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   override val branchOps: BooleanBranching[Topped[Boolean], TRV] = new ToppedBooleanBranching[Boolean, TRV]
 
-
   override lazy val eqOps: EqOps[TypeValue, Topped[Boolean]] = new EqOps[TypeValue, Topped[Boolean]] {
     def equ(v1: TypeValue, v2: TypeValue): Topped[Boolean] = (v1, v2) match
       case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => Topped.Actual(ty1 == ty2)
@@ -73,7 +72,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   override val joinV: WithJoin[TypeValue] = implicitly
   override val joinRV: Join[TRV] = implicitly
   
-  // Only correct for concrete Datalog interpreter
+  // TODO: Do we need widening? If so, how does it look like?
   given Widen[TRV] with {
     override def apply(v1: TRV, v2: TRV): MaybeChanged[TRV] = joinRV(v1, v2)
   }
@@ -91,13 +90,13 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   given EqOps[TypeValue, Topped[Boolean]] = eqOps
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
-  
+
   class AnalysisLogger
     extends BaseAnalysisLogger[TypeValue, TRV, TypeValue]
     with irarith.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
     with irdata.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
     with irstr.logger.AnalysisLogger[TypeValue, TRV, TypeValue]:
-    
+
       override def extractTermValue(supName: SupColumn): TypeValue =
         val supTable = supplementaryTable.getTable
         val termTRV = supTable.project(Seq(supName))
@@ -106,7 +105,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   val analysisLogger: AnalysisLogger = new AnalysisLogger
 
-  
+
   fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
