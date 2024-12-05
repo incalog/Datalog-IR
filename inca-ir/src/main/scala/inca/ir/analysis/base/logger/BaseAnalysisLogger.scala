@@ -7,6 +7,10 @@ import inca.util.Color
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
 
+/*
+ An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
+ Extensions may choose to override this class to guarantee that all AST nodes are annotated.
+ */
 trait BaseAnalysisLogger[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
   def extractTermValue(col: SupColumn): TV
 

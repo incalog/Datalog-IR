@@ -1,26 +1,32 @@
 package inca.ir.optimize
 
 import inca.ir.*
-import inca.ir.analysis.base.values.{VBool, Value}
-import inca.ir.analysis.IRConstantAbstractInterpreter
-import inca.ir.extension.*
-import inca.ir.extension.arithmetic.analysis.optimize.Optimizer
+import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.visitors.IRVisitor
-import inca.ir.extension.arithmetic.analysis as arith
+import inca.util.printStep
 
-trait BaseIROptimizer(val analysis: IRConstantAbstractInterpreter) extends IRVisitor:
-  /*import analysis.{ TermKey, TermResult }
+trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
+  val abstractInterpreter: BaseGenericInterpreter[V, ?, RV, ?, ?]
+  var logAnalysis: Boolean = false
+  
+  def getTermResult(term: Term): Set[TV]
 
-  def termResults(term: Term): Set[TermResult] =
-    term.getAnalysisResult(TermKey)*/
+  def getRelationResult(relation: Relation): Set[RV]
 
-  var params: Set[Ref[Var.Target]] = _
+  var params: Set[Ref[Var.Target]] = Set()
+
+  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
+    // Important, evaluate the program first
+    abstractInterpreter.evalProgram(modules)
+    if (logAnalysis)
+      printStep(s"Analysis: $name", modules)
+    super.visitProgram(modules, dependencies)
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
 
-  var boundBodyVars: Set[Ref[Var.Target]] = _
+  var boundBodyVars: Set[Ref[Var.Target]] = Set()
 
   override def visitBody(body: Body): Seq[Body] =
     boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
@@ -29,14 +35,4 @@ trait BaseIROptimizer(val analysis: IRConstantAbstractInterpreter) extends IRVis
   private def atomBindsRelevantVar(atom: Atom): Boolean =
     val boundVars = atom.vars.filter(_.mode.isBinding)
     boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
-
-/*override def visitAtom(atom: Atom): Seq[Atom] = atomResult(atom) match
-  case VBool.False => throw FailedBody
-  case VBool.True if !atomBindsRelevantVar(atom) => Seq()
-  case _ =>
-    //
-    super.visitAtom(atom)*/
-
-class IROptimizer(analysis: IRConstantAbstractInterpreter) extends BaseIROptimizer(analysis)
-  with arith.optimize.Optimizer
 

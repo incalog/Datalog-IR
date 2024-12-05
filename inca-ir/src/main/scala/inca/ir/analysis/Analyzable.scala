@@ -31,6 +31,12 @@ trait Analyzable:
       ""
     else
       analysis.foldLeft("") { case (acc, (key, value)) =>
-        val annotation = s" :: $value".colorize(colorMap(key)).style(TextStyle.Bold)
+        val valueS = value.size match
+          case 0 => ""
+          case 1 => value.head
+          case _ => value.mkString("(", ", ", ")")
+        val annotation = s" :: $valueS"
+          .colorize(colorMap(key))
+          .style(TextStyle.Bold)
         s"$acc$annotation"
       }

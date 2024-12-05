@@ -91,20 +91,22 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   given EqOps[TypeValue, Topped[Boolean]] = eqOps
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
-
-
+  
   class AnalysisLogger
     extends BaseAnalysisLogger[TypeValue, TRV, TypeValue]
     with irarith.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
     with irdata.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
     with irstr.logger.AnalysisLogger[TypeValue, TRV, TypeValue]:
+    
       override def extractTermValue(supName: SupColumn): TypeValue =
         val supTable = supplementaryTable.getTable
         val termTRV = supTable.project(Seq(supName))
         assert(termTRV.rows.size == 1)
         termTRV.rows.head
 
+  val analysisLogger: AnalysisLogger = new AnalysisLogger
 
+  
   fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
@@ -116,7 +118,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
         }, fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](StackedStates()))
         )
 
-    val analysisFixPt = fix.log(new AnalysisLogger, fixPt)
+    val analysisFixPt = fix.log(analysisLogger, fixPt)
 
     if (enableLogging)
       fix.log(new PrintLogger, analysisFixPt).fixpoint

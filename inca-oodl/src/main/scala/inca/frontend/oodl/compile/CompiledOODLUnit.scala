@@ -12,6 +12,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.util.printStep
 
 case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledUnit:
 

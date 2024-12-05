@@ -11,6 +11,7 @@ import inca.ir.optimize.BaseIROptimizer
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
+import inca.util.printStep
 
 case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
   extends CompiledUnit:
@@ -142,3 +143,7 @@ object CompiledFunctionalUnit:
     () => new optimize.AliasElimination {},
     () => new optimize.RemoveDuplicatedRelations {}
   ) // arith + string + data
+
+  val optimizationPipeline: List[() => BaseIRVisitor] = List(
+    () => new optimize.TypeIROptimizer {}
+  )

@@ -2,11 +2,11 @@ package inca.ir
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.optimize.{BaseIROptimizer, IROptimizer}
+import inca.ir.optimize.BaseIROptimizer
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
-import inca.util.CompilationMessage
+import inca.util.{CompilationMessage, printStep, printSteps}
 import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
@@ -60,27 +60,15 @@ trait CompiledUnit:
 
   private var pipeline: List[() => BaseIRVisitor] = List()
 
-  // TODO: Make this nice
+  def setOptimizationPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+    this.optimizationPipeline = pipeline
+
+  private var optimizationPipeline: List[() => BaseIRVisitor] = List()
+
   def setPostProcessingPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.postProcessingPipeline = pipeline
 
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
-
-  protected def printStep(title: String, content: Any): Unit =
-    println(title)
-    println(content)
-    println()
-    println("~~~~~~~~~~~~~~~~~~~~~~~")
-    println()
-
-  protected def printSteps(title: String, contents: Seq[Any]): Unit =
-    println(title)
-    contents.foreach { content =>
-      println(content)
-      println()
-      println("~~~~~~~~~~~~~~~~~~~~~~~")
-      println()
-    }
 
   private lazy val loweredOtherUnits: Seq[Module] =
     val low = otherUnits.flatMap(_.lowered)
@@ -93,7 +81,6 @@ trait CompiledUnit:
     val logTyped = irLogging.logTypeInformation
     val logModule = irLogging.logModule
     val logLowerings = irLogging.logLowerings
-    val logOptimizations = irLogging.logOptimizations
     val logStatsBeforeLowering = irLogging.logStatsBeforeLowering
     val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
     val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
@@ -130,16 +117,10 @@ trait CompiledUnit:
       printStatistics(loweredMods, s"before optimization")
     val p1 = optimize(loweredMods)
     if (logStatsAfterOptimization)
-      printStatistics(loweredMods, s"after first optimization")
-    val p2 = optimize(p1)
-    if (logStatsAfterOptimization)
-      printStatistics(loweredMods, s"after second optimization")
-
-    if (logOptimizations)
-      printStep(s"Optimized: ", p2)
+      printStatistics(p1, s"after optimization")
 
     if isClosedWorld then
-      postProcessingPipeline.foldLeft(p2) { case (ms, lowering) =>
+      postProcessingPipeline.foldLeft(p1) { case (ms, lowering) =>
         val lowFun = lowering()
         val ls = lowFun.visitProgram(ms)
         // Don't typecheck after postprocessing
@@ -148,21 +129,33 @@ trait CompiledUnit:
         ls
       }
     else
-      p2
+      p1
 
 
   def optimize(p: Seq[Module]): Seq[Module] =
-    /*val aeval = new IRConstantAbstractInterpreter
-    println(p)
-    aeval.evalProgram(p)
-    //println("Eval module: ")
-    //println(p)
-    val opt = new IROptimizer(aeval)
-    val po = opt.visitProgram(p)
-    val checker = typechecker
-    checker.checkProgram(po, header)
-    po*/
-    p
+    val irLogging = compilerOptions.irLogging
+    val logOptimizations = irLogging.logOptimizations
+    val logTyped = irLogging.logTypeInformation
+    val logAnalsis = irLogging.logAnalysis
+
+    optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
+      val optimFun = optimizer()
+
+      optimFun match
+        case optimizer: BaseIROptimizer[?, ?, ?] => optimizer.logAnalysis = logAnalsis
+        case _ => // nothing
+
+      val ls = optimFun.visitProgram(ms, loweredOtherUnits)
+
+      if (logOptimizations && !logTyped)
+        printSteps(s"Optimization: ${optimFun.name}", ls)
+
+      val checker = typechecker
+      try checker.checkProgram(ls, header)
+      finally if (logOptimizations && logTyped)
+        printSteps(s"Optimization: ${optimFun.name}", ls)
+      ls
+    }
 
 
 object CompiledUnit:

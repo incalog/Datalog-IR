@@ -7,6 +7,7 @@ import inca.ir.optimize
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
+import inca.util.printStep
 
 case class CompiledDatalogUnit(mod: Module, override val compilerOptions: DatalogCompilerOptions) extends CompiledUnit {
 

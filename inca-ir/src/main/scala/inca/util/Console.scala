@@ -1,5 +1,21 @@
 package inca.util
 
+def printStep(title: String, content: Any): Unit =
+  println(title)
+  println(content)
+  println()
+  println("~~~~~~~~~~~~~~~~~~~~~~~")
+  println()
+
+def printSteps(title: String, contents: Seq[Any]): Unit =
+  println(title)
+  contents.foreach { content =>
+    println(content)
+    println()
+    println("~~~~~~~~~~~~~~~~~~~~~~~")
+    println()
+  }
+
 enum Color(val code: String):
   case Black extends Color("\u001b[30m")
   case Red extends Color("\u001b[31m")
@@ -25,7 +41,6 @@ enum TextStyle(val code: String):
 
   override def toString: String = code
 
-// String extension for text styles
 extension (text: String)
-  def colorize(color: Color): String = s"${color}$text${Color.Reset}"
+  def colorize(color: Color): String = s"$color$text${Color.Reset}"
   def style(style: TextStyle): String = s"$style$text${TextStyle.Reset}"
