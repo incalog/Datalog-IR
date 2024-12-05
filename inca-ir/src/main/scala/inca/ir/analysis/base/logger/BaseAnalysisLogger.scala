@@ -1,10 +1,10 @@
 package inca.ir.analysis.base.logger
 
 import inca.ir.{Arg, Atom, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
-import inca.ir.analysis.{AnalysisKey, AnalysisResult, SupplementaryTable}
+import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import sturdy.effect.TrySturdy
-import sturdy.fix.{Contextual, Logger}
+import sturdy.fix.Logger
 
 trait BaseAnalysisLogger[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
   def extractTermValue(col: SupColumn): TV
@@ -28,15 +28,16 @@ trait BaseAnalysisLogger[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
   override def enter(dom: FixIn): Unit = () // nothing
 
   def extractTermAndVarName(arg: Arg): Option[(Term, String)] = arg match
-    case TermArg(t@Var(ref)) => Some((t, ref.name.name)) 
+    case TermArg(t@Var(ref)) => Some((t, ref.name.name))
     case WildcardArg() => None
     case _ => None
 
   def storeTermResult(term: Term, value: TV): Unit =
     term.storeAnalysisResult(TermResult(value))
 
+  // Not all AST-term nodes are visited. Handle the missing cases explicitly in this method.
   def storeAtomResult(at: Atom): Unit = at match
-    case Call(ref, args, neg) => 
+    case Call(ref, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
         storeTermResult(term, extractTermValue(varName))
       }

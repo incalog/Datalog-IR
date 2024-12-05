@@ -38,7 +38,12 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     TypeRelation(cols :+ columnName, rows :+ f(rows), empty)
 
   def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation =
-    naturalJoin(f(rows))
+    f(rows) match
+      case tr@TypeRelation(_, _, Topped.Actual(true)) =>
+        TypeRelation((cols ++ tr.cols).distinct, Seq(), Topped.Actual(true))
+      case tr =>
+        naturalJoin(f(rows))
+
 
   def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation =
     f(rows) match
@@ -73,7 +78,7 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     if cols != other.cols then
       throw new IllegalArgumentException("Schemas must match for intersection")
 
-    val commonRows = rows.filter(row => other.rows.contains(row))
+    val commonRows = rows.zip(other.rows).map { case (v1, v2) => v1.join(v2) }
     val isEmpty = if commonRows.isEmpty then Topped.Actual(true) else Topped.Top
     TypeRelation(cols, commonRows, isEmpty)
 
@@ -116,5 +121,6 @@ given JoinTV: Join[TypeValue] with {
 
 given JoinTRV: Join[TypeRelation] with {
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
+    // natural join with same columns is an intersection
     MaybeChanged(v1.intersect(v2), v1)
 }
