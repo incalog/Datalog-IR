@@ -3,8 +3,8 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, given}
-import inca.ir.analysis.base.logger.PrintLogger
+import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, SupColumn, given}
+import inca.ir.analysis.base.logger.{BaseAnalysisLogger, PrintLogger}
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
@@ -93,7 +93,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
 
 
-  fix.Fixpoint.DEBUG = true
+  fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
     val fixPt =
@@ -104,10 +104,19 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
         }, fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](StackedStates()))
         )
 
+    val analysisLogger = new BaseAnalysisLogger[TypeValue, TRV, TypeValue] {
+      override def extractTermValue(supName: SupColumn): TypeValue =
+          val supTable = supplementaryTable.getTable
+          val termTRV = supTable.project(Seq(supName))
+          assert(termTRV.rows.size == 1)
+          termTRV.rows.head
+    }
+    val analysisFixPt = fix.log(analysisLogger, fixPt)
+
     if (enableLogging)
-      fix.log(new PrintLogger, fixPt).fixpoint
+      fix.log(new PrintLogger, analysisFixPt).fixpoint
     else
-      fixPt.fixpoint
+      analysisFixPt.fixpoint
 
 
 

@@ -3,8 +3,7 @@ package inca.ir.analysis.base.logger
 import sturdy.effect.TrySturdy
 import sturdy.fix.{Contextual, Logger}
 
-class PrintLogger[Dom, Codom]
-  extends Logger[Dom, Codom]:
+class PrintLogger[Dom, Codom] extends Logger[Dom, Codom]:
 
   var indent: Int = 0
 

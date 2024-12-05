@@ -24,11 +24,6 @@ enum TypeValue:
     case (_, Top) => this
     case (AType(ty1), AType(ty2)) => if (ty1 == ty2) this else Bottom
 
-// Currently the TypeAnalysis returns Bot for almost anything. The reason for that is, that a failing relation produces
-// Bot. However, every relation can possibly fail. We can not say anything about that with a type analysis.
-// I see two solutions here:
-// - We join instead of meet. That way we overapproximate and get less precise, but get rid of the bots
-// - We assume that relations can not fail and only produce the non-failing result.
 case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[Boolean]):
   def rename(subst: Map[String, String]): TypeRelation =
     val newColumns = cols.map(c => subst.getOrElse(c, c))
@@ -74,9 +69,16 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
       case _ => Topped.Top
     TypeRelation(cols, rows, newEmpty)
 
+  def intersect(other: TypeRelation): TypeRelation =
+    if cols != other.cols then
+      throw new IllegalArgumentException("Schemas must match for intersection")
+
+    val commonRows = rows.filter(row => other.rows.contains(row))
+    val isEmpty = if commonRows.isEmpty then Topped.Actual(true) else Topped.Top
+    TypeRelation(cols, commonRows, isEmpty)
 
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
-  override def isEmpty(rv: TypeRelation): Topped[Boolean] = rv.empty
+  override def isEmpty(rv: TypeRelation): Topped[Boolean] = Topped.Actual(false)
 
   override def hasColumn(rv: TypeRelation, column: String): Boolean = rv.cols.contains(column)
   override def columns(rv: TypeRelation): Seq[String] = rv.cols
@@ -109,12 +111,10 @@ class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelati
 
 given JoinTV: Join[TypeValue] with {
   override def apply(v1: TypeValue, v2: TypeValue): MaybeChanged[TypeValue] =
-    println(s"$v1 :: $v2 -- ${v1.meet(v2)}")
-    MaybeChanged(v1.meet(v2), v1)
+    MaybeChanged(v1.join(v2), v1)
 }
 
 given JoinTRV: Join[TypeRelation] with {
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
-    println(s"Rel: $v1 :: $v2 -- ${v1.naturalJoin(v2)}")
-    MaybeChanged(v1.naturalJoin(v2), v1)
+    MaybeChanged(v1.intersect(v2), v1)
 }
