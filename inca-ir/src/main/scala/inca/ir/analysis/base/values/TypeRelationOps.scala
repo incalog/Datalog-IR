@@ -12,6 +12,11 @@ enum TypeValue:
   case AType(ty: Type)
   case Top
 
+  override def toString: String = this match
+    case TypeValue.Bottom => "Bottom"
+    case TypeValue.AType(ty) => ty.toString
+    case TypeValue.Top => "Top"
+
   def join(that: TypeValue): TypeValue = (this, that) match
     case (_, Bottom) => this
     case (Bottom, _) => that
@@ -25,6 +30,12 @@ enum TypeValue:
     case (AType(ty1), AType(ty2)) => if (ty1 == ty2) this else Bottom
 
 case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[Boolean]):
+  override def toString: String =
+    if (rows.isEmpty)
+      s"[${cols.mkString(", ")}, $empty]"
+    else
+      s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
+
   def rename(subst: Map[String, String]): TypeRelation =
     val newColumns = cols.map(c => subst.getOrElse(c, c))
     TypeRelation(newColumns, rows, empty)

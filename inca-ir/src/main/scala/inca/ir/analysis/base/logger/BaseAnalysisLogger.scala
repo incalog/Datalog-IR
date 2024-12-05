@@ -3,6 +3,7 @@ package inca.ir.analysis.base.logger
 import inca.ir.{Arg, Atom, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
+import inca.util.Color
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
 
@@ -11,19 +12,23 @@ trait BaseAnalysisLogger[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
 
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
+    override val color: Color = Color.Blue
     override type Result = TermResult
 
   case class TermResult(value: TV) extends AnalysisResult:
     val result: TermResult = this
     override val akey: TermKey.type = TermKey
+    override def toString: String = value.toString
 
   case object RelationKey extends AnalysisKey:
     override val key: String = "Relation"
+    override val color: Color = Color.Green
     override type Result = RelationResult
 
   case class RelationResult(res: RV) extends AnalysisResult:
     val result: RelationResult = this
     override val akey: RelationKey.type = RelationKey
+    override def toString: String = res.toString
 
   override def enter(dom: FixIn): Unit = () // nothing
 
