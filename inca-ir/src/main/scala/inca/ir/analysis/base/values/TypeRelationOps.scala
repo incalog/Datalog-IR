@@ -55,7 +55,6 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
       case tr =>
         naturalJoin(f(rows))
 
-
   def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation =
     f(rows) match
       case Topped.Top => copy(empty = Topped.Top)
@@ -85,9 +84,9 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
       case _ => Topped.Top
     TypeRelation(cols, rows, newEmpty)
 
-  def intersect(other: TypeRelation): TypeRelation =
+  def join(other: TypeRelation): TypeRelation =
     if cols != other.cols then
-      throw new IllegalArgumentException("Schemas must match for intersection")
+      throw new IllegalArgumentException("Schemas must match for join")
 
     val commonRows = rows.zip(other.rows).map { case (v1, v2) => v1.join(v2) }
     val isEmpty = if commonRows.isEmpty then Topped.Actual(true) else Topped.Top
@@ -133,5 +132,5 @@ given JoinTV: Join[TypeValue] with {
 given JoinTRV: Join[TypeRelation] with {
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
     // natural join with same columns is an intersection
-    MaybeChanged(v1.intersect(v2), v1)
+    MaybeChanged(v1.join(v2), v1)
 }
