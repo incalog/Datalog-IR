@@ -52,7 +52,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   override lazy val eqOps: EqOps[TypeValue, Topped[Boolean]] = new EqOps[TypeValue, Topped[Boolean]] {
     def equ(v1: TypeValue, v2: TypeValue): Topped[Boolean] = (v1, v2) match
-      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => Topped.Actual(ty1 == ty2)
+      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => if (ty1 != ty2) Topped.Actual(false) else Topped.Top
       case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(true)
       case (TypeValue.Bottom, _) => Topped.Actual(false)
       case (_, TypeValue.Bottom) => Topped.Actual(false)
@@ -61,7 +61,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
       case (_, TypeValue.Top) => Topped.Top
 
     def neq(v1: TypeValue, v2: TypeValue): Topped[Boolean] = (v1, v2) match
-      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => Topped.Actual(ty1 == ty2)
+      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => if (ty1 != ty2) Topped.Actual(true) else Topped.Top
       case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(false)
       case (TypeValue.Bottom, _) => Topped.Actual(true)
       case (_, TypeValue.Bottom) => Topped.Actual(true)

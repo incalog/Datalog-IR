@@ -1,17 +1,18 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.values.TypeRelation
+import inca.ir.analysis.base.values.{TypeRelation, TypeValue}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
+import sturdy.values.Topped
 
 
 class AnalysisTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Seq[TypeRelation] = Seq()): Unit =
+  def interp(mod: Module, edb: Seq[TypeRelation] = Seq()): Map[String, TypeRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -20,6 +21,7 @@ class AnalysisTest extends AnyFunSuiteLike:
     abstractInterp.evalProgram(Seq(mod))
     println(mod)
     println(abstractInterp.idb.getState)
+    abstractInterp.idb.getState.map(kv => kv._1.toString -> kv._2).toMap
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
@@ -98,6 +100,48 @@ class AnalysisTest extends AnyFunSuiteLike:
     ))
 
     interp(mod)
+  }
+
+  test("Comparison 3") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("xs", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("x"), IntNum(2)),
+        ))
+      )),
+      Relation("ys", Seq(
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("y"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("y"), IntNum(2)),
+        )),
+        Body(Seq(
+          Eq(Var("y"), IntNum(3)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("xs", Seq(Var("x"))),
+          Call("ys", Seq(Var("y"))),
+          Eq(Var("x"), Sub(Var("y"), IntNum(1)))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val relTypes = interp(mod)
+    val xsRelType = relTypes("&xs")
+    assert(xsRelType.cols == Seq("x"))
+    assert(xsRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(xsRelType.empty)
   }
 
   test("Two relations") {
