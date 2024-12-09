@@ -92,11 +92,6 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
 
-  // We know the type information of the edb based on our IR.
-  override def evalExtensionalRelation(r: ExtensionalRelation)(using Fixed): TypeRelation =
-    val (paramNames, tys) = r.params.map(p => (p.name.name, TypeValue.AType(p.ty))).unzip
-    TypeRelation(paramNames, tys, Topped.Top)
-
   class AnalysisLogger
     extends BaseAnalysisLogger[TypeValue, TRV, TypeValue]
     with irarith.logger.AnalysisLogger[TypeValue, TRV, TypeValue]

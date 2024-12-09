@@ -1,7 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
-import inca.ir.{Relation, Term}
+import inca.ir.{ExtensionalRelation, Relation, Term}
 import inca.ir.analysis.IRTypeAbstractInterpreter
 import inca.ir.analysis.base.values.{TypeRelation, TypeValue}
 import sturdy.values.Topped
@@ -22,6 +22,19 @@ class TypeIROptimizer extends BaseIROptimizer[TypeValue, TypeRelation, TypeValue
 
   override def getRelationResult(relation: Relation): Set[TypeRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)
+
+  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
+    // We could make this more precise, by setting the `empty` flag correctly
+    modules.foreach { m =>
+      m.entries.foreach {
+        case (_, ExtensionalRelation(n, params)) =>
+          val (paramNames, tys) = params.map(p => (p.name.name, TypeValue.AType(p.ty))).unzip
+          abstractInterpreter.insertEDB(n.name, TypeRelation(paramNames, tys, Topped.Top))
+        case _ => // nothing
+      }
+    }
+
+    super.visitProgram(modules, dependencies)
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     // we could remove empty relations here
