@@ -15,7 +15,8 @@ class AnalysisTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val abstractInterp = IRConstantAbstractInterpreter()
+    //val abstractInterp = IRConstantAbstractInterpreter()
+    val abstractInterp = IRTypeAbstractInterpreter()
     abstractInterp.evalProgram(Seq(mod))
     println(mod)
     println(abstractInterp.idb.getState)

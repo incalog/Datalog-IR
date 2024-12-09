@@ -62,6 +62,7 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
     ConstantRelation(cols, rows, newEmpty)
 
   def join(other: ConstantRelation): ConstantRelation =
+    // TODO: Probably wrong.
     if cols != other.cols then
       throw new IllegalArgumentException("Schemas must match for join")
 

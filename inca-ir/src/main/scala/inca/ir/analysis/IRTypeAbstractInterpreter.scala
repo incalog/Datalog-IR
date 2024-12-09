@@ -1,6 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
+import inca.ir.ExtensionalRelation
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
@@ -90,6 +91,11 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   given EqOps[TypeValue, Topped[Boolean]] = eqOps
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
+
+  // TODO: For now we just assume we know nothing about the edb
+  override def evalExtensionalRelation(r: ExtensionalRelation)(using Fixed): TypeRelation =
+    val paramNames = r.params.map(_.name.name)
+    TypeRelation(paramNames, paramNames.map(_ => TypeValue.Top), Topped.Top)
 
   class AnalysisLogger
     extends BaseAnalysisLogger[TypeValue, TRV, TypeValue]
