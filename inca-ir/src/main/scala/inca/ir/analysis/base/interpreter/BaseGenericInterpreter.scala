@@ -258,7 +258,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     updateSupplementaryChecked { sup =>
       val lix = relationOps.columnIndex(sup, ls)
       val rix = relationOps.columnIndex(sup, rs)
-      relationOps.filter(sup){ row => eqOp(row(lix), row(rix)) }
+      relationOps.filter(sup) { row => eqOp(row(lix), row(rix)) }
     }
 
   private def boundInSupplementary(s: String): Boolean =

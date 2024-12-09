@@ -4,7 +4,7 @@ import inca.ir.extension.arithmetic.analysis as arith
 import inca.ir.Name
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{ARelationValue, ARelationValueOps, BaseJoinV, FiniteV, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import sturdy.data.WithJoin
@@ -26,7 +26,7 @@ import sturdy.values.references.given_Finite_AllocationSiteAddr
 // Implicits
 import sturdy.data.given 
 import inca.ir.analysis.base.effect.IRFailure
-import inca.ir.analysis.base.values.{FiniteARelationValue, JoinRV}
+import inca.ir.analysis.base.values.JoinRV
 //import inca.ir.analysis.base.interpreter.FiniteFixIn
 import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
@@ -50,11 +50,11 @@ private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEq
   // TODO: inherit from rest
 
 class IRConstantAbstractInterpreter
-  extends BaseGenericInterpreter[Value, Topped[Boolean], ARelationValue[Value], Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with arith.interpreter.ConstantAbstractInterpreter:
   // TODO: inherit from rest
 
-  type RV = ARelationValue[Value]
+  type RV = ConstantRelation
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
@@ -72,18 +72,21 @@ class IRConstantAbstractInterpreter
 
   given Join[RV] = new JoinRV
 
-  given Finite[RV] = new FiniteARelationValue
-  
   override val joinV: WithJoin[Value] = implicitly
-  override val joinRV: Join[RV] = ???
+  override val joinRV: Join[RV] = implicitly
   override val joinUnit: WithJoin[Unit] = implicitly
 
-  override lazy val supplementaryTable: SupplementaryTable[ARelationValue[Value]] = ???
+  // I don't think we need to widen tables
+  given Widen[RV] with {
+    override def apply(v1: RV, v2: RV): MaybeChanged[RV] = joinRV(v1, v2)
+  }
+  
+  override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = ???
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
 
   given EqOps[Value, Topped[Boolean]] = eqOps
 
-  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ARelationValueOps[Value, Topped[Boolean]]
+  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
 
   override def resetIDB(): Unit = idb.setState(Map())
   

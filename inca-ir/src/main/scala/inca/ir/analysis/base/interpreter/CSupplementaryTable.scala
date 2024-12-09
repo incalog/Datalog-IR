@@ -1,16 +1,16 @@
 package inca.ir.analysis.base.interpreter
 
 import inca.ir.analysis.SupplementaryTable
-import inca.ir.analysis.base.values.{CRelationValue, Value}
+import inca.ir.analysis.base.values.{ConcreteRelation, Value}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Join, MaybeChanged, Widen}
 
-type CRV = CRelationValue[Value]
+type CRV = ConcreteRelation[Value]
 
 class CSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
   extends SupplementaryTable[CRV]://, Concrete:
 
-  protected var supTable: CRV = CRelationValue(Seq(), Set(Seq()))
+  protected var supTable: CRV = ConcreteRelation(Seq(), Set(Seq()))
 
   override def scoped[A](f: => A): A =
     val snapshot = supTable

@@ -35,12 +35,12 @@ import inca.ir.analysis.base.values.FiniteV
 
 
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
-  extends BaseGenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]
+  extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]
   with irarith.interpreter.ConcreteInterpreter
   with irstr.interpreter.ConcreteInterpreter
   with irdata.interpreter.ConcreteInterpreter:
 
-  type CRV = CRelationValue[Value]
+  type CRV = ConcreteRelation[Value]
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
@@ -76,7 +76,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   given EqOps[Value, Boolean] = eqOps
 
-  override val relationOps: RelationOps[Value, Boolean, CRV] = new CRelationValueOps[Value]
+  override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
 
 
   fix.Fixpoint.DEBUG = true

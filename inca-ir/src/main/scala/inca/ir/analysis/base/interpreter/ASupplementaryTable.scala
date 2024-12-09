@@ -1,7 +1,7 @@
 package inca.ir.analysis.base.interpreter
 
 import inca.ir.analysis.SupplementaryTable
-import inca.ir.analysis.base.values.{ARelationValue, Value}
+import inca.ir.analysis.base.values.Value
 import sturdy.effect.failure.Failure
 import sturdy.values.{Join, Widen}
 

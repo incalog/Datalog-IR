@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, CRelationValue, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -48,7 +48,7 @@ private class CDoubleVOrderingOps extends OrderingOps[Value, Boolean]:
   override def lt(v1: Value, v2: Value): Boolean = asDouble(v1) < asDouble(v2)
   override def le(v1: Value, v2: Value): Boolean = asDouble(v1) <= asDouble(v2)
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
   val intOps: IntegerOps[Int, Value] = CIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = CDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, Boolean] = CIntVOrderingOps()

@@ -1,10 +1,12 @@
 package inca.ir.analysis.base.values
 
+import inca.ir.analysis.RelationOps
+import sturdy.effect.failure.Failure
 import sturdy.values.{Join, MaybeChanged}
 
 import scala.collection
 
-case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
+case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
   def size: Int = rows.size
 
   //if (cols.nonEmpty && rows.size == 1 && rows.head == Seq())
@@ -14,7 +16,7 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
 
   lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
 
-  def union(other: CRelationValue[V]): CRelationValue[V] =
+  def union(other: ConcreteRelation[V]): ConcreteRelation[V] =
     if (cols.toSet != other.cols.toSet)
       throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
     val newEntries =
@@ -27,9 +29,9 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
         def rearrange(entry: Seq[V]): Seq[V] = indexMap.map(entry)
         rows ++ other.rows.map(rearrange)
       }
-    CRelationValue(cols, newEntries)
+    ConcreteRelation(cols, newEntries)
 
-  def join(other: CRelationValue[V]): CRelationValue[V] =
+  def join(other: ConcreteRelation[V]): ConcreteRelation[V] =
     union(other)
     // TODO: Remove this comment after debugging 
     /*val cols1 = this.cols.toSet
@@ -39,31 +41,31 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
     val v2projected = other.project(both)
     v1projected.union(v2projected)*/
   
-  def rename(subst: Map[String, String]): CRelationValue[V] =
+  def rename(subst: Map[String, String]): ConcreteRelation[V] =
     val newColumns = cols.map(c => subst.getOrElse(c,c))
-    CRelationValue(newColumns, rows)
+    ConcreteRelation(newColumns, rows)
 
-  def project(newColumns: Seq[String]): CRelationValue[V] =
+  def project(newColumns: Seq[String]): ConcreteRelation[V] =
     val colsIndex = newColumns.map(cols.indexOf)
     val newRows = rows.map(colsIndex.map)
-    CRelationValue(newColumns, newRows)
+    ConcreteRelation(newColumns, newRows)
 
-  def cartesian(other: CRelationValue[V]): CRelationValue[V] =
+  def cartesian(other: ConcreteRelation[V]): ConcreteRelation[V] =
     if (cols.exists(other.cols.contains))
       throw IllegalArgumentException("Columns need to be disjunct for cartesian product")
     val allCols = cols ++ other.cols
     val cartesianValues =
       for (row1 <- rows; row2 <- other.rows)
         yield row1 ++ row2
-    CRelationValue(allCols, cartesianValues)
+    ConcreteRelation(allCols, cartesianValues)
 
-  def filter(f: Seq[V] => Boolean): CRelationValue[V] =
-    CRelationValue(cols, rows.filter(f))
+  def filter(f: Seq[V] => Boolean): ConcreteRelation[V] =
+    ConcreteRelation(cols, rows.filter(f))
   
-  def map(columnName: String)(f: Seq[V] => V): CRelationValue[V] =
-    CRelationValue(cols :+ columnName, rows.map(r => r :+ f(r)))
+  def map(columnName: String)(f: Seq[V] => V): ConcreteRelation[V] =
+    ConcreteRelation(cols :+ columnName, rows.map(r => r :+ f(r)))
 
-  def naturalJoin(other: CRelationValue[V]): CRelationValue[V] =
+  def naturalJoin(other: ConcreteRelation[V]): ConcreteRelation[V] =
     val (sameCols, otherNewCols) = other.cols.partition(cols.contains)
     val newEntries =
       val sameColsIndices = sameCols.map(cols.indexOf)
@@ -76,9 +78,9 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
       } yield {
         row ++ newOtherColsIndices.map(otherRow)
       }
-    CRelationValue(cols ++ otherNewCols, newEntries)
+    ConcreteRelation(cols ++ otherNewCols, newEntries)
 
-  def antiJoin(other: CRelationValue[V]): CRelationValue[V] =
+  def antiJoin(other: ConcreteRelation[V]): ConcreteRelation[V] =
     val sharedCols = cols.intersect(other.cols)
     if (sharedCols.isEmpty)
       throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: $cols <-> ${other.cols}")
@@ -89,9 +91,46 @@ case class CRelationValue[V](cols: Seq[String], rows: Set[Seq[V]]):
         sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
       }
     }
-    CRelationValue(cols,  filteredRows)
+    ConcreteRelation(cols,  filteredRows)
 
-given JoinCRV[V]: Join[CRelationValue[V]] with {
-  override def apply(v1: CRelationValue[V], v2: CRelationValue[V]): MaybeChanged[CRelationValue[V]] =
+
+class ConcreteRelationOps[V](using failure: Failure)
+  extends RelationOps[V, Boolean, ConcreteRelation[V]]:
+
+  type RV = ConcreteRelation[V]
+
+  override def isEmpty(rv: ConcreteRelation[V]): Boolean = rv.rows.isEmpty
+
+  override def hasColumn(rv: RV, column: String): Boolean = rv.cols.contains(column)
+
+  override def columns(rv: RV): Seq[String] = rv.cols
+
+  override def make(cols: Seq[String], vals: Seq[Row]): ConcreteRelation[V] = ConcreteRelation(cols, vals.toSet)
+
+  override def rename(rv: ConcreteRelation[V], subst: Map[String, String]): ConcreteRelation[V] =
+    rv.rename(subst)
+
+  override def project(rv: ConcreteRelation[V], cols: Seq[String]): ConcreteRelation[V] =
+    rv.project(cols)
+
+  override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
+    rv.filter(f)
+
+  override def map(rv: ConcreteRelation[V], columnName: String)(f: Row => V): ConcreteRelation[V] =
+    rv.map(columnName)(f)
+
+  override def flatMap(rv: ConcreteRelation[V])(f: Row => ConcreteRelation[V]): ConcreteRelation[V] =
+    assert(!rv.isEmpty)
+    val generated = rv.rows.map(f).reduce(_.union(_))
+    rv.naturalJoin(generated)
+
+  override def naturalJoin(rv: ConcreteRelation[V], other: ConcreteRelation[V]): ConcreteRelation[V] =
+    rv.naturalJoin(other)
+
+  override def antiJoin(rv: ConcreteRelation[V], other: ConcreteRelation[V]): ConcreteRelation[V] =
+    rv.antiJoin(other)
+
+given JoinCRV[V]: Join[ConcreteRelation[V]] with {
+  override def apply(v1: ConcreteRelation[V], v2: ConcreteRelation[V]): MaybeChanged[ConcreteRelation[V]] =
     MaybeChanged(v1.join(v2), v1)
 }

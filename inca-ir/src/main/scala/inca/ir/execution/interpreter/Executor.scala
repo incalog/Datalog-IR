@@ -3,7 +3,7 @@ package inca.ir.execution.interpreter
 import inca.ir
 import inca.ir.CompiledUnit
 import inca.ir.analysis.IRConcreteInterpreter
-import inca.ir.analysis.base.values.{CRelationValue, Value}
+import inca.ir.analysis.base.values.{ConcreteRelation, Value}
 import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
 import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
 import inca.ir.extension.string.analysis.interpreter.CStringV
@@ -32,7 +32,7 @@ class Executor extends IRExecutor:
               InterpreterRelation(rel.name.name, crv)
             case None =>
               // In case a relation failed
-              val emptyTable = CRelationValue[Value](rel.params.map(_.name.name), Set())
+              val emptyTable = ConcreteRelation[Value](rel.params.map(_.name.name), Set())
               InterpreterRelation(rel.name.name, emptyTable)
           rel.name.name -> out
         }.toMap
@@ -72,7 +72,7 @@ class Executor extends IRExecutor:
       interp(mods).values.toSeq
 
     private def relationToCRV(rel: Relation) =
-      CRelationValue[Value](rel.parameterNames, rel.entries.map { e =>
+      ConcreteRelation[Value](rel.parameterNames, rel.entries.map { e =>
         rel.flattenEntry(e).map {
           case i: java.lang.Integer => CIntV(i)
           case f: java.lang.Float => CDoubleV(f.floatValue())
@@ -101,7 +101,7 @@ class Executor extends IRExecutor:
     new Engine(m.lowered)
 
 // Lazy conversion of values
-case class InterpreterRelation(name: String, table: CRelationValue[Value]) extends Relation:
+case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) extends Relation:
   private var evaled: Boolean = false
   lazy val outputRel =
     evaled = true

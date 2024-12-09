@@ -1,7 +1,7 @@
 package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
-import inca.ir.analysis.base.values.{CRelationValue, Value}
+import inca.ir.analysis.base.values.{ConcreteRelation, Value}
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
 import sturdy.values.Powerset
 import sturdy.data.MayJoin.NoJoin
@@ -19,5 +19,5 @@ private class CDataVOps[R] extends DataOps[Value, R]:
     case _ => notMatching
 
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:
-  val dataOps: DataOps[Value, CRelationValue[Value]] = new CDataVOps
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+  val dataOps: DataOps[Value, ConcreteRelation[Value]] = new CDataVOps

@@ -1,7 +1,7 @@
 package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
-import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, CRelationValue, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -21,5 +21,5 @@ private class CStringVOps (using failure: Failure) extends StringOps[Value]:
     case (CStringV(s1), CStringV(s2)) => CStringV(s1 + s2)
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, CRelationValue[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
   val stringOps: StringOps[Value] = CStringVOps(using failure)

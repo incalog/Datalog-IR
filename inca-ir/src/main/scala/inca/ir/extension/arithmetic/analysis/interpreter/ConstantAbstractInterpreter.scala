@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -23,6 +23,11 @@ trait ConstantEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOp
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (ConstantIntV(i1), ConstantIntV(i2)) => boolOps.boolLit(i1 == i2)
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => boolOps.boolLit(d1 == d2)
+    case _ => super.equ(v1, v2)
+
+  override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
+    case (ConstantIntV(i1), ConstantIntV(i2)) => boolOps.boolLit(i1 != i2)
+    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => boolOps.boolLit(d1 != d2)
     case _ => super.equ(v1, v2)
 
 private def constantIntFromToppedInt(value: Topped[Int]): Value = value match
@@ -65,8 +70,7 @@ trait ConstantJoinV extends BaseJoinV:
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
     case _ => super.join(lhs, rhs)
 
-// Constant Analysis
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ARelationValue[Value], Powerset[BaseIRException], WithJoin]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps()

@@ -9,4 +9,4 @@ import sturdy.values.ordering.EqOps
 trait BaseEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends EqOps[Value, Topped[Boolean]]:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = Top
 
-  override def neq(v1: Value, v2: Value): Topped[Boolean] = boolOps.not(equ(v1, v2))
+  override def neq(v1: Value, v2: Value): Topped[Boolean] = Top
