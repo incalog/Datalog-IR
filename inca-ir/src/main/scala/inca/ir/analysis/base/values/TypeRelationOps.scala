@@ -48,18 +48,16 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
   def map(columnName: String)(f: Seq[TypeValue] => TypeValue): TypeRelation =
     TypeRelation(cols :+ columnName, rows :+ f(rows), empty)
 
-  def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation =
-    f(rows) match
-      case tr@TypeRelation(_, _, Topped.Actual(true)) =>
-        TypeRelation((cols ++ tr.cols).distinct, Seq(), Topped.Actual(true))
-      case tr =>
-        naturalJoin(f(rows))
+  def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation = f(rows) match
+    case tr@TypeRelation(_, _, Topped.Actual(true)) =>
+      TypeRelation((cols ++ tr.cols).distinct, Seq(), Topped.Actual(true))
+    case tr =>
+      naturalJoin(tr)
 
-  def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation =
-    f(rows) match
-      case Topped.Top => copy(empty = Topped.Top)
-      case Topped.Actual(true) => this // unchanged
-      case Topped.Actual(false) => copy(empty = Topped.Actual(true)) // definitely empty
+  def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation = f(rows) match
+    case Topped.Top => copy(empty = Topped.Top)
+    case Topped.Actual(true) => this // unchanged
+    case Topped.Actual(false) => copy(empty = Topped.Actual(true)) // definitely empty
 
   def naturalJoin(other: TypeRelation): TypeRelation =
     val rvCols = cols.zipWithIndex.toMap
@@ -89,11 +87,13 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
       throw new IllegalArgumentException("Schemas must match for join")
 
     val commonRows = rows.zip(other.rows).map { case (v1, v2) => v1.join(v2) }
-    val isEmpty = if commonRows.isEmpty then Topped.Actual(true) else Topped.Top
-    TypeRelation(cols, commonRows, isEmpty)
+    val newEmpty = (empty, other.empty) match
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      case _ => Topped.Top
+    TypeRelation(cols, commonRows, newEmpty)
 
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
-  override def isEmpty(rv: TypeRelation): Topped[Boolean] = Topped.Actual(false)
+  override def isEmpty(rv: TypeRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: TypeRelation, column: String): Boolean = rv.cols.contains(column)
   override def columns(rv: TypeRelation): Seq[String] = rv.cols
