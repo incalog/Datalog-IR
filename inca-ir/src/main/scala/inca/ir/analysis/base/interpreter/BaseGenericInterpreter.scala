@@ -23,7 +23,7 @@ import sturdy.values.references.AllocationSiteAddr
 //  1. Make Context-Sensitive + Insensitive configurable
 //  2. Concrete Interpreter (data + arith + string + agg?)
 //  3. Abstract Interpreter - Constant Analysis (data + arith + string + agg?)
-//  4. Logger to annotate information
+//  4. Logger to annotate information (also about failing atoms + bodies + relations)
 //  5. Optimize program
 
 enum Adorn:

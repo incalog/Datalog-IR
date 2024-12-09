@@ -1,7 +1,7 @@
 package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
-import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, CRelationValue, Top, VBool, Value}
+import inca.ir.analysis.base.values.{ARelationValue, BaseJoinV, CRelationValue, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}

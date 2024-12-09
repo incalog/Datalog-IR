@@ -9,13 +9,13 @@ import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, WildcardAr
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-class TypeTest extends AnyFunSuiteLike:
+class AnalysisTest extends AnyFunSuiteLike:
 
   def interp(mod: Module, edb: Seq[TypeRelation] = Seq()): Unit =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val abstractInterp = IRTypeAbstractInterpreter()
+    val abstractInterp = IRConstantAbstractInterpreter()
     abstractInterp.evalProgram(Seq(mod))
     println(mod)
     println(abstractInterp.idb.getState)

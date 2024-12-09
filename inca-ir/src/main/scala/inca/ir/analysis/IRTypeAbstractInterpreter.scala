@@ -3,7 +3,7 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, SupColumn, given}
+import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisLogger, PrintLogger}
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
