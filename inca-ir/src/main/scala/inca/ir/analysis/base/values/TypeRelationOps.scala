@@ -83,20 +83,23 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     TypeRelation(cols, rows, newEmpty)
 
   def join(other: TypeRelation): TypeRelation =
-    // The schema is not always the same, becuase of the branchingOps. I haven't full understood why, yet.
-    /*if cols != other.cols then
-      throw new IllegalArgumentException("Schemas must match for join")*/
-    val rvCols = cols.zipWithIndex.toMap
-    val otherCols = other.cols.zipWithIndex.toMap
-
-    val newCols = cols ++ other.cols.filterNot(cols.contains)
-    val newTypes = for (c <- newCols) yield {
-      (rvCols.get(c), otherCols.get(c)) match
-        case (Some(rvIx), None) => rows(rvIx)
-        case (None, Some(otherIx)) => other.rows(otherIx)
-        case (Some(rvIx), Some(otherIx)) => rows(rvIx).join(other.rows(otherIx))
-        case (None, None) => throw new IllegalStateException()
+    val (newCols, newTypes) = if (cols != other.cols) {
+      throw new IllegalArgumentException("Schemas must match for join")
+      val rvCols = cols.zipWithIndex.toMap
+      val otherCols = other.cols.zipWithIndex.toMap
+      val newCols = cols ++ other.cols.filterNot(cols.contains)
+      val newTypes = for (c <- newCols) yield {
+        (rvCols.get(c), otherCols.get(c)) match
+          case (Some(rvIx), None) => rows(rvIx)
+          case (None, Some(otherIx)) => other.rows(otherIx)
+          case (Some(rvIx), Some(otherIx)) => rows(rvIx).join(other.rows(otherIx))
+          case (None, None) => throw new IllegalStateException()
+      }
+      (newCols, newTypes)
+    } else {
+      (cols, this.rows.zip(other.rows).map(p => p._1.join(p._2)))
     }
+
     val newEmpty = (empty, other.empty) match
       case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
       case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)

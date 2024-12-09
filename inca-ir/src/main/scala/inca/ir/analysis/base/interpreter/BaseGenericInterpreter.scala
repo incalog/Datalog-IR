@@ -121,10 +121,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   /** updates the supplementary table; CHECKs the new table is non-empty */
   def updateSupplementaryChecked(f: RV => RV): RV =
     val rv = f(supplementaryTable.getTable)
+    supplementaryTable.setTable(rv)
     branchOps.boolBranch(relationOps.isEmpty(rv)) {
       except.throws(EmptySupplementary)
     } {
-      supplementaryTable.setTable(rv)
       rv
     }
 
